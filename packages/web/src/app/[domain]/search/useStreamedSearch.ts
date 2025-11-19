@@ -1,6 +1,6 @@
 'use client';
 
-import { RepositoryInfo, SearchRequest, SearchResponse, SearchResultFile } from '@/features/search/types';
+import { RepositoryInfo, SearchRequest, SearchResultFile, SearchStats, StreamedSearchResponse } from '@/features/search/types';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import * as Sentry from '@sentry/nextjs';
 
@@ -10,6 +10,7 @@ interface CacheEntry {
     numMatches: number;
     durationMs: number;
     timestamp: number;
+    isExhaustive: boolean;
 }
 
 const searchCache = new Map<string, CacheEntry>();
@@ -34,18 +35,22 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
 
     const [state, setState] = useState<{
         isStreaming: boolean,
+        isExhaustive: boolean,
         error: Error | null,
         files: SearchResultFile[],
         repoInfo: Record<number, RepositoryInfo>,
         durationMs: number,
         numMatches: number,
+        stats?: SearchStats,
     }>({
         isStreaming: false,
+        isExhaustive: false,
         error: null,
         files: [],
         repoInfo: {},
         durationMs: 0,
         numMatches: 0,
+        stats: undefined,
     });
 
     const abortControllerRef = useRef<AbortController | null>(null);
@@ -85,6 +90,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                 console.debug('Using cached search results');
                 setState({
                     isStreaming: false,
+                    isExhaustive: cachedEntry.isExhaustive,
                     error: null,
                     files: cachedEntry.files,
                     repoInfo: cachedEntry.repoInfo,
@@ -96,6 +102,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
 
             setState({
                 isStreaming: true,
+                isExhaustive: false,
                 error: null,
                 files: [],
                 repoInfo: {},
@@ -167,22 +174,33 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                             break;
                         }
 
-                        const chunk: SearchResponse = JSON.parse(data);
-                        setState(prev => ({
-                            ...prev,
-                            files: [
-                                ...prev.files,
-                                ...chunk.files
-                            ],
-                            repoInfo: {
-                                ...prev.repoInfo,
-                                ...chunk.repositoryInfo.reduce((acc, repo) => {
-                                    acc[repo.id] = repo;
-                                    return acc;
-                                }, {} as Record<number, RepositoryInfo>),
-                            },
-                            numMatches: prev.numMatches + chunk.stats.actualMatchCount,
-                        }));
+                        const response: StreamedSearchResponse = JSON.parse(data);
+                        switch (response.type) {
+                            case 'chunk':
+                                setState(prev => ({
+                                    ...prev,
+                                    files: [
+                                        ...prev.files,
+                                        ...response.files
+                                    ],
+                                    repoInfo: {
+                                        ...prev.repoInfo,
+                                        ...response.repositoryInfo.reduce((acc, repo) => {
+                                            acc[repo.id] = repo;
+                                            return acc;
+                                        }, {} as Record<number, RepositoryInfo>),
+                                    },
+                                    numMatches: prev.numMatches + response.stats.actualMatchCount,
+                                }));
+                                break;
+                            case 'final':
+                                setState(prev => ({
+                                    ...prev,
+                                    isExhaustive: response.isSearchExhaustive,
+                                    stats: response.accumulatedStats,
+                                }));
+                                break;
+                        }
                     }
                 }
 
@@ -192,6 +210,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                     searchCache.set(cacheKey, {
                         files: prev.files,
                         repoInfo: prev.repoInfo,
+                        isExhaustive: prev.isExhaustive,
                         numMatches: prev.numMatches,
                         durationMs,
                         timestamp: Date.now(),

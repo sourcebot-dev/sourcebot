@@ -1,13 +1,14 @@
 'use server';
 
-import { searchRequestSchema } from '@/features/search/schemas';
-import { SearchResponse, SourceRange } from '@/features/search/types';
+import { searchRequestSchema, SearchStats, SourceRange, StreamedSearchResponse } from '@/features/search/types';
 import { SINGLE_TENANT_ORG_ID } from '@/lib/constants';
 import { schemaValidationError, serviceErrorResponse } from '@/lib/serviceError';
 import { prisma } from '@/prisma';
 import type { ProtoGrpcType } from '@/proto/webserver';
+import { FileMatch__Output } from '@/proto/zoekt/webserver/v1/FileMatch';
 import { Range__Output } from '@/proto/zoekt/webserver/v1/Range';
 import type { SearchRequest } from '@/proto/zoekt/webserver/v1/SearchRequest';
+import { SearchResponse__Output } from '@/proto/zoekt/webserver/v1/SearchResponse';
 import type { StreamSearchRequest } from '@/proto/zoekt/webserver/v1/StreamSearchRequest';
 import type { StreamSearchResponse__Output } from '@/proto/zoekt/webserver/v1/StreamSearchResponse';
 import type { WebserverServiceClient } from '@/proto/zoekt/webserver/v1/WebserverService';
@@ -109,8 +110,22 @@ export const POST = async (request: NextRequest) => {
             },
         });
 
+        console.log(JSON.stringify(zoektQuery, null, 2));
+
         const searchRequest: SearchRequest = {
-            query: zoektQuery,
+            query: {
+                and: {
+                    children: [
+                        zoektQuery,
+                        {
+                            branch: {
+                                pattern: 'HEAD',
+                                exact: true,
+                            }
+                        }
+                    ]
+                }
+            },
             opts: {
                 chunk_matches: true,
                 max_match_display_count: matches,
@@ -158,11 +173,41 @@ const createSSESearchStream = async (searchRequest: SearchRequest, prisma: Prism
     let grpcStream: ReturnType<WebserverServiceClient['StreamSearch']> | null = null;
     let isStreamActive = true;
     let pendingChunks = 0;
+    let accumulatedStats: SearchStats = {
+        actualMatchCount: 0,
+        totalMatchCount: 0,
+        duration: 0,
+        fileCount: 0,
+        filesSkipped: 0,
+        contentBytesLoaded: 0,
+        indexBytesLoaded: 0,
+        crashes: 0,
+        shardFilesConsidered: 0,
+        filesConsidered: 0,
+        filesLoaded: 0,
+        shardsScanned: 0,
+        shardsSkipped: 0,
+        shardsSkippedFilter: 0,
+        ngramMatches: 0,
+        ngramLookups: 0,
+        wait: 0,
+        matchTreeConstruction: 0,
+        matchTreeSearch: 0,
+        regexpsConsidered: 0,
+        flushReason: 0,
+    };
 
     return new ReadableStream({
         async start(controller) {
             const tryCloseController = () => {
                 if (!isStreamActive && pendingChunks === 0) {
+                    const finalResponse: StreamedSearchResponse = {
+                        type: 'final',
+                        accumulatedStats,
+                        isSearchExhaustive: accumulatedStats.totalMatchCount <= accumulatedStats.actualMatchCount,
+                    }
+
+                    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(finalResponse)}\n\n`));
                     controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
                     controller.close();
                     client.close();
@@ -195,7 +240,56 @@ const createSSESearchStream = async (searchRequest: SearchRequest, prisma: Prism
                 // 
                 // Note: When a repository is re-indexed (every hour) this ID will be populated.
                 // @see: https://github.com/sourcebot-dev/zoekt/pull/6
-                const repos = new Map<string | number, Repo>();
+                const getRepoIdForFile = (file: FileMatch__Output): string | number => {
+                    return file.repository_id ?? file.repository;
+                }
+
+                // `_reposMapCache` is used to cache repository metadata across all chunks.
+                // This reduces the number of database queries required to transform file matches.
+                const _reposMapCache = new Map<string | number, Repo>();
+
+                // Creates a mapping between all repository ids in a given response
+                // chunk. The mapping allows us to efficiently lookup repository metadata.
+                const createReposMapForChunk = async (chunk: SearchResponse__Output): Promise<Map<string | number, Repo>> => {
+                    const reposMap = new Map<string | number, Repo>();
+                    await Promise.all(chunk.files.map(async (file) => {
+                        const id = getRepoIdForFile(file);
+
+                        const repo = await (async () => {
+                            // If it's in the cache, return the cached value.
+                            if (_reposMapCache.has(id)) {
+                                return _reposMapCache.get(id);
+                            }
+                            
+                            // Otherwise, query the database for the record.
+                            const repo = typeof id === 'number' ?
+                                await prisma.repo.findUnique({
+                                    where: {
+                                        id: id,
+                                    },
+                                }) :
+                                await prisma.repo.findFirst({
+                                    where: {
+                                        name: id,
+                                    },
+                                });
+
+                            // If a repository is found, cache it for future lookups.
+                            if (repo) {
+                                _reposMapCache.set(id, repo);
+                            }
+
+                            return repo;
+                        })();
+
+                        // Only add the repository to the map if it was found.
+                        if (repo) {
+                            reposMap.set(id, repo);
+                        }
+                    }));
+
+                    return reposMap;
+                }
 
                 // Handle incoming data chunks
                 grpcStream.on('data', async (chunk: StreamSearchResponse__Output) => {
@@ -218,32 +312,12 @@ const createSSESearchStream = async (searchRequest: SearchRequest, prisma: Prism
                             return;
                         }
 
-                        const files = (await Promise.all(chunk.response_chunk.files.map(async (file) => {
+                        const repoIdToRepoDBRecordMap = await createReposMapForChunk(chunk.response_chunk);
+
+                        const files = chunk.response_chunk.files.map((file) => {
                             const fileNameChunks = file.chunk_matches.filter((chunk) => chunk.file_name);
-
-                            const identifier = file.repository_id ?? file.repository;
-
-                            // If the repository is not in the map, fetch it from the database.
-                            if (!repos.has(identifier)) {
-                                const repo = typeof identifier === 'number' ?
-                                    await prisma.repo.findUnique({
-                                        where: {
-                                            id: identifier,
-                                        },
-                                    }) :
-                                    await prisma.repo.findFirst({
-                                        where: {
-                                            name: identifier,
-                                        },
-                                    });
-
-                                if (repo) {
-                                    repos.set(identifier, repo);
-                                }
-                            }
-
-
-                            const repo = repos.get(identifier);
+                            const repoId = getRepoIdForFile(file);
+                            const repo = repoIdToRepoDBRecordMap.get(repoId);
 
                             // This can happen if the user doesn't have access to the repository.
                             if (!repo) {
@@ -307,7 +381,7 @@ const createSSESearchStream = async (searchRequest: SearchRequest, prisma: Prism
                                 branches: file.branches,
                                 content: file.content ? file.content.toString('utf-8') : undefined,
                             }
-                        }))).filter(file => file !== undefined);
+                        }).filter(file => file !== undefined);
 
                         const actualMatchCount = files.reduce(
                             (acc, file) =>
@@ -319,43 +393,45 @@ const createSSESearchStream = async (searchRequest: SearchRequest, prisma: Prism
                             0,
                         );
 
-                        const response: SearchResponse = {
+                        const stats: SearchStats = {
+                            actualMatchCount,
+                            totalMatchCount: chunk.response_chunk.stats?.match_count ?? 0,
+                            duration: chunk.response_chunk.stats?.duration?.nanos ?? 0,
+                            fileCount: chunk.response_chunk.stats?.file_count ?? 0,
+                            filesSkipped: chunk.response_chunk.stats?.files_skipped ?? 0,
+                            contentBytesLoaded: chunk.response_chunk.stats?.content_bytes_loaded ?? 0,
+                            indexBytesLoaded: chunk.response_chunk.stats?.index_bytes_loaded ?? 0,
+                            crashes: chunk.response_chunk.stats?.crashes ?? 0,
+                            shardFilesConsidered: chunk.response_chunk.stats?.shard_files_considered ?? 0,
+                            filesConsidered: chunk.response_chunk.stats?.files_considered ?? 0,
+                            filesLoaded: chunk.response_chunk.stats?.files_loaded ?? 0,
+                            shardsScanned: chunk.response_chunk.stats?.shards_scanned ?? 0,
+                            shardsSkipped: chunk.response_chunk.stats?.shards_skipped ?? 0,
+                            shardsSkippedFilter: chunk.response_chunk.stats?.shards_skipped_filter ?? 0,
+                            ngramMatches: chunk.response_chunk.stats?.ngram_matches ?? 0,
+                            ngramLookups: chunk.response_chunk.stats?.ngram_lookups ?? 0,
+                            wait: chunk.response_chunk.stats?.wait?.nanos ?? 0,
+                            matchTreeConstruction: chunk.response_chunk.stats?.match_tree_construction?.nanos ?? 0,
+                            matchTreeSearch: chunk.response_chunk.stats?.match_tree_search?.nanos ?? 0,
+                            regexpsConsidered: chunk.response_chunk.stats?.regexps_considered ?? 0,
+                            // @todo: handle this.
+                            // flushReason: chunk.response_chunk.stats?.flush_reason ?? 0,
+                            flushReason: 0
+                        }
+
+                        accumulatedStats = accumulateStats(accumulatedStats, stats);
+
+                        const response: StreamedSearchResponse = {
+                            type: 'chunk',
                             files,
-                            repositoryInfo: Array.from(repos.values()).map((repo) => ({
+                            repositoryInfo: Array.from(repoIdToRepoDBRecordMap.values()).map((repo) => ({
                                 id: repo.id,
                                 codeHostType: repo.external_codeHostType,
                                 name: repo.name,
                                 displayName: repo.displayName ?? undefined,
                                 webUrl: repo.webUrl ?? undefined,
                             })),
-                            isBranchFilteringEnabled: false,
-                            // @todo: we will need to figure out how to handle if a search is exhaustive or not
-                            isSearchExhaustive: false,
-                            stats: {
-                                actualMatchCount,
-                                // @todo: todo - 
-                                totalMatchCount: 0,
-                                duration: chunk.response_chunk.stats?.duration?.nanos ?? 0,
-                                fileCount: chunk.response_chunk.stats?.file_count.valueOf() ?? 0,
-                                filesSkipped: chunk.response_chunk.stats?.files_skipped.valueOf() ?? 0,
-                                contentBytesLoaded: chunk.response_chunk.stats?.content_bytes_loaded.valueOf() ?? 0,
-                                indexBytesLoaded: chunk.response_chunk.stats?.index_bytes_loaded.valueOf() ?? 0,
-                                crashes: chunk.response_chunk.stats?.crashes.valueOf() ?? 0,
-                                shardFilesConsidered: chunk.response_chunk.stats?.shard_files_considered.valueOf() ?? 0,
-                                filesConsidered: chunk.response_chunk.stats?.files_considered.valueOf() ?? 0,
-                                filesLoaded: chunk.response_chunk.stats?.files_loaded.valueOf() ?? 0,
-                                shardsScanned: chunk.response_chunk.stats?.shards_scanned.valueOf() ?? 0,
-                                shardsSkipped: chunk.response_chunk.stats?.shards_skipped.valueOf() ?? 0,
-                                shardsSkippedFilter: chunk.response_chunk.stats?.shards_skipped_filter.valueOf() ?? 0,
-                                ngramMatches: chunk.response_chunk.stats?.ngram_matches.valueOf() ?? 0,
-                                ngramLookups: chunk.response_chunk.stats?.ngram_lookups.valueOf() ?? 0,
-                                wait: chunk.response_chunk.stats?.wait?.nanos ?? 0,
-                                matchTreeConstruction: chunk.response_chunk.stats?.match_tree_construction?.nanos ?? 0,
-                                matchTreeSearch: chunk.response_chunk.stats?.match_tree_search?.nanos ?? 0,
-                                regexpsConsidered: chunk.response_chunk.stats?.regexps_considered.valueOf() ?? 0,
-                                // @todo: handle this.
-                                flushReason: 0,
-                            }
+                            stats
                         }
 
                         const sseData = `data: ${JSON.stringify(response)}\n\n`;
@@ -434,4 +510,34 @@ const createSSESearchStream = async (searchRequest: SearchRequest, prisma: Prism
             client.close();
         }
     });
+}
+
+const accumulateStats = (a: SearchStats, b: SearchStats): SearchStats => {
+    return {
+        actualMatchCount: a.actualMatchCount + b.actualMatchCount,
+        totalMatchCount: a.totalMatchCount + b.totalMatchCount,
+        duration: a.duration + b.duration,
+        fileCount: a.fileCount + b.fileCount,
+        filesSkipped: a.filesSkipped + b.filesSkipped,
+        contentBytesLoaded: a.contentBytesLoaded + b.contentBytesLoaded,
+        indexBytesLoaded: a.indexBytesLoaded + b.indexBytesLoaded,
+        crashes: a.crashes + b.crashes,
+        shardFilesConsidered: a.shardFilesConsidered + b.shardFilesConsidered,
+        filesConsidered: a.filesConsidered + b.filesConsidered,
+        filesLoaded: a.filesLoaded + b.filesLoaded,
+        shardsScanned: a.shardsScanned + b.shardsScanned,
+        shardsSkipped: a.shardsSkipped + b.shardsSkipped,
+        shardsSkippedFilter: a.shardsSkippedFilter + b.shardsSkippedFilter,
+        ngramMatches: a.ngramMatches + b.ngramMatches,
+        ngramLookups: a.ngramLookups + b.ngramLookups,
+        wait: a.wait + b.wait,
+        matchTreeConstruction: a.matchTreeConstruction + b.matchTreeConstruction,
+        matchTreeSearch: a.matchTreeSearch + b.matchTreeSearch,
+        regexpsConsidered: a.regexpsConsidered + b.regexpsConsidered,
+        ...(a.flushReason === 0 ? {
+            flushReason: b.flushReason
+        } : {
+            flushReason: a.flushReason,
+        }),
+    }
 }

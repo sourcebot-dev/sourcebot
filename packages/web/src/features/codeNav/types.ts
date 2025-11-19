@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { rangeSchema, repositoryInfoSchema } from "../search/schemas";
+import { rangeSchema, repositoryInfoSchema } from "../search/types";
 
 export const findRelatedSymbolsRequestSchema = z.object({
     symbolName: z.string(),

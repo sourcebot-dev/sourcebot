@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { sew } from "@/actions";
-import { searchResponseSchema } from "@/features/search/schemas";
 import { search } from "@/features/search/searchApi";
 import { ServiceError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
@@ -59,12 +58,12 @@ export const findSearchBasedSymbolDefinitions = async (props: FindRelatedSymbols
             return parseRelatedSymbolsSearchResponse(searchResult);
     }));
 
-const parseRelatedSymbolsSearchResponse = (searchResult: SearchResponse) => {
-    const parser = searchResponseSchema.transform(async ({ files }) => ({
+const parseRelatedSymbolsSearchResponse = (searchResult: SearchResponse): FindRelatedSymbolsResponse => {
+    return {
         stats: {
             matchCount: searchResult.stats.actualMatchCount,
         },
-        files: files.flatMap((file) => {
+        files: searchResult.files.flatMap((file) => {
             const chunks = file.chunks;
 
             return {
@@ -82,9 +81,7 @@ const parseRelatedSymbolsSearchResponse = (searchResult: SearchResponse) => {
             }
         }).filter((file) => file.matches.length > 0),
         repositoryInfo: searchResult.repositoryInfo
-    }));
-
-    return parser.parseAsync(searchResult);
+    };
 }
 
 // Expands the language filter to include all variants of the language.

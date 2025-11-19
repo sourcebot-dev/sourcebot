@@ -4,7 +4,7 @@ import { getFileSource } from "@/features/search/fileSourceApi";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
-import { fileSourceRequestSchema } from "@/features/search/schemas";
+import { fileSourceRequestSchema } from "@/features/search/types";
 
 export const POST = async (request: NextRequest) => {
     const body = await request.json();

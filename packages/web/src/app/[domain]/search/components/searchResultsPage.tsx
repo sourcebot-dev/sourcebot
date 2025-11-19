@@ -62,6 +62,8 @@ export const SearchResultsPage = ({
         durationMs,
         isStreaming,
         numMatches,
+        isExhaustive,
+        stats,
     } = useStreamedSearch({
         query: searchQuery,
         matches: maxMatchCount,
@@ -170,10 +172,8 @@ export const SearchResultsPage = ({
                     repoInfo={repoInfo}
                     searchDurationMs={durationMs}
                     isStreaming={isStreaming}
-                    // @todo: handle search stats
-                    searchStats={undefined}
-                    // @todo: detect when more results are available
-                    isMoreResultsButtonVisible={false}
+                    searchStats={stats}
+                    isMoreResultsButtonVisible={!isExhaustive}
                     // @todo: handle branch filtering
                     isBranchFilteringEnabled={false}
                 />
