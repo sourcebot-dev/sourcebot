@@ -216,9 +216,7 @@ const createSSESearchStream = async (searchRequest: SearchRequest, prisma: Prism
             };
 
             try {
-                // @todo: we should just disable tenant enforcement for now.
                 const metadata = new grpc.Metadata();
-                metadata.add('x-sourcegraph-tenant-id', '1');
 
                 const streamRequest: StreamSearchRequest = {
                     request: searchRequest,
@@ -357,10 +355,9 @@ const createSSESearchStream = async (searchRequest: SearchRequest, prisma: Prism
                                             content: chunk.content.toString('utf-8'),
                                             matchRanges: chunk.ranges.map(convertRange),
                                             contentStart: chunk.content_start ? {
-                                                byteOffset: chunk.content_start.byte_offset ?? 0,
-                                                column: chunk.content_start.column ?? 0,
-                                                lineNumber: chunk.content_start.line_number ?? 0,
-                                                // @nocheckin: Will need to figure out how to handle this case.
+                                                byteOffset: chunk.content_start.byte_offset,
+                                                column: chunk.content_start.column,
+                                                lineNumber: chunk.content_start.line_number,
                                             } : {
                                                 byteOffset: 0,
                                                 column: 0,
