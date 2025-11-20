@@ -14,8 +14,18 @@ export const POST = async (request: NextRequest) => {
             schemaValidationError(parsed.error)
         );
     }
+
+    const {
+        query,
+        ...options
+    } = parsed.data;
     
-    const response = await search(parsed.data);
+    const response = await search({
+        queryType: 'string',
+        query,
+        options,
+    });
+
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }

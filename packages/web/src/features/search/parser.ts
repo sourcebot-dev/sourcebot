@@ -1,4 +1,4 @@
-import { Q as ZoektGrpcQuery } from '@/proto/zoekt/webserver/v1/Q';
+import { QueryIR } from './ir';
 import {
     AndExpr,
     ArchivedExpr,
@@ -21,12 +21,14 @@ import {
     Tree,
     VisibilityExpr,
 } from '@sourcebot/query-language';
-import { parser as _lezerQueryParser } from '@sourcebot/query-language';
+import { parser as _parser } from '@sourcebot/query-language';
+import { PrismaClient } from '@sourcebot/db';
+import { SINGLE_TENANT_ORG_ID } from '@/lib/constants';
 
-const lezerQueryParser = _lezerQueryParser.configure({
+// Configure the parser to throw errors when encountering invalid syntax.
+const parser = _parser.configure({
     strict: true,
 });
-
 
 type ArchivedValue = 'yes' | 'no' | 'only';
 type VisibilityValue = 'public' | 'private' | 'any';
@@ -44,11 +46,56 @@ const isForkValue = (value: string): value is ForkValue => {
     return value === 'yes' || value === 'no' || value === 'only';
 }
 
-export const parseQueryIntoLezerTree = (query: string): Tree => {
-    return lezerQueryParser.parse(query);
+/**
+ * Given a query string, parses it into the query intermediate representation.
+ */
+export const parseQuerySyntaxIntoIR = async ({
+    query,
+    options,
+    prisma,
+}: {
+    query: string,
+    options: {
+        isCaseSensitivityEnabled?: boolean;
+        isRegexEnabled?: boolean;
+    },
+    prisma: PrismaClient,
+}): Promise<QueryIR> => {
+    // First parse the query into a Lezer tree.
+    const tree = parser.parse(query);
+
+    // Then transform the tree into the intermediate representation.
+    return transformTreeToIR({
+        tree,
+        input: query,
+        isCaseSensitivityEnabled: options.isCaseSensitivityEnabled ?? false,
+        isRegexEnabled: options.isRegexEnabled ?? false,
+        onExpandSearchContext: async (contextName: string) => {
+            const context = await prisma.searchContext.findUnique({
+                where: {
+                    name_orgId: {
+                        name: contextName,
+                        orgId: SINGLE_TENANT_ORG_ID,
+                    }
+                },
+                include: {
+                    repos: true,
+                }
+            });
+
+            if (!context) {
+                throw new Error(`Search context "${contextName}" not found`);
+            }
+
+            return context.repos.map((repo) => repo.name);
+        },
+    });
 }
 
-export const transformLezerTreeToZoektGrpcQuery = async ({
+/**
+ * Given a Lezer tree, transforms it into the query intermediate representation.
+ */
+const transformTreeToIR = async ({
     tree,
     input,
     isCaseSensitivityEnabled,
@@ -60,8 +107,8 @@ export const transformLezerTreeToZoektGrpcQuery = async ({
     isCaseSensitivityEnabled: boolean;
     isRegexEnabled: boolean;
     onExpandSearchContext: (contextName: string) => Promise<string[]>;
-}): Promise<ZoektGrpcQuery> => {
-    const transformNode = async (node: SyntaxNode): Promise<ZoektGrpcQuery> => {
+}): Promise<QueryIR> => {
+    const transformNode = async (node: SyntaxNode): Promise<QueryIR> => {
         switch (node.type.id) {
             case Program: {
                 // Program wraps the actual query - transform its child
@@ -140,7 +187,7 @@ export const transformLezerTreeToZoektGrpcQuery = async ({
         }
     }
 
-    const transformPrefixExpr = async (node: SyntaxNode): Promise<ZoektGrpcQuery> => {
+    const transformPrefixExpr = async (node: SyntaxNode): Promise<QueryIR> => {
         // Find which specific prefix type this is
         const prefixNode = node.firstChild;
         if (!prefixNode) {

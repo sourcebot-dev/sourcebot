@@ -14,7 +14,17 @@ export const POST = async (request: NextRequest) => {
         return serviceErrorResponse(schemaValidationError(parsed.error));
     }
 
-    const stream = await streamSearch(parsed.data);
+    const {
+        query,
+        ...options
+    } = parsed.data;
+
+    const stream = await streamSearch({
+        queryType: 'string',
+        query,
+        options,
+    });
+
     if (isServiceError(stream)) {
         return serviceErrorResponse(stream);
     }

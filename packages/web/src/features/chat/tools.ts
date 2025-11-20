@@ -178,12 +178,15 @@ Multiple expressions can be or'd together with or, negated with -, or grouped wi
         });
 
         const response = await search({
+            queryType: 'string',
             query,
-            matches: limit ?? 100,
-            contextLines: 3,
-            whole: false,
-            isCaseSensitivityEnabled: true,
-            isRegexEnabled: true,
+            options: {
+                matches: limit ?? 100,
+                contextLines: 3,
+                whole: false,
+                isCaseSensitivityEnabled: true,
+                isRegexEnabled: true,
+            }
         });
 
         if (isServiceError(response)) {
@@ -219,11 +222,11 @@ export const searchReposTool = tool({
     }),
     execute: async ({ query, limit }) => {
         const reposResponse = await getRepos();
-        
+
         if (isServiceError(reposResponse)) {
             return reposResponse;
         }
-        
+
         // Configure Fuse.js for fuzzy searching
         const fuse = new Fuse(reposResponse, {
             keys: [
@@ -234,7 +237,7 @@ export const searchReposTool = tool({
             includeScore: true,
             minMatchCharLength: 1,
         });
-        
+
         const searchResults = fuse.search(query, { limit: limit ?? 10 });
 
         searchResults.sort((a, b) => (a.score ?? 0) - (b.score ?? 0));
@@ -253,11 +256,11 @@ export const listAllReposTool = tool({
     inputSchema: z.object({}),
     execute: async () => {
         const reposResponse = await getRepos();
-        
+
         if (isServiceError(reposResponse)) {
             return reposResponse;
         }
-        
+
         return reposResponse.map((repo) => repo.repoName);
     }
 });

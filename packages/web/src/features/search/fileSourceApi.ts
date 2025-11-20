@@ -5,23 +5,46 @@ import { isServiceError } from "../../lib/utils";
 import { search } from "./searchApi";
 import { sew } from "@/actions";
 import { withOptionalAuthV2 } from "@/withAuthV2";
+import { QueryIR } from './ir';
 // @todo (bkellam) #574 : We should really be using `git show <hash>:<path>` to fetch file contents here.
 // This will allow us to support permalinks to files at a specific revision that may not be indexed
 // by zoekt.
 
 export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => sew(() =>
     withOptionalAuthV2(async () => {
-        let query = `file:${fileName} repo:^${repository}$`;
-        if (branch) {
-            query = query.concat(` rev:${branch}`);
+        const query: QueryIR = {
+            and: {
+                children: [
+                    {
+                        repo: {
+                            regexp: `^${repository}$`,
+                        },
+                    },
+                    {
+                        regexp: {
+                            regexp: fileName,
+                            case_sensitive: true,
+                            file_name: true,
+                            content: false
+                        },
+                    },
+                    ...(branch ? [{
+                        branch: {
+                            pattern: branch,
+                            exact: true,
+                        },
+                    }]: [])
+                ]
+            }
         }
 
         const searchResponse = await search({
+            queryType: 'ir',
             query,
-            matches: 1,
-            whole: true,
-            isCaseSensitivityEnabled: true,
-            isRegexEnabled: true,
+            options: {
+                matches: 1,
+                whole: true,
+            }
         });
 
         if (isServiceError(searchResponse)) {

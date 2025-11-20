@@ -82,13 +82,18 @@ export const searchFileSchema = z.object({
 export type SearchResultFile = z.infer<typeof searchFileSchema>;
 export type SearchResultChunk = SearchResultFile["chunks"][number];
 
-export const searchRequestSchema = z.object({
-    query: z.string(),                                // The zoekt query to execute.
+export const searchOptionsSchema = z.object({
     matches: z.number(),                              // The number of matches to return.
     contextLines: z.number().optional(),              // The number of context lines to return.
     whole: z.boolean().optional(),                    // Whether to return the whole file as part of the response.
     isRegexEnabled: z.boolean().optional(),           // Whether to enable regular expression search.
     isCaseSensitivityEnabled: z.boolean().optional(), // Whether to enable case sensitivity.
+});
+export type SearchOptions = z.infer<typeof searchOptionsSchema>;
+
+export const searchRequestSchema = z.object({
+    query: z.string(),                                // The zoekt query to execute.
+    ...searchOptionsSchema.shape,
 });
 export type SearchRequest = z.infer<typeof searchRequestSchema>;
 
