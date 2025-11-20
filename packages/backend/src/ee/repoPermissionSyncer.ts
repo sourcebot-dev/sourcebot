@@ -56,7 +56,8 @@ export class RepoPermissionSyncer {
                 // Repos need their permissions to be synced against the code host when...
                 where: {
                     AND: [
-                        // They are not public, as they are always visible to all users.
+                        // They are not public. Public repositories are always visible to all users, therefore we don't
+                        // need to explicitly perform permission syncing for them.
                         // @see: packages/web/src/prisma.ts
                         {
                             isPublic: false
