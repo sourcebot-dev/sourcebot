@@ -19,6 +19,7 @@ import { parseQueryIntoLezerTree, transformLezerTreeToZoektGrpcQuery } from './q
 import { RepositoryInfo, SearchRequest, SearchResponse, SearchResultFile, SearchStats, SourceRange, StreamedSearchResponse } from "./types";
 import { FlushReason as ZoektFlushReason } from "@/proto/zoekt/webserver/v1/FlushReason";
 import { RevisionExpr } from "@sourcebot/query-language";
+import { getCodeHostBrowseFileAtBranchUrl } from "@/lib/utils";
 
 const logger = createLogger("searchApi");
 
@@ -29,7 +30,7 @@ export const search = (searchRequest: SearchRequest) => sew(() =>
             prisma,
         });
 
-        console.debug('zoektSearchRequest:', JSON.stringify(zoektSearchRequest, null, 2));
+        logger.debug('zoektSearchRequest:', JSON.stringify(zoektSearchRequest, null, 2));
 
         return zoektSearch(zoektSearchRequest, prisma);
     }));
@@ -40,6 +41,8 @@ export const streamSearch = (searchRequest: SearchRequest) => sew(() =>
             searchRequest,
             prisma,
         });
+
+        logger.debug('zoektStreamSearchRequest:', JSON.stringify(zoektSearchRequest, null, 2));
 
         return zoektStreamSearch(zoektSearchRequest, prisma);
     }));
@@ -304,13 +307,13 @@ const transformZoektSearchResponse = async (response: ZoektGrpcSearchResponse, r
         const convertRange = (range: ZoektGrpcRange): SourceRange => ({
             start: {
                 byteOffset: range.start?.byte_offset ?? 0,
-                column: range.start?.column ?? 0,
-                lineNumber: range.start?.line_number ?? 0,
+                column: range.start?.column ?? 1,
+                lineNumber: range.start?.line_number ?? 1,
             },
             end: {
                 byteOffset: range.end?.byte_offset ?? 0,
-                column: range.end?.column ?? 0,
-                lineNumber: range.end?.line_number ?? 0,
+                column: range.end?.column ?? 1,
+                lineNumber: range.end?.line_number ?? 1,
             }
         })
 
@@ -322,8 +325,13 @@ const transformZoektSearchResponse = async (response: ZoektGrpcSearchResponse, r
             repository: repo.name,
             repositoryId: repo.id,
             language: file.language,
-            // @todo: we will need to have a mechanism of forming the file's web url.
-            webUrl: '',
+            webUrl: getCodeHostBrowseFileAtBranchUrl({
+                webUrl: repo.webUrl,
+                codeHostType: repo.external_codeHostType,
+                // If a file has multiple branches, default to the first one.
+                branchName: file.branches?.[0] ?? 'HEAD',
+                filePath: fileName,
+            }),
             chunks: file.chunk_matches
                 .filter((chunk) => !chunk.file_name) // filter out filename chunks.
                 .map((chunk) => {
@@ -336,8 +344,8 @@ const transformZoektSearchResponse = async (response: ZoektGrpcSearchResponse, r
                             lineNumber: chunk.content_start.line_number,
                         } : {
                             byteOffset: 0,
-                            column: 0,
-                            lineNumber: 0,
+                            column: 1,
+                            lineNumber: 1,
                         },
                         symbols: chunk.symbol_info.map((symbol) => {
                             return {
