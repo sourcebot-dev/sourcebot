@@ -12,37 +12,45 @@ import { withOptionalAuthV2 } from "@/withAuthV2";
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import * as Sentry from '@sentry/nextjs';
-import { PrismaClient, Repo } from "@sourcebot/db";
-import { createLogger, env } from "@sourcebot/shared";
+import { PrismaClient, Repo, UserWithAccounts } from "@sourcebot/db";
+import { createLogger, env, hasEntitlement } from "@sourcebot/shared";
 import path from 'path';
 import { parseQueryIntoLezerTree, transformLezerTreeToZoektGrpcQuery } from './query';
 import { RepositoryInfo, SearchRequest, SearchResponse, SearchResultFile, SearchStats, SourceRange, StreamedSearchResponse } from "./types";
 import { FlushReason as ZoektFlushReason } from "@/proto/zoekt/webserver/v1/FlushReason";
 import { RevisionExpr } from "@sourcebot/query-language";
 import { getCodeHostBrowseFileAtBranchUrl } from "@/lib/utils";
+import { getRepoPermissionFilterForUser } from "@/prisma";
 
 const logger = createLogger("searchApi");
 
 export const search = (searchRequest: SearchRequest) => sew(() =>
-    withOptionalAuthV2(async ({ prisma }) => {
+    withOptionalAuthV2(async ({ prisma, user }) => {
+        const repoSearchScope = await getAccessibleRepoNamesForUser({ user, prisma });
+
         const zoektSearchRequest = await createZoektSearchRequest({
             searchRequest,
             prisma,
+            repoSearchScope,
         });
 
-        logger.debug('zoektSearchRequest:', JSON.stringify(zoektSearchRequest, null, 2));
+
+        logger.debug(`zoektSearchRequest:\n${JSON.stringify(zoektSearchRequest, null, 2)}`);
 
         return zoektSearch(zoektSearchRequest, prisma);
     }));
 
 export const streamSearch = (searchRequest: SearchRequest) => sew(() =>
-    withOptionalAuthV2(async ({ prisma }) => {
+    withOptionalAuthV2(async ({ prisma, user }) => {
+        const repoSearchScope = await getAccessibleRepoNamesForUser({ user, prisma });
+
         const zoektSearchRequest = await createZoektSearchRequest({
             searchRequest,
             prisma,
+            repoSearchScope,
         });
 
-        logger.debug('zoektStreamSearchRequest:', JSON.stringify(zoektSearchRequest, null, 2));
+        console.log(`zoektStreamSearchRequest:\n${JSON.stringify(zoektSearchRequest, null, 2)}`);
 
         return zoektStreamSearch(zoektSearchRequest, prisma);
     }));
@@ -296,9 +304,9 @@ const transformZoektSearchResponse = async (response: ZoektGrpcSearchResponse, r
         const repoId = getRepoIdForFile(file);
         const repo = reposMapCache.get(repoId);
 
-        // This can happen if the user doesn't have access to the repository.
+        // This should never happen.
         if (!repo) {
-            return undefined;
+            throw new Error(`Repository not found for file: ${file.file_name}`);
         }
 
         // @todo: address "file_name might not be a valid UTF-8 string" warning.
@@ -432,9 +440,12 @@ const getRepoIdForFile = (file: ZoektGrpcFileMatch): string | number => {
 const createZoektSearchRequest = async ({
     searchRequest,
     prisma,
+    repoSearchScope,
 }: {
     searchRequest: SearchRequest;
     prisma: PrismaClient;
+    // Allows the caller to scope the search to a specific set of repositories.
+    repoSearchScope?: string[];
 }) => {
     const tree = parseQueryIntoLezerTree(searchRequest.query);
     const zoektQuery = await transformLezerTreeToZoektGrpcQuery({
@@ -485,6 +496,14 @@ const createZoektSearchRequest = async ({
                         branch: {
                             pattern: 'HEAD',
                             exact: true,
+                        }
+                    }] : []),
+                    ...(repoSearchScope ? [{
+                        repo_set: {
+                            set: repoSearchScope.reduce((acc, repo) => {
+                                acc[repo] = true;
+                                return acc;
+                            }, {} as Record<string, boolean>)
                         }
                     }] : []),
                 ]
@@ -540,6 +559,27 @@ const createZoektSearchRequest = async ({
     };
 
     return zoektSearchRequest;
+}
+
+/**
+ * Returns a list of repository names that the user has access to.
+ * If permission syncing is disabled, returns undefined.
+ */
+const getAccessibleRepoNamesForUser = async ({ user, prisma }: { user?: UserWithAccounts, prisma: PrismaClient }) => {
+    if (
+        env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED !== 'true' ||
+        !hasEntitlement('permission-syncing')
+    ) {
+        return undefined;
+    }
+
+    const accessibleRepos = await prisma.repo.findMany({
+        where: getRepoPermissionFilterForUser(user),
+        select: {
+            name: true,
+        }
+    });
+    return accessibleRepos.map(repo => repo.name);
 }
 
 const createGrpcClient = (): WebserverServiceClient => {
