@@ -102,7 +102,7 @@ export class AccountPermissionSyncer {
         if (this.interval) {
             clearInterval(this.interval);
         }
-        await this.worker.close();
+        await this.worker.close(/* force = */ true);
         await this.queue.close();
     }
 

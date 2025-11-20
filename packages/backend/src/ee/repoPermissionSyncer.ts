@@ -55,19 +55,26 @@ export class RepoPermissionSyncer {
             const repos = await this.db.repo.findMany({
                 // Repos need their permissions to be synced against the code host when...
                 where: {
-                    // They belong to a code host that supports permissions syncing
                     AND: [
+                        // They are not public, as they are always visible to all users.
+                        // @see: packages/web/src/prisma.ts
+                        {
+                            isPublic: false
+                        },
+                        // They belong to a code host that supports permissions syncing
                         {
                             external_codeHostType: {
                                 in: PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES,
                             }
                         },
+                        // They have not been synced within the threshold date.
                         {
                             OR: [
                                 { permissionSyncedAt: null },
                                 { permissionSyncedAt: { lt: thresholdDate } },
                             ],
                         },
+                        // There aren't any active or recently failed jobs.
                         {
                             NOT: {
                                 permissionSyncJobs: {
@@ -106,7 +113,7 @@ export class RepoPermissionSyncer {
         if (this.interval) {
             clearInterval(this.interval);
         }
-        await this.worker.close();
+        await this.worker.close(/* force = */ true);
         await this.queue.close();
     }
 

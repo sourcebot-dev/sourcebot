@@ -111,20 +111,21 @@ const listenToShutdownSignals = () => {
             await redis.quit();
             await api.dispose();
             await shutdownPosthog();
-
             
             logger.info('All workers shut down gracefully');
             signals.forEach(sig => process.removeListener(sig, cleanup));
+            return 0;
         } catch (error) {
             Sentry.captureException(error);
             logger.error('Error shutting down worker:', error);
+            return 1;
         }
     }
 
     signals.forEach(signal => {
         process.on(signal, (err) => {
-            cleanup(err).finally(() => {
-                process.kill(process.pid, signal);
+            cleanup(err).then(code => {
+                process.exit(code);
             });
         });
     });
@@ -132,14 +133,14 @@ const listenToShutdownSignals = () => {
     // Register handlers for uncaught exceptions and unhandled rejections
     process.on('uncaughtException', (err) => {
         logger.error(`Uncaught exception: ${err.message}`);
-        cleanup('uncaughtException').finally(() => {
+        cleanup('uncaughtException').then(() => {
             process.exit(1);
         });
     });
 
     process.on('unhandledRejection', (reason, promise) => {
         logger.error(`Unhandled rejection at: ${promise}, reason: ${reason}`);
-        cleanup('unhandledRejection').finally(() => {
+        cleanup('unhandledRejection').then(() => {
             process.exit(1);
         });
     });
