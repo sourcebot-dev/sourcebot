@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed spurious infinite loads with explore panel, file tree, and file search command. [#617](https://github.com/sourcebot-dev/sourcebot/pull/617)
 - Wipe search context on init if entitlement no longer exists [#618](https://github.com/sourcebot-dev/sourcebot/pull/618)
 - Fixed Bitbucket repository exclusions not supporting glob patterns. [#620](https://github.com/sourcebot-dev/sourcebot/pull/620)
+- Fixed issue where the repo driven permission syncer was attempting to sync public repositories. [#624](https://github.com/sourcebot-dev/sourcebot/pull/624)
+- Fixed issue where worker would not shutdown while a permission sync job (repo or user) was in progress. [#624](https://github.com/sourcebot-dev/sourcebot/pull/624)
 
 ## [4.9.2] - 2025-11-13
 
