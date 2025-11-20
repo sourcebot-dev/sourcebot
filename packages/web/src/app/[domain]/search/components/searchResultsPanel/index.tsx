@@ -88,7 +88,7 @@ export const SearchResultsPanel = forwardRef<SearchResultsPanelHandle, SearchRes
 
     const resetScroll = useCallback(() => {
         virtualizer.scrollToIndex(0);
-    }, [fileMatches.length, virtualizer]);
+    }, [virtualizer]);
 
     // Expose the resetScroll function to parent components
     useImperativeHandle(ref, () => ({
@@ -121,7 +121,7 @@ export const SearchResultsPanel = forwardRef<SearchResultsPanelHandle, SearchRes
                 align: 'start'
             });
         }
-    }, [showAllMatchesMap, virtualizer]);
+    }, [showAllMatchesActions, showAllMatchesMap, virtualizer]);
 
 
     return (

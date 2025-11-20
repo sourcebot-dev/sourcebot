@@ -18,6 +18,7 @@ import path from 'path';
 import { parseQueryIntoLezerTree, transformLezerTreeToZoektGrpcQuery } from './query';
 import { RepositoryInfo, SearchRequest, SearchResponse, SearchResultFile, SearchStats, SourceRange, StreamedSearchResponse } from "./types";
 import { FlushReason as ZoektFlushReason } from "@/proto/zoekt/webserver/v1/FlushReason";
+import { RevisionExpr } from "@sourcebot/query-language";
 
 const logger = createLogger("searchApi");
 
@@ -454,18 +455,30 @@ const createZoektSearchRequest = async ({
         },
     });
 
+    // Find if there are any `rev:` filters in the query.
+    let containsRevExpression = false;
+    tree.iterate({
+        enter: (node) => {
+            if (node.type.id === RevisionExpr) {
+                containsRevExpression = true;
+                // false to stop the iteration.
+                return false;
+            }
+        }
+    });
+
     const zoektSearchRequest: ZoektGrpcSearchRequest = {
         query: {
             and: {
                 children: [
                     zoektQuery,
-                    // @todo: handle branch filtering.
-                    {
+                    // If the query does not contain a `rev:` filter, we default to searching `HEAD`.
+                    ...(!containsRevExpression ? [{
                         branch: {
                             pattern: 'HEAD',
                             exact: true,
                         }
-                    }
+                    }] : []),
                 ]
             }
         },

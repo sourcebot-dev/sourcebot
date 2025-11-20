@@ -75,7 +75,7 @@ export const FileMatchContainer = ({
         }
 
         return `${branches[0]}${branches.length > 1 ? ` +${branches.length - 1}` : ''}`;
-    }, [isBranchFilteringEnabled, branches]);
+    }, [branches, isBranchFilteringEnabled]);
 
     const repo = useMemo(() => {
         return repoInfo[file.repositoryId];

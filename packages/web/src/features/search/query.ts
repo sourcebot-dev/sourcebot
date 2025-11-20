@@ -61,7 +61,6 @@ export const transformLezerTreeToZoektGrpcQuery = async ({
     isRegexEnabled: boolean;
     onExpandSearchContext: (contextName: string) => Promise<string[]>;
 }): Promise<ZoektGrpcQuery> => {
-
     const transformNode = async (node: SyntaxNode): Promise<ZoektGrpcQuery> => {
         switch (node.type.id) {
             case Program: {
@@ -200,7 +199,7 @@ export const transformLezerTreeToZoektGrpcQuery = async ({
                     query: "substring"
                 };
 
- 
+
             case LangExpr:
                 return {
                     language: {
@@ -277,11 +276,11 @@ export const transformLezerTreeToZoektGrpcQuery = async ({
             }
             case ForkExpr: {
                 const rawValue = value.toLowerCase();
-                
+
                 if (!isForkValue(rawValue)) {
                     throw new Error(`Invalid fork value: ${rawValue}. Expected 'yes', 'no', or 'only'`);
                 }
-                
+
                 const flags: ('FLAG_ONLY_FORKS' | 'FLAG_NO_FORKS')[] = [];
 
                 if (rawValue === 'yes') {
@@ -336,12 +335,8 @@ const getChildren = (node: SyntaxNode): SyntaxNode[] => {
     const children: SyntaxNode[] = [];
     let child = node.firstChild;
     while (child) {
-        // Skip certain node types that are just structural
-        if (!["(", ")", "or"].includes(child.type.name)) {
-            children.push(child);
-        }
+        children.push(child);
         child = child.nextSibling;
     }
     return children;
 }
-

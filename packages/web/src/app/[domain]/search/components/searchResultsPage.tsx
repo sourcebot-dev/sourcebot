@@ -12,6 +12,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search/types";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useDomain } from "@/hooks/useDomain";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
@@ -32,7 +33,6 @@ import { CodePreviewPanel } from "./codePreviewPanel";
 import { FilterPanel } from "./filterPanel";
 import { useFilteredMatches } from "./filterPanel/useFilterMatches";
 import { SearchResultsPanel, SearchResultsPanelHandle } from "./searchResultsPanel";
-import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface SearchResultsPageProps {
     searchQuery: string;
@@ -156,6 +156,13 @@ export const SearchResultsPage = ({
         router.push(url);
     }, [maxMatchCount, router, searchQuery, domain]);
 
+    // Look for any files that are not on the default branch.
+    const isBranchFilteringEnabled = useMemo(() => {
+        return files.some((file) => {
+            return file.branches?.some((branch) => branch !== 'HEAD') ?? false;
+        });
+    }, [files]);
+
     return (
         <div className="flex flex-col h-screen overflow-clip">
             {/* TopBar */}
@@ -189,8 +196,7 @@ export const SearchResultsPage = ({
                     isStreaming={isStreaming}
                     searchStats={stats}
                     isMoreResultsButtonVisible={!isExhaustive}
-                    // @todo: handle branch filtering
-                    isBranchFilteringEnabled={false}
+                    isBranchFilteringEnabled={isBranchFilteringEnabled}
                 />
             )}
         </div>

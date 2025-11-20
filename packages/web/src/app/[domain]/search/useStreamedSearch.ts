@@ -33,7 +33,6 @@ const isCacheValid = (entry: CacheEntry): boolean => {
 };
 
 export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegexEnabled, isCaseSensitivityEnabled }: SearchRequest) => {
-
     const [state, setState] = useState<{
         isStreaming: boolean,
         isExhaustive: boolean,
