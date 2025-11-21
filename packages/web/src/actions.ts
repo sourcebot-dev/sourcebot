@@ -48,6 +48,10 @@ export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> =>
         Sentry.captureException(e);
         logger.error(e);
 
+        if (e instanceof ServiceErrorException) {
+            return e.serviceError;
+        }
+
         if (e instanceof Error) {
             return unexpectedError(e.message);
         }

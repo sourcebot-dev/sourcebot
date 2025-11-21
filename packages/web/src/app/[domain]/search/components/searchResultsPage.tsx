@@ -33,6 +33,7 @@ import { CodePreviewPanel } from "./codePreviewPanel";
 import { FilterPanel } from "./filterPanel";
 import { useFilteredMatches } from "./filterPanel/useFilterMatches";
 import { SearchResultsPanel, SearchResultsPanelHandle } from "./searchResultsPanel";
+import { ServiceErrorException } from "@/lib/serviceError";
 
 interface SearchResultsPageProps {
     searchQuery: string;
@@ -79,7 +80,7 @@ export const SearchResultsPage = ({
     useEffect(() => {
         if (error) {
             toast({
-                description: `❌ Search failed. Reason: ${error.message}`,
+                description: `❌ Search failed. Reason: ${error instanceof ServiceErrorException ? error.serviceError.message : error.message}`,
             });
         }
     }, [error, toast]);
@@ -184,7 +185,7 @@ export const SearchResultsPage = ({
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                     <AlertTriangleIcon className="h-6 w-6" />
                     <p className="font-semibold text-center">Failed to search</p>
-                    <p className="text-sm text-center">{error.message}</p>
+                    <p className="text-sm text-center">{error instanceof ServiceErrorException ? error.serviceError.message : error.message}</p>
                 </div>
             ) : (
                 <PanelGroup

@@ -24,6 +24,9 @@ import {
 import { parser as _parser } from '@sourcebot/query-language';
 import { PrismaClient } from '@sourcebot/db';
 import { SINGLE_TENANT_ORG_ID } from '@/lib/constants';
+import { ServiceErrorException } from '@/lib/serviceError';
+import { StatusCodes } from 'http-status-codes';
+import { ErrorCode } from '@/lib/errorCodes';
 
 // Configure the parser to throw errors when encountering invalid syntax.
 const parser = _parser.configure({
@@ -61,35 +64,47 @@ export const parseQuerySyntaxIntoIR = async ({
     },
     prisma: PrismaClient,
 }): Promise<QueryIR> => {
-    // First parse the query into a Lezer tree.
-    const tree = parser.parse(query);
 
-    // Then transform the tree into the intermediate representation.
-    return transformTreeToIR({
-        tree,
-        input: query,
-        isCaseSensitivityEnabled: options.isCaseSensitivityEnabled ?? false,
-        isRegexEnabled: options.isRegexEnabled ?? false,
-        onExpandSearchContext: async (contextName: string) => {
-            const context = await prisma.searchContext.findUnique({
-                where: {
-                    name_orgId: {
-                        name: contextName,
-                        orgId: SINGLE_TENANT_ORG_ID,
+    try {
+        // First parse the query into a Lezer tree.
+        const tree = parser.parse(query);
+
+        // Then transform the tree into the intermediate representation.
+        return transformTreeToIR({
+            tree,
+            input: query,
+            isCaseSensitivityEnabled: options.isCaseSensitivityEnabled ?? false,
+            isRegexEnabled: options.isRegexEnabled ?? false,
+            onExpandSearchContext: async (contextName: string) => {
+                const context = await prisma.searchContext.findUnique({
+                    where: {
+                        name_orgId: {
+                            name: contextName,
+                            orgId: SINGLE_TENANT_ORG_ID,
+                        }
+                    },
+                    include: {
+                        repos: true,
                     }
-                },
-                include: {
-                    repos: true,
+                });
+
+                if (!context) {
+                    throw new Error(`Search context "${contextName}" not found`);
                 }
+
+                return context.repos.map((repo) => repo.name);
+            },
+        });
+    } catch (error) {
+        if (error instanceof SyntaxError) {
+            throw new ServiceErrorException({
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.FAILED_TO_PARSE_QUERY,
+                message: `Failed to parse query "${query}" with message: ${error.message}`,
             });
-
-            if (!context) {
-                throw new Error(`Search context "${contextName}" not found`);
-            }
-
-            return context.repos.map((repo) => repo.name);
-        },
-    });
+        }
+        throw error;
+    }
 }
 
 /**

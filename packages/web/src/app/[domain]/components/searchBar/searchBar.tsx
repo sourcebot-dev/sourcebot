@@ -287,7 +287,7 @@ export const SearchBar = ({
                 indentWithTab={false}
                 autoFocus={autoFocus ?? false}
             />
-            <div className="flex flex-row items-center gap-1">
+            <div className="flex flex-row items-center gap-1 ml-1">
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <span>

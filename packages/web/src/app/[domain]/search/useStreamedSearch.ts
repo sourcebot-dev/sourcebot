@@ -1,8 +1,10 @@
 'use client';
 
 import { RepositoryInfo, SearchRequest, SearchResultFile, SearchStats, StreamedSearchResponse } from '@/features/search';
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { ServiceErrorException } from '@/lib/serviceError';
+import { isServiceError } from '@/lib/utils';
 import * as Sentry from '@sentry/nextjs';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface CacheEntry {
     files: SearchResultFile[];
@@ -132,6 +134,14 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                 });
 
                 if (!response.ok) {
+                    // Check if this is a service error response
+                    const contentType = response.headers.get('content-type');
+                    if (contentType?.includes('application/json')) {
+                        const errorData = await response.json();
+                        if (isServiceError(errorData)) {
+                            throw new ServiceErrorException(errorData);
+                        }
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
@@ -249,7 +259,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                     ...prev,
                     isStreaming: false,
                     timeToSearchCompletionMs,
-                    error: error as Error,
+                    error: error instanceof Error ? error : null,
                 }));
             }
         }
