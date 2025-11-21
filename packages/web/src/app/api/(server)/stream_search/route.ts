@@ -1,7 +1,6 @@
 'use server';
 
-import { streamSearch } from '@/features/search/searchApi';
-import { searchRequestSchema } from '@/features/search/types';
+import { streamSearch, searchRequestSchema } from '@/features/search';
 import { schemaValidationError, serviceErrorResponse } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
 import { NextRequest } from 'next/server';

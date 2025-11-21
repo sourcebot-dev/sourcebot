@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import { useMemo } from "react";
-import { SourceRange } from "@/features/search/types";
+import { SourceRange } from "@/features/search";
 
 interface SymbolDefinitionPreviewProps {
     symbolDefinition: {

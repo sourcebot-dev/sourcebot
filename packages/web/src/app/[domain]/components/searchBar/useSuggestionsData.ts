@@ -5,7 +5,7 @@ import { Suggestion, SuggestionMode } from "./searchSuggestionsBox";
 import { getRepos, search } from "@/app/api/(client)/client";
 import { getSearchContexts } from "@/actions";
 import { useMemo } from "react";
-import { SearchSymbol } from "@/features/search/types";
+import { SearchSymbol } from "@/features/search";
 import { languageMetadataMap } from "@/lib/languageMetadata";
 import {
     VscSymbolClass,

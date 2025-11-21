@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { search } from "@/features/search/searchApi"
+import { search } from "@/features/search"
 import { InferToolInput, InferToolOutput, InferUITool, tool, ToolUIPart } from "ai";
 import { isServiceError } from "@/lib/utils";
 import { getFileSource } from "../search/fileSourceApi";

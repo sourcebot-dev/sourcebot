@@ -1,6 +1,6 @@
 'use client';
 
-import { RepositoryInfo, SearchRequest, SearchResultFile, SearchStats, StreamedSearchResponse } from '@/features/search/types';
+import { RepositoryInfo, SearchRequest, SearchResultFile, SearchStats, StreamedSearchResponse } from '@/features/search';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import * as Sentry from '@sentry/nextjs';
 

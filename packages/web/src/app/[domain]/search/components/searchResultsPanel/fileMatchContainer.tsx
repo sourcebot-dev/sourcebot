@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { DoubleArrowDownIcon, DoubleArrowUpIcon } from "@radix-ui/react-icons";
 import { useMemo } from "react";
 import { FileMatch } from "./fileMatch";
-import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
+import { RepositoryInfo, SearchResultFile } from "@/features/search";
 import { Button } from "@/components/ui/button";
 
 export const MAX_MATCHES_TO_PREVIEW = 3;

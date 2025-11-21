@@ -1,6 +1,6 @@
 'use client';
 
-import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
+import { RepositoryInfo, SearchResultFile } from "@/features/search";
 import { useVirtualizer, VirtualItem } from "@tanstack/react-virtual";
 import { useDebounce } from "@uidotdev/usehooks";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";

@@ -1,7 +1,7 @@
 'use client';
 
 import { FileIcon } from "@/components/ui/fileIcon";
-import { RepositoryInfo, SearchResultFile } from "@/features/search/types";
+import { RepositoryInfo, SearchResultFile } from "@/features/search";
 import { cn, getCodeHostInfoForRepo } from "@/lib/utils";
 import { LaptopIcon } from "@radix-ui/react-icons";
 import Image from "next/image";

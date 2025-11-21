@@ -4,10 +4,12 @@ import { ServiceError } from "@/lib/serviceError";
 import { GetVersionResponse, GetReposResponse } from "@/lib/types";
 import { isServiceError } from "@/lib/utils";
 import {
-    FileSourceResponse,
-    FileSourceRequest,
     SearchRequest,
     SearchResponse,
+} from "@/features/search";
+import {
+    FileSourceRequest,
+    FileSourceResponse,
 } from "@/features/search/types";
 import {
     FindRelatedSymbolsRequest,

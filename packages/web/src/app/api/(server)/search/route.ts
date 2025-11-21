@@ -1,10 +1,9 @@
 'use server';
 
-import { search } from "@/features/search/searchApi";
+import { search, searchRequestSchema } from "@/features/search";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
-import { searchRequestSchema } from "@/features/search/types";
 
 export const POST = async (request: NextRequest) => {
     const body = await request.json();

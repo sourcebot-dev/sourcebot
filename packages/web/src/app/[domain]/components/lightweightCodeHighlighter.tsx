@@ -6,7 +6,7 @@ import { memo, useEffect, useMemo, useState } from 'react'
 import { useCodeMirrorHighlighter } from '@/hooks/useCodeMirrorHighlighter'
 import tailwind from '@/tailwind'
 import { measure } from '@/lib/utils'
-import { SourceRange } from '@/features/search/types'
+import { SourceRange } from '@/features/search'
 
 // Define a plain text language
 const plainTextLanguage = StreamLanguage.define({

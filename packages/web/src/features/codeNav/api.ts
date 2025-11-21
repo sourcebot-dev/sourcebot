@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { sew } from "@/actions";
-import { search } from "@/features/search/searchApi";
+import { search } from "@/features/search";
 import { ServiceError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuthV2 } from "@/withAuthV2";

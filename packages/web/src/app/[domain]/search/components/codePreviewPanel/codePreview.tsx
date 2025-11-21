@@ -3,7 +3,7 @@
 import { EditorContextMenu } from "@/app/[domain]/components/editorContextMenu";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SearchResultChunk } from "@/features/search/types";
+import { SearchResultChunk } from "@/features/search";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { useCodeMirrorLanguageExtension } from "@/hooks/useCodeMirrorLanguageExtension";

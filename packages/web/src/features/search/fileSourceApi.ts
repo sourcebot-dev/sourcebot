@@ -8,7 +8,7 @@ import { withOptionalAuthV2 } from "@/withAuthV2";
 import { QueryIR } from './ir';
 // @todo (bkellam) #574 : We should really be using `git show <hash>:<path>` to fetch file contents here.
 // This will allow us to support permalinks to files at a specific revision that may not be indexed
-// by zoekt.
+// by zoekt. We should also refactor this out of the /search folder.
 
 export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => sew(() =>
     withOptionalAuthV2(async () => {

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search/types";
+import { RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useDomain } from "@/hooks/useDomain";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
