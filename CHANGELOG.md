@@ -10,7 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- Bump @sourcebot/mcp since there are breaking changes to the api in this release -->
 
 ### Added
+- Added support for streaming code search results. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+- Added buttons to toggle case sensitivity and regex patterns. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
 - Added counts to members, requets, and invites tabs in the members settings. [#621](https://github.com/sourcebot-dev/sourcebot/pull/621)
+
+### Changed
+- Renamed `public` query prefix to `visibility`. Allowed values for `visibility` are `public`, `private`, and `any`. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+- Changed `archived` query prefix to accept values `yes`, `no`, and `only`. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+
+### Removed
+- Removed `case` query prefix. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+- Removed `branch` and `b` query prefixes. Please use `rev:` instead. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+- Removed `regex` query prefix. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
 
 ### Fixed
 - Fixed spurious infinite loads with explore panel, file tree, and file search command. [#617](https://github.com/sourcebot-dev/sourcebot/pull/617)
