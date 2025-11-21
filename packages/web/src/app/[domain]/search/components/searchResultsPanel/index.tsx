@@ -56,7 +56,7 @@ export const SearchResultsPanel = forwardRef<SearchResultsPanelHandle, SearchRes
         scrollOffset: restoreOffset,
         measurementsCache: restoreMeasurementsCache,
         showAllMatchesMap: restoreShowAllMatchesStates,
-    } = history.state as ScrollHistoryState;
+    } = (history.state ?? {}) as ScrollHistoryState;
 
     const [showAllMatchesMap, showAllMatchesActions] = useMap<string, boolean>(restoreShowAllMatchesStates || []);
 

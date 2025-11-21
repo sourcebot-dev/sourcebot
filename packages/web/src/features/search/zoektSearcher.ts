@@ -120,21 +120,27 @@ export const zoektSearch = async (searchRequest: ZoektGrpcSearchRequest, prisma:
     const metadata = new grpc.Metadata();
 
     return new Promise((resolve, reject) => {
-        client.Search(searchRequest, metadata, async (error, response) => {
+        client.Search(searchRequest, metadata, (error, response) => {
             if (error || !response) {
                 reject(error || new Error('No response received'));
                 return;
             }
 
-            const reposMapCache = await createReposMapForChunk(response, new Map<string | number, Repo>(), prisma);
-            const { stats, files, repositoryInfo } = await transformZoektSearchResponse(response, reposMapCache);
+            (async () => {
+                try {
+                    const reposMapCache = await createReposMapForChunk(response, new Map<string | number, Repo>(), prisma);
+                    const { stats, files, repositoryInfo } = await transformZoektSearchResponse(response, reposMapCache);
 
-            resolve({
-                stats,
-                files,
-                repositoryInfo,
-                isSearchExhaustive: stats.actualMatchCount <= stats.totalMatchCount,
-            } satisfies SearchResponse);
+                    resolve({
+                        stats,
+                        files,
+                        repositoryInfo,
+                        isSearchExhaustive: stats.totalMatchCount <= stats.actualMatchCount,
+                    } satisfies SearchResponse);
+                } catch (err) {
+                    reject(err);
+                }
+            })();
         });
     });
 }

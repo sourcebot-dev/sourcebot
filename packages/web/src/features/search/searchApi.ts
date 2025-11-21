@@ -42,8 +42,6 @@ export const search = (request: SearchRequest) => sew(() =>
             repoSearchScope,
         });
 
-        logger.debug(`zoektSearchRequest:\n${JSON.stringify(zoektSearchRequest, null, 2)}`);
-
         return zoektSearch(zoektSearchRequest, prisma);
     }));
 
@@ -63,8 +61,6 @@ export const streamSearch = (request: SearchRequest) => sew(() =>
             options: request.options,
             repoSearchScope,
         });
-
-        logger.debug(`zoektStreamSearchRequest:\n${JSON.stringify(zoektSearchRequest, null, 2)}`);
 
         return zoektStreamSearch(zoektSearchRequest, prisma);
     }));
