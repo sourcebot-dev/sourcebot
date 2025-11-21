@@ -244,7 +244,9 @@ const transformTreeToIR = async ({
             case RevisionExpr:
                 return {
                     branch: {
-                        pattern: value,
+                        // Special case - "*" means search all branches. Passing in a
+                        // blank string will match all branches.
+                        pattern: value === '*' ? "" : value,
                         exact: false
                     },
                     query: "branch"
