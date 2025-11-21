@@ -1,4 +1,5 @@
 import { getCodeHostBrowseFileAtBranchUrl } from "@/lib/utils";
+import { unexpectedError } from "@/lib/serviceError";
 import type { ProtoGrpcType } from '@/proto/webserver';
 import { FileMatch__Output as ZoektGrpcFileMatch } from "@/proto/zoekt/webserver/v1/FileMatch";
 import { FlushReason as ZoektGrpcFlushReason } from "@/proto/zoekt/webserver/v1/FlushReason";
@@ -15,7 +16,7 @@ import { PrismaClient, Repo } from "@sourcebot/db";
 import { createLogger, env } from "@sourcebot/shared";
 import path from 'path';
 import { QueryIR, someInQueryIR } from './ir';
-import { RepositoryInfo, SearchResponse, SearchResultFile, SearchStats, SourceRange, StreamedSearchResponse } from "./types";
+import { RepositoryInfo, SearchResponse, SearchResultFile, SearchStats, SourceRange, StreamedSearchErrorResponse, StreamedSearchResponse } from "./types";
 
 const logger = createLogger("zoekt-searcher");
 
@@ -177,8 +178,8 @@ export const zoektStreamSearch = async (searchRequest: ZoektGrpcSearchRequest, p
                         isSearchExhaustive: accumulatedStats.totalMatchCount <= accumulatedStats.actualMatchCount,
                     }
 
-                    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(finalResponse)}\n\n`));
-                    controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+                    controller.enqueue(encodeSSEREsponseChunk(finalResponse));
+                    controller.enqueue(encodeSSEREsponseChunk('[DONE]'));
                     controller.close();
                     client.close();
                     logger.debug('SSE stream closed');
@@ -231,10 +232,18 @@ export const zoektStreamSearch = async (searchRequest: ZoektGrpcSearchRequest, p
                             stats
                         }
 
-                        const sseData = `data: ${JSON.stringify(response)}\n\n`;
-                        controller.enqueue(new TextEncoder().encode(sseData));
+                        controller.enqueue(encodeSSEREsponseChunk(response));
                     } catch (error) {
-                        console.error('Error encoding chunk:', error);
+                        logger.error('Error processing chunk:', error);
+                        Sentry.captureException(error);
+                        isStreamActive = false;
+
+                        const errorMessage = error instanceof Error ? error.message : 'Unknown error processing chunk';
+                        const errorResponse: StreamedSearchErrorResponse = {
+                            type: 'error',
+                            error: unexpectedError(errorMessage),
+                        };
+                        controller.enqueue(encodeSSEREsponseChunk(errorResponse));
                     } finally {
                         pendingChunks--;
                         grpcStream?.resume();
@@ -270,26 +279,26 @@ export const zoektStreamSearch = async (searchRequest: ZoektGrpcSearchRequest, p
                     }
                     isStreamActive = false;
 
-                    // Send error as SSE event
-                    const errorData = `data: ${JSON.stringify({
-                        error: {
-                            code: error.code,
-                            message: error.details || error.message,
-                        }
-                    })}\n\n`;
-                    controller.enqueue(new TextEncoder().encode(errorData));
+                    // Send properly typed error response
+                    const errorResponse: StreamedSearchErrorResponse = {
+                        type: 'error',
+                        error: unexpectedError(error.details || error.message),
+                    };
+                    controller.enqueue(encodeSSEREsponseChunk(errorResponse));
 
                     controller.close();
                     client.close();
                 });
             } catch (error) {
                 logger.error('Stream initialization error:', error);
+                Sentry.captureException(error);
 
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                const errorData = `data: ${JSON.stringify({
-                    error: { message: errorMessage }
-                })}\n\n`;
-                controller.enqueue(new TextEncoder().encode(errorData));
+                const errorResponse: StreamedSearchErrorResponse = {
+                    type: 'error',
+                    error: unexpectedError(errorMessage),
+                };
+                controller.enqueue(encodeSSEREsponseChunk(errorResponse));
 
                 controller.close();
                 client.close();
@@ -307,6 +316,12 @@ export const zoektStreamSearch = async (searchRequest: ZoektGrpcSearchRequest, p
             client.close();
         }
     });
+}
+
+// Encodes a response chunk into a SSE-compatible format.
+const encodeSSEREsponseChunk = (response: object | string) => {
+    const data = typeof response === 'string' ? response : JSON.stringify(response);
+    return new TextEncoder().encode(`data: ${data}\n\n`);
 }
 
 // Creates a mapping between all repository ids in a given response

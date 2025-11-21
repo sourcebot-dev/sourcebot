@@ -222,6 +222,8 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                                     } : {}),
                                 }));
                                 break;
+                            case 'error':
+                                throw new ServiceErrorException(response.error);
                         }
 
                         numMessagesProcessed++;

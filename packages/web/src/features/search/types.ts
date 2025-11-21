@@ -1,5 +1,6 @@
 import { CodeHostType } from "@sourcebot/db";
 import { z } from "zod";
+import { serviceErrorSchema } from "@/lib/serviceError";
 
 export const locationSchema = z.object({
     byteOffset: z.number(), // 0-based byte offset from the beginning of the file
@@ -126,10 +127,19 @@ export const streamedSearchFinalResponseSchema = z.object({
 });
 export type StreamedSearchFinalResponse = z.infer<typeof streamedSearchFinalResponseSchema>;
 
+/**
+ * Sent when an error occurs during streaming.
+ */
+export const streamedSearchErrorResponseSchema = z.object({
+    type: z.literal('error'),
+    error: serviceErrorSchema,
+});
+export type StreamedSearchErrorResponse = z.infer<typeof streamedSearchErrorResponseSchema>;
 
 export const streamedSearchResponseSchema = z.discriminatedUnion('type', [
     streamedSearchChunkResponseSchema,
     streamedSearchFinalResponseSchema,
+    streamedSearchErrorResponseSchema,
 ]);
 export type StreamedSearchResponse = z.infer<typeof streamedSearchResponseSchema>;
 
