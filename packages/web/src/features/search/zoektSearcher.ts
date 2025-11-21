@@ -15,7 +15,7 @@ import * as Sentry from '@sentry/nextjs';
 import { PrismaClient, Repo } from "@sourcebot/db";
 import { createLogger, env } from "@sourcebot/shared";
 import path from 'path';
-import { QueryIR, someInQueryIR } from './ir';
+import { isBranchQuery, QueryIR, someInQueryIR } from './ir';
 import { RepositoryInfo, SearchResponse, SearchResultFile, SearchStats, SourceRange, StreamedSearchErrorResponse, StreamedSearchResponse } from "./types";
 
 const logger = createLogger("zoekt-searcher");
@@ -38,7 +38,7 @@ export const createZoektSearchRequest = async ({
     repoSearchScope?: string[];
 }) => {
     // Find if there are any `rev:` filters in the query.
-    const containsRevExpression = someInQueryIR(query, (q) => q.query === 'branch');
+    const containsRevExpression = someInQueryIR(query, (q) => isBranchQuery(q));
 
     const zoektSearchRequest: ZoektGrpcSearchRequest = {
         query: {

@@ -1,7 +1,97 @@
 import { Q as QueryIR } from '@/proto/zoekt/webserver/v1/Q';
+import { RawConfig } from '@/proto/zoekt/webserver/v1/RawConfig';
+import { Regexp } from '@/proto/zoekt/webserver/v1/Regexp';
+import { Symbol } from '@/proto/zoekt/webserver/v1/Symbol';
+import { Language } from '@/proto/zoekt/webserver/v1/Language';
+import { Repo } from '@/proto/zoekt/webserver/v1/Repo';
+import { RepoRegexp } from '@/proto/zoekt/webserver/v1/RepoRegexp';
+import { BranchesRepos } from '@/proto/zoekt/webserver/v1/BranchesRepos';
+import { RepoIds } from '@/proto/zoekt/webserver/v1/RepoIds';
+import { RepoSet } from '@/proto/zoekt/webserver/v1/RepoSet';
+import { FileNameSet } from '@/proto/zoekt/webserver/v1/FileNameSet';
+import { Type } from '@/proto/zoekt/webserver/v1/Type';
+import { Substring } from '@/proto/zoekt/webserver/v1/Substring';
+import { And } from '@/proto/zoekt/webserver/v1/And';
+import { Or } from '@/proto/zoekt/webserver/v1/Or';
+import { Not } from '@/proto/zoekt/webserver/v1/Not';
+import { Branch } from '@/proto/zoekt/webserver/v1/Branch';
+import { Boost } from '@/proto/zoekt/webserver/v1/Boost';
 
 export type {
     QueryIR,
+}
+
+// Type guards for each query node type
+export function isRawConfigQuery(query: QueryIR): query is QueryIR & { raw_config: RawConfig } {
+    return query.raw_config != null;
+}
+
+export function isRegexpQuery(query: QueryIR): query is QueryIR & { regexp: Regexp } {
+    return query.regexp != null;
+}
+
+export function isSymbolQuery(query: QueryIR): query is QueryIR & { symbol: Symbol } {
+    return query.symbol != null;
+}
+
+export function isLanguageQuery(query: QueryIR): query is QueryIR & { language: Language } {
+    return query.language != null;
+}
+
+export function isConstQuery(query: QueryIR): query is QueryIR & { const: boolean } {
+    return query.const != null;
+}
+
+export function isRepoQuery(query: QueryIR): query is QueryIR & { repo: Repo } {
+    return query.repo != null;
+}
+
+export function isRepoRegexpQuery(query: QueryIR): query is QueryIR & { repo_regexp: RepoRegexp } {
+    return query.repo_regexp != null;
+}
+
+export function isBranchesReposQuery(query: QueryIR): query is QueryIR & { branches_repos: BranchesRepos } {
+    return query.branches_repos != null;
+}
+
+export function isRepoIdsQuery(query: QueryIR): query is QueryIR & { repo_ids: RepoIds } {
+    return query.repo_ids != null;
+}
+
+export function isRepoSetQuery(query: QueryIR): query is QueryIR & { repo_set: RepoSet } {
+    return query.repo_set != null;
+}
+
+export function isFileNameSetQuery(query: QueryIR): query is QueryIR & { file_name_set: FileNameSet } {
+    return query.file_name_set != null;
+}
+
+export function isTypeQuery(query: QueryIR): query is QueryIR & { type: Type } {
+    return query.type != null;
+}
+
+export function isSubstringQuery(query: QueryIR): query is QueryIR & { substring: Substring } {
+    return query.substring != null;
+}
+
+export function isAndQuery(query: QueryIR): query is QueryIR & { and: And } {
+    return query.and != null;
+}
+
+export function isOrQuery(query: QueryIR): query is QueryIR & { or: Or } {
+    return query.or != null;
+}
+
+export function isNotQuery(query: QueryIR): query is QueryIR & { not: Not } {
+    return query.not != null;
+}
+
+export function isBranchQuery(query: QueryIR): query is QueryIR & { branch: Branch } {
+    return query.branch != null;
+}
+
+export function isBoostQuery(query: QueryIR): query is QueryIR & { boost: Boost } {
+    return query.boost != null;
 }
 
 /**
@@ -39,97 +129,84 @@ export function traverseQueryIR(
     query: QueryIR,
     visitor: QueryVisitor
 ): boolean {
-    if (!query.query) {
-        return true;
-    }
-
-    // Call the appropriate visitor method
     let shouldContinue: boolean | void = true;
     
-    switch (query.query) {
-        case 'raw_config':
-            shouldContinue = visitor.onRawConfig?.(query);
-            break;
-        case 'regexp':
-            shouldContinue = visitor.onRegexp?.(query);
-            if (shouldContinue !== false && query.regexp) {
-                // Symbol expressions contain nested queries
-                if (query.regexp) {
-                    shouldContinue = true;
+    if (isRawConfigQuery(query)) {
+        shouldContinue = visitor.onRawConfig?.(query);
+
+    } else if (isRegexpQuery(query)) {
+        shouldContinue = visitor.onRegexp?.(query);
+
+    } else if (isSymbolQuery(query)) {
+        shouldContinue = visitor.onSymbol?.(query);
+        if (shouldContinue !== false && query.symbol.expr) {
+            shouldContinue = traverseQueryIR(query.symbol.expr, visitor);
+        }
+
+    } else if (isLanguageQuery(query)) {
+        shouldContinue = visitor.onLanguage?.(query);
+
+    } else if (isConstQuery(query)) {
+        shouldContinue = visitor.onConst?.(query);
+
+    } else if (isRepoQuery(query)) {
+        shouldContinue = visitor.onRepo?.(query);
+
+    } else if (isRepoRegexpQuery(query)) {
+        shouldContinue = visitor.onRepoRegexp?.(query);
+
+    } else if (isBranchesReposQuery(query)) {
+        shouldContinue = visitor.onBranchesRepos?.(query);
+
+    } else if (isRepoIdsQuery(query)) {
+        shouldContinue = visitor.onRepoIds?.(query);
+
+    } else if (isRepoSetQuery(query)) {
+        shouldContinue = visitor.onRepoSet?.(query);
+
+    } else if (isFileNameSetQuery(query)) {
+        shouldContinue = visitor.onFileNameSet?.(query);
+
+    } else if (isTypeQuery(query)) {
+        shouldContinue = visitor.onType?.(query);
+
+    } else if (isSubstringQuery(query)) {
+        shouldContinue = visitor.onSubstring?.(query);
+
+    } else if (isAndQuery(query)) {
+        shouldContinue = visitor.onAnd?.(query);
+        if (shouldContinue !== false && query.and.children) {
+            for (const child of query.and.children) {
+                if (!traverseQueryIR(child, visitor)) {
+                    return false;
                 }
             }
-            break;
-        case 'symbol':
-            shouldContinue = visitor.onSymbol?.(query);
-            if (shouldContinue !== false && query.symbol?.expr) {
-                shouldContinue = traverseQueryIR(query.symbol.expr, visitor);
-            }
-            break;
-        case 'language':
-            shouldContinue = visitor.onLanguage?.(query);
-            break;
-        case 'const':
-            shouldContinue = visitor.onConst?.(query);
-            break;
-        case 'repo':
-            shouldContinue = visitor.onRepo?.(query);
-            break;
-        case 'repo_regexp':
-            shouldContinue = visitor.onRepoRegexp?.(query);
-            break;
-        case 'branches_repos':
-            shouldContinue = visitor.onBranchesRepos?.(query);
-            break;
-        case 'repo_ids':
-            shouldContinue = visitor.onRepoIds?.(query);
-            break;
-        case 'repo_set':
-            shouldContinue = visitor.onRepoSet?.(query);
-            break;
-        case 'file_name_set':
-            shouldContinue = visitor.onFileNameSet?.(query);
-            break;
-        case 'type':
-            shouldContinue = visitor.onType?.(query);
-            break;
-        case 'substring':
-            shouldContinue = visitor.onSubstring?.(query);
-            break;
-        case 'and':
-            shouldContinue = visitor.onAnd?.(query);
-            if (shouldContinue !== false && query.and?.children) {
-                for (const child of query.and.children) {
-                    if (!traverseQueryIR(child, visitor)) {
-                        return false;
-                    }
+        }
+
+    } else if (isOrQuery(query)) {
+        shouldContinue = visitor.onOr?.(query);
+        if (shouldContinue !== false && query.or.children) {
+            for (const child of query.or.children) {
+                if (!traverseQueryIR(child, visitor)) {
+                    return false;
                 }
             }
-            break;
-        case 'or':
-            shouldContinue = visitor.onOr?.(query);
-            if (shouldContinue !== false && query.or?.children) {
-                for (const child of query.or.children) {
-                    if (!traverseQueryIR(child, visitor)) {
-                        return false;
-                    }
-                }
-            }
-            break;
-        case 'not':
-            shouldContinue = visitor.onNot?.(query);
-            if (shouldContinue !== false && query.not?.child) {
-                shouldContinue = traverseQueryIR(query.not.child, visitor);
-            }
-            break;
-        case 'branch':
-            shouldContinue = visitor.onBranch?.(query);
-            break;
-        case 'boost':
-            shouldContinue = visitor.onBoost?.(query);
-            if (shouldContinue !== false && query.boost?.child) {
-                shouldContinue = traverseQueryIR(query.boost.child, visitor);
-            }
-            break;
+        }
+
+    } else if (isNotQuery(query)) {
+        shouldContinue = visitor.onNot?.(query);
+        if (shouldContinue !== false && query.not.child) {
+            shouldContinue = traverseQueryIR(query.not.child, visitor);
+        }
+
+    } else if (isBranchQuery(query)) {
+        shouldContinue = visitor.onBranch?.(query);
+
+    } else if (isBoostQuery(query)) {
+        shouldContinue = visitor.onBoost?.(query);
+        if (shouldContinue !== false && query.boost.child) {
+            shouldContinue = traverseQueryIR(query.boost.child, visitor);
+        }
     }
     
     return shouldContinue !== false;
