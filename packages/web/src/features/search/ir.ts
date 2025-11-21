@@ -22,77 +22,24 @@ export type {
 }
 
 // Type guards for each query node type
-export function isRawConfigQuery(query: QueryIR): query is QueryIR & { raw_config: RawConfig } {
-    return query.raw_config != null;
-}
-
-export function isRegexpQuery(query: QueryIR): query is QueryIR & { regexp: Regexp } {
-    return query.regexp != null;
-}
-
-export function isSymbolQuery(query: QueryIR): query is QueryIR & { symbol: Symbol } {
-    return query.symbol != null;
-}
-
-export function isLanguageQuery(query: QueryIR): query is QueryIR & { language: Language } {
-    return query.language != null;
-}
-
-export function isConstQuery(query: QueryIR): query is QueryIR & { const: boolean } {
-    return query.const != null;
-}
-
-export function isRepoQuery(query: QueryIR): query is QueryIR & { repo: Repo } {
-    return query.repo != null;
-}
-
-export function isRepoRegexpQuery(query: QueryIR): query is QueryIR & { repo_regexp: RepoRegexp } {
-    return query.repo_regexp != null;
-}
-
-export function isBranchesReposQuery(query: QueryIR): query is QueryIR & { branches_repos: BranchesRepos } {
-    return query.branches_repos != null;
-}
-
-export function isRepoIdsQuery(query: QueryIR): query is QueryIR & { repo_ids: RepoIds } {
-    return query.repo_ids != null;
-}
-
-export function isRepoSetQuery(query: QueryIR): query is QueryIR & { repo_set: RepoSet } {
-    return query.repo_set != null;
-}
-
-export function isFileNameSetQuery(query: QueryIR): query is QueryIR & { file_name_set: FileNameSet } {
-    return query.file_name_set != null;
-}
-
-export function isTypeQuery(query: QueryIR): query is QueryIR & { type: Type } {
-    return query.type != null;
-}
-
-export function isSubstringQuery(query: QueryIR): query is QueryIR & { substring: Substring } {
-    return query.substring != null;
-}
-
-export function isAndQuery(query: QueryIR): query is QueryIR & { and: And } {
-    return query.and != null;
-}
-
-export function isOrQuery(query: QueryIR): query is QueryIR & { or: Or } {
-    return query.or != null;
-}
-
-export function isNotQuery(query: QueryIR): query is QueryIR & { not: Not } {
-    return query.not != null;
-}
-
-export function isBranchQuery(query: QueryIR): query is QueryIR & { branch: Branch } {
-    return query.branch != null;
-}
-
-export function isBoostQuery(query: QueryIR): query is QueryIR & { boost: Boost } {
-    return query.boost != null;
-}
+export const isRawConfigQuery = (query: QueryIR): query is QueryIR & { raw_config: RawConfig } => query.raw_config != null;
+export const isRegexpQuery = (query: QueryIR): query is QueryIR & { regexp: Regexp } => query.regexp != null;
+export const isSymbolQuery = (query: QueryIR): query is QueryIR & { symbol: Symbol } => query.symbol != null;
+export const isLanguageQuery = (query: QueryIR): query is QueryIR & { language: Language } => query.language != null;
+export const isConstQuery = (query: QueryIR): query is QueryIR & { const: boolean } => query.const != null;
+export const isRepoQuery = (query: QueryIR): query is QueryIR & { repo: Repo } => query.repo != null;
+export const isRepoRegexpQuery = (query: QueryIR): query is QueryIR & { repo_regexp: RepoRegexp } => query.repo_regexp != null;
+export const isBranchesReposQuery = (query: QueryIR): query is QueryIR & { branches_repos: BranchesRepos } => query.branches_repos != null;
+export const isRepoIdsQuery = (query: QueryIR): query is QueryIR & { repo_ids: RepoIds } => query.repo_ids != null;
+export const isRepoSetQuery = (query: QueryIR): query is QueryIR & { repo_set: RepoSet } => query.repo_set != null;
+export const isFileNameSetQuery = (query: QueryIR): query is QueryIR & { file_name_set: FileNameSet } => query.file_name_set != null;
+export const isTypeQuery = (query: QueryIR): query is QueryIR & { type: Type } => query.type != null;
+export const isSubstringQuery = (query: QueryIR): query is QueryIR & { substring: Substring } => query.substring != null;
+export const isAndQuery = (query: QueryIR): query is QueryIR & { and: And } => query.and != null;
+export const isOrQuery = (query: QueryIR): query is QueryIR & { or: Or } => query.or != null;
+export const isNotQuery = (query: QueryIR): query is QueryIR & { not: Not } => query.not != null;
+export const isBranchQuery = (query: QueryIR): query is QueryIR & { branch: Branch } => query.branch != null;
+export const isBoostQuery = (query: QueryIR): query is QueryIR & { boost: Boost } => query.boost != null;
 
 /**
  * Visitor pattern for traversing a QueryIR tree.
