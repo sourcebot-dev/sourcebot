@@ -4,7 +4,8 @@
     "main": "dist/index.js",
     "scripts": {
         "build": "lezer-generator src/query.grammar -o src/parser --typeScript --names && tsc",
-        "test": "vitest"
+        "test": "vitest",
+        "postinstall": "yarn build"
     },
     "devDependencies": {
         "@lezer/generator": "^1.8.0",
