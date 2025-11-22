@@ -376,6 +376,42 @@ export const getCodeHostBrowseAtBranchUrl = ({
     }
 }
 
+export const getCodeHostBrowseFileAtBranchUrl = ({
+    webUrl,
+    codeHostType,
+    branchName,
+    filePath,
+}: {
+    webUrl?: string | null,
+    codeHostType: CodeHostType,
+    branchName: string,
+    filePath: string,
+}) => {
+    if (!webUrl) {
+        return undefined;
+    }
+
+    switch (codeHostType) {
+        case 'github':
+            return `${webUrl}/blob/${branchName}/${filePath}`;
+        case 'gitlab':
+            return `${webUrl}/-/blob/${branchName}/${filePath}`;
+        case 'gitea':
+            return `${webUrl}/src/branch/${branchName}/${filePath}`;
+        case 'azuredevops':
+            return `${webUrl}?path=${filePath}&version=${branchName}`;
+        case 'bitbucketCloud':
+            return `${webUrl}/src/${branchName}/${filePath}`;
+        case 'bitbucketServer':
+            return `${webUrl}/browse/${filePath}?at=${branchName}`;
+        case 'gerrit':
+            return `${webUrl}/+/${branchName}/${filePath}`;
+        case 'genericGitHost':
+            return undefined;
+
+    }
+}
+
 export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean => {
     switch (codeHostType) {
         case "github":

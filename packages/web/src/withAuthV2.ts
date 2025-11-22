@@ -1,6 +1,6 @@
 import { prisma as __unsafePrisma, userScopedPrismaClientExtension } from "@/prisma";
 import { hashSecret } from "@sourcebot/shared";
-import { ApiKey, Org, OrgRole, PrismaClient, User } from "@sourcebot/db";
+import { ApiKey, Org, OrgRole, PrismaClient, UserWithAccounts } from "@sourcebot/db";
 import { headers } from "next/headers";
 import { auth } from "./auth";
 import { notAuthenticated, notFound, ServiceError } from "./lib/serviceError";
@@ -11,14 +11,14 @@ import { getOrgMetadata, isServiceError } from "./lib/utils";
 import { hasEntitlement } from "@sourcebot/shared";
 
 interface OptionalAuthContext {
-    user?: User;
+    user?: UserWithAccounts;
     org: Org;
     role: OrgRole;
     prisma: PrismaClient;
 }
 
 interface RequiredAuthContext {
-    user: User;
+    user: UserWithAccounts;
     org: Org;
     role: Exclude<OrgRole, 'GUEST'>;
     prisma: PrismaClient;
@@ -88,8 +88,7 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         },
     }) : null;
 
-    const accountIds = user?.accounts.map(account => account.id);
-    const prisma = __unsafePrisma.$extends(userScopedPrismaClientExtension(accountIds)) as PrismaClient;
+    const prisma = __unsafePrisma.$extends(userScopedPrismaClientExtension(user)) as PrismaClient;
 
     return {
         user: user ?? undefined,

@@ -9,6 +9,8 @@ export type GetVersionResponse = z.infer<typeof getVersionResponseSchema>;
 export enum SearchQueryParams {
     query = "query",
     matches = "matches",
+    isRegexEnabled = "isRegexEnabled",
+    isCaseSensitivityEnabled = "isCaseSensitivityEnabled",
 }
 
 export type ApiKeyPayload = {

@@ -1,0 +1,102 @@
+@external tokens negateToken from "./tokens" { negate }
+
+@top Program { query }
+
+@precedence {
+  negate,
+  and,
+  or @left
+}
+
+query {
+  OrExpr |
+  AndExpr |
+  expr
+}
+
+OrExpr { andExpr (or andExpr)+ }
+
+AndExpr { expr expr+ }
+
+andExpr { AndExpr | expr }
+
+expr {
+  NegateExpr |
+  ParenExpr |
+  PrefixExpr |
+  Term
+}
+
+NegateExpr { !negate negate (PrefixExpr | ParenExpr) }
+
+ParenExpr { "(" query ")" }
+
+PrefixExpr {
+  ArchivedExpr |
+  RevisionExpr |
+  ContentExpr |
+  ContextExpr |
+  FileExpr |
+  ForkExpr |
+  VisibilityExpr |
+  RepoExpr |
+  LangExpr |
+  SymExpr |
+  RepoSetExpr
+}
+
+RevisionExpr { revisionKw value }
+ContentExpr { contentKw value }
+ContextExpr { contextKw value }
+FileExpr { fileKw value }
+RepoExpr { repoKw value }
+LangExpr { langKw value }
+SymExpr { symKw value }
+RepoSetExpr { reposetKw value }
+
+// Modifiers
+ArchivedExpr { archivedKw archivedValue }
+ForkExpr { forkKw forkValue }
+VisibilityExpr { visibilityKw visibilityValue }
+
+archivedValue { "yes" | "no" | "only" }
+forkValue { "yes" | "no" | "only" }
+visibilityValue { "public" | "private" | "any" }
+
+Term { quotedString | word }
+
+value { quotedString | word }
+
+@skip { space }
+
+@tokens {
+  archivedKw { "archived:" }
+  revisionKw { "rev:" }
+  contentKw { "content:" | "c:" }
+  contextKw { "context:" }
+  fileKw { "file:" | "f:" }
+  forkKw { "fork:" }
+  visibilityKw { "visibility:" }
+  repoKw { "repo:" | "r:" }
+  langKw { "lang:" }
+  symKw { "sym:" }
+  reposetKw { "reposet:" }
+  
+  or { "or" ![a-zA-Z0-9_] }
+  
+  quotedString { '"' (!["\\\n] | "\\" _)* '"' }
+  
+  // Allow almost anything in a word except spaces, parens, quotes
+  // Colons and dashes are allowed anywhere in words (including at the start)
+  word { (![ \t\n()"]) (![ \t\n()":] | ":" | "-")* }
+  
+  space { $[ \t\n]+ }
+  
+  @precedence { 
+    quotedString,
+    archivedKw, revisionKw, contentKw, contextKw, fileKw, 
+    forkKw, visibilityKw, repoKw, langKw, 
+    symKw, reposetKw, or,
+    word 
+  }
+}

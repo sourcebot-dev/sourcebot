@@ -4,7 +4,7 @@ import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { PathHeader } from "@/app/[domain]/components/pathHeader";
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import { FindRelatedSymbolsResponse } from "@/features/codeNav/types";
-import { RepositoryInfo, SourceRange } from "@/features/search/types";
+import { RepositoryInfo, SourceRange } from "@/features/search";
 import { useMemo, useRef } from "react";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useVirtualizer } from "@tanstack/react-virtual";

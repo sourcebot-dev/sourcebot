@@ -1,0 +1,479 @@
+# Simple quoted string
+
+"hello"
+
+==>
+
+Program(Term)
+
+# Quoted string with spaces
+
+"hello world"
+
+==>
+
+Program(Term)
+
+# Multiple words in quotes
+
+"this is a search term"
+
+==>
+
+Program(Term)
+
+# Quoted string with escaped quote
+
+"hello \"world\""
+
+==>
+
+Program(Term)
+
+# Quoted string with escaped backslash
+
+"path\\to\\file"
+
+==>
+
+Program(Term)
+
+# Double backslash
+
+"test\\\\path"
+
+==>
+
+Program(Term)
+
+# Multiple escaped quotes
+
+"\"quoted\" \"words\""
+
+==>
+
+Program(Term)
+
+# Mixed escaped characters
+
+"test\\nvalue\"quoted"
+
+==>
+
+Program(Term)
+
+# Empty quoted string
+
+""
+
+==>
+
+Program(Term)
+
+# Quoted string with only spaces
+
+"   "
+
+==>
+
+Program(Term)
+
+# Quoted string in file prefix
+
+file:"my file.txt"
+
+==>
+
+Program(PrefixExpr(FileExpr))
+
+# Quoted string in repo prefix
+
+repo:"github.com/user/repo name"
+
+==>
+
+Program(PrefixExpr(RepoExpr))
+
+# Quoted string in content prefix
+
+content:"console.log"
+
+==>
+
+Program(PrefixExpr(ContentExpr))
+
+# Quoted string in revision prefix
+
+rev:"feature/my feature"
+
+==>
+
+Program(PrefixExpr(RevisionExpr))
+
+# Multiple quoted strings
+
+"first string" "second string"
+
+==>
+
+Program(AndExpr(Term,Term))
+
+# Quoted and unquoted mixed
+
+unquoted "quoted string" another
+
+==>
+
+Program(AndExpr(Term,Term,Term))
+
+# Quoted string with parentheses inside
+
+"(test)"
+
+==>
+
+Program(Term)
+
+# Quoted string with brackets
+
+"[a-z]+"
+
+==>
+
+Program(Term)
+
+# Quoted string with special chars
+
+"test@example.com"
+
+==>
+
+Program(Term)
+
+# Quoted string with colons
+
+"key:value"
+
+==>
+
+Program(Term)
+
+# Quoted string with dashes
+
+"test-case-example"
+
+==>
+
+Program(Term)
+
+# Quoted string with dots
+
+"com.example.package"
+
+==>
+
+Program(Term)
+
+# Quoted string with regex pattern
+
+"\\w+\\s*=\\s*\\d+"
+
+==>
+
+Program(Term)
+
+# Quoted string with forward slashes
+
+"path/to/file"
+
+==>
+
+Program(Term)
+
+# Quoted string with underscores
+
+"my_variable_name"
+
+==>
+
+Program(Term)
+
+# Quoted string with numbers
+
+"test123"
+
+==>
+
+Program(Term)
+
+# Quoted string with mixed case
+
+"CamelCaseTest"
+
+==>
+
+Program(Term)
+
+# Quoted prefix value with spaces
+
+file:"test file.js"
+
+==>
+
+Program(PrefixExpr(FileExpr))
+
+# Multiple prefixes with quoted values
+
+file:"my file.txt" repo:"my repo"
+
+==>
+
+Program(AndExpr(PrefixExpr(FileExpr),PrefixExpr(RepoExpr)))
+
+# Quoted string in parentheses
+
+("quoted term")
+
+==>
+
+Program(ParenExpr(Term))
+
+# Multiple quoted in parentheses
+
+("first" "second")
+
+==>
+
+Program(ParenExpr(AndExpr(Term,Term)))
+
+# Quoted with escaped newline
+
+"line1\\nline2"
+
+==>
+
+Program(Term)
+
+# Quoted with tab character
+
+"value\\ttab"
+
+==>
+
+Program(Term)
+
+# Lang prefix with quoted value
+
+lang:"objective-c"
+
+==>
+
+Program(PrefixExpr(LangExpr))
+
+# Sym prefix with quoted value
+
+sym:"My Class"
+
+==>
+
+Program(PrefixExpr(SymExpr))
+
+# Content with quoted phrase
+
+content:"TODO: fix this"
+
+==>
+
+Program(PrefixExpr(ContentExpr))
+
+# Quoted string with at symbol
+
+"@decorator"
+
+==>
+
+Program(Term)
+
+# Quoted string with hash
+
+"#define"
+
+==>
+
+Program(Term)
+
+# Quoted string with dollar sign
+
+"$variable"
+
+==>
+
+Program(Term)
+
+# Quoted string with percent
+
+"100%"
+
+==>
+
+Program(Term)
+
+# Quoted string with ampersand
+
+"foo&bar"
+
+==>
+
+Program(Term)
+
+# Quoted string with asterisk
+
+"test*"
+
+==>
+
+Program(Term)
+
+# Quoted string with plus
+
+"a+b"
+
+==>
+
+Program(Term)
+
+# Quoted string with equals
+
+"a=b"
+
+==>
+
+Program(Term)
+
+# Quoted string with angle brackets
+
+"<template>"
+
+==>
+
+Program(Term)
+
+# Quoted string with pipe
+
+"a|b"
+
+==>
+
+Program(Term)
+
+# Quoted string with tilde
+
+"~/.config"
+
+==>
+
+Program(Term)
+
+# Quoted string with backtick
+
+"`code`"
+
+==>
+
+Program(Term)
+
+# Quoted string with question mark
+
+"what?"
+
+==>
+
+Program(Term)
+
+# Quoted string with exclamation
+
+"important!"
+
+==>
+
+Program(Term)
+
+# Quoted string with semicolon
+
+"stmt;"
+
+==>
+
+Program(Term)
+
+# Quoted string with comma
+
+"a,b,c"
+
+==>
+
+Program(Term)
+
+# Multiple quotes in content
+
+content:"function \"test\" {"
+
+==>
+
+Program(PrefixExpr(ContentExpr))
+
+# Quoted prefix keyword becomes literal
+
+"repo:hello"
+
+==>
+
+Program(Term)
+
+# Quoted file prefix as literal
+
+"file:test.js"
+
+==>
+
+Program(Term)
+
+# Quoted lang prefix as literal
+
+"lang:python"
+
+==>
+
+Program(Term)
+
+# Quoted partial prefix
+
+"repo:"
+
+==>
+
+Program(Term)
+
+# Mix of quoted prefix and real prefix
+
+"repo:test" file:actual.js
+
+==>
+
+Program(AndExpr(Term,PrefixExpr(FileExpr)))
+
+# Quoted short form prefix
+
+"f:test"
+
+==>
+
+Program(Term)
+
+# Quoted revision prefix
+
+"rev:main"
+
+==>
+
+Program(Term)

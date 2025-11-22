@@ -11,76 +11,76 @@ import {
 } from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search/types";
+import { RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useDomain } from "@/hooks/useDomain";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { SearchQueryParams } from "@/lib/types";
-import { createPathWithQueryParams, measure, unwrapServiceError } from "@/lib/utils";
-import { InfoCircledIcon, SymbolIcon } from "@radix-ui/react-icons";
-import { useQuery } from "@tanstack/react-query";
+import { createPathWithQueryParams } from "@/lib/utils";
+import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { useLocalStorage } from "@uidotdev/usehooks";
-import { AlertTriangleIcon, BugIcon, FilterIcon } from "lucide-react";
+import { AlertTriangleIcon, BugIcon, FilterIcon, RefreshCwIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { ImperativePanelHandle } from "react-resizable-panels";
-import { search } from "../../../api/(client)/client";
 import { CopyIconButton } from "../../components/copyIconButton";
 import { SearchBar } from "../../components/searchBar";
 import { TopBar } from "../../components/topBar";
+import { useStreamedSearch } from "../useStreamedSearch";
 import { CodePreviewPanel } from "./codePreviewPanel";
 import { FilterPanel } from "./filterPanel";
 import { useFilteredMatches } from "./filterPanel/useFilterMatches";
-import { SearchResultsPanel } from "./searchResultsPanel";
+import { SearchResultsPanel, SearchResultsPanelHandle } from "./searchResultsPanel";
+import { ServiceErrorException } from "@/lib/serviceError";
 
 interface SearchResultsPageProps {
     searchQuery: string;
     defaultMaxMatchCount: number;
+    isRegexEnabled: boolean;
+    isCaseSensitivityEnabled: boolean;
 }
 
 export const SearchResultsPage = ({
     searchQuery,
     defaultMaxMatchCount,
+    isRegexEnabled,
+    isCaseSensitivityEnabled,
 }: SearchResultsPageProps) => {
     const router = useRouter();
     const { setSearchHistory } = useSearchHistory();
-    const captureEvent = useCaptureEvent();
     const domain = useDomain();
     const { toast } = useToast();
+    const captureEvent = useCaptureEvent();
 
     // Encodes the number of matches to return in the search response.
     const _maxMatchCount = parseInt(useNonEmptyQueryParam(SearchQueryParams.matches) ?? `${defaultMaxMatchCount}`);
     const maxMatchCount = isNaN(_maxMatchCount) ? defaultMaxMatchCount : _maxMatchCount;
 
     const {
-        data: searchResponse,
-        isPending: isSearchPending,
-        isFetching: isFetching,
-        error
-    } = useQuery({
-        queryKey: ["search", searchQuery, maxMatchCount],
-        queryFn: () => measure(() => unwrapServiceError(search({
-            query: searchQuery,
-            matches: maxMatchCount,
-            contextLines: 3,
-            whole: false,
-        })), "client.search"),
-        select: ({ data, durationMs }) => ({
-            ...data,
-            totalClientSearchDurationMs: durationMs,
-        }),
-        enabled: searchQuery.length > 0,
-        refetchOnWindowFocus: false,
-        retry: false,
-        staleTime: 0,
+        error,
+        files,
+        repoInfo,
+        timeToSearchCompletionMs,
+        timeToFirstSearchResultMs,
+        isStreaming,
+        numMatches,
+        isExhaustive,
+        stats,
+    } = useStreamedSearch({
+        query: searchQuery,
+        matches: maxMatchCount,
+        contextLines: 3,
+        whole: false,
+        isRegexEnabled,
+        isCaseSensitivityEnabled,
     });
 
     useEffect(() => {
         if (error) {
             toast({
-                description: `❌ Search failed. Reason: ${error.message}`,
+                description: `❌ Search failed. Reason: ${error instanceof ServiceErrorException ? error.serviceError.message : error.message}`,
             });
         }
     }, [error, toast]);
@@ -103,38 +103,51 @@ export const SearchResultsPage = ({
     }, [searchQuery, setSearchHistory]);
 
     useEffect(() => {
-        if (!searchResponse) {
+        if (isStreaming || !stats) {
             return;
         }
 
-        const fileLanguages = searchResponse.files?.map(file => file.language) || [];
+        const fileLanguages = files.map(file => file.language) || [];
+
+        console.debug('timeToFirstSearchResultMs:', timeToFirstSearchResultMs);
+        console.debug('timeToSearchCompletionMs:', timeToSearchCompletionMs);
 
         captureEvent("search_finished", {
-            durationMs: searchResponse.totalClientSearchDurationMs,
-            fileCount: searchResponse.stats.fileCount,
-            matchCount: searchResponse.stats.totalMatchCount,
-            actualMatchCount: searchResponse.stats.actualMatchCount,
-            filesSkipped: searchResponse.stats.filesSkipped,
-            contentBytesLoaded: searchResponse.stats.contentBytesLoaded,
-            indexBytesLoaded: searchResponse.stats.indexBytesLoaded,
-            crashes: searchResponse.stats.crashes,
-            shardFilesConsidered: searchResponse.stats.shardFilesConsidered,
-            filesConsidered: searchResponse.stats.filesConsidered,
-            filesLoaded: searchResponse.stats.filesLoaded,
-            shardsScanned: searchResponse.stats.shardsScanned,
-            shardsSkipped: searchResponse.stats.shardsSkipped,
-            shardsSkippedFilter: searchResponse.stats.shardsSkippedFilter,
-            ngramMatches: searchResponse.stats.ngramMatches,
-            ngramLookups: searchResponse.stats.ngramLookups,
-            wait: searchResponse.stats.wait,
-            matchTreeConstruction: searchResponse.stats.matchTreeConstruction,
-            matchTreeSearch: searchResponse.stats.matchTreeSearch,
-            regexpsConsidered: searchResponse.stats.regexpsConsidered,
-            flushReason: searchResponse.stats.flushReason,
+            durationMs: timeToSearchCompletionMs,
+            timeToSearchCompletionMs,
+            timeToFirstSearchResultMs,
+            fileCount: stats.fileCount,
+            matchCount: stats.totalMatchCount,
+            actualMatchCount: stats.actualMatchCount,
+            filesSkipped: stats.filesSkipped,
+            contentBytesLoaded: stats.contentBytesLoaded,
+            indexBytesLoaded: stats.indexBytesLoaded,
+            crashes: stats.crashes,
+            shardFilesConsidered: stats.shardFilesConsidered,
+            filesConsidered: stats.filesConsidered,
+            filesLoaded: stats.filesLoaded,
+            shardsScanned: stats.shardsScanned,
+            shardsSkipped: stats.shardsSkipped,
+            shardsSkippedFilter: stats.shardsSkippedFilter,
+            ngramMatches: stats.ngramMatches,
+            ngramLookups: stats.ngramLookups,
+            wait: stats.wait,
+            matchTreeConstruction: stats.matchTreeConstruction,
+            matchTreeSearch: stats.matchTreeSearch,
+            regexpsConsidered: stats.regexpsConsidered,
+            flushReason: stats.flushReason,
             fileLanguages,
+            isSearchExhaustive: isExhaustive,
         });
-    }, [captureEvent, searchQuery, searchResponse]);
-
+    }, [
+        captureEvent,
+        files,
+        isStreaming,
+        isExhaustive,
+        stats,
+        timeToSearchCompletionMs,
+        timeToFirstSearchResultMs,
+    ]);
 
     const onLoadMoreResults = useCallback(() => {
         const url = createPathWithQueryParams(`/${domain}/search`,
@@ -144,6 +157,13 @@ export const SearchResultsPage = ({
         router.push(url);
     }, [maxMatchCount, router, searchQuery, domain]);
 
+    // Look for any files that are not on the default branch.
+    const isBranchFilteringEnabled = useMemo(() => {
+        return files.some((file) => {
+            return file.branches?.some((branch) => branch !== 'HEAD') ?? false;
+        });
+    }, [files]);
+
     return (
         <div className="flex flex-col h-screen overflow-clip">
             {/* TopBar */}
@@ -152,32 +172,32 @@ export const SearchResultsPage = ({
             >
                 <SearchBar
                     size="sm"
-                    defaultQuery={searchQuery}
+                    defaults={{
+                        isRegexEnabled,
+                        isCaseSensitivityEnabled,
+                        query: searchQuery,
+                    }}
                     className="w-full"
                 />
             </TopBar>
 
-            {(isSearchPending || isFetching) ? (
-                <div className="flex flex-col items-center justify-center h-full gap-2">
-                    <SymbolIcon className="h-6 w-6 animate-spin" />
-                    <p className="font-semibold text-center">Searching...</p>
-                </div>
-            ) : error ? (
+            {error ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                     <AlertTriangleIcon className="h-6 w-6" />
                     <p className="font-semibold text-center">Failed to search</p>
-                    <p className="text-sm text-center">{error.message}</p>
+                    <p className="text-sm text-center">{error instanceof ServiceErrorException ? error.serviceError.message : error.message}</p>
                 </div>
             ) : (
                 <PanelGroup
-                    fileMatches={searchResponse.files}
-                    isMoreResultsButtonVisible={searchResponse.isSearchExhaustive === false}
+                    fileMatches={files}
                     onLoadMoreResults={onLoadMoreResults}
-                    isBranchFilteringEnabled={searchResponse.isBranchFilteringEnabled}
-                    repoInfo={searchResponse.repositoryInfo}
-                    searchDurationMs={searchResponse.totalClientSearchDurationMs}
-                    numMatches={searchResponse.stats.actualMatchCount}
-                    searchStats={searchResponse.stats}
+                    numMatches={numMatches}
+                    repoInfo={repoInfo}
+                    searchDurationMs={timeToSearchCompletionMs}
+                    isStreaming={isStreaming}
+                    searchStats={stats}
+                    isMoreResultsButtonVisible={!isExhaustive}
+                    isBranchFilteringEnabled={isBranchFilteringEnabled}
                 />
             )}
         </div>
@@ -186,10 +206,11 @@ export const SearchResultsPage = ({
 
 interface PanelGroupProps {
     fileMatches: SearchResultFile[];
-    isMoreResultsButtonVisible?: boolean;
     onLoadMoreResults: () => void;
+    isStreaming: boolean;
+    isMoreResultsButtonVisible?: boolean;
     isBranchFilteringEnabled: boolean;
-    repoInfo: RepositoryInfo[];
+    repoInfo: Record<number, RepositoryInfo>;
     searchDurationMs: number;
     numMatches: number;
     searchStats?: SearchStats;
@@ -198,9 +219,10 @@ interface PanelGroupProps {
 const PanelGroup = ({
     fileMatches,
     isMoreResultsButtonVisible,
+    isStreaming,
     onLoadMoreResults,
     isBranchFilteringEnabled,
-    repoInfo: _repoInfo,
+    repoInfo,
     searchDurationMs: _searchDurationMs,
     numMatches,
     searchStats,
@@ -208,6 +230,7 @@ const PanelGroup = ({
     const [previewedFile, setPreviewedFile] = useState<SearchResultFile | undefined>(undefined);
     const filteredFileMatches = useFilteredMatches(fileMatches);
     const filterPanelRef = useRef<ImperativePanelHandle>(null);
+    const searchResultsPanelRef = useRef<SearchResultsPanelHandle>(null);
     const [selectedMatchIndex, setSelectedMatchIndex] = useState(0);
 
     const [isFilterPanelCollapsed, setIsFilterPanelCollapsed] = useLocalStorage('isFilterPanelCollapsed', false);
@@ -227,13 +250,6 @@ const PanelGroup = ({
     const searchDurationMs = useMemo(() => {
         return Math.round(_searchDurationMs);
     }, [_searchDurationMs]);
-
-    const repoInfo = useMemo(() => {
-        return _repoInfo.reduce((acc, repo) => {
-            acc[repo.id] = repo;
-            return acc;
-        }, {} as Record<number, RepositoryInfo>);
-    }, [_repoInfo]);
 
     return (
         <ResizablePanelGroup
@@ -255,6 +271,10 @@ const PanelGroup = ({
                 <FilterPanel
                     matches={fileMatches}
                     repoInfo={repoInfo}
+                    isStreaming={isStreaming}
+                    onFilterChange={() => {
+                        searchResultsPanelRef.current?.resetScroll();
+                    }}
                 />
             </ResizablePanel>
             {isFilterPanelCollapsed && (
@@ -291,45 +311,58 @@ const PanelGroup = ({
                 order={2}
             >
                 <div className="py-1 px-2 flex flex-row items-center">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <InfoCircledIcon className="w-4 h-4 mr-2" />
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="flex flex-col items-start gap-2 p-4">
-                            <div className="flex flex-row items-center w-full">
-                                <BugIcon className="w-4 h-4 mr-1.5" />
-                                <p className="text-md font-medium">Search stats for nerds</p>
-                                <CopyIconButton
-                                    onCopy={() => {
-                                        navigator.clipboard.writeText(JSON.stringify(searchStats, null, 2));
-                                        return true;
-                                    }}
-                                    className="ml-auto"
-                                />
-                            </div>
-                            <CodeSnippet renderNewlines>
-                                {JSON.stringify(searchStats, null, 2)}
-                            </CodeSnippet>
-                        </TooltipContent>
-                    </Tooltip>
-                    {
-                        fileMatches.length > 0 ? (
-                            <p className="text-sm font-medium">{`[${searchDurationMs} ms] Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
-                        ) : (
-                            <p className="text-sm font-medium">No results</p>
-                        )
-                    }
-                    {isMoreResultsButtonVisible && (
-                        <div
-                            className="cursor-pointer text-blue-500 text-sm hover:underline ml-4"
-                            onClick={onLoadMoreResults}
-                        >
-                            (load more)
-                        </div>
+                    {isStreaming ? (
+                        <>
+                            <RefreshCwIcon className="h-4 w-4 animate-spin mr-2" />
+                            <p className="text-sm font-medium mr-1">Searching...</p>
+                            {numMatches > 0 && (
+                                <p className="text-sm font-medium">{`Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <InfoCircledIcon className="w-4 h-4 mr-2" />
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="flex flex-col items-start gap-2 p-4">
+                                    <div className="flex flex-row items-center w-full">
+                                        <BugIcon className="w-4 h-4 mr-1.5" />
+                                        <p className="text-md font-medium">Search stats for nerds</p>
+                                        <CopyIconButton
+                                            onCopy={() => {
+                                                navigator.clipboard.writeText(JSON.stringify(searchStats, null, 2));
+                                                return true;
+                                            }}
+                                            className="ml-auto"
+                                        />
+                                    </div>
+                                    <CodeSnippet renderNewlines>
+                                        {JSON.stringify(searchStats, null, 2)}
+                                    </CodeSnippet>
+                                </TooltipContent>
+                            </Tooltip>
+                            {
+                                fileMatches.length > 0 ? (
+                                    <p className="text-sm font-medium">{`[${searchDurationMs} ms] Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
+                                ) : (
+                                    <p className="text-sm font-medium">No results</p>
+                                )
+                            }
+                            {isMoreResultsButtonVisible && (
+                                <div
+                                    className="cursor-pointer text-blue-500 text-sm hover:underline ml-4"
+                                    onClick={onLoadMoreResults}
+                                >
+                                    (load more)
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
                 {filteredFileMatches.length > 0 ? (
                     <SearchResultsPanel
+                        ref={searchResultsPanelRef}
                         fileMatches={filteredFileMatches}
                         onOpenFilePreview={(fileMatch, matchIndex) => {
                             setSelectedMatchIndex(matchIndex ?? 0);
@@ -340,6 +373,11 @@ const PanelGroup = ({
                         isBranchFilteringEnabled={isBranchFilteringEnabled}
                         repoInfo={repoInfo}
                     />
+                ) : isStreaming ? (
+                    <div className="flex flex-col items-center justify-center h-full gap-2">
+                        <RefreshCwIcon className="h-6 w-6 animate-spin" />
+                        <p className="font-semibold text-center">Searching...</p>
+                    </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full">
                         <p className="text-sm text-muted-foreground">No results found</p>

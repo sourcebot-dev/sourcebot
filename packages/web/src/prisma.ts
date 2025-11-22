@@ -1,6 +1,6 @@
 import 'server-only';
 import { env, getDBConnectionString } from "@sourcebot/shared";
-import { Prisma, PrismaClient } from "@sourcebot/db";
+import { Prisma, PrismaClient, UserWithAccounts } from "@sourcebot/db";
 import { hasEntitlement } from "@sourcebot/shared";
 
 // @see: https://authjs.dev/getting-started/adapters/prisma
@@ -24,7 +24,7 @@ export const prisma = globalForPrisma.prisma || new PrismaClient({
                 url: dbConnectionString,
             },
         }
-    }: {}),
+    } : {}),
 })
 if (env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
 
@@ -32,7 +32,7 @@ if (env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
  * Creates a prisma client extension that scopes queries to striclty information
  * a given user should be able to access.
  */
-export const userScopedPrismaClientExtension = (accountIds?: string[]) => {
+export const userScopedPrismaClientExtension = (user?: UserWithAccounts) => {
     return Prisma.defineExtension(
         (prisma) => {
             return prisma.$extends({
@@ -46,24 +46,7 @@ export const userScopedPrismaClientExtension = (accountIds?: string[]) => {
 
                                 argsWithWhere.where = {
                                     ...(argsWithWhere.where || {}),
-                                    OR: [
-                                        // Only include repos that are permitted to the user
-                                        ...(accountIds ? [
-                                            {
-                                                permittedAccounts: {
-                                                    some: {
-                                                        accountId: {
-                                                            in: accountIds,
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                        ] : []),
-                                        // or are public.
-                                        {
-                                            isPublic: true,
-                                        }
-                                    ]
+                                    ...getRepoPermissionFilterForUser(user),
                                 };
 
                                 return query(args);
@@ -73,4 +56,30 @@ export const userScopedPrismaClientExtension = (accountIds?: string[]) => {
                 }
             })
         })
+}
+
+/**
+ * Returns a filter for repositories that the user has access to.
+ */
+export const getRepoPermissionFilterForUser = (user?: UserWithAccounts): Prisma.RepoWhereInput => {
+    return {
+        OR: [
+            // Only include repos that are permitted to the user
+            ...((user && user.accounts.length > 0) ? [
+                {
+                    permittedAccounts: {
+                        some: {
+                            accountId: {
+                                in: user.accounts.map(account => account.id),
+                            }
+                        }
+                    }
+                },
+            ] : []),
+            // or are public.
+            {
+                isPublic: true,
+            }
+        ]
+    }
 }

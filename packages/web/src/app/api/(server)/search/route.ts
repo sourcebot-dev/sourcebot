@@ -1,10 +1,9 @@
 'use server';
 
-import { search } from "@/features/search/searchApi";
+import { search, searchRequestSchema } from "@/features/search";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
-import { searchRequestSchema } from "@/features/search/schemas";
 
 export const POST = async (request: NextRequest) => {
     const body = await request.json();
@@ -14,8 +13,18 @@ export const POST = async (request: NextRequest) => {
             schemaValidationError(parsed.error)
         );
     }
+
+    const {
+        query,
+        ...options
+    } = parsed.data;
     
-    const response = await search(parsed.data);
+    const response = await search({
+        queryType: 'string',
+        query,
+        options,
+    });
+
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }

@@ -4,13 +4,19 @@ import { SearchResultsPage } from "./components/searchResultsPage";
 
 interface SearchPageProps {
     params: Promise<{ domain: string }>;
-    searchParams: Promise<{ query?: string }>;
+    searchParams: Promise<{
+        query?: string;
+        isRegexEnabled?: "true" | "false";
+        isCaseSensitivityEnabled?: "true" | "false";
+    }>;
 }
 
 export default async function SearchPage(props: SearchPageProps) {
     const { domain } = await props.params;
     const searchParams = await props.searchParams;
     const query = searchParams?.query;
+    const isRegexEnabled = searchParams?.isRegexEnabled === "true";
+    const isCaseSensitivityEnabled = searchParams?.isCaseSensitivityEnabled === "true";
 
     if (query === undefined || query.length === 0) {
         return <SearchLandingPage domain={domain} />
@@ -20,6 +26,8 @@ export default async function SearchPage(props: SearchPageProps) {
         <SearchResultsPage
             searchQuery={query}
             defaultMaxMatchCount={env.DEFAULT_MAX_MATCH_COUNT}
+            isRegexEnabled={isRegexEnabled}
+            isCaseSensitivityEnabled={isCaseSensitivityEnabled}
         />
     )
 }

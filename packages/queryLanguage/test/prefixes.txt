@@ -1,0 +1,336 @@
+# File prefix
+
+file:README.md
+
+==>
+
+Program(PrefixExpr(FileExpr))
+
+# File prefix short form
+
+f:index.ts
+
+==>
+
+Program(PrefixExpr(FileExpr))
+
+# Repo prefix
+
+repo:myproject
+
+==>
+
+Program(PrefixExpr(RepoExpr))
+
+# Repo prefix short form
+
+r:github.com/user/repo
+
+==>
+
+Program(PrefixExpr(RepoExpr))
+
+# Content prefix
+
+content:function
+
+==>
+
+Program(PrefixExpr(ContentExpr))
+
+# Content prefix short form
+
+c:console.log
+
+==>
+
+Program(PrefixExpr(ContentExpr))
+
+# Revision prefix
+
+rev:main
+
+==>
+
+Program(PrefixExpr(RevisionExpr))
+
+# Lang prefix
+
+lang:typescript
+
+==>
+
+Program(PrefixExpr(LangExpr))
+
+# Archived prefix - no
+
+archived:no
+
+==>
+
+Program(PrefixExpr(ArchivedExpr))
+
+# Archived prefix - only
+
+archived:only
+
+==>
+
+Program(PrefixExpr(ArchivedExpr))
+
+# Fork prefix - yes
+
+fork:yes
+
+==>
+
+Program(PrefixExpr(ForkExpr))
+
+# Fork prefix - only
+
+fork:only
+
+==>
+
+Program(PrefixExpr(ForkExpr))
+
+# Visibility prefix - public
+
+visibility:public
+
+==>
+
+Program(PrefixExpr(VisibilityExpr))
+
+# Context prefix
+
+context:web
+
+==>
+
+Program(PrefixExpr(ContextExpr))
+
+# Symbol prefix
+
+sym:MyClass
+
+==>
+
+Program(PrefixExpr(SymExpr))
+
+# RepoSet prefix
+
+reposet:repo1,repo2
+
+==>
+
+Program(PrefixExpr(RepoSetExpr))
+
+# File with wildcard
+
+file:*.ts
+
+==>
+
+Program(PrefixExpr(FileExpr))
+
+# File with path
+
+file:src/components/Button.tsx
+
+==>
+
+Program(PrefixExpr(FileExpr))
+
+# Repo with full URL
+
+repo:github.com/org/project
+
+==>
+
+Program(PrefixExpr(RepoExpr))
+
+# Multiple prefixes
+
+file:test.js repo:myproject
+
+==>
+
+Program(AndExpr(PrefixExpr(FileExpr),PrefixExpr(RepoExpr)))
+
+# Prefix with term
+
+file:test.js console.log
+
+==>
+
+Program(AndExpr(PrefixExpr(FileExpr),Term))
+
+# Term then prefix
+
+console.log file:handler.ts
+
+==>
+
+Program(AndExpr(Term,PrefixExpr(FileExpr)))
+
+# Multiple prefixes and terms
+
+lang:typescript function file:handler.ts
+
+==>
+
+Program(AndExpr(PrefixExpr(LangExpr),Term,PrefixExpr(FileExpr)))
+
+# Prefix with regex pattern
+
+file:[a-z]+\.test\.js
+
+==>
+
+Program(PrefixExpr(FileExpr))
+
+# Content with spaces in value (no quotes)
+
+content:hello
+
+==>
+
+Program(PrefixExpr(ContentExpr))
+
+# Revision with slashes
+
+rev:feature/new-feature
+
+==>
+
+Program(PrefixExpr(RevisionExpr))
+
+# RepoSet with multiple repos
+
+reposet:repo1,repo2,repo3
+
+==>
+
+Program(PrefixExpr(RepoSetExpr))
+
+# Symbol with dots
+
+sym:package.Class.method
+
+==>
+
+Program(PrefixExpr(SymExpr))
+
+# Lang with various languages
+
+lang:python
+
+==>
+
+Program(PrefixExpr(LangExpr))
+
+# Archived prefix - yes
+
+archived:yes
+
+==>
+
+Program(PrefixExpr(ArchivedExpr))
+
+# Archived prefix - invalid value (error case)
+
+archived:invalid
+
+==>
+
+Program(AndExpr(PrefixExpr(ArchivedExpr(⚠)),Term))
+
+# Fork prefix - no
+
+fork:no
+
+==>
+
+Program(PrefixExpr(ForkExpr))
+
+# Fork prefix - invalid value (error case)
+
+fork:invalid
+
+==>
+
+Program(AndExpr(PrefixExpr(ForkExpr(⚠)),Term))
+
+# Visibility prefix - private
+
+visibility:private
+
+==>
+
+Program(PrefixExpr(VisibilityExpr))
+
+# Visibility prefix - any
+
+visibility:any
+
+==>
+
+Program(PrefixExpr(VisibilityExpr))
+
+# Visibility prefix - invalid value (error case)
+
+visibility:invalid
+
+==>
+
+Program(AndExpr(PrefixExpr(VisibilityExpr(⚠)),Term))
+
+# File with dashes
+
+file:my-component.tsx
+
+==>
+
+Program(PrefixExpr(FileExpr))
+
+# Repo with numbers
+
+repo:project123
+
+==>
+
+Program(PrefixExpr(RepoExpr))
+
+# Content with special chars
+
+content:@Component
+
+==>
+
+Program(PrefixExpr(ContentExpr))
+
+# Context with underscores
+
+context:data_engineering
+
+==>
+
+Program(PrefixExpr(ContextExpr))
+
+# Prefix in parentheses
+
+(file:test.js)
+
+==>
+
+Program(ParenExpr(PrefixExpr(FileExpr)))
+
+# Multiple prefixes in group
+
+(file:*.ts lang:typescript)
+
+==>
+
+Program(ParenExpr(AndExpr(PrefixExpr(FileExpr),PrefixExpr(LangExpr))))
+

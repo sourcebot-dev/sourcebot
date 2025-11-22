@@ -5,7 +5,10 @@ export type PosthogEventMap = {
         contentBytesLoaded: number,
         indexBytesLoaded: number,
         crashes: number,
+        /** @deprecated: use timeToFirstSearchResultMs and timeToSearchCompletionMs instead */
         durationMs: number,
+        timeToFirstSearchResultMs: number,
+        timeToSearchCompletionMs: number,
         fileCount: number,
         shardFilesConsidered: number,
         filesConsidered: number,
@@ -22,8 +25,9 @@ export type PosthogEventMap = {
         matchTreeConstruction: number,
         matchTreeSearch: number,
         regexpsConsidered: number,
-        flushReason: number,
-        fileLanguages: string[]
+        flushReason: string,
+        fileLanguages: string[],
+        isSearchExhaustive: boolean
     },
     share_link_created: {},
     ////////////////////////////////////////////////////////////////

@@ -70,16 +70,12 @@ server.tool(
             query += ` ( lang:${languages.join(' or lang:')} )`;
         }
 
-        if (caseSensitive) {
-            query += ` case:yes`;
-        } else {
-            query += ` case:no`;
-        }
-
         const response = await search({
             query,
             matches: env.DEFAULT_MATCHES,
             contextLines: env.DEFAULT_CONTEXT_LINES,
+            isRegexEnabled: true,
+            isCaseSensitivityEnabled: caseSensitive,
         });
 
         if (isServiceError(response)) {

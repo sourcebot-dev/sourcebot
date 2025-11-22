@@ -42,14 +42,18 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Toggle } from "@/components/ui/toggle";
 import { useDomain } from "@/hooks/useDomain";
-import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { createAuditAction } from "@/ee/features/audit/actions";
 import tailwind from "@/tailwind";
+import { CaseSensitiveIcon, RegexIcon } from "lucide-react";
 
 interface SearchBarProps {
     className?: string;
     size?: "default" | "sm";
-    defaultQuery?: string;
+    defaults?: {
+        isRegexEnabled?: boolean;
+        isCaseSensitivityEnabled?: boolean;
+        query?: string;
+    }
     autoFocus?: boolean;
 }
 
@@ -91,8 +95,12 @@ const searchBarContainerVariants = cva(
 export const SearchBar = ({
     className,
     size,
-    defaultQuery,
     autoFocus,
+    defaults: {
+        isRegexEnabled: defaultIsRegexEnabled = false,
+        isCaseSensitivityEnabled: defaultIsCaseSensitivityEnabled = false,
+        query: defaultQuery = "",
+    } = {}
 }: SearchBarProps) => {
     const router = useRouter();
     const domain = useDomain();
@@ -102,11 +110,13 @@ export const SearchBar = ({
     const [isSuggestionsEnabled, setIsSuggestionsEnabled] = useState(false);
     const [isSuggestionsBoxFocused, setIsSuggestionsBoxFocused] = useState(false);
     const [isHistorySearchEnabled, setIsHistorySearchEnabled] = useState(false);
+    const [isRegexEnabled, setIsRegexEnabled] = useState(defaultIsRegexEnabled);
+    const [isCaseSensitivityEnabled, setIsCaseSensitivityEnabled] = useState(defaultIsCaseSensitivityEnabled);
 
     const focusEditor = useCallback(() => editorRef.current?.view?.focus(), []);
     const focusSuggestionsBox = useCallback(() => suggestionBoxRef.current?.focus(), []);
 
-    const [_query, setQuery] = useState(defaultQuery ?? "");
+    const [_query, setQuery] = useState(defaultQuery);
     const query = useMemo(() => {
         // Replace any newlines with spaces to handle
         // copy & pasting text with newlines.
@@ -215,9 +225,11 @@ export const SearchBar = ({
 
         const url = createPathWithQueryParams(`/${domain}/search`,
             [SearchQueryParams.query, query],
+            [SearchQueryParams.isRegexEnabled, isRegexEnabled ? "true" : null],
+            [SearchQueryParams.isCaseSensitivityEnabled, isCaseSensitivityEnabled ? "true" : null],
         );
         router.push(url);
-    }, [domain, router]);
+    }, [domain, router, isRegexEnabled, isCaseSensitivityEnabled]);
 
     return (
         <div
@@ -275,18 +287,40 @@ export const SearchBar = ({
                 indentWithTab={false}
                 autoFocus={autoFocus ?? false}
             />
-            <Tooltip
-                delayDuration={100}
-            >
-                <TooltipTrigger asChild>
-                    <div>
-                        <KeyboardShortcutHint shortcut="/" />
-                    </div>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="flex flex-row items-center gap-2">
-                    Focus search bar
-                </TooltipContent>
-            </Tooltip>
+            <div className="flex flex-row items-center gap-1 ml-1">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span>
+                            <Toggle
+                                className="h-7 w-7 min-w-7 p-0 cursor-pointer"
+                                pressed={isCaseSensitivityEnabled}
+                                onPressedChange={setIsCaseSensitivityEnabled}
+                            >
+                                <CaseSensitiveIcon className="w-4 h-4" />
+                            </Toggle>
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="flex flex-row items-center gap-2">
+                        {isCaseSensitivityEnabled ? "Disable" : "Enable"} case sensitivity
+                    </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span>
+                            <Toggle
+                                className="h-7 w-7 min-w-7 p-0 cursor-pointer"
+                                pressed={isRegexEnabled}
+                                onPressedChange={setIsRegexEnabled}
+                            >
+                                <RegexIcon className="w-4 h-4" />
+                            </Toggle>
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="flex flex-row items-center gap-2">
+                        {isRegexEnabled ? "Disable" : "Enable"} regular expressions
+                    </TooltipContent>
+                </Tooltip>
+            </div>
             <SearchSuggestionsBox
                 ref={suggestionBoxRef}
                 query={query}

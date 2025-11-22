@@ -1,6 +1,6 @@
 'use client';
 
-import { SearchResultFile } from "@/features/search/types";
+import { SearchResultFile } from "@/features/search";
 import {  useMemo } from "react";
 import { useGetSelectedFromQuery } from "./useGetSelectedFromQuery";
 

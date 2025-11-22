@@ -1,5 +1,5 @@
 import { findSearchBasedSymbolDefinitions } from "@/app/api/(client)/client";
-import { SourceRange } from "@/features/search/types";
+import { SourceRange } from "@/features/search";
 import { useDomain } from "@/hooks/useDomain";
 import { unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";

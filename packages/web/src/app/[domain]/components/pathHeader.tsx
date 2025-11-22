@@ -233,7 +233,7 @@ export const PathHeader = ({
                     }}
                 >
                     <span className="mr-0.5">@</span>
-                    {`${branchDisplayName}`}
+                    {`${branchDisplayName.replace(/^refs\/(heads|tags)\//, '')}`}
                 </p>
             )}
             <span>·</span>

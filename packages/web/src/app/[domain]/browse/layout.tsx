@@ -29,7 +29,9 @@ export default function Layout({
                 >
                     <SearchBar
                         size="sm"
-                        defaultQuery={`repo:${repoName}${revisionName ? ` rev:${revisionName}` : ''} `}
+                        defaults={{
+                            query: `repo:${repoName}${revisionName ? ` rev:${revisionName}` : ''} `,
+                        }}
                         className="w-full"
                     />
                 </TopBar>

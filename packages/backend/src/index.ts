@@ -94,7 +94,6 @@ const listenToShutdownSignals = () => {
     const cleanup = async (signal: string) => {
         try {
             if (receivedSignal) {
-                logger.debug(`Recieved repeat signal ${signal}, ignoring.`);
                 return;
             }
             receivedSignal = true;
