@@ -11,6 +11,7 @@ import googleLogo from "@/public/google.svg";
 import oktaLogo from "@/public/okta.svg";
 import keycloakLogo from "@/public/keycloak.svg";
 import microsoftLogo from "@/public/microsoft_entra.svg";
+import authentikLogo from "@/public/authentik.svg";
 import { ServiceError } from "./serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
@@ -140,6 +141,15 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
                     src: microsoftLogo,
                 },
             };
+        case "authentik":
+            return {
+                id: "authentik",
+                name: "Authentik",
+                displayName: "Authentik",
+                icon: {
+                    src: authentikLogo,
+                },
+            }
         case "credentials":
             return {
                 id: "credentials",

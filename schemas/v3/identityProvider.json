@@ -170,6 +170,28 @@
                 }
             },
             "required": ["provider", "purpose", "audience"]
+        },
+        "AuthentikIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "provider": {
+                    "const": "authentik"
+                },
+                "purpose": {
+                    "const": "sso"
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "issuer": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "purpose", "clientId", "clientSecret", "issuer"]
         }
     },
     "oneOf": [
@@ -193,6 +215,9 @@
         },
         {
             "$ref": "#/definitions/GCPIAPIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/AuthentikIdentityProviderConfig"
         }
     ]
 }

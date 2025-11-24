@@ -366,3 +366,53 @@ A Microsoft Entra ID connection can be used for [authentication](/docs/configura
 </Steps>
 </Accordion>
 
+### Authentik
+
+[Auth.js Authentik Provider Docs](https://authjs.dev/getting-started/providers/authentik)
+
+An Authentik connection can be used for [authentication](/docs/configuration/auth).
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Create a OAuth2/OpenID Connect application">
+        To begin, you must create a OAuth2/OpenID Connect application in Authentik. For more information, see the [Authentik documentation](https://docs.goauthentik.io/add-secure-apps/applications/manage_apps/#create-an-application-and-provider-pair).
+
+        When configuring your application:
+        - Set the provider type to "OAuth2/OpenID Connect"
+        - Set the client type to "Confidential"
+        - Add `<sourcebot_url>/api/auth/callback/authentik` to the redirect URIs (ex. https://sourcebot.coolcorp.com/api/auth/callback/authentik)
+
+        After creating the application, open the application details to obtain the client id, client secret, and issuer URL (typically in the format `https://<authentik-domain>/application/o/<provider-slug>/`).
+    </Step>
+    <Step title="Define environment variables">
+        The client id, secret, and issuer URL are provided to Sourcebot via environment variables. These can be named whatever you like
+        (ex. `AUTHENTIK_IDENTITY_PROVIDER_CLIENT_ID`, `AUTHENTIK_IDENTITY_PROVIDER_CLIENT_SECRET`, and `AUTHENTIK_IDENTITY_PROVIDER_ISSUER`)
+    </Step>
+    <Step title="Define the identity provider config">
+        Create a `identityProvider` object in the [config file](/docs/configuration/config-file) with the following fields:
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "authentik",
+                    "purpose": "sso",
+                    "clientId": {
+                        "env": "AUTHENTIK_IDENTITY_PROVIDER_CLIENT_ID"
+                    },
+                    "clientSecret": {
+                        "env": "AUTHENTIK_IDENTITY_PROVIDER_CLIENT_SECRET"
+                    },
+                    "issuer": {
+                        "env": "AUTHENTIK_IDENTITY_PROVIDER_ISSUER"
+                    }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+
