@@ -27,6 +27,10 @@ export {
 } from "./utils.js";
 export * from "./constants.js";
 export {
+    REPOS_CACHE_DIR,
+    INDEX_CACHE_DIR,
+} from "./constants.server.js";
+export {
     env,
     resolveEnvironmentVariableOverridesFromConfig,
 } from "./env.server.js";

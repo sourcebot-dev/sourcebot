@@ -463,15 +463,42 @@ export const getUserApiKeys = async (domain: string): Promise<{ name: string; cr
 export const getRepos = async ({
     where,
     take,
+    activeAfter,
+    activeBefore,
 }: {
     where?: Prisma.RepoWhereInput,
-    take?: number
+    take?: number,
+    activeAfter?: string,
+    activeBefore?: string,
 } = {}) => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {
+        // Build temporal filter for indexedAt if activeAfter or activeBefore are provided
+        const temporalWhere: Prisma.RepoWhereInput = {};
+        if (activeAfter || activeBefore) {
+            const { toDbDate, validateDateRange } = await import('@/features/search/dateUtils');
+
+            // Validate date range if both dates are provided
+            if (activeAfter && activeBefore) {
+                const dateRangeError = validateDateRange(activeAfter, activeBefore);
+                if (dateRangeError) {
+                    throw new Error(dateRangeError);
+                }
+            }
+
+            temporalWhere.indexedAt = {};
+            if (activeAfter) {
+                temporalWhere.indexedAt.gte = toDbDate(activeAfter);
+            }
+            if (activeBefore) {
+                temporalWhere.indexedAt.lte = toDbDate(activeBefore);
+            }
+        }
+
         const repos = await prisma.repo.findMany({
             where: {
                 orgId: org.id,
                 ...where,
+                ...temporalWhere,
             },
             take,
         });
