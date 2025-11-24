@@ -66,16 +66,6 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
     return `${path}?${queryString}`;
 }
 
-export type AuthProviderType =
-    "github" |
-    "gitlab" |
-    "google" |
-    "okta" |
-    "keycloak" |
-    "microsoft-entra-id" |
-    "credentials" |
-    "nodemailer";
-
 type AuthProviderInfo = {
     id: string;
     name: string;
