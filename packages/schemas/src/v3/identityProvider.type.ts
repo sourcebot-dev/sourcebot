@@ -7,7 +7,8 @@ export type IdentityProviderConfig =
   | OktaIdentityProviderConfig
   | KeycloakIdentityProviderConfig
   | MicrosoftEntraIDIdentityProviderConfig
-  | GCPIAPIdentityProviderConfig;
+  | GCPIAPIdentityProviderConfig
+  | AuthentikIdentityProviderConfig;
 
 export interface GitHubIdentityProviderConfig {
   provider: "github";
@@ -242,6 +243,49 @@ export interface GCPIAPIdentityProviderConfig {
   provider: "gcp-iap";
   purpose: "sso";
   audience:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+}
+export interface AuthentikIdentityProviderConfig {
+  provider: "authentik";
+  purpose: "sso";
+  clientId:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  clientSecret:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  issuer:
     | {
         /**
          * The name of the environment variable that contains the token.

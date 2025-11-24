@@ -11,6 +11,7 @@ import googleLogo from "@/public/google.svg";
 import oktaLogo from "@/public/okta.svg";
 import keycloakLogo from "@/public/keycloak.svg";
 import microsoftLogo from "@/public/microsoft_entra.svg";
+import authentikLogo from "@/public/authentik.svg";
 import { ServiceError } from "./serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
@@ -64,16 +65,6 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
     const queryString = queryParams.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value ?? '')}`).join('&');
     return `${path}?${queryString}`;
 }
-
-export type AuthProviderType =
-    "github" |
-    "gitlab" |
-    "google" |
-    "okta" |
-    "keycloak" |
-    "microsoft-entra-id" |
-    "credentials" |
-    "nodemailer";
 
 type AuthProviderInfo = {
     id: string;
@@ -140,6 +131,15 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
                     src: microsoftLogo,
                 },
             };
+        case "authentik":
+            return {
+                id: "authentik",
+                name: "Authentik",
+                displayName: "Authentik",
+                icon: {
+                    src: authentikLogo,
+                },
+            }
         case "credentials":
             return {
                 id: "credentials",
