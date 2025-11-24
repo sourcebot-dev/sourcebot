@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- Bump @sourcebot/mcp since there are breaking changes to the api in this release -->
 
 ### Added
+- Added temporal filtering to search and repository APIs with support for git branch/revision filtering and repository index date filtering (since/until parameters). Supports both ISO 8601 and relative date formats (e.g., "30 days ago", "last week").
 - Added support for streaming code search results. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
 - Added buttons to toggle case sensitivity and regex patterns. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
 - Added counts to members, requets, and invites tabs in the members settings. [#621](https://github.com/sourcebot-dev/sourcebot/pull/621)
