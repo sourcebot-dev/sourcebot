@@ -36,7 +36,7 @@ Program(OrExpr(Term,NegateExpr(PrefixExpr(FileExpr))))
 
 ==>
 
-Program(OrExpr(Term,Term))
+Program(OrExpr(QuotedTerm,QuotedTerm))
 
 # OR with different prefixes
 
@@ -260,7 +260,7 @@ Program(OrExpr(PrefixExpr(FileExpr),PrefixExpr(FileExpr)))
 
 ==>
 
-Program(OrExpr(ParenExpr(Term(⚠)),ParenExpr(Term(⚠))))
+Program(OrExpr(ParenExpr,ParenExpr))
 
 # OR with negated groups
 

@@ -18,6 +18,7 @@ import {
     SymExpr,
     SyntaxNode,
     Term,
+    QuotedTerm,
     Tree,
     VisibilityExpr,
 } from '@sourcebot/query-language';
@@ -175,8 +176,12 @@ const transformTreeToIR = async ({
                 // PrefixExpr contains specific prefix types
                 return transformPrefixExpr(node);
 
+            case QuotedTerm:
             case Term: {
-                const termText = input.substring(node.from, node.to).replace(/^"|"$/g, '');
+                const fullText = input.substring(node.from, node.to);
+                // If the term is quoted, then we remove the quotes as they are
+                // not interpreted.
+                const termText = node.type.id === QuotedTerm ? fullText.replace(/^"|"$/g, '') : fullText;
 
                 return isRegexEnabled ? {
                     regexp: {

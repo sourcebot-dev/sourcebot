@@ -156,7 +156,7 @@ Program(AndExpr(ParenExpr(OrExpr(Term,Term)),ParenExpr(OrExpr(Term,Term))))
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Prefix with OR value doesn't split
 
@@ -188,7 +188,7 @@ Program(OrExpr(Term,ParenExpr(AndExpr(Term,Term))))
 
 ==>
 
-Program(OrExpr(ParenExpr(Term(⚠)),AndExpr(Term,Term)))
+Program(OrExpr(ParenExpr,AndExpr(Term,Term)))
 
 # Negation of empty group
 
@@ -196,5 +196,5 @@ Program(OrExpr(ParenExpr(Term(⚠)),AndExpr(Term,Term)))
 
 ==>
 
-Program(AndExpr(NegateExpr(ParenExpr(Term(⚠))),Term))
+Program(AndExpr(NegateExpr(ParenExpr),Term))
 
