@@ -12,7 +12,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Dash in middle
 
@@ -244,7 +244,7 @@ Program(NegateExpr(ParenExpr(AndExpr(PrefixExpr(FileExpr),PrefixExpr(LangExpr)))
 
 ==>
 
-Program(NegateExpr(ParenExpr(Term(⚠))))
+Program(NegateExpr(ParenExpr))
 
 # Negate with space after dash
 

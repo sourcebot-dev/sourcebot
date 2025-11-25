@@ -4,6 +4,22 @@
 
 ==>
 
+Program(QuotedTerm)
+
+# Leading unclosed quote
+
+"hello
+
+==>
+
+Program(Term)
+
+# Trailing unclosed quote
+
+hello"
+
+==>
+
 Program(Term)
 
 # Quoted string with spaces
@@ -12,7 +28,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Multiple words in quotes
 
@@ -20,7 +36,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with escaped quote
 
@@ -28,7 +44,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with escaped backslash
 
@@ -36,7 +52,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Double backslash
 
@@ -44,7 +60,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Multiple escaped quotes
 
@@ -52,7 +68,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Mixed escaped characters
 
@@ -60,7 +76,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Empty quoted string
 
@@ -68,7 +84,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with only spaces
 
@@ -76,7 +92,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string in file prefix
 
@@ -116,7 +132,7 @@ Program(PrefixExpr(RevisionExpr))
 
 ==>
 
-Program(AndExpr(Term,Term))
+Program(AndExpr(QuotedTerm,QuotedTerm))
 
 # Quoted and unquoted mixed
 
@@ -124,7 +140,7 @@ unquoted "quoted string" another
 
 ==>
 
-Program(AndExpr(Term,Term,Term))
+Program(AndExpr(Term,QuotedTerm,Term))
 
 # Quoted string with parentheses inside
 
@@ -132,7 +148,7 @@ Program(AndExpr(Term,Term,Term))
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with brackets
 
@@ -140,7 +156,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with special chars
 
@@ -148,7 +164,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with colons
 
@@ -156,7 +172,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with dashes
 
@@ -164,7 +180,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with dots
 
@@ -172,7 +188,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with regex pattern
 
@@ -180,7 +196,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with forward slashes
 
@@ -188,7 +204,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with underscores
 
@@ -196,7 +212,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with numbers
 
@@ -204,7 +220,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with mixed case
 
@@ -212,7 +228,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted prefix value with spaces
 
@@ -236,7 +252,7 @@ Program(AndExpr(PrefixExpr(FileExpr),PrefixExpr(RepoExpr)))
 
 ==>
 
-Program(ParenExpr(Term))
+Program(ParenExpr(QuotedTerm))
 
 # Multiple quoted in parentheses
 
@@ -244,7 +260,7 @@ Program(ParenExpr(Term))
 
 ==>
 
-Program(ParenExpr(AndExpr(Term,Term)))
+Program(ParenExpr(AndExpr(QuotedTerm,QuotedTerm)))
 
 # Quoted with escaped newline
 
@@ -252,7 +268,7 @@ Program(ParenExpr(AndExpr(Term,Term)))
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted with tab character
 
@@ -260,7 +276,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Lang prefix with quoted value
 
@@ -292,7 +308,7 @@ Program(PrefixExpr(ContentExpr))
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with hash
 
@@ -300,7 +316,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with dollar sign
 
@@ -308,7 +324,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with percent
 
@@ -316,7 +332,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with ampersand
 
@@ -324,7 +340,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with asterisk
 
@@ -332,7 +348,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with plus
 
@@ -340,7 +356,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with equals
 
@@ -348,7 +364,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with angle brackets
 
@@ -356,7 +372,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with pipe
 
@@ -364,7 +380,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with tilde
 
@@ -372,7 +388,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with backtick
 
@@ -380,7 +396,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with question mark
 
@@ -388,7 +404,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with exclamation
 
@@ -396,7 +412,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with semicolon
 
@@ -404,7 +420,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted string with comma
 
@@ -412,7 +428,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Multiple quotes in content
 
@@ -428,7 +444,7 @@ Program(PrefixExpr(ContentExpr))
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted file prefix as literal
 
@@ -436,7 +452,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted lang prefix as literal
 
@@ -444,7 +460,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted partial prefix
 
@@ -452,7 +468,7 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Mix of quoted prefix and real prefix
 
@@ -460,7 +476,7 @@ Program(Term)
 
 ==>
 
-Program(AndExpr(Term,PrefixExpr(FileExpr)))
+Program(AndExpr(QuotedTerm,PrefixExpr(FileExpr)))
 
 # Quoted short form prefix
 
@@ -468,7 +484,7 @@ Program(AndExpr(Term,PrefixExpr(FileExpr)))
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
 
 # Quoted revision prefix
 
@@ -476,4 +492,12 @@ Program(Term)
 
 ==>
 
-Program(Term)
+Program(QuotedTerm)
+
+# Quotes can be used within words
+
+name\s*=\s*"projectmanagementlugapi lang:HCL
+
+==>
+
+Program(AndExpr(Term, PrefixExpr(LangExpr)))

@@ -4,7 +4,7 @@
 
 ==>
 
-Program(ParenExpr(Term(⚠)))
+Program(ParenExpr)
 
 # Simple grouping
 

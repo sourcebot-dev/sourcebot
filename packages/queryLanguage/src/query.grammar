@@ -24,12 +24,13 @@ expr {
   NegateExpr |
   ParenExpr |
   PrefixExpr |
+  QuotedTerm |
   Term
 }
 
 NegateExpr { !negate negate (PrefixExpr | ParenExpr) }
 
-ParenExpr { "(" query ")" }
+ParenExpr { "(" query? ")" }
 
 PrefixExpr {
   ArchivedExpr |
@@ -63,7 +64,8 @@ archivedValue { "yes" | "no" | "only" }
 forkValue { "yes" | "no" | "only" }
 visibilityValue { "public" | "private" | "any" }
 
-Term { quotedString | word }
+QuotedTerm { quotedString }
+Term { word }
 
 value { quotedString | word }
 
@@ -86,9 +88,7 @@ value { quotedString | word }
   
   quotedString { '"' (!["\\\n] | "\\" _)* '"' }
   
-  // Allow almost anything in a word except spaces, parens, quotes
-  // Colons and dashes are allowed anywhere in words (including at the start)
-  word { (![ \t\n()"]) (![ \t\n()":] | ":" | "-")* }
+  word { (![ \t\n()]) (![ \t\n():] | ":" | "-")* }
   
   space { $[ \t\n]+ }
   
