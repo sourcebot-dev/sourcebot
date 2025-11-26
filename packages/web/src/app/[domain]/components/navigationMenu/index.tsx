@@ -20,7 +20,7 @@ import { NavigationItems } from "./navigationItems";
 import { ProgressIndicator } from "./progressIndicator";
 import { TrialIndicator } from "./trialIndicator";
 
-const SOURCEBOT_DISCORD_URL = "https://discord.gg/GbXMEM5H";
+const SOURCEBOT_DISCORD_URL = "https://discord.gg/HDScTs3ptP";
 const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
 
 interface NavigationMenuProps {
