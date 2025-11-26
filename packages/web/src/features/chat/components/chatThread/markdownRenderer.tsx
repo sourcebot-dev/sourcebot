@@ -1,7 +1,6 @@
 'use client';
 
 import { CodeSnippet } from '@/app/components/codeSnippet';
-import { useDomain } from '@/hooks/useDomain';
 import { SearchQueryParams } from '@/lib/types';
 import { cn, createPathWithQueryParams } from '@/lib/utils';
 import type { Element, Root } from "hast";
@@ -10,7 +9,7 @@ import { CopyIcon, SearchIcon } from 'lucide-react';
 import type { Heading, Nodes } from "mdast";
 import { findAndReplace } from 'mdast-util-find-and-replace';
 import { useRouter } from 'next/navigation';
-import React, { useCallback, useMemo, forwardRef } from 'react';
+import React, { useCallback, useMemo, forwardRef, memo } from 'react';
 import Markdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
@@ -20,6 +19,7 @@ import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
 import { FILE_REFERENCE_REGEX } from '@/features/chat/constants';
 import { createFileReference } from '@/features/chat/utils';
+import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
 
 export const REFERENCE_PAYLOAD_ATTRIBUTE = 'data-reference-payload';
 
@@ -102,8 +102,7 @@ interface MarkdownRendererProps {
     className?: string;
 }
 
-export const MarkdownRenderer = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, className }, ref) => {
-    const domain = useDomain();
+const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, className }, ref) => {
     const router = useRouter();
 
     const remarkPlugins = useMemo((): PluggableList => {
@@ -176,7 +175,7 @@ export const MarkdownRenderer = forwardRef<HTMLDivElement, MarkdownRendererProps
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                const url = createPathWithQueryParams(`/${domain}/search`, [SearchQueryParams.query, `"${text}"`])
+                                const url = createPathWithQueryParams(`/${SINGLE_TENANT_ORG_DOMAIN}/search`, [SearchQueryParams.query, `"${text}"`])
                                 router.push(url);
                             }}
                             title="Search for snippet"
@@ -199,7 +198,7 @@ export const MarkdownRenderer = forwardRef<HTMLDivElement, MarkdownRendererProps
             </span>
         )
 
-    }, [domain, router]);
+    }, [router]);
 
     return (
         <div
@@ -220,4 +219,6 @@ export const MarkdownRenderer = forwardRef<HTMLDivElement, MarkdownRendererProps
     );
 });
 
-MarkdownRenderer.displayName = 'MarkdownRenderer';
+MarkdownRendererComponent.displayName = 'MarkdownRenderer';
+
+export const MarkdownRenderer = memo(MarkdownRendererComponent);

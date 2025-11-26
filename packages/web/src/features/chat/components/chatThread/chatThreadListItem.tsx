@@ -4,7 +4,7 @@ import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle
 import { ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, Loader2 } from 'lucide-react';
-import { CSSProperties, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { Reference, referenceSchema, SBChatMessage, Source } from "../../types";
 import { useExtractReferences } from '../../useExtractReferences';
@@ -24,7 +24,7 @@ interface ChatThreadListItemProps {
     index: number;
 }
 
-export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemProps>(({
+export const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListItemProps>(({
     userMessage,
     assistantMessage: _assistantMessage,
     isStreaming,
@@ -32,6 +32,7 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
     chatId,
     index,
 }, ref) => {
+    console.log(`re-rendering chat thread list item`, index);
     const leftPanelRef = useRef<HTMLDivElement>(null);
     const [leftPanelHeight, setLeftPanelHeight] = useState<number | null>(null);
     const answerRef = useRef<HTMLDivElement>(null);
@@ -393,7 +394,12 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
     )
 });
 
-ChatThreadListItem.displayName = 'ChatThreadListItem';
+ChatThreadListItemComponent.displayName = 'ChatThreadListItem';
+
+// Only allow re-rendering when the message _is_ streaming.
+// This is a performance optimizations to prevent unnecessary
+// re-renders for chatThreadListItems that are not streaming.
+export const ChatThreadListItem = memo(ChatThreadListItemComponent, (_, nextProps) => !nextProps.isStreaming);
 
 // Finds the nearest reference element to the viewport center.
 const getNearestReferenceElement = (referenceElements: Element[]) => {

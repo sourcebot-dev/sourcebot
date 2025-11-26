@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { TableOfContentsIcon, ThumbsDown, ThumbsUp } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { MarkdownRenderer } from "./markdownRenderer";
-import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, memo, useCallback, useImperativeHandle, useRef, useState } from "react";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CopyIconButton } from "@/app/[domain]/components/copyIconButton";
@@ -14,7 +14,6 @@ import { useToast } from "@/components/hooks/use-toast";
 import { convertLLMOutputToPortableMarkdown } from "../../utils";
 import { submitFeedback } from "../../actions";
 import { isServiceError } from "@/lib/utils";
-import { useDomain } from "@/hooks/useDomain";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { LangfuseWeb } from "langfuse";
 import { env } from "@sourcebot/shared/client";
@@ -31,7 +30,7 @@ const langfuseWeb = (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined &
     baseUrl: env.NEXT_PUBLIC_LANGFUSE_BASE_URL,
 }) : null;
 
-export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
+const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
     answerText,
     messageId,
     chatId,
@@ -41,7 +40,6 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
     const { tocItems, activeId } = useExtractTOCItems({ target: markdownRendererRef.current });
     const [isTOCButtonToggled, setIsTOCButtonToggled] = useState(false);
     const { toast } = useToast();
-    const domain = useDomain();
     const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
     const [feedback, setFeedback] = useState<'like' | 'dislike' | undefined>(undefined);
     const captureEvent = useCaptureEvent();
@@ -67,7 +65,7 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
             chatId,
             messageId,
             feedbackType
-        }, domain);
+        });
 
         if (isServiceError(response)) {
             toast({
@@ -93,7 +91,7 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
         }
 
         setIsSubmittingFeedback(false);
-    }, [chatId, messageId, domain, toast, captureEvent, traceId]);
+    }, [chatId, messageId, toast, captureEvent, traceId]);
 
     return (
         <div className="flex flex-row w-full relative scroll-mt-16">
@@ -178,4 +176,6 @@ export const AnswerCard = forwardRef<HTMLDivElement, AnswerCardProps>(({
     )
 })
 
-AnswerCard.displayName = 'AnswerCard';
+AnswerCardComponent.displayName = 'AnswerCard';
+
+export const AnswerCard = memo(AnswerCardComponent);

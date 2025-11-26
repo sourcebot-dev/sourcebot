@@ -4,11 +4,10 @@ import { getFileSource } from "@/app/api/(client)/client";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDomain } from "@/hooks/useDomain";
 import { isServiceError, unwrapServiceError } from "@/lib/utils";
 import { useQueries } from "@tanstack/react-query";
 import { ReactCodeMirrorRef } from '@uiw/react-codemirror';
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { FileReference, FileSource, Reference, Source } from "../../types";
 import ReferencedFileSourceListItem from "./referencedFileSourceListItem";
@@ -31,7 +30,7 @@ const resolveFileReference = (reference: FileReference, sources: FileSource[]): 
     );
 }
 
-export const ReferencedSourcesListView = ({
+const ReferencedSourcesListViewComponent = ({
     references,
     sources,
     index,
@@ -43,7 +42,6 @@ export const ReferencedSourcesListView = ({
 }: ReferencedSourcesListViewProps) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const editorRefsMap = useRef<Map<string, ReactCodeMirrorRef>>(new Map());
-    const domain = useDomain();
     const [collapsedFileIds, setCollapsedFileIds] = useState<string[]>([]);
 
     const getFileId = useCallback((fileSource: FileSource) => {
@@ -98,7 +96,7 @@ export const ReferencedSourcesListView = ({
 
     const fileSourceQueries = useQueries({
         queries: referencedFileSources.map((file) => ({
-            queryKey: ['fileSource', file.path, file.repo, file.revision, domain],
+            queryKey: ['fileSource', file.path, file.repo, file.revision],
             queryFn: () => unwrapServiceError(getFileSource({
                 fileName: file.path,
                 repository: file.repo,
@@ -183,6 +181,25 @@ export const ReferencedSourcesListView = ({
         }
     }, [getFileId, referencedFileSources, selectedReference]);
 
+    const onExpandedChanged = useCallback((fileId: string, isExpanded: boolean) => {
+        if (isExpanded) {
+            setCollapsedFileIds(collapsedFileIds => collapsedFileIds.filter((id) => id !== fileId));
+        } else {
+            setCollapsedFileIds(collapsedFileIds => [...collapsedFileIds, fileId]);
+        }
+
+        if (!isExpanded) {
+            const fileSourceStart = document.getElementById(`${fileId}-start`);
+            if (fileSourceStart) {
+                scrollIntoView(fileSourceStart, {
+                    scrollMode: 'if-needed',
+                    block: 'start',
+                    behavior: 'instant',
+                });
+            }
+        }
+    }, []);
+
     if (referencedFileSources.length === 0) {
         return (
             <div className="p-4 text-center text-muted-foreground text-sm">
@@ -253,30 +270,7 @@ export const ReferencedSourcesListView = ({
                             selectedReference={selectedReference}
                             hoveredReference={hoveredReference}
                             isExpanded={!collapsedFileIds.includes(fileId)}
-                            onExpandedChanged={(isExpanded) => {
-                                if (isExpanded) {
-                                    setCollapsedFileIds(collapsedFileIds.filter((id) => id !== fileId));
-                                } else {
-                                    setCollapsedFileIds([...collapsedFileIds, fileId]);
-                                }
-
-                                // When collapsing a file when you are deep in a scroll, it's a better
-                                // experience to have the scroll automatically restored to the top of the file
-                                // s.t., header is still sticky to the top of the scroll area.
-                                if (!isExpanded) {
-                                    const fileSourceStart = document.getElementById(`${fileId}-start`);
-                                    if (!fileSourceStart) {
-                                        return;
-                                    }
-
-                                    scrollIntoView(fileSourceStart, {
-                                        scrollMode: 'if-needed',
-                                        block: 'start',
-                                        behavior: 'instant',
-                                    });
-                                }
-                            }
-                            }
+                            onExpandedChanged={(isExpanded) => onExpandedChanged(fileId, isExpanded)}
                         />
                     );
                 })}
@@ -284,3 +278,6 @@ export const ReferencedSourcesListView = ({
         </ScrollArea>
     );
 }
+
+// Memoize to prevent unnecessary re-renders
+export const ReferencedSourcesListView = memo(ReferencedSourcesListViewComponent);

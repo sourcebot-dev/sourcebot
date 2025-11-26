@@ -7,7 +7,6 @@ import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
 import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, SearchScope, Source } from '@/features/chat/types';
 import { createUIMessage, getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
-import { useDomain } from '@/hooks/useDomain';
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport } from 'ai';
 import { ArrowDownIcon } from 'lucide-react';
@@ -54,7 +53,6 @@ export const ChatThread = ({
     onSelectedSearchScopesChange,
     isChatReadonly,
 }: ChatThreadProps) => {
-    const domain = useDomain();
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const latestMessagePairRef = useRef<HTMLDivElement>(null);
@@ -89,9 +87,6 @@ export const ChatThread = ({
         messages: initialMessages,
         transport: new DefaultChatTransport({
             api: '/api/chat',
-            headers: {
-                "X-Org-Domain": domain,
-            }
         }),
         onData: (dataPart) => {
             // Keeps sources added by the assistant in sync.
@@ -134,7 +129,6 @@ export const ChatThread = ({
                     languageModelId: selectedLanguageModel.model,
                     message: message.parts[0].text,
                 },
-                domain
             ).then((response) => {
                 if (isServiceError(response)) {
                     toast({
@@ -153,7 +147,6 @@ export const ChatThread = ({
         messages.length,
         toast,
         chatId,
-        domain,
         router,
     ]);
 
@@ -196,46 +189,47 @@ export const ChatThread = ({
         hasSubmittedInputMessage.current = true;
     }, [inputMessage, sendMessage]);
 
+    // @todo: this need to be optimized to avoid excessive re-renders
     // Track scroll position changes.
-    useEffect(() => {
-        const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-        if (!scrollElement) return;
+    // useEffect(() => {
+    //     const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+    //     if (!scrollElement) return;
 
-        let timeout: NodeJS.Timeout | null = null;
+    //     let timeout: NodeJS.Timeout | null = null;
 
-        const handleScroll = () => {
-            const scrollOffset = scrollElement.scrollTop;
+    //     const handleScroll = () => {
+    //         const scrollOffset = scrollElement.scrollTop;
 
-            const threshold = 50; // pixels from bottom to consider "at bottom"
-            const { scrollHeight, clientHeight } = scrollElement;
-            const isAtBottom = scrollHeight - scrollOffset - clientHeight <= threshold;
-            setIsAutoScrollEnabled(isAtBottom);
+    //         const threshold = 50; // pixels from bottom to consider "at bottom"
+    //         const { scrollHeight, clientHeight } = scrollElement;
+    //         const isAtBottom = scrollHeight - scrollOffset - clientHeight <= threshold;
+    //         setIsAutoScrollEnabled(isAtBottom);
 
-            // Debounce the history state update
-            if (timeout) {
-                clearTimeout(timeout);
-            }
+    //         // Debounce the history state update
+    //         if (timeout) {
+    //             clearTimeout(timeout);
+    //         }
 
-            timeout = setTimeout(() => {
-                history.replaceState(
-                    {
-                        scrollOffset,
-                    } satisfies ChatHistoryState,
-                    '',
-                    window.location.href
-                );
-            }, 300);
-        };
+    //         timeout = setTimeout(() => {
+    //             history.replaceState(
+    //                 {
+    //                     scrollOffset,
+    //                 } satisfies ChatHistoryState,
+    //                 '',
+    //                 window.location.href
+    //             );
+    //         }, 300);
+    //     };
 
-        scrollElement.addEventListener('scroll', handleScroll, { passive: true });
+    //     scrollElement.addEventListener('scroll', handleScroll, { passive: true });
 
-        return () => {
-            scrollElement.removeEventListener('scroll', handleScroll);
-            if (timeout) {
-                clearTimeout(timeout);
-            }
-        };
-    }, []);
+    //     return () => {
+    //         scrollElement.removeEventListener('scroll', handleScroll);
+    //         if (timeout) {
+    //             clearTimeout(timeout);
+    //         }
+    //     };
+    // }, []);
 
     useEffect(() => {
         const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
@@ -313,9 +307,11 @@ export const ChatThread = ({
                             {messagePairs.map(([userMessage, assistantMessage], index) => {
                                 const isLastPair = index === messagePairs.length - 1;
                                 const isStreaming = isLastPair && (status === "streaming" || status === "submitted");
+                                // Use a stable key based on user message ID
+                                const key = userMessage.id;
 
                                 return (
-                                    <Fragment key={index}>
+                                    <Fragment key={key}>
                                         <ChatThreadListItem
                                             index={index}
                                             chatId={chatId}
