@@ -219,6 +219,9 @@ export const env = createEnv({
 
         // Configure the default maximum number of search results to return by default.
         DEFAULT_MAX_MATCH_COUNT: numberSchema.default(10_000),
+
+        // A comma separated list of glob patterns that shwould always be indexed regardless of their size.
+        ALWAYS_INDEX_FILE_PATTERNS: z.string().optional(),
     },
     runtimeEnv,
     emptyStringAsUndefined: true,
