@@ -4,8 +4,16 @@ import { env, hasEntitlement, createLogger, loadConfig } from "@sourcebot/shared
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
-import { createOctokitFromToken, getReposForAuthenticatedUser } from "../github.js";
-import { createGitLabFromOAuthToken, getProjectsForAuthenticatedUser } from "../gitlab.js";
+import {
+    createOctokitFromToken,
+    getOAuthScopesForAuthenticatedUser as getGitHubOAuthScopesForAuthenticatedUser,
+    getReposForAuthenticatedUser,
+} from "../github.js";
+import {
+    createGitLabFromOAuthToken,
+    getOAuthScopesForAuthenticatedUser as getGitLabOAuthScopesForAuthenticatedUser,
+    getProjectsForAuthenticatedUser,
+} from "../gitlab.js";
 import { Settings } from "../types.js";
 import { setIntervalAsync } from "../utils.js";
 
@@ -170,6 +178,12 @@ export class AccountPermissionSyncer {
                     token: account.access_token,
                     url: baseUrl,
                 });
+
+                const scopes = await getGitHubOAuthScopesForAuthenticatedUser(octokit);
+                if (!scopes.includes('repo')) {
+                    throw new Error(`OAuth token with scopes [${scopes.join(', ')}] is missing the 'repo' scope required for permission syncing.`);
+                }
+
                 // @note: we only care about the private repos since we don't need to build a mapping
                 // for public repos.
                 // @see: packages/web/src/prisma.ts
@@ -200,6 +214,11 @@ export class AccountPermissionSyncer {
                     oauthToken: account.access_token,
                     url: baseUrl,
                 });
+
+                const scopes = await getGitLabOAuthScopesForAuthenticatedUser(api);
+                if (!scopes.includes('read_api')) {
+                    throw new Error(`OAuth token with scopes [${scopes.join(', ')}] is missing the 'read_api' scope required for permission syncing.`);
+                }
 
                 // @note: we only care about the private and internal repos since we don't need to build a mapping
                 // for public repos.
