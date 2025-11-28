@@ -32,13 +32,19 @@ export const useSuggestionsData = ({
     const { data: fileSuggestions, isLoading: _isLoadingFileSuggestions } = useQuery({
         queryKey: ["fileSuggestions-agentic", suggestionQuery, domain, selectedRepos],
         queryFn: () => {
-            let query = `file:${suggestionQuery}`;
+            const query = [];
+            if (suggestionQuery.length > 0) {
+                query.push(`file:${suggestionQuery}`);
+            } else {
+                query.push('file:.*');
+            }
+
             if (selectedRepos.length > 0) {
-                query += ` reposet:${selectedRepos.join(',')}`;
+                query.push(`reposet:${selectedRepos.join(',')}`);
             }
 
             return unwrapServiceError(search({
-                query,
+                query: query.join(' '),
                 matches: 10,
                 contextLines: 1,
             }))

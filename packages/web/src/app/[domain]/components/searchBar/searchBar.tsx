@@ -221,7 +221,7 @@ export const SearchBar = ({
             metadata: {
                 message: query,
             },
-        }, domain)
+        })
 
         const url = createPathWithQueryParams(`/${domain}/search`,
             [SearchQueryParams.query, query],

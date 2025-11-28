@@ -19,7 +19,6 @@ import { useBrowseState } from "../../hooks/useBrowseState";
 import { rangeHighlightingExtension } from "./rangeHighlightingExtension";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { createAuditAction } from "@/ee/features/audit/actions";
-import { useDomain } from "@/hooks/useDomain";
 
 interface PureCodePreviewPanelProps {
     path: string;
@@ -43,7 +42,6 @@ export const PureCodePreviewPanel = ({
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
     const { updateBrowseState } = useBrowseState();
     const { navigateToPath } = useBrowseNavigation();
-    const domain = useDomain();
     const captureEvent = useCaptureEvent();
 
     const highlightRangeQuery = useNonEmptyQueryParam(HIGHLIGHT_RANGE_QUERY_PARAM);
@@ -145,7 +143,7 @@ export const PureCodePreviewPanel = ({
             metadata: {
                 message: symbolName,
             },
-        }, domain)
+        })
 
         updateBrowseState({
             selectedSymbolInfo: {
@@ -157,7 +155,7 @@ export const PureCodePreviewPanel = ({
             isBottomPanelCollapsed: false,
             activeExploreMenuTab: "references",
         })
-    }, [captureEvent, updateBrowseState, repoName, revisionName, language, domain]);
+    }, [captureEvent, updateBrowseState, repoName, revisionName, language]);
 
 
     // If we resolve multiple matches, instead of navigating to the first match, we should
@@ -171,7 +169,7 @@ export const PureCodePreviewPanel = ({
             metadata: {
                 message: symbolName,
             },
-        }, domain)
+        })
 
         if (symbolDefinitions.length === 0) {
             return;
@@ -200,7 +198,7 @@ export const PureCodePreviewPanel = ({
                 isBottomPanelCollapsed: false,
             })
         }
-    }, [captureEvent, navigateToPath, revisionName, updateBrowseState, repoName, language, domain]);
+    }, [captureEvent, navigateToPath, revisionName, updateBrowseState, repoName, language]);
 
     const theme = useCodeMirrorTheme();
 

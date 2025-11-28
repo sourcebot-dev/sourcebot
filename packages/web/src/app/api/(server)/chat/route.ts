@@ -1,4 +1,4 @@
-import { sew, withAuth, withOrgMembership } from "@/actions";
+import { sew } from "@/actions";
 import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, updateChatMessages } from "@/features/chat/actions";
 import { createAgentStream } from "@/features/chat/agent";
 import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
@@ -6,10 +6,10 @@ import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/featur
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { prisma } from "@/prisma";
+import { withOptionalAuthV2 } from "@/withAuthV2";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
 import * as Sentry from "@sentry/nextjs";
-import { OrgRole } from "@sourcebot/db";
+import { PrismaClient } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/shared";
 import {
     createUIMessageStream,
@@ -34,15 +34,6 @@ const chatRequestSchema = z.object({
 })
 
 export async function POST(req: Request) {
-    const domain = req.headers.get("X-Org-Domain");
-    if (!domain) {
-        return serviceErrorResponse({
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.MISSING_ORG_DOMAIN_HEADER,
-            message: "Missing X-Org-Domain header",
-        });
-    }
-
     const requestBody = await req.json();
     const parsed = await chatRequestSchema.safeParseAsync(requestBody);
     if (!parsed.success) {
@@ -56,56 +47,54 @@ export async function POST(req: Request) {
     const languageModel = _languageModel as LanguageModelInfo;
 
     const response = await sew(() =>
-        withAuth((userId) =>
-            withOrgMembership(userId, domain, async ({ org }) => {
-                // Validate that the chat exists and is not readonly.
-                const chat = await prisma.chat.findUnique({
-                    where: {
-                        orgId: org.id,
-                        id,
-                    },
-                });
-
-                if (!chat) {
-                    return notFound();
-                }
-
-                if (chat.isReadonly) {
-                    return serviceErrorResponse({
-                        statusCode: StatusCodes.BAD_REQUEST,
-                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                        message: "Chat is readonly and cannot be edited.",
-                    });
-                }
-
-                // From the language model ID, attempt to find the
-                // corresponding config in `config.json`.
-                const languageModelConfig =
-                    (await _getConfiguredLanguageModelsFull())
-                        .find((model) => getLanguageModelKey(model) === getLanguageModelKey(languageModel));
-
-                if (!languageModelConfig) {
-                    return serviceErrorResponse({
-                        statusCode: StatusCodes.BAD_REQUEST,
-                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                        message: `Language model ${languageModel.model} is not configured.`,
-                    });
-                }
-
-                const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
-
-                return createMessageStreamResponse({
-                    messages,
-                    id,
-                    selectedSearchScopes,
-                    model,
-                    modelName: languageModelConfig.displayName ?? languageModelConfig.model,
-                    modelProviderOptions: providerOptions,
-                    domain,
+        withOptionalAuthV2(async ({ org, prisma }) => {
+            // Validate that the chat exists and is not readonly.
+            const chat = await prisma.chat.findUnique({
+                where: {
                     orgId: org.id,
+                    id,
+                },
+            });
+
+            if (!chat) {
+                return notFound();
+            }
+
+            if (chat.isReadonly) {
+                return serviceErrorResponse({
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "Chat is readonly and cannot be edited.",
                 });
-            }, /* minRequiredRole = */ OrgRole.GUEST), /* allowSingleTenantUnauthedAccess = */ true
-        )
+            }
+
+            // From the language model ID, attempt to find the
+            // corresponding config in `config.json`.
+            const languageModelConfig =
+                (await _getConfiguredLanguageModelsFull())
+                    .find((model) => getLanguageModelKey(model) === getLanguageModelKey(languageModel));
+
+            if (!languageModelConfig) {
+                return serviceErrorResponse({
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: `Language model ${languageModel.model} is not configured.`,
+                });
+            }
+
+            const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
+
+            return createMessageStreamResponse({
+                messages,
+                id,
+                selectedSearchScopes,
+                model,
+                modelName: languageModelConfig.displayName ?? languageModelConfig.model,
+                modelProviderOptions: providerOptions,
+                orgId: org.id,
+                prisma,
+            });
+        })
     )
 
     if (isServiceError(response)) {
@@ -132,8 +121,8 @@ interface CreateMessageStreamResponseProps {
     model: AISDKLanguageModelV2;
     modelName: string;
     modelProviderOptions?: Record<string, Record<string, JSONValue>>;
-    domain: string;
     orgId: number;
+    prisma: PrismaClient;
 }
 
 const createMessageStreamResponse = async ({
@@ -143,8 +132,8 @@ const createMessageStreamResponse = async ({
     model,
     modelName,
     modelProviderOptions,
-    domain,
     orgId,
+    prisma,
 }: CreateMessageStreamResponseProps) => {
     const latestMessage = messages[messages.length - 1];
     const sources = latestMessage.parts
@@ -254,7 +243,7 @@ const createMessageStreamResponse = async ({
             await updateChatMessages({
                 chatId: id,
                 messages
-            }, domain);
+            });
         },
     });
 

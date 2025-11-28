@@ -7,7 +7,6 @@ import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
 import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, SearchScope, Source } from '@/features/chat/types';
 import { createUIMessage, getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
-import { useDomain } from '@/hooks/useDomain';
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport } from 'ai';
 import { ArrowDownIcon } from 'lucide-react';
@@ -54,7 +53,6 @@ export const ChatThread = ({
     onSelectedSearchScopesChange,
     isChatReadonly,
 }: ChatThreadProps) => {
-    const domain = useDomain();
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const latestMessagePairRef = useRef<HTMLDivElement>(null);
@@ -89,9 +87,6 @@ export const ChatThread = ({
         messages: initialMessages,
         transport: new DefaultChatTransport({
             api: '/api/chat',
-            headers: {
-                "X-Org-Domain": domain,
-            }
         }),
         onData: (dataPart) => {
             // Keeps sources added by the assistant in sync.
@@ -134,7 +129,6 @@ export const ChatThread = ({
                     languageModelId: selectedLanguageModel.model,
                     message: message.parts[0].text,
                 },
-                domain
             ).then((response) => {
                 if (isServiceError(response)) {
                     toast({
@@ -153,7 +147,6 @@ export const ChatThread = ({
         messages.length,
         toast,
         chatId,
-        domain,
         router,
     ]);
 
@@ -224,7 +217,7 @@ export const ChatThread = ({
                     '',
                     window.location.href
                 );
-            }, 300);
+            }, 500);
         };
 
         scrollElement.addEventListener('scroll', handleScroll, { passive: true });
@@ -243,11 +236,17 @@ export const ChatThread = ({
             return;
         }
 
-        const { scrollOffset } = (history.state ?? {}) as ChatHistoryState;
-        scrollElement.scrollTo({
-            top: scrollOffset ?? 0,
-            behavior: 'instant',
-        });
+        // @hack: without this setTimeout, the scroll position would not be restored
+        // at the correct position (it was slightly too high). The theory is that the
+        // content hasn't fully rendered yet, so restoring the scroll position too
+        // early results in weirdness. Waiting 10ms seems to fix the issue.
+        setTimeout(() => {
+            const { scrollOffset } = (history.state ?? {}) as ChatHistoryState;
+            scrollElement.scrollTo({
+                top: scrollOffset ?? 0,
+                behavior: 'instant',
+            });
+        }, 10);
     }, []);
 
     // When messages are being streamed, scroll to the latest message
@@ -313,9 +312,11 @@ export const ChatThread = ({
                             {messagePairs.map(([userMessage, assistantMessage], index) => {
                                 const isLastPair = index === messagePairs.length - 1;
                                 const isStreaming = isLastPair && (status === "streaming" || status === "submitted");
+                                // Use a stable key based on user message ID
+                                const key = userMessage.id;
 
                                 return (
-                                    <Fragment key={index}>
+                                    <Fragment key={key}>
                                         <ChatThreadListItem
                                             index={index}
                                             chatId={chatId}
