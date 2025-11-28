@@ -22,8 +22,6 @@ import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/sy
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { SymbolDefinition } from "@/ee/features/codeNav/components/symbolHoverPopup/useHoveredOverSymbolInfo";
 import { createAuditAction } from "@/ee/features/audit/actions";
-import { useDomain } from "@/hooks/useDomain";
-
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 export interface CodePreviewFile {
@@ -53,7 +51,6 @@ export const CodePreview = ({
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
     const { navigateToPath } = useBrowseNavigation();
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
-    const domain = useDomain();
 
     const [gutterWidth, setGutterWidth] = useState(0);
     const theme = useCodeMirrorTheme();
@@ -127,7 +124,7 @@ export const CodePreview = ({
             metadata: {
                 message: symbolName,
             },
-        }, domain)
+        })
 
         if (symbolDefinitions.length === 0) {
             return;
@@ -162,7 +159,7 @@ export const CodePreview = ({
                 }
             });
         }
-    }, [captureEvent, file.filepath, file.language, file.revision, navigateToPath, repoName, domain]);
+    }, [captureEvent, file.filepath, file.language, file.revision, navigateToPath, repoName]);
     
     const onFindReferences = useCallback((symbolName: string) => {
         captureEvent('wa_find_references_pressed', {
@@ -173,7 +170,7 @@ export const CodePreview = ({
             metadata: {
                 message: symbolName,
             },
-        }, domain)
+        })
 
         navigateToPath({
             repoName,
@@ -191,7 +188,7 @@ export const CodePreview = ({
                 isBottomPanelCollapsed: false,
             }
         })
-    }, [captureEvent, file.filepath, file.language, file.revision, navigateToPath, repoName, domain]);
+    }, [captureEvent, file.filepath, file.language, file.revision, navigateToPath, repoName]);
 
     return (
         <div className="flex flex-col h-full">

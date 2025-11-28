@@ -9,7 +9,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { deleteChat, updateChatName } from "@/features/chat/actions";
-import { useDomain } from "@/hooks/useDomain";
 import { cn, isServiceError } from "@/lib/utils";
 import { CirclePlusIcon, EllipsisIcon, PencilIcon, TrashIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -23,6 +22,7 @@ import { useChatId } from "../useChatId";
 import { RenameChatDialog } from "./renameChatDialog";
 import { DeleteChatDialog } from "./deleteChatDialog";
 import Link from "next/link";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
 interface ChatSidePanelProps {
     order: number;
@@ -41,7 +41,6 @@ export const ChatSidePanel = ({
     isAuthenticated,
     isCollapsedInitially,
 }: ChatSidePanelProps) => {
-    const domain = useDomain();
     const [isCollapsed, setIsCollapsed] = useState(isCollapsedInitially);
     const sidePanelRef = useRef<ImperativePanelHandle>(null);
     const router = useRouter();
@@ -72,7 +71,7 @@ export const ChatSidePanel = ({
         const response = await updateChatName({
             chatId,
             name: name,
-        }, domain);
+        });
 
         if (isServiceError(response)) {
             toast({
@@ -84,14 +83,14 @@ export const ChatSidePanel = ({
             });
             router.refresh();
         }
-    }, [router, toast, domain]);
+    }, [router, toast]);
 
     const onDeleteChat = useCallback(async (chatIdToDelete: string) => {
         if (!chatIdToDelete) {
             return;
         }
 
-        const response = await deleteChat({ chatId: chatIdToDelete }, domain);
+        const response = await deleteChat({ chatId: chatIdToDelete });
 
         if (isServiceError(response)) {
             toast({
@@ -104,12 +103,12 @@ export const ChatSidePanel = ({
 
             // If we just deleted the current chat, navigate to new chat
             if (chatIdToDelete === chatId) {
-                router.push(`/${domain}/chat`);
+                router.push(`/${SINGLE_TENANT_ORG_DOMAIN}/chat`);
             }
 
             router.refresh();
         }
-    }, [chatId, router, toast, domain]);
+    }, [chatId, router, toast]);
 
     return (
         <>
@@ -131,7 +130,7 @@ export const ChatSidePanel = ({
                             size="sm"
                             className="w-full"
                             onClick={() => {
-                                router.push(`/${domain}/chat`);
+                                router.push(`/${SINGLE_TENANT_ORG_DOMAIN}/chat`);
                             }}
                         >
                             <CirclePlusIcon className="w-4 h-4 mr-1" />
@@ -145,7 +144,7 @@ export const ChatSidePanel = ({
                                 <div className="flex flex-col">
                                     <p className="text-sm text-muted-foreground mb-4">
                                         <Link
-                                            href={`/login?callbackUrl=${encodeURIComponent(`/${domain}/chat`)}`}
+                                            href={`/login?callbackUrl=${encodeURIComponent(`/${SINGLE_TENANT_ORG_DOMAIN}/chat`)}`}
                                             className="text-sm text-link hover:underline cursor-pointer"
                                         >
                                             Sign in
@@ -163,7 +162,7 @@ export const ChatSidePanel = ({
                                         chat.id === chatId && "bg-muted"
                                     )}
                                     onClick={() => {
-                                        router.push(`/${domain}/chat/${chat.id}`);
+                                        router.push(`/${SINGLE_TENANT_ORG_DOMAIN}/chat/${chat.id}`);
                                     }}
                                 >
                                     <span className="text-sm truncate">{chat.name ?? 'Untitled chat'}</span>

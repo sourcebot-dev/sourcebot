@@ -14,13 +14,13 @@ import { Range } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from '@codemirror/view';
 import CodeMirror, { ReactCodeMirrorRef, StateField } from '@uiw/react-codemirror';
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { forwardRef, Ref, useCallback, useImperativeHandle, useMemo, useState } from "react";
+import { forwardRef, memo, Ref, useCallback, useImperativeHandle, useMemo, useState } from "react";
 import { FileReference } from "../../types";
 import { createCodeFoldingExtension } from "./codeFoldingExtension";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { createAuditAction } from "@/ee/features/audit/actions";
-import { useDomain } from "@/hooks/useDomain";
 import { CodeHostType } from "@sourcebot/db";
+import { createAuditAction } from "@/ee/features/audit/actions";
+import isEqual from "fast-deep-equal/react";
 
 const lineDecoration = Decoration.line({
     attributes: { class: "cm-range-border-radius chat-lineHighlight" },
@@ -75,7 +75,6 @@ const ReferencedFileSourceListItem = ({
     const theme = useCodeMirrorTheme();
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
     const captureEvent = useCaptureEvent();
-    const domain = useDomain();
 
     useImperativeHandle(
         forwardedRef,
@@ -231,7 +230,7 @@ const ReferencedFileSourceListItem = ({
             metadata: {
                 message: symbolName,
             },
-        }, domain);
+        });
 
         if (symbolDefinitions.length === 1) {
             const symbolDefinition = symbolDefinitions[0];
@@ -263,7 +262,7 @@ const ReferencedFileSourceListItem = ({
             });
 
         }
-    }, [captureEvent, domain, navigateToPath, revision, repoName, fileName, language]);
+    }, [captureEvent, navigateToPath, revision, repoName, fileName, language]);
 
     const onFindReferences = useCallback((symbolName: string) => {
         captureEvent('wa_find_references_pressed', {
@@ -274,7 +273,7 @@ const ReferencedFileSourceListItem = ({
             metadata: {
                 message: symbolName,
             },
-        }, domain);
+        });
 
         navigateToPath({
             repoName,
@@ -293,7 +292,7 @@ const ReferencedFileSourceListItem = ({
             }
         })
 
-    }, [captureEvent, domain, fileName, language, navigateToPath, repoName, revision]);
+    }, [captureEvent, fileName, language, navigateToPath, repoName, revision]);
 
     const ExpandCollapseIcon = useMemo(() => {
         return isExpanded ? ChevronDown : ChevronRight;
@@ -355,6 +354,6 @@ const ReferencedFileSourceListItem = ({
     )
 }
 
-export default forwardRef(ReferencedFileSourceListItem) as (
+export default memo(forwardRef(ReferencedFileSourceListItem), isEqual) as (
     props: ReferencedFileSourceListItemProps & { ref?: Ref<ReactCodeMirrorRef> },
 ) => ReturnType<typeof ReferencedFileSourceListItem>;

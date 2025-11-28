@@ -1,7 +1,6 @@
 'use client';
 
 import { SearchCodeToolUIPart } from "@/features/chat/tools";
-import { useDomain } from "@/hooks/useDomain";
 import { createPathWithQueryParams, isServiceError } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { FileListItem, ToolHeader, TreeList } from "./shared";
@@ -12,10 +11,10 @@ import Link from "next/link";
 import { SearchQueryParams } from "@/lib/types";
 import { PlayIcon } from "@radix-ui/react-icons";
 import { buildSearchQuery } from "@/features/chat/utils";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
 export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const domain = useDomain();
 
     const displayQuery = useMemo(() => {
         if (part.state !== 'input-available' && part.state !== 'output-available') {
@@ -78,7 +77,7 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
                                 </TreeList>
                             )}
                             <Link
-                                href={createPathWithQueryParams(`/${domain}/search`,
+                                href={createPathWithQueryParams(`/${SINGLE_TENANT_ORG_DOMAIN}/search`,
                                     [SearchQueryParams.query, part.output.query],
                                 )}
                                 className='flex flex-row items-center gap-2 text-sm text-muted-foreground mt-2 ml-auto w-fit hover:text-foreground'
