@@ -25,7 +25,7 @@ interface ChatThreadListItemProps {
     index: number;
 }
 
-export const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListItemProps>(({
+const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListItemProps>(({
     userMessage,
     assistantMessage: _assistantMessage,
     isStreaming,

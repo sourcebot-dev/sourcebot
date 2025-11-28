@@ -210,7 +210,6 @@ export const ChatThread = ({
             }
 
             timeout = setTimeout(() => {
-                console.log(`scrollOffset: ${scrollOffset}`);
                 history.replaceState(
                     {
                         scrollOffset,
