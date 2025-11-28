@@ -189,47 +189,47 @@ export const ChatThread = ({
         hasSubmittedInputMessage.current = true;
     }, [inputMessage, sendMessage]);
 
-    // @todo: this need to be optimized to avoid excessive re-renders
     // Track scroll position changes.
-    // useEffect(() => {
-    //     const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-    //     if (!scrollElement) return;
+    useEffect(() => {
+        const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+        if (!scrollElement) return;
 
-    //     let timeout: NodeJS.Timeout | null = null;
+        let timeout: NodeJS.Timeout | null = null;
 
-    //     const handleScroll = () => {
-    //         const scrollOffset = scrollElement.scrollTop;
+        const handleScroll = () => {
+            const scrollOffset = scrollElement.scrollTop;
 
-    //         const threshold = 50; // pixels from bottom to consider "at bottom"
-    //         const { scrollHeight, clientHeight } = scrollElement;
-    //         const isAtBottom = scrollHeight - scrollOffset - clientHeight <= threshold;
-    //         setIsAutoScrollEnabled(isAtBottom);
+            const threshold = 50; // pixels from bottom to consider "at bottom"
+            const { scrollHeight, clientHeight } = scrollElement;
+            const isAtBottom = scrollHeight - scrollOffset - clientHeight <= threshold;
+            setIsAutoScrollEnabled(isAtBottom);
 
-    //         // Debounce the history state update
-    //         if (timeout) {
-    //             clearTimeout(timeout);
-    //         }
+            // Debounce the history state update
+            if (timeout) {
+                clearTimeout(timeout);
+            }
 
-    //         timeout = setTimeout(() => {
-    //             history.replaceState(
-    //                 {
-    //                     scrollOffset,
-    //                 } satisfies ChatHistoryState,
-    //                 '',
-    //                 window.location.href
-    //             );
-    //         }, 300);
-    //     };
+            timeout = setTimeout(() => {
+                console.log(`scrollOffset: ${scrollOffset}`);
+                history.replaceState(
+                    {
+                        scrollOffset,
+                    } satisfies ChatHistoryState,
+                    '',
+                    window.location.href
+                );
+            }, 500);
+        };
 
-    //     scrollElement.addEventListener('scroll', handleScroll, { passive: true });
+        scrollElement.addEventListener('scroll', handleScroll, { passive: true });
 
-    //     return () => {
-    //         scrollElement.removeEventListener('scroll', handleScroll);
-    //         if (timeout) {
-    //             clearTimeout(timeout);
-    //         }
-    //     };
-    // }, []);
+        return () => {
+            scrollElement.removeEventListener('scroll', handleScroll);
+            if (timeout) {
+                clearTimeout(timeout);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
@@ -237,11 +237,17 @@ export const ChatThread = ({
             return;
         }
 
-        const { scrollOffset } = (history.state ?? {}) as ChatHistoryState;
-        scrollElement.scrollTo({
-            top: scrollOffset ?? 0,
-            behavior: 'instant',
-        });
+        // @hack: without this setTimeout, the scroll position would not be restored
+        // at the correct position (it was slightly too high). The theory is that the
+        // content hasn't fully rendered yet, so restoring the scroll position too
+        // early results in weirdness. Waiting 10ms seems to fix the issue.
+        setTimeout(() => {
+            const { scrollOffset } = (history.state ?? {}) as ChatHistoryState;
+            scrollElement.scrollTo({
+                top: scrollOffset ?? 0,
+                behavior: 'instant',
+            });
+        }, 10);
     }, []);
 
     // When messages are being streamed, scroll to the latest message

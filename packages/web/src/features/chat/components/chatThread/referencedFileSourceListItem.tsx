@@ -123,8 +123,6 @@ const ReferencedFileSourceListItem = ({
         return createCodeFoldingExtension(references, 3);
     }, [references]);
 
-    // console.log(`re-renderign for file ${fileName}`);
-
     const extensions = useMemo(() => {
         return [
             languageExtension,
