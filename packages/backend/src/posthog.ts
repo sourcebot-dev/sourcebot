@@ -5,9 +5,9 @@ import { PosthogEvent, PosthogEventMap } from './posthogEvents.js';
 
 let posthog: PostHog | undefined = undefined;
 
-if (clientEnv.NEXT_PUBLIC_POSTHOG_PAPIK) {
+if (env.POSTHOG_PAPIK) {
     posthog = new PostHog(
-        clientEnv.NEXT_PUBLIC_POSTHOG_PAPIK,
+        env.POSTHOG_PAPIK,
         {
             host: "https://us.i.posthog.com",
         }

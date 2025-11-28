@@ -77,7 +77,6 @@ jobs:
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true,annotation.org.opencontainers.image.description=Blazingly fast code search
           build-args: |
             NEXT_PUBLIC_SOURCEBOT_VERSION=${{ github.ref_name }}
-            NEXT_PUBLIC_POSTHOG_PAPIK=${{ vars.NEXT_PUBLIC_POSTHOG_PAPIK }}
             
       - name: Export digest
         run: |
