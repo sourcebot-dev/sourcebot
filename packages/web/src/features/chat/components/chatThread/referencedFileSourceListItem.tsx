@@ -20,6 +20,7 @@ import { createCodeFoldingExtension } from "./codeFoldingExtension";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { CodeHostType } from "@sourcebot/db";
 import { createAuditAction } from "@/ee/features/audit/actions";
+import isEqual from "fast-deep-equal/react";
 
 const lineDecoration = Decoration.line({
     attributes: { class: "cm-range-border-radius chat-lineHighlight" },
@@ -355,6 +356,6 @@ const ReferencedFileSourceListItem = ({
     )
 }
 
-export default memo(forwardRef(ReferencedFileSourceListItem)) as (
+export default memo(forwardRef(ReferencedFileSourceListItem), isEqual) as (
     props: ReferencedFileSourceListItemProps & { ref?: Ref<ReactCodeMirrorRef> },
 ) => ReturnType<typeof ReferencedFileSourceListItem>;

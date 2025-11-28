@@ -17,6 +17,7 @@ import { isServiceError } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { LangfuseWeb } from "langfuse";
 import { env } from "@sourcebot/shared/client";
+import isEqual from "fast-deep-equal/react";
 
 interface AnswerCardProps {
     answerText: string;
@@ -178,4 +179,4 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
 
 AnswerCardComponent.displayName = 'AnswerCard';
 
-export const AnswerCard = memo(AnswerCardComponent);
+export const AnswerCard = memo(AnswerCardComponent, isEqual);

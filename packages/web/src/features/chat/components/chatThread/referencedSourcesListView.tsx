@@ -9,25 +9,20 @@ import { useQueries } from "@tanstack/react-query";
 import { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import scrollIntoView from 'scroll-into-view-if-needed';
-import { FileReference, FileSource, Reference, Source } from "../../types";
+import { FileReference, FileSource, Reference } from "../../types";
+import { tryResolveFileReference } from '../../utils';
 import ReferencedFileSourceListItem from "./referencedFileSourceListItem";
+import isEqual from 'fast-deep-equal/react';
 
 interface ReferencedSourcesListViewProps {
     references: FileReference[];
-    sources: Source[];
+    sources: FileSource[];
     index: number;
     hoveredReference?: Reference;
     onHoveredReferenceChanged: (reference?: Reference) => void;
     selectedReference?: Reference;
     onSelectedReferenceChanged: (reference?: Reference) => void;
     style: React.CSSProperties;
-}
-
-const resolveFileReference = (reference: FileReference, sources: FileSource[]): FileSource | undefined => {
-    return sources.find(
-        (source) => source.repo.endsWith(reference.repo) &&
-            source.path.endsWith(reference.path)
-    );
 }
 
 const ReferencedSourcesListViewComponent = ({
@@ -59,43 +54,26 @@ const ReferencedSourcesListViewComponent = ({
         }
     }, []);
 
-    const referencedFileSources = useMemo((): FileSource[] => {
-        const fileSources = sources.filter((source) => source.type === 'file');
-
-        return references
-            .filter((reference) => reference.type === 'file')
-            .map((reference) => resolveFileReference(reference, fileSources))
-            .filter((file) => file !== undefined)
-            // de-duplicate files
-            .filter((file, index, self) =>
-                index === self.findIndex((t) =>
-                    t?.path === file?.path
-                    && t?.repo === file?.repo
-                    && t?.revision === file?.revision
-                )
-            );
-    }, [references, sources]);
-
     // Memoize the computation of references grouped by file source
     const referencesGroupedByFile = useMemo(() => {
         const groupedReferences = new Map<string, FileReference[]>();
 
-        for (const fileSource of referencedFileSources) {
+        for (const fileSource of sources) {
             const fileKey = getFileId(fileSource);
             const referencesInFile = references.filter((reference) => {
                 if (reference.type !== 'file') {
                     return false;
                 }
-                return resolveFileReference(reference, [fileSource]) !== undefined;
+                return tryResolveFileReference(reference, [fileSource]) !== undefined;
             });
             groupedReferences.set(fileKey, referencesInFile);
         }
 
         return groupedReferences;
-    }, [references, referencedFileSources, getFileId]);
+    }, [references, sources, getFileId]);
 
     const fileSourceQueries = useQueries({
-        queries: referencedFileSources.map((file) => ({
+        queries: sources.map((file) => ({
             queryKey: ['fileSource', file.path, file.repo, file.revision],
             queryFn: () => unwrapServiceError(getFileSource({
                 fileName: file.path,
@@ -112,7 +90,7 @@ const ReferencedSourcesListViewComponent = ({
             return;
         }
 
-        const fileSource = resolveFileReference(selectedReference, referencedFileSources);
+        const fileSource = tryResolveFileReference(selectedReference, sources);
         if (!fileSource) {
             return;
         }
@@ -179,7 +157,7 @@ const ReferencedSourcesListViewComponent = ({
                 behavior: 'smooth',
             });
         }
-    }, [getFileId, referencedFileSources, selectedReference]);
+    }, [getFileId, sources, selectedReference]);
 
     const onExpandedChanged = useCallback((fileId: string, isExpanded: boolean) => {
         if (isExpanded) {
@@ -200,7 +178,7 @@ const ReferencedSourcesListViewComponent = ({
         }
     }, []);
 
-    if (referencedFileSources.length === 0) {
+    if (sources.length === 0) {
         return (
             <div className="p-4 text-center text-muted-foreground text-sm">
                 No file references found
@@ -215,7 +193,7 @@ const ReferencedSourcesListViewComponent = ({
         >
             <div className="space-y-4 pr-2">
                 {fileSourceQueries.map((query, index) => {
-                    const fileSource = referencedFileSources[index];
+                    const fileSource = sources[index];
                     const fileName = fileSource.path.split('/').pop() ?? fileSource.path;
 
                     if (query.isLoading) {
@@ -280,4 +258,4 @@ const ReferencedSourcesListViewComponent = ({
 }
 
 // Memoize to prevent unnecessary re-renders
-export const ReferencedSourcesListView = memo(ReferencedSourcesListViewComponent);
+export const ReferencedSourcesListView = memo(ReferencedSourcesListViewComponent, isEqual);

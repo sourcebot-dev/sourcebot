@@ -17,6 +17,7 @@ import { SearchReposToolComponent } from './tools/searchReposToolComponent';
 import { ListAllReposToolComponent } from './tools/listAllReposToolComponent';
 import { SBChatMessageMetadata, SBChatMessagePart } from '../../types';
 import { SearchScopeIcon } from '../searchScopeIcon';
+import isEqual from "fast-deep-equal/react";
 
 
 interface DetailsCardProps {
@@ -36,7 +37,6 @@ const DetailsCardComponent = ({
     metadata,
     thinkingSteps,
 }: DetailsCardProps) => {
-
     return (
         <Card className="mb-4">
             <Collapsible open={isExpanded} onOpenChange={onExpandedChanged}>
@@ -212,4 +212,4 @@ const DetailsCardComponent = ({
     )
 }
 
-export const DetailsCard = memo(DetailsCardComponent);
+export const DetailsCard = memo(DetailsCardComponent, isEqual);

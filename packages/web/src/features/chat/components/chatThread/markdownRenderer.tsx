@@ -20,6 +20,7 @@ import { CodeBlock } from './codeBlock';
 import { FILE_REFERENCE_REGEX } from '@/features/chat/constants';
 import { createFileReference } from '@/features/chat/utils';
 import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
+import isEqual from "fast-deep-equal/react";
 
 export const REFERENCE_PAYLOAD_ATTRIBUTE = 'data-reference-payload';
 
@@ -221,4 +222,4 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
 
 MarkdownRendererComponent.displayName = 'MarkdownRenderer';
 
-export const MarkdownRenderer = memo(MarkdownRendererComponent);
+export const MarkdownRenderer = memo(MarkdownRendererComponent, isEqual);
