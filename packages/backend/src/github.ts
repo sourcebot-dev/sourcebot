@@ -197,6 +197,20 @@ export const getReposForAuthenticatedUser = async (visibility: 'all' | 'private'
     }
 }
 
+// Gets oauth scopes
+// @see: https://github.com/octokit/auth-token.js/?tab=readme-ov-file#find-out-what-scopes-are-enabled-for-oauth-tokens
+export const getOAuthScopesForAuthenticatedUser = async (octokit: Octokit) => {
+    try {
+        const response = await octokit.request("HEAD /");
+        const scopes = response.headers["x-oauth-scopes"]?.split(/,\s+/) || [];
+        return scopes;
+    } catch (error) {
+        Sentry.captureException(error);
+        logger.error(`Failed to fetch OAuth scopes for authenticated user.`, error);
+        throw error;
+    }
+}
+
 const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: AbortSignal, url?: string) => {
     const results = await Promise.allSettled(users.map((user) => githubQueryLimit(async () => {
         try {

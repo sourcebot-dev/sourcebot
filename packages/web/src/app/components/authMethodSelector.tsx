@@ -29,9 +29,20 @@ export const AuthMethodSelector = ({
         // Call the optional analytics callback first
         onProviderClick?.(provider);
 
-        signIn(provider, {
-            redirectTo: callbackUrl ?? "/"
-        });
+        // @nocheckin
+        signIn(
+            provider,
+            {
+                redirectTo: callbackUrl ?? "/",
+            },
+            // @see: https://github.com/nextauthjs/next-auth/issues/2066
+            // @see: https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+            // @see: https://next-auth.js.org/getting-started/client#additional-parameters
+            {
+                prompt: 'consent',
+                scope: 'read:user user:email repo'
+            }
+        );
     }, [callbackUrl, onProviderClick]);
 
     // Separate OAuth providers from special auth methods
