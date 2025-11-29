@@ -437,8 +437,8 @@ model Chat {
 
   name String?
 
-  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  createdById String
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdById String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
