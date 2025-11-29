@@ -148,7 +148,7 @@ fi
 
 ENV SKIP_ENV_VALIDATION=0
 # ------------------------------
-        
+
 # ------ Runner ------
 FROM node-alpine AS runner
 # -----------
@@ -220,22 +220,23 @@ COPY --from=zoekt-builder \
 /cmd/zoekt-index \
 /usr/local/bin/
 
+RUN chown -R sourcebot:sourcebot /app
+
 # Copy zoekt proto files (needed for gRPC client at runtime)
-COPY vendor/zoekt/grpc/protos /app/vendor/zoekt/grpc/protos
+COPY --chown=sourcebot:sourcebot vendor/zoekt/grpc/protos /app/vendor/zoekt/grpc/protos
 
 # Copy all of the things
-COPY --from=web-builder /app/packages/web/public ./packages/web/public
-COPY --from=web-builder /app/packages/web/.next/standalone ./
-COPY --from=web-builder /app/packages/web/.next/static ./packages/web/.next/static
+COPY --chown=sourcebot:sourcebot --from=web-builder /app/packages/web/public ./packages/web/public
+COPY --chown=sourcebot:sourcebot --from=web-builder /app/packages/web/.next/standalone ./
+COPY --chown=sourcebot:sourcebot --from=web-builder /app/packages/web/.next/static ./packages/web/.next/static
 
-COPY --from=backend-builder /app/node_modules ./node_modules
-COPY --from=backend-builder /app/packages/backend ./packages/backend
+COPY --chown=sourcebot:sourcebot --from=backend-builder /app/node_modules ./node_modules
+COPY --chown=sourcebot:sourcebot --from=backend-builder /app/packages/backend ./packages/backend
 
-COPY --from=shared-libs-builder /app/node_modules ./node_modules
-COPY --from=shared-libs-builder /app/packages/db ./packages/db
-COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
-COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
-COPY --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLanguage
+COPY --chown=sourcebot:sourcebot --from=shared-libs-builder /app/packages/db ./packages/db
+COPY --chown=sourcebot:sourcebot --from=shared-libs-builder /app/packages/schemas ./packages/schemas
+COPY --chown=sourcebot:sourcebot --from=shared-libs-builder /app/packages/shared ./packages/shared
+COPY --chown=sourcebot:sourcebot --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLanguage
 
 # Fixes git "dubious ownership" issues when the volume is mounted with different permissions to the container.
 RUN git config --global safe.directory "*"
@@ -245,16 +246,11 @@ RUN mkdir -p /run/postgresql && \
     chown -R postgres:postgres /run/postgresql && \
     chmod 775 /run/postgresql
 
-# Make app directory accessible to both root and sourcebot user
-RUN chown -R sourcebot:sourcebot /app
-# Make data directory accessible to both root and sourcebot user
 RUN chown -R sourcebot:sourcebot /data
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY prefix-output.sh ./prefix-output.sh
-RUN chmod +x ./prefix-output.sh
-COPY entrypoint.sh ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh
+COPY --chmod=+x prefix-output.sh ./prefix-output.sh
+COPY --chmod=+x entrypoint.sh ./entrypoint.sh
 
 # Note: for back-compat cases, we do _not_ set the USER directive here.
 # Instead, the user can be overridden at runtime with --user flag.
