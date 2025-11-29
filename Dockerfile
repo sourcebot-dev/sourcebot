@@ -250,8 +250,10 @@ RUN mkdir -p /run/postgresql && \
 RUN chown -R sourcebot:sourcebot /data
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY --chmod=+x prefix-output.sh ./prefix-output.sh
-COPY --chmod=+x entrypoint.sh ./entrypoint.sh
+COPY prefix-output.sh ./prefix-output.sh
+RUN chmod +x ./prefix-output.sh
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
 
 # Note: for back-compat cases, we do _not_ set the USER directive here.
 # Instead, the user can be overridden at runtime with --user flag.
