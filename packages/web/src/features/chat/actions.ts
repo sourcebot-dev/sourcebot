@@ -1,7 +1,6 @@
 'use server';
 
 import { sew } from "@/actions";
-import { SOURCEBOT_GUEST_USER_ID } from "@/lib/constants";
 import { ErrorCode } from "@/lib/errorCodes";
 import { chatIsReadonly, notFound, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
@@ -34,13 +33,13 @@ const logger = createLogger('chat-actions');
 
 export const createChat = async () => sew(() =>
     withOptionalAuthV2(async ({ org, user, prisma }) => {
-        const isGuestUser = user?.id === SOURCEBOT_GUEST_USER_ID;
+        const isGuestUser = user === undefined;
 
         const chat = await prisma.chat.create({
             data: {
                 orgId: org.id,
                 messages: [] as unknown as Prisma.InputJsonValue,
-                createdById: user?.id ?? SOURCEBOT_GUEST_USER_ID,
+                createdById: user?.id,
                 visibility: isGuestUser ? ChatVisibility.PUBLIC : ChatVisibility.PRIVATE,
             },
         });
