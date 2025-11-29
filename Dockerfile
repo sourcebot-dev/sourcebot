@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # ------ Global scope variables ------
 
 # Set of global build arguments.
