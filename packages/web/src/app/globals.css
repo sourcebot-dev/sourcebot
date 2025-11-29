@@ -313,6 +313,11 @@
   text-overflow: ellipsis;
 }
 
+.truncate-start > * {
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
 @layer base {
   * {
     @apply border-border;
