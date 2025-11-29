@@ -42,115 +42,103 @@ export const createAgentStream = async ({
         searchScopeRepoNames,
     });
 
-    const stream = streamText({
-        model,
-        providerOptions,
-        system: baseSystemPrompt,
-        messages: inputMessages,
-        tools: {
-            [toolNames.searchCode]: createCodeSearchTool(searchScopeRepoNames),
-            [toolNames.readFiles]: readFilesTool,
-            [toolNames.findSymbolReferences]: findSymbolReferencesTool,
-            [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
-            [toolNames.searchRepos]: searchReposTool,
-            [toolNames.listAllRepos]: listAllReposTool,
-        },
-        prepareStep: async ({ stepNumber }) => {
-            // The first step attaches any mentioned sources to the system prompt.
-            if (stepNumber === 0 && inputSources.length > 0) {
-                const fileSources = inputSources.filter((source) => source.type === 'file');
-
-                const resolvedFileSources = (
-                    await Promise.all(fileSources.map(resolveFileSource)))
-                        .filter((source) => source !== undefined)
-
-                const fileSourcesSystemPrompt = await createFileSourcesSystemPrompt({
-                    files: resolvedFileSources
-                });
-
-                return {
-                    system: `${baseSystemPrompt}\n\n${fileSourcesSystemPrompt}`
-                }
-            }
-
-            if (stepNumber === env.SOURCEBOT_CHAT_MAX_STEP_COUNT - 1) {
-                return {
-                    system: `**CRITICAL**: You have reached the maximum number of steps!! YOU MUST PROVIDE YOUR FINAL ANSWER NOW. DO NOT KEEP RESEARCHING.\n\n${answerInstructions}`,
-                    activeTools: [],
-                }
-            }
-
-            return undefined;
-        },
-        temperature: env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
-        stopWhen: [
-            stepCountIsGTE(env.SOURCEBOT_CHAT_MAX_STEP_COUNT),
-        ],
-        toolChoice: "auto", // Let the model decide when to use tools
-        onStepFinish: ({ toolResults }) => {
-            // This takes care of extracting any sources that the LLM has seen as part of
-            // the tool calls it made.
-            toolResults.forEach(({ toolName, output, dynamic }) => {
-                // we don't care about dynamic tool results here.
-                if (dynamic) {
-                    return;
-                }
-
-                if (isServiceError(output)) {
-                    // is there something we want to do here?
-                    return;
-                }
-
-                if (toolName === toolNames.readFiles) {
-                    output.forEach((file) => {
-                        onWriteSource({
-                            type: 'file',
-                            language: file.language,
-                            repo: file.repository,
-                            path: file.path,
-                            revision: file.revision,
-                            name: file.path.split('/').pop() ?? file.path,
-                        })
-                    })
-                }
-                else if (toolName === toolNames.searchCode) {
-                    output.files.forEach((file) => {
-                        onWriteSource({
-                            type: 'file',
-                            language: file.language,
-                            repo: file.repository,
-                            path: file.fileName,
-                            revision: file.revision,
-                            name: file.fileName.split('/').pop() ?? file.fileName,
-                        })
-                    })
-                }
-                else if (toolName === toolNames.findSymbolDefinitions || toolName === toolNames.findSymbolReferences) {
-                    output.forEach((file) => {
-                        onWriteSource({
-                            type: 'file',
-                            language: file.language,
-                            repo: file.repository,
-                            path: file.fileName,
-                            revision: file.revision,
-                            name: file.fileName.split('/').pop() ?? file.fileName,
-                        })
-                    })
-                }
-            })
-        },
-        // Only enable langfuse traces in cloud environments.
-        experimental_telemetry: {
-            isEnabled: clientEnv.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined,
-            metadata: {
-                langfuseTraceId: traceId,
+    let stream;
+    try {
+        stream = streamText({
+            model,
+            providerOptions,
+            system: baseSystemPrompt,
+            messages: inputMessages,
+            tools: {
+                [toolNames.searchCode]: createCodeSearchTool(searchScopeRepoNames),
+                [toolNames.readFiles]: readFilesTool,
+                [toolNames.findSymbolReferences]: findSymbolReferencesTool,
+                [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
+                [toolNames.searchRepos]: searchReposTool,
+                [toolNames.listAllRepos]: listAllReposTool,
             },
-        },
-        onError: (error) => {
-            logger.error(error);
-        },
-    });
-
+            prepareStep: async ({ stepNumber }) => {
+                if (stepNumber === 0 && inputSources.length > 0) {
+                    const fileSources = inputSources.filter((source) => source.type === 'file');
+                    const resolvedFileSources = (
+                        await Promise.all(fileSources.map(resolveFileSource)))
+                            .filter((source) => source !== undefined)
+                    const fileSourcesSystemPrompt = await createFileSourcesSystemPrompt({
+                        files: resolvedFileSources
+                    });
+                    return {
+                        system: `${baseSystemPrompt}\n\n${fileSourcesSystemPrompt}`
+                    }
+                }
+                if (stepNumber === env.SOURCEBOT_CHAT_MAX_STEP_COUNT - 1) {
+                    return {
+                        system: `**CRITICAL**: You have reached the maximum number of steps!! YOU MUST PROVIDE YOUR FINAL ANSWER NOW. DO NOT KEEP RESEARCHING.\n\n${answerInstructions}`,
+                        activeTools: [],
+                    }
+                }
+                return undefined;
+            },
+            temperature: env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
+            stopWhen: [
+                stepCountIsGTE(env.SOURCEBOT_CHAT_MAX_STEP_COUNT),
+            ],
+            toolChoice: "auto",
+            onStepFinish: ({ toolResults }) => {
+                toolResults.forEach(({ toolName, output, dynamic }) => {
+                    if (dynamic) return;
+                    if (isServiceError(output)) return;
+                    if (toolName === toolNames.readFiles) {
+                        output.forEach((file) => {
+                            onWriteSource({
+                                type: 'file',
+                                language: file.language,
+                                repo: file.repository,
+                                path: file.path,
+                                revision: file.revision,
+                                name: file.path.split('/').pop() ?? file.path,
+                            })
+                        })
+                    } else if (toolName === toolNames.searchCode) {
+                        output.files.forEach((file) => {
+                            onWriteSource({
+                                type: 'file',
+                                language: file.language,
+                                repo: file.repository,
+                                path: file.fileName,
+                                revision: file.revision,
+                                name: file.fileName.split('/').pop() ?? file.fileName,
+                            })
+                        })
+                    } else if (toolName === toolNames.findSymbolDefinitions || toolName === toolNames.findSymbolReferences) {
+                        output.forEach((file) => {
+                            onWriteSource({
+                                type: 'file',
+                                language: file.language,
+                                repo: file.repository,
+                                path: file.fileName,
+                                revision: file.revision,
+                                name: file.fileName.split('/').pop() ?? file.fileName,
+                            })
+                        })
+                    }
+                })
+            },
+            experimental_telemetry: {
+                isEnabled: clientEnv.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined,
+                metadata: {
+                    langfuseTraceId: traceId,
+                },
+            },
+            onError: (error) => {
+                logger.error(error);
+            },
+        });
+    } catch (err) {
+        if (model?.providerId === 'openai-compatible') {
+            throw new Error('The selected AI provider does not support codebase tool calls. Please use a provider that supports function/tool calls for codebase-related questions.');
+        }
+        throw err;
+    }
     return stream;
 }
 
