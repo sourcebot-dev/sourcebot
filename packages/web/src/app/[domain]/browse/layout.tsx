@@ -10,6 +10,7 @@ import { useBrowseParams } from "./hooks/useBrowseParams";
 import { FileSearchCommandDialog } from "./components/fileSearchCommandDialog";
 import { useDomain } from "@/hooks/useDomain";
 import { SearchBar } from "../components/searchBar";
+import escapeStringRegexp from "escape-string-regexp";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -30,7 +31,7 @@ export default function Layout({
                     <SearchBar
                         size="sm"
                         defaults={{
-                            query: `repo:${repoName}${revisionName ? ` rev:${revisionName}` : ''} `,
+                            query: `repo:^${escapeStringRegexp(repoName)}$${revisionName ? ` rev:${revisionName}` : ''} `,
                         }}
                         className="w-full"
                     />

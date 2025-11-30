@@ -4,7 +4,16 @@ import { rangeSchema, repositoryInfoSchema } from "../search/types";
 export const findRelatedSymbolsRequestSchema = z.object({
     symbolName: z.string(),
     language: z.string(),
+    /**
+     * Optional revision name to scope search to.
+     * If not provided, the search will be scoped to HEAD.
+     */
     revisionName: z.string().optional(),
+    /**
+     * Optional repository name to scope search to.
+     * If not provided, the search will be across all repositories.
+     */
+    repoName: z.string().optional(),
 });
 export type FindRelatedSymbolsRequest = z.infer<typeof findRelatedSymbolsRequestSchema>;
 

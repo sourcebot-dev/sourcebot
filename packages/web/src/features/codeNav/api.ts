@@ -8,6 +8,7 @@ import { withOptionalAuthV2 } from "@/withAuthV2";
 import { SearchResponse } from "../search/types";
 import { FindRelatedSymbolsRequest, FindRelatedSymbolsResponse } from "./types";
 import { QueryIR } from '../search/ir';
+import escapeStringRegexp from "escape-string-regexp";
 
 // The maximum number of matches to return from the search API.
 const MAX_REFERENCE_COUNT = 1000;
@@ -18,6 +19,7 @@ export const findSearchBasedSymbolReferences = async (props: FindRelatedSymbolsR
             symbolName,
             language,
             revisionName = "HEAD",
+            repoName,
         } = props;
 
         const languageFilter = getExpandedLanguageFilter(language);
@@ -40,6 +42,11 @@ export const findSearchBasedSymbolReferences = async (props: FindRelatedSymbolsR
                         }
                     },
                     languageFilter,
+                    ...(repoName ? [{
+                        repo: {
+                            regexp: `^${escapeStringRegexp(repoName)}$`,
+                        }
+                    }]: [])
                 ]
             }
         }
@@ -67,6 +74,7 @@ export const findSearchBasedSymbolDefinitions = async (props: FindRelatedSymbols
             symbolName,
             language,
             revisionName = "HEAD",
+            repoName
         } = props;
 
         const languageFilter = getExpandedLanguageFilter(language);
@@ -93,6 +101,11 @@ export const findSearchBasedSymbolDefinitions = async (props: FindRelatedSymbols
                         }
                     },
                     languageFilter,
+                    ...(repoName ? [{
+                        repo: {
+                            regexp: `^${escapeStringRegexp(repoName)}$`,
+                        }
+                    }]: [])
                 ]
             }
         }
