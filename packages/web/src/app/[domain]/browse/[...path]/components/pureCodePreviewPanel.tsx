@@ -3,7 +3,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SymbolHoverPopup } from "@/ee/features/codeNav/components/symbolHoverPopup";
 import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension";
-import { SymbolDefinition } from "@/ee/features/codeNav/components/symbolHoverPopup/useHoveredOverSymbolInfo";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { useCodeMirrorLanguageExtension } from "@/hooks/useCodeMirrorLanguageExtension";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
@@ -11,14 +10,10 @@ import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { search } from "@codemirror/search";
 import CodeMirror, { EditorSelection, EditorView, ReactCodeMirrorRef, SelectionRange, ViewUpdate } from "@uiw/react-codemirror";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EditorContextMenu } from "../../../components/editorContextMenu";
-import { useBrowseNavigation } from "../../hooks/useBrowseNavigation";
 import { BrowseHighlightRange, HIGHLIGHT_RANGE_QUERY_PARAM } from "../../hooks/utils";
-import { useBrowseState } from "../../hooks/useBrowseState";
 import { rangeHighlightingExtension } from "./rangeHighlightingExtension";
-import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { createAuditAction } from "@/ee/features/audit/actions";
 
 interface PureCodePreviewPanelProps {
     path: string;
@@ -40,9 +35,6 @@ export const PureCodePreviewPanel = ({
     const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
     const keymapExtension = useKeymapExtension(editorRef?.view);
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
-    const { updateBrowseState } = useBrowseState();
-    const { navigateToPath } = useBrowseNavigation();
-    const captureEvent = useCaptureEvent();
 
     const highlightRangeQuery = useNonEmptyQueryParam(HIGHLIGHT_RANGE_QUERY_PARAM);
     const highlightRange = useMemo((): BrowseHighlightRange | undefined => {
@@ -134,72 +126,6 @@ export const PureCodePreviewPanel = ({
         });
     }, [editorRef, highlightRange]);
 
-    const onFindReferences = useCallback((symbolName: string) => {
-        captureEvent('wa_find_references_pressed', {
-            source: 'browse',
-        });
-        createAuditAction({
-            action: "user.performed_find_references",
-            metadata: {
-                message: symbolName,
-            },
-        })
-
-        updateBrowseState({
-            selectedSymbolInfo: {
-                repoName,
-                symbolName,
-                revisionName,
-                language,
-            },
-            isBottomPanelCollapsed: false,
-            activeExploreMenuTab: "references",
-        })
-    }, [captureEvent, updateBrowseState, repoName, revisionName, language]);
-
-
-    // If we resolve multiple matches, instead of navigating to the first match, we should
-    // instead popup the bottom sheet with the list of matches.
-    const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
-        captureEvent('wa_goto_definition_pressed', {
-            source: 'browse',
-        });
-        createAuditAction({
-            action: "user.performed_goto_definition",
-            metadata: {
-                message: symbolName,
-            },
-        })
-
-        if (symbolDefinitions.length === 0) {
-            return;
-        }
-
-        if (symbolDefinitions.length === 1) {
-            const symbolDefinition = symbolDefinitions[0];
-            const { fileName, repoName } = symbolDefinition;
-
-            navigateToPath({
-                repoName,
-                revisionName,
-                path: fileName,
-                pathType: 'blob',
-                highlightRange: symbolDefinition.range,
-            })
-        } else {
-            updateBrowseState({
-                selectedSymbolInfo: {
-                    symbolName,
-                    repoName,
-                    revisionName,
-                    language,
-                },
-                activeExploreMenuTab: "definitions",
-                isBottomPanelCollapsed: false,
-            })
-        }
-    }, [captureEvent, navigateToPath, revisionName, updateBrowseState, repoName, language]);
-
     const theme = useCodeMirrorTheme();
 
     return (
@@ -223,11 +149,12 @@ export const PureCodePreviewPanel = ({
                 )}
                 {editorRef && hasCodeNavEntitlement && (
                     <SymbolHoverPopup
+                        source="preview"
                         editorRef={editorRef}
                         revisionName={revisionName}
                         language={language}
-                        onFindReferences={onFindReferences}
-                        onGotoDefinition={onGotoDefinition}
+                        fileName={path}
+                        repoName={repoName}
                     />
                 )}
             </CodeMirror>

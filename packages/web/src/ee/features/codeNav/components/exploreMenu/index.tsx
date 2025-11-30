@@ -151,7 +151,7 @@ export const ExploreMenu = ({
                                 </span>
                             </TooltipTrigger>
                             <TooltipContent side="top" align="center">
-                                {isGlobalSearchEnabled ? "Search in current repository only" : "Search all repositories"}
+                                Search all repositories
                                 <KeyboardShortcutHint
                                     shortcut="⇧ A"
                                     className="ml-2"
