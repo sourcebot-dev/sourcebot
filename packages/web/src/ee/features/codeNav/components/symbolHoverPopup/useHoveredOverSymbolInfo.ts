@@ -1,7 +1,8 @@
 import { findSearchBasedSymbolDefinitions } from "@/app/api/(client)/client";
 import { SourceRange } from "@/features/search";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useDomain } from "@/hooks/useDomain";
-import { unwrapServiceError } from "@/lib/utils";
+import { measure, unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -53,16 +54,26 @@ export const useHoveredOverSymbolInfo = ({
         return (symbolElement && symbolElement.textContent) ?? undefined;
     }, [symbolElement]);
 
+    const captureEvent = useCaptureEvent();
+
     const { data: symbolDefinitions, isLoading: isSymbolDefinitionsLoading } = useQuery({
         queryKey: ["definitions", symbolName, revisionName, language, domain, repoName],
-        queryFn: () => unwrapServiceError(
-            findSearchBasedSymbolDefinitions({
-                symbolName: symbolName!,
-                language,
-                revisionName,
-                repoName,
-            })
-        ),
+        queryFn: async () => {
+            const response = await measure(() => unwrapServiceError(
+                findSearchBasedSymbolDefinitions({
+                    symbolName: symbolName!,
+                    language,
+                    revisionName,
+                    repoName,
+                })
+            ), 'findSearchBasedSymbolDefinitions', false);
+
+            captureEvent('wa_find_hovered_over_symbol_definitions', {
+                durationMs: response.durationMs,
+            });
+
+            return response.data;
+        },
         select: ((data) => {
             return data.files.flatMap((file) => {
                 return file.matches.map((match) => {
@@ -113,7 +124,7 @@ export const useHoveredOverSymbolInfo = ({
 
         const handleMouseOut = () => {
             clearTimers();
-            
+
             mouseOutTimerRef.current = setTimeout(() => {
                 setIsVisible(false);
             }, SYMBOL_HOVER_POPUP_MOUSE_OUT_TIMEOUT_MS);
@@ -136,13 +147,13 @@ export const useHoveredOverSymbolInfo = ({
 
         const view = editorRef.view;
         const rect = symbolElement.getBoundingClientRect();
-        
+
         // Get the start position (left edge, middle vertically)
         const startPos = view.posAtCoords({
             x: rect.left,
             y: rect.top + rect.height / 2,
         });
-        
+
         // Get the end position (right edge, middle vertically)
         const endPos = view.posAtCoords({
             x: rect.right,
@@ -156,7 +167,7 @@ export const useHoveredOverSymbolInfo = ({
         // Convert CodeMirror positions to SourceRange format
         const startLine = view.state.doc.lineAt(startPos);
         const endLine = view.state.doc.lineAt(endPos);
-        
+
         const startColumn = startPos - startLine.from + 1; // 1-based column
         const endColumn = endPos - endLine.from + 1; // 1-based column
 

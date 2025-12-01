@@ -302,5 +302,9 @@ export type PosthogEventMap = {
     //////////////////////////////////////////////////////////////////
     wa_github_star_toast_displayed: {},
     wa_github_star_toast_clicked: {},
+    //////////////////////////////////////////////////////////////////
+    wa_find_hovered_over_symbol_definitions: {
+        durationMs: number,
+    }
 } 
 export type PosthogEvent = keyof PosthogEventMap;
