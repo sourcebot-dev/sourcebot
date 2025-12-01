@@ -80,7 +80,6 @@ export const PureCodePreviewPanel = ({
                 }
             }
         }
-
     }, [highlightRangeQuery]);
 
     const extensions = useMemo(() => {
@@ -108,20 +107,27 @@ export const PureCodePreviewPanel = ({
 
     // Scroll the highlighted range into view.
     useEffect(() => {
-        if (!highlightRange || !editorRef || !editorRef.state) {
+        if (!highlightRange || !editorRef || !editorRef.state || !editorRef.view) {
             return;
         }
 
         const doc = editorRef.state.doc;
         const { start, end } = highlightRange;
-        const selection = EditorSelection.range(
-            doc.line(start.lineNumber).from,
-            doc.line(end.lineNumber).from,
-        );
 
+        const from = doc.line(start.lineNumber).from;
+        const to = doc.line(end.lineNumber).to;
+        const selection = EditorSelection.range(from, to);
+
+        // When the selection is in view, we don't want to perform any scrolling
+        // as it could be jarring for the user. If it is not in view, scroll to the
+        // center of the viewport.
+        const viewport = editorRef.view.viewport;
+        const isInView = from >= viewport.from && to <= viewport.to;
+        const scrollStrategy = isInView ? "nearest" : "center";
+        
         editorRef.view?.dispatch({
             effects: [
-                EditorView.scrollIntoView(selection, { y: "center" }),
+                EditorView.scrollIntoView(selection, { y: scrollStrategy }),
             ]
         });
     }, [editorRef, highlightRange]);
