@@ -26,8 +26,9 @@ export const findSymbolReferencesTool = tool({
     inputSchema: z.object({
         symbol: z.string().describe("The symbol to find references to"),
         language: z.string().describe("The programming language of the symbol"),
+        repository: z.string().describe("The repository to scope the search to").optional(),
     }),
-    execute: async ({ symbol, language }) => {
+    execute: async ({ symbol, language, repository }) => {
         // @todo: make revision configurable.
         const revision = "HEAD";
 
@@ -35,6 +36,7 @@ export const findSymbolReferencesTool = tool({
             symbolName: symbol,
             language,
             revisionName: "HEAD",
+            repoName: repository,
         });
 
         if (isServiceError(response)) {
@@ -63,8 +65,9 @@ export const findSymbolDefinitionsTool = tool({
     inputSchema: z.object({
         symbol: z.string().describe("The symbol to find definitions of"),
         language: z.string().describe("The programming language of the symbol"),
+        repository: z.string().describe("The repository to scope the search to").optional(),
     }),
-    execute: async ({ symbol, language }) => {
+    execute: async ({ symbol, language, repository }) => {
         // @todo: make revision configurable.
         const revision = "HEAD";
 
@@ -72,6 +75,7 @@ export const findSymbolDefinitionsTool = tool({
             symbolName: symbol,
             language,
             revisionName: revision,
+            repoName: repository,
         });
 
         if (isServiceError(response)) {

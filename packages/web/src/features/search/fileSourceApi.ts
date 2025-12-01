@@ -6,6 +6,7 @@ import { search } from "./searchApi";
 import { sew } from "@/actions";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { QueryIR } from './ir';
+import escapeStringRegexp from "escape-string-regexp";
 
 // @todo (bkellam) #574 : We should really be using `git show <hash>:<path>` to fetch file contents here.
 // This will allow us to support permalinks to files at a specific revision that may not be indexed
@@ -18,7 +19,7 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
                 children: [
                     {
                         repo: {
-                            regexp: `^${repository}$`,
+                            regexp: `^${escapeStringRegexp(repository)}$`,
                         },
                     },
                     {
