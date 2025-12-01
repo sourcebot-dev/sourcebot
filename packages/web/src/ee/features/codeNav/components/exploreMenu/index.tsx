@@ -8,7 +8,7 @@ import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDomain } from "@/hooks/useDomain";
-import { unwrapServiceError } from "@/lib/utils";
+import { measure, unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { GlobeIcon, Loader2 } from "lucide-react";
@@ -17,6 +17,7 @@ import { VscSymbolMisc } from "react-icons/vsc";
 import { ReferenceList } from "./referenceList";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { useHotkeys } from "react-hotkeys-hook";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface ExploreMenuProps {
     selectedSymbolInfo: {
@@ -30,8 +31,8 @@ interface ExploreMenuProps {
 export const ExploreMenu = ({
     selectedSymbolInfo,
 }: ExploreMenuProps) => {
-
     const domain = useDomain();
+    const captureEvent = useCaptureEvent();
     const {
         state: { activeExploreMenuTab },
         updateBrowseState,
@@ -46,14 +47,23 @@ export const ExploreMenu = ({
         isLoading: isReferencesResponseLoading,
     } = useQuery({
         queryKey: ["references", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, selectedSymbolInfo.language, domain, isGlobalSearchEnabled],
-        queryFn: () => unwrapServiceError(
-            findSearchBasedSymbolReferences({
-                symbolName: selectedSymbolInfo.symbolName,
-                language: selectedSymbolInfo.language,
-                revisionName: selectedSymbolInfo.revisionName,
-                repoName: isGlobalSearchEnabled ? undefined : selectedSymbolInfo.repoName
+        queryFn: async () => {
+            const response = await measure(() => unwrapServiceError(
+                findSearchBasedSymbolReferences({
+                    symbolName: selectedSymbolInfo.symbolName,
+                    language: selectedSymbolInfo.language,
+                    revisionName: selectedSymbolInfo.revisionName,
+                    repoName: isGlobalSearchEnabled ? undefined : selectedSymbolInfo.repoName
+                })
+            ), 'findSearchBasedSymbolReferences', false);
+
+            captureEvent('wa_explore_menu_references_loaded', {
+                durationMs: response.durationMs,
+                isGlobalSearchEnabled,
             })
-        ),
+
+            return response.data;
+        }
     });
 
     const {
@@ -63,14 +73,23 @@ export const ExploreMenu = ({
         isLoading: isDefinitionsResponseLoading,
     } = useQuery({
         queryKey: ["definitions", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, selectedSymbolInfo.language, domain, isGlobalSearchEnabled],
-        queryFn: () => unwrapServiceError(
-            findSearchBasedSymbolDefinitions({
-                symbolName: selectedSymbolInfo.symbolName,
-                language: selectedSymbolInfo.language,
-                revisionName: selectedSymbolInfo.revisionName,
-                repoName: isGlobalSearchEnabled ? undefined : selectedSymbolInfo.repoName
+        queryFn: async () => {
+            const response = await measure(() => unwrapServiceError(
+                findSearchBasedSymbolDefinitions({
+                    symbolName: selectedSymbolInfo.symbolName,
+                    language: selectedSymbolInfo.language,
+                    revisionName: selectedSymbolInfo.revisionName,
+                    repoName: isGlobalSearchEnabled ? undefined : selectedSymbolInfo.repoName
+                })
+            ), 'findSearchBasedSymbolDefinitions', false);
+
+            captureEvent('wa_explore_menu_definitions_loaded', {
+                durationMs: response.durationMs,
+                isGlobalSearchEnabled,
             })
-        ),
+
+            return response.data;
+        }
     });
 
     useHotkeys('shift+a', () => {

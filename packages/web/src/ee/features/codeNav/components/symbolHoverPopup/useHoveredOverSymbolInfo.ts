@@ -68,7 +68,7 @@ export const useHoveredOverSymbolInfo = ({
                 })
             ), 'findSearchBasedSymbolDefinitions', false);
 
-            captureEvent('wa_find_hovered_over_symbol_definitions', {
+            captureEvent('wa_symbol_hover_popup_definitions_loaded', {
                 durationMs: response.durationMs,
             });
 

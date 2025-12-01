@@ -273,15 +273,6 @@ export type PosthogEventMap = {
     wa_api_key_created: {},
     wa_api_key_creation_fail: {},
     //////////////////////////////////////////////////////////////////
-    wa_goto_definition_pressed: {
-        source: 'chat' | 'browse' | 'preview',
-    },
-    wa_find_references_pressed: {
-        source: 'chat' | 'browse' | 'preview',
-    },
-    //////////////////////////////////////////////////////////////////
-    wa_explore_menu_reference_clicked: {},
-    //////////////////////////////////////////////////////////////////
     wa_chat_feedback_submitted: {
         feedback: 'like' | 'dislike',
         chatId: string,
@@ -303,8 +294,25 @@ export type PosthogEventMap = {
     wa_github_star_toast_displayed: {},
     wa_github_star_toast_clicked: {},
     //////////////////////////////////////////////////////////////////
-    wa_find_hovered_over_symbol_definitions: {
+    wa_goto_definition_pressed: {
+        source: 'chat' | 'browse' | 'preview',
+    },
+    wa_find_references_pressed: {
+        source: 'chat' | 'browse' | 'preview',
+    },
+    wa_symbol_hover_popup_definitions_loaded: {
         durationMs: number,
+    },
+    wa_explore_menu_reference_clicked: {},
+    wa_explore_menu_references_loaded: {
+        durationMs: number,
+        // Whether or not the user is searching all repositories.
+        isGlobalSearchEnabled: boolean,
+    },
+    wa_explore_menu_definitions_loaded: {
+        durationMs: number,
+        // Whether or not the user is searching all repositories.
+        isGlobalSearchEnabled: boolean,
     }
 } 
 export type PosthogEvent = keyof PosthogEventMap;
