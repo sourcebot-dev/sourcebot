@@ -93,7 +93,7 @@ export const ExploreMenu = ({
     });
 
     useHotkeys('shift+a', () => {
-        setIsGlobalSearchEnabled(!isGlobalSearchEnabled);
+        setIsGlobalSearchEnabled(prev => !prev);
     }, {
         enableOnFormTags: true,
         enableOnContentEditable: true,
