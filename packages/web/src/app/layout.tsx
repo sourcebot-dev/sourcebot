@@ -37,7 +37,12 @@ export default function RootLayout({
                 <Toaster />
                 <SessionProvider>
                     <PlanProvider entitlements={getEntitlements()}>
-                        <PostHogProvider disabled={env.SOURCEBOT_TELEMETRY_DISABLED === "true"}>
+                        <PostHogProvider
+                            isDisabled={env.SOURCEBOT_TELEMETRY_DISABLED === "true"}
+                            // @note: the posthog api key doesn't need to be kept secret,
+                            // so we are safe to send it to the client.
+                            posthogApiKey={env.POSTHOG_PAPIK}
+                        >
                             <ThemeProvider
                                 attribute="class"
                                 defaultTheme="system"
