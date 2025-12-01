@@ -27,6 +27,7 @@ export type SymbolDefinition = {
 interface HoveredOverSymbolInfo {
     element: HTMLElement;
     symbolName: string;
+    range: SourceRange;
     isSymbolDefinitionsLoading: boolean;
     symbolDefinitions?: SymbolDefinition[];
 }
@@ -127,17 +128,64 @@ export const useHoveredOverSymbolInfo = ({
         };
     }, [editorRef, domain, clearTimers]);
 
+    // Extract the highlight range of the symbolElement from the editor view.
+    const highlightRange = useMemo((): SourceRange | undefined => {
+        if (!symbolElement || !editorRef.view) {
+            return undefined;
+        }
+
+        const view = editorRef.view;
+        const rect = symbolElement.getBoundingClientRect();
+        
+        // Get the start position (left edge, middle vertically)
+        const startPos = view.posAtCoords({
+            x: rect.left,
+            y: rect.top + rect.height / 2,
+        });
+        
+        // Get the end position (right edge, middle vertically)
+        const endPos = view.posAtCoords({
+            x: rect.right,
+            y: rect.top + rect.height / 2,
+        });
+
+        if (startPos === null || endPos === null) {
+            return undefined;
+        }
+
+        // Convert CodeMirror positions to SourceRange format
+        const startLine = view.state.doc.lineAt(startPos);
+        const endLine = view.state.doc.lineAt(endPos);
+        
+        const startColumn = startPos - startLine.from + 1; // 1-based column
+        const endColumn = endPos - endLine.from + 1; // 1-based column
+
+        return {
+            start: {
+                byteOffset: startPos, // 0-based byte offset
+                lineNumber: startLine.number, // 1-based line number
+                column: startColumn, // 1-based column
+            },
+            end: {
+                byteOffset: endPos, // 0-based byte offset
+                lineNumber: endLine.number, // 1-based line number
+                column: endColumn, // 1-based column
+            },
+        };
+    }, [symbolElement, editorRef.view]);
+
     if (!isVisible && !isSticky) {
         return undefined;
     }
 
-    if (!symbolElement || !symbolName) {
+    if (!symbolElement || !symbolName || !highlightRange) {
         return undefined;
     }
 
     return {
         element: symbolElement,
         symbolName,
+        range: highlightRange,
         isSymbolDefinitionsLoading: isSymbolDefinitionsLoading,
         symbolDefinitions,
     };

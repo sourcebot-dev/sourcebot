@@ -163,7 +163,11 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         symbolInfo
     ]);
 
-    const onFindReferences = useCallback((symbolName: string) => {
+    const onFindReferences = useCallback(() => {
+        if (!symbolInfo) {
+            return;
+        }
+
         captureEvent('wa_find_references_pressed', {
             source,
         });
@@ -171,7 +175,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         createAuditAction({
             action: "user.performed_find_references",
             metadata: {
-                message: symbolName,
+                message: symbolInfo.symbolName,
             },
         })
 
@@ -180,9 +184,10 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
             revisionName,
             path: fileName,
             pathType: 'blob',
+            highlightRange: symbolInfo.range,
             setBrowseState: {
                 selectedSymbolInfo: {
-                    symbolName,
+                    symbolName: symbolInfo.symbolName,
                     repoName,
                     revisionName,
                     language,
@@ -191,15 +196,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                 isBottomPanelCollapsed: false,
             }
         })
-    }, [
-        captureEvent,
-        fileName,
-        language,
-        navigateToPath,
-        repoName,
-        revisionName,
-        source
-    ]);
+    }, [captureEvent, fileName, language, navigateToPath, repoName, revisionName, source, symbolInfo]);
 
     // @todo: We should probably make the behaviour s.t., the ctrl / cmd key needs to be held
     // down to navigate to the definition. We should also only show the underline when the key
@@ -216,9 +213,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
     }, [symbolInfo, onGotoDefinition]);
 
     useHotkeys('alt+shift+f12', () => {
-        if (symbolInfo?.symbolName) {
-            onFindReferences(symbolInfo.symbolName);
-        }
+        onFindReferences();
     }, {
         enableOnFormTags: true,
         enableOnContentEditable: true,
@@ -302,7 +297,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => onFindReferences(symbolInfo.symbolName)}
+                            onClick={onFindReferences}
                         >
                             Find references
                         </Button>
