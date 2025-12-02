@@ -120,7 +120,8 @@ export const env = createEnv({
         CONFIG_MAX_REPOS_NO_TOKEN: numberSchema.default(Number.MAX_SAFE_INTEGER),
         NODE_ENV: z.enum(["development", "test", "production"]),
         SOURCEBOT_TELEMETRY_DISABLED: booleanSchema.default('false'),
-        POSTHOG_PAPIK: z.string(),
+        // @note: this is also declared in the Dockerfile.
+        POSTHOG_PAPIK: z.string().default("phc_lLPuFFi5LH6c94eFJcqvYVFwiJffVcV6HD8U4a1OnRW"),
 
         // Database variables
         // Either DATABASE_URL or DATABASE_HOST, DATABASE_USERNAME, DATABASE_PASSWORD, and DATABASE_NAME must be set.

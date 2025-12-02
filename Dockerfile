@@ -174,6 +174,7 @@ ENV SOURCEBOT_PUBLIC_KEY_PATH=/app/public.pem
 # Note that this key does not need to be kept secret, so it's not
 # necessary to use Docker build secrets here.
 # @see: https://posthog.com/tutorials/api-capture-events#authenticating-with-the-project-api-key
+# @note: this is also declared in the shared env.server.ts file.
 ENV POSTHOG_PAPIK=phc_lLPuFFi5LH6c94eFJcqvYVFwiJffVcV6HD8U4a1OnRW
 
 # Valid values are: debug, info, warn, error
