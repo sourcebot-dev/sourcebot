@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed issue where files with special characters would fail to load. [#636](https://github.com/sourcebot-dev/sourcebot/issues/636)
 - Fixed Ask performance issues. [#632](https://github.com/sourcebot-dev/sourcebot/pull/632)
 - Fixed regression where creating a new Ask thread when unauthenticated would result in a 404. [#641](https://github.com/sourcebot-dev/sourcebot/pull/641)
+- Updated react and next package versions to fix CVE 2025-55182. [#654](https://github.com/sourcebot-dev/sourcebot/pull/654)
 
 ### Changed
 - Changed the default behaviour for code nav to scope references & definitions search to the current repository. [#647](https://github.com/sourcebot-dev/sourcebot/pull/647)
