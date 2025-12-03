@@ -1,5 +1,5 @@
 import { GithubConnectionConfig } from '@sourcebot/schemas/v3/github.type';
-import { getGitHubReposFromConfig } from "./github.js";
+import { getGitHubReposFromConfig, OctokitRepository } from "./github.js";
 import { getGitLabReposFromConfig } from "./gitlab.js";
 import { getGiteaReposFromConfig } from "./gitea.js";
 import { getGerritReposFromConfig } from "./gerrit.js";
@@ -62,66 +62,90 @@ export const compileGithubConfig = async (
     const warnings = gitHubReposResult.warnings;
 
     const hostUrl = config.url ?? 'https://github.com';
-    const repoNameRoot = new URL(hostUrl)
-        .toString()
-        .replace(/^https?:\/\//, '');
 
     const repos = gitHubRepos.map((repo) => {
-        const repoDisplayName = repo.full_name;
-        const repoName = path.join(repoNameRoot, repoDisplayName);
-        const cloneUrl = new URL(repo.clone_url!);
-        const isPublic = repo.private === false;
+        const record = createGitHubRepoRecord({
+            repo,
+            hostUrl,
+            branches: config.revisions?.branches ?? undefined,
+            tags: config.revisions?.tags ?? undefined,
+        })
 
-        logger.debug(`Found github repo ${repoDisplayName} with webUrl: ${repo.html_url}`);
-
-        const record: RepoData = {
-            external_id: repo.id.toString(),
-            external_codeHostType: 'github',
-            external_codeHostUrl: hostUrl,
-            cloneUrl: cloneUrl.toString(),
-            webUrl: repo.html_url,
-            name: repoName,
-            displayName: repoDisplayName,
-            imageUrl: repo.owner.avatar_url,
-            isFork: repo.fork,
-            isArchived: !!repo.archived,
-            isPublic: isPublic,
-            org: {
-                connect: {
-                    id: SINGLE_TENANT_ORG_ID,
-                },
-            },
+        return {
+            ...record,
             connections: {
                 create: {
                     connectionId: connectionId,
                 }
             },
-            metadata: {
-                gitConfig: {
-                    'zoekt.web-url-type': 'github',
-                    'zoekt.web-url': repo.html_url,
-                    'zoekt.name': repoName,
-                    'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
-                    'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
-                    'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
-                    'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
-                    'zoekt.archived': marshalBool(repo.archived),
-                    'zoekt.fork': marshalBool(repo.fork),
-                    'zoekt.public': marshalBool(isPublic),
-                    'zoekt.display-name': repoDisplayName,
-                },
-                branches: config.revisions?.branches ?? undefined,
-                tags: config.revisions?.tags ?? undefined,
-            } satisfies RepoMetadata,
         };
-
-        return record;
     })
 
     return {
         repoData: repos,
         warnings,
     };
+}
+
+export const createGitHubRepoRecord = ({
+    repo,
+    hostUrl,
+    branches,
+    tags,
+}: {
+    repo: OctokitRepository,
+    hostUrl: string,
+    branches?: string[],
+    tags?: string[],
+}) => {
+    const repoNameRoot = new URL(hostUrl)
+        .toString()
+        .replace(/^https?:\/\//, '');
+
+    const repoDisplayName = repo.full_name;
+    const repoName = path.join(repoNameRoot, repoDisplayName);
+    const cloneUrl = new URL(repo.clone_url!);
+    const isPublic = repo.private === false;
+
+    logger.debug(`Found github repo ${repoDisplayName} with webUrl: ${repo.html_url}`);
+
+    const record: Prisma.RepoCreateInput = {
+        external_id: repo.id.toString(),
+        external_codeHostType: 'github',
+        external_codeHostUrl: hostUrl,
+        cloneUrl: cloneUrl.toString(),
+        webUrl: repo.html_url,
+        name: repoName,
+        displayName: repoDisplayName,
+        imageUrl: repo.owner.avatar_url,
+        isFork: repo.fork,
+        isArchived: !!repo.archived,
+        isPublic: isPublic,
+        org: {
+            connect: {
+                id: SINGLE_TENANT_ORG_ID,
+            },
+        },
+        metadata: {
+            gitConfig: {
+                'zoekt.web-url-type': 'github',
+                'zoekt.web-url': repo.html_url,
+                'zoekt.name': repoName,
+                'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
+                'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
+                'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
+                'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
+                'zoekt.archived': marshalBool(repo.archived),
+                'zoekt.fork': marshalBool(repo.fork),
+                'zoekt.public': marshalBool(isPublic),
+                'zoekt.display-name': repoDisplayName,
+            },
+            branches,
+            tags,
+        } satisfies RepoMetadata,
+    };
+
+    return record;
 }
 
 export const compileGitlabConfig = async (
