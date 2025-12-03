@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+<!-- @NOTE: release new MCP version on package release! -->
+
 ### Added
 - Added `ALWAYS_INDEX_FILE_PATTERNS` environment variable to allow specifying a comma seperated list of glob patterns matching file paths that should always be indexed, regardless of size or # of trigrams. [#631](https://github.com/sourcebot-dev/sourcebot/pull/631)
 - Added button to explore menu to toggle cross-repository search. [#647](https://github.com/sourcebot-dev/sourcebot/pull/647)
+- Added server side telemetry for search metrics. [#652](https://github.com/sourcebot-dev/sourcebot/pull/652)
 
 ### Fixed
 - Fixed issue where single quotes could not be used in search queries. [#629](https://github.com/sourcebot-dev/sourcebot/pull/629)
