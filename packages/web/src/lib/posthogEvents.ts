@@ -313,6 +313,11 @@ export type PosthogEventMap = {
         durationMs: number,
         // Whether or not the user is searching all repositories.
         isGlobalSearchEnabled: boolean,
-    }
+    },
+    //////////////////////////////////////////////////////////////////
+    api_code_search_request: {
+        source: string;
+        type: 'streamed' | 'blocking';
+    },
 } 
 export type PosthogEvent = keyof PosthogEventMap;

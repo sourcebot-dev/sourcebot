@@ -4599,6 +4599,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@posthog/core@npm:1.6.0":
+  version: 1.6.0
+  resolution: "@posthog/core@npm:1.6.0"
+  dependencies:
+    cross-spawn: "npm:^7.0.6"
+  checksum: 10c0/28aa907bb21b18587bc5f47c44349ebc834b37d9a4cedb1a18d7b673d4d7cdad2120dda80deceaee707b2f52333e9a08a8e591e1fc4066521ce05e820b76309f
+  languageName: node
+  linkType: hard
+
 "@prisma/client@npm:6.2.1":
   version: 6.2.1
   resolution: "@prisma/client@npm:6.2.1"
@@ -8245,6 +8254,7 @@ __metadata:
     parse-diff: "npm:^0.11.1"
     postcss: "npm:^8"
     posthog-js: "npm:^1.161.5"
+    posthog-node: "npm:^5.15.0"
     pretty-bytes: "npm:^6.1.1"
     psl: "npm:^1.15.0"
     react: "npm:^19.2.1"
@@ -17232,6 +17242,15 @@ __metadata:
   dependencies:
     axios: "npm:^1.7.4"
   checksum: 10c0/81801e8fd7b66894df3a734e1cf25792832712a6467b854af6c046d6233152415838ba6928bfbe71ee6bdbf930ab329552e804532b8a4aac3a615a101affa88d
+  languageName: node
+  linkType: hard
+
+"posthog-node@npm:^5.15.0":
+  version: 5.15.0
+  resolution: "posthog-node@npm:5.15.0"
+  dependencies:
+    "@posthog/core": "npm:1.6.0"
+  checksum: 10c0/7db929453cefc9b2d0017e1f7c9ffe7e6ecd2a495ee9861bd5e8f3873f72fa29a318dd7bccf10eb15639e1860aab396d4be502af88afba96ed15ac8b46d57e9d
   languageName: node
   linkType: hard
 

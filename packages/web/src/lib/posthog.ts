@@ -1,0 +1,65 @@
+import { PostHog } from 'posthog-node'
+import { env } from '@sourcebot/shared'
+import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies';
+import * as Sentry from "@sentry/nextjs";
+import { PosthogEvent, PosthogEventMap } from './posthogEvents';
+import { cookies } from 'next/headers';
+
+/**
+ * @note: This is a subset of the properties stored in the
+ * ph_phc_<id>_posthog cookie.
+ */
+export type PostHogCookie = {
+    distinct_id: string;
+}
+
+const isPostHogCookie = (cookie: unknown): cookie is PostHogCookie => {
+    return typeof cookie === 'object' &&
+        cookie !== null &&
+        'distinct_id' in cookie;
+}
+
+/**
+* Attempts to retrieve the PostHog cookie from the given cookie store, returning
+* undefined if the cookie is not found or is invalid.
+*/
+const getPostHogCookie = (cookieStore: Pick<RequestCookies, 'get'>): PostHogCookie | undefined => {
+    const phCookieKey = `ph_${env.POSTHOG_PAPIK}_posthog`;
+    const cookie = cookieStore.get(phCookieKey);
+
+    if (!cookie) {
+        return undefined;
+    }
+
+    const parsedCookie = (() => {
+        try {
+            return JSON.parse(cookie.value);
+        } catch (e) {
+            Sentry.captureException(e);
+            return null;
+        }
+    })();
+
+    if (isPostHogCookie(parsedCookie)) {
+        return parsedCookie;
+    }
+
+    return undefined;
+}
+
+export async function captureEvent<E extends PosthogEvent>(event: E, properties: PosthogEventMap[E]) {
+    const cookieStore = await cookies();
+    const cookie = getPostHogCookie(cookieStore);
+
+    const posthog = new PostHog(env.POSTHOG_PAPIK, {
+        host: 'https://us.i.posthog.com',
+        flushAt: 1,
+        flushInterval: 0
+    })
+
+    posthog.capture({
+        event,
+        properties,
+        distinctId: cookie?.distinct_id ?? '',
+    });
+}

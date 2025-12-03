@@ -2,13 +2,12 @@ import { sew } from "@/actions";
 import { getRepoPermissionFilterForUser } from "@/prisma";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { PrismaClient, UserWithAccounts } from "@sourcebot/db";
-import { createLogger, env, hasEntitlement } from "@sourcebot/shared";
+import { env, hasEntitlement } from "@sourcebot/shared";
 import { QueryIR } from './ir';
 import { parseQuerySyntaxIntoIR } from './parser';
 import { SearchOptions } from "./types";
 import { createZoektSearchRequest, zoektSearch, zoektStreamSearch } from './zoektSearcher';
 
-const logger = createLogger("searchApi");
 
 type QueryStringSearchRequest = {
     queryType: 'string';

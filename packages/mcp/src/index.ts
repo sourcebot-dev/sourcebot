@@ -76,6 +76,7 @@ server.tool(
             contextLines: env.DEFAULT_CONTEXT_LINES,
             isRegexEnabled: true,
             isCaseSensitivityEnabled: caseSensitive,
+            source: 'mcp'
         });
 
         if (isServiceError(response)) {
