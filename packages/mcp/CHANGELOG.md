@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.11] - 2025-12-03
+
+### Changed
+- Updated API client to match the latest Sourcebot release. [#652](https://github.com/sourcebot-dev/sourcebot/pull/652)
+
 ## [1.0.10] - 2025-11-24
 
 ### Changed
