@@ -147,7 +147,7 @@
     "langfuse-vercel": "^3.38.4",
     "lucide-react": "^0.517.0",
     "micromatch": "^4.0.8",
-    "next": "^16.0.7",
+    "next": "^15.5.7",
     "next-auth": "^5.0.0-beta.30",
     "next-navigation-guard": "^0.2.0",
     "next-themes": "^0.3.0",
