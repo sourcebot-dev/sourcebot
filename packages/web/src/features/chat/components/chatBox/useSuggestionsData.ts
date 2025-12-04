@@ -47,6 +47,7 @@ export const useSuggestionsData = ({
                 query: query.join(' '),
                 matches: 10,
                 contextLines: 1,
+                source: 'chat-file-suggestions'
             }))
         },
         select: (data): FileSuggestion[] => {

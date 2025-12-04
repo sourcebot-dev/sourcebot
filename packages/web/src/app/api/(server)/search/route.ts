@@ -4,6 +4,7 @@ import { search, searchRequestSchema } from "@/features/search";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
+import { captureEvent } from "@/lib/posthog";
 
 export const POST = async (request: NextRequest) => {
     const body = await request.json();
@@ -16,8 +17,14 @@ export const POST = async (request: NextRequest) => {
 
     const {
         query,
+        source,
         ...options
     } = parsed.data;
+
+    await captureEvent('api_code_search_request', {
+        source: source ?? 'unknown',
+        type: 'blocking',
+    });
     
     const response = await search({
         queryType: 'string',
@@ -28,5 +35,6 @@ export const POST = async (request: NextRequest) => {
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }
+
     return Response.json(response);
 }

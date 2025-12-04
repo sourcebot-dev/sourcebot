@@ -94,6 +94,7 @@ export type SearchOptions = z.infer<typeof searchOptionsSchema>;
 
 export const searchRequestSchema = z.object({
     query: z.string(),                                // The zoekt query to execute.
+    source: z.string().optional(),                    // The source of the search request.
     ...searchOptionsSchema.shape,
 });
 export type SearchRequest = z.infer<typeof searchRequestSchema>;

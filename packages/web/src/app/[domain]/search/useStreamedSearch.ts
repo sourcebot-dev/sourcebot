@@ -129,7 +129,8 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                         whole,
                         isRegexEnabled,
                         isCaseSensitivityEnabled,
-                    }),
+                        source: 'sourcebot-web-client'
+                    } satisfies SearchRequest),
                     signal: abortControllerRef.current.signal,
                 });
 

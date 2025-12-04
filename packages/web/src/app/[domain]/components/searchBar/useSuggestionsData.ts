@@ -55,6 +55,7 @@ export const useSuggestionsData = ({
             query: `file:${suggestionQuery}`,
             matches: 15,
             contextLines: 1,
+            source: 'search-bar-file-suggestions'
         }),
         select: (data): Suggestion[] => {
             if (isServiceError(data)) {
@@ -75,6 +76,7 @@ export const useSuggestionsData = ({
             query: `sym:${suggestionQuery.length > 0 ? suggestionQuery : ".*"}`,
             matches: 15,
             contextLines: 1,
+            source: 'search-bar-symbol-suggestions'
         }),
         select: (data): Suggestion[] => {
             if (isServiceError(data)) {
