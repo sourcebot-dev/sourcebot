@@ -1,19 +1,23 @@
 'use client';
 
 import { useBrowseState } from "@/app/[domain]/browse/hooks/useBrowseState";
-import { findSearchBasedSymbolReferences, findSearchBasedSymbolDefinitions} from "@/app/api/(client)/client";
+import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "@/app/api/(client)/client";
 import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
 import { Badge } from "@/components/ui/badge";
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDomain } from "@/hooks/useDomain";
-import { unwrapServiceError } from "@/lib/utils";
+import { measure, unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Loader2 } from "lucide-react";
-import { useMemo } from "react";
+import { GlobeIcon, Loader2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { VscSymbolMisc } from "react-icons/vsc";
 import { ReferenceList } from "./referenceList";
+import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
+import { useHotkeys } from "react-hotkeys-hook";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface ExploreMenuProps {
     selectedSymbolInfo: {
@@ -27,12 +31,14 @@ interface ExploreMenuProps {
 export const ExploreMenu = ({
     selectedSymbolInfo,
 }: ExploreMenuProps) => {
-
     const domain = useDomain();
+    const captureEvent = useCaptureEvent();
     const {
         state: { activeExploreMenuTab },
         updateBrowseState,
     } = useBrowseState();
+
+    const [isGlobalSearchEnabled, setIsGlobalSearchEnabled] = useState(false);
 
     const {
         data: referencesResponse,
@@ -40,14 +46,24 @@ export const ExploreMenu = ({
         isPending: isReferencesResponsePending,
         isLoading: isReferencesResponseLoading,
     } = useQuery({
-        queryKey: ["references", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, selectedSymbolInfo.language, domain],
-        queryFn: () => unwrapServiceError(
-            findSearchBasedSymbolReferences({
-                symbolName: selectedSymbolInfo.symbolName,
-                language: selectedSymbolInfo.language,
-                revisionName: selectedSymbolInfo.revisionName,
+        queryKey: ["references", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, selectedSymbolInfo.language, domain, isGlobalSearchEnabled],
+        queryFn: async () => {
+            const response = await measure(() => unwrapServiceError(
+                findSearchBasedSymbolReferences({
+                    symbolName: selectedSymbolInfo.symbolName,
+                    language: selectedSymbolInfo.language,
+                    revisionName: selectedSymbolInfo.revisionName,
+                    repoName: isGlobalSearchEnabled ? undefined : selectedSymbolInfo.repoName
+                })
+            ), 'findSearchBasedSymbolReferences', false);
+
+            captureEvent('wa_explore_menu_references_loaded', {
+                durationMs: response.durationMs,
+                isGlobalSearchEnabled,
             })
-        ),
+
+            return response.data;
+        }
     });
 
     const {
@@ -56,14 +72,32 @@ export const ExploreMenu = ({
         isPending: isDefinitionsResponsePending,
         isLoading: isDefinitionsResponseLoading,
     } = useQuery({
-        queryKey: ["definitions", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, selectedSymbolInfo.language, domain],
-        queryFn: () => unwrapServiceError(
-            findSearchBasedSymbolDefinitions({
-                symbolName: selectedSymbolInfo.symbolName,
-                language: selectedSymbolInfo.language,
-                revisionName: selectedSymbolInfo.revisionName,
+        queryKey: ["definitions", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, selectedSymbolInfo.language, domain, isGlobalSearchEnabled],
+        queryFn: async () => {
+            const response = await measure(() => unwrapServiceError(
+                findSearchBasedSymbolDefinitions({
+                    symbolName: selectedSymbolInfo.symbolName,
+                    language: selectedSymbolInfo.language,
+                    revisionName: selectedSymbolInfo.revisionName,
+                    repoName: isGlobalSearchEnabled ? undefined : selectedSymbolInfo.repoName
+                })
+            ), 'findSearchBasedSymbolDefinitions', false);
+
+            captureEvent('wa_explore_menu_definitions_loaded', {
+                durationMs: response.durationMs,
+                isGlobalSearchEnabled,
             })
-        ),
+
+            return response.data;
+        }
+    });
+
+    useHotkeys('shift+a', () => {
+        setIsGlobalSearchEnabled(prev => !prev);
+    }, {
+        enableOnFormTags: true,
+        enableOnContentEditable: true,
+        description: "Search all repositories",
     });
 
     const isPending = isReferencesResponsePending || isDefinitionsResponsePending;
@@ -98,29 +132,52 @@ export const ExploreMenu = ({
             <ResizablePanel
                 minSize={10}
                 maxSize={20}
+                className="flex flex-col h-full"
             >
                 <div className="flex flex-col p-2">
-                    <Tooltip
-                        delayDuration={100}
-                    >
-                        <TooltipTrigger
-                            disabled={true}
-                            className="mr-auto"
+                    <div className="flex flex-row items-center justify-between">
+
+                        <Tooltip
+                            delayDuration={100}
                         >
-                            <Badge
-                                variant="outline"
-                                className="w-fit h-fit flex-shrink-0 select-none"
+                            <TooltipTrigger
+                                disabled={true}
+                                className="mr-auto"
                             >
-                                Search Based
-                            </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent
-                            side="top"
-                            align="start"
-                        >
-                            Symbol references and definitions found using a best-guess search heuristic.
-                        </TooltipContent>
-                    </Tooltip>
+                                <Badge
+                                    variant="outline"
+                                    className="w-fit h-fit flex-shrink-0 select-none"
+                                >
+                                    Search Based
+                                </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent
+                                side="top"
+                                align="center"
+                            >
+                                Symbol references and definitions found using a best-guess search heuristic.
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span>
+                                    <Toggle
+                                        pressed={isGlobalSearchEnabled}
+                                        onPressedChange={setIsGlobalSearchEnabled}
+                                    >
+                                        <GlobeIcon className="w-4 h-4" />
+                                    </Toggle>
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" align="center">
+                                Search all repositories
+                                <KeyboardShortcutHint
+                                    shortcut="⇧ A"
+                                    className="ml-2"
+                                />
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
                     <div className="flex flex-col gap-1 mt-4">
                         <Entry
                             name="References"

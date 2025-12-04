@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.11] - 2025-12-03
+
+### Changed
+- Updated API client to match the latest Sourcebot release. [#652](https://github.com/sourcebot-dev/sourcebot/pull/652)
+
+## [1.0.10] - 2025-11-24
+
+### Changed
+- Updated API client to match the latest Sourcebot release. [#555](https://github.com/sourcebot-dev/sourcebot/pull/555)
+
+## [1.0.9] - 2025-11-17
+
+### Added
+- Added pagination and filtering to `list_repos` tool to handle large repository lists efficiently and prevent oversized responses that waste token context. [#614](https://github.com/sourcebot-dev/sourcebot/pull/614)
+
 ## [1.0.8] - 2025-11-10
 
 ### Fixed

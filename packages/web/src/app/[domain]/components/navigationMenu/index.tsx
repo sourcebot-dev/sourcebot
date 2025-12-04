@@ -1,4 +1,4 @@
-import { getConnectionStats, getRepos, getReposStats } from "@/actions";
+import { getConnectionStats, getCurrentUserRole, getOrgAccountRequests, getRepos, getReposStats } from "@/actions";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { env } from "@sourcebot/shared";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
-import { RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
+import { OrgRole, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { OrgSelector } from "../orgSelector";
@@ -20,7 +20,7 @@ import { NavigationItems } from "./navigationItems";
 import { ProgressIndicator } from "./progressIndicator";
 import { TrialIndicator } from "./trialIndicator";
 
-const SOURCEBOT_DISCORD_URL = "https://discord.gg/GbXMEM5H";
+const SOURCEBOT_DISCORD_URL = "https://discord.gg/HDScTs3ptP";
 const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
 
 interface NavigationMenuProps {
@@ -39,10 +39,31 @@ export const NavigationMenu = async ({
         throw new ServiceErrorException(repoStats);
     }
 
-    const connectionStats = isAuthenticated ? await getConnectionStats() : null;
-    if (isServiceError(connectionStats)) {
-        throw new ServiceErrorException(connectionStats);
+    const role = isAuthenticated ? await getCurrentUserRole(domain) : null;
+    if (isServiceError(role)) {
+        throw new ServiceErrorException(role);
     }
+
+    const stats = await (async () => {
+        if (!isAuthenticated || role !== OrgRole.OWNER) {
+            return null;
+        }
+
+        const joinRequests = await getOrgAccountRequests(domain);
+        if (isServiceError(joinRequests)) {
+            throw new ServiceErrorException(joinRequests);
+        }
+
+        const connectionStats = await getConnectionStats();
+        if (isServiceError(connectionStats)) {
+            throw new ServiceErrorException(connectionStats);
+        }
+
+        return {
+            numJoinRequests: joinRequests.length,
+            connectionStats,
+        };
+    })();
 
     const sampleRepos = await getRepos({
         where: {
@@ -100,9 +121,10 @@ export const NavigationMenu = async ({
                             numberOfRepos={numberOfRepos}
                             isReposButtonNotificationDotVisible={numberOfReposWithFirstTimeIndexingJobsInProgress > 0}
                             isSettingsButtonNotificationDotVisible={
-                                connectionStats ?
-                                    connectionStats.numberOfConnectionsWithFirstTimeSyncJobsInProgress > 0 :
-                                    false
+                                stats ? (
+                                    stats.connectionStats.numberOfConnectionsWithFirstTimeSyncJobsInProgress > 0 ||
+                                    stats.numJoinRequests > 0
+                                ) : false
                             }
                             isAuthenticated={isAuthenticated}
                         />

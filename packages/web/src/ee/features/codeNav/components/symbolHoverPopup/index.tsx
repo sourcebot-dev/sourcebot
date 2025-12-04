@@ -1,42 +1,50 @@
+import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
+import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { createAuditAction } from "@/ee/features/audit/actions";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { SymbolDefinition, useHoveredOverSymbolInfo } from "./useHoveredOverSymbolInfo";
-import { SymbolDefinitionPreview } from "./symbolDefinitionPreview";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useHotkeys } from "react-hotkeys-hook";
-import { useToast } from "@/components/hooks/use-toast";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
+import { SymbolDefinitionPreview } from "./symbolDefinitionPreview";
+import { useHoveredOverSymbolInfo } from "./useHoveredOverSymbolInfo";
 
 interface SymbolHoverPopupProps {
     editorRef: ReactCodeMirrorRef;
     language: string;
     revisionName: string;
-    onFindReferences: (symbolName: string) => void;
-    onGotoDefinition: (symbolName: string, symbolDefinitions: SymbolDefinition[]) => void;
+    repoName: string;
+    fileName: string;
+    source: 'browse' | 'preview' | 'chat';
 }
 
 export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
     editorRef,
     revisionName,
     language,
-    onFindReferences,
-    onGotoDefinition: _onGotoDefinition,
+    repoName,
+    fileName,
+    source,
 }) => {
     const ref = useRef<HTMLDivElement>(null);
     const [isSticky, setIsSticky] = useState(false);
     const { toast } = useToast();
+    const { navigateToPath } = useBrowseNavigation();
+    const captureEvent = useCaptureEvent();
 
     const symbolInfo = useHoveredOverSymbolInfo({
         editorRef,
         isSticky,
         revisionName,
         language,
+        repoName,
     });
 
     // Positions the popup relative to the symbol
@@ -77,13 +85,118 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         }
     }, [symbolInfo, editorRef]);
 
+    // Multiple symbol definitions can exist for the same symbol, but we can only navigate
+    // and display a preview of one. If the symbol definition exists in the current file,
+    // then we use that one, otherwise we fallback to the first definition in the list.
+    const previewedSymbolDefinition = useMemo(() => {
+        if (!symbolInfo?.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0) {
+            return undefined;
+        }
+
+        const matchingDefinition = symbolInfo.symbolDefinitions.find(
+            (definition) => (
+                definition.fileName === fileName && definition.repoName === repoName
+            )
+        );
+
+        if (matchingDefinition) {
+            return matchingDefinition;
+        }
+
+        return symbolInfo.symbolDefinitions[0];
+    }, [fileName, repoName, symbolInfo?.symbolDefinitions]);
+
     const onGotoDefinition = useCallback(() => {
-        if (!symbolInfo || !symbolInfo.symbolDefinitions) {
+        if (
+            !symbolInfo ||
+            !symbolInfo.symbolDefinitions ||
+            !previewedSymbolDefinition
+        ) {
             return;
         }
 
-        _onGotoDefinition(symbolInfo.symbolName, symbolInfo.symbolDefinitions);
-    }, [symbolInfo, _onGotoDefinition]);
+        captureEvent('wa_goto_definition_pressed', {
+            source,
+        });
+
+        createAuditAction({
+            action: "user.performed_goto_definition",
+            metadata: {
+                message: symbolInfo.symbolName,
+            },
+        });
+
+        const {
+            fileName,
+            repoName,
+            revisionName,
+            language,
+            range: highlightRange,
+        } = previewedSymbolDefinition;
+
+        navigateToPath({
+            // Always navigate to the preview symbol definition.
+            repoName,
+            revisionName,
+            path: fileName,
+            pathType: 'blob',
+            highlightRange,
+            // If there are multiple definitions, we should open the Explore panel with the definitions.
+            ...(symbolInfo.symbolDefinitions.length > 1 ? {
+                setBrowseState: {
+                    selectedSymbolInfo: {
+                        symbolName: symbolInfo.symbolName,
+                        repoName,
+                        revisionName,
+                        language,
+                    },
+                    activeExploreMenuTab: "definitions",
+                    isBottomPanelCollapsed: false,
+                }
+            } : {}),
+        });
+    }, [
+        captureEvent,
+        previewedSymbolDefinition,
+        navigateToPath,
+        source,
+        symbolInfo
+    ]);
+
+    const onFindReferences = useCallback(() => {
+        if (!symbolInfo) {
+            return;
+        }
+
+        captureEvent('wa_find_references_pressed', {
+            source,
+        });
+
+        createAuditAction({
+            action: "user.performed_find_references",
+            metadata: {
+                message: symbolInfo.symbolName,
+            },
+        })
+
+        navigateToPath({
+            repoName,
+            revisionName,
+            path: fileName,
+            pathType: 'blob',
+            highlightRange: symbolInfo.range,
+            setBrowseState: {
+                selectedSymbolInfo: {
+                    symbolName: symbolInfo.symbolName,
+                    repoName,
+                    revisionName,
+                    language,
+                },
+                activeExploreMenuTab: "references",
+                isBottomPanelCollapsed: false,
+            }
+        })
+    }, [captureEvent, fileName, language, navigateToPath, repoName, revisionName, source, symbolInfo]);
 
     // @todo: We should probably make the behaviour s.t., the ctrl / cmd key needs to be held
     // down to navigate to the definition. We should also only show the underline when the key
@@ -100,9 +213,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
     }, [symbolInfo, onGotoDefinition]);
 
     useHotkeys('alt+shift+f12', () => {
-        if (symbolInfo?.symbolName) {
-            onFindReferences(symbolInfo.symbolName);
-        }
+        onFindReferences();
     }, {
         enableOnFormTags: true,
         enableOnContentEditable: true,
@@ -147,9 +258,9 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Loading...
                 </div>
-            ) : symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 0 ? (
+            ) : previewedSymbolDefinition ? (
                 <SymbolDefinitionPreview
-                    symbolDefinition={symbolInfo.symbolDefinitions[0]}
+                    symbolDefinition={previewedSymbolDefinition}
                 />
             ) : (
                 <p className="text-sm font-medium text-muted-foreground">No hover info found</p>
@@ -160,13 +271,13 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                     <TooltipTrigger asChild>
                         <LoadingButton
                             loading={symbolInfo.isSymbolDefinitionsLoading}
-                            disabled={!symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0}
+                            disabled={!previewedSymbolDefinition}
                             variant="outline"
                             size="sm"
                             onClick={onGotoDefinition}
                         >
                             {
-                                !symbolInfo.isSymbolDefinitionsLoading && (!symbolInfo.symbolDefinitions || symbolInfo.symbolDefinitions.length === 0) ?
+                                !symbolInfo.isSymbolDefinitionsLoading && !previewedSymbolDefinition ?
                                     "No definition found" :
                                     `Go to ${symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 1 ? "definitions" : "definition"}`
                             }
@@ -186,7 +297,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => onFindReferences(symbolInfo.symbolName)}
+                            onClick={onFindReferences}
                         >
                             Find references
                         </Button>

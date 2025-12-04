@@ -7,9 +7,8 @@ import Fuse from "fuse.js";
 import { forwardRef, Ref, useEffect, useMemo, useState } from "react";
 import {
     archivedModeSuggestions,
-    caseModeSuggestions,
     forkModeSuggestions,
-    publicModeSuggestions,
+    visibilityModeSuggestions,
 } from "./constants";
 import { IconType } from "react-icons/lib";
 import { VscFile, VscFilter, VscRepo, VscSymbolMisc } from "react-icons/vsc";
@@ -32,9 +31,8 @@ export type SuggestionMode =
     "archived" |
     "file" |
     "language" |
-    "case" |
     "fork" |
-    "public" |
+    "visibility" |
     "revision" |
     "symbol" |
     "content" |
@@ -137,19 +135,14 @@ const SearchSuggestionsBox = forwardRef(({
             DefaultIcon?: IconType
         } => {
             switch (suggestionMode) {
-                case "public":
+                case "visibility":
                     return {
-                        list: publicModeSuggestions,
+                        list: visibilityModeSuggestions,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
                     }
                 case "fork":
                     return {
                         list: forkModeSuggestions,
-                        onSuggestionClicked: createOnSuggestionClickedHandler(),
-                    }
-                case "case":
-                    return {
-                        list: caseModeSuggestions,
                         onSuggestionClicked: createOnSuggestionClickedHandler(),
                     }
                 case "archived":
@@ -183,7 +176,7 @@ const SearchSuggestionsBox = forwardRef(({
                 case "file":
                     return {
                         list: fileSuggestions,
-                        onSuggestionClicked: createOnSuggestionClickedHandler(),
+                        onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: true }),
                         isClientSideSearchEnabled: false,
                         DefaultIcon: VscFile,
                     }

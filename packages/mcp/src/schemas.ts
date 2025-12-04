@@ -21,15 +21,18 @@ export const symbolSchema = z.object({
     kind: z.string(),
 });
 
+export const searchOptionsSchema = z.object({
+    matches: z.number(),                              // The number of matches to return.
+    contextLines: z.number().optional(),              // The number of context lines to return.
+    whole: z.boolean().optional(),                    // Whether to return the whole file as part of the response.
+    isRegexEnabled: z.boolean().optional(),           // Whether to enable regular expression search.
+    isCaseSensitivityEnabled: z.boolean().optional(), // Whether to enable case sensitivity.
+});
+
 export const searchRequestSchema = z.object({
-    // The zoekt query to execute.
-    query: z.string(),
-    // The number of matches to return.
-    matches: z.number(),
-    // The number of context lines to return.
-    contextLines: z.number().optional(),
-    // Whether to return the whole file as part of the response.
-    whole: z.boolean().optional(),
+    query: z.string(),                                // The zoekt query to execute.
+    source: z.string().optional(),                    // The source of the search request.
+    ...searchOptionsSchema.shape,
 });
 
 export const repositoryInfoSchema = z.object({
@@ -109,7 +112,7 @@ export const searchStatsSchema = z.object({
     regexpsConsidered: z.number(),
 
     // FlushReason explains why results were flushed.
-    flushReason: z.number(),
+    flushReason: z.string(),
 });
 
 export const searchResponseSchema = z.object({
@@ -139,7 +142,6 @@ export const searchResponseSchema = z.object({
         content: z.string().optional(),
     })),
     repositoryInfo: z.array(repositoryInfoSchema),
-    isBranchFilteringEnabled: z.boolean(),
     isSearchExhaustive: z.boolean(),
 });
 
@@ -155,6 +157,25 @@ export const repositoryQuerySchema = z.object({
 });
 
 export const listRepositoriesResponseSchema = repositoryQuerySchema.array();
+
+export const listReposRequestSchema = z.object({
+    query: z
+        .string()
+        .describe("Filter repositories by name or displayName (case-insensitive)")
+        .optional(),
+    pageNumber: z
+        .number()
+        .int()
+        .positive()
+        .describe("Page number (1-indexed, default: 1)")
+        .default(1),
+    limit: z
+        .number()
+        .int()
+        .positive()
+        .describe("Number of repositories per page (default: 50)")
+        .default(50),
+});
 
 export const fileSourceRequestSchema = z.object({
     fileName: z.string(),

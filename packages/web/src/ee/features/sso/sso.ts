@@ -1,11 +1,12 @@
 import type { IdentityProvider } from "@/auth";
 import { onCreateUser } from "@/lib/authUtils";
 import { prisma } from "@/prisma";
-import { GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
+import { AuthentikIdentityProviderConfig, GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
 import { createLogger, env, getTokenFromConfig, hasEntitlement, loadConfig } from "@sourcebot/shared";
 import { OAuth2Client } from "google-auth-library";
 import type { User as AuthJsUser } from "next-auth";
 import type { Provider } from "next-auth/providers";
+import Authentik from "next-auth/providers/authentik";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import Gitlab from "next-auth/providers/gitlab";
@@ -70,6 +71,13 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
             const providerConfig = identityProvider as GCPIAPIdentityProviderConfig;
             const audience = await getTokenFromConfig(providerConfig.audience);
             providers.push({ provider: createGCPIAPProvider(audience), purpose: providerConfig.purpose });
+        }
+        if (identityProvider.provider === "authentik") {
+            const providerConfig = identityProvider as AuthentikIdentityProviderConfig;
+            const clientId = await getTokenFromConfig(providerConfig.clientId);
+            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
+            const issuer = await getTokenFromConfig(providerConfig.issuer);
+            providers.push({ provider: createAuthentikProvider(clientId, clientSecret, issuer), purpose: providerConfig.purpose });
         }
     }
 
@@ -267,5 +275,13 @@ const createGCPIAPProvider = (audience: string): Provider => {
                 return null;
             }
         },
+    });
+}
+
+export const createAuthentikProvider = (clientId: string, clientSecret: string, issuer: string): Provider => {
+    return Authentik({
+        clientId: clientId,
+        clientSecret: clientSecret,
+        issuer: issuer,
     });
 }

@@ -66,12 +66,6 @@ fi
 
 echo -e "\e[34m[Info] Sourcebot version: $NEXT_PUBLIC_SOURCEBOT_VERSION\e[0m"
 
-# If we don't have a PostHog key, then we need to disable telemetry.
-if [ -z "$NEXT_PUBLIC_POSTHOG_PAPIK" ]; then
-    echo -e "\e[33m[Warning] NEXT_PUBLIC_POSTHOG_PAPIK was not set. Setting SOURCEBOT_TELEMETRY_DISABLED.\e[0m"
-    export SOURCEBOT_TELEMETRY_DISABLED=true
-fi
-
 if [ -n "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
     # Validate that SOURCEBOT_TELEMETRY_DISABLED is either "true" or "false"
     if [ "$SOURCEBOT_TELEMETRY_DISABLED" != "true" ] && [ "$SOURCEBOT_TELEMETRY_DISABLED" != "false" ]; then
@@ -159,7 +153,7 @@ if [ ! -f "$FIRST_RUN_FILE" ]; then
     # (if telemetry is enabled)
     if [ "$SOURCEBOT_TELEMETRY_DISABLED" = "false" ]; then
         if ! ( curl -L --output /dev/null --silent --fail --header "Content-Type: application/json" -d '{
-            "api_key": "'"$NEXT_PUBLIC_POSTHOG_PAPIK"'",
+            "api_key": "'"$POSTHOG_PAPIK"'",
             "event": "install",
             "distinct_id": "'"$SOURCEBOT_INSTALL_ID"'",
             "properties": {
@@ -179,7 +173,7 @@ else
 
         if [ "$SOURCEBOT_TELEMETRY_DISABLED" = "false" ]; then
             if ! ( curl -L --output /dev/null --silent --fail --header "Content-Type: application/json" -d '{
-                "api_key": "'"$NEXT_PUBLIC_POSTHOG_PAPIK"'",
+                "api_key": "'"$POSTHOG_PAPIK"'",
                 "event": "upgrade",
                 "distinct_id": "'"$SOURCEBOT_INSTALL_ID"'",
                 "properties": {

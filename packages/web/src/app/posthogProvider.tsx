@@ -32,16 +32,16 @@ function PostHogPageView() {
 
 interface PostHogProviderProps {
     children: React.ReactNode
-    disabled: boolean
+    isDisabled: boolean
+    posthogApiKey: string
 }
 
-export function PostHogProvider({ children, disabled }: PostHogProviderProps) {
+export function PostHogProvider({ children, isDisabled, posthogApiKey }: PostHogProviderProps) {
     const { data: session } = useSession();
 
     useEffect(() => {
-        if (!disabled && env.NEXT_PUBLIC_POSTHOG_PAPIK) {
-            console.debug(`PostHog telemetry enabled. Cloud environment: ${env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT}`);
-            posthog.init(env.NEXT_PUBLIC_POSTHOG_PAPIK, {
+        if (!isDisabled) {
+            posthog.init(posthogApiKey, {
                 // @see next.config.mjs for path rewrites to the "/ingest" route.
                 api_host: "/ingest",
                 person_profiles: 'identified_only',
@@ -66,7 +66,7 @@ export function PostHogProvider({ children, disabled }: PostHogProviderProps) {
         } else {
             console.debug("PostHog telemetry disabled");
         }
-    }, [disabled]);
+    }, [isDisabled, posthogApiKey]);
 
     useEffect(() => {
         if (!session) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { SearchResultFile, SearchResultChunk } from "@/features/search/types";
+import { SearchResultFile, SearchResultChunk } from "@/features/search";
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import Link from "next/link";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";

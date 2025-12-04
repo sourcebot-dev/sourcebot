@@ -16,57 +16,53 @@ export enum SearchPrefix {
     sym = "sym:",
     content = "content:",
     archived = "archived:",
-    case = "case:",
     fork = "fork:",
-    public = "public:",
+    visibility = "visibility:",
     context = "context:",
 }
 
-export const publicModeSuggestions: Suggestion[] = [
+export const visibilityModeSuggestions: Suggestion[] = [
     {
-        value: "yes",
+        value: "public",
         description: "Only include results from public repositories."
     },
     {
-        value: "no",
+        value: "private",
         description: "Only include results from private repositories."
+    },
+    {
+        value: "any",
+        description: "Include results from both public and private repositories (default)."
     },
 ];
 
 export const forkModeSuggestions: Suggestion[] = [
     {
         value: "yes",
+        description: "Include results from forked repositories (default)."
+    },
+    {
+        value: "no",
+        description: "Exclude results from forked repositories."
+    },
+    {
+        value: "only",
         description: "Only include results from forked repositories."
-    },
-    {
-        value: "no",
-        description: "Only include results from non-forked repositories."
-    },
-];
-
-export const caseModeSuggestions: Suggestion[] = [
-    {
-        value: "auto",
-        description: "Search patterns are case-insensitive if all characters are lowercase, and case sensitive otherwise (default)."
-    },
-    {
-        value: "yes",
-        description: "Case sensitive search."
-    },
-    {
-        value: "no",
-        description: "Case insensitive search."
-    },
+    }
 ];
 
 export const archivedModeSuggestions: Suggestion[] = [
     {
         value: "yes",
-        description: "Only include results in archived repositories."
+        description: "Include results from archived repositories (default)."
     },
     {
         value: "no",
-        description: "Only include results in non-archived repositories."
+        description: "Exclude results from archived repositories."
     },
+    {
+        value: "only",
+        description: "Only include results from archived repositories."
+    }
 ];
 

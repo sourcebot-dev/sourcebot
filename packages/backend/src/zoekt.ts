@@ -1,5 +1,5 @@
 import { Repo } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/shared";
+import { createLogger, env } from "@sourcebot/shared";
 import { exec } from "child_process";
 import { INDEX_CACHE_DIR } from "./constants.js";
 import { Settings } from "./types.js";
@@ -11,6 +11,8 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, revisio
     const { path: repoPath } = getRepoPath(repo);
     const shardPrefix = getShardPrefix(repo.orgId, repo.id);
 
+    const largeFileGlobPatterns = env.ALWAYS_INDEX_FILE_PATTERNS?.split(',').map(pattern => pattern.trim()) ?? [];
+
     const command = [
         'zoekt-git-index',
         '-allow_missing_branches',
@@ -21,6 +23,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, revisio
         `-tenant_id ${repo.orgId}`,
         `-repo_id ${repo.id}`,
         `-shard_prefix ${shardPrefix}`,
+        ...largeFileGlobPatterns.map((pattern) => `-large_file ${pattern}`),
         repoPath
     ].join(' ');
 

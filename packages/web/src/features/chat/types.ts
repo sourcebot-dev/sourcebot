@@ -70,7 +70,7 @@ export const sbChatMessageMetadataSchema = z.object({
     feedback: z.array(z.object({
         type: z.enum(['like', 'dislike']),
         timestamp: z.string(), // ISO date string
-        userId: z.string(),
+        userId: z.string().optional(),
     })).optional(),
     selectedSearchScopes: z.array(searchScopeSchema).optional(),
     traceId: z.string().optional(),

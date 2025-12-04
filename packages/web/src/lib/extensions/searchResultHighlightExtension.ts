@@ -1,6 +1,6 @@
 import { EditorSelection, Extension, StateEffect, StateField, Text, Transaction } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
-import { SourceRange } from "@/features/search/types";
+import { SourceRange } from "@/features/search";
 
 const setMatchState = StateEffect.define<{
     selectedMatchIndex: number,
