@@ -48,6 +48,10 @@ const getPostHogCookie = (cookieStore: Pick<RequestCookies, 'get'>): PostHogCook
 }
 
 export async function captureEvent<E extends PosthogEvent>(event: E, properties: PosthogEventMap[E]) {
+    if (env.SOURCEBOT_TELEMETRY_DISABLED === 'true') {
+        return;
+    }
+
     const cookieStore = await cookies();
     const cookie = getPostHogCookie(cookieStore);
 
