@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-<!-- @NOTE: release new MCP version on package release! -->
+## [4.10.1] - 2025-12-03
 
 ### Added
 - Added `ALWAYS_INDEX_FILE_PATTERNS` environment variable to allow specifying a comma seperated list of glob patterns matching file paths that should always be indexed, regardless of size or # of trigrams. [#631](https://github.com/sourcebot-dev/sourcebot/pull/631)
