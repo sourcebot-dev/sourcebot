@@ -75,12 +75,13 @@ export function PostHogProvider({ children, isDisabled, posthogApiKey }: PostHog
 
         // Only identify the user if we are running in a cloud environment.
         if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined) {
-            posthog.identify(session.user.id, {
+            posthog.identify(session.user.email ?? session.user.id, {
                 email: session.user.email,
                 name: session.user.name,
+                id: session.user.id,
             });
         } else {
-            console.debug("PostHog identify skipped");
+            posthog.identify(session.user.id);
         }
     }, [session]);
 
