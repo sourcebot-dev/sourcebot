@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed review agent so that it works with GHES instances [#611](https://github.com/sourcebot-dev/sourcebot/pull/611)
 
+## [4.10.2] - 2025-12-04
+
+### Fixed
+- Fixed issue where the disable telemetry flag was not being respected for web server telemetry. [#657](https://github.com/sourcebot-dev/sourcebot/pull/657)
+
 ## [4.10.1] - 2025-12-03
 
 ### Added
