@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added support for arbitrary user IDs required for OpenShift. [#658](https://github.com/sourcebot-dev/sourcebot/pull/658) 
 
+### Updated
+- Improved error messages in file source api. [#665](https://github.com/sourcebot-dev/sourcebot/pull/665)
+
 ## [4.10.2] - 2025-12-04
 
 ### Fixed
