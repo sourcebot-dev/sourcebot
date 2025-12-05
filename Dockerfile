@@ -195,6 +195,7 @@ RUN addgroup -g $GID sourcebot && \
     adduser -D -u $UID -h /app -S sourcebot && \
     adduser sourcebot postgres && \
     adduser sourcebot redis && \
+    chown -R sourcebot /app && \
     adduser sourcebot node && \
     mkdir /var/log/sourcebot && \
     chown sourcebot /var/log/sourcebot
@@ -244,7 +245,12 @@ RUN mkdir -p /run/postgresql && \
     chown -R postgres:postgres /run/postgresql && \
     chmod 775 /run/postgresql
 
-RUN chown -R sourcebot:sourcebot /data
+# Make app directory accessible to both root and sourcebot user
+RUN chown -R sourcebot /app \
+	&& chgrp -R 0  /app \
+	&& chmod -R g=u /app
+# Make data directory accessible to both root and sourcebot user
+RUN chown -R sourcebot /data
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY prefix-output.sh ./prefix-output.sh
