@@ -60,7 +60,7 @@ export const InvitesList = ({ invites, currentUserRole }: InviteListProps) => {
                         description: `❌ Failed to cancel invite. Reason: ${response.message}`
                     })
                     captureEvent('wa_invites_list_cancel_invite_fail', {
-                        error: response.errorCode,
+                        errorCode: response.errorCode,
                     })
                 } else {
                     toast({
