@@ -31,24 +31,6 @@ export type PosthogEventMap = {
     },
     share_link_created: {},
     ////////////////////////////////////////////////////////////////
-    wa_secret_created_success: {
-        key: string,
-    },
-    wa_secret_deleted_success: {
-        key: string,
-    },
-    wa_secret_deleted_fail: {
-        key: string,
-        error: string,
-    },
-    wa_secret_created_fail: {
-        key: string,
-        error: string,
-    },
-    wa_secret_fetch_fail: {
-        error: string,
-    },
-    //////////////////////////////////////////////////////////////////
     wa_warning_nav_connection_fetch_fail: {
         error: string,
     },
