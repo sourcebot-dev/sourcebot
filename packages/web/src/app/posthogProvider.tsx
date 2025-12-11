@@ -34,9 +34,17 @@ interface PostHogProviderProps {
     children: React.ReactNode
     isDisabled: boolean
     posthogApiKey: string
+    sourcebotVersion: string
+    sourcebotInstallId: string
 }
 
-export function PostHogProvider({ children, isDisabled, posthogApiKey }: PostHogProviderProps) {
+export function PostHogProvider({
+    children,
+    isDisabled,
+    posthogApiKey,
+    sourcebotVersion,
+    sourcebotInstallId,
+}: PostHogProviderProps) {
     const { data: session } = useSession();
 
     useEffect(() => {
@@ -61,27 +69,33 @@ export function PostHogProvider({ children, isDisabled, posthogApiKey }: PostHog
                     '$referrer',
                     '$referring_domain',
                     '$ip',
-                ] : []
+                ] : [],
+                loaded: (posthog) => {
+                    // Include install id & version in all events.
+                    posthog.register({
+                        sourcebot_version: sourcebotVersion,
+                        install_id: sourcebotInstallId,
+                    });
+                }
             });
         } else {
             console.debug("PostHog telemetry disabled");
         }
-    }, [isDisabled, posthogApiKey]);
+    }, [isDisabled, posthogApiKey, sourcebotInstallId, sourcebotVersion]);
 
     useEffect(() => {
         if (!session) {
             return;
         }
 
-        // Only identify the user if we are running in a cloud environment.
-        if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined) {
-            posthog.identify(session.user.id, {
+        posthog.identify(
+            session.user.id,
+            // Only include email & name when running in a cloud environment.
+            env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined ? {
                 email: session.user.email,
                 name: session.user.name,
-            });
-        } else {
-            console.debug("PostHog identify skipped");
-        }
+            } : undefined
+        );
     }, [session]);
 
     return (
