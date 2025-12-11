@@ -85,6 +85,9 @@ export async function captureEvent<E extends PosthogEvent>(event: E, properties:
 
     const distinctId = await tryGetDistinctId();
 
+    const headersList = await headers();
+    const host = headersList.get("host") ?? undefined;
+
     const posthog = new PostHog(env.POSTHOG_PAPIK, {
         host: 'https://us.i.posthog.com',
         flushAt: 1,
@@ -97,6 +100,7 @@ export async function captureEvent<E extends PosthogEvent>(event: E, properties:
             ...properties,
             sourcebot_version: clientEnv.NEXT_PUBLIC_SOURCEBOT_VERSION,
             install_id: env.SOURCEBOT_INSTALL_ID,
+            $host: host,
         },
         distinctId,
     });
