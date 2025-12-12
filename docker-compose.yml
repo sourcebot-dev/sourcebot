@@ -22,7 +22,6 @@ services:
       - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/postgres} # CHANGEME
       - REDIS_URL=${REDIS_URL:-redis://redis:6379} # CHANGEME
       - SOURCEBOT_EE_LICENSE_KEY=${SOURCEBOT_EE_LICENSE_KEY:-}
-      - SOURCEBOT_TELEMETRY_DISABLED=${SOURCEBOT_TELEMETRY_DISABLED:-false}
 
       # For the full list of environment variables see:
       # https://docs.sourcebot.dev/docs/configuration/environment-variables
