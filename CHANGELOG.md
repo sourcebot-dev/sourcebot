@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed issue where parenthesis in query params were not being encoded, resulting in a poor experience when embedding links in Markdown. [#674](https://github.com/sourcebot-dev/sourcebot/pull/674)
+
 ## [4.10.3] - 2025-12-12
 
 ### Fixed
