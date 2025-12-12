@@ -30,7 +30,7 @@ export const Checkout = () => {
                 variant: "destructive",
             });
             captureEvent('wa_onboard_checkout_fail', {
-                error: errorMessage,
+                errorCode: errorMessage,
             });
         }
     }, [errorCode, errorMessage, toast, captureEvent]);
@@ -45,7 +45,7 @@ export const Checkout = () => {
                         variant: "destructive",
                     })
                     captureEvent('wa_onboard_checkout_fail', {
-                        error: response.errorCode,
+                        errorCode: response.errorCode,
                     });
                 } else {
                     captureEvent('wa_onboard_checkout_success', {});
