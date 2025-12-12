@@ -62,9 +62,17 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
         return path;
     }
 
-    const queryString = queryParams.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value ?? '')}`).join('&');
+    const queryString = queryParams.map(([key, value]) => `${encodeURIComponent(key)}=${encodeRFC3986URIComponent(value ?? '')}`).join('&');
     return `${path}?${queryString}`;
 }
+
+// @see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent#encoding_for_rfc3986
+const encodeRFC3986URIComponent = (str: string) => {
+    return encodeURIComponent(str).replace(
+      /[!'()*]/g,
+      (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+    );
+  }
 
 type AuthProviderInfo = {
     id: string;
