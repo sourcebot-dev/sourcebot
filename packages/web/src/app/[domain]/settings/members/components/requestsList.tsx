@@ -63,7 +63,7 @@ export const RequestsList = ({ requests, currentUserRole }: RequestsListProps) =
                         description: `❌ Failed to approve request. Reason: ${response.message}`
                     })
                     captureEvent('wa_requests_list_approve_request_fail', {
-                        error: response.errorCode,
+                        errorCode: response.errorCode,
                     })
                 } else {
                     toast({
@@ -83,7 +83,7 @@ export const RequestsList = ({ requests, currentUserRole }: RequestsListProps) =
                         description: `❌ Failed to reject request.`
                     })
                     captureEvent('wa_requests_list_reject_request_fail', {
-                        error: response.errorCode,
+                        errorCode: response.errorCode,
                     })
                 } else {
                     toast({
