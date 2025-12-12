@@ -19,7 +19,7 @@ export const TrialIndicator = ({ subscription }: Props) => {
 
     if (isServiceError(subscription)) {
         captureEvent('wa_trial_nav_subscription_fetch_fail', {
-            error: subscription.errorCode,
+            errorCode: subscription.errorCode,
         });
         return null;
     }

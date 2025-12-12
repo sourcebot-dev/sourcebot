@@ -55,7 +55,7 @@ export function ChangeBillingEmailCard({ currentUserRole, billingEmail }: Change
                 description: "❌ Failed to update billing email. Please try again.",
             })
             captureEvent('wa_billing_email_updated_fail', {
-                error: result.message,
+                errorCode: result.errorCode,
             })
         }
         setIsLoading(false)

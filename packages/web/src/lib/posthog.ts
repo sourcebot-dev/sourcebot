@@ -1,9 +1,12 @@
 import { PostHog } from 'posthog-node'
 import { env } from '@sourcebot/shared'
+import { env as clientEnv } from '@sourcebot/shared/client';
 import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies';
 import * as Sentry from "@sentry/nextjs";
 import { PosthogEvent, PosthogEventMap } from './posthogEvents';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { auth } from '@/auth';
+import { getVerifiedApiObject } from '@/withAuthV2';
 
 /**
  * @note: This is a subset of the properties stored in the
@@ -47,13 +50,43 @@ const getPostHogCookie = (cookieStore: Pick<RequestCookies, 'get'>): PostHogCook
     return undefined;
 }
 
+/**
+ * Attempts to retrieve the distinct id of the current user.
+ */
+const tryGetDistinctId = async () => {
+    // First, attempt to retrieve the distinct id from the cookie.
+    const cookieStore = await cookies();
+    const cookie = getPostHogCookie(cookieStore);
+    if (cookie) {
+        return cookie.distinct_id;
+    }
+
+    // Next, from the session.
+    const session = await auth();
+    if (session) {
+        return session.user.id;
+    }
+
+    // Finally, from the api key.
+    const headersList = await headers();
+    const apiKeyString = headersList.get("X-Sourcebot-Api-Key") ?? undefined;
+    if (!apiKeyString) {
+        return undefined;
+    }
+
+    const apiKey = await getVerifiedApiObject(apiKeyString);
+    return apiKey?.createdById;
+}
+
 export async function captureEvent<E extends PosthogEvent>(event: E, properties: PosthogEventMap[E]) {
     if (env.SOURCEBOT_TELEMETRY_DISABLED === 'true') {
         return;
     }
 
-    const cookieStore = await cookies();
-    const cookie = getPostHogCookie(cookieStore);
+    const distinctId = await tryGetDistinctId();
+
+    const headersList = await headers();
+    const host = headersList.get("host") ?? undefined;
 
     const posthog = new PostHog(env.POSTHOG_PAPIK, {
         host: 'https://us.i.posthog.com',
@@ -63,7 +96,12 @@ export async function captureEvent<E extends PosthogEvent>(event: E, properties:
 
     posthog.capture({
         event,
-        properties,
-        distinctId: cookie?.distinct_id ?? '',
+        properties: {
+            ...properties,
+            sourcebot_version: clientEnv.NEXT_PUBLIC_SOURCEBOT_VERSION,
+            install_id: env.SOURCEBOT_INSTALL_ID,
+            $host: host,
+        },
+        distinctId,
     });
 }
