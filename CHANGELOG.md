@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed review agent so that it works with GHES instances [#611](https://github.com/sourcebot-dev/sourcebot/pull/611)
+- Updated next package version to fix CVE-2025-55184 and CVE-2025-55183. [#673](https://github.com/sourcebot-dev/sourcebot/pull/673)
 
 ### Added
 - Added support for arbitrary user IDs required for OpenShift. [#658](https://github.com/sourcebot-dev/sourcebot/pull/658) 
