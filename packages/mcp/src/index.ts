@@ -5,7 +5,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
-import { listRepos, search, getFileSource } from './client.js';
+import { listRepos, search, getFileSource, searchCommits } from './client.js';
 import { env, numberSchema } from './env.js';
 import { listReposRequestSchema } from './schemas.js';
 import { TextContent } from './types.js';
@@ -49,6 +49,18 @@ server.tool(
             .boolean()
             .describe(`Whether to include the code snippets in the response (default: false). If false, only the file's URL, repository, and language will be returned. Set to false to get a more concise response.`)
             .optional(),
+        gitRevision: z
+            .string()
+            .describe(`The git revision to search in (e.g., 'main', 'HEAD', 'v1.0.0', 'a1b2c3d'). If not provided, defaults to the default branch (usually 'main' or 'master').`)
+            .optional(),
+        since: z
+            .string()
+            .describe(`Filter repositories by when they were last indexed by Sourcebot (NOT by commit time). Only searches in repos indexed after this date. Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago', 'last week', 'yesterday').`)
+            .optional(),
+        until: z
+            .string()
+            .describe(`Filter repositories by when they were last indexed by Sourcebot (NOT by commit time). Only searches in repos indexed before this date. Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday').`)
+            .optional(),
         maxTokens: numberSchema
             .describe(`The maximum number of tokens to return (default: ${env.DEFAULT_MINIMUM_TOKENS}). Higher values provide more context but consume more tokens. Values less than ${env.DEFAULT_MINIMUM_TOKENS} will be ignored.`)
             .transform((val) => (val < env.DEFAULT_MINIMUM_TOKENS ? env.DEFAULT_MINIMUM_TOKENS : val))
@@ -61,6 +73,9 @@ server.tool(
         maxTokens = env.DEFAULT_MINIMUM_TOKENS,
         includeCodeSnippets = false,
         caseSensitive = false,
+        gitRevision,
+        since,
+        until,
     }) => {
         if (repoIds.length > 0) {
             query += ` ( repo:${repoIds.map(id => escapeStringRegexp(id)).join(' or repo:')} )`;
@@ -76,7 +91,10 @@ server.tool(
             contextLines: env.DEFAULT_CONTEXT_LINES,
             isRegexEnabled: true,
             isCaseSensitivityEnabled: caseSensitive,
-            source: 'mcp'
+            source: 'mcp',
+            gitRevision,
+            since,
+            until,
         });
 
         if (isServiceError(response)) {
@@ -162,15 +180,94 @@ server.tool(
 );
 
 server.tool(
+    "search_commits",
+    `Searches for commits in a specific repository based on actual commit time (NOT index time).
+
+    **Requirements**: The repository must be cloned on the Sourcebot server disk. Sourcebot automatically clones repositories during indexing, but the cloning process may not be finished when this query is executed. If the repository is not found on the server disk, an error will be returned asking you to try again later.
+
+    **Date Formats**: Supports ISO 8601 (e.g., "2024-01-01") or relative formats (e.g., "30 days ago", "last week", "yesterday").
+
+    **YOU MUST** call 'list_repos' first to obtain the exact repository ID.
+
+    If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.`,
+    {
+        repoId: z.union([z.number(), z.string()]).describe(`Repository identifier. Can be either:
+        - Numeric database ID (e.g., 123)
+        - Full repository name (e.g., "github.com/owner/repo") as returned by 'list_repos'
+
+        **YOU MUST** call 'list_repos' first to obtain the repository identifier.`),
+        query: z.string().describe(`Search query to filter commits by message content (case-insensitive).`).optional(),
+        since: z.string().describe(`Show commits more recent than this date. Filters by actual commit time. Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago', 'last week').`).optional(),
+        until: z.string().describe(`Show commits older than this date. Filters by actual commit time. Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday').`).optional(),
+        author: z.string().describe(`Filter commits by author name or email (supports partial matches and patterns).`).optional(),
+        maxCount: z.number().int().positive().default(50).describe(`Maximum number of commits to return (default: 50).`),
+    },
+    async ({ repoId, query, since, until, author, maxCount }) => {
+        const result = await searchCommits({
+            repoId,
+            query,
+            since,
+            until,
+            author,
+            maxCount,
+        });
+
+        if (isServiceError(result)) {
+            return {
+                content: [{ type: "text", text: `Error: ${result.message}` }],
+                isError: true,
+            };
+        }
+
+        return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+    }
+);
+
+server.tool(
     "list_repos",
-    "Lists repositories in the organization with optional filtering and pagination. If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.",
-    listReposRequestSchema.shape,
-    async ({ query, pageNumber = 1, limit = 50 }: {
+    `Lists repositories in the organization with optional filtering and pagination.
+
+    **Temporal Filtering**: When using 'activeAfter' or 'activeBefore', only repositories indexed within the specified timeframe are returned. This filters by when Sourcebot last indexed the repository (indexedAt), NOT by git commit dates. For commit-time filtering, use 'search_commits'. When temporal filters are applied, the output includes a 'lastIndexed' field showing when each repository was last indexed.
+
+    **Date Formats**: Supports ISO 8601 (e.g., "2024-01-01") and relative dates (e.g., "30 days ago", "last week", "yesterday").
+
+    If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.`,
+    {
+        query: z
+            .string()
+            .describe("Filter repositories by name (case-insensitive).")
+            .optional(),
+        pageNumber: z
+            .number()
+            .int()
+            .positive()
+            .describe("Page number (1-indexed, default: 1)")
+            .default(1),
+        limit: z
+            .number()
+            .int()
+            .positive()
+            .describe("Number of repositories per page (default: 50)")
+            .default(50),
+        activeAfter: z
+            .string()
+            .describe("Only return repositories indexed after this date (filters by indexedAt). Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago', 'last week').")
+            .optional(),
+        activeBefore: z
+            .string()
+            .describe("Only return repositories indexed before this date (filters by indexedAt). Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday').")
+            .optional(),
+    },
+    async ({ query, pageNumber = 1, limit = 50, activeAfter, activeBefore }: {
         query?: string;
         pageNumber?: number;
         limit?: number;
+        activeAfter?: string;
+        activeBefore?: string;
     }) => {
-        const response = await listRepos();
+        const response = await listRepos({ activeAfter, activeBefore });
         if (isServiceError(response)) {
             return {
                 content: [{
@@ -200,9 +297,16 @@ server.tool(
 
         // Format output
         const content: TextContent[] = paginated.map(repo => {
+            let output = `id: ${repo.repoName}\nurl: ${repo.webUrl}`;
+
+            // Include indexedAt when temporal filtering is used
+            if ((activeAfter || activeBefore) && repo.indexedAt) {
+                output += `\nlastIndexed: ${repo.indexedAt.toISOString()}`;
+            }
+
             return {
                 type: "text",
-                text: `id: ${repo.repoName}\nurl: ${repo.webUrl}`,
+                text: output,
             }
         });
 
