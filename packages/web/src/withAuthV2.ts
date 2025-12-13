@@ -156,7 +156,7 @@ export const getAuthenticatedUser = async () => {
 /**
  * Returns a API key object if the API key string is valid, otherwise returns undefined.
  */
-const getVerifiedApiObject = async (apiKeyString: string): Promise<ApiKey | undefined> => {
+export const getVerifiedApiObject = async (apiKeyString: string): Promise<ApiKey | undefined> => {
     const parts = apiKeyString.split("-");
     if (parts.length !== 2 || parts[0] !== "sourcebot") {
         return undefined;

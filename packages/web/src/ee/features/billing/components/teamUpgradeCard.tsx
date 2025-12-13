@@ -32,7 +32,7 @@ export const TeamUpgradeCard = ({ buttonText }: TeamUpgradeCardProps) => {
                         variant: "destructive",
                     });
                     captureEvent('wa_team_upgrade_checkout_fail', {
-                        error: response.errorCode,
+                        errorCode: response.errorCode,
                     });
                 } else {
                     router.push(response.url);

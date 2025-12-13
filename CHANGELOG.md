@@ -8,7 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Fixed issue where parenthesis in query params were not being encoded, resulting in a poor experience when embedding links in Markdown. [#674](https://github.com/sourcebot-dev/sourcebot/pull/674)
+
+## [4.10.3] - 2025-12-12
+
+### Fixed
 - Fixed review agent so that it works with GHES instances [#611](https://github.com/sourcebot-dev/sourcebot/pull/611)
+- Updated next package version to fix CVE-2025-55184 and CVE-2025-55183. [#673](https://github.com/sourcebot-dev/sourcebot/pull/673)
 
 ### Added
 - Added support for arbitrary user IDs required for OpenShift. [#658](https://github.com/sourcebot-dev/sourcebot/pull/658) 
@@ -51,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed the default search behaviour to match patterns as substrings and **not** regular expressions. Regular expressions can be used by toggling the regex button in search bar. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
 - Renamed `public` query prefix to `visibility`. Allowed values for `visibility` are `public`, `private`, and `any`. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
 - Changed `archived` query prefix to accept values `yes`, `no`, and `only`. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+- Changed `lang` query prefix to be case sensitive. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
 
 ### Removed
 - Removed `case` query prefix. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)

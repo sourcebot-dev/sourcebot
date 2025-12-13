@@ -94,7 +94,7 @@ export const SearchLandingPage = async ({
                                 <Query query="repo:torvalds/linux test" domain={domain}><Highlight>repo:</Highlight>torvalds/linux test</Query> <QueryExplanation>(by repo)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="lang:typescript" domain={domain}><Highlight>lang:</Highlight>typescript</Query> <QueryExplanation>(by language)</QueryExplanation>
+                                <Query query="lang:TypeScript" domain={domain}><Highlight>lang:</Highlight>TypeScript</Query> <QueryExplanation>(by language)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
                                 <Query query="rev:HEAD" domain={domain}><Highlight>rev:</Highlight>HEAD</Query> <QueryExplanation>(by branch or tag)</QueryExplanation>
