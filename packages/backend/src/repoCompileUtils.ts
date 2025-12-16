@@ -123,6 +123,7 @@ export const compileGitlabConfig = async (
     const repos = gitlabRepos.map((project) => {
         const projectUrl = `${hostUrl}/${project.path_with_namespace}`;
         const cloneUrl = new URL(project.http_url_to_repo);
+        cloneUrl.protocol = new URL(hostUrl).protocol;
         const isFork = project.forked_from_project !== undefined;
         const isPublic = project.visibility === 'public';
         const repoDisplayName = project.path_with_namespace;
