@@ -10,35 +10,33 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { cn, getCodeHostCommitUrl, getCodeHostIcon, getCodeHostInfoForRepo, getRepoImageSrc } from "@/lib/utils"
 import {
     type ColumnDef,
-    type ColumnFiltersState,
     type SortingState,
     type VisibilityState,
     flexRender,
     getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table"
 import { cva } from "class-variance-authority"
-import { ArrowUpDown, ExternalLink, MoreHorizontal, RefreshCwIcon } from "lucide-react"
+import { ArrowUpDown, ExternalLink, Loader2, MoreHorizontal, RefreshCwIcon } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { getBrowsePath } from "../../browse/hooks/utils"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import { useToast } from "@/components/hooks/use-toast";
 import { DisplayDate } from "../../components/DisplayDate"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { NotificationDot } from "../../components/notificationDot"
 import { CodeHostType } from "@sourcebot/db"
+import { useHotkeys } from "react-hotkeys-hook"
 
 // @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
@@ -271,46 +269,87 @@ export const columns: ColumnDef<Repo>[] = [
     },
 ]
 
-export const ReposTable = ({ data }: { data: Repo[] }) => {
+interface ReposTableProps {
+    data: Repo[];
+    currentPage: number;
+    pageSize: number;
+    totalCount: number;
+    initialSearch: string;
+    initialStatus: string;
+}
+
+export const ReposTable = ({ 
+    data, 
+    currentPage, 
+    pageSize, 
+    totalCount, 
+    initialSearch, 
+    initialStatus,
+}: ReposTableProps) => {
     const [sorting, setSorting] = useState<SortingState>([])
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
     const [rowSelection, setRowSelection] = useState({})
+    const [searchValue, setSearchValue] = useState(initialSearch)
+    const [isPendingSearch, setIsPendingSearch] = useState(false)
+    const searchInputRef = useRef<HTMLInputElement>(null)
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
     const { toast } = useToast();
 
-    const {
-        numCompleted,
-        numInProgress,
-        numPending,
-        numFailed,
-        numNoJobs,
-    } = useMemo(() => {
-        return {
-            numCompleted: data.filter((repo) => repo.latestJobStatus === "COMPLETED").length,
-            numInProgress: data.filter((repo) => repo.latestJobStatus === "IN_PROGRESS").length,
-            numPending: data.filter((repo) => repo.latestJobStatus === "PENDING").length,
-            numFailed: data.filter((repo) => repo.latestJobStatus === "FAILED").length,
-            numNoJobs: data.filter((repo) => repo.latestJobStatus === null).length,
+    // Focus search box when '/' is pressed
+    useHotkeys('/', (event) => {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+    });
+
+    // Debounced search effect - only runs when searchValue changes
+    useEffect(() => {
+        setIsPendingSearch(true);
+        const timer = setTimeout(() => {
+            const params = new URLSearchParams(searchParams.toString());
+            if (searchValue) {
+                params.set('search', searchValue);
+            } else {
+                params.delete('search');
+            }
+            params.set('page', '1'); // Reset to page 1 on search
+            router.replace(`${pathname}?${params.toString()}`);
+            setIsPendingSearch(false);
+        }, 300);
+        
+        return () => {
+            clearTimeout(timer);
+            setIsPendingSearch(false);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchValue]);
+
+    const updateStatusFilter = (value: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (value === 'all') {
+            params.delete('status');
+        } else {
+            params.set('status', value);
         }
-    }, [data]);
+        params.set('page', '1'); // Reset to page 1 on filter change
+        router.replace(`${pathname}?${params.toString()}`);
+    };
+
+    const totalPages = Math.ceil(totalCount / pageSize);
 
     const table = useReactTable({
         data,
         columns,
         onSortingChange: setSorting,
-        onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
         columnResizeMode: 'onChange',
         enableColumnResizing: false,
         state: {
             sorting,
-            columnFilters,
             columnVisibility,
             rowSelection,
         },
@@ -319,28 +358,34 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
     return (
         <div className="w-full">
             <div className="flex items-center gap-4 py-4">
-                <Input
-                    placeholder="Filter repositories..."
-                    value={(table.getColumn("displayName")?.getFilterValue() as string) ?? ""}
-                    onChange={(event) => table.getColumn("displayName")?.setFilterValue(event.target.value)}
-                    className="max-w-sm"
-                />
+                <InputGroup className="max-w-sm">
+                    <InputGroupInput
+                        ref={searchInputRef}
+                        placeholder="Filter repositories..."
+                        value={searchValue}
+                        onChange={(event) => setSearchValue(event.target.value)}
+                        className="ring-0"
+                    />
+                    {isPendingSearch && (
+                        <InputGroupAddon align="inline-end">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        </InputGroupAddon>
+                    )}
+                </InputGroup>
                 <Select
-                    value={(table.getColumn("latestJobStatus")?.getFilterValue() as string) ?? "all"}
-                    onValueChange={(value) => {
-                        table.getColumn("latestJobStatus")?.setFilterValue(value === "all" ? "" : value)
-                    }}
+                    value={initialStatus}
+                    onValueChange={updateStatusFilter}
                 >
                     <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Filter by status" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Filter by status</SelectItem>
-                        <SelectItem value="COMPLETED">Completed ({numCompleted})</SelectItem>
-                        <SelectItem value="IN_PROGRESS">In progress ({numInProgress})</SelectItem>
-                        <SelectItem value="PENDING">Pending ({numPending})</SelectItem>
-                        <SelectItem value="FAILED">Failed ({numFailed})</SelectItem>
-                        <SelectItem value="null">No status ({numNoJobs})</SelectItem>
+                        <SelectItem value="COMPLETED">Completed</SelectItem>
+                        <SelectItem value="IN_PROGRESS">In progress</SelectItem>
+                        <SelectItem value="PENDING">Pending</SelectItem>
+                        <SelectItem value="FAILED">Failed</SelectItem>
+                        <SelectItem value="null">No status</SelectItem>
                     </SelectContent>
                 </Select>
                 <Button
@@ -401,18 +446,32 @@ export const ReposTable = ({ data }: { data: Repo[] }) => {
             </div>
             <div className="flex items-center justify-end space-x-2 py-4">
                 <div className="flex-1 text-sm text-muted-foreground">
-                    {table.getFilteredRowModel().rows.length} {data.length > 1 ? 'repositories' : 'repository'} total
+                    {totalCount} {totalCount !== 1 ? 'repositories' : 'repository'} total
+                    {totalPages > 1 && ` • Page ${currentPage} of ${totalPages}`}
                 </div>
                 <div className="space-x-2">
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
+                        onClick={() => {
+                            const params = new URLSearchParams(searchParams.toString());
+                            params.set('page', String(currentPage - 1));
+                            router.push(`${pathname}?${params.toString()}`);
+                        }}
+                        disabled={currentPage <= 1}
                     >
                         Previous
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                            const params = new URLSearchParams(searchParams.toString());
+                            params.set('page', String(currentPage + 1));
+                            router.push(`${pathname}?${params.toString()}`);
+                        }}
+                        disabled={currentPage >= totalPages}
+                    >
                         Next
                     </Button>
                 </div>
