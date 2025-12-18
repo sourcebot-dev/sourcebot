@@ -4,6 +4,7 @@ import { isServiceError } from "@/lib/utils";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { ReposTable } from "./components/reposTable";
 import { RepoIndexingJobStatus, Prisma } from "@sourcebot/db";
+import z from "zod";
 
 interface ReposPageProps {
     searchParams: Promise<{
@@ -11,40 +12,40 @@ interface ReposPageProps {
         pageSize?: string;
         search?: string;
         status?: string;
+        sortBy?: string;
+        sortOrder?: string;
     }>;
 }
 
 export default async function ReposPage({ searchParams }: ReposPageProps) {
     const params = await searchParams;
-    
+
     // Parse pagination parameters with defaults
-    const page = parseInt(params.page ?? '1', 10);
-    const pageSize = parseInt(params.pageSize ?? '5', 10);
-    
+    const page = z.number().int().positive().safeParse(params.page).data ?? 1;
+    const pageSize = z.number().int().positive().safeParse(params.pageSize).data ?? 5;
+
     // Parse filter parameters
-    const search = params.search ?? '';
-    const status = params.status ?? 'all';
+    const search = z.string().optional().safeParse(params.search).data ?? '';
+    const status = z.enum(['all', 'none', 'COMPLETED', 'IN_PROGRESS', 'PENDING', 'FAILED']).safeParse(params.status).data ?? 'all';
+    const sortBy = z.enum(['displayName', 'indexedAt']).safeParse(params.sortBy).data ?? undefined;
+    const sortOrder = z.enum(['asc', 'desc']).safeParse(params.sortOrder).data ?? 'asc';
 
     // Calculate skip for pagination
     const skip = (page - 1) * pageSize;
 
-    const _result = await getReposWithLatestJob({
+    const _result = await getRepos({
         skip,
         take: pageSize,
         search,
         status,
+        sortBy,
+        sortOrder,
     });
     if (isServiceError(_result)) {
         throw new ServiceErrorException(_result);
     }
 
-    const { repos: _repos, totalCount } = _result;
-
-    const repos = _repos.map((repo) => ({
-        ...repo,
-        latestJobStatus: repo.jobs.length > 0 ? repo.jobs[0].status : null,
-        isFirstTimeIndex: repo.indexedAt === null && repo.jobs.filter((job: { status: RepoIndexingJobStatus }) => job.status === RepoIndexingJobStatus.PENDING || job.status === RepoIndexingJobStatus.IN_PROGRESS).length > 0,
-    }));
+    const { repos, totalCount, stats } = _result;
 
     return (
         <>
@@ -52,7 +53,7 @@ export default async function ReposPage({ searchParams }: ReposPageProps) {
                 <h1 className="text-3xl font-semibold">Repositories</h1>
                 <p className="text-muted-foreground mt-2">View and manage your code repositories and their indexing status.</p>
             </div>
-            <ReposTable 
+            <ReposTable
                 data={repos.map((repo) => ({
                     id: repo.id,
                     name: repo.name,
@@ -63,8 +64,8 @@ export default async function ReposPage({ searchParams }: ReposPageProps) {
                     createdAt: repo.createdAt,
                     webUrl: repo.webUrl,
                     imageUrl: repo.imageUrl,
-                    latestJobStatus: repo.latestJobStatus,
-                    isFirstTimeIndex: repo.isFirstTimeIndex,
+                    latestJobStatus: repo.latestIndexingJobStatus,
+                    isFirstTimeIndex: repo.indexedAt === null,
                     codeHostType: repo.external_codeHostType,
                     indexedCommitHash: repo.indexedCommitHash,
                 }))}
@@ -73,6 +74,9 @@ export default async function ReposPage({ searchParams }: ReposPageProps) {
                 totalCount={totalCount}
                 initialSearch={search}
                 initialStatus={status}
+                initialSortBy={sortBy}
+                initialSortOrder={sortOrder}
+                stats={stats}
             />
         </>
     )
@@ -82,37 +86,40 @@ interface GetReposParams {
     skip: number;
     take: number;
     search: string;
-    status: string;
+    status: 'all' | 'none' | 'COMPLETED' | 'IN_PROGRESS' | 'PENDING' | 'FAILED';
+    sortBy?: 'displayName' | 'indexedAt';
+    sortOrder: 'asc' | 'desc';
 }
 
-const getReposWithLatestJob = async ({ skip, take, search, status }: GetReposParams) => sew(() =>
-    withOptionalAuthV2(async ({ prisma, org }) => {
+const getRepos = async ({ skip, take, search, status, sortBy, sortOrder }: GetReposParams) => sew(() =>
+    withOptionalAuthV2(async ({ prisma }) => {
         const whereClause: Prisma.RepoWhereInput = {
-            orgId: org.id,
-            ...(search && {
-                OR: [
-                    { name: { contains: search, mode: 'insensitive' } },
-                    { displayName: { contains: search, mode: 'insensitive' } }
-                ]
-            }),
+            ...(search ? {
+                displayName: { contains: search, mode: 'insensitive' },
+            } : {}),
+            latestIndexingJobStatus:
+                status === 'all' ? undefined :
+                status === 'none' ? null :
+                status
         };
+
+        // Build orderBy clause based on sortBy and sortOrder
+        const orderByClause: Prisma.RepoOrderByWithRelationInput = {};
+
+        if (sortBy === 'displayName') {
+            orderByClause.displayName = sortOrder === 'asc' ? 'asc' : 'desc';
+        } else if (sortBy === 'indexedAt') {
+            orderByClause.indexedAt = sortOrder === 'asc' ? 'asc' : 'desc';
+        } else {
+            // Default to displayName asc
+            orderByClause.displayName = 'asc';
+        }
 
         const repos = await prisma.repo.findMany({
             skip,
             take,
             where: whereClause,
-            include: {
-                jobs: {
-                    orderBy: {
-                        createdAt: 'desc'
-                    },
-                    take: 1
-                }
-            },
-            orderBy: [
-                { indexedAt: 'asc' }, // null first (never indexed)
-                { name: 'asc' }       // then alphabetically
-            ]
+            orderBy: orderByClause,
         });
 
         // Calculate total count using the filtered where clause
@@ -120,9 +127,55 @@ const getReposWithLatestJob = async ({ skip, take, search, status }: GetReposPar
             where: whereClause
         });
 
+        // Status stats
+        const [
+            numCompleted,
+            numFailed,
+            numPending,
+            numInProgress,
+            numNoJobs
+        ] = await Promise.all([
+            prisma.repo.count({
+                where: {
+                    ...whereClause,
+                    latestIndexingJobStatus: RepoIndexingJobStatus.COMPLETED,
+                }
+            }),
+            prisma.repo.count({
+                where: {
+                    ...whereClause,
+                    latestIndexingJobStatus: RepoIndexingJobStatus.FAILED,
+                }
+            }),
+            prisma.repo.count({
+                where: {
+                    ...whereClause,
+                    latestIndexingJobStatus: RepoIndexingJobStatus.PENDING,
+                }
+            }),
+            prisma.repo.count({
+                where: {
+                    ...whereClause,
+                    latestIndexingJobStatus: RepoIndexingJobStatus.IN_PROGRESS,
+                }
+            }),
+            prisma.repo.count({
+                where: {
+                    ...whereClause,
+                    latestIndexingJobStatus: null,
+                }
+            }),
+        ])
 
         return {
             repos,
-            totalCount
+            totalCount,
+            stats: {
+                numCompleted,
+                numFailed,
+                numPending,
+                numInProgress,
+                numNoJobs,
+            }
         };
     }));

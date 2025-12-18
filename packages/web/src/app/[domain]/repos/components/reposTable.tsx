@@ -17,15 +17,13 @@ import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { cn, getCodeHostCommitUrl, getCodeHostIcon, getCodeHostInfoForRepo, getRepoImageSrc } from "@/lib/utils"
 import {
     type ColumnDef,
-    type SortingState,
     type VisibilityState,
     flexRender,
     getCoreRowModel,
-    getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table"
 import { cva } from "class-variance-authority"
-import { ArrowUpDown, ExternalLink, Loader2, MoreHorizontal, RefreshCwIcon } from "lucide-react"
+import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink, Loader2, MoreHorizontal, RefreshCwIcon } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
@@ -82,15 +80,29 @@ const getStatusBadge = (status: Repo["latestJobStatus"]) => {
     return <Badge className={statusBadgeVariants({ status })}>{labels[status]}</Badge>
 }
 
-export const columns: ColumnDef<Repo>[] = [
+interface ColumnsContext {
+    onSortChange: (sortBy: string) => void;
+    currentSortBy?: string;
+    currentSortOrder: string;
+}
+
+export const getColumns = (context: ColumnsContext): ColumnDef<Repo>[] => [
     {
         accessorKey: "displayName",
         size: 400,
-        header: ({ column }) => {
+        header: () => {
+            const isActive = context.currentSortBy === 'displayName';
+            const Icon = isActive 
+                ? (context.currentSortOrder === 'asc' ? ArrowUp : ArrowDown)
+                : ArrowUpDown;
+            
             return (
-                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+                <Button 
+                    variant="ghost" 
+                    onClick={() => context.onSortChange('displayName')}
+                >
                     Repository
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                    <Icon className="ml-2 h-4 w-4" />
                 </Button>
             )
         },
@@ -157,14 +169,19 @@ export const columns: ColumnDef<Repo>[] = [
     {
         accessorKey: "indexedAt",
         size: 200,
-        header: ({ column }) => {
+        header: () => {
+            const isActive = context.currentSortBy === 'indexedAt';
+            const Icon = isActive 
+                ? (context.currentSortOrder === 'asc' ? ArrowUp : ArrowDown)
+                : ArrowUpDown;
+            
             return (
                 <Button
                     variant="ghost"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    onClick={() => context.onSortChange('indexedAt')}
                 >
                     Last synced
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                    <Icon className="ml-2 h-4 w-4" />
                 </Button>
             )
         },
@@ -276,6 +293,15 @@ interface ReposTableProps {
     totalCount: number;
     initialSearch: string;
     initialStatus: string;
+    initialSortBy?: string;
+    initialSortOrder: string;
+    stats: {
+        numCompleted: number
+        numFailed: number
+        numPending: number
+        numInProgress: number
+        numNoJobs: number
+    }
 }
 
 export const ReposTable = ({ 
@@ -285,8 +311,10 @@ export const ReposTable = ({
     totalCount, 
     initialSearch, 
     initialStatus,
+    initialSortBy,
+    initialSortOrder,
+    stats,
 }: ReposTableProps) => {
-    const [sorting, setSorting] = useState<SortingState>([])
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
     const [rowSelection, setRowSelection] = useState({})
     const [searchValue, setSearchValue] = useState(initialSearch)
@@ -336,20 +364,40 @@ export const ReposTable = ({
         router.replace(`${pathname}?${params.toString()}`);
     };
 
+    const handleSortChange = (sortBy: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        
+        // Toggle sort order if clicking the same column
+        if (initialSortBy === sortBy) {
+            const newOrder = initialSortOrder === 'asc' ? 'desc' : 'asc';
+            params.set('sortOrder', newOrder);
+        } else {
+            // Default to ascending when changing columns
+            params.set('sortBy', sortBy);
+            params.set('sortOrder', 'asc');
+        }
+        
+        params.set('page', '1'); // Reset to page 1 on sort change
+        router.replace(`${pathname}?${params.toString()}`);
+    };
+
     const totalPages = Math.ceil(totalCount / pageSize);
+
+    const columns = getColumns({
+        onSortChange: handleSortChange,
+        currentSortBy: initialSortBy,
+        currentSortOrder: initialSortOrder,
+    });
 
     const table = useReactTable({
         data,
         columns,
-        onSortingChange: setSorting,
         getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
         columnResizeMode: 'onChange',
         enableColumnResizing: false,
         state: {
-            sorting,
             columnVisibility,
             rowSelection,
         },
@@ -381,11 +429,11 @@ export const ReposTable = ({
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Filter by status</SelectItem>
-                        <SelectItem value="COMPLETED">Completed</SelectItem>
-                        <SelectItem value="IN_PROGRESS">In progress</SelectItem>
-                        <SelectItem value="PENDING">Pending</SelectItem>
-                        <SelectItem value="FAILED">Failed</SelectItem>
-                        <SelectItem value="null">No status</SelectItem>
+                        <SelectItem value="COMPLETED">Completed ({stats.numCompleted})</SelectItem>
+                        <SelectItem value="IN_PROGRESS">In progress ({stats.numInProgress})</SelectItem>
+                        <SelectItem value="PENDING">Pending ({stats.numPending})</SelectItem>
+                        <SelectItem value="FAILED">Failed ({stats.numFailed})</SelectItem>
+                        <SelectItem value="none">No status ({stats.numNoJobs})</SelectItem>
                     </SelectContent>
                 </Select>
                 <Button
