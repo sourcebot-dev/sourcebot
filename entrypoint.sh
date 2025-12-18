@@ -63,8 +63,20 @@ else
     export REDIS_EMBEDDED="false"
 fi
 
+# Extract version from version.ts
+VERSION_FILE="/app/packages/shared/src/version.ts"
+if [ -f "$VERSION_FILE" ]; then
+    SOURCEBOT_VERSION=$(grep -o '"v[^"]*"' "$VERSION_FILE" | tr -d '"')
+    # Validate extraction succeeded
+    if [ -z "$SOURCEBOT_VERSION" ]; then
+        echo -e "\e[33m[Warning] Failed to extract version from $VERSION_FILE. Setting to 'unknown'.\e[0m" >&2
+        SOURCEBOT_VERSION="unknown"
+    fi
+else
+    SOURCEBOT_VERSION="unknown"
+fi
 
-echo -e "\e[34m[Info] Sourcebot version: $NEXT_PUBLIC_SOURCEBOT_VERSION\e[0m"
+echo -e "\e[34m[Info] Sourcebot version: $SOURCEBOT_VERSION\e[0m"
 
 if [ -n "$SOURCEBOT_TELEMETRY_DISABLED" ]; then
     # Validate that SOURCEBOT_TELEMETRY_DISABLED is either "true" or "false"
@@ -157,7 +169,7 @@ if [ ! -f "$FIRST_RUN_FILE" ]; then
             "event": "install",
             "distinct_id": "'"$SOURCEBOT_INSTALL_ID"'",
             "properties": {
-                "sourcebot_version": "'"$NEXT_PUBLIC_SOURCEBOT_VERSION"'"
+                "sourcebot_version": "'"$SOURCEBOT_VERSION"'"
             }
         }' https://us.i.posthog.com/capture/ ) then
             echo -e "\e[33m[Warning] Failed to send install event.\e[0m"
@@ -168,8 +180,8 @@ else
     PREVIOUS_VERSION=$(cat "$FIRST_RUN_FILE" | jq -r '.version')
 
     # If the version has changed, we assume an upgrade has occurred.
-    if [ "$PREVIOUS_VERSION" != "$NEXT_PUBLIC_SOURCEBOT_VERSION" ]; then
-        echo -e "\e[34m[Info] Upgraded from version $PREVIOUS_VERSION to $NEXT_PUBLIC_SOURCEBOT_VERSION\e[0m"
+    if [ "$PREVIOUS_VERSION" != "$SOURCEBOT_VERSION" ]; then
+        echo -e "\e[34m[Info] Upgraded from version $PREVIOUS_VERSION to $SOURCEBOT_VERSION\e[0m"
 
         if [ "$SOURCEBOT_TELEMETRY_DISABLED" = "false" ]; then
             if ! ( curl -L --output /dev/null --silent --fail --header "Content-Type: application/json" -d '{
@@ -178,7 +190,7 @@ else
                 "distinct_id": "'"$SOURCEBOT_INSTALL_ID"'",
                 "properties": {
                     "from_version": "'"$PREVIOUS_VERSION"'",
-                    "to_version": "'"$NEXT_PUBLIC_SOURCEBOT_VERSION"'"
+                    "to_version": "'"$SOURCEBOT_VERSION"'"
                 }
             }' https://us.i.posthog.com/capture/ ) then
                 echo -e "\e[33m[Warning] Failed to send upgrade event.\e[0m"
@@ -187,7 +199,7 @@ else
     fi
 fi
 
-echo "{\"version\": \"$NEXT_PUBLIC_SOURCEBOT_VERSION\", \"install_id\": \"$SOURCEBOT_INSTALL_ID\"}" > "$FIRST_RUN_FILE"
+echo "{\"version\": \"$SOURCEBOT_VERSION\", \"install_id\": \"$SOURCEBOT_INSTALL_ID\"}" > "$FIRST_RUN_FILE"
 
 # Start the database and wait for it to be ready before starting any other service
 if [ "$DATABASE_EMBEDDED" = "true" ]; then

@@ -1,4 +1,4 @@
-import { env } from "@sourcebot/shared/client";
+import { SOURCEBOT_VERSION } from "@sourcebot/shared";
 import { GetVersionResponse } from "@/lib/types";
 
 // Note: In Next.JS 14, GET methods with no params are cached by default at build time.
@@ -10,6 +10,6 @@ export const dynamic = "force-dynamic";
 
 export const GET = async () => {
     return Response.json({
-        version: env.NEXT_PUBLIC_SOURCEBOT_VERSION,
+        version: SOURCEBOT_VERSION,
     } satisfies GetVersionResponse);
 }

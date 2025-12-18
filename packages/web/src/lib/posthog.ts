@@ -1,6 +1,5 @@
 import { PostHog } from 'posthog-node'
-import { env } from '@sourcebot/shared'
-import { env as clientEnv } from '@sourcebot/shared/client';
+import { env, SOURCEBOT_VERSION } from '@sourcebot/shared'
 import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies';
 import * as Sentry from "@sentry/nextjs";
 import { PosthogEvent, PosthogEventMap } from './posthogEvents';
@@ -98,7 +97,7 @@ export async function captureEvent<E extends PosthogEvent>(event: E, properties:
         event,
         properties: {
             ...properties,
-            sourcebot_version: clientEnv.NEXT_PUBLIC_SOURCEBOT_VERSION,
+            sourcebot_version: SOURCEBOT_VERSION,
             install_id: env.SOURCEBOT_INSTALL_ID,
             $host: host,
         },

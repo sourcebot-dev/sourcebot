@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Bake Sourcebot version into code rather than relying on build arg. [#680](https://github.com/sourcebot-dev/sourcebot/pull/680)
+
 ## [4.10.4] - 2025-12-18
 
 ### Fixed
