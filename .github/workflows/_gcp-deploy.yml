@@ -54,7 +54,6 @@ jobs:
             ${{ env.IMAGE_PATH }}:${{ github.sha }}
             ${{ env.IMAGE_PATH }}:latest
           build-args: |
-            NEXT_PUBLIC_SOURCEBOT_VERSION=${{ github.ref_name }}
             NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT=${{ vars.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT }}
             NEXT_PUBLIC_SENTRY_ENVIRONMENT=${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
             NEXT_PUBLIC_SENTRY_WEBAPP_DSN=${{ vars.NEXT_PUBLIC_SENTRY_WEBAPP_DSN }}
@@ -65,6 +64,7 @@ jobs:
             SENTRY_ORG=${{ vars.SENTRY_ORG }}
             SENTRY_WEBAPP_PROJECT=${{ vars.SENTRY_WEBAPP_PROJECT }}
             SENTRY_BACKEND_PROJECT=${{ vars.SENTRY_BACKEND_PROJECT }}
+            SENTRY_RELEASE=${{ github.ref_name }}
 
       
       - name: Deploy to GCP

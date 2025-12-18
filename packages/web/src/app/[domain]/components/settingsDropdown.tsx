@@ -32,7 +32,7 @@ import { useKeymapType } from "@/hooks/useKeymapType"
 import { useSession } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { signOut } from "next-auth/react"
-import { env } from "@sourcebot/shared/client";
+import { SOURCEBOT_VERSION } from "@sourcebot/shared";
 import posthog from "posthog-js";
 import { useDomain } from "@/hooks/useDomain";
 
@@ -167,7 +167,7 @@ export const SettingsDropdown = ({
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <div className="px-2 py-1 text-sm text-muted-foreground">
-                    version: {env.NEXT_PUBLIC_SOURCEBOT_VERSION}
+                    version: {SOURCEBOT_VERSION}
                 </div>
             </DropdownMenuContent>
         </DropdownMenu>

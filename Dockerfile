@@ -8,7 +8,6 @@
 # in the webapp.
 # @see: https://docs.docker.com/build/building/variables/#scoping
 
-ARG NEXT_PUBLIC_SOURCEBOT_VERSION
 ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT
 ARG NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT
 ARG NEXT_PUBLIC_SENTRY_WEBAPP_DSN
@@ -51,8 +50,6 @@ RUN yarn workspace @sourcebot/query-language install
 FROM node-alpine AS web-builder
 ENV SKIP_ENV_VALIDATION=1
 # -----------
-ARG NEXT_PUBLIC_SOURCEBOT_VERSION
-ENV NEXT_PUBLIC_SOURCEBOT_VERSION=$NEXT_PUBLIC_SOURCEBOT_VERSION
 ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT
 ENV NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT
 ARG NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT
@@ -72,7 +69,8 @@ ARG SENTRY_ORG
 ENV SENTRY_ORG=$SENTRY_ORG
 ARG SENTRY_WEBAPP_PROJECT
 ENV SENTRY_WEBAPP_PROJECT=$SENTRY_WEBAPP_PROJECT
-ENV SENTRY_RELEASE=$NEXT_PUBLIC_SOURCEBOT_VERSION
+ARG SENTRY_RELEASE
+ENV SENTRY_RELEASE=$SENTRY_RELEASE
 # SMUAT = Source Map Upload Auth Token
 ARG SENTRY_SMUAT
 ENV SENTRY_SMUAT=$SENTRY_SMUAT
@@ -102,8 +100,6 @@ ENV SKIP_ENV_VALIDATION=0
 FROM node-alpine AS backend-builder
 ENV SKIP_ENV_VALIDATION=1
 # -----------
-ARG NEXT_PUBLIC_SOURCEBOT_VERSION
-ENV NEXT_PUBLIC_SOURCEBOT_VERSION=$NEXT_PUBLIC_SOURCEBOT_VERSION
 
 # To upload source maps to Sentry, we need to set the following build-time args.
 # It's important that we don't set these for oss builds, otherwise the Sentry
@@ -115,6 +111,8 @@ ENV SENTRY_BACKEND_PROJECT=$SENTRY_BACKEND_PROJECT
 # SMUAT = Source Map Upload Auth Token
 ARG SENTRY_SMUAT
 ENV SENTRY_SMUAT=$SENTRY_SMUAT
+ARG SENTRY_RELEASE
+ENV SENTRY_RELEASE=$SENTRY_RELEASE
 # -----------
 
 WORKDIR /app
@@ -132,12 +130,12 @@ RUN yarn workspace @sourcebot/backend install
 RUN yarn workspace @sourcebot/backend build
 
 # Upload source maps to Sentry if we have the necessary build-time args.
-RUN if [ -n "$SENTRY_SMUAT" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_BACKEND_PROJECT" ] && [ -n "$NEXT_PUBLIC_SOURCEBOT_VERSION" ]; then \
+RUN if [ -n "$SENTRY_SMUAT" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_BACKEND_PROJECT" ] && [ -n "$SENTRY_RELEASE" ]; then \
     apk add --no-cache curl; \
     curl -sL https://sentry.io/get-cli/ | sh; \
     sentry-cli login --auth-token $SENTRY_SMUAT; \
-    sentry-cli sourcemaps inject --org $SENTRY_ORG --project $SENTRY_BACKEND_PROJECT --release $NEXT_PUBLIC_SOURCEBOT_VERSION ./packages/backend/dist; \
-    sentry-cli sourcemaps upload --org $SENTRY_ORG --project $SENTRY_BACKEND_PROJECT --release $NEXT_PUBLIC_SOURCEBOT_VERSION ./packages/backend/dist; \
+    sentry-cli sourcemaps inject --org $SENTRY_ORG --project $SENTRY_BACKEND_PROJECT --release $SENTRY_RELEASE ./packages/backend/dist; \
+    sentry-cli sourcemaps upload --org $SENTRY_ORG --project $SENTRY_BACKEND_PROJECT --release $SENTRY_RELEASE ./packages/backend/dist; \
 fi
 
 ENV SKIP_ENV_VALIDATION=0
@@ -146,8 +144,6 @@ ENV SKIP_ENV_VALIDATION=0
 # ------ Runner ------
 FROM node-alpine AS runner
 # -----------
-ARG NEXT_PUBLIC_SOURCEBOT_VERSION
-ENV NEXT_PUBLIC_SOURCEBOT_VERSION=$NEXT_PUBLIC_SOURCEBOT_VERSION
 ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT
 ENV NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT
 ARG NEXT_PUBLIC_SENTRY_WEBAPP_DSN
@@ -159,8 +155,6 @@ ENV NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY=$NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY
 ARG NEXT_PUBLIC_LANGFUSE_BASE_URL
 ENV NEXT_PUBLIC_LANGFUSE_BASE_URL=$NEXT_PUBLIC_LANGFUSE_BASE_URL
 # -----------
-
-RUN echo "Sourcebot Version: $NEXT_PUBLIC_SOURCEBOT_VERSION"
 
 WORKDIR /app
 ENV NODE_ENV=production
