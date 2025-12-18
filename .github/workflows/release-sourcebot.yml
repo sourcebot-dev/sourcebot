@@ -3,35 +3,82 @@ name: Release Sourcebot
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: "Version to release (e.g., 4.10.5)"
+      bump_type:
+        description: "Type of version bump to apply"
         required: true
-        type: string
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+concurrency:
+  group: release-sourcebot
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.calculate_version.outputs.version }}
 
     steps:
-      - name: Validate version format
-        run: |
-          VERSION="${{ inputs.version }}"
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9._-]+)?(\+[a-zA-Z0-9._-]+)?$ ]]; then
-              echo "Error: Version must follow semantic versioning format (X.Y.Z)"
-              exit 1
-          fi
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
 
+      - name: Calculate new version
+        id: calculate_version
+        run: |
+          # Extract current version from CHANGELOG.md
+          CURRENT_VERSION=$(grep -oP '## \[\K[0-9]+\.[0-9]+\.[0-9]+' CHANGELOG.md | head -n 1)
+          
+          if [ -z "$CURRENT_VERSION" ]; then
+              echo "Error: Could not extract current version from CHANGELOG.md"
+              exit 1
+          fi
+          
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Parse version components
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          
+          # Apply bump based on input
+          BUMP_TYPE="${{ inputs.bump_type }}"
+          case "$BUMP_TYPE" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+            *)
+              echo "Error: Invalid bump type: $BUMP_TYPE"
+              exit 1
+              ;;
+          esac
+          
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "New version: $NEW_VERSION"
+          
+          # Export to GITHUB_ENV for use in subsequent steps within this job
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          
+          # Export to GITHUB_OUTPUT for use in other jobs
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
       - name: Check if version already exists
         run: |
-          VERSION="${{ inputs.version }}"
           if grep -q "## \[$VERSION\]" CHANGELOG.md; then
               echo "Error: Version $VERSION already exists in CHANGELOG.md"
               exit 1
@@ -43,7 +90,6 @@ jobs:
 
       - name: Update CHANGELOG.md and version.ts
         run: |
-          VERSION="${{ inputs.version }}"
           DATE=$(date +%Y-%m-%d)
 
           # Insert the new version header after the [Unreleased] line
@@ -69,13 +115,11 @@ jobs:
 
       - name: Commit changes
         run: |
-          VERSION="${{ inputs.version }}"
           git add CHANGELOG.md packages/shared/src/version.ts
           git commit -m "Release v$VERSION"
 
       - name: Create annotated tag
         run: |
-          VERSION="${{ inputs.version }}"
           git tag -a "v$VERSION" -m "sourcebot v$VERSION"
 
       - name: Push changes
@@ -87,7 +131,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${{ inputs.version }}"
           gh release create "v$VERSION" \
               --verify-tag \
               --generate-notes \
@@ -97,7 +140,7 @@ jobs:
     needs: release
     uses: ./.github/workflows/ghcr-publish.yml
     with:
-      version: v${{ inputs.version }}
+      version: v${{ needs.release.outputs.version }}
     permissions:
       contents: read
       packages: write
