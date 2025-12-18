@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.4] - 2025-12-18
+
 ### Fixed
 - Fixed issue where parenthesis in query params were not being encoded, resulting in a poor experience when embedding links in Markdown. [#674](https://github.com/sourcebot-dev/sourcebot/pull/674)
 - Gitlab clone respects host protocol setting in environment variable. [#676](https://github.com/sourcebot-dev/sourcebot/pull/676)
