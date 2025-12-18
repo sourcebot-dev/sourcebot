@@ -67,6 +67,11 @@ fi
 VERSION_FILE="/app/packages/shared/src/version.ts"
 if [ -f "$VERSION_FILE" ]; then
     SOURCEBOT_VERSION=$(grep -o '"v[^"]*"' "$VERSION_FILE" | tr -d '"')
+    # Validate extraction succeeded
+    if [ -z "$SOURCEBOT_VERSION" ]; then
+        echo -e "\e[33m[Warning] Failed to extract version from $VERSION_FILE. Setting to 'unknown'.\e[0m" >&2
+        SOURCEBOT_VERSION="unknown"
+    fi
 else
     SOURCEBOT_VERSION="unknown"
 fi
