@@ -258,6 +258,11 @@ export class RepoIndexManager {
             },
             data: {
                 status: RepoIndexingJobStatus.IN_PROGRESS,
+                repo: {
+                    update: {
+                        latestIndexingJobStatus: RepoIndexingJobStatus.IN_PROGRESS,
+                    }
+                }
             },
             select: {
                 type: true,
@@ -462,6 +467,11 @@ export class RepoIndexManager {
                 data: {
                     status: RepoIndexingJobStatus.COMPLETED,
                     completedAt: new Date(),
+                    repo: {
+                        update: {
+                            latestIndexingJobStatus: RepoIndexingJobStatus.COMPLETED,
+                        }
+                    }
                 },
                 include: {
                     repo: true,
@@ -522,6 +532,11 @@ export class RepoIndexManager {
                         status: RepoIndexingJobStatus.FAILED,
                         completedAt: new Date(),
                         errorMessage: job.failedReason,
+                        repo: {
+                            update: {
+                                latestIndexingJobStatus: RepoIndexingJobStatus.FAILED,
+                            }
+                        }
                     },
                     select: { repo: true }
                 });
@@ -550,6 +565,11 @@ export class RepoIndexManager {
                     status: RepoIndexingJobStatus.FAILED,
                     completedAt: new Date(),
                     errorMessage: 'Job stalled',
+                    repo: {
+                        update: {
+                            latestIndexingJobStatus: RepoIndexingJobStatus.FAILED,
+                        }
+                    }
                 },
                 select: { repo: true, type: true }
             });
@@ -572,6 +592,11 @@ export class RepoIndexManager {
                     status: RepoIndexingJobStatus.FAILED,
                     completedAt: new Date(),
                     errorMessage: 'Job timed out',
+                    repo: {
+                        update: {
+                            latestIndexingJobStatus: RepoIndexingJobStatus.FAILED,
+                        }
+                    }
                 },
                 select: { repo: true }
             });

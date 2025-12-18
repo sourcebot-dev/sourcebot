@@ -66,6 +66,7 @@ model Repo {
   jobs RepoIndexingJob[]
   indexedAt          DateTime? /// When the repo was last indexed successfully.
   indexedCommitHash  String? /// The commit hash of the last indexed commit (on HEAD).
+  latestIndexingJobStatus RepoIndexingJobStatus? /// The status of the latest indexing job.
 
   external_id           String /// The id of the repo in the external service
   external_codeHostType CodeHostType /// The type of the external service (e.g., github, gitlab, etc.)
