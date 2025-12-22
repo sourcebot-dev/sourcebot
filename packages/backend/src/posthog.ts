@@ -1,5 +1,4 @@
-import { env as clientEnv } from "@sourcebot/shared/client";
-import { env } from "@sourcebot/shared";
+import { env, SOURCEBOT_VERSION } from "@sourcebot/shared";
 import { PostHog } from 'posthog-node';
 import { PosthogEvent, PosthogEventMap } from './posthogEvents.js';
 
@@ -24,7 +23,7 @@ export function captureEvent<E extends PosthogEvent>(event: E, properties: Posth
         event: event,
         properties: {
             ...properties,
-            sourcebot_version: clientEnv.NEXT_PUBLIC_SOURCEBOT_VERSION,
+            sourcebot_version: SOURCEBOT_VERSION,
         },
     });
 }

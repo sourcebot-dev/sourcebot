@@ -7,6 +7,12 @@ on:
   push:
     branches: ["main"]
     tags: ["v*.*.*"]
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v4.10.5)'
+        required: false
+        type: string
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -40,6 +46,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.version || github.ref_name }}
           submodules: "true"
 
       # Extract metadata (tags, labels) for Docker
@@ -77,8 +84,6 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ env.PLATFORM_PAIR }}
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true,annotation.org.opencontainers.image.description=Blazingly fast code search
-          build-args: |
-            NEXT_PUBLIC_SOURCEBOT_VERSION=${{ github.ref_name }}
             
       - name: Export digest
         run: |

@@ -6,8 +6,7 @@ import { PostHogProvider } from "./posthogProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "next-auth/react";
-import { env } from "@sourcebot/shared";
-import { env as clientEnv } from "@sourcebot/shared/client";
+import { env, SOURCEBOT_VERSION } from "@sourcebot/shared";
 import { PlanProvider } from "@/features/entitlements/planProvider";
 import { getEntitlements } from "@sourcebot/shared";
 
@@ -43,7 +42,7 @@ export default function RootLayout({
                             // @note: the posthog api key doesn't need to be kept secret,
                             // so we are safe to send it to the client.
                             posthogApiKey={env.POSTHOG_PAPIK}
-                            sourcebotVersion={clientEnv.NEXT_PUBLIC_SOURCEBOT_VERSION}
+                            sourcebotVersion={SOURCEBOT_VERSION}
                             sourcebotInstallId={env.SOURCEBOT_INSTALL_ID}
                         >
                             <ThemeProvider
