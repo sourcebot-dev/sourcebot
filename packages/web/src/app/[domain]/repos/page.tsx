@@ -6,6 +6,8 @@ import { ReposTable } from "./components/reposTable";
 import { RepoIndexingJobStatus, Prisma } from "@sourcebot/db";
 import z from "zod";
 
+const numberSchema = z.coerce.number().int().positive();
+
 interface ReposPageProps {
     searchParams: Promise<{
         page?: string;
@@ -17,12 +19,15 @@ interface ReposPageProps {
     }>;
 }
 
-export default async function ReposPage({ searchParams }: ReposPageProps) {
-    const params = await searchParams;
+export default async function ReposPage(props: ReposPageProps) {
+    const params = await props.searchParams;
+
+    console.log('asdf:');
+    console.log(z.coerce.number().int().safeParse(params.page).error);
 
     // Parse pagination parameters with defaults
-    const page = z.number().int().positive().safeParse(params.page).data ?? 1;
-    const pageSize = z.number().int().positive().safeParse(params.pageSize).data ?? 5;
+    const page = numberSchema.safeParse(params.page).data ?? 1;
+    const pageSize = numberSchema.safeParse(params.pageSize).data ?? 5;
 
     // Parse filter parameters
     const search = z.string().optional().safeParse(params.search).data ?? '';
