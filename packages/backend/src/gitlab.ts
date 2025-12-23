@@ -98,10 +98,15 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
 
                 const status = e?.cause?.response?.status;
                 if (status !== undefined) {
-                    logger.error(`HTTP status: ${status}`);
-                } else {
-                    logger.error(`HTTP status: undefined`);
+                    const warning = `GitLab API returned ${status}`
+                    logger.warning(warning);
+                    return {
+                        type: 'warning' as const,
+                        warning
+                    }
                 }
+
+                logger.error("No API response status returned");
                 throw e;
             }
         }));
@@ -133,10 +138,15 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
 
                 const status = e?.cause?.response?.status;
                 if (status !== undefined) {
-                    logger.error(`HTTP status: ${status}`);
-                } else {
-                    logger.error(`HTTP status: undefined`);
+                    const warning = `GitLab API returned ${status}`
+                    logger.warning(warning);
+                    return {
+                        type: 'warning' as const,
+                        warning
+                    }
                 }
+
+                logger.error("No API response status returned");
                 throw e;
             }
         }));
@@ -166,10 +176,15 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
 
                 const status = e?.cause?.response?.status;
                 if (status !== undefined) {
-                    logger.error(`HTTP status: ${status}`);
-                } else {
-                    logger.error(`HTTP status: undefined`);
+                    const warning = `GitLab API returned ${status}`
+                    logger.warning(warning);
+                    return {
+                        type: 'warning' as const,
+                        warning
+                    }
                 }
+
+                logger.error("No API response status returned");
                 throw e;
             }
         }));
