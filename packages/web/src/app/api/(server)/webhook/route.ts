@@ -2,7 +2,7 @@
 
 import { NextRequest } from "next/server";
 import { App, Octokit } from "octokit";
-import { WebhookEventDefinition} from "@octokit/webhooks/types";
+import { WebhookEventDefinition } from "@octokit/webhooks/types";
 import { EndpointDefaults } from "@octokit/types";
 import { env } from "@sourcebot/shared";
 import { processGitHubPullRequest } from "@/features/agents/review-agent/app";
@@ -10,6 +10,7 @@ import { throttling, type ThrottlingOptions } from "@octokit/plugin-throttling";
 import fs from "fs";
 import { GitHubPullRequest } from "@/features/agents/review-agent/types";
 import { createLogger } from "@sourcebot/shared";
+import crypto from "crypto";
 
 const logger = createLogger('github-webhook');
 
@@ -96,9 +97,25 @@ function isIssueCommentEvent(eventHeader: string, payload: unknown): payload is 
     return eventHeader === "issue_comment" && typeof payload === "object" && payload !== null && "action" in payload && typeof payload.action === "string" && payload.action === "created";
 }
 
+const verifyGitHubSignature = (payload: string, signature: string, secret: string): boolean => {
+    const hmac = crypto.createHmac('sha256', secret);
+    const digest = 'sha256=' + hmac.update(payload).digest('hex');
+    return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(signature));
+};
+
 export const POST = async (request: NextRequest) => {
-    const body = await request.json();
+    const rawBody = await request.text();
     const headers = Object.fromEntries(Array.from(request.headers.entries(), ([key, value]) => [key.toLowerCase(), value]));
+
+    const signature = headers['x-hub-signature-256'];
+    const webhookSecret = env.GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET;
+
+    if (webhookSecret && (!signature || !verifyGitHubSignature(rawBody, signature, webhookSecret))) {
+        logger.warn('Received GitHub webhook event with invalid or missing signature');
+        return new Response('Unauthorized', { status: 401 });
+    }
+
+    const body = JSON.parse(rawBody);
 
     const githubEvent = headers['x-github-event'];
     if (githubEvent) {
