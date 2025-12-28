@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed repository images not loading when anonymous access is disabled. [#605](https://github.com/sourcebot-dev/sourcebot/pull/605)
+
 ### Changed
 - Enable browser assisted autofill for username and password.[#696](https://github.com/sourcebot-dev/sourcebot/pull/696)
 
