@@ -22,9 +22,6 @@ interface ReposPageProps {
 export default async function ReposPage(props: ReposPageProps) {
     const params = await props.searchParams;
 
-    console.log('asdf:');
-    console.log(z.coerce.number().int().safeParse(params.page).error);
-
     // Parse pagination parameters with defaults
     const page = numberSchema.safeParse(params.page).data ?? 1;
     const pageSize = numberSchema.safeParse(params.pageSize).data ?? 5;
