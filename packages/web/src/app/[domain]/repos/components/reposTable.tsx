@@ -110,6 +110,10 @@ export const getColumns = (context: ColumnsContext): ColumnDef<Repo>[] => [
             const repo = row.original;
             const codeHostIcon = getCodeHostIcon(repo.codeHostType);
             const repoImageSrc = repo.imageUrl ? getRepoImageSrc(repo.imageUrl, repo.id) : undefined;
+            // Internal API routes require authentication headers (cookies/API keys) to be passed through.
+            // Next.js Image Optimization doesn't forward these headers, so we use unoptimized=true
+            // to bypass the optimization and make direct requests that include auth headers.
+            const isInternalApiImage = repoImageSrc?.startsWith('/api/');
 
             return (
                 <div className="flex flex-row gap-2 items-center">
@@ -121,6 +125,7 @@ export const getColumns = (context: ColumnsContext): ColumnDef<Repo>[] => [
                                 width={32}
                                 height={32}
                                 className="object-cover"
+                                unoptimized={isInternalApiImage}
                             />
                         ) : <Image
                             src={codeHostIcon.src}
