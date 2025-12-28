@@ -1,0 +1,6 @@
+---
+description: This rule should only be used when running in the context of a cloud agent.
+alwaysApply: false
+---
+
+- After creating a PR, create a follow-up commit with a Changelog entry in CHANGELOG.md with a short description of the change. Follow the existing conventions in that file, namely: 1) entries must be parented under a header (Added, Changed, Deprecated, Removed, Fixed, or Security), 2) entries must include the GitHub pull request id at the end of the line, formatted as [#<id>](<url>) (e.g., [#696](https://github.com/sourcebot-dev/sourcebot/pull/696)).
