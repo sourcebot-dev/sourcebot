@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Fixed auto-suggestion dropdown breaking queries with whitespace in repository names. Repository names containing spaces are now properly wrapped in quotes.
+- Fixed auto-suggestion dropdown breaking queries with whitespace in repository names. Repository names containing spaces are now properly wrapped in quotes. [#705](https://github.com/sourcebot-dev/sourcebot/pull/705)
 
 ## [4.10.6] - 2025-12-28
 
