@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Changed the default `/repos` pagination size to 20. [#706](https://github.com/sourcebot-dev/sourcebot/pull/706)
+
 ## [4.10.7] - 2025-12-29
 
 ### Fixed
