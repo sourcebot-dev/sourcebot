@@ -8,6 +8,8 @@ import z from "zod";
 
 const numberSchema = z.coerce.number().int().positive();
 
+const DEFAULT_PAGE_SIZE = 20;
+
 interface ReposPageProps {
     searchParams: Promise<{
         page?: string;
@@ -24,7 +26,7 @@ export default async function ReposPage(props: ReposPageProps) {
 
     // Parse pagination parameters with defaults
     const page = numberSchema.safeParse(params.page).data ?? 1;
-    const pageSize = numberSchema.safeParse(params.pageSize).data ?? 5;
+    const pageSize = numberSchema.safeParse(params.pageSize).data ?? DEFAULT_PAGE_SIZE;
 
     // Parse filter parameters
     const search = z.string().optional().safeParse(params.search).data ?? '';
