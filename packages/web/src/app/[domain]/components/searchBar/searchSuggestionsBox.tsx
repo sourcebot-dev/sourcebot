@@ -504,7 +504,13 @@ export const completeSuggestion = (params: {
     }
 
     if (regexEscaped) {
-        part = part + `^${escapeStringRegexp(suggestion)}$`;
+        const escapedSuggestion = `^${escapeStringRegexp(suggestion)}$`;
+        // Wrap in quotes if the original suggestion contains spaces
+        if (suggestion.includes(" ")) {
+            part = part + `"${escapedSuggestion}"`;
+        } else {
+            part = part + escapedSuggestion;
+        }
     } else if (suggestion.includes(" ")) {
         part = part + `"${suggestion}"`;
     } else {
