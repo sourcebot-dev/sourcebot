@@ -186,7 +186,11 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
             const config = connection.config as unknown as BitbucketConnectionConfig;
             if (config.token) {
                 const token = await getTokenFromConfig(config.token);
-                const username = config.user ?? 'x-token-auth';
+                // Extract username from email if present (e.g., user@example.com -> user)
+                // Bitbucket API auth uses the full email, but git clone needs just the username
+                const username = config.user
+                    ? config.user.split("@")[0]
+                    : "x-token-auth";
                 return {
                     hostUrl: config.url,
                     token,
@@ -197,7 +201,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                             password: token
                         }
                     ),
-                }
+                };
             }
         } else if (connection.connectionType === 'azuredevops') {
             const config = connection.config as unknown as AzureDevOpsConnectionConfig;
