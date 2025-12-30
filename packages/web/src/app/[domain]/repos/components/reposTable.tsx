@@ -14,7 +14,7 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { cn, getCodeHostCommitUrl, getCodeHostIcon, getCodeHostInfoForRepo, getRepoImageSrc } from "@/lib/utils"
+import { cn, getCodeHostCommitUrl, getCodeHostIcon, getCodeHostInfoForRepo, getRepoImageSrc, isServiceError } from "@/lib/utils"
 import {
     type ColumnDef,
     type VisibilityState,
@@ -35,6 +35,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { NotificationDot } from "../../components/notificationDot"
 import { CodeHostType } from "@sourcebot/db"
 import { useHotkeys } from "react-hotkeys-hook"
+import { indexRepo } from "@/features/workerApi/actions"
 
 // @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
@@ -84,6 +85,8 @@ interface ColumnsContext {
     onSortChange: (sortBy: string) => void;
     currentSortBy?: string;
     currentSortOrder: string;
+    onTriggerSync: (repoId: number) => void;
+    syncingRepoId: number | null;
 }
 
 export const getColumns = (context: ColumnsContext): ColumnDef<Repo>[] => [
@@ -259,6 +262,7 @@ export const getColumns = (context: ColumnsContext): ColumnDef<Repo>[] => [
                 displayName: repo.displayName ?? undefined,
                 webUrl: repo.webUrl ?? undefined,
             });
+            const isSyncing = context.syncingRepoId === repo.id;
 
             return (
                 <DropdownMenu>
@@ -276,6 +280,12 @@ export const getColumns = (context: ColumnsContext): ColumnDef<Repo>[] => [
                         {repo.webUrl && (
                             <>
                                 <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onClick={() => context.onTriggerSync(repo.id)}
+                                    disabled={isSyncing}
+                                >
+                                    Trigger Sync
+                                </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
                                     <a href={repo.webUrl} target="_blank" rel="noopener noreferrer" className="flex items-center">
                                         Open in {codeHostInfo.codeHostName}
@@ -324,6 +334,7 @@ export const ReposTable = ({
     const [rowSelection, setRowSelection] = useState({})
     const [searchValue, setSearchValue] = useState(initialSearch)
     const [isPendingSearch, setIsPendingSearch] = useState(false)
+    const [syncingRepoId, setSyncingRepoId] = useState<number | null>(null)
     const searchInputRef = useRef<HTMLInputElement>(null)
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -386,12 +397,33 @@ export const ReposTable = ({
         router.replace(`${pathname}?${params.toString()}`);
     };
 
+    const handleTriggerSync = async (repoId: number) => {
+        setSyncingRepoId(repoId);
+        const response = await indexRepo(repoId);
+
+        if (!isServiceError(response)) {
+            const { jobId } = response;
+            toast({
+                description: `✅ Repository sync triggered successfully. Job ID: ${jobId}`,
+            });
+            router.refresh();
+        } else {
+            toast({
+                description: `❌ Failed to sync repository. ${response.message}`,
+            });
+        }
+
+        setSyncingRepoId(null);
+    };
+
     const totalPages = Math.ceil(totalCount / pageSize);
 
     const columns = getColumns({
         onSortChange: handleSortChange,
         currentSortBy: initialSortBy,
         currentSortOrder: initialSortOrder,
+        onTriggerSync: handleTriggerSync,
+        syncingRepoId: syncingRepoId,
     });
 
     const table = useReactTable({
