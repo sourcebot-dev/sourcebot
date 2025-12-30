@@ -479,6 +479,19 @@ export const compileGenericGitHostConfig_file = async (
     const repos: RepoData[] = [];
     const warnings: string[] = [];
 
+    // Warn if the glob pattern matched no paths at all
+    if (repoPaths.length === 0) {
+        const warning = `No paths matched the pattern '${configUrl.pathname}'. Please verify the path exists and is accessible.`;
+        logger.warn(warning);
+        warnings.push(warning);
+        return {
+            repoData: repos,
+            warnings,
+        };
+    }
+
+    logger.info(`Found ${repoPaths.length} path(s) matching pattern '${configUrl.pathname}'`);
+
     await Promise.all(repoPaths.map((repoPath) => gitOperationLimit(async () => {
         const isGitRepo = await isPathAValidGitRepoRoot({
             path: repoPath,
@@ -534,6 +547,15 @@ export const compileGenericGitHostConfig_file = async (
 
         repos.push(repo);
     })));
+
+    // Log summary of results
+    if (repos.length === 0) {
+        const warning = `No valid git repositories found from ${repoPaths.length} matched path(s). Check the warnings for details on individual paths.`;
+        logger.warn(warning);
+        warnings.push(warning);
+    } else {
+        logger.info(`Successfully found ${repos.length} valid git repository(s) from ${repoPaths.length} matched path(s)`);
+    }
 
     return {
         repoData: repos,
