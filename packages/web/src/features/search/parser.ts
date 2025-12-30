@@ -68,13 +68,9 @@ export const parseQuerySyntaxIntoIR = async ({
     prisma: PrismaClient,
 }): Promise<QueryIR> => {
 
-    console.log("IS ARCHIVED EXCLUDED:", options.isArchivedExcluded);
-    console.log("IS FORKED EXCLUDED:", options.isForkedExcluded);
-
     try {
         // First parse the query into a Lezer tree.
         const tree = parser.parse(query);
-        // Debug logs removed - use structured logging if needed.
 
         // Then transform the tree into the intermediate representation.
         return transformTreeToIR({
