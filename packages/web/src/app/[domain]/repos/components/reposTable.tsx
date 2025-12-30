@@ -2,19 +2,11 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { cn, getCodeHostCommitUrl, getCodeHostIcon, getCodeHostInfoForRepo, getRepoImageSrc, isServiceError } from "@/lib/utils"
+import { cn, getCodeHostCommitUrl, getCodeHostIcon, getRepoImageSrc, isServiceError } from "@/lib/utils"
 import {
     type ColumnDef,
     type VisibilityState,
@@ -23,7 +15,7 @@ import {
     useReactTable,
 } from "@tanstack/react-table"
 import { cva } from "class-variance-authority"
-import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink, Loader2, MoreHorizontal, RefreshCwIcon } from "lucide-react"
+import { ArrowDown, ArrowUp, ArrowUpDown, Loader2, RefreshCwIcon } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
@@ -36,6 +28,7 @@ import { NotificationDot } from "../../components/notificationDot"
 import { CodeHostType } from "@sourcebot/db"
 import { useHotkeys } from "react-hotkeys-hook"
 import { indexRepo } from "@/features/workerApi/actions"
+import { RepoActionsDropdown } from "./repoActionsDropdown"
 
 // @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
@@ -256,47 +249,7 @@ export const getColumns = (context: ColumnsContext): ColumnDef<Repo>[] => [
         enableHiding: false,
         cell: ({ row }) => {
             const repo = row.original
-            const codeHostInfo = getCodeHostInfoForRepo({
-                codeHostType: repo.codeHostType,
-                name: repo.name,
-                displayName: repo.displayName ?? undefined,
-                webUrl: repo.webUrl ?? undefined,
-            });
-            const isSyncing = context.syncingRepoId === repo.id;
-
-            return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                            <Link href={`/${SINGLE_TENANT_ORG_DOMAIN}/repos/${repo.id}`}>View details</Link>
-                        </DropdownMenuItem>
-                        {repo.webUrl && (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    onClick={() => context.onTriggerSync(repo.id)}
-                                    disabled={isSyncing}
-                                >
-                                    Trigger Sync
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                    <a href={repo.webUrl} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                                        Open in {codeHostInfo.codeHostName}
-                                        <ExternalLink className="ml-2 h-3 w-3" />
-                                    </a>
-                                </DropdownMenuItem>
-                            </>
-                        )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            )
+            return <RepoActionsDropdown repo={repo} />
         },
     },
 ]
