@@ -1,8 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { getCodeHostInfoForRepo, isServiceError } from "@/lib/utils"
 import { ExternalLink, MoreHorizontal } from "lucide-react"
