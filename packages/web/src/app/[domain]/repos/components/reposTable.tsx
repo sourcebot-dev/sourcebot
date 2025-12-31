@@ -79,7 +79,6 @@ interface ColumnsContext {
     currentSortBy?: string;
     currentSortOrder: string;
     onTriggerSync: (repoId: number) => void;
-    syncingRepoId: number | null;
 }
 
 export const getColumns = (context: ColumnsContext): ColumnDef<Repo>[] => [
@@ -287,7 +286,6 @@ export const ReposTable = ({
     const [rowSelection, setRowSelection] = useState({})
     const [searchValue, setSearchValue] = useState(initialSearch)
     const [isPendingSearch, setIsPendingSearch] = useState(false)
-    const [syncingRepoId, setSyncingRepoId] = useState<number | null>(null)
     const searchInputRef = useRef<HTMLInputElement>(null)
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -351,7 +349,6 @@ export const ReposTable = ({
     };
 
     const handleTriggerSync = async (repoId: number) => {
-        setSyncingRepoId(repoId);
         const response = await indexRepo(repoId);
 
         if (!isServiceError(response)) {
@@ -365,8 +362,6 @@ export const ReposTable = ({
                 description: `❌ Failed to sync repository. ${response.message}`,
             });
         }
-
-        setSyncingRepoId(null);
     };
 
     const totalPages = Math.ceil(totalCount / pageSize);
@@ -375,8 +370,7 @@ export const ReposTable = ({
         onSortChange: handleSortChange,
         currentSortBy: initialSortBy,
         currentSortOrder: initialSortOrder,
-        onTriggerSync: handleTriggerSync,
-        syncingRepoId: syncingRepoId,
+        onTriggerSync: handleTriggerSync
     });
 
     const table = useReactTable({
