@@ -62,6 +62,8 @@ export const parseQuerySyntaxIntoIR = async ({
     options: {
         isCaseSensitivityEnabled?: boolean;
         isRegexEnabled?: boolean;
+        isArchivedExcluded?: boolean;
+        isForkedExcluded?: boolean;
     },
     prisma: PrismaClient,
 }): Promise<QueryIR> => {
@@ -76,6 +78,8 @@ export const parseQuerySyntaxIntoIR = async ({
             input: query,
             isCaseSensitivityEnabled: options.isCaseSensitivityEnabled ?? false,
             isRegexEnabled: options.isRegexEnabled ?? false,
+            isArchivedExcluded: options.isArchivedExcluded ?? false,
+            isForkedExcluded: options.isForkedExcluded ?? false,
             onExpandSearchContext: async (contextName: string) => {
                 const context = await prisma.searchContext.findUnique({
                     where: {
@@ -116,12 +120,16 @@ const transformTreeToIR = async ({
     input,
     isCaseSensitivityEnabled,
     isRegexEnabled,
+    isArchivedExcluded,
+    isForkedExcluded,
     onExpandSearchContext,
 }: {
     tree: Tree;
     input: string;
     isCaseSensitivityEnabled: boolean;
     isRegexEnabled: boolean;
+    isArchivedExcluded: boolean;
+    isForkedExcluded: boolean;
     onExpandSearchContext: (contextName: string) => Promise<string[]>;
 }): Promise<QueryIR> => {
     const transformNode = async (node: SyntaxNode): Promise<QueryIR> => {
@@ -320,6 +328,9 @@ const transformTreeToIR = async ({
             }
 
             case ArchivedExpr: {
+                // We'll set the value of isArchivedExcluded to false as the query takes precedence over checkbox.
+                isArchivedExcluded = false;
+                
                 const rawValue = value.toLowerCase();
 
                 if (!isArchivedValue(rawValue)) {
@@ -344,6 +355,9 @@ const transformTreeToIR = async ({
                 };
             }
             case ForkExpr: {
+                // We'll set the value of isForkedExcluded to false as the query takes precedence over checkbox.
+                isForkedExcluded = false;
+
                 const rawValue = value.toLowerCase();
 
                 if (!isForkValue(rawValue)) {
@@ -397,7 +411,52 @@ const transformTreeToIR = async ({
         }
     }
 
-    return transformNode(tree.topNode);
+    
+    // return await transformNode(tree.topNode);
+    const root = await transformNode(tree.topNode);
+
+    // If the tree does not contain explicit archived/fork prefixes, add
+    // default raw_config flags to exclude archived/forks by default.
+    const defaultNodes: QueryIR[] = [];
+
+    if (isArchivedExcluded) {
+        defaultNodes.push({
+            raw_config: {
+                flags: ['FLAG_NO_ARCHIVED']
+            },
+            query: 'raw_config'
+        });
+    }
+
+    if (isForkedExcluded) {
+        defaultNodes.push({
+            raw_config: {
+                flags: ['FLAG_NO_FORKS']
+            },
+            query: 'raw_config'
+        });
+    }
+
+    if (defaultNodes.length === 0) {
+        return root;
+    }
+
+    // If the root is already an AND, append defaults; otherwise create an AND
+    if (root.and && Array.isArray(root.and.children)) {
+        return {
+            and: {
+                children: [...root.and.children, ...defaultNodes]
+            },
+            query: 'and'
+        };
+    }
+
+    return {
+        and: {
+            children: [root, ...defaultNodes]
+        },
+        query: 'and'
+    };
 }
 
 const getChildren = (node: SyntaxNode): SyntaxNode[] => {

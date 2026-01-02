@@ -44,7 +44,14 @@ import { Toggle } from "@/components/ui/toggle";
 import { useDomain } from "@/hooks/useDomain";
 import { createAuditAction } from "@/ee/features/audit/actions";
 import tailwind from "@/tailwind";
-import { CaseSensitiveIcon, RegexIcon } from "lucide-react";
+import { CaseSensitiveIcon, RegexIcon, Settings2 } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 
 interface SearchBarProps {
     className?: string;
@@ -52,6 +59,8 @@ interface SearchBarProps {
     defaults?: {
         isRegexEnabled?: boolean;
         isCaseSensitivityEnabled?: boolean;
+        isArchivedExcluded?: boolean;
+        isForkedExcluded?: boolean;
         query?: string;
     }
     autoFocus?: boolean;
@@ -99,6 +108,8 @@ export const SearchBar = ({
     defaults: {
         isRegexEnabled: defaultIsRegexEnabled = false,
         isCaseSensitivityEnabled: defaultIsCaseSensitivityEnabled = false,
+        isArchivedExcluded: defaultIsArchivedExcluded = false,
+        isForkedExcluded: defaultIsForkedExcluded = false,
         query: defaultQuery = "",
     } = {}
 }: SearchBarProps) => {
@@ -112,6 +123,8 @@ export const SearchBar = ({
     const [isHistorySearchEnabled, setIsHistorySearchEnabled] = useState(false);
     const [isRegexEnabled, setIsRegexEnabled] = useState(defaultIsRegexEnabled);
     const [isCaseSensitivityEnabled, setIsCaseSensitivityEnabled] = useState(defaultIsCaseSensitivityEnabled);
+    const [isArchivedExcluded, setIsArchivedExcluded] = useState(defaultIsArchivedExcluded);
+    const [isForkedExcluded, setIsForkedExcluded] = useState(defaultIsForkedExcluded);
 
     const focusEditor = useCallback(() => editorRef.current?.view?.focus(), []);
     const focusSuggestionsBox = useCallback(() => suggestionBoxRef.current?.focus(), []);
@@ -227,9 +240,11 @@ export const SearchBar = ({
             [SearchQueryParams.query, query],
             [SearchQueryParams.isRegexEnabled, isRegexEnabled ? "true" : null],
             [SearchQueryParams.isCaseSensitivityEnabled, isCaseSensitivityEnabled ? "true" : null],
+            [SearchQueryParams.isArchivedExcluded, isArchivedExcluded ? "true" : null],
+            [SearchQueryParams.isForkedExcluded, isForkedExcluded ? "true" : null],
         );
         router.push(url);
-    }, [domain, router, isRegexEnabled, isCaseSensitivityEnabled]);
+    }, [domain, router, isRegexEnabled, isCaseSensitivityEnabled, isArchivedExcluded, isForkedExcluded]);
 
     return (
         <div
@@ -288,6 +303,40 @@ export const SearchBar = ({
                 autoFocus={autoFocus ?? false}
             />
             <div className="flex flex-row items-center gap-1 ml-1">
+                <DropdownMenu>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                                <span>
+                                    <Toggle
+                                        className="h-7 w-7 min-w-7 p-0 cursor-pointer"
+                                        pressed={false}
+                                        onPressedChange={() => { }}
+                                    >
+                                        <Settings2 className="w-4 h-4" />
+                                    </Toggle>
+                                </span>
+                            </DropdownMenuTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Search settings</TooltipContent>
+                    </Tooltip>
+
+                    <DropdownMenuContent align="start">
+                        <DropdownMenuLabel>Search</DropdownMenuLabel>
+                        <DropdownMenuCheckboxItem
+                            checked={isArchivedExcluded}
+                            onCheckedChange={(v: boolean | "mixed") => setIsArchivedExcluded(Boolean(v))}
+                        >
+                            Exclude archived repositories
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem
+                            checked={isForkedExcluded}
+                            onCheckedChange={(v: boolean | "mixed") => setIsForkedExcluded(Boolean(v))}
+                        >
+                            Exclude forked repositories
+                        </DropdownMenuCheckboxItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <span>

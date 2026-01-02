@@ -40,6 +40,8 @@ interface SearchResultsPageProps {
     defaultMaxMatchCount: number;
     isRegexEnabled: boolean;
     isCaseSensitivityEnabled: boolean;
+    isArchivedExcluded: boolean;
+    isForkedExcluded: boolean;
 }
 
 export const SearchResultsPage = ({
@@ -47,6 +49,8 @@ export const SearchResultsPage = ({
     defaultMaxMatchCount,
     isRegexEnabled,
     isCaseSensitivityEnabled,
+    isArchivedExcluded,
+    isForkedExcluded,
 }: SearchResultsPageProps) => {
     const router = useRouter();
     const { setSearchHistory } = useSearchHistory();
@@ -75,6 +79,8 @@ export const SearchResultsPage = ({
         whole: false,
         isRegexEnabled,
         isCaseSensitivityEnabled,
+        isArchivedExcluded,
+        isForkedExcluded,
     });
 
     useEffect(() => {
@@ -175,6 +181,8 @@ export const SearchResultsPage = ({
                     defaults={{
                         isRegexEnabled,
                         isCaseSensitivityEnabled,
+                        isArchivedExcluded,
+                        isForkedExcluded,
                         query: searchQuery,
                     }}
                     className="w-full"

@@ -8,6 +8,8 @@ interface SearchPageProps {
         query?: string;
         isRegexEnabled?: "true" | "false";
         isCaseSensitivityEnabled?: "true" | "false";
+        isArchivedExcluded?: "true" | "false";
+        isForkedExcluded?: "true" | "false";
     }>;
 }
 
@@ -17,6 +19,8 @@ export default async function SearchPage(props: SearchPageProps) {
     const query = searchParams?.query;
     const isRegexEnabled = searchParams?.isRegexEnabled === "true";
     const isCaseSensitivityEnabled = searchParams?.isCaseSensitivityEnabled === "true";
+    const isArchivedExcluded = searchParams?.isArchivedExcluded === "true";
+    const isForkedExcluded = searchParams?.isForkedExcluded === "true";
 
     if (query === undefined || query.length === 0) {
         return <SearchLandingPage domain={domain} />
@@ -28,6 +32,8 @@ export default async function SearchPage(props: SearchPageProps) {
             defaultMaxMatchCount={env.DEFAULT_MAX_MATCH_COUNT}
             isRegexEnabled={isRegexEnabled}
             isCaseSensitivityEnabled={isCaseSensitivityEnabled}
+            isArchivedExcluded={isArchivedExcluded}
+            isForkedExcluded={isForkedExcluded}
         />
     )
 }

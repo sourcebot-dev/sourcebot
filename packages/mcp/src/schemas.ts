@@ -27,6 +27,8 @@ export const searchOptionsSchema = z.object({
     whole: z.boolean().optional(),                    // Whether to return the whole file as part of the response.
     isRegexEnabled: z.boolean().optional(),           // Whether to enable regular expression search.
     isCaseSensitivityEnabled: z.boolean().optional(), // Whether to enable case sensitivity.
+    isArchivedExcluded: z.boolean().optional(),       // Whether to exclude archived repositories.
+    isForkedExcluded: z.boolean().optional(),         // Whether to exclude forked repositories.
 });
 
 export const searchRequestSchema = z.object({
