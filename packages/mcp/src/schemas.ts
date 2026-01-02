@@ -1,4 +1,4 @@
-// @NOTE : Please keep this file in sync with @sourcebot/web/src/features/search/schemas.ts
+// @NOTE : Please keep this file in sync with @sourcebot/web/src/features/search/types.ts
 // At some point, we should move these to a shared package...
 import { z } from "zod";
 
@@ -27,6 +27,9 @@ export const searchOptionsSchema = z.object({
     whole: z.boolean().optional(),                    // Whether to return the whole file as part of the response.
     isRegexEnabled: z.boolean().optional(),           // Whether to enable regular expression search.
     isCaseSensitivityEnabled: z.boolean().optional(), // Whether to enable case sensitivity.
+    gitRevision: z.string().optional(),               // Filter by git branch/revision.
+    since: z.string().optional(),                     // Filter repositories by indexed date (start). Filters by when the repo was last indexed by Sourcebot, not by commit time.
+    until: z.string().optional(),                     // Filter repositories by indexed date (end). Filters by when the repo was last indexed by Sourcebot, not by commit time.
 });
 
 export const searchRequestSchema = z.object({
@@ -143,6 +146,7 @@ export const searchResponseSchema = z.object({
     })),
     repositoryInfo: z.array(repositoryInfoSchema),
     isSearchExhaustive: z.boolean(),
+    isBranchFilteringEnabled: z.boolean().optional(), // Whether branch filtering is enabled for this search.
 });
 
 export const repositoryQuerySchema = z.object({
@@ -193,3 +197,24 @@ export const serviceErrorSchema = z.object({
     errorCode: z.string(),
     message: z.string(),
 });
+
+export const searchCommitsRequestSchema = z.object({
+    repoId: z.union([z.number(), z.string()]),
+    query: z.string().optional(),
+    since: z.string().optional(),
+    until: z.string().optional(),
+    author: z.string().optional(),
+    maxCount: z.number().int().positive().max(500).optional(),
+});
+
+export const commitSchema = z.object({
+    hash: z.string(),
+    date: z.string(),
+    message: z.string(),
+    refs: z.string(),
+    body: z.string(),
+    author_name: z.string(),
+    author_email: z.string(),
+});
+
+export const searchCommitsResponseSchema = z.array(commitSchema);
