@@ -8,6 +8,11 @@ on:
     branches: ["main"]
     tags: ["v*.*.*"]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v4.10.5)'
+        required: false
+        type: string
   workflow_call:
     inputs:
       version:
