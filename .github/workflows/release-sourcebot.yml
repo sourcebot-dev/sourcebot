@@ -142,6 +142,7 @@ jobs:
           echo "temp_branch=$TEMP_BRANCH" >> $GITHUB_OUTPUT
 
   build:
+    needs: prepare-release
     runs-on: ${{ matrix.runs-on}}
     environment: oss
     permissions:
@@ -206,7 +207,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ steps.generate_token.outputs.token }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker image
         id: build
@@ -277,15 +278,34 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.generate_token.outputs.token }}
           VERSION: ${{ needs.prepare-release.outputs.version }}
+          TEMP_BRANCH: ${{ needs.prepare-release.outputs.temp_branch }}
         run: |
           # Fetch main branch
           git fetch origin main:main
-          
-          # Fast-forward main to current commit
           git checkout main
-          git merge --ff-only ${{ needs.prepare-release.outputs.temp_branch }}
           
-          echo "Fast-forwarded main to release commit"
+          # Check if fast-forward is possible
+          if ! git merge-base --is-ancestor main "$TEMP_BRANCH"; then
+            echo "❌ ERROR: Cannot fast-forward main branch to release commit"
+            echo ""
+            echo "This means new commits were pushed to main after the release process started."
+            echo ""
+            echo "Recent commits on main that caused the conflict:"
+            git log --oneline $TEMP_BRANCH..main | head -5
+            exit 1
+          fi
+          
+          # Fast-forward main to release commit
+          git merge --ff-only "$TEMP_BRANCH"
+          
+          echo "✓ Successfully fast-forwarded main to release commit"
+
+      - name: Create annotated tag
+        env:
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          git tag -a "v$VERSION" -m "sourcebot v$VERSION"
+          echo "Created tag v$VERSION"
 
       - name: Push main and tag
         env:
@@ -294,25 +314,7 @@ jobs:
           git push origin main
           git push origin --tags
           echo "Pushed main branch and tags"
-
-      - name: Create GitHub release
-        env:
-          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
-          VERSION: ${{ needs.prepare-release.outputs.version }}
-        run: |
-          gh release create "v$VERSION" \
-              --verify-tag \
-              --generate-notes \
-              --latest
-
-      - name: Delete temporary branch
-        env:
-          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
-          TEMP_BRANCH: ${{ needs.prepare-release.outputs.temp_branch }}
-        run: |
-          git push origin --delete $TEMP_BRANCH
-          echo "Deleted temporary branch: $TEMP_BRANCH"
-
+      
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
@@ -322,13 +324,22 @@ jobs:
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=raw,value=v${{ needs.prepare-release.outputs.version }}
+            type=raw,value=latest
       
       - name: Login to GitHub Packages Docker Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ steps.generate_token.outputs.token }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Create manifest list and push
         working-directory: /tmp/digests
@@ -340,9 +351,46 @@ jobs:
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:v${{ needs.prepare-release.outputs.version }}
 
-      - name: Create annotated tag
+      - name: Create GitHub release
         env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
           VERSION: ${{ needs.prepare-release.outputs.version }}
         run: |
-          git tag -a "v$VERSION" -m "sourcebot v$VERSION"
-          echo "Created tag v$VERSION"
+          gh release create "v$VERSION" \
+              --verify-tag \
+              --generate-notes \
+              --latest
+
+  cleanup:
+    needs: [prepare-release, build, finalize-release]
+    if: always() && needs.prepare-release.outputs.temp_branch != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Generate GitHub App token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout temporary branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Delete temporary branch
+        env:
+          TEMP_BRANCH: ${{ needs.prepare-release.outputs.temp_branch }}
+        run: |
+          # Check if branch exists before attempting to delete
+          if git ls-remote --heads origin "$TEMP_BRANCH" | grep -q "$TEMP_BRANCH"; then
+            git push origin --delete "$TEMP_BRANCH"
+            echo "✓ Deleted temporary branch: $TEMP_BRANCH"
+          else
+            echo "ℹ Temporary branch $TEMP_BRANCH does not exist (may have been already deleted)"
+          fi
