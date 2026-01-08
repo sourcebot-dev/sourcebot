@@ -34,4 +34,6 @@ export const SINGLE_TENANT_ORG_ID = 1;
 export const SINGLE_TENANT_ORG_DOMAIN = '~';
 export const SINGLE_TENANT_ORG_NAME = 'default';
 
+export const CHAT_HISTORY_DISPLAY_LIMIT = 3;
+
 export { SOURCEBOT_SUPPORT_EMAIL } from "@sourcebot/shared/client";

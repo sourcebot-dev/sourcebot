@@ -14,6 +14,7 @@ import { loadJsonFile } from "@sourcebot/shared";
 import { DemoExamples, demoExamplesSchema } from "@/types";
 import { auth } from "@/auth";
 import ChatHistoryCard from "./components/chatHistoryCard";
+import { CHAT_HISTORY_DISPLAY_LIMIT } from "@/lib/constants";
 
 interface PageProps {
     params: Promise<{
@@ -116,7 +117,7 @@ export default async function Page(props: PageProps) {
                         <div className="w-full max-w-4xl mt-8 flex flex-col items-center">
                             <h2 className="text-2xl font-semibold mb-4">Recent Chats</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {chatHistory.map((chat) => (
+                                {chatHistory.slice(0, CHAT_HISTORY_DISPLAY_LIMIT).map((chat) => (
                                     <ChatHistoryCard
                                         key={chat.id}
                                         chat={chat}
