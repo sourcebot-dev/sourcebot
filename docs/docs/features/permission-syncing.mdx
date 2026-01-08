@@ -45,7 +45,9 @@ We are actively working on supporting more code hosts. If you'd like to see a sp
 
 ## GitHub
 
-Prerequisite: Configure GitHub as an [external identity provider](/docs/configuration/idp).
+Prerequisites:
+- Configure GitHub as an [external identity provider](/docs/configuration/idp).
+- **If you are using a self-hosted GitHub instance**, you must also set `AUTH_EE_GITHUB_BASE_URL` to the base URL of your GitHub instance (e.g. `https://github.example.com`).
 
 Permission syncing works with **GitHub.com**, **GitHub Enterprise Cloud**, and **GitHub Enterprise Server**. For organization-owned repositories, users that have **read-only** access (or above) via the following methods will have their access synced to Sourcebot:
 - Outside collaborators
@@ -60,7 +62,9 @@ Permission syncing works with **GitHub.com**, **GitHub Enterprise Cloud**, and *
 
 ## GitLab
 
-Prerequisite: Configure GitLab as an [external identity provider](/docs/configuration/idp).
+Prerequisites:
+- Configure GitLab as an [external identity provider](/docs/configuration/idp).
+- **If you are using a self-hosted GitLab instance**, you must also set `AUTH_EE_GITLAB_BASE_URL` to the base URL of your GitLab instance (e.g. `https://gitlab.example.com`).
 
 Permission syncing works with **GitLab Self-managed** and **GitLab Cloud**. Users with **Guest** role or above with membership to a group or project will have their access synced to Sourcebot. Both direct and indirect membership to a group or project will be synced with Sourcebot. For more details, see the [GitLab docs](https://docs.gitlab.com/user/project/members/#membership-types).
 
