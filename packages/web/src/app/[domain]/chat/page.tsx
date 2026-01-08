@@ -1,6 +1,6 @@
 import { getRepos, getReposStats, getSearchContexts } from "@/actions";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
-import { getConfiguredLanguageModelsInfo } from "@/features/chat/actions";
+import { getConfiguredLanguageModelsInfo, getUserChatHistory } from "@/features/chat/actions";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError, measure } from "@/lib/utils";
@@ -12,6 +12,8 @@ import { DemoCards } from "./components/demoCards";
 import { env } from "@sourcebot/shared";
 import { loadJsonFile } from "@sourcebot/shared";
 import { DemoExamples, demoExamplesSchema } from "@/types";
+import { auth } from "@/auth";
+import ChatHistoryCard from "./components/chatHistoryCard";
 
 interface PageProps {
     params: Promise<{
@@ -24,6 +26,8 @@ export default async function Page(props: PageProps) {
     const languageModels = await getConfiguredLanguageModelsInfo();
     const searchContexts = await getSearchContexts(params.domain);
     const allRepos = await getRepos();
+    const session = await auth();
+    const chatHistory = session ? await getUserChatHistory() : [];
 
     const carouselRepos = await getRepos({
         where: {
@@ -50,6 +54,10 @@ export default async function Page(props: PageProps) {
 
     if (isServiceError(repoStats)) {
         throw new ServiceErrorException(repoStats);
+    }
+
+    if (isServiceError(chatHistory)) {
+        throw new ServiceErrorException(chatHistory);
     }
 
     const demoExamples = env.SOURCEBOT_DEMO_EXAMPLES_PATH ? await (async () => {
@@ -100,6 +108,25 @@ export default async function Page(props: PageProps) {
                     </>
                 )}
 
+                {chatHistory.length > 0 && (
+                    <>
+                        <div className="flex flex-col items-center w-fit gap-6">
+                            <Separator className="mt-5 w-[700px]" />
+                        </div>
+                        <div className="w-full max-w-4xl mt-8 flex flex-col items-center">
+                            <h2 className="text-2xl font-semibold mb-4">Recent Chats</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {chatHistory.map((chat) => (
+                                    <ChatHistoryCard
+                                        key={chat.id}
+                                        chat={chat}
+                                        domain={params.domain}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     )
