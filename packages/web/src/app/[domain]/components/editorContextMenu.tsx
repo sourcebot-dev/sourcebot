@@ -9,7 +9,7 @@ import { Link2Icon } from "@radix-ui/react-icons";
 import { EditorView, SelectionRange } from "@uiw/react-codemirror";
 import { useCallback, useEffect, useRef } from "react";
 import { useDomain } from "@/hooks/useDomain";
-import { HIGHLIGHT_RANGE_QUERY_PARAM } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { HIGHLIGHT_RANGE_QUERY_PARAM } from "../browse/hooks/utils";
 
 interface ContextMenuProps {
     view: EditorView;

@@ -4,6 +4,8 @@ import { readFile } from 'fs/promises';
 import stripJsonComments from 'strip-json-comments';
 import { Ajv } from "ajv";
 import { z } from "zod";
+import { DEFAULT_CONFIG_SETTINGS } from "./constants.js";
+import { ConfigSettings } from "./types.js";
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -79,7 +81,11 @@ export const loadJsonFile = async <T>(
     }
 }
 
-export const loadConfig = async (configPath: string): Promise<SourcebotConfig> => {
+export const loadConfig = async (configPath?: string): Promise<SourcebotConfig> => {
+    if (!configPath) {
+        throw new Error('CONFIG_PATH is required but not provided');
+    }
+
     const configContent = await (async () => {
         if (isRemotePath(configPath)) {
             const response = await fetch(configPath);
@@ -129,4 +135,17 @@ export const loadConfig = async (configPath: string): Promise<SourcebotConfig> =
         throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}`);
     }
     return config;
+}
+
+export const getConfigSettings = async (configPath?: string): Promise<ConfigSettings> => {
+    if (!configPath) {
+        return DEFAULT_CONFIG_SETTINGS;
+    }
+
+    const config = await loadConfig(configPath);
+
+    return {
+        ...DEFAULT_CONFIG_SETTINGS,
+        ...config.settings,
+    }
 }

@@ -15,15 +15,15 @@ export interface BitbucketConnectionConfig {
   token?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * Bitbucket URL

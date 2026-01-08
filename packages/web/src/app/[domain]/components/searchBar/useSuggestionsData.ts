@@ -5,7 +5,7 @@ import { Suggestion, SuggestionMode } from "./searchSuggestionsBox";
 import { getRepos, search } from "@/app/api/(client)/client";
 import { getSearchContexts } from "@/actions";
 import { useMemo } from "react";
-import { SearchSymbol } from "@/features/search/types";
+import { SearchSymbol } from "@/features/search";
 import { languageMetadataMap } from "@/lib/languageMetadata";
 import {
     VscSymbolClass,
@@ -19,7 +19,7 @@ import {
     VscSymbolVariable
 } from "react-icons/vsc";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
-import { getDisplayTime, isServiceError } from "@/lib/utils";
+import { getFormattedDate, isServiceError, unwrapServiceError } from "@/lib/utils";
 import { useDomain } from "@/hooks/useDomain";
 
 
@@ -37,12 +37,12 @@ export const useSuggestionsData = ({
 }: Props) => {
     const domain = useDomain();
     const { data: repoSuggestions, isLoading: _isLoadingRepos } = useQuery({
-        queryKey: ["repoSuggestions", domain],
-        queryFn: () => getRepos(domain),
+        queryKey: ["repoSuggestions"],
+        queryFn: () => unwrapServiceError(getRepos()),
         select: (data): Suggestion[] => {
-            return data.repos
+            return data
                 .map(r => ({
-                    value: r.name,
+                    value: r.repoName,
                 }));
         },
         enabled: suggestionMode === "repo",
@@ -55,7 +55,8 @@ export const useSuggestionsData = ({
             query: `file:${suggestionQuery}`,
             matches: 15,
             contextLines: 1,
-        }, domain),
+            source: 'search-bar-file-suggestions'
+        }),
         select: (data): Suggestion[] => {
             if (isServiceError(data)) {
                 return [];
@@ -75,7 +76,8 @@ export const useSuggestionsData = ({
             query: `sym:${suggestionQuery.length > 0 ? suggestionQuery : ".*"}`,
             matches: 15,
             contextLines: 1,
-        }, domain),
+            source: 'search-bar-symbol-suggestions'
+        }),
         select: (data): Suggestion[] => {
             if (isServiceError(data)) {
                 return [];
@@ -139,7 +141,7 @@ export const useSuggestionsData = ({
     const searchHistorySuggestions = useMemo(() => {
         return searchHistory.map(search => ({
             value: search.query,
-            description: getDisplayTime(new Date(search.date)),
+            description: getFormattedDate(new Date(search.date)),
         } satisfies Suggestion));
     }, [searchHistory]);
 

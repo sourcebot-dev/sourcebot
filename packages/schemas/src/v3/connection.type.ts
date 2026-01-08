@@ -6,6 +6,7 @@ export type ConnectionConfig =
   | GiteaConnectionConfig
   | GerritConnectionConfig
   | BitbucketConnectionConfig
+  | AzureDevOpsConnectionConfig
   | GenericGitHostConnectionConfig;
 
 export interface GithubConnectionConfig {
@@ -19,15 +20,15 @@ export interface GithubConnectionConfig {
   token?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * The URL of the GitHub host. Defaults to https://github.com
@@ -108,15 +109,15 @@ export interface GitlabConnectionConfig {
   token?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * The URL of the GitLab host. Defaults to https://gitlab.com
@@ -154,6 +155,10 @@ export interface GitlabConnectionConfig {
      */
     archived?: boolean;
     /**
+     * Exclude user-owned projects from syncing.
+     */
+    userOwnedProjects?: boolean;
+    /**
      * List of projects to exclude from syncing. Glob patterns are supported. The project's namespace must be specified, see: https://docs.gitlab.com/ee/user/namespace/
      */
     projects?: string[];
@@ -175,15 +180,15 @@ export interface GiteaConnectionConfig {
   token?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * The URL of the Gitea host. Defaults to https://gitea.com
@@ -261,15 +266,15 @@ export interface BitbucketConnectionConfig {
   token?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * Bitbucket URL
@@ -304,6 +309,80 @@ export interface BitbucketConnectionConfig {
      * List of specific repos to exclude from syncing.
      */
     repos?: string[];
+  };
+  revisions?: GitRevisions;
+}
+export interface AzureDevOpsConnectionConfig {
+  /**
+   * Azure DevOps Configuration
+   */
+  type: "azuredevops";
+  /**
+   * A Personal Access Token (PAT).
+   */
+  token:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  /**
+   * The URL of the Azure DevOps host. For Azure DevOps Cloud, use https://dev.azure.com. For Azure DevOps Server, use your server URL.
+   */
+  url?: string;
+  /**
+   * The type of Azure DevOps deployment
+   */
+  deploymentType: "cloud" | "server";
+  /**
+   * Use legacy TFS path format (/tfs) in API URLs. Required for older TFS installations (TFS 2018 and earlier). When true, API URLs will include /tfs in the path (e.g., https://server/tfs/collection/_apis/...).
+   */
+  useTfsPath?: boolean;
+  /**
+   * List of organizations to sync with. For Cloud, this is the organization name. For Server, this is the collection name. All projects and repositories visible to the provided `token` will be synced, unless explicitly defined in the `exclude` property.
+   */
+  orgs?: string[];
+  /**
+   * List of specific projects to sync with. Expected to be formatted as '{orgName}/{projectName}' for Cloud or '{collectionName}/{projectName}' for Server.
+   */
+  projects?: string[];
+  /**
+   * List of individual repositories to sync with. Expected to be formatted as '{orgName}/{projectName}/{repoName}'.
+   */
+  repos?: string[];
+  exclude?: {
+    /**
+     * Exclude disabled repositories from syncing.
+     */
+    disabled?: boolean;
+    /**
+     * List of repositories to exclude from syncing. Glob patterns are supported.
+     */
+    repos?: string[];
+    /**
+     * List of projects to exclude from syncing. Glob patterns are supported.
+     */
+    projects?: string[];
+    /**
+     * Exclude repositories based on their size.
+     */
+    size?: {
+      /**
+       * Minimum repository size (in bytes) to sync (inclusive). Repositories less than this size will be excluded from syncing.
+       */
+      min?: number;
+      /**
+       * Maximum repository size (in bytes) to sync (inclusive). Repositories greater than this size will be excluded from syncing.
+       */
+      max?: number;
+    };
   };
   revisions?: GitRevisions;
 }

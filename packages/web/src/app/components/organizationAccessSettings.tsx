@@ -6,7 +6,7 @@ import { getOrgMetadata } from "@/lib/utils"
 import { headers } from "next/headers"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { hasEntitlement } from "@sourcebot/shared"
-import { env } from "@/env.mjs"
+import { env } from "@sourcebot/shared"
 
 export async function OrganizationAccessSettings() {
     const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
@@ -17,7 +17,7 @@ export async function OrganizationAccessSettings() {
     const metadata = getOrgMetadata(org);
     const anonymousAccessEnabled = metadata?.anonymousAccessEnabled ?? false;
 
-    const headersList = headers();
+    const headersList = await headers();
     const baseUrl = getBaseUrl(headersList);
     const inviteLink = createInviteLink(baseUrl, org.inviteLinkId)
 

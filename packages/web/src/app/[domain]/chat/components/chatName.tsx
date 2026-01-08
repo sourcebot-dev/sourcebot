@@ -4,7 +4,6 @@ import { useToast } from "@/components/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { updateChatName } from "@/features/chat/actions";
-import { useDomain } from "@/hooks/useDomain";
 import { isServiceError } from "@/lib/utils";
 import { GlobeIcon } from "@radix-ui/react-icons";
 import { ChatVisibility } from "@sourcebot/db";
@@ -23,7 +22,6 @@ interface ChatNameProps {
 export const ChatName = ({ name, visibility, id, isReadonly }: ChatNameProps) => {
     const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
     const { toast } = useToast();
-    const domain = useDomain();
     const router = useRouter();
 
     const onRenameChat = useCallback(async (name: string) => {
@@ -31,7 +29,7 @@ export const ChatName = ({ name, visibility, id, isReadonly }: ChatNameProps) =>
         const response = await updateChatName({
             chatId: id,
             name: name,
-        }, domain);
+        });
 
         if (isServiceError(response)) {
             toast({
@@ -43,7 +41,7 @@ export const ChatName = ({ name, visibility, id, isReadonly }: ChatNameProps) =>
             });
             router.refresh();
         }
-    }, [id, domain, toast, router]);
+    }, [id, toast, router]);
 
     return (
         <>

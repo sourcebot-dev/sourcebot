@@ -2,25 +2,21 @@ import { auth } from "@/auth";
 import { LoginForm } from "./components/loginForm";
 import { redirect } from "next/navigation";
 import { Footer } from "@/app/components/footer";
-import { createLogger } from "@sourcebot/logger";
-import { getAuthProviders } from "@/lib/authProviders";
+import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 import { getOrgFromDomain } from "@/data/org";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
-const logger = createLogger('login-page');
-
 interface LoginProps {
-    searchParams: {
+    searchParams: Promise<{
         callbackUrl?: string;
         error?: string;
-    }
+    }>
 }
 
-export default async function Login({ searchParams }: LoginProps) {
-    logger.info("Login page loaded");
+export default async function Login(props: LoginProps) {
+    const searchParams = await props.searchParams;
     const session = await auth();
     if (session) {
-        logger.info("Session found in login page, redirecting to home");
         return redirect("/");
     }
 
@@ -29,7 +25,7 @@ export default async function Login({ searchParams }: LoginProps) {
         return redirect("/onboard");
     }
 
-    const providers = getAuthProviders();
+    const providers = getIdentityProviderMetadata();
     return (
         <div className="flex flex-col min-h-screen bg-backgroundSecondary">
             <div className="flex-1 flex flex-col items-center p-4 sm:p-12 w-full">

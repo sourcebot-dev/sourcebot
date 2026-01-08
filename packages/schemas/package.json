@@ -10,7 +10,7 @@
     },
     "devDependencies": {
         "@apidevtools/json-schema-ref-parser": "^11.7.3",
-        "glob": "^11.0.1",
+        "glob": "^11.1.0",
         "json-schema-to-typescript": "^15.0.4",
         "nodemon": "^3.1.10",
         "tsx": "^4.19.2",

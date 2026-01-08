@@ -10,7 +10,7 @@ codebase that the agent may fetch to perform the review.
 
 This agent provides codebase-aware reviews for your PRs. For each diff, this agent fetches relevant context from Sourcebot and feeds it into an LLM for a detailed review of your changes.
 
-The AI Code Review Agent is [fair source](https://github.com/sourcebot-dev/sourcebot/tree/main/packages/web/src/features/agents/review-agent) and packaged in [Sourcebot](https://github.com/sourcebot-dev/sourcebot). To get started using this agent, [deploy Sourcebot](/docs/deployment-guide)
+The AI Code Review Agent is [fair source](https://github.com/sourcebot-dev/sourcebot/tree/main/packages/web/src/features/agents/review-agent) and packaged in [Sourcebot](https://github.com/sourcebot-dev/sourcebot). To get started using this agent, [deploy Sourcebot](/docs/deployment/docker-compose)
 and then follow the configuration instructions below.
 
 ![AI Code Review Agent Example](/images/review_agent_example.png)
@@ -44,9 +44,9 @@ Before you get started, make sure you have an OpenAPI account that you can creat
     <Step title="Configure the environment variables in Sourcebot">
         Sourcebot requires the following environment variables to begin reviewing PRs through your new GitHub app:
 
-        - `GITHUB_APP_ID`: The client ID of your GitHub app. Can be found in your [app settings](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#navigate-to-your-app-settings)
-        - `GITHUB_APP_WEBHOOK_SECRET`: The webhook secret you defined in your GitHub app. Can be found in your [app settings](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#navigate-to-your-app-settings)
-        - `GITHUB_APP_PRIVATE_KEY_PATH`: The path to your app's private key. If you're running Sourcebot from a container, this is the path to this file from within your container
+        - `GITHUB_REVIEW_AGENT_APP_ID`: The client ID of your GitHub app. Can be found in your [app settings](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#navigate-to-your-app-settings)
+        - `GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET`: The webhook secret you defined in your GitHub app. Can be found in your [app settings](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#navigate-to-your-app-settings)
+        - `GITHUB_REVIEW_AGENT_APP_PRIVATE_KEY_PATH`: The path to your app's private key. If you're running Sourcebot from a container, this is the path to this file from within your container
         (ex `/data/review-agent-key.pem`). You must copy the private key file into the directory you mount to Sourcebot (similar to the config file). 
         
         You can generate a private key file for your app in the [app settings](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/quickstart#navigate-to-your-app-settings). You must copy this private key file into the
@@ -74,9 +74,9 @@ Before you get started, make sure you have an OpenAPI account that you can creat
                     - "/Users/michael/sourcebot_review_agent_workspace:/data"
                 environment:
                     CONFIG_PATH: "/data/config.json"
-                    GITHUB_APP_ID: "my-github-app-id"
-                    GITHUB_APP_WEBHOOK_SECRET: "my-github-app-webhook-secret"
-                    GITHUB_APP_PRIVATE_KEY_PATH: "/data/review-agent-key.pem"
+                    GITHUB_REVIEW_AGENT_APP_ID: "my-github-app-id"
+                    GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET: "my-github-app-webhook-secret"
+                    GITHUB_REVIEW_AGENT_APP_PRIVATE_KEY_PATH: "/data/review-agent-key.pem"
                     REVIEW_AGENT_API_KEY: "sourcebot-my-key"
                     OPENAI_API_KEY: "sk-proj-my-open-api-key"
         ```

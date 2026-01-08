@@ -10,17 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum RepoIndexingStatus {
-  NEW
-  IN_INDEX_QUEUE
-  INDEXING
-  INDEXED
-  FAILED
-  IN_GC_QUEUE
-  GARBAGE_COLLECTING
-  GARBAGE_COLLECTION_FAILED
-}
-
 enum ConnectionSyncStatus {
   SYNC_NEEDED
   IN_SYNC_QUEUE
@@ -40,29 +29,48 @@ enum ChatVisibility {
   PUBLIC
 }
 
+/// @note: The @map annotation is required to maintain backwards compatibility
+/// with the existing database.
+/// @note: In the generated client, these mapped values will be in pascalCase.
+/// This behaviour will change in prisma v7. See: https://github.com/prisma/prisma/issues/8446#issuecomment-3356119713
+enum CodeHostType {
+  github
+  gitlab
+  gitea
+  gerrit
+  bitbucketServer         @map("bitbucket-server")
+  bitbucketCloud          @map("bitbucket-cloud")
+  genericGitHost          @map("generic-git-host")
+  azuredevops
+}
+
 model Repo {
-  id                 Int                @id @default(autoincrement())
-  name               String
-  displayName        String?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  /// When the repo was last indexed successfully.
-  indexedAt          DateTime?
+  id                 Int                    @id @default(autoincrement())
+  name               String /// Full repo name, including the vcs hostname (ex. github.com/sourcebot-dev/sourcebot)
+  displayName        String? /// Display name of the repo for UI (ex. sourcebot-dev/sourcebot)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
   isFork             Boolean
   isArchived         Boolean
-  metadata           Json // For schema see repoMetadataSchema in packages/backend/src/types.ts
+  isPublic           Boolean                @default(false)
+  metadata           Json /// For schema see repoMetadataSchema in packages/shared/src/types.ts
   cloneUrl           String
   webUrl             String?
   connections        RepoToConnection[]
   imageUrl           String?
-  repoIndexingStatus RepoIndexingStatus @default(NEW)
 
-  // The id of the repo in the external service
-  external_id           String
-  // The type of the external service (e.g., github, gitlab, etc.)
-  external_codeHostType String
-  // The base url of the external service (e.g., https://github.com)
-  external_codeHostUrl  String
+  permittedAccounts  AccountToRepoPermission[]
+  permissionSyncJobs RepoPermissionSyncJob[]
+  permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
+
+  jobs RepoIndexingJob[]
+  indexedAt          DateTime? /// When the repo was last indexed successfully.
+  indexedCommitHash  String? /// The commit hash of the last indexed commit (on HEAD).
+  latestIndexingJobStatus RepoIndexingJobStatus? /// The status of the latest indexing job.
+
+  external_id           String /// The id of the repo in the external service
+  external_codeHostType CodeHostType /// The type of the external service (e.g., github, gitlab, etc.)
+  external_codeHostUrl  String /// The base url of the external service (e.g., https://github.com)
 
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
@@ -70,19 +78,79 @@ model Repo {
   searchContexts SearchContext[]
 
   @@unique([external_id, external_codeHostUrl, orgId])
+  @@index([orgId])
+}
+
+enum RepoIndexingJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum RepoIndexingJobType {
+  INDEX
+  CLEANUP
+}
+
+model RepoIndexingJob {
+  id          String                      @id @default(cuid())
+  type        RepoIndexingJobType
+  status      RepoIndexingJobStatus @default(PENDING)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  completedAt DateTime?
+  metadata    Json? /// For schema see repoIndexingJobMetadataSchema in packages/shared/src/types.ts
+
+  errorMessage String?
+
+  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId Int
+}
+
+enum RepoPermissionSyncJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model RepoPermissionSyncJob {
+  id          String                      @id @default(cuid())
+  status      RepoPermissionSyncJobStatus @default(PENDING)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  completedAt DateTime?
+
+  errorMessage String?
+
+  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId Int
 }
 
 model SearchContext {
   id Int @id @default(autoincrement())
 
-  name  String
+  name        String
   description String?
-  repos Repo[]
+  repos       Repo[]
 
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
 
   @@unique([name, orgId])
+}
+
+/// Matches the union of `type` fields in the schema.
+/// @see: schemas/v3/connection.type.ts
+enum ConnectionType {
+  github
+  gitlab
+  gitea
+  gerrit
+  bitbucket
+  azuredevops
+  git
 }
 
 model Connection {
@@ -92,20 +160,41 @@ model Connection {
   isDeclarative      Boolean              @default(false)
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
-  /// When the connection was last synced successfully.
-  syncedAt           DateTime?
   repos              RepoToConnection[]
-  syncStatus         ConnectionSyncStatus @default(SYNC_NEEDED)
-  syncStatusMetadata Json?
 
   // The type of connection (e.g., github, gitlab, etc.)
-  connectionType String
+  connectionType ConnectionType
+
+  syncJobs ConnectionSyncJob[]
+  /// When the connection was last synced successfully.
+  syncedAt           DateTime?
 
   // The organization that owns this connection
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
 
   @@unique([name, orgId])
+}
+
+enum ConnectionSyncJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model ConnectionSyncJob {
+  id          String                      @id @default(cuid())
+  status      ConnectionSyncJobStatus @default(PENDING)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  completedAt DateTime?
+
+  warningMessages String[]
+  errorMessage String?
+
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  connectionId Int
 }
 
 model RepoToConnection {
@@ -118,6 +207,7 @@ model RepoToConnection {
   repoId Int
 
   @@id([connectionId, repoId])
+  @@index([repoId, connectionId])
 }
 
 model Invite {
@@ -146,7 +236,7 @@ model AccountRequest {
 
   createdAt DateTime @default(now())
 
-  requestedBy User @relation(fields: [requestedById], references: [id], onDelete: Cascade)
+  requestedBy   User   @relation(fields: [requestedById], references: [id], onDelete: Cascade)
   requestedById String @unique
 
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -164,11 +254,10 @@ model Org {
   members     UserToOrg[]
   connections Connection[]
   repos       Repo[]
-  secrets     Secret[]
   apiKeys     ApiKey[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
-  metadata    Json?       // For schema see orgMetadataSchema in packages/web/src/types.ts
+  metadata    Json? // For schema see orgMetadataSchema in packages/web/src/types.ts
 
   memberApprovalRequired Boolean @default(true)
 
@@ -178,10 +267,10 @@ model Org {
 
   /// List of pending invites to this organization
   invites Invite[]
-  
+
   /// The invite id for this organization
   inviteLinkEnabled Boolean @default(false)
-  inviteLinkId String?
+  inviteLinkId      String?
 
   audits Audit[]
 
@@ -214,63 +303,47 @@ model UserToOrg {
   @@id([orgId, userId])
 }
 
-model Secret {
-  orgId          Int
-  key            String
-  encryptedValue String
-  iv             String
-
-  createdAt DateTime @default(now())
-
-  org Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
-
-  @@id([orgId, key])
-}
-
 model ApiKey {
-  name            String
-  hash            String @id @unique
+  name String
+  hash String @id @unique
 
-  createdAt DateTime @default(now())
+  createdAt  DateTime  @default(now())
   lastUsedAt DateTime?
 
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
 
-  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdById String
-
 }
 
 model Audit {
-  id String @id @default(cuid())
+  id        String   @id @default(cuid())
   timestamp DateTime @default(now())
-  
-  action String
-  actorId String
-  actorType String
-  targetId String
-  targetType String
+
+  action           String
+  actorId          String
+  actorType        String
+  targetId         String
+  targetType       String
   sourcebotVersion String
-  metadata Json?
+  metadata         Json?
 
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
 
   @@index([actorId, actorType, targetId, targetType, orgId])
-
   // Fast path for analytics queries – orgId is first because we assume most deployments are single tenant
   @@index([orgId, timestamp, action, actorId], map: "idx_audit_core_actions_full")
-
   // Fast path for analytics queries for a specific user
   @@index([actorId, timestamp], map: "idx_audit_actor_time_full")
 }
 
 // @see : https://authjs.dev/concepts/database-models#user
 model User {
-  id              String      @id @default(cuid())
+  id              String                 @id @default(cuid())
   name            String?
-  email           String?     @unique
+  email           String?                @unique
   hashedPassword  String?
   emailVerified   DateTime?
   image           String?
@@ -287,6 +360,39 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+}
+
+enum AccountPermissionSyncJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model AccountPermissionSyncJob {
+  id          String                      @id @default(cuid())
+  status      AccountPermissionSyncJobStatus @default(PENDING)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  completedAt DateTime?
+
+  errorMessage String?
+
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId String
+}
+
+model AccountToRepoPermission {
+  createdAt DateTime @default(now())
+
+  repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId Int
+
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  accountId String
+
+  @@id([repoId, accountId])
 }
 
 // @see : https://authjs.dev/concepts/database-models#account
@@ -303,6 +409,12 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
+  
+  /// List of repos that this account has access to.
+  accessibleRepos AccountToRepoPermission[]
+
+  permissionSyncJobs AccountPermissionSyncJob[]
+  permissionSyncedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -326,17 +438,17 @@ model Chat {
 
   name String?
 
-  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  createdById String
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdById String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
 
   visibility ChatVisibility @default(PRIVATE)
-  isReadonly Boolean @default(false)
+  isReadonly Boolean        @default(false)
 
   messages Json // This is a JSON array of `Message` types from @ai-sdk/ui-utils.
 }

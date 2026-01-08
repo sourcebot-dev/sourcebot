@@ -25,6 +25,10 @@
                     "$ref": "./shared.json#/definitions/Token",
                     "description": "Optional secret access key to use with the model. Defaults to the `AWS_SECRET_ACCESS_KEY` environment variable."
                 },
+                "sessionToken": {
+                    "$ref": "./shared.json#/definitions/Token",
+                    "description": "Optional session token to use with the model. Defaults to the `AWS_SESSION_TOKEN` environment variable."
+                },
                 "region": {
                     "type": "string",
                     "description": "The AWS region. Defaults to the `AWS_REGION` environment variable.",
@@ -418,6 +422,19 @@
                 },
                 "headers": {
                     "$ref": "./shared.json#/definitions/LanguageModelHeaders"
+                },
+                "queryParams": {
+                    "$ref": "./shared.json#/definitions/LanguageModelQueryParams"
+                },
+                "reasoningTag": {
+                    "type": "string",
+                    "description": "The name of the XML tag to extract reasoning from (without angle brackets). Defaults to `think`.",
+                    "default": "think",
+                    "examples": [
+                        "think",
+                        "thinking",
+                        "reasoning"
+                    ]
                 }
             },
             "required": [

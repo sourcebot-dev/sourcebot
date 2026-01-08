@@ -1,3 +1,24 @@
+import { BrowseState, SET_BROWSE_STATE_QUERY_PARAM } from "../browseStateProvider";
+
+export const HIGHLIGHT_RANGE_QUERY_PARAM = 'highlightRange';
+
+export type BrowseHighlightRange = {
+    start: { lineNumber: number; column: number; };
+    end: { lineNumber: number; column: number; };
+} | {
+    start: { lineNumber: number; };
+    end: { lineNumber: number; };
+}
+
+export interface GetBrowsePathProps {
+    repoName: string;
+    revisionName?: string;
+    path: string;
+    pathType: 'blob' | 'tree';
+    highlightRange?: BrowseHighlightRange;
+    setBrowseState?: Partial<BrowseState>;
+    domain: string;
+}
 
 export const getBrowseParamsFromPathParam = (pathParam: string) => {
     const sentinelIndex = pathParam.search(/\/-\/(tree|blob)/);
@@ -5,9 +26,9 @@ export const getBrowseParamsFromPathParam = (pathParam: string) => {
         throw new Error(`Invalid browse pathname: "${pathParam}" - expected to contain "/-/(tree|blob)/" pattern`);
     }
 
-    const repoAndRevisionPart = pathParam.substring(0, sentinelIndex);
+    const repoAndRevisionPart = decodeURIComponent(pathParam.substring(0, sentinelIndex));
     const lastAtIndex = repoAndRevisionPart.lastIndexOf('@');
-    
+
     const repoName = lastAtIndex === -1 ? repoAndRevisionPart : repoAndRevisionPart.substring(0, lastAtIndex);
     const revisionName = lastAtIndex === -1 ? undefined : repoAndRevisionPart.substring(lastAtIndex + 1);
 
@@ -40,4 +61,29 @@ export const getBrowseParamsFromPathParam = (pathParam: string) => {
         path,
         pathType,
     }
-}
+};
+
+export const getBrowsePath = ({
+    repoName, revisionName = 'HEAD', path, pathType, highlightRange, setBrowseState, domain,
+}: GetBrowsePathProps) => {
+    const params = new URLSearchParams();
+
+    if (highlightRange) {
+        const { start, end } = highlightRange;
+
+        if ('column' in start && 'column' in end) {
+            params.set(HIGHLIGHT_RANGE_QUERY_PARAM, `${start.lineNumber}:${start.column},${end.lineNumber}:${end.column}`);
+        } else {
+            params.set(HIGHLIGHT_RANGE_QUERY_PARAM, `${start.lineNumber},${end.lineNumber}`);
+        }
+    }
+
+    if (setBrowseState) {
+        params.set(SET_BROWSE_STATE_QUERY_PARAM, JSON.stringify(setBrowseState));
+    }
+
+    const encodedPath = encodeURIComponent(path);
+    const browsePath = `/${domain}/browse/${repoName}@${revisionName}/-/${pathType}/${encodedPath}${params.size > 0 ? `?${params.toString()}` : ''}`;
+    return browsePath;
+};
+

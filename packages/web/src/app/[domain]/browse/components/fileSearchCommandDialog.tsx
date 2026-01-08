@@ -5,8 +5,6 @@ import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useQuery } from "@tanstack/react-query";
 import { unwrapServiceError } from "@/lib/utils";
-import { FileTreeItem, getFiles } from "@/features/fileTree/actions";
-import { useDomain } from "@/hooks/useDomain";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useBrowseNavigation } from "../hooks/useBrowseNavigation";
 import { useBrowseState } from "../hooks/useBrowseState";
@@ -14,6 +12,8 @@ import { useBrowseParams } from "../hooks/useBrowseParams";
 import { FileTreeItemIcon } from "@/features/fileTree/components/fileTreeItemIcon";
 import { useLocalStorage } from "usehooks-ts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FileTreeItem } from "@/features/fileTree/types";
+import { getFiles } from "@/app/api/(client)/client";
 
 const MAX_RESULTS = 100;
 
@@ -28,7 +28,6 @@ type SearchResult = {
 
 export const FileSearchCommandDialog = () => {
     const { repoName, revisionName } = useBrowseParams();
-    const domain = useDomain();
     const { state: { isFileSearchOpen }, updateBrowseState } = useBrowseState();
 
     const commandListRef = useRef<HTMLDivElement>(null);
@@ -57,8 +56,8 @@ export const FileSearchCommandDialog = () => {
     }, [isFileSearchOpen]);
 
     const { data: files, isLoading, isError } = useQuery({
-        queryKey: ['files', repoName, revisionName, domain],
-        queryFn: () => unwrapServiceError(getFiles({ repoName, revisionName: revisionName ?? 'HEAD' }, domain)),
+        queryKey: ['files', repoName, revisionName],
+        queryFn: () => unwrapServiceError(getFiles({ repoName, revisionName: revisionName ?? 'HEAD' })),
         enabled: isFileSearchOpen,
     });
 

@@ -2,11 +2,11 @@ import { Octokit } from "octokit";
 import { generatePrReviews } from "@/features/agents/review-agent/nodes/generatePrReview";
 import { githubPushPrReviews } from "@/features/agents/review-agent/nodes/githubPushPrReviews";
 import { githubPrParser } from "@/features/agents/review-agent/nodes/githubPrParser";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { GitHubPullRequest } from "@/features/agents/review-agent/types";
 import path from "path";
 import fs from "fs";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 
 const rules = [
     "Do NOT provide general feedback, summaries, explanations of changes, or praises for making good additions.",

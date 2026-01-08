@@ -1,6 +1,5 @@
 <Tabs>
     <Tab title="Environment Variable">
-        <Note>Environment variables are only supported in a [declarative config](/docs/configuration/declarative-config) and cannot be used in the web UI.</Note>
 
         1. Add the `token` property to your connection config:
         ```json
@@ -22,26 +21,5 @@
             /* additional args */ \
             ghcr.io/sourcebot-dev/sourcebot:latest
         ```
-    </Tab>
-
-    <Tab title="Secret">
-        <Note>Secrets are only supported when [authentication](/docs/configuration/auth/overview) is enabled.</Note>
-
-        1. Navigate to **Secrets** in settings and create a new secret with your PAT:
-
-        ![](/images/secrets_list.png)
-
-        2. Add the `token` property to your connection config:
-
-        ```json
-        {
-            "type": "bitbucket",
-            "token": {
-                "secret": "mysecret"
-            }
-            // .. rest of config ..
-        }
-        ```
-
     </Tab>
 </Tabs>

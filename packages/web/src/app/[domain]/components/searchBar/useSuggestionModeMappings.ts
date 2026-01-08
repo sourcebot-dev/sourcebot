@@ -71,21 +71,15 @@ export const useSuggestionModeMappings = () => {
                 ]
             },
             {
-                suggestionMode: "case",
-                prefixes: [
-                    SearchPrefix.case
-                ]
-            },
-            {
                 suggestionMode: "fork",
                 prefixes: [
                     SearchPrefix.fork
                 ]
             },
             {
-                suggestionMode: "public",
+                suggestionMode: "visibility",
                 prefixes: [
-                    SearchPrefix.public
+                    SearchPrefix.visibility
                 ]
             },
             ...(isSearchContextsEnabled ? [

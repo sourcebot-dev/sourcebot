@@ -33,15 +33,15 @@ export interface AmazonBedrockLanguageModel {
   accessKeyId?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional secret access key to use with the model. Defaults to the `AWS_SECRET_ACCESS_KEY` environment variable.
@@ -49,15 +49,31 @@ export interface AmazonBedrockLanguageModel {
   accessKeySecret?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  /**
+   * Optional session token to use with the model. Defaults to the `AWS_SESSION_TOKEN` environment variable.
+   */
+  sessionToken?:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
          */
         env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
       };
   /**
    * The AWS region. Defaults to the `AWS_REGION` environment variable.
@@ -82,15 +98,15 @@ export interface LanguageModelHeaders {
     | (
         | {
             /**
-             * The name of the secret that contains the token.
+             * The name of the environment variable that contains the token.
              */
-            secret: string;
+            env: string;
           }
         | {
             /**
-             * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+             * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
              */
-            env: string;
+            googleCloudSecret: string;
           }
       );
 }
@@ -113,15 +129,15 @@ export interface AnthropicLanguageModel {
   token?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -152,15 +168,15 @@ export interface AzureLanguageModel {
   token?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * Sets a custom api version. Defaults to `preview`.
@@ -191,15 +207,15 @@ export interface DeepSeekLanguageModel {
   token?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -226,15 +242,15 @@ export interface GoogleGenerativeAILanguageModel {
   token?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -269,15 +285,15 @@ export interface GoogleVertexAnthropicLanguageModel {
   credentials?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -312,15 +328,15 @@ export interface GoogleVertexLanguageModel {
   credentials?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -347,15 +363,15 @@ export interface MistralLanguageModel {
   token?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -382,15 +398,15 @@ export interface OpenAILanguageModel {
   token?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -421,21 +437,51 @@ export interface OpenAICompatibleLanguageModel {
   token?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * Base URL of the OpenAI-compatible chat completions API endpoint.
    */
   baseUrl: string;
   headers?: LanguageModelHeaders;
+  queryParams?: LanguageModelQueryParams;
+  /**
+   * The name of the XML tag to extract reasoning from (without angle brackets). Defaults to `think`.
+   */
+  reasoningTag?: string;
+}
+/**
+ * Optional query parameters to include in the request url.
+ */
+export interface LanguageModelQueryParams {
+  /**
+   * This interface was referenced by `LanguageModelQueryParams`'s JSON-Schema definition
+   * via the `patternProperty` "^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$".
+   */
+  [k: string]:
+    | string
+    | (
+        | {
+            /**
+             * The name of the environment variable that contains the token.
+             */
+            env: string;
+          }
+        | {
+            /**
+             * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+             */
+            googleCloudSecret: string;
+          }
+      );
 }
 export interface OpenRouterLanguageModel {
   /**
@@ -456,15 +502,15 @@ export interface OpenRouterLanguageModel {
   token?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.
@@ -491,15 +537,15 @@ export interface XaiLanguageModel {
   token?:
     | {
         /**
-         * The name of the secret that contains the token.
+         * The name of the environment variable that contains the token.
          */
-        secret: string;
+        env: string;
       }
     | {
         /**
-         * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
          */
-        env: string;
+        googleCloudSecret: string;
       };
   /**
    * Optional base URL.

@@ -1,24 +1,24 @@
-import { Api, giteaApi, HttpResponse, Repository as GiteaRepository } from 'gitea-js';
-import { GiteaConnectionConfig } from '@sourcebot/schemas/v3/gitea.type';
-import { getTokenFromConfig, measure } from './utils.js';
-import fetch from 'cross-fetch';
-import { createLogger } from '@sourcebot/logger';
-import micromatch from 'micromatch';
-import { PrismaClient } from '@sourcebot/db';
-import { processPromiseResults, throwIfAnyFailed } from './connectionUtils.js';
 import * as Sentry from "@sentry/node";
-import { env } from './env.js';
+import { getTokenFromConfig } from "@sourcebot/shared";
+import { createLogger } from '@sourcebot/shared';
+import { GiteaConnectionConfig } from '@sourcebot/schemas/v3/gitea.type';
+import { env } from "@sourcebot/shared";
+import fetch from 'cross-fetch';
+import { Api, giteaApi, Repository as GiteaRepository, HttpResponse } from 'gitea-js';
+import micromatch from 'micromatch';
+import { processPromiseResults, throwIfAnyFailed } from './connectionUtils.js';
+import { measure } from './utils.js';
 
 const logger = createLogger('gitea');
 const GITEA_CLOUD_HOSTNAME = "gitea.com";
 
-export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, orgId: number, db: PrismaClient) => {
+export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig) => {
     const hostname = config.url ?
         new URL(config.url).hostname :
         GITEA_CLOUD_HOSTNAME;
 
     const token = config.token ?
-        await getTokenFromConfig(config.token, orgId, db, logger) :
+        await getTokenFromConfig(config.token) :
         hostname === GITEA_CLOUD_HOSTNAME ?
         env.FALLBACK_GITEA_CLOUD_TOKEN :
         undefined;
@@ -29,38 +29,30 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, org
     });
 
     let allRepos: GiteaRepository[] = [];
-    let notFound: {
-        users: string[],
-        orgs: string[],
-        repos: string[],
-    } = {
-        users: [],
-        orgs: [],
-        repos: [],
-    };
+    let allWarnings: string[] = [];
 
     if (config.orgs) {
-        const { validRepos, notFoundOrgs } = await getReposForOrgs(config.orgs, api);
-        allRepos = allRepos.concat(validRepos);
-        notFound.orgs = notFoundOrgs;
+        const { repos, warnings } = await getReposForOrgs(config.orgs, api);
+        allRepos = allRepos.concat(repos);
+        allWarnings = allWarnings.concat(warnings);
     }
 
     if (config.repos) {
-        const { validRepos, notFoundRepos } = await getRepos(config.repos, api);
-        allRepos = allRepos.concat(validRepos);
-        notFound.repos = notFoundRepos;
+        const { repos, warnings } = await getRepos(config.repos, api);
+        allRepos = allRepos.concat(repos);
+        allWarnings = allWarnings.concat(warnings);
     }
 
     if (config.users) {
-        const { validRepos, notFoundUsers } = await getReposOwnedByUsers(config.users, api);
-        allRepos = allRepos.concat(validRepos);
-        notFound.users = notFoundUsers;
+        const { repos, warnings } = await getReposOwnedByUsers(config.users, api);
+        allRepos = allRepos.concat(repos);
+        allWarnings = allWarnings.concat(warnings);
     }
     
     allRepos = allRepos.filter(repo => repo.full_name !== undefined);
     allRepos = allRepos.filter(repo => {
         if (repo.full_name === undefined) {
-            logger.warn(`Repository with undefined full_name found: orgId=${orgId}, repoId=${repo.id}`);
+            logger.warn(`Repository with undefined full_name found: repoId=${repo.id}`);
             return false;
         }
         return true;
@@ -78,8 +70,8 @@ export const getGiteaReposFromConfig = async (config: GiteaConnectionConfig, org
     
     logger.debug(`Found ${repos.length} total repositories.`);
     return {
-        validRepos: repos,
-        notFound,
+        repos,
+        warnings: allWarnings,
     };
 }
 
@@ -145,10 +137,11 @@ const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {
             Sentry.captureException(e);
 
             if (e?.status === 404) {
-                logger.error(`User ${user} not found or no access`);
+                const warning = `User ${user} not found or no access`;
+                logger.warn(warning);
                 return {
-                    type: 'notFound' as const,
-                    value: user
+                    type: 'warning' as const,
+                    warning
                 };
             }
             throw e;
@@ -156,11 +149,11 @@ const getReposOwnedByUsers = async <T>(users: string[], api: Api<T>) => {
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: validRepos, notFoundItems: notFoundUsers } = processPromiseResults<GiteaRepository>(results);
+    const { validItems: repos, warnings } = processPromiseResults<GiteaRepository>(results);
 
     return {
-        validRepos,
-        notFoundUsers,
+        repos,
+        warnings,
     };
 }
 
@@ -185,10 +178,11 @@ const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
             Sentry.captureException(e);
 
             if (e?.status === 404) {
-                logger.error(`Organization ${org} not found or no access`);
+                const warning = `Organization ${org} not found or no access`;
+                logger.warn(warning);
                 return {
-                    type: 'notFound' as const,
-                    value: org
+                    type: 'warning' as const,
+                    warning
                 };
             }
             throw e;
@@ -196,16 +190,16 @@ const getReposForOrgs = async <T>(orgs: string[], api: Api<T>) => {
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: validRepos, notFoundItems: notFoundOrgs } = processPromiseResults<GiteaRepository>(results);
+    const { validItems: repos, warnings } = processPromiseResults<GiteaRepository>(results);
 
     return {
-        validRepos,
-        notFoundOrgs,
+        repos,
+        warnings,
     };
 }
 
-const getRepos = async <T>(repos: string[], api: Api<T>) => {
-    const results = await Promise.allSettled(repos.map(async (repo) => {
+const getRepos = async <T>(repoList: string[], api: Api<T>) => {
+    const results = await Promise.allSettled(repoList.map(async (repo) => {
         try {
             logger.debug(`Fetching repository info for ${repo}...`);
 
@@ -223,10 +217,11 @@ const getRepos = async <T>(repos: string[], api: Api<T>) => {
             Sentry.captureException(e);
 
             if (e?.status === 404) {
-                logger.error(`Repository ${repo} not found or no access`);
+                const warning = `Repository ${repo} not found or no access`;
+                logger.warn(warning);
                 return {
-                    type: 'notFound' as const,
-                    value: repo
+                    type: 'warning' as const,
+                    warning
                 };
             }
             throw e;
@@ -234,11 +229,11 @@ const getRepos = async <T>(repos: string[], api: Api<T>) => {
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: validRepos, notFoundItems: notFoundRepos } = processPromiseResults<GiteaRepository>(results);
+    const { validItems: repos, warnings } = processPromiseResults<GiteaRepository>(results);
 
     return {
-        validRepos,
-        notFoundRepos,
+        repos,
+        warnings,
     };
 }
 

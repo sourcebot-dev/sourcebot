@@ -1,7 +1,85 @@
 import 'server-only';
-import { PrismaClient } from "@sourcebot/db";
+import { env, getDBConnectionString } from "@sourcebot/shared";
+import { Prisma, PrismaClient, UserWithAccounts } from "@sourcebot/db";
+import { hasEntitlement } from "@sourcebot/shared";
 
 // @see: https://authjs.dev/getting-started/adapters/prisma
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
-export const prisma = globalForPrisma.prisma || new PrismaClient()
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
+
+const dbConnectionString = getDBConnectionString();
+
+// @NOTE: In almost all cases, the userScopedPrismaClientExtension should be used
+// (since actions & queries are scoped to a particular user). There are some exceptions
+// (e.g., in initialize.ts).
+//
+// @todo: we can mark this as `__unsafePrisma` in the future once we've migrated
+// all of the actions & queries to use the userScopedPrismaClientExtension to avoid
+// accidental misuse.
+export const prisma = globalForPrisma.prisma || new PrismaClient({
+    // @note: this code is evaluated at build time, and will throw exceptions if these env vars are not set.
+    // Here we explicitly check if the DATABASE_URL or the individual database variables are set, and only
+    ...(dbConnectionString !== undefined ? {
+        datasources: {
+            db: {
+                url: dbConnectionString,
+            },
+        }
+    } : {}),
+})
+if (env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
+
+/**
+ * Creates a prisma client extension that scopes queries to striclty information
+ * a given user should be able to access.
+ */
+export const userScopedPrismaClientExtension = (user?: UserWithAccounts) => {
+    return Prisma.defineExtension(
+        (prisma) => {
+            return prisma.$extends({
+                query: {
+                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ? {
+                        repo: {
+                            async $allOperations({ args, query }) {
+                                const argsWithWhere = args as Record<string, unknown> & {
+                                    where?: Prisma.RepoWhereInput;
+                                }
+
+                                argsWithWhere.where = {
+                                    ...(argsWithWhere.where || {}),
+                                    ...getRepoPermissionFilterForUser(user),
+                                };
+
+                                return query(args);
+                            }
+                        }
+                    } : {})
+                }
+            })
+        })
+}
+
+/**
+ * Returns a filter for repositories that the user has access to.
+ */
+export const getRepoPermissionFilterForUser = (user?: UserWithAccounts): Prisma.RepoWhereInput => {
+    return {
+        OR: [
+            // Only include repos that are permitted to the user
+            ...((user && user.accounts.length > 0) ? [
+                {
+                    permittedAccounts: {
+                        some: {
+                            accountId: {
+                                in: user.accounts.map(account => account.id),
+                            }
+                        }
+                    }
+                },
+            ] : []),
+            // or are public.
+            {
+                isPublic: true,
+            }
+        ]
+    }
+}

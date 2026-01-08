@@ -1,9 +1,10 @@
 import { base64Decode } from "./utils.js";
 import { z } from "zod";
-import { createLogger } from "@sourcebot/logger";
-import { verifySignature } from "@sourcebot/crypto";
-import { env } from "./env.js";
+import { createLogger } from "./logger.js";
+import { env } from "./env.server.js";
+import { env as clientEnv } from "./env.client.js";
 import { SOURCEBOT_SUPPORT_EMAIL, SOURCEBOT_UNLIMITED_SEATS } from "./constants.js";
+import { verifySignature } from "./crypto.js";
 
 const logger = createLogger('entitlements');
 
@@ -38,15 +39,17 @@ const entitlements = [
     "sso",
     "code-nav",
     "audit",
-    "analytics"
+    "analytics",
+    "permission-syncing",
+    "github-app"
 ] as const;
 export type Entitlement = (typeof entitlements)[number];
 
 const entitlementsByPlan: Record<Plan, Entitlement[]> = {
     oss: ["anonymous-access"],
     "cloud:team": ["billing", "multi-tenancy", "sso", "code-nav"],
-    "self-hosted:enterprise": ["search-contexts", "sso", "code-nav", "audit", "analytics"],
-    "self-hosted:enterprise-unlimited": ["search-contexts", "anonymous-access", "sso", "code-nav", "audit", "analytics"],
+    "self-hosted:enterprise": ["search-contexts", "sso", "code-nav", "audit", "analytics", "permission-syncing", "github-app"],
+    "self-hosted:enterprise-unlimited": ["search-contexts", "anonymous-access", "sso", "code-nav", "audit", "analytics", "permission-syncing", "github-app"],
     // Special entitlement for https://demo.sourcebot.dev
     "cloud:demo": ["anonymous-access", "code-nav", "search-contexts"],
 } as const;
@@ -87,8 +90,8 @@ export const getLicenseKey = (): LicenseKeyPayload | null => {
 }
 
 export const getPlan = (): Plan => {
-    if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT) {
-        if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo") {
+    if (clientEnv.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT) {
+        if (clientEnv.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo") {
             return "cloud:demo";
         }
 

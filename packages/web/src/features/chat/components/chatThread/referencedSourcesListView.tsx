@@ -1,21 +1,22 @@
 'use client';
 
-import { fetchFileSource } from "@/app/api/(client)/client";
+import { getFileSource } from "@/app/api/(client)/client";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDomain } from "@/hooks/useDomain";
 import { isServiceError, unwrapServiceError } from "@/lib/utils";
 import { useQueries } from "@tanstack/react-query";
 import { ReactCodeMirrorRef } from '@uiw/react-codemirror';
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import scrollIntoView from 'scroll-into-view-if-needed';
-import { FileReference, FileSource, Reference, Source } from "../../types";
+import { FileReference, FileSource, Reference } from "../../types";
+import { tryResolveFileReference } from '../../utils';
 import ReferencedFileSourceListItem from "./referencedFileSourceListItem";
+import isEqual from 'fast-deep-equal/react';
 
 interface ReferencedSourcesListViewProps {
     references: FileReference[];
-    sources: Source[];
+    sources: FileSource[];
     index: number;
     hoveredReference?: Reference;
     onHoveredReferenceChanged: (reference?: Reference) => void;
@@ -24,14 +25,7 @@ interface ReferencedSourcesListViewProps {
     style: React.CSSProperties;
 }
 
-const resolveFileReference = (reference: FileReference, sources: FileSource[]): FileSource | undefined => {
-    return sources.find(
-        (source) => source.repo.endsWith(reference.repo) &&
-            source.path.endsWith(reference.path)
-    );
-}
-
-export const ReferencedSourcesListView = ({
+const ReferencedSourcesListViewComponent = ({
     references,
     sources,
     index,
@@ -43,7 +37,6 @@ export const ReferencedSourcesListView = ({
 }: ReferencedSourcesListViewProps) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const editorRefsMap = useRef<Map<string, ReactCodeMirrorRef>>(new Map());
-    const domain = useDomain();
     const [collapsedFileIds, setCollapsedFileIds] = useState<string[]>([]);
 
     const getFileId = useCallback((fileSource: FileSource) => {
@@ -61,49 +54,32 @@ export const ReferencedSourcesListView = ({
         }
     }, []);
 
-    const referencedFileSources = useMemo((): FileSource[] => {
-        const fileSources = sources.filter((source) => source.type === 'file');
-
-        return references
-            .filter((reference) => reference.type === 'file')
-            .map((reference) => resolveFileReference(reference, fileSources))
-            .filter((file) => file !== undefined)
-            // de-duplicate files
-            .filter((file, index, self) =>
-                index === self.findIndex((t) =>
-                    t?.path === file?.path
-                    && t?.repo === file?.repo
-                    && t?.revision === file?.revision
-                )
-            );
-    }, [references, sources]);
-
     // Memoize the computation of references grouped by file source
     const referencesGroupedByFile = useMemo(() => {
         const groupedReferences = new Map<string, FileReference[]>();
 
-        for (const fileSource of referencedFileSources) {
+        for (const fileSource of sources) {
             const fileKey = getFileId(fileSource);
             const referencesInFile = references.filter((reference) => {
                 if (reference.type !== 'file') {
                     return false;
                 }
-                return resolveFileReference(reference, [fileSource]) !== undefined;
+                return tryResolveFileReference(reference, [fileSource]) !== undefined;
             });
             groupedReferences.set(fileKey, referencesInFile);
         }
 
         return groupedReferences;
-    }, [references, referencedFileSources, getFileId]);
+    }, [references, sources, getFileId]);
 
     const fileSourceQueries = useQueries({
-        queries: referencedFileSources.map((file) => ({
-            queryKey: ['fileSource', file.path, file.repo, file.revision, domain],
-            queryFn: () => unwrapServiceError(fetchFileSource({
+        queries: sources.map((file) => ({
+            queryKey: ['fileSource', file.path, file.repo, file.revision],
+            queryFn: () => unwrapServiceError(getFileSource({
                 fileName: file.path,
                 repository: file.repo,
                 branch: file.revision,
-            }, domain)),
+            })),
             staleTime: Infinity,
         })),
     });
@@ -114,7 +90,7 @@ export const ReferencedSourcesListView = ({
             return;
         }
 
-        const fileSource = resolveFileReference(selectedReference, referencedFileSources);
+        const fileSource = tryResolveFileReference(selectedReference, sources);
         if (!fileSource) {
             return;
         }
@@ -181,9 +157,28 @@ export const ReferencedSourcesListView = ({
                 behavior: 'smooth',
             });
         }
-    }, [getFileId, referencedFileSources, selectedReference]);
+    }, [getFileId, sources, selectedReference]);
 
-    if (referencedFileSources.length === 0) {
+    const onExpandedChanged = useCallback((fileId: string, isExpanded: boolean) => {
+        if (isExpanded) {
+            setCollapsedFileIds(collapsedFileIds => collapsedFileIds.filter((id) => id !== fileId));
+        } else {
+            setCollapsedFileIds(collapsedFileIds => [...collapsedFileIds, fileId]);
+        }
+
+        if (!isExpanded) {
+            const fileSourceStart = document.getElementById(`${fileId}-start`);
+            if (fileSourceStart) {
+                scrollIntoView(fileSourceStart, {
+                    scrollMode: 'if-needed',
+                    block: 'start',
+                    behavior: 'instant',
+                });
+            }
+        }
+    }, []);
+
+    if (sources.length === 0) {
         return (
             <div className="p-4 text-center text-muted-foreground text-sm">
                 No file references found
@@ -198,7 +193,7 @@ export const ReferencedSourcesListView = ({
         >
             <div className="space-y-4 pr-2">
                 {fileSourceQueries.map((query, index) => {
-                    const fileSource = referencedFileSources[index];
+                    const fileSource = sources[index];
                     const fileName = fileSource.path.split('/').pop() ?? fileSource.path;
 
                     if (query.isLoading) {
@@ -245,41 +240,22 @@ export const ReferencedSourcesListView = ({
                             repoWebUrl={fileData.repositoryWebUrl}
                             fileName={fileData.path}
                             references={referencesInFile}
-                            ref={(ref) => setEditorRef(fileId, ref)}
+                            ref={ref => {
+                                setEditorRef(fileId, ref);
+                            }}
                             onSelectedReferenceChanged={onSelectedReferenceChanged}
                             onHoveredReferenceChanged={onHoveredReferenceChanged}
                             selectedReference={selectedReference}
                             hoveredReference={hoveredReference}
                             isExpanded={!collapsedFileIds.includes(fileId)}
-                            onExpandedChanged={(isExpanded) => {
-                                if (isExpanded) {
-                                    setCollapsedFileIds(collapsedFileIds.filter((id) => id !== fileId));
-                                } else {
-                                    setCollapsedFileIds([...collapsedFileIds, fileId]);
-                                }
-
-                                // When collapsing a file when you are deep in a scroll, it's a better
-                                // experience to have the scroll automatically restored to the top of the file
-                                // s.t., header is still sticky to the top of the scroll area.
-                                if (!isExpanded) {
-                                    const fileSourceStart = document.getElementById(`${fileId}-start`);
-                                    if (!fileSourceStart) {
-                                        return;
-                                    }
-
-                                    scrollIntoView(fileSourceStart, {
-                                        scrollMode: 'if-needed',
-                                        block: 'start',
-                                        behavior: 'instant',
-                                    });
-                                }
-                            }
-                            }
+                            onExpandedChanged={(isExpanded) => onExpandedChanged(fileId, isExpanded)}
                         />
                     );
                 })}
             </div>
         </ScrollArea>
-
     );
 }
+
+// Memoize to prevent unnecessary re-renders
+export const ReferencedSourcesListView = memo(ReferencedSourcesListViewComponent, isEqual);

@@ -21,7 +21,7 @@ export function ManageSubscriptionButton({ currentUserRole }: { currentUserRole:
         const session = await getCustomerPortalSessionLink(domain);
         if (isServiceError(session)) {
             captureEvent('wa_manage_subscription_button_create_portal_session_fail', {
-                error: session.errorCode,
+                errorCode: session.errorCode,
             });
             setIsLoading(false);
         } else {

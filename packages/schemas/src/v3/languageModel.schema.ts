@@ -24,26 +24,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -55,26 +55,57 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
+                "googleCloudSecret": {
+                  "type": "string",
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                }
+              },
+              "required": [
+                "googleCloudSecret"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "sessionToken": {
+          "description": "Optional session token to use with the model. Defaults to the `AWS_SESSION_TOKEN` environment variable.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
                 "env": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
                 "env"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "googleCloudSecret": {
+                  "type": "string",
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                }
+              },
+              "required": [
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -109,26 +140,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -166,26 +197,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -212,26 +243,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -273,26 +304,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -323,26 +354,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -380,26 +411,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -426,26 +457,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -483,26 +514,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -529,26 +560,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -602,26 +633,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -648,26 +679,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -723,26 +754,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -769,26 +800,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -826,26 +857,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -872,26 +903,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -935,26 +966,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -991,26 +1022,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -1048,26 +1079,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -1097,26 +1128,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -1126,6 +1157,60 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "queryParams": {
+          "type": "object",
+          "description": "Optional query parameters to include in the request url.",
+          "patternProperties": {
+            "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "env": {
+                          "type": "string",
+                          "description": "The name of the environment variable that contains the token."
+                        }
+                      },
+                      "required": [
+                        "env"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "googleCloudSecret": {
+                          "type": "string",
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                        }
+                      },
+                      "required": [
+                        "googleCloudSecret"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "reasoningTag": {
+          "type": "string",
+          "description": "The name of the XML tag to extract reasoning from (without angle brackets). Defaults to `think`.",
+          "default": "think",
+          "examples": [
+            "think",
+            "thinking",
+            "reasoning"
+          ]
         }
       },
       "required": [
@@ -1155,26 +1240,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -1201,26 +1286,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -1262,26 +1347,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -1308,26 +1393,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -1368,26 +1453,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -1399,26 +1484,57 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
+                "googleCloudSecret": {
+                  "type": "string",
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                }
+              },
+              "required": [
+                "googleCloudSecret"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "sessionToken": {
+          "description": "Optional session token to use with the model. Defaults to the `AWS_SESSION_TOKEN` environment variable.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
                 "env": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
                 "env"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "googleCloudSecret": {
+                  "type": "string",
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                }
+              },
+              "required": [
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -1453,26 +1569,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -1510,26 +1626,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -1556,26 +1672,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -1617,26 +1733,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -1667,26 +1783,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -1724,26 +1840,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -1770,26 +1886,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -1827,26 +1943,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -1873,26 +1989,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -1946,26 +2062,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -1992,26 +2108,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -2067,26 +2183,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -2113,26 +2229,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -2170,26 +2286,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -2216,26 +2332,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -2279,26 +2395,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -2335,26 +2451,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -2392,26 +2508,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -2441,26 +2557,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -2470,6 +2586,60 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "queryParams": {
+          "type": "object",
+          "description": "Optional query parameters to include in the request url.",
+          "patternProperties": {
+            "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "env": {
+                          "type": "string",
+                          "description": "The name of the environment variable that contains the token."
+                        }
+                      },
+                      "required": [
+                        "env"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "googleCloudSecret": {
+                          "type": "string",
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                        }
+                      },
+                      "required": [
+                        "googleCloudSecret"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "reasoningTag": {
+          "type": "string",
+          "description": "The name of the XML tag to extract reasoning from (without angle brackets). Defaults to `think`.",
+          "default": "think",
+          "examples": [
+            "think",
+            "thinking",
+            "reasoning"
+          ]
         }
       },
       "required": [
@@ -2499,26 +2669,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -2545,26 +2715,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }
@@ -2606,26 +2776,26 @@ const schema = {
             {
               "type": "object",
               "properties": {
-                "secret": {
+                "env": {
                   "type": "string",
-                  "description": "The name of the secret that contains the token."
+                  "description": "The name of the environment variable that contains the token."
                 }
               },
               "required": [
-                "secret"
+                "env"
               ],
               "additionalProperties": false
             },
             {
               "type": "object",
               "properties": {
-                "env": {
+                "googleCloudSecret": {
                   "type": "string",
-                  "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                  "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                 }
               },
               "required": [
-                "env"
+                "googleCloudSecret"
               ],
               "additionalProperties": false
             }
@@ -2652,26 +2822,26 @@ const schema = {
                     {
                       "type": "object",
                       "properties": {
-                        "secret": {
+                        "env": {
                           "type": "string",
-                          "description": "The name of the secret that contains the token."
+                          "description": "The name of the environment variable that contains the token."
                         }
                       },
                       "required": [
-                        "secret"
+                        "env"
                       ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "env": {
+                        "googleCloudSecret": {
                           "type": "string",
-                          "description": "The name of the environment variable that contains the token. Only supported in declarative connection configs."
+                          "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
                         }
                       },
                       "required": [
-                        "env"
+                        "googleCloudSecret"
                       ],
                       "additionalProperties": false
                     }

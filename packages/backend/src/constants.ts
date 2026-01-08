@@ -1,19 +1,33 @@
-import { Settings } from "./types.js";
+import { CodeHostType } from "@sourcebot/db";
+import { env } from "@sourcebot/shared";
+import path from "path";
 
-/**
- * Default settings.
- */
-export const DEFAULT_SETTINGS: Settings = {
-    maxFileSize: 2 * 1024 * 1024, // 2MB in bytes
-    maxTrigramCount: 20000,
-    reindexIntervalMs: 1000 * 60 * 60, // 1 hour
-    resyncConnectionIntervalMs: 1000 * 60 * 60 * 24, // 24 hours
-    resyncConnectionPollingIntervalMs: 1000 * 1, // 1 second
-    reindexRepoPollingIntervalMs: 1000 * 1, // 1 second
-    maxConnectionSyncJobConcurrency: 8,
-    maxRepoIndexingJobConcurrency: 8,
-    maxRepoGarbageCollectionJobConcurrency: 8,
-    repoGarbageCollectionGracePeriodMs: 10 * 1000, // 10 seconds
-    repoIndexTimeoutMs: 1000 * 60 * 60 * 2, // 2 hours
-    enablePublicAccess: false // deprected, use FORCE_ENABLE_ANONYMOUS_ACCESS instead
-}
+export const SINGLE_TENANT_ORG_ID = 1;
+
+export const PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES: CodeHostType[] = [
+    'github',
+    'gitlab',
+];
+
+export const REPOS_CACHE_DIR = path.join(env.DATA_CACHE_DIR, 'repos');
+export const INDEX_CACHE_DIR = path.join(env.DATA_CACHE_DIR, 'index');
+
+// Maximum time to wait for current job to finish
+export const GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS = 5 * 1000; // 5 seconds
+
+// List of shutdown signals
+export const SHUTDOWN_SIGNALS: string[] = [
+    'SIGHUP',
+    'SIGINT',
+    'SIGQUIT',
+    'SIGILL',
+    'SIGTRAP',
+    'SIGABRT',
+    'SIGBUS',
+    'SIGFPE',
+    'SIGSEGV',
+    'SIGUSR2',
+    'SIGTERM',
+    // @note: SIGKILL and SIGSTOP cannot have listeners installed.
+    // @see: https://nodejs.org/api/process.html#signal-events
+];

@@ -13,19 +13,20 @@ import { ChatSidePanel } from '../components/chatSidePanel';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 
 interface PageProps {
-    params: {
+    params: Promise<{
         domain: string;
         id: string;
-    };
+    }>;
 }
 
-export default async function Page({ params }: PageProps) {
+export default async function Page(props: PageProps) {
+    const params = await props.params;
     const languageModels = await getConfiguredLanguageModelsInfo();
-    const repos = await getRepos(params.domain);
+    const repos = await getRepos();
     const searchContexts = await getSearchContexts(params.domain);
-    const chatInfo = await getChatInfo({ chatId: params.id }, params.domain);
+    const chatInfo = await getChatInfo({ chatId: params.id });
     const session = await auth();
-    const chatHistory = session ? await getUserChatHistory(params.domain) : [];
+    const chatHistory = session ? await getUserChatHistory() : [];
 
     if (isServiceError(chatHistory)) {
         throw new ServiceErrorException(chatHistory);
@@ -52,9 +53,10 @@ export default async function Page({ params }: PageProps) {
     const indexedRepos = repos.filter((repo) => repo.indexedAt !== undefined);
 
     return (
-        <>
+        <div className="flex flex-col h-screen w-screen">
             <TopBar
                 domain={params.domain}
+                homePath={`/${params.domain}/chat`}
             >
                 <div className="flex flex-row gap-2 items-center">
                     <span className="text-muted mx-2 select-none">/</span>
@@ -85,6 +87,6 @@ export default async function Page({ params }: PageProps) {
                     isChatReadonly={isReadonly}
                 />
             </ResizablePanelGroup>
-        </>
+        </div>
     )
 }

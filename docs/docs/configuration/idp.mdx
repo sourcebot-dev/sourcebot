@@ -1,0 +1,418 @@
+---
+title: External Identity Providers
+sidebarTitle: External identity providers
+---
+
+import LicenseKeyRequired from '/snippets/license-key-required.mdx'
+
+<LicenseKeyRequired />
+
+You can connect Sourcebot to various **external identity providers** to associate a Sourcebot user with one or more external service accounts (ex. Google, GitHub, etc).
+
+External identity providers can be used for [authentication](/docs/configuration/auth) and/or [permission syncing](/docs/features/permission-syncing). They're defined in the
+[config file](/docs/configuration/config-file) in the top-level `identityProviders` object:
+
+```json wrap icon="code" Example config with both google and github identity providers defined
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "identityProviders": [
+        {
+            "provider": "github",
+            "purpose": "account_linking",
+            "accountLinkingRequired": true,
+            "clientId": {
+                "env": "GITHUB_IDENTITY_PROVIDER_CLIENT_ID"
+            },
+            "clientSecret": {
+                "env": "GITHUB_IDENTITY_PROVIDER_CLIENT_SECRET"
+            }
+        },
+        {
+            "provider": "google",
+            "clientId": {
+                "env": "GOOGLE_IDENTITY_PROVIDER_CLIENT_ID"
+            },
+            "clientSecret": {
+                "env": "GOOGLE_IDENTITY_PROVIDER_CLIENT_SECRET"
+            }
+        }
+    ]
+}
+```
+
+Secret values (such as `clientId` and `clientSecret`) can be provided as environment variables or Google Cloud secrets via [tokens](/docs/configuration/config-file#tokens).
+
+# Supported External Identity Providers
+
+Sourcebot uses [Auth.js](https://authjs.dev/) to connect to external identity providers. If there's a provider supported by Auth.js that you don't see below, please submit a
+[feature request](https://github.com/sourcebot-dev/sourcebot/issues) to have it added.
+
+### GitHub
+
+[Auth.js GitHub Provider Docs](https://authjs.dev/getting-started/providers/github)
+
+A GitHub connection can be used for either [authentication](/docs/configuration/auth) or [permission syncing](/docs/features/permission-syncing). This is controlled using the `purpose` field
+in the GitHub identity provider config.
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Register an Oauth Client">
+        To begin, you must register an Oauth client in GitHub to faciliate the identity provider connection. You can do this by creating a **GitHub App** or a **GitHub OAuth App**. Either
+        one works, but the **GitHub App** is the [recommended mechanism](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/differences-between-github-apps-and-oauth-apps).
+
+
+        The result of registering an OAuth client is a `CLIENT_ID` and `CLIENT_SECRET` which you'll provide to Sourcebot.
+    <Tabs>
+        <Tab title="GitHub App">
+            <Note>You don't need to install the app to use it as an external identity provider</Note>
+            Follow [this guide](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app) to register a new GitHub App.
+
+            When asked to provide a callback url, provide `<sourcebot_url>/api/auth/callback/github` (ex. https://sourcebot.coolcorp.com/api/auth/callback/github)
+
+            Set the following fine-grained permissions in the GitHub App:
+                - `“Email addresses” account permissions (read)`
+                - `"Metadata" repository permissions (read)` (only needed if using permission syncing)
+        </Tab>
+        <Tab title="GitHub OAuth App">
+            Follow [this guide](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) by GitHub to create an OAuth App. 
+            
+            When asked to provide a callback url, provide `<sourcebot_url>/api/auth/callback/github` (ex. https://sourcebot.coolcorp.com/api/auth/callback/github)
+        </Tab>
+        </Tabs>
+    </Step>
+    <Step title="Define environemnt variables">
+        To provide Sourcebot the client id and secret for your OAuth client you must set them as environment variables. These can be named whatever you like
+        (ex. `GITHUB_IDENTITY_PROVIDER_CLIENT_ID` and `GITHUB_IDENTITY_PROVIDER_CLIENT_SECRET`) 
+    </Step>
+    <Step title="Define the identity provider config">
+        Finally, pass the client id and secret to Sourcebot by defining a `identityProvider` object in the [config file](/docs/configuration/config-file):
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "github",
+                    // "sso" for auth + perm sync, "account_linking" for only perm sync
+                    "purpose": "account_linking",
+                    // if purpose == "account_linking" this controls if a user must connect to the IdP
+                    "accountLinkingRequired": true,
+                    "clientId": {
+                        "env": "YOUR_CLIENT_ID_ENV_VAR"
+                    },
+                    "clientSecret": {
+                        "env": "YOUR_CLIENT_SECRET_ENV_VAR"
+                    }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+### GitLab
+
+[Auth.js GitLab Provider Docs](https://authjs.dev/getting-started/providers/gitlab)
+
+A GitLab connection can be used for either [authentication](/docs/configuration/auth) or [permission syncing](/docs/features/permission-syncing). This is controlled using the `purpose` field
+in the GitLab identity provider config.
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Register an OAuth Application">
+        To begin, you must register an OAuth application in GitLab to facilitate the identity provider connection.
+
+        Follow [this guide](https://docs.gitlab.com/integration/oauth_provider/) by GitLab to create an OAuth application.
+
+        When configuring your application:
+        - Set the callback URL to `<sourcebot_url>/api/auth/callback/gitlab` (ex. https://sourcebot.coolcorp.com/api/auth/callback/gitlab)
+        - Enable the `read_user` scope
+        - If using for permission syncing, also enable the `read_api` scope
+
+        The result of registering an OAuth application is an `APPLICATION_ID` (`CLIENT_ID`) and `SECRET` (`CLIENT_SECRET`) which you'll provide to Sourcebot.
+    </Step>
+    <Step title="Define environment variables">
+        To provide Sourcebot the client id and secret for your OAuth application you must set them as environment variables. These can be named whatever you like
+        (ex. `GITLAB_IDENTITY_PROVIDER_CLIENT_ID` and `GITLAB_IDENTITY_PROVIDER_CLIENT_SECRET`)
+    </Step>
+    <Step title="Define the identity provider config">
+        Finally, pass the client id and secret to Sourcebot by defining a `identityProvider` object in the [config file](/docs/configuration/config-file):
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "gitlab",
+                    // "sso" for auth + perm sync, "account_linking" for only perm sync
+                    "purpose": "account_linking",
+                    // if purpose == "account_linking" this controls if a user must connect to the IdP
+                    "accountLinkingRequired": true,
+                    "clientId": {
+                        "env": "YOUR_CLIENT_ID_ENV_VAR"
+                    },
+                    "clientSecret": {
+                        "env": "YOUR_CLIENT_SECRET_ENV_VAR"
+                    },
+                    // Optional: for self-hosted GitLab instances
+                    "baseUrl": "https://gitlab.example.com"
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+### Google
+
+[Auth.js Google Provider Docs](https://authjs.dev/getting-started/providers/google)
+
+A Google connection can be used for [authentication](/docs/configuration/auth).
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Register an OAuth Client">
+        To begin, you must register an OAuth client in Google Cloud Console to facilitate the identity provider connection.
+
+        Follow [this guide](https://support.google.com/cloud/answer/6158849) by Google to create OAuth 2.0 credentials.
+
+        When configuring your OAuth client:
+        - Set the application type to "Web application"
+        - Add `<sourcebot_url>/api/auth/callback/google` to the authorized redirect URIs (ex. https://sourcebot.coolcorp.com/api/auth/callback/google)
+
+        The result of creating OAuth credentials is a `CLIENT_ID` and `CLIENT_SECRET` which you'll provide to Sourcebot.
+    </Step>
+    <Step title="Define environment variables">
+        To provide Sourcebot the client id and secret for your OAuth client you must set them as environment variables. These can be named whatever you like
+        (ex. `GOOGLE_IDENTITY_PROVIDER_CLIENT_ID` and `GOOGLE_IDENTITY_PROVIDER_CLIENT_SECRET`)
+    </Step>
+    <Step title="Define the identity provider config">
+        Finally, pass the client id and secret to Sourcebot by defining a `identityProvider` object in the [config file](/docs/configuration/config-file):
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "google",
+                    "purpose": "sso",
+                    "clientId": {
+                        "env": "YOUR_CLIENT_ID_ENV_VAR"
+                    },
+                    "clientSecret": {
+                        "env": "YOUR_CLIENT_SECRET_ENV_VAR"
+                    }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+### Okta
+
+[Auth.js Okta Provider Docs](https://authjs.dev/getting-started/providers/okta)
+
+An Okta connection can be used for [authentication](/docs/configuration/auth).
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Register an OAuth Application">
+        To begin, you must register an OAuth application in Okta to facilitate the identity provider connection.
+
+        Follow [this guide](https://developer.okta.com/docs/guides/implement-oauth-for-okta/main/) by Okta to create an OAuth application.
+
+        When configuring your application:
+        - Set the application type to "Web Application"
+        - Add `<sourcebot_url>/api/auth/callback/okta` to the sign-in redirect URIs (ex. https://sourcebot.coolcorp.com/api/auth/callback/okta)
+
+        The result of creating an OAuth application is a `CLIENT_ID`, `CLIENT_SECRET`, and `ISSUER` URL which you'll provide to Sourcebot.
+    </Step>
+    <Step title="Define environment variables">
+        To provide Sourcebot the client id, client secret, and issuer for your OAuth application you must set them as environment variables. These can be named whatever you like
+        (ex. `OKTA_IDENTITY_PROVIDER_CLIENT_ID`, `OKTA_IDENTITY_PROVIDER_CLIENT_SECRET`, and `OKTA_IDENTITY_PROVIDER_ISSUER`)
+    </Step>
+    <Step title="Define the identity provider config">
+        Finally, pass the client id, client secret, and issuer to Sourcebot by defining a `identityProvider` object in the [config file](/docs/configuration/config-file):
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "okta",
+                    "purpose": "sso",
+                    "clientId": {
+                        "env": "YOUR_CLIENT_ID_ENV_VAR"
+                    },
+                    "clientSecret": {
+                        "env": "YOUR_CLIENT_SECRET_ENV_VAR"
+                    },
+                    "issuer": {
+                        "env": "YOUR_ISSUER_ENV_VAR"
+                    }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+### Keycloak
+
+[Auth.js Keycloak Provider Docs](https://authjs.dev/getting-started/providers/keycloak)
+
+A Keycloak connection can be used for [authentication](/docs/configuration/auth).
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Register an OAuth Client">
+        To begin, you must register an OAuth client in Keycloak to facilitate the identity provider connection.
+
+        Follow [this guide](https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients) by Keycloak to create an OpenID Connect client.
+
+        When configuring your client:
+        - Set the client protocol to "openid-connect"
+        - Set the access type to "confidential"
+        - Add `<sourcebot_url>/api/auth/callback/keycloak` to the valid redirect URIs (ex. https://sourcebot.coolcorp.com/api/auth/callback/keycloak)
+
+        The result of creating an OAuth client is a `CLIENT_ID`, `CLIENT_SECRET`, and an `ISSUER` URL (typically in the format `https://<keycloak-domain>/realms/<realm-name>`) which you'll provide to Sourcebot.
+    </Step>
+    <Step title="Define environment variables">
+        To provide Sourcebot the client id, client secret, and issuer for your OAuth client you must set them as environment variables. These can be named whatever you like
+        (ex. `KEYCLOAK_IDENTITY_PROVIDER_CLIENT_ID`, `KEYCLOAK_IDENTITY_PROVIDER_CLIENT_SECRET`, and `KEYCLOAK_IDENTITY_PROVIDER_ISSUER`)
+    </Step>
+    <Step title="Define the identity provider config">
+        Finally, pass the client id, client secret, and issuer to Sourcebot by defining a `identityProvider` object in the [config file](/docs/configuration/config-file):
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "keycloak",
+                    "purpose": "sso",
+                    "clientId": {
+                        "env": "YOUR_CLIENT_ID_ENV_VAR"
+                    },
+                    "clientSecret": {
+                        "env": "YOUR_CLIENT_SECRET_ENV_VAR"
+                    },
+                    "issuer": {
+                        "env": "YOUR_ISSUER_ENV_VAR"
+                    }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+### Microsoft Entra ID
+
+[Auth.js Microsoft Entra ID Provider Docs](https://authjs.dev/getting-started/providers/microsoft-entra-id)
+
+A Microsoft Entra ID connection can be used for [authentication](/docs/configuration/auth).
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Register an OAuth Application">
+        To begin, you must register an OAuth application in Microsoft Entra ID (formerly Azure Active Directory) to facilitate the identity provider connection.
+
+        Follow [this guide](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app) by Microsoft to register an application.
+
+        When configuring your application:
+        - Under "Authentication", add a platform and select "Web"
+        - Set the redirect URI to `<sourcebot_url>/api/auth/callback/microsoft-entra-id` (ex. https://sourcebot.coolcorp.com/api/auth/callback/microsoft-entra-id)
+        - Under "Certificates & secrets", create a new client secret
+
+        The result of registering an application is a `CLIENT_ID` (Application ID), `CLIENT_SECRET`, and `TENANT_ID` which you'll use to construct the issuer URL.
+    </Step>
+    <Step title="Define environment variables">
+        To provide Sourcebot the client id, client secret, and issuer for your OAuth application you must set them as environment variables. These can be named whatever you like
+        (ex. `MICROSOFT_ENTRA_ID_IDENTITY_PROVIDER_CLIENT_ID`, `MICROSOFT_ENTRA_ID_IDENTITY_PROVIDER_CLIENT_SECRET`, and `MICROSOFT_ENTRA_ID_IDENTITY_PROVIDER_ISSUER`)
+
+        The issuer URL should be in the format: `https://login.microsoftonline.com/<TENANT_ID>/v2.0`
+    </Step>
+    <Step title="Define the identity provider config">
+        Finally, pass the client id, client secret, and issuer to Sourcebot by defining a `identityProvider` object in the [config file](/docs/configuration/config-file):
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "microsoft-entra-id",
+                    "purpose": "sso",
+                    "clientId": {
+                        "env": "YOUR_CLIENT_ID_ENV_VAR"
+                    },
+                    "clientSecret": {
+                        "env": "YOUR_CLIENT_SECRET_ENV_VAR"
+                    },
+                    "issuer": {
+                        "env": "YOUR_ISSUER_ENV_VAR"
+                    }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+### Authentik
+
+[Auth.js Authentik Provider Docs](https://authjs.dev/getting-started/providers/authentik)
+
+An Authentik connection can be used for [authentication](/docs/configuration/auth).
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Create a OAuth2/OpenID Connect application">
+        To begin, you must create a OAuth2/OpenID Connect application in Authentik. For more information, see the [Authentik documentation](https://docs.goauthentik.io/add-secure-apps/applications/manage_apps/#create-an-application-and-provider-pair).
+
+        When configuring your application:
+        - Set the provider type to "OAuth2/OpenID Connect"
+        - Set the client type to "Confidential"
+        - Add `<sourcebot_url>/api/auth/callback/authentik` to the redirect URIs (ex. https://sourcebot.coolcorp.com/api/auth/callback/authentik)
+
+        After creating the application, open the application details to obtain the client id, client secret, and issuer URL (typically in the format `https://<authentik-domain>/application/o/<provider-slug>/`).
+    </Step>
+    <Step title="Define environment variables">
+        The client id, secret, and issuer URL are provided to Sourcebot via environment variables. These can be named whatever you like
+        (ex. `AUTHENTIK_IDENTITY_PROVIDER_CLIENT_ID`, `AUTHENTIK_IDENTITY_PROVIDER_CLIENT_SECRET`, and `AUTHENTIK_IDENTITY_PROVIDER_ISSUER`)
+    </Step>
+    <Step title="Define the identity provider config">
+        Create a `identityProvider` object in the [config file](/docs/configuration/config-file) with the following fields:
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "authentik",
+                    "purpose": "sso",
+                    "clientId": {
+                        "env": "AUTHENTIK_IDENTITY_PROVIDER_CLIENT_ID"
+                    },
+                    "clientSecret": {
+                        "env": "AUTHENTIK_IDENTITY_PROVIDER_CLIENT_SECRET"
+                    },
+                    "issuer": {
+                        "env": "AUTHENTIK_IDENTITY_PROVIDER_ISSUER"
+                    }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+

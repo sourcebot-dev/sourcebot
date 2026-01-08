@@ -4,7 +4,6 @@ import { useCallback, useState } from "react";
 import { Descendant } from "slate";
 import { createUIMessage, getAllMentionElements } from "./utils";
 import { slateContentToString } from "./utils";
-import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { createChat } from "./actions";
@@ -13,9 +12,9 @@ import { createPathWithQueryParams } from "@/lib/utils";
 import { SearchScope, SET_CHAT_STATE_SESSION_STORAGE_KEY, SetChatStatePayload } from "./types";
 import { useSessionStorage } from "usehooks-ts";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
 export const useCreateNewChatThread = () => {
-    const domain = useDomain();
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
@@ -31,7 +30,7 @@ export const useCreateNewChatThread = () => {
         const inputMessage = createUIMessage(text, mentions.map((mention) => mention.data), selectedSearchScopes);
 
         setIsLoading(true);
-        const response = await createChat(domain);
+        const response = await createChat();
         if (isServiceError(response)) {
             toast({
                 description: `❌ Failed to create chat. Reason: ${response.message}`
@@ -47,11 +46,11 @@ export const useCreateNewChatThread = () => {
             selectedSearchScopes,
         });
 
-        const url = createPathWithQueryParams(`/${domain}/chat/${response.id}`);
+        const url = createPathWithQueryParams(`/${SINGLE_TENANT_ORG_DOMAIN}/chat/${response.id}`);
 
         router.push(url);
         router.refresh();
-    }, [domain, router, toast, setChatState, captureEvent]);
+    }, [router, toast, setChatState, captureEvent]);
 
     return {
         createNewChatThread,

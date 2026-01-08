@@ -4,15 +4,21 @@ import { Info, Mail } from "lucide-react";
 import { getOrgMembers } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 import { notFound, ServiceErrorException } from "@/lib/serviceError";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared/client";
 
 interface LicensePageProps {
-    params: {
+    params: Promise<{
         domain: string;
-    }
+    }>
 }
 
-export default async function LicensePage({ params: { domain } }: LicensePageProps) {
+export default async function LicensePage(props: LicensePageProps) {
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
     if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined) {
         notFound();
     }
@@ -72,7 +78,7 @@ export default async function LicensePage({ params: { domain } }: LicensePagePro
                 </div>
 
                 <Button asChild>
-                    <a href={`mailto:support@sourcebot.dev?subject=License Support - ${licenseKey.id}&body=License ID: ${licenseKey.id}`}>
+                    <a href={`mailto:team@sourcebot.dev?subject=License Support - ${licenseKey.id}&body=License ID: ${licenseKey.id}`}>
                         <Mail className="h-4 w-4 mr-2" />
                         Contact Support
                     </a>

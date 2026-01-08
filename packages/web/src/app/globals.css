@@ -1,8 +1,8 @@
+@import "./codemirror-styles.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import "./codemirror-styles.css";
 
 @layer base {
   html {
@@ -109,6 +109,7 @@
     --chat-citation-border: hsl(217, 91%, 60%);
 
     --warning: #ca8a04;
+    --error: #fc5c5c;
   }
 
   .dark {
@@ -201,6 +202,7 @@
     --chat-citation-border: hsl(217, 91%, 60%);
 
     --warning: #fde047;
+    --error: #f87171;
   }
 }
 

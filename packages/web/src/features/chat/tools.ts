@@ -1,10 +1,9 @@
 import { z } from "zod"
-import { search } from "@/features/search/searchApi"
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
+import { search } from "@/features/search"
 import { InferToolInput, InferToolOutput, InferUITool, tool, ToolUIPart } from "ai";
 import { isServiceError } from "@/lib/utils";
 import { getFileSource } from "../search/fileSourceApi";
-import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "../codeNav/actions";
+import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "../codeNav/api";
 import { FileSourceResponse } from "../search/types";
 import { addLineNumbers, buildSearchQuery } from "./utils";
 import { toolNames } from "./constants";
@@ -27,8 +26,9 @@ export const findSymbolReferencesTool = tool({
     inputSchema: z.object({
         symbol: z.string().describe("The symbol to find references to"),
         language: z.string().describe("The programming language of the symbol"),
+        repository: z.string().describe("The repository to scope the search to").optional(),
     }),
-    execute: async ({ symbol, language }) => {
+    execute: async ({ symbol, language, repository }) => {
         // @todo: make revision configurable.
         const revision = "HEAD";
 
@@ -36,8 +36,8 @@ export const findSymbolReferencesTool = tool({
             symbolName: symbol,
             language,
             revisionName: "HEAD",
-            // @todo(mt): handle multi-tenancy.
-        }, SINGLE_TENANT_ORG_DOMAIN);
+            repoName: repository,
+        });
 
         if (isServiceError(response)) {
             return response;
@@ -65,8 +65,9 @@ export const findSymbolDefinitionsTool = tool({
     inputSchema: z.object({
         symbol: z.string().describe("The symbol to find definitions of"),
         language: z.string().describe("The programming language of the symbol"),
+        repository: z.string().describe("The repository to scope the search to").optional(),
     }),
-    execute: async ({ symbol, language }) => {
+    execute: async ({ symbol, language, repository }) => {
         // @todo: make revision configurable.
         const revision = "HEAD";
 
@@ -74,8 +75,8 @@ export const findSymbolDefinitionsTool = tool({
             symbolName: symbol,
             language,
             revisionName: revision,
-            // @todo(mt): handle multi-tenancy.
-        }, SINGLE_TENANT_ORG_DOMAIN);
+            repoName: repository,
+        });
 
         if (isServiceError(response)) {
             return response;
@@ -114,7 +115,7 @@ export const readFilesTool = tool({
                 repository,
                 branch: revision,
                 // @todo(mt): handle multi-tenancy.
-            }, SINGLE_TENANT_ORG_DOMAIN);
+            });
         }));
 
         if (responses.some(isServiceError)) {
@@ -181,13 +182,16 @@ Multiple expressions can be or'd together with or, negated with -, or grouped wi
         });
 
         const response = await search({
+            queryType: 'string',
             query,
-            matches: limit ?? 100,
-            // @todo: we can make this configurable.
-            contextLines: 3,
-            whole: false,
-            // @todo(mt): handle multi-tenancy.
-        }, SINGLE_TENANT_ORG_DOMAIN);
+            options: {
+                matches: limit ?? 100,
+                contextLines: 3,
+                whole: false,
+                isCaseSensitivityEnabled: true,
+                isRegexEnabled: true,
+            }
+        });
 
         if (isServiceError(response)) {
             return response;
@@ -221,12 +225,12 @@ export const searchReposTool = tool({
         limit: z.number().default(10).describe("Maximum number of repositories to return (default: 10)")
     }),
     execute: async ({ query, limit }) => {
-        const reposResponse = await getRepos(SINGLE_TENANT_ORG_DOMAIN);
-        
+        const reposResponse = await getRepos();
+
         if (isServiceError(reposResponse)) {
             return reposResponse;
         }
-        
+
         // Configure Fuse.js for fuzzy searching
         const fuse = new Fuse(reposResponse, {
             keys: [
@@ -237,7 +241,7 @@ export const searchReposTool = tool({
             includeScore: true,
             minMatchCharLength: 1,
         });
-        
+
         const searchResults = fuse.search(query, { limit: limit ?? 10 });
 
         searchResults.sort((a, b) => (a.score ?? 0) - (b.score ?? 0));
@@ -255,12 +259,12 @@ export const listAllReposTool = tool({
     description: `Lists all repositories in the codebase. This provides a complete overview of all available repositories.`,
     inputSchema: z.object({}),
     execute: async () => {
-        const reposResponse = await getRepos(SINGLE_TENANT_ORG_DOMAIN);
-        
+        const reposResponse = await getRepos();
+
         if (isServiceError(reposResponse)) {
             return reposResponse;
         }
-        
+
         return reposResponse.map((repo) => repo.repoName);
     }
 });

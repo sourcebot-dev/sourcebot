@@ -13,17 +13,31 @@ import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { RequestsList } from "./components/requestsList";
 import { OrgRole } from "@prisma/client";
 import { redirect } from "next/navigation";
+import { NotificationDot } from "../../components/notificationDot";
+import { Badge } from "@/components/ui/badge";
 
 interface MembersSettingsPageProps {
-    params: {
+    params: Promise<{
         domain: string
-    },
-    searchParams: {
+    }>,
+    searchParams: Promise<{
         tab?: string
-    }
+    }>
 }
 
-export default async function MembersSettingsPage({ params: { domain }, searchParams: { tab } }: MembersSettingsPageProps) {
+export default async function MembersSettingsPage(props: MembersSettingsPageProps) {
+    const searchParams = await props.searchParams;
+
+    const {
+        tab
+    } = searchParams;
+
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
     const org = await getOrgFromDomain(domain);
     if (!org) {
         throw new Error("Organization not found");
@@ -94,32 +108,45 @@ export default async function MembersSettingsPage({ params: { domain }, searchPa
                     <TabSwitcher
                         className="h-auto p-0 bg-transparent"
                         tabs={[
-                            { label: "Team Members", value: "members" },
-                            ...(userRoleInOrg === OrgRole.OWNER ? [
                             {
                                 label: (
                                     <div className="flex items-center gap-2">
-                                        Pending Requests
-                                        {requests.length > 0 && (
-                                            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
-                                                {requests.length}
-                                            </span>
-                                        )}
+                                        Team Members
+                                        <Badge variant="secondary" className="px-1.5 relative">
+                                            {members.length}
+                                        </Badge>
                                     </div>
                                 ),
-                                value: "requests"
+                                value: "members"
                             },
-                            {
-                                label: (
-                                    <div className="flex items-center gap-2">
-                                        Pending Invites
-                                        {invites.length > 0 && (
-                                            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
-                                                {invites.length}
-                                            </span>
-                                        )}
-                                    </div>
-                                ),
+                            ...(userRoleInOrg === OrgRole.OWNER ? [
+                                {
+                                    label: (
+                                        <div className="flex items-center gap-2">
+                                            {requests.length > 0 && (
+                                                <NotificationDot />
+                                            )}
+                                            Pending Requests
+                                            {requests.length > 0 && (
+                                                <Badge variant="secondary" className="px-1.5 relative">
+                                                    {requests.length}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    ),
+                                    value: "requests"
+                                },
+                                {
+                                    label: (
+                                        <div className="flex items-center gap-2">
+                                            Pending Invites
+                                            {invites.length > 0 && (
+                                                <Badge variant="secondary" className="px-1.5 relative">
+                                                    {invites.length}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    ),
                                     value: "invites"
                                 },
                             ] : []),

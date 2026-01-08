@@ -1,2 +1,4 @@
 # shadcn components
 src/components/
+next-env.d.ts
+src/proto/**

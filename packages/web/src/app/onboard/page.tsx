@@ -1,11 +1,12 @@
 import type React from "react"
+import Link from "next/link"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AuthMethodSelector } from "@/app/components/authMethodSelector"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { auth } from "@/auth";
-import { getAuthProviders } from "@/lib/authProviders";
+import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 import { OrganizationAccessSettings } from "@/app/components/organizationAccessSettings";
 import { CompleteOnboardingButton } from "./components/completeOnboardingButton";
 import { getOrgFromDomain } from "@/data/org";
@@ -16,11 +17,11 @@ import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { redirect } from "next/navigation";
 import { BetweenHorizontalStart, Brain, GitBranchIcon, LockIcon } from "lucide-react";
 import { hasEntitlement } from "@sourcebot/shared";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { GcpIapAuth } from "@/app/[domain]/components/gcpIapAuth";
 
 interface OnboardingProps {
-    searchParams?: { step?: string };
+    searchParams?: Promise<{ step?: string }>;
 }
 
 interface OnboardingStep {
@@ -38,8 +39,9 @@ interface ResourceCard {
     icon?: React.ReactNode
 }
 
-export default async function Onboarding({ searchParams }: OnboardingProps) {
-    const providers = getAuthProviders();
+export default async function Onboarding(props: OnboardingProps) {
+    const searchParams = await props.searchParams;
+    const providers = getIdentityProviderMetadata();
     const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
     const session = await auth();
 
@@ -118,7 +120,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
             component: (
                 <div className="space-y-6">
                     <Button asChild className="w-full">
-                        <a href="/onboard?step=1">Get Started →</a>
+                        <Link href="/onboard?step=1">Get Started →</Link>
                     </Button>
                 </div>
             ),
@@ -170,7 +172,7 @@ export default async function Onboarding({ searchParams }: OnboardingProps) {
                 <div className="space-y-6">
                     <OrganizationAccessSettings />
                     <Button asChild className="w-full">
-                        <a href="/onboard?step=3">Continue →</a>
+                        <Link href="/onboard?step=3">Continue →</Link>
                     </Button>
                 </div>
             ),

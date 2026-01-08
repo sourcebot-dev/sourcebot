@@ -1,48 +1,28 @@
 import "./instrument.js";
 
 import * as Sentry from "@sentry/node";
+import { PrismaClient } from "@sourcebot/db";
+import { createLogger, env, getConfigSettings, getDBConnectionString, hasEntitlement } from "@sourcebot/shared";
+import 'express-async-errors';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
-import path from 'path';
-import { AppContext } from "./types.js";
-import { main } from "./main.js"
-import { PrismaClient } from "@sourcebot/db";
-import { env } from "./env.js";
-import { createLogger } from "@sourcebot/logger";
+import { Redis } from 'ioredis';
+import { Api } from "./api.js";
+import { ConfigManager } from "./configManager.js";
+import { ConnectionManager } from './connectionManager.js';
+import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, SHUTDOWN_SIGNALS } from './constants.js';
+import { AccountPermissionSyncer } from "./ee/accountPermissionSyncer.js";
+import { GithubAppManager } from "./ee/githubAppManager.js";
+import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
+import { shutdownPosthog } from "./posthog.js";
+import { PromClient } from './promClient.js';
+import { RepoIndexManager } from "./repoIndexManager.js";
+
 
 const logger = createLogger('backend-entrypoint');
 
-
-// Register handler for normal exit
-process.on('exit', (code) => {
-    logger.info(`Process is exiting with code: ${code}`);
-});
-
-// Register handlers for abnormal terminations
-process.on('SIGINT', () => {
-    logger.info('Process interrupted (SIGINT)');
-    process.exit(0);
-});
-
-process.on('SIGTERM', () => {
-    logger.info('Process terminated (SIGTERM)');
-    process.exit(0);
-});
-
-// Register handlers for uncaught exceptions and unhandled rejections
-process.on('uncaughtException', (err) => {
-    logger.error(`Uncaught exception: ${err.message}`);
-    process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    logger.error(`Unhandled rejection at: ${promise}, reason: ${reason}`);
-    process.exit(1);
-});
-
-const cacheDir = env.DATA_CACHE_DIR;
-const reposPath = path.join(cacheDir, 'repos');
-const indexPath = path.join(cacheDir, 'index');
+const reposPath = REPOS_CACHE_DIR;
+const indexPath = INDEX_CACHE_DIR;
 
 if (!existsSync(reposPath)) {
     await mkdir(reposPath, { recursive: true });
@@ -51,26 +31,120 @@ if (!existsSync(indexPath)) {
     await mkdir(indexPath, { recursive: true });
 }
 
-const context: AppContext = {
-    indexPath,
-    reposPath,
-    cachePath: cacheDir,
+const prisma = new PrismaClient({
+    datasources: {
+        db: {
+            url: getDBConnectionString(),
+        },
+    },
+});
+
+const redis = new Redis(env.REDIS_URL, {
+    maxRetriesPerRequest: null
+});
+
+try {
+    await redis.ping();
+    logger.info('Connected to redis');
+} catch (err: unknown) {
+    logger.error('Failed to connect to redis. Error:', err);
+    process.exit(1);
 }
 
-const prisma = new PrismaClient();
+const promClient = new PromClient();
 
-main(prisma, context)
-    .then(async () => {
-        await prisma.$disconnect();
-    })
-    .catch(async (e) => {
-        logger.error(e);
-        Sentry.captureException(e);
+const settings = await getConfigSettings(env.CONFIG_PATH);
 
-        await prisma.$disconnect();
-        process.exit(1);
-    })
-    .finally(() => {
-        logger.info("Shutting down...");
+if (hasEntitlement('github-app')) {
+    await GithubAppManager.getInstance().init(prisma);
+}
+
+const connectionManager = new ConnectionManager(prisma, settings, redis, promClient);
+const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
+const accountPermissionSyncer = new AccountPermissionSyncer(prisma, settings, redis);
+const repoIndexManager = new RepoIndexManager(prisma, settings, redis, promClient);
+const configManager = new ConfigManager(prisma, connectionManager, env.CONFIG_PATH);
+
+connectionManager.startScheduler();
+repoIndexManager.startScheduler();
+
+if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && !hasEntitlement('permission-syncing')) {
+    logger.error('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
+    process.exit(1);
+}
+else if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')) {
+    repoPermissionSyncer.startScheduler();
+    accountPermissionSyncer.startScheduler();
+}
+
+const api = new Api(
+    promClient,
+    prisma,
+    connectionManager,
+    repoIndexManager,
+);
+
+logger.info('Worker started.');
+
+const listenToShutdownSignals = () => {
+    const signals = SHUTDOWN_SIGNALS;
+
+    let receivedSignal = false;
+
+    const cleanup = async (signal: string) => {
+        try {
+            if (receivedSignal) {
+                return;
+            }
+            receivedSignal = true;
+
+            logger.info(`Received ${signal}, cleaning up...`);
+
+            await repoIndexManager.dispose()
+            await connectionManager.dispose()
+            await repoPermissionSyncer.dispose()
+            await accountPermissionSyncer.dispose()
+            await configManager.dispose()
+
+            await prisma.$disconnect();
+            await redis.quit();
+            await api.dispose();
+            await shutdownPosthog();
+            
+            logger.info('All workers shut down gracefully');
+            signals.forEach(sig => process.removeListener(sig, cleanup));
+            return 0;
+        } catch (error) {
+            Sentry.captureException(error);
+            logger.error('Error shutting down worker:', error);
+            return 1;
+        }
+    }
+
+    signals.forEach(signal => {
+        process.on(signal, (err) => {
+            cleanup(err).then(code => {
+                process.exit(code);
+            });
+        });
     });
 
+    // Register handlers for uncaught exceptions and unhandled rejections
+    process.on('uncaughtException', (err) => {
+        logger.error(`Uncaught exception: ${err.message}`);
+        cleanup('uncaughtException').then(() => {
+            process.exit(1);
+        });
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+        logger.error(`Unhandled rejection at: ${promise}, reason: ${reason}`);
+        cleanup('unhandledRejection').then(() => {
+            process.exit(1);
+        });
+    });
+
+
+}
+
+listenToShutdownSignals();

@@ -1,6 +1,6 @@
 import { sourcebot_diff, sourcebot_context, sourcebot_file_diff_review_schema } from "@/features/agents/review-agent/types";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('generate-diff-review-prompt');
 

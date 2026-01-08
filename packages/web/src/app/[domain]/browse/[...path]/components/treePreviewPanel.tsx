@@ -2,7 +2,7 @@
 import { Separator } from "@/components/ui/separator";
 import { getRepoInfoByName } from "@/actions";
 import { PathHeader } from "@/app/[domain]/components/pathHeader";
-import { getFolderContents } from "@/features/fileTree/actions";
+import { getFolderContents } from "@/features/fileTree/api";
 import { isServiceError } from "@/lib/utils";
 import { PureTreePreviewPanel } from "./pureTreePreviewPanel";
 
@@ -10,17 +10,16 @@ interface TreePreviewPanelProps {
     path: string;
     repoName: string;
     revisionName?: string;
-    domain: string;
 }
 
-export const TreePreviewPanel = async ({ path, repoName, revisionName, domain }: TreePreviewPanelProps) => {
+export const TreePreviewPanel = async ({ path, repoName, revisionName }: TreePreviewPanelProps) => {
     const [repoInfoResponse, folderContentsResponse] = await Promise.all([
-        getRepoInfoByName(repoName, domain),
+        getRepoInfoByName(repoName),
         getFolderContents({
             repoName,
             revisionName: revisionName ?? 'HEAD',
             path,
-        }, domain)
+        })
     ]);
 
     if (isServiceError(folderContentsResponse) || isServiceError(repoInfoResponse)) {
@@ -40,6 +39,7 @@ export const TreePreviewPanel = async ({ path, repoName, revisionName, domain }:
                     }}
                     pathType="tree"
                     isFileIconVisible={false}
+                    branchDisplayName={revisionName}
                 />
             </div>
             <Separator />

@@ -3,6 +3,43 @@
     <Card horizontal title="GitLab" icon="gitlab" href="/docs/connections/gitlab" />
     <Card horizontal title="Bitbucket Cloud" icon="bitbucket" href="/docs/connections/bitbucket-cloud" />
     <Card horizontal title="Bitbucket Data Center" icon="bitbucket" href="/docs/connections/bitbucket-data-center" />
+    {/* Mintlify has a bug where linking to a file for the logo renders it with a white background, so we have to embed it directly */}
+    <Card
+    horizontal
+    title="Azure Dev Ops Cloud"
+    href="/docs/connections/ado-cloud"
+    icon={
+        <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 16 16"
+        className="w-6 h-6 text-white"
+        >
+        <path
+            fill="currentColor"
+            d="M15 3.622v8.512L11.5 15l-5.425-1.975v1.958L3.004 10.97l8.951.7V4.005L15 3.622zm-2.984.428L6.994 1v2.001L2.382 4.356 1 6.13v4.029l1.978.873V5.869l9.038-1.818z"
+        />
+        </svg>
+    }
+    />
+    <Card
+    horizontal
+    title="Azure Dev Ops Server"
+    href="/docs/connections/ado-server"
+    icon={
+        <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 16 16"
+        className="w-6 h-6 text-white"
+        >
+        <path
+            fill="currentColor"
+            d="M15 3.622v8.512L11.5 15l-5.425-1.975v1.958L3.004 10.97l8.951.7V4.005L15 3.622zm-2.984.428L6.994 1v2.001L2.382 4.356 1 6.13v4.029l1.978.873V5.869l9.038-1.818z"
+        />
+        </svg>
+    }
+    />
     <Card horizontal title="Gitea" icon="mug-tea" href="/docs/connections/gitea" />
     <Card horizontal title="Gerrit" icon="crow" href="/docs/connections/gerrit" />
     <Card horizontal title="Other Git hosts" icon="git-alt" href="/docs/connections/generic-git-host" />

@@ -1,12 +1,12 @@
+import { env, SOURCEBOT_VERSION } from "@sourcebot/shared";
 import { PostHog } from 'posthog-node';
 import { PosthogEvent, PosthogEventMap } from './posthogEvents.js';
-import { env } from './env.js';
 
 let posthog: PostHog | undefined = undefined;
 
-if (env.NEXT_PUBLIC_POSTHOG_PAPIK) {
+if (env.POSTHOG_PAPIK) {
     posthog = new PostHog(
-        env.NEXT_PUBLIC_POSTHOG_PAPIK,
+        env.POSTHOG_PAPIK,
         {
             host: "https://us.i.posthog.com",
         }
@@ -23,9 +23,11 @@ export function captureEvent<E extends PosthogEvent>(event: E, properties: Posth
         event: event,
         properties: {
             ...properties,
-            sourcebot_version: env.NEXT_PUBLIC_SOURCEBOT_VERSION,
+            sourcebot_version: SOURCEBOT_VERSION,
         },
     });
 }
 
-await posthog?.shutdown();
+export async function shutdownPosthog() {
+    await posthog?.shutdown();
+}

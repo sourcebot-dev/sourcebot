@@ -1,9 +1,9 @@
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
+import { env as clientEnv } from "@sourcebot/shared/client";
 import { getFileSource } from "@/features/search/fileSourceApi";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { isServiceError } from "@/lib/utils";
 import { ProviderOptions } from "@ai-sdk/provider-utils";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 import { LanguageModel, ModelMessage, StopCondition, streamText } from "ai";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, toolNames } from "./constants";
 import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, readFilesTool, searchReposTool, listAllReposTool } from "./tools";
@@ -141,7 +141,7 @@ export const createAgentStream = async ({
         },
         // Only enable langfuse traces in cloud environments.
         experimental_telemetry: {
-            isEnabled: env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined,
+            isEnabled: clientEnv.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined,
             metadata: {
                 langfuseTraceId: traceId,
             },
@@ -251,8 +251,7 @@ const resolveFileSource = async ({ path, repo, revision }: FileSource) => {
         fileName: path,
         repository: repo,
         branch: revision,
-        // @todo: handle multi-tenancy.
-    }, SINGLE_TENANT_ORG_DOMAIN);
+    });
 
     if (isServiceError(fileSource)) {
         // @todo: handle this

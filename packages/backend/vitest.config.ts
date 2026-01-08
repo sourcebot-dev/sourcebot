@@ -4,5 +4,8 @@ export default defineConfig({
     test: {
         environment: 'node',
         watch: false,
+        env: {
+            DATA_CACHE_DIR: 'test-data'
+        }
     }
 });

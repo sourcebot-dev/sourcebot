@@ -7,15 +7,15 @@
 export type Token =
   | {
       /**
-       * The name of the secret that contains the token.
+       * The name of the environment variable that contains the token.
        */
-      secret: string;
+      env: string;
     }
   | {
       /**
-       * The name of the environment variable that contains the token. Only supported in declarative connection configs.
+       * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
        */
-      env: string;
+      googleCloudSecret: string;
     };
 
 export interface Shared {
@@ -46,6 +46,19 @@ export interface GitRevisions {
 export interface LanguageModelHeaders {
   /**
    * This interface was referenced by `LanguageModelHeaders`'s JSON-Schema definition
+   * via the `patternProperty` "^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$".
+   */
+  [k: string]: string | Token;
+}
+/**
+ * Optional query parameters to include in the request url.
+ *
+ * This interface was referenced by `Shared`'s JSON-Schema
+ * via the `definition` "LanguageModelQueryParams".
+ */
+export interface LanguageModelQueryParams {
+  /**
+   * This interface was referenced by `LanguageModelQueryParams`'s JSON-Schema definition
    * via the `patternProperty` "^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$".
    */
   [k: string]: string | Token;

@@ -4,9 +4,9 @@
         "packages/*"
     ],
     "scripts": {
-        "build": "cross-env SKIP_ENV_VALIDATION=1 yarn workspaces foreach -A run build",
-        "test": "yarn workspaces foreach -A run test",
-        "dev": "yarn dev:prisma:migrate:dev && npm-run-all --print-label --parallel dev:zoekt dev:backend dev:web watch:mcp watch:schemas",
+        "build": "cross-env SKIP_ENV_VALIDATION=1 yarn workspaces foreach --all --topological run build",
+        "test": "yarn workspaces foreach --all --topological run test",
+        "dev": "concurrently --kill-others --names \"zoekt,worker,web,mcp,schemas\" 'yarn dev:zoekt' 'yarn dev:backend' 'yarn dev:web' 'yarn watch:mcp' 'yarn watch:schemas'",
         "with-env": "cross-env PATH=\"$PWD/bin:$PATH\" dotenv -e .env.development -c --",
         "dev:zoekt": "yarn with-env zoekt-webserver -index .sourcebot/index -rpc",
         "dev:backend": "yarn with-env yarn workspace @sourcebot/backend dev:watch",
@@ -14,15 +14,20 @@
         "watch:mcp": "yarn workspace @sourcebot/mcp build:watch",
         "watch:schemas": "yarn workspace @sourcebot/schemas watch",
         "dev:prisma:migrate:dev": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:dev",
+        "dev:prisma:generate": "yarn with-env yarn workspace @sourcebot/db prisma:generate",
         "dev:prisma:studio": "yarn with-env yarn workspace @sourcebot/db prisma:studio",
         "dev:prisma:migrate:reset": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:reset",
         "dev:prisma:db:push": "yarn with-env yarn workspace @sourcebot/db prisma:db:push",
-        "build:deps": "yarn workspaces foreach -R --from '{@sourcebot/schemas,@sourcebot/error,@sourcebot/crypto,@sourcebot/db,@sourcebot/shared}' run build"
+        "build:deps": "yarn workspaces foreach --recursive --topological --from '{@sourcebot/schemas,@sourcebot/db,@sourcebot/shared,@sourcebot/query-language}' run build"
     },
     "devDependencies": {
+        "concurrently": "^9.2.1",
         "cross-env": "^7.0.3",
-        "dotenv-cli": "^8.0.0",
-        "npm-run-all": "^4.1.5"
+        "dotenv-cli": "^8.0.0"
     },
-    "packageManager": "yarn@4.7.0"
+    "packageManager": "yarn@4.7.0",
+    "resolutions": {
+        "prettier": "3.5.3",
+        "@lezer/common": "1.3.0"
+    }
 }

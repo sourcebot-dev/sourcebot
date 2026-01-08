@@ -1,30 +1,33 @@
 import { getRepoInfoByName } from "@/actions";
 import { PathHeader } from "@/app/[domain]/components/pathHeader";
 import { Separator } from "@/components/ui/separator";
-import { getFileSource } from "@/features/search/fileSourceApi";
 import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils";
 import Image from "next/image";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
+import { getFileSource } from "@/features/search/fileSourceApi";
 
 interface CodePreviewPanelProps {
     path: string;
     repoName: string;
     revisionName?: string;
-    domain: string;
 }
 
-export const CodePreviewPanel = async ({ path, repoName, revisionName, domain }: CodePreviewPanelProps) => {
+export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePreviewPanelProps) => {
     const [fileSourceResponse, repoInfoResponse] = await Promise.all([
         getFileSource({
             fileName: path,
             repository: repoName,
             branch: revisionName,
-        }, domain),
-        getRepoInfoByName(repoName, domain),
+        }),
+        getRepoInfoByName(repoName),
     ]);
 
-    if (isServiceError(fileSourceResponse) || isServiceError(repoInfoResponse)) {
-        return <div>Error loading file source</div>
+    if (isServiceError(fileSourceResponse)) {
+        return <div>Error loading file source: {fileSourceResponse.message}</div>
+    }
+
+    if (isServiceError(repoInfoResponse)) {
+        return <div>Error loading repo info: {repoInfoResponse.message}</div>
     }
 
     const codeHostInfo = getCodeHostInfoForRepo({
@@ -33,6 +36,11 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, domain }:
         displayName: repoInfoResponse.displayName,
         webUrl: repoInfoResponse.webUrl,
     });
+
+    // @todo: this is a hack to support linking to files for ADO. ADO doesn't support web urls with HEAD so we replace it with main. THis
+    // will break if the default branch is not main.
+    const fileWebUrl = repoInfoResponse.codeHostType === "azuredevops" && fileSourceResponse.webUrl ?
+        fileSourceResponse.webUrl.replace("version=GBHEAD", "version=GBmain") : fileSourceResponse.webUrl;
 
     return (
         <>
@@ -45,10 +53,13 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, domain }:
                         displayName: repoInfoResponse.displayName,
                         webUrl: repoInfoResponse.webUrl,
                     }}
+                    branchDisplayName={revisionName}
                 />
-                {(fileSourceResponse.webUrl && codeHostInfo) && (
+
+                {fileWebUrl && (
+
                     <a
-                        href={fileSourceResponse.webUrl}
+                        href={fileWebUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex flex-row items-center gap-2 px-2 py-0.5 rounded-md flex-shrink-0"

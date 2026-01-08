@@ -28,10 +28,6 @@ clean:
 		packages/db/dist \
 		packages/schemas/node_modules \
 		packages/schemas/dist \
-		packages/crypto/node_modules \
-		packages/crypto/dist \
-		packages/error/node_modules \
-		packages/error/dist \
 		packages/mcp/node_modules \
 		packages/mcp/dist \
 		packages/shared/node_modules \

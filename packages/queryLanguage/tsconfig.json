@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+      "target": "ES2022",
+      "module": "Node16",
+      "moduleResolution": "Node16",
+      "lib": ["ES2023"],
+      "outDir": "dist",
+      "rootDir": "src",
+      "declaration": true,
+      "declarationMap": true,
+      "sourceMap": true,
+      "strict": true,
+      "noImplicitAny": true,
+      "strictNullChecks": true,
+      "esModuleInterop": true,
+      "forceConsistentCasingInFileNames": true,
+      "skipLibCheck": true,
+      "isolatedModules": true,
+      "resolveJsonModule": true
+    },
+    "include": ["src/index.ts"],
+    "exclude": ["node_modules", "dist"]
+  } 

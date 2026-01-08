@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import githubLogo from "@/public/github.svg";
+import azuredevopsLogo from "@/public/azuredevops.svg";
 import gitlabLogo from "@/public/gitlab.svg";
 import giteaLogo from "@/public/gitea.svg";
 import gerritLogo from "@/public/gerrit.svg";
@@ -10,12 +11,15 @@ import googleLogo from "@/public/google.svg";
 import oktaLogo from "@/public/okta.svg";
 import keycloakLogo from "@/public/keycloak.svg";
 import microsoftLogo from "@/public/microsoft_entra.svg";
+import authentikLogo from "@/public/authentik.svg";
 import { ServiceError } from "./serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
 import { NextRequest } from "next/server";
-import { Org } from "@sourcebot/db";
+import { ConnectionType, Org } from "@sourcebot/db";
 import { OrgMetadata, orgMetadataSchema } from "@/types";
+import { SINGLE_TENANT_ORG_DOMAIN } from "./constants";
+import { CodeHostType } from "@sourcebot/db";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -58,28 +62,17 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
         return path;
     }
 
-    const queryString = queryParams.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value ?? '')}`).join('&');
+    const queryString = queryParams.map(([key, value]) => `${encodeURIComponent(key)}=${encodeRFC3986URIComponent(value ?? '')}`).join('&');
     return `${path}?${queryString}`;
 }
 
-export type CodeHostType =
-    "github" |
-    "gitlab" |
-    "gitea" |
-    "gerrit" |
-    "bitbucket-cloud" |
-    "bitbucket-server" |
-    "generic-git-host";
-
-export type AuthProviderType = 
-    "github" |
-    "gitlab" |
-    "google" |
-    "okta" |
-    "keycloak" |
-    "microsoft-entra-id" |
-    "credentials" |
-    "nodemailer";
+// @see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent#encoding_for_rfc3986
+const encodeRFC3986URIComponent = (str: string) => {
+    return encodeURIComponent(str).replace(
+      /[!'()*]/g,
+      (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+    );
+  }
 
 type AuthProviderInfo = {
     id: string;
@@ -102,7 +95,7 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
             };
         case "gitlab":
             return {
-                id: "gitlab", 
+                id: "gitlab",
                 name: "GitLab",
                 displayName: "GitLab",
                 icon: {
@@ -112,7 +105,7 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
         case "google":
             return {
                 id: "google",
-                name: "Google", 
+                name: "Google",
                 displayName: "Google",
                 icon: {
                     src: googleLogo,
@@ -122,7 +115,7 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
             return {
                 id: "okta",
                 name: "Okta",
-                displayName: "Okta", 
+                displayName: "Okta",
                 icon: {
                     src: oktaLogo,
                     className: "dark:invert",
@@ -142,10 +135,19 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
                 id: "microsoft-entra-id",
                 name: "Microsoft Entra ID",
                 displayName: "Microsoft Entra ID",
-               icon: {
+                icon: {
                     src: microsoftLogo,
                 },
             };
+        case "authentik":
+            return {
+                id: "authentik",
+                name: "Authentik",
+                displayName: "Authentik",
+                icon: {
+                    src: authentikLogo,
+                },
+            }
         case "credentials":
             return {
                 id: "credentials",
@@ -180,11 +182,11 @@ type CodeHostInfo = {
 }
 
 export const getCodeHostInfoForRepo = (repo: {
-    codeHostType: string,
+    codeHostType: CodeHostType,
     name: string,
     displayName?: string,
     webUrl?: string,
-}): CodeHostInfo | undefined => {
+}): CodeHostInfo => {
     const { codeHostType, name, displayName, webUrl } = repo;
 
     switch (codeHostType) {
@@ -210,6 +212,17 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
+        case 'azuredevops': {
+            const { src, className } = getCodeHostIcon('azuredevops')!;
+            return {
+                type: "azuredevops",
+                displayName: displayName ?? name,
+                codeHostName: "Azure DevOps",
+                repoLink: webUrl,
+                icon: src,
+                iconClassName: className,
+            }
+        }
         case 'gitea': {
             const { src, className } = getCodeHostIcon('gitea')!;
             return {
@@ -221,8 +234,7 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
-        case 'gerrit':
-        case 'gitiles': {
+        case 'gerrit': {
             const { src, className } = getCodeHostIcon('gerrit')!;
             return {
                 type: "gerrit",
@@ -233,10 +245,10 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
-        case "bitbucket-server": {
-            const { src, className } = getCodeHostIcon('bitbucket-server')!;
+        case "bitbucketServer": {
+            const { src, className } = getCodeHostIcon('bitbucketServer')!;
             return {
-                type: "bitbucket-server",
+                type: "bitbucketServer",
                 displayName: displayName ?? name,
                 codeHostName: "Bitbucket",
                 repoLink: webUrl,
@@ -244,10 +256,10 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
-        case "bitbucket-cloud": {
-            const { src, className } = getCodeHostIcon('bitbucket-cloud')!;
+        case "bitbucketCloud": {
+            const { src, className } = getCodeHostIcon('bitbucketCloud')!;
             return {
-                type: "bitbucket-cloud",
+                type: "bitbucketCloud",
                 displayName: displayName ?? name,
                 codeHostName: "Bitbucket",
                 repoLink: webUrl,
@@ -255,10 +267,10 @@ export const getCodeHostInfoForRepo = (repo: {
                 iconClassName: className,
             }
         }
-        case "generic-git-host": {
-            const { src, className } = getCodeHostIcon('generic-git-host')!;
+        case "genericGitHost": {
+            const { src, className } = getCodeHostIcon('genericGitHost')!;
             return {
-                type: "generic-git-host",
+                type: "genericGitHost",
                 displayName: displayName ?? name,
                 codeHostName: "Git Host",
                 repoLink: webUrl,
@@ -269,7 +281,7 @@ export const getCodeHostInfoForRepo = (repo: {
     }
 }
 
-export const getCodeHostIcon = (codeHostType: string): { src: string, className?: string } | null => {
+export const getCodeHostIcon = (codeHostType: CodeHostType | ConnectionType): { src: string, className?: string } => {
     switch (codeHostType) {
         case "github":
             return {
@@ -288,17 +300,123 @@ export const getCodeHostIcon = (codeHostType: string): { src: string, className?
             return {
                 src: gerritLogo,
             }
-        case "bitbucket-cloud":
-        case "bitbucket-server":
+        case "bitbucket":
+        case "bitbucketCloud":
+        case "bitbucketServer":
             return {
                 src: bitbucketLogo,
             }
-        case "generic-git-host":
+        case "azuredevops":
+            return {
+                src: azuredevopsLogo,
+            }
+        case "git":
+        case "genericGitHost":
             return {
                 src: gitLogo,
             }
-        default:
-            return null;
+    }
+}
+
+export const getCodeHostCommitUrl = ({
+    webUrl,
+    codeHostType,
+    commitHash,
+}: {
+    webUrl?: string | null,
+    codeHostType: CodeHostType,
+    commitHash: string,
+}) => {
+    if (!webUrl) {
+        return undefined;
+    }
+
+    switch (codeHostType) {
+        case 'github':
+            return `${webUrl}/commit/${commitHash}`;
+        case 'gitlab':
+            return `${webUrl}/-/commit/${commitHash}`;
+        case 'gitea':
+            return `${webUrl}/commit/${commitHash}`;
+        case 'azuredevops':
+            return `${webUrl}/commit/${commitHash}`;
+        case 'bitbucketCloud':
+            return `${webUrl}/commits/${commitHash}`;
+        case 'bitbucketServer':
+            return `${webUrl}/commits/${commitHash}`;
+        case 'gerrit':
+            return `${webUrl}/+/${commitHash}`;
+        case 'genericGitHost':
+            return undefined;
+    }
+}
+
+export const getCodeHostBrowseAtBranchUrl = ({
+    webUrl,
+    codeHostType,
+    branchName,
+}: {
+    webUrl?: string | null,
+    codeHostType: CodeHostType,
+    branchName: string,
+}) => {
+    if (!webUrl) {
+        return undefined;
+    }
+
+    switch (codeHostType) {
+        case 'github':
+            return `${webUrl}/tree/${branchName}`;
+        case 'gitlab':
+            return `${webUrl}/-/tree/${branchName}`;
+        case 'gitea':
+            return `${webUrl}/src/branch/${branchName}`;
+        case 'azuredevops':
+            return `${webUrl}?branch=${branchName}`;
+        case 'bitbucketCloud':
+            return `${webUrl}?at=${branchName}`;
+        case 'bitbucketServer':
+            return `${webUrl}?at=${branchName}`;
+        case 'gerrit':
+            return `${webUrl}/+/${branchName}`;
+        case 'genericGitHost':
+            return undefined;
+    }
+}
+
+export const getCodeHostBrowseFileAtBranchUrl = ({
+    webUrl,
+    codeHostType,
+    branchName,
+    filePath,
+}: {
+    webUrl?: string | null,
+    codeHostType: CodeHostType,
+    branchName: string,
+    filePath: string,
+}) => {
+    if (!webUrl) {
+        return undefined;
+    }
+
+    switch (codeHostType) {
+        case 'github':
+            return `${webUrl}/blob/${branchName}/${filePath}`;
+        case 'gitlab':
+            return `${webUrl}/-/blob/${branchName}/${filePath}`;
+        case 'gitea':
+            return `${webUrl}/src/branch/${branchName}/${filePath}`;
+        case 'azuredevops':
+            return `${webUrl}?path=${filePath}&version=${branchName}`;
+        case 'bitbucketCloud':
+            return `${webUrl}/src/${branchName}/${filePath}`;
+        case 'bitbucketServer':
+            return `${webUrl}/browse/${filePath}?at=${branchName}`;
+        case 'gerrit':
+            return `${webUrl}/+/${branchName}/${filePath}`;
+        case 'genericGitHost':
+            return undefined;
+
     }
 }
 
@@ -307,10 +425,11 @@ export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean 
         case "github":
         case "gitlab":
         case "gitea":
-        case "bitbucket-cloud":
-        case "bitbucket-server":
+        case "bitbucketCloud":
+        case "bitbucketServer":
+        case "azuredevops":
             return true;
-        case "generic-git-host":
+        case "genericGitHost":
         case "gerrit":
             return false;
     }
@@ -329,32 +448,51 @@ export const isDefined = <T>(arg: T | null | undefined): arg is T extends null |
     return arg !== null && arg !== undefined;
 }
 
-export const getDisplayTime = (date: Date) => {
+export const getFormattedDate = (date: Date) => {
     const now = new Date();
-    const minutes = (now.getTime() - date.getTime()) / (1000 * 60);
+    const diffMinutes = (now.getTime() - date.getTime()) / (1000 * 60);
+    const isFuture = diffMinutes < 0;
+
+    // Use absolute values for calculations
+    const minutes = Math.abs(diffMinutes);
     const hours = minutes / 60;
     const days = hours / 24;
     const months = days / 30;
 
-    const formatTime = (value: number, unit: 'minute' | 'hour' | 'day' | 'month') => {
+    const formatTime = (value: number, unit: 'minute' | 'hour' | 'day' | 'month', isFuture: boolean) => {
         const roundedValue = Math.floor(value);
-        if (roundedValue < 2) {
-            return `${roundedValue} ${unit} ago`;
+        const pluralUnit = roundedValue === 1 ? unit : `${unit}s`;
+
+        if (isFuture) {
+            return `In ${roundedValue} ${pluralUnit}`;
         } else {
-            return `${roundedValue} ${unit}s ago`;
+            return `${roundedValue} ${pluralUnit} ago`;
         }
     }
 
     if (minutes < 1) {
         return 'just now';
     } else if (minutes < 60) {
-        return formatTime(minutes, 'minute');
+        return formatTime(minutes, 'minute', isFuture);
     } else if (hours < 24) {
-        return formatTime(hours, 'hour');
+        return formatTime(hours, 'hour', isFuture);
     } else if (days < 30) {
-        return formatTime(days, 'day');
+        return formatTime(days, 'day', isFuture);
     } else {
-        return formatTime(months, 'month');
+        return formatTime(months, 'month', isFuture);
+    }
+}
+
+/**
+ * Converts a number to a string
+ */
+export const getShortenedNumberDisplayString = (number: number) => {
+    if (number < 1000) {
+        return number.toString();
+    } else if (number < 1000000) {
+        return `${(number / 1000).toFixed(1)}k`;
+    } else {
+        return `${(number / 1000000).toFixed(1)}m`;
     }
 }
 
@@ -406,7 +544,7 @@ export const measure = async <T>(cb: () => Promise<T>, measureName: string, outp
  * @param promise The promise to unwrap.
  * @returns The data from the promise.
  */
-export const unwrapServiceError = async <T>(promise: Promise<ServiceError | T>): Promise<T> => {    
+export const unwrapServiceError = async <T>(promise: Promise<ServiceError | T>): Promise<T> => {
     const data = await promise;
     if (isServiceError(data)) {
         throw new Error(data.message);
@@ -427,12 +565,12 @@ export const requiredQueryParamGuard = (request: NextRequest, param: string): Se
     return value;
 }
 
-export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number, domain: string): string | undefined => {
+export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number): string | undefined => {
     if (!imageUrl) return undefined;
-    
+
     try {
         const url = new URL(imageUrl);
-        
+
         // List of known public instances that don't require authentication
         const publicHostnames = [
             'github.com',
@@ -440,14 +578,14 @@ export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number, do
             'gitea.com',
             'bitbucket.org',
         ];
-        
+
         const isPublicInstance = publicHostnames.includes(url.hostname);
-        
+
         if (isPublicInstance) {
             return imageUrl;
         } else {
             // Use the proxied route for self-hosted instances
-            return `/api/${domain}/repos/${repoId}/image`;
+            return `/api/${SINGLE_TENANT_ORG_DOMAIN}/repos/${repoId}/image`;
         }
     } catch {
         // If URL parsing fails, use the original URL
@@ -464,8 +602,8 @@ export const IS_MAC = typeof navigator !== 'undefined' && /Mac OS X/.test(naviga
 
 
 export const isHttpError = (error: unknown, status: number): boolean => {
-    return error !== null 
+    return error !== null
         && typeof error === 'object'
-        && 'status' in error 
+        && 'status' in error
         && error.status === status;
 }

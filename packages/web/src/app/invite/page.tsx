@@ -7,16 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
-import { getAuthProviders } from "@/lib/authProviders";
+import { getIdentityProviderMetadata, IdentityProviderMetadata } from "@/lib/identityProviders";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 
 interface InvitePageProps {
-    searchParams: {
+    searchParams: Promise<{
         id?: string;
-    };
+    }>;
 }
 
-export default async function InvitePage({ searchParams }: InvitePageProps) {
+export default async function InvitePage(props: InvitePageProps) {
+    const searchParams = await props.searchParams;
     const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
     if (!org || !org.isOnboarded) {
         return redirect("/onboard");
@@ -29,7 +30,7 @@ export default async function InvitePage({ searchParams }: InvitePageProps) {
 
     const session = await auth();
     if (!session) {
-        const providers = getAuthProviders();
+        const providers = getIdentityProviderMetadata();
         return <WelcomeCard inviteLinkId={inviteLinkId} providers={providers} />;
     }
 
@@ -56,7 +57,7 @@ export default async function InvitePage({ searchParams }: InvitePageProps) {
     );
 }
 
-function WelcomeCard({ inviteLinkId, providers }: { inviteLinkId: string; providers: import("@/lib/authProviders").AuthProvider[] }) {
+function WelcomeCard({ inviteLinkId, providers }: { inviteLinkId: string; providers: IdentityProviderMetadata[] }) {
     return (    
         <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--accent)]/30 flex items-center justify-center p-6">
             <Card className="w-full max-w-md">

@@ -9,12 +9,13 @@ import { getOrgFromDomain } from '@/data/org';
 import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
 
 interface RedeemPageProps {
-    searchParams: {
+    searchParams: Promise<{
         invite_id?: string;
-    };
+    }>;
 }
 
-export default async function RedeemPage({ searchParams }: RedeemPageProps) {
+export default async function RedeemPage(props: RedeemPageProps) {
+    const searchParams = await props.searchParams;
     const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
     if (!org || !org.isOnboarded) {
         return redirect("/onboard");

@@ -1,9 +1,8 @@
 import { sourcebot_context, sourcebot_pr_payload } from "@/features/agents/review-agent/types";
 import { getFileSource } from "@/features/search/fileSourceApi";
-import { fileSourceResponseSchema } from "@/features/search/schemas";
+import { fileSourceResponseSchema } from "@/features/search/types";
 import { isServiceError } from "@/lib/utils";
-import { env } from "@/env.mjs";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('fetch-file-content');
 
@@ -17,7 +16,7 @@ export const fetchFileContent = async (pr_payload: sourcebot_pr_payload, filenam
     }
     logger.debug(JSON.stringify(fileSourceRequest, null, 2));
 
-    const response = await getFileSource(fileSourceRequest, "~", env.REVIEW_AGENT_API_KEY);
+    const response = await getFileSource(fileSourceRequest);
     if (isServiceError(response)) {
         throw new Error(`Failed to fetch file content for ${filename} from ${repoPath}: ${response.message}`);
     }

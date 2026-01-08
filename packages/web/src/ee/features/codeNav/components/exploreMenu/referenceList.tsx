@@ -1,13 +1,15 @@
 'use client';
 
-import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { PathHeader } from "@/app/[domain]/components/pathHeader";
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import { FindRelatedSymbolsResponse } from "@/features/codeNav/types";
-import { RepositoryInfo, SourceRange } from "@/features/search/types";
+import { RepositoryInfo, SourceRange } from "@/features/search";
 import { useMemo, useRef } from "react";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import Link from "next/link";
+import { useDomain } from "@/hooks/useDomain";
 
 interface ReferenceListProps {
     data: FindRelatedSymbolsResponse;
@@ -21,6 +23,7 @@ export const ReferenceList = ({
     data,
     revisionName,
 }: ReferenceListProps) => {
+    const domain = useDomain();
     const repoInfoMap = useMemo(() => {
         return data.repositoryInfo.reduce((acc, repo) => {
             acc[repo.id] = repo;
@@ -28,7 +31,6 @@ export const ReferenceList = ({
         }, {} as Record<number, RepositoryInfo>);
     }, [data.repositoryInfo]);
 
-    const { navigateToPath } = useBrowseNavigation();
     const captureEvent = useCaptureEvent();
 
     // Virtualization setup
@@ -38,7 +40,7 @@ export const ReferenceList = ({
         getScrollElement: () => parentRef.current,
         estimateSize: (index) => {
             const file = data.files[index];
-            
+
             const estimatedSize =
                 file.matches.length * ESTIMATED_LINE_HEIGHT_PX +
                 ESTIMATED_MATCH_CONTAINER_HEIGHT_PX;
@@ -103,22 +105,26 @@ export const ReferenceList = ({
                                 {file.matches
                                     .sort((a, b) => a.range.start.lineNumber - b.range.start.lineNumber)
                                     .map((match, index) => (
-                                        <ReferenceListItem
-                                            key={index}
-                                            lineContent={match.lineContent}
-                                            range={match.range}
-                                            language={file.language}
+                                        <Link
+                                            href={getBrowsePath({
+                                                repoName: file.repository,
+                                                revisionName,
+                                                path: file.fileName,
+                                                pathType: 'blob',
+                                                highlightRange: match.range,
+                                                domain,
+                                            })}
                                             onClick={() => {
                                                 captureEvent('wa_explore_menu_reference_clicked', {});
-                                                navigateToPath({
-                                                    repoName: file.repository,
-                                                    revisionName,
-                                                    path: file.fileName,
-                                                    pathType: 'blob',
-                                                    highlightRange: match.range,
-                                                })
                                             }}
-                                        />
+                                            key={index}
+                                        >
+                                            <ReferenceListItem
+                                                lineContent={match.lineContent}
+                                                range={match.range}
+                                                language={file.language}
+                                            />
+                                        </Link>
                                     ))}
                             </div>
                         </div>
@@ -134,21 +140,18 @@ interface ReferenceListItemProps {
     lineContent: string;
     range: SourceRange;
     language: string;
-    onClick: () => void;
 }
 
 const ReferenceListItem = ({
     lineContent,
     range,
     language,
-    onClick,
 }: ReferenceListItemProps) => {
     const highlightRanges = useMemo(() => [range], [range]);
 
     return (
         <div
             className="w-full hover:bg-accent py-1 cursor-pointer"
-            onClick={onClick}
         >
             <LightweightCodeHighlighter
                 language={language}

@@ -4,7 +4,7 @@ import Credentials from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import { User } from '@sourcebot/db';
 import 'next-auth/jwt';
 import type { Provider } from "next-auth/providers";
@@ -13,39 +13,54 @@ import { createTransport } from 'nodemailer';
 import { render } from '@react-email/render';
 import MagicLinkEmail from './emails/magicLinkEmail';
 import bcrypt from 'bcryptjs';
-import { getSSOProviders } from '@/ee/features/sso/sso';
+import { getEEIdentityProviders } from '@/ee/features/sso/sso';
 import { hasEntitlement } from '@sourcebot/shared';
 import { onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
+import { refreshLinkedAccountTokens } from '@/ee/features/permissionSyncing/tokenRefresh';
 
 const auditService = getAuditService();
+const eeIdentityProviders = hasEntitlement("sso") ? await getEEIdentityProviders() : [];
 
 export const runtime = 'nodejs';
+
+export type IdentityProvider = {
+    provider: Provider;
+    purpose: "sso" | "account_linking";
+    required?: boolean;
+}
+
+export type LinkedAccountToken = {
+    provider: string;
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: number;
+    error?: string;
+};
+export type LinkedAccountTokensMap = Record<string, LinkedAccountToken>;
 
 declare module 'next-auth' {
     interface Session {
         user: {
             id: string;
         } & DefaultSession['user'];
+        linkedAccountProviderErrors?: Record<string, string>;
     }
 }
 
 declare module 'next-auth/jwt' {
     interface JWT {
-        userId: string
+        userId: string;
+        linkedAccountTokens?: LinkedAccountTokensMap;
     }
 }
 
 export const getProviders = () => {
-    const providers: Provider[] = [];
-
-    if (hasEntitlement("sso")) {
-        providers.push(...getSSOProviders());
-    }
+    const providers: IdentityProvider[] = eeIdentityProviders;
 
     if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
-        providers.push(EmailProvider({
+        providers.push({ provider: EmailProvider({
             server: env.SMTP_CONNECTION_URL,
             from: env.EMAIL_FROM_ADDRESS,
             maxAge: 60 * 10,
@@ -69,11 +84,11 @@ export const getProviders = () => {
                     throw new Error(`Email(s) (${failed.join(", ")}) could not be sent`);
                 }
             }
-        }));
+        }), purpose: "sso"});
     }
 
     if (env.AUTH_CREDENTIALS_LOGIN_ENABLED === 'true') {
-        providers.push(Credentials({
+        providers.push({ provider: Credentials({
             credentials: {
                 email: {},
                 password: {}
@@ -126,7 +141,7 @@ export const getProviders = () => {
                     };
                 }
             }
-        }));
+        }), purpose: "sso"});
     }
 
     return providers;
@@ -176,13 +191,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
     },
     callbacks: {
-        async jwt({ token, user: _user }) {
+        async jwt({ token, user: _user, account }) {
             const user = _user as User | undefined;
             // @note: `user` will be available on signUp or signIn triggers.
             // Cache the userId in the JWT for later use.
             if (user) {
                 token.userId = user.id;
             }
+
+            if (hasEntitlement('permission-syncing')) {
+                if (account && account.access_token && account.refresh_token && account.expires_at) {
+                    token.linkedAccountTokens = token.linkedAccountTokens || {};
+                    token.linkedAccountTokens[account.providerAccountId] = {
+                        provider: account.provider,
+                        accessToken: account.access_token,
+                        refreshToken: account.refresh_token,
+                        expiresAt: account.expires_at,
+                    };
+                }
+
+                if (token.linkedAccountTokens) {
+                    token.linkedAccountTokens = await refreshLinkedAccountTokens(token.linkedAccountTokens);
+                }
+            }
+
             return token;
         },
         async session({ session, token }) {
@@ -193,10 +225,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 // Propagate the userId to the session.
                 id: token.userId,
             }
+            
+            // Pass only linked account provider errors to the session (not sensitive tokens)
+            if (token.linkedAccountTokens) {
+                const errors: Record<string, string> = {};
+                for (const [providerAccountId, tokenData] of Object.entries(token.linkedAccountTokens)) {
+                    if (tokenData.error) {
+                        errors[providerAccountId] = tokenData.error;
+                    }
+                }
+                if (Object.keys(errors).length > 0) {
+                    session.linkedAccountProviderErrors = errors;
+                }
+            }
             return session;
         },
     },
-    providers: getProviders(),
+    providers: getProviders().map((provider) => provider.provider),
     pages: {
         signIn: "/login",
         // We set redirect to false in signInOptions so we can pass the email is as a param

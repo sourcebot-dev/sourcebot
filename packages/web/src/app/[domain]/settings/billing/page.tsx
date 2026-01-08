@@ -16,14 +16,18 @@ export const metadata: Metadata = {
 }
 
 interface BillingPageProps {
-    params: {
+    params: Promise<{
         domain: string
-    }
+    }>
 }
 
-export default async function BillingPage({
-    params: { domain },
-}: BillingPageProps) {
+export default async function BillingPage(props: BillingPageProps) {
+    const params = await props.params;
+
+    const {
+        domain
+    } = params;
+
     if (!IS_BILLING_ENABLED) {
         notFound();
     }

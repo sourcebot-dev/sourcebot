@@ -9,12 +9,7 @@
         },
         "token": {
             "$ref": "./shared.json#/definitions/Token",
-            "description": "An authentication token.",
-            "examples": [
-                {
-                    "secret": "SECRET_KEY"
-                }
-            ]
+            "description": "An authentication token."
         },
         "url": {
             "type": "string",
@@ -96,6 +91,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Exclude archived projects from syncing."
+                },
+                "userOwnedProjects": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Exclude user-owned projects from syncing."
                 },
                 "projects": {
                     "type": "array",

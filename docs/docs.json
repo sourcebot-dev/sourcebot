@@ -21,7 +21,13 @@
                         "group": "Getting Started",
                         "pages": [
                             "docs/overview",
-                            "docs/deployment-guide"
+                            {
+                                "group": "Deployment",
+                                "pages": [
+                                    "docs/deployment/docker-compose",
+                                    "docs/deployment/k8s"
+                                ]
+                            }
                         ]
                     },
                     {
@@ -46,6 +52,7 @@
                             "docs/features/code-navigation",
                             "docs/features/analytics",
                             "docs/features/mcp-server",
+                            "docs/features/permission-syncing",
                             {
                                 "group": "Agents",
                                 "tag": "experimental",
@@ -68,6 +75,8 @@
                                     "docs/connections/gitlab",
                                     "docs/connections/bitbucket-cloud",
                                     "docs/connections/bitbucket-data-center",
+                                    "docs/connections/ado-cloud",
+                                    "docs/connections/ado-server",
                                     "docs/connections/gitea",
                                     "docs/connections/gerrit",
                                     "docs/connections/generic-git-host",
@@ -76,6 +85,7 @@
                                 ]
                             },
                             "docs/configuration/language-model-providers",
+                            "docs/configuration/idp",
                             {
                                 "group": "Authentication",
                                 "pages": [
@@ -108,6 +118,11 @@
                 "icon": "list-check"
             },
             {
+                "anchor": "Roadmap",
+                "href": "https://github.com/sourcebot-dev/sourcebot/issues/459",
+                "icon": "map"
+            },
+            {
                 "anchor": "Support",
                 "href": "https://github.com/sourcebot-dev/sourcebot/issues/new?template=get_help.md",
                 "icon": "life-ring"
@@ -129,7 +144,7 @@
         "socials": {
             "github": "https://github.com/sourcebot-dev/sourcebot",
             "twitter": "https://x.com/sourcebot_dev",
-            "discord": "https://discord.gg/Y6b78RqM",
+            "discord": "https://discord.gg/HDScTs3ptP",
             "linkedin": "https://www.linkedin.com/company/sourcebot"
         }
     },

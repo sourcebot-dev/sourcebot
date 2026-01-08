@@ -7,6 +7,248 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Changed the default `/repos` pagination size to 20. [#706](https://github.com/sourcebot-dev/sourcebot/pull/706)
+- Changed pull policy in docker compose file to always. [#716](https://github.com/sourcebot-dev/sourcebot/pull/716)
+
+### Fixed
+- Add warning logs when local repo index fails to match pattern. [#712](https://github.com/sourcebot-dev/sourcebot/pull/712)
+
+## [4.10.7] - 2025-12-29
+
+### Fixed
+- Fixed auto-suggestion dropdown breaking queries with whitespace in repository names. Repository names containing spaces are now properly wrapped in quotes. [#705](https://github.com/sourcebot-dev/sourcebot/pull/705)
+
+## [4.10.6] - 2025-12-28
+
+### Fixed
+- Fixed repository images not loading when anonymous access is disabled. [#703](https://github.com/sourcebot-dev/sourcebot/pull/703)
+
+### Changed
+- Enable browser assisted autofill for username and password.[#696](https://github.com/sourcebot-dev/sourcebot/pull/696)
+
+## [4.10.5] - 2025-12-23
+
+### Changed
+- Bake Sourcebot version into code rather than relying on build arg. [#680](https://github.com/sourcebot-dev/sourcebot/pull/680)
+- Fix issue with `/repos` page pagination. [#689](https://github.com/sourcebot-dev/sourcebot/pull/689)
+- Add better logs for gitlab config sync fails. [#692](https://github.com/sourcebot-dev/sourcebot/pull/692)
+
+## [4.10.4] - 2025-12-18
+
+### Fixed
+- Fixed issue where parenthesis in query params were not being encoded, resulting in a poor experience when embedding links in Markdown. [#674](https://github.com/sourcebot-dev/sourcebot/pull/674)
+- Gitlab clone respects host protocol setting in environment variable. [#676](https://github.com/sourcebot-dev/sourcebot/pull/676)
+- Fixed performance issues with `/repos` page. [#677](https://github.com/sourcebot-dev/sourcebot/pull/677)
+
+## [4.10.3] - 2025-12-12
+
+### Fixed
+- Fixed review agent so that it works with GHES instances [#611](https://github.com/sourcebot-dev/sourcebot/pull/611)
+- Updated next package version to fix CVE-2025-55184 and CVE-2025-55183. [#673](https://github.com/sourcebot-dev/sourcebot/pull/673)
+
+### Added
+- Added support for arbitrary user IDs required for OpenShift. [#658](https://github.com/sourcebot-dev/sourcebot/pull/658) 
+
+### Updated
+- Improved error messages in file source api. [#665](https://github.com/sourcebot-dev/sourcebot/pull/665)
+
+## [4.10.2] - 2025-12-04
+
+### Fixed
+- Fixed issue where the disable telemetry flag was not being respected for web server telemetry. [#657](https://github.com/sourcebot-dev/sourcebot/pull/657)
+
+## [4.10.1] - 2025-12-03
+
+### Added
+- Added `ALWAYS_INDEX_FILE_PATTERNS` environment variable to allow specifying a comma seperated list of glob patterns matching file paths that should always be indexed, regardless of size or # of trigrams. [#631](https://github.com/sourcebot-dev/sourcebot/pull/631)
+- Added button to explore menu to toggle cross-repository search. [#647](https://github.com/sourcebot-dev/sourcebot/pull/647)
+- Added server side telemetry for search metrics. [#652](https://github.com/sourcebot-dev/sourcebot/pull/652)
+
+### Fixed
+- Fixed issue where single quotes could not be used in search queries. [#629](https://github.com/sourcebot-dev/sourcebot/pull/629)
+- Fixed issue where files with special characters would fail to load. [#636](https://github.com/sourcebot-dev/sourcebot/issues/636)
+- Fixed Ask performance issues. [#632](https://github.com/sourcebot-dev/sourcebot/pull/632)
+- Fixed regression where creating a new Ask thread when unauthenticated would result in a 404. [#641](https://github.com/sourcebot-dev/sourcebot/pull/641)
+- Updated react and next package versions to fix CVE 2025-55182. [#654](https://github.com/sourcebot-dev/sourcebot/pull/654)
+
+### Changed
+- Changed the default behaviour for code nav to scope references & definitions search to the current repository. [#647](https://github.com/sourcebot-dev/sourcebot/pull/647)
+
+## [4.10.0] - 2025-11-24
+
+### Added
+- Added support for streaming code search results. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+- Added buttons to toggle case sensitivity and regex patterns. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+- Added counts to members, requets, and invites tabs in the members settings. [#621](https://github.com/sourcebot-dev/sourcebot/pull/621)
+- [Sourcebot EE] Add support for Authentik as a identity provider. [#627](https://github.com/sourcebot-dev/sourcebot/pull/627)
+
+### Changed
+- Changed the default search behaviour to match patterns as substrings and **not** regular expressions. Regular expressions can be used by toggling the regex button in search bar. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+- Renamed `public` query prefix to `visibility`. Allowed values for `visibility` are `public`, `private`, and `any`. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+- Changed `archived` query prefix to accept values `yes`, `no`, and `only`. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+- Changed `lang` query prefix to be case sensitive. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+
+### Removed
+- Removed `case` query prefix. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+- Removed `branch` and `b` query prefixes. Please use `rev:` instead. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+- Removed `regex` query prefix. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
+
+### Fixed
+- Fixed spurious infinite loads with explore panel, file tree, and file search command. [#617](https://github.com/sourcebot-dev/sourcebot/pull/617)
+- Wipe search context on init if entitlement no longer exists [#618](https://github.com/sourcebot-dev/sourcebot/pull/618)
+- Fixed Bitbucket repository exclusions not supporting glob patterns. [#620](https://github.com/sourcebot-dev/sourcebot/pull/620)
+- Fixed issue where the repo driven permission syncer was attempting to sync public repositories. [#624](https://github.com/sourcebot-dev/sourcebot/pull/624)
+- Fixed issue where worker would not shutdown while a permission sync job (repo or user) was in progress. [#624](https://github.com/sourcebot-dev/sourcebot/pull/624)
+
+## [4.9.2] - 2025-11-13
+
+### Changed
+- Bumped the default requested search result count from 5k to 10k after optimization pass. [#615](https://github.com/sourcebot-dev/sourcebot/pull/615)
+
+### Fixed
+- Fixed incorrect shutdown of PostHog SDK in the worker. [#609](https://github.com/sourcebot-dev/sourcebot/pull/609)
+- Fixed race condition in job schedulers. [#607](https://github.com/sourcebot-dev/sourcebot/pull/607)
+- Fixed connection sync jobs getting stuck in pending or in progress after restarting the worker. [#612](https://github.com/sourcebot-dev/sourcebot/pull/612)
+- Fixed issue where connections would always sync on startup, regardless if they changed or not. [#613](https://github.com/sourcebot-dev/sourcebot/pull/613)
+- Fixed performance bottleneck in search api. Result is a order of magnitutde improvement to average search time according to benchmarks. [#615](https://github.com/sourcebot-dev/sourcebot/pull/615) 
+
+### Added
+- Added force resync buttons for connections and repositories. [#610](https://github.com/sourcebot-dev/sourcebot/pull/610)
+- Added environment variable to configure default search result count. [#616](https://github.com/sourcebot-dev/sourcebot/pull/616)
+
+## [4.9.1] - 2025-11-07
+
+### Added
+- Added support for running Sourcebot as non-root user. [#599](https://github.com/sourcebot-dev/sourcebot/pull/599)
+
+## [4.9.0] - 2025-11-04
+
+### Added
+- [Experimental][Sourcebot EE] Added GitLab permission syncing. [#585](https://github.com/sourcebot-dev/sourcebot/pull/585)
+- [Sourcebot EE] Added external identity provider config and support for multiple accounts. [#595](https://github.com/sourcebot-dev/sourcebot/pull/595)
+- Added ability to configure environment variables from the config. [#597](https://github.com/sourcebot-dev/sourcebot/pull/597)
+
+### Fixed
+- [ask sb] Fixed issue where reasoning tokens would appear in `text` content for openai compatible models. [#582](https://github.com/sourcebot-dev/sourcebot/pull/582)
+- Fixed issue with GitHub app token tracking and refreshing. [#583](https://github.com/sourcebot-dev/sourcebot/pull/583)
+- Fixed "The account is already associated with another user" errors with GitLab oauth provider. [#584](https://github.com/sourcebot-dev/sourcebot/pull/584)
+- Fixed error when viewing a generic git connection in `/settings/connections`. [#588](https://github.com/sourcebot-dev/sourcebot/pull/588)
+- Fixed issue with an unbounded `Promise.allSettled(...)` when retrieving details from the GitHub API about a large number of repositories (or orgs or users). [#591](https://github.com/sourcebot-dev/sourcebot/pull/591)
+- Fixed resource exhaustion (EAGAIN errors) when syncing generic-git-host connections with thousands of repositories. [#593](https://github.com/sourcebot-dev/sourcebot/pull/593)
+
+### Removed
+- Removed built-in secret manager. [#592](https://github.com/sourcebot-dev/sourcebot/pull/592)
+
+### Changed
+- Changed internal representation of how repo permissions are represented in the database. [#600](https://github.com/sourcebot-dev/sourcebot/pull/600)
+
+## [4.8.1] - 2025-10-29
+
+### Fixed
+- Fixed commit and branch hyperlinks not rendering for Gerrit repos. [#581](https://github.com/sourcebot-dev/sourcebot/pull/581)
+- Fixed visual bug when a repository does not have a image. [#581](https://github.com/sourcebot-dev/sourcebot/pull/581)
+- Fixed issue where the Ask homepage was not scrollable. [#581](https://github.com/sourcebot-dev/sourcebot/pull/581)
+
+## [4.8.0] - 2025-10-28
+
+### Added
+- Implement dynamic tab titles for files and folders in browse tab. [#560](https://github.com/sourcebot-dev/sourcebot/pull/560)
+- Added support for passing db connection url as seperate `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_NAME`, and `DATABASE_ARGS` env vars. [#545](https://github.com/sourcebot-dev/sourcebot/pull/545)
+- Added support for GitHub Apps for service auth. [#570](https://github.com/sourcebot-dev/sourcebot/pull/570)
+- Added prometheus metrics for repo index manager. [#571](https://github.com/sourcebot-dev/sourcebot/pull/571)
+- Added experimental environment variable to disable API key creation for non-admin users. [#577](https://github.com/sourcebot-dev/sourcebot/pull/577)
+- [Experimental][Sourcebot EE] Added REST API to get users and delete a user. [#578](https://github.com/sourcebot-dev/sourcebot/pull/578)
+
+### Fixed
+- Fixed "dubious ownership" errors when cloning / fetching repos. [#553](https://github.com/sourcebot-dev/sourcebot/pull/553)
+- Fixed issue with Ask Sourcebot tutorial re-appearing after restarting the browser. [#563](https://github.com/sourcebot-dev/sourcebot/pull/563)
+- Fixed `repoIndexTimeoutMs` not being used for index job timeouts. [#567](https://github.com/sourcebot-dev/sourcebot/pull/567)
+
+### Changed
+- Improved search performance for unbounded search queries. [#555](https://github.com/sourcebot-dev/sourcebot/pull/555)
+- Improved homepage performance by removing client side polling. [#563](https://github.com/sourcebot-dev/sourcebot/pull/563)
+- Changed navbar indexing indicator to only report progress for first time indexing jobs. [#563](https://github.com/sourcebot-dev/sourcebot/pull/563)
+- Improved repo indexing job stability and robustness. [#563](https://github.com/sourcebot-dev/sourcebot/pull/563)
+- Improved repositories table. [#572](https://github.com/sourcebot-dev/sourcebot/pull/572)
+- Improved connections table. [#579](https://github.com/sourcebot-dev/sourcebot/pull/579)
+
+### Removed
+- Removed spam "login page loaded" log. [#552](https://github.com/sourcebot-dev/sourcebot/pull/552)
+- Removed connections management page. [#563](https://github.com/sourcebot-dev/sourcebot/pull/563)
+
+## [4.7.3] - 2025-09-29
+
+### Fixed
+- Manually pass auth token for ado server deployments. [#543](https://github.com/sourcebot-dev/sourcebot/pull/543)
+
+## [4.7.2] - 2025-09-22
+
+### Fixed
+- Fix support email. [#529](https://github.com/sourcebot-dev/sourcebot/pull/529)
+
+### Added
+- [Experimental][Sourcebot EE] Added permission syncing repository Access Control Lists (ACLs) between Sourcebot and GitHub. [#508](https://github.com/sourcebot-dev/sourcebot/pull/508)
+
+### Changed
+- Improved repository query performance by adding db indices. [#526](https://github.com/sourcebot-dev/sourcebot/pull/526)
+- Improved repository query performance by removing JOIN on `Connection` table. [#527](https://github.com/sourcebot-dev/sourcebot/pull/527)
+- Changed repo carousel and repo list links to redirect to the file browser. [#528](https://github.com/sourcebot-dev/sourcebot/pull/528)
+- Changed file headers, files/directories in file tree, and reference list buttons into links. [#532](https://github.com/sourcebot-dev/sourcebot/pull/532)
+
+## [4.7.1] - 2025-09-19
+
+### Fixed
+- Fixed sourcebot not pulling github forked repos [#499](https://github.com/sourcebot-dev/sourcebot/pull/499)
+- Fixed azure devop cloud pat issue [#524](https://github.com/sourcebot-dev/sourcebot/pull/524)
+
+## [4.7.0] - 2025-09-17
+
+### Added
+- Added fallback to default the Node.JS AWS SDK's `fromNodeProviderChain` when no credentials are provided for a bedrock config. [#513](https://github.com/sourcebot-dev/sourcebot/pull/513)
+- Added support for Azure Devops support. [#514](https://github.com/sourcebot-dev/sourcebot/pull/514)
+
+### Fixed
+- Fixed "At least one project, user, or group must be specified" for GitLab configs with `all` in web configurator. [#512](https://github.com/sourcebot-dev/sourcebot/pull/512)
+- Fixed zoekt indexing failing with pipe in branch/tag names [#506](https://github.com/sourcebot-dev/sourcebot/pull/506)
+- Removed deprecated connection creation/edit UI [#515](https://github.com/sourcebot-dev/sourcebot/pull/515)
+
+## [4.6.8] - 2025-09-15
+
+### Fixed
+- Fixed Bitbucket Cloud pagination not working beyond first page. [#295](https://github.com/sourcebot-dev/sourcebot/issues/295)
+- Fixed search bar line wrapping. [#501](https://github.com/sourcebot-dev/sourcebot/pull/501)
+- Fixed carousel perf issues. [#507](https://github.com/sourcebot-dev/sourcebot/pull/507)
+
+## [4.6.7] - 2025-09-08
+
+### Added
+- Added `exclude.userOwnedProjects` setting to GitLab configs. [#498](https://github.com/sourcebot-dev/sourcebot/pull/498)
+
+### Fixed
+- Fixed "couldn't find remote ref HEAD" errors when re-indexing certain repositories. [#497](https://github.com/sourcebot-dev/sourcebot/pull/497)
+
+### Changed
+- Disable page scroll when using arrow keys on search suggestions box. [#493](https://github.com/sourcebot-dev/sourcebot/pull/493)
+
+## [4.6.6] - 2025-09-04
+
+### Added
+- Added support for specifying query params for openai compatible language models. [#490](https://github.com/sourcebot-dev/sourcebot/pull/490)
+
+### Fixed
+- Fix issue where zoekt was failing to index repositories due to `HEAD` pointing to a branch that does not exist. [#488](https://github.com/sourcebot-dev/sourcebot/pull/488)
+
+## [4.6.5] - 2025-09-02
+
+### Fixed
+- Remove setting `remote.origin.url` for remote git repositories. [#483](https://github.com/sourcebot-dev/sourcebot/pull/483)
+- Fix error when navigating to paths with percentage symbols. [#485](https://github.com/sourcebot-dev/sourcebot/pull/485)
+
+### Changed
+- Updated NextJS to version 15. [#477](https://github.com/sourcebot-dev/sourcebot/pull/477)
+- Add `sessionToken` as optional Bedrock configuration parameter. [#478](https://github.com/sourcebot-dev/sourcebot/pull/478)
+
 ## [4.6.4] - 2025-08-11
 
 ### Added

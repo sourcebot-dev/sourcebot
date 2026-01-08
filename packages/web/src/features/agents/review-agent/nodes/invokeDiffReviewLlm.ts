@@ -1,8 +1,8 @@
 import OpenAI from "openai";
 import { sourcebot_file_diff_review, sourcebot_file_diff_review_schema } from "@/features/agents/review-agent/types";
-import { env } from "@/env.mjs";
+import { env } from "@sourcebot/shared";
 import fs from "fs";
-import { createLogger } from "@sourcebot/logger";
+import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('invoke-diff-review-llm');
 

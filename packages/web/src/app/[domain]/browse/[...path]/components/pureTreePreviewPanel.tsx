@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useRef } from "react";
-import { FileTreeItem } from "@/features/fileTree/actions";
+import { useRef } from "react";
 import { FileTreeItemComponent } from "@/features/fileTree/components/fileTreeItemComponent";
-import { useBrowseNavigation } from "../../hooks/useBrowseNavigation";
+import { getBrowsePath } from "../../hooks/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBrowseParams } from "../../hooks/useBrowseParams";
+import { useDomain } from "@/hooks/useDomain";
+import { FileTreeItem } from "@/features/fileTree/types";
 
 interface PureTreePreviewPanelProps {
     items: FileTreeItem[];
@@ -13,18 +14,9 @@ interface PureTreePreviewPanelProps {
 
 export const PureTreePreviewPanel = ({ items }: PureTreePreviewPanelProps) => {
     const { repoName, revisionName } = useBrowseParams();
-    const { navigateToPath } = useBrowseNavigation();
     const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-    const onNodeClicked = useCallback((node: FileTreeItem) => {
-        navigateToPath({
-            repoName: repoName,
-            revisionName: revisionName,
-            path: node.path,
-            pathType: node.type === 'tree' ? 'tree' : 'blob',
-        });
-    }, [navigateToPath, repoName, revisionName]);
-
+    const domain = useDomain();
+   
     return (
         <ScrollArea
             className="flex flex-col p-0.5"
@@ -37,8 +29,14 @@ export const PureTreePreviewPanel = ({ items }: PureTreePreviewPanelProps) => {
                     isActive={false}
                     depth={0}
                     isCollapseChevronVisible={false}
-                    onClick={() => onNodeClicked(item)}
                     parentRef={scrollAreaRef}
+                    href={getBrowsePath({
+                        repoName,
+                        revisionName,
+                        path: item.path,
+                        pathType: item.type === 'tree' ? 'tree' : 'blob',
+                        domain,
+                    })}
                 />
             ))}
         </ScrollArea>

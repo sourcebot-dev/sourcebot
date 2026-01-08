@@ -67,6 +67,9 @@ For a detailed description of all the providers, please refer to the [schema](ht
             "accessKeySecret": {
                 "env": "AWS_SECRET_ACCESS_KEY"
             },
+            "sessionToken": {
+                "env": "AWS_SESSION_TOKEN"
+            },
             "region": "YOUR_REGION_HERE", // defaults to the AWS_REGION env var if not set
             "baseUrl": "OPTIONAL_BASE_URL"
         }
@@ -272,6 +275,15 @@ The OpenAI compatible provider allows you to use any model that is compatible wi
             "displayName": "OPTIONAL_DISPLAY_NAME",
             "token": {
                 "env": "OPTIONAL_API_KEY"
+            },
+            // Optional query parameters can be passed in the request url as:
+            "queryParams": {
+                // raw string values
+                "optional-query-param": "foo",
+                // or as environment variables
+                "optional-query-param-secret": {
+                    "env": "MY_SECRET_ENV_VAR"
+                }
             }
         }
     ]
@@ -280,6 +292,7 @@ The OpenAI compatible provider allows you to use any model that is compatible wi
 
 <Accordion title="Troubleshooting">
 - When using [llama.cpp](https://github.com/ggml-org/llama.cpp), if you hit "Failed after 3 attempts. Last error: tools param requires --jinja flag", add the `--jinja` flag to your `llama-server` command.
+- If you're seeing the LLM outputing reasoning tokens wrapped in XML tags (e.g., `<reasoning>`, `<thinking>`, etc.), you can configure the `reasoningTag` parameter to the name of the tag (without angle brackets). This parameter defaults to `think`.
 </Accordion>
 
 ### OpenRouter

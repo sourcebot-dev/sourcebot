@@ -76,7 +76,6 @@ const schema = {
         "token": {
           "description": "A Personal Access Token (PAT).",
           "examples": [
-            "secret-token",
             {
               "env": "ENV_VAR_CONTAINING_TOKEN"
             }
@@ -273,7 +272,6 @@ const schema = {
         "token": {
           "description": "An authentication token.",
           "examples": [
-            "secret-token",
             {
               "env": "ENV_VAR_CONTAINING_TOKEN"
             }
@@ -464,7 +462,6 @@ const schema = {
         "token": {
           "description": "An access token.",
           "examples": [
-            "secret-token",
             {
               "env": "ENV_VAR_CONTAINING_TOKEN"
             }
@@ -778,7 +775,6 @@ const schema = {
             "token": {
               "description": "A Personal Access Token (PAT).",
               "examples": [
-                "secret-token",
                 {
                   "env": "ENV_VAR_CONTAINING_TOKEN"
                 }
@@ -975,7 +971,6 @@ const schema = {
             "token": {
               "description": "An authentication token.",
               "examples": [
-                "secret-token",
                 {
                   "env": "ENV_VAR_CONTAINING_TOKEN"
                 }
@@ -1166,7 +1161,6 @@ const schema = {
             "token": {
               "description": "An access token.",
               "examples": [
-                "secret-token",
                 {
                   "env": "ENV_VAR_CONTAINING_TOKEN"
                 }
@@ -1562,7 +1556,6 @@ const schema = {
               "token": {
                 "description": "A Personal Access Token (PAT).",
                 "examples": [
-                  "secret-token",
                   {
                     "env": "ENV_VAR_CONTAINING_TOKEN"
                   }
@@ -1759,7 +1752,6 @@ const schema = {
               "token": {
                 "description": "An authentication token.",
                 "examples": [
-                  "secret-token",
                   {
                     "env": "ENV_VAR_CONTAINING_TOKEN"
                   }
@@ -1950,7 +1942,6 @@ const schema = {
               "token": {
                 "description": "An access token.",
                 "examples": [
-                  "secret-token",
                   {
                     "env": "ENV_VAR_CONTAINING_TOKEN"
                   }

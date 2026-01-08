@@ -72,15 +72,22 @@ https://github.com/user-attachments/assets/31ec0669-707d-4e03-b511-1bc33d44197a
 
 # Deploy Sourcebot
 
-Sourcebot can be deployed in seconds using our official docker image. Visit our [docs](https://docs.sourcebot.dev/docs/deployment-guide) for more information.
+Sourcebot can be deployed in seconds using Docker Compose. Visit our [docs](https://docs.sourcebot.dev/docs/deployment/docker-compose) for more information.
 
-1. Create a config
+1. Download the docker-compose.yml file
+```sh
+curl -o docker-compose.yml https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/docker-compose.yml
+```
+
+2. In the same directory as the `docker-compose.yml` file, create a [configuration file](https://docs.sourcebot.dev/docs/configuration/config-file). The configuration file is a JSON file that configures Sourcebot's behaviour, including what repositories to index, language model providers, auth providers, and more.
 ```sh
 touch config.json
 echo '{
     "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    // Comments are supported.
+    // This config creates a single connection to GitHub.com that
+    // indexes the Sourcebot repository
     "connections": {
-        // Comments are supported
         "starter-connection": {
             "type": "github",
             "repos": [
@@ -91,41 +98,22 @@ echo '{
 }' > config.json
 ```
 
-2. Run the docker container
+3.  Update the secrets in the `docker-compose.yml` and then run Sourcebot using:
 ```sh
-docker run \
-  -p 3000:3000 \
-  --pull=always \
-  --rm \
-  -v $(pwd):/data \
-  -e CONFIG_PATH=/data/config.json \
-  --name sourcebot \
-  ghcr.io/sourcebot-dev/sourcebot:latest
+docker compose up
 ```
-<details>
-<summary>What does this command do?</summary>
 
-- Pull and run the Sourcebot docker image from [ghcr.io/sourcebot-dev/sourcebot:latest](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot).
-- Mount the current directory (`-v $(pwd):/data`) to allow Sourcebot to persist the `.sourcebot` cache.
-- Clones sourcebot at `HEAD` into `.sourcebot/github/sourcebot-dev/sourcebot`.
-- Indexes sourcebot into a .zoekt index file in `.sourcebot/index/`.
-- Map port 3000 between your machine and the docker image.
-- Starts the web server on port 3000.
-</details>
-</br>
-
-3. Visit `http://localhost:3000` to start using Sourcebot
+4. Visit `http://localhost:3000` to start using Sourcebot
 </br>
 
 To configure Sourcebot (index your own repos, connect your LLMs, etc), check out our [docs](https://docs.sourcebot.dev/docs/configuration/config-file).
 
 > [!NOTE]
 > Sourcebot collects <a href="https://demo.sourcebot.dev/~/search?query=captureEvent%5C(%20repo%3Asourcebot">anonymous usage data</a> by default to help us improve the product. No sensitive data is collected, but if you'd like to disable this you can do so by setting the `SOURCEBOT_TELEMETRY_DISABLED` environment
-> variable to `true`. Please refer to our [telemetry docs](https://docs.sourcebot.dev/self-hosting/overview#telemetry) for more information.
+> variable to `true`. Please refer to our [telemetry docs](https://docs.sourcebot.dev/docs/overview#telemetry) for more information.
 
 # Build from source
 >[!NOTE]
 > Building from source is only required if you'd like to contribute. If you'd just like to use Sourcebot, we recommend checking out our self-hosting [docs](https://docs.sourcebot.dev/self-hosting/overview).
 
 If you'd like to build from source, please checkout the `CONTRIBUTING.md` file for more information.
-

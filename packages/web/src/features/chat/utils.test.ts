@@ -4,7 +4,7 @@ import { FILE_REFERENCE_REGEX, ANSWER_TAG } from './constants';
 import { SBChatMessage, SBChatMessagePart } from './types';
 
 // Mock the env module
-vi.mock('@/env.mjs', () => ({
+vi.mock('@sourcebot/shared', () => ({
     env: {
         SOURCEBOT_CHAT_FILE_MAX_CHARACTERS: 4000,
     }

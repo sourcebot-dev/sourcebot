@@ -1,0 +1,130 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "title": "AzureDevOpsConnectionConfig",
+    "properties": {
+        "type": {
+            "const": "azuredevops",
+            "description": "Azure DevOps Configuration"
+        },
+        "token": {
+            "$ref": "./shared.json#/definitions/Token",
+            "description": "A Personal Access Token (PAT)."
+        },
+        "url": {
+            "type": "string",
+            "format": "url",
+            "default": "https://dev.azure.com",
+            "description": "The URL of the Azure DevOps host. For Azure DevOps Cloud, use https://dev.azure.com. For Azure DevOps Server, use your server URL.",
+            "examples": [
+                "https://dev.azure.com",
+                "https://azuredevops.example.com"
+            ],
+            "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+        },
+        "deploymentType": {
+            "type": "string",
+            "enum": ["cloud", "server"],
+            "description": "The type of Azure DevOps deployment"
+        },
+        "useTfsPath": {
+            "type": "boolean",
+            "default": false,
+            "description": "Use legacy TFS path format (/tfs) in API URLs. Required for older TFS installations (TFS 2018 and earlier). When true, API URLs will include /tfs in the path (e.g., https://server/tfs/collection/_apis/...)."
+        },
+        "orgs": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "pattern": "^[\\w.-]+$"
+            },
+            "default": [],
+            "examples": [
+                [
+                    "my-org"
+                ]
+            ],
+            "description": "List of organizations to sync with. For Cloud, this is the organization name. For Server, this is the collection name. All projects and repositories visible to the provided `token` will be synced, unless explicitly defined in the `exclude` property."
+        },
+        "projects": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+            },
+            "default": [],
+            "examples": [
+                [
+                    "my-org/my-project",
+                    "my-collection/my-project"
+                ]
+            ],
+            "description": "List of specific projects to sync with. Expected to be formatted as '{orgName}/{projectName}' for Cloud or '{collectionName}/{projectName}' for Server."
+        },
+        "repos": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "pattern": "^[\\w.-]+\\/[\\w.-]+\\/[\\w.-]+$"
+            },
+            "default": [],
+            "examples": [
+                [
+                    "my-org/my-project/my-repo"
+                ]
+            ],
+            "description": "List of individual repositories to sync with. Expected to be formatted as '{orgName}/{projectName}/{repoName}'."
+        },
+        "exclude": {
+            "type": "object",
+            "properties": {
+                "disabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Exclude disabled repositories from syncing."
+                },
+                "repos": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "List of repositories to exclude from syncing. Glob patterns are supported."
+                },
+                "projects": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "List of projects to exclude from syncing. Glob patterns are supported."
+                },
+                "size": {
+                    "type": "object",
+                    "description": "Exclude repositories based on their size.",
+                    "properties": {
+                        "min": {
+                            "type": "integer",
+                            "description": "Minimum repository size (in bytes) to sync (inclusive). Repositories less than this size will be excluded from syncing."
+                        },
+                        "max": {
+                            "type": "integer",
+                            "description": "Maximum repository size (in bytes) to sync (inclusive). Repositories greater than this size will be excluded from syncing."
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "revisions": {
+            "$ref": "./shared.json#/definitions/GitRevisions"
+        }
+    },
+    "required": [
+        "type",
+        "token",
+        "deploymentType"
+    ],
+    "additionalProperties": false
+}

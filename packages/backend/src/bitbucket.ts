@@ -2,16 +2,17 @@ import { createBitbucketCloudClient } from "@coderabbitai/bitbucket/cloud";
 import { createBitbucketServerClient } from "@coderabbitai/bitbucket/server";
 import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/bitbucket.type";
 import type { ClientOptions, ClientPathsWithMethod } from "openapi-fetch";
-import { createLogger } from "@sourcebot/logger";
-import { PrismaClient } from "@sourcebot/db";
-import { getTokenFromConfig, measure, fetchWithRetry } from "./utils.js";
+import { createLogger } from "@sourcebot/shared";
+import { measure, fetchWithRetry } from "./utils.js";
 import * as Sentry from "@sentry/node";
+import micromatch from "micromatch";
 import {
     SchemaRepository as CloudRepository,
 } from "@coderabbitai/bitbucket/cloud/openapi";
 import { SchemaRestRepository as ServerRepository } from "@coderabbitai/bitbucket/server/openapi";
 import { processPromiseResults } from "./connectionUtils.js";
 import { throwIfAnyFailed } from "./connectionUtils.js";
+import { getTokenFromConfig } from "@sourcebot/shared";
 
 const logger = createLogger('bitbucket');
 const BITBUCKET_CLOUD_GIT = 'https://bitbucket.org';
@@ -27,9 +28,9 @@ interface BitbucketClient {
     apiClient: any;
     baseUrl: string;
     gitUrl: string;
-    getReposForWorkspace: (client: BitbucketClient, workspaces: string[]) => Promise<{validRepos: BitbucketRepository[], notFoundWorkspaces: string[]}>;
-    getReposForProjects: (client: BitbucketClient, projects: string[]) => Promise<{validRepos: BitbucketRepository[], notFoundProjects: string[]}>;
-    getRepos: (client: BitbucketClient, repos: string[]) => Promise<{validRepos: BitbucketRepository[], notFoundRepos: string[]}>;
+    getReposForWorkspace: (client: BitbucketClient, workspaces: string[]) => Promise<{repos: BitbucketRepository[], warnings: string[]}>;
+    getReposForProjects: (client: BitbucketClient, projects: string[]) => Promise<{repos: BitbucketRepository[], warnings: string[]}>;
+    getRepos: (client: BitbucketClient, repos: string[]) => Promise<{repos: BitbucketRepository[], warnings: string[]}>;
     shouldExcludeRepo: (repo: BitbucketRepository, config: BitbucketConnectionConfig) => boolean;
 }
 
@@ -57,9 +58,9 @@ type ServerPaginatedResponse<T> = {
     readonly nextPageStart: number;
 }
 
-export const getBitbucketReposFromConfig = async (config: BitbucketConnectionConfig, orgId: number, db: PrismaClient) => {
+export const getBitbucketReposFromConfig = async (config: BitbucketConnectionConfig) => {
     const token = config.token ?
-        await getTokenFromConfig(config.token, orgId, db, logger) :
+        await getTokenFromConfig(config.token) :
         undefined;
 
     if (config.deploymentType === 'server' && !config.url) {
@@ -71,32 +72,24 @@ export const getBitbucketReposFromConfig = async (config: BitbucketConnectionCon
         cloudClient(config.user, token);
 
     let allRepos: BitbucketRepository[] = [];
-    let notFound: {
-        orgs: string[],
-        users: string[],
-        repos: string[],
-    } = {
-        orgs: [],
-        users: [],
-        repos: [],
-    };
+    let allWarnings: string[] = [];
 
     if (config.workspaces) {
-        const { validRepos, notFoundWorkspaces } = await client.getReposForWorkspace(client, config.workspaces);
-        allRepos = allRepos.concat(validRepos);
-        notFound.orgs = notFoundWorkspaces;
+        const { repos, warnings } = await client.getReposForWorkspace(client, config.workspaces);
+        allRepos = allRepos.concat(repos);
+        allWarnings = allWarnings.concat(warnings);
     }
 
     if (config.projects) {
-        const { validRepos, notFoundProjects } = await client.getReposForProjects(client, config.projects);
-        allRepos = allRepos.concat(validRepos);
-        notFound.orgs = notFoundProjects;
+        const { repos, warnings } = await client.getReposForProjects(client, config.projects);
+        allRepos = allRepos.concat(repos);
+        allWarnings = allWarnings.concat(warnings);
     }
 
     if (config.repos) {
-        const { validRepos, notFoundRepos } = await client.getRepos(client, config.repos);
-        allRepos = allRepos.concat(validRepos);
-        notFound.repos = notFoundRepos;
+        const { repos, warnings } = await client.getRepos(client, config.repos);
+        allRepos = allRepos.concat(repos);
+        allWarnings = allWarnings.concat(warnings);
     }
 
     const filteredRepos = allRepos.filter((repo) => {
@@ -104,8 +97,8 @@ export const getBitbucketReposFromConfig = async (config: BitbucketConnectionCon
     });
 
     return {
-        validRepos: filteredRepos,
-        notFound,
+        repos: filteredRepos,
+        warnings: allWarnings,
     };
 }
 
@@ -148,13 +141,14 @@ function cloudClient(user: string | undefined, token: string | undefined): Bitbu
 **/
 const getPaginatedCloud = async <T>(
     path: CloudGetRequestPath,
-    get: (url: CloudGetRequestPath) => Promise<CloudPaginatedResponse<T>>
+    get: (path: CloudGetRequestPath, query?: Record<string, string>) => Promise<CloudPaginatedResponse<T>>
 ): Promise<T[]> => {
     const results: T[] = [];
-    let url = path;
+    let nextPath = path;
+    let nextQuery = undefined;
 
     while (true) {
-        const response = await get(url);
+        const response = await get(nextPath, nextQuery);
 
         if (!response.values || response.values.length === 0) { 
             break;
@@ -166,25 +160,38 @@ const getPaginatedCloud = async <T>(
             break;
         }
 
-        url = response.next as CloudGetRequestPath;
+        const parsedUrl = parseUrl(response.next);
+        nextPath = parsedUrl.path as CloudGetRequestPath;
+        nextQuery = parsedUrl.query;
     }
     return results;
 }
-   
 
-async function cloudGetReposForWorkspace(client: BitbucketClient, workspaces: string[]): Promise<{validRepos: CloudRepository[], notFoundWorkspaces: string[]}> {
+/**
+ * Parse the url into a path and query parameters to be used with the api client (openapi-fetch)
+ */
+function parseUrl(url: string): { path: string; query: Record<string, string>; } {
+    const fullUrl = new URL(url);
+    const path = fullUrl.pathname.replace(/^\/\d+(\.\d+)*/, ''); // remove version number in the beginning of the path
+    const query = Object.fromEntries(fullUrl.searchParams);
+    logger.debug(`Parsed url ${url} into path ${path} and query ${JSON.stringify(query)}`);
+    return { path, query };
+}
+
+
+async function cloudGetReposForWorkspace(client: BitbucketClient, workspaces: string[]): Promise<{repos: CloudRepository[], warnings: string[]}> {
     const results = await Promise.allSettled(workspaces.map(async (workspace) => {
         try {
             logger.debug(`Fetching all repos for workspace ${workspace}...`);
 
-            const path = `/repositories/${workspace}` as CloudGetRequestPath;
             const { durationMs, data } = await measure(async () => {
-                const fetchFn = () => getPaginatedCloud<CloudRepository>(path, async (url) => {
-                    const response = await client.apiClient.GET(url, {
+                const fetchFn = () => getPaginatedCloud<CloudRepository>(`/repositories/${workspace}` as CloudGetRequestPath, async (path, query) => {
+                    const response = await client.apiClient.GET(path, {
                         params: {
                             path: {
                                 workspace,
-                            }
+                            },
+                            query: query,
                         }
                     });
                     const { data, error } = response;
@@ -207,10 +214,11 @@ async function cloudGetReposForWorkspace(client: BitbucketClient, workspaces: st
 
             const status = e?.cause?.response?.status;
             if (status == 404) {
-                logger.error(`Workspace ${workspace} not found or invalid access`)
+                const warning = `Workspace ${workspace} not found or invalid access`;
+                logger.warn(warning);
                 return {
-                    type: 'notFound' as const,
-                    value: workspace
+                    type: 'warning' as const,
+                    warning
                 }
             }
             throw e;
@@ -218,31 +226,35 @@ async function cloudGetReposForWorkspace(client: BitbucketClient, workspaces: st
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: validRepos, notFoundItems: notFoundWorkspaces } = processPromiseResults(results);
+    const { validItems: repos, warnings } = processPromiseResults(results);
     return {
-        validRepos,
-        notFoundWorkspaces,
+        repos,
+        warnings,
     };
 }
 
-async function cloudGetReposForProjects(client: BitbucketClient, projects: string[]): Promise<{validRepos: CloudRepository[], notFoundProjects: string[]}> {
+async function cloudGetReposForProjects(client: BitbucketClient, projects: string[]): Promise<{repos: CloudRepository[], warnings: string[]}> {
     const results = await Promise.allSettled(projects.map(async (project) => {
         const [workspace, project_name] = project.split('/');
         if (!workspace || !project_name) {
-            logger.error(`Invalid project ${project}`);
+            const warning = `Invalid project ${project}`;
+            logger.warn(warning);
             return {
-                type: 'notFound' as const,
-                value: project
+                type: 'warning' as const,
+                warning
             }
         }
 
         logger.debug(`Fetching all repos for project ${project} for workspace ${workspace}...`);
         try {
-            const path = `/repositories/${workspace}` as CloudGetRequestPath;
-            const repos = await getPaginatedCloud<CloudRepository>(path, async (url) => {
-                const response = await client.apiClient.GET(url, {
+            const repos = await getPaginatedCloud<CloudRepository>(`/repositories/${workspace}` as CloudGetRequestPath, async (path, query) => {
+                const response = await client.apiClient.GET(path, {
                     params: {
+                        path: {
+                            workspace,
+                        },
                         query: {
+                            ...query,
                             q: `project.key="${project_name}"`
                         }
                     }
@@ -265,10 +277,11 @@ async function cloudGetReposForProjects(client: BitbucketClient, projects: strin
 
             const status = e?.cause?.response?.status;
             if (status == 404) {
-                logger.error(`Project ${project_name} not found in ${workspace} or invalid access`)
+                const warning = `Project ${project_name} not found in ${workspace} or invalid access`;
+                logger.warn(warning);
                 return {
-                    type: 'notFound' as const,
-                    value: project
+                    type: 'warning' as const,
+                    warning
                 }
             }
             throw e;
@@ -276,21 +289,22 @@ async function cloudGetReposForProjects(client: BitbucketClient, projects: strin
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: validRepos, notFoundItems: notFoundProjects } = processPromiseResults(results);
+    const { validItems: repos, warnings } = processPromiseResults(results);
     return {
-        validRepos,
-        notFoundProjects
+        repos,
+        warnings
     }
 }
 
-async function cloudGetRepos(client: BitbucketClient, repos: string[]): Promise<{validRepos: CloudRepository[], notFoundRepos: string[]}> {
-    const results = await Promise.allSettled(repos.map(async (repo) => {
+async function cloudGetRepos(client: BitbucketClient, repoList: string[]): Promise<{repos: CloudRepository[], warnings: string[]}> {
+    const results = await Promise.allSettled(repoList.map(async (repo) => {
         const [workspace, repo_slug] = repo.split('/');
         if (!workspace || !repo_slug) {
-            logger.error(`Invalid repo ${repo}`);
+            const warning = `Invalid repo ${repo}`;
+            logger.warn(warning);
             return {
-                type: 'notFound' as const,
-                value: repo
+                type: 'warning' as const,
+                warning
             };
         }
 
@@ -312,10 +326,11 @@ async function cloudGetRepos(client: BitbucketClient, repos: string[]): Promise<
 
             const status = e?.cause?.response?.status;
             if (status === 404) {
-                logger.error(`Repo ${repo} not found in ${workspace} or invalid access`);
+                const warning = `Repo ${repo} not found in ${workspace} or invalid access`;
+                logger.warn(warning);
                 return {
-                    type: 'notFound' as const,
-                    value: repo
+                    type: 'warning' as const,
+                    warning
                 };
             }
             throw e;
@@ -323,19 +338,24 @@ async function cloudGetRepos(client: BitbucketClient, repos: string[]): Promise<
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: validRepos, notFoundItems: notFoundRepos } = processPromiseResults(results);
+    const { validItems: repos, warnings } = processPromiseResults(results);
     return {
-        validRepos,
-        notFoundRepos
+        repos,
+        warnings
     };
 }
 
 function cloudShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {
     const cloudRepo = repo as CloudRepository;
+    let reason = '';
+    const repoName = cloudRepo.full_name!;
     
     const shouldExclude = (() => {
-        if (config.exclude?.repos && config.exclude.repos.includes(cloudRepo.full_name!)) {
-            return true;
+        if (config.exclude?.repos) {
+            if (micromatch.isMatch(repoName, config.exclude.repos)) {
+                reason = `\`exclude.repos\` contains ${repoName}`;
+                return true;
+            }
         }
 
         if (!!config.exclude?.archived) {
@@ -343,12 +363,15 @@ function cloudShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConn
         }
 
         if (!!config.exclude?.forks && cloudRepo.parent !== undefined) {
+            reason = `\`exclude.forks\` is true`;
             return true;
         }
+
+        return false;
     })();
 
     if (shouldExclude) {
-        logger.debug(`Excluding repo ${cloudRepo.full_name} because it matches the exclude pattern`);
+        logger.debug(`Excluding repo ${repoName}. Reason: ${reason}`);
         return true;
     }
     return false;
@@ -417,15 +440,16 @@ const getPaginatedServer = async <T>(
     return results;
 }
 
-async function serverGetReposForWorkspace(client: BitbucketClient, workspaces: string[]): Promise<{validRepos: ServerRepository[], notFoundWorkspaces: string[]}> {
+async function serverGetReposForWorkspace(client: BitbucketClient, workspaces: string[]): Promise<{repos: ServerRepository[], warnings: string[]}> {
+    const warnings = workspaces.map(workspace => `Workspaces are not supported in Bitbucket Server: ${workspace}`);
     logger.debug('Workspaces are not supported in Bitbucket Server');
     return {
-        validRepos: [],
-        notFoundWorkspaces: workspaces
+        repos: [],
+        warnings
     };
 }
 
-async function serverGetReposForProjects(client: BitbucketClient, projects: string[]): Promise<{validRepos: ServerRepository[], notFoundProjects: string[]}> {
+async function serverGetReposForProjects(client: BitbucketClient, projects: string[]): Promise<{repos: ServerRepository[], warnings: string[]}> {
     const results = await Promise.allSettled(projects.map(async (project) => {
         try {
             logger.debug(`Fetching all repos for project ${project}...`);
@@ -460,10 +484,11 @@ async function serverGetReposForProjects(client: BitbucketClient, projects: stri
 
             const status = e?.cause?.response?.status;
             if (status == 404) {
-                logger.error(`Project ${project} not found or invalid access`);
+                const warning = `Project ${project} not found or invalid access`;
+                logger.warn(warning);
                 return {
-                    type: 'notFound' as const,
-                    value: project
+                    type: 'warning' as const,
+                    warning
                 };
             }
             throw e;
@@ -471,21 +496,22 @@ async function serverGetReposForProjects(client: BitbucketClient, projects: stri
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: validRepos, notFoundItems: notFoundProjects } = processPromiseResults(results);
+    const { validItems: repos, warnings } = processPromiseResults(results);
     return {
-        validRepos,
-        notFoundProjects
+        repos,
+        warnings
     };
 }
 
-async function serverGetRepos(client: BitbucketClient, repos: string[]): Promise<{validRepos: ServerRepository[], notFoundRepos: string[]}> {
-    const results = await Promise.allSettled(repos.map(async (repo) => {
+async function serverGetRepos(client: BitbucketClient, repoList: string[]): Promise<{repos: ServerRepository[], warnings: string[]}> {
+    const results = await Promise.allSettled(repoList.map(async (repo) => {
         const [project, repo_slug] = repo.split('/');
         if (!project || !repo_slug) {
-            logger.error(`Invalid repo ${repo}`);
+            const warning = `Invalid repo ${repo}`;
+            logger.warn(warning);
             return {
-                type: 'notFound' as const,
-                value: repo
+                type: 'warning' as const,
+                warning
             };
         }
 
@@ -507,10 +533,11 @@ async function serverGetRepos(client: BitbucketClient, repos: string[]): Promise
 
             const status = e?.cause?.response?.status;
             if (status === 404) {
-                logger.error(`Repo ${repo} not found in project ${project} or invalid access`);
+                const warning = `Repo ${repo} not found in project ${project} or invalid access`;
+                logger.warn(warning);
                 return {
-                    type: 'notFound' as const,
-                    value: repo
+                    type: 'warning' as const,
+                    warning
                 };
             }
             throw e;
@@ -518,10 +545,10 @@ async function serverGetRepos(client: BitbucketClient, repos: string[]): Promise
     }));
 
     throwIfAnyFailed(results);
-    const { validItems: validRepos, notFoundItems: notFoundRepos } = processPromiseResults(results);
+    const { validItems: repos, warnings } = processPromiseResults(results);
     return {
-        validRepos,
-        notFoundRepos
+        repos,
+        warnings
     };
 }
 
@@ -530,23 +557,32 @@ function serverShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketCon
 
     const projectName = serverRepo.project!.key;
     const repoSlug = serverRepo.slug!;
+    const repoName = `${projectName}/${repoSlug}`;
+    let reason = '';
     
     const shouldExclude = (() => {
-        if (config.exclude?.repos && config.exclude.repos.includes(`${projectName}/${repoSlug}`)) {
-            return true;
+        if (config.exclude?.repos) {
+            if (micromatch.isMatch(repoName, config.exclude.repos)) {
+                reason = `\`exclude.repos\` contains ${repoName}`;
+                return true;
+            }
         }
 
         if (!!config.exclude?.archived && serverRepo.archived) {
+            reason = `\`exclude.archived\` is true`;
             return true;
         }
 
         if (!!config.exclude?.forks && serverRepo.origin !== undefined) {
+            reason = `\`exclude.forks\` is true`;
             return true;
         }
+
+        return false;
     })();
 
     if (shouldExclude) {
-        logger.debug(`Excluding repo ${projectName}/${repoSlug} because it matches the exclude pattern`);
+        logger.debug(`Excluding repo ${repoName}. Reason: ${reason}`);
         return true;
     }
     return false;

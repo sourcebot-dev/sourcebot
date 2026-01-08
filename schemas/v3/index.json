@@ -67,6 +67,16 @@
                     "deprecated": true,
                     "description": "This setting is deprecated. Please use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.",
                     "default": false
+                },
+                "experiment_repoDrivenPermissionSyncIntervalMs": {
+                    "type": "number",
+                    "description": "The interval (in milliseconds) at which the repo permission syncer should run. Defaults to 24 hours.",
+                    "minimum": 1
+                },
+                "experiment_userDrivenPermissionSyncIntervalMs": {
+                    "type": "number",
+                    "description": "The interval (in milliseconds) at which the user permission syncer should run. Defaults to 24 hours.",
+                    "minimum": 1
                 }
             },
             "additionalProperties": false
@@ -92,6 +102,9 @@
             },
             "additionalProperties": false
         },
+        "environmentOverrides": {
+            "$ref": "./environmentOverrides.json"
+        },
         "connections": {
             "type": "object",
             "description": "Defines a collection of connections from varying code hosts that Sourcebot should sync with. This is only available in single-tenancy mode.",
@@ -107,6 +120,20 @@
             "description": "Defines a collection of language models that are available to Sourcebot.",
             "items": {
                 "$ref": "./languageModel.json"
+            }
+        },
+        "apps": {
+            "type": "array",
+            "description": "Defines a collection of apps that are available to Sourcebot.",
+            "items": {
+                "$ref": "./app.json"
+            }
+        },
+        "identityProviders": {
+            "type": "array",
+            "description": "Defines a collection of identity providers that are available to Sourcebot.",
+            "items": {
+                "$ref": "./identityProvider.json"
             }
         }
     },
