@@ -72,7 +72,7 @@ export default async function Page(props: PageProps) {
     })() : undefined;
 
     return (
-        <div className="flex flex-col items-center overflow-hidden h-screen">
+        <div className="flex flex-col items-center min-h-screen overflow-hidden">
             <NavigationMenu
                 domain={params.domain}
             />
