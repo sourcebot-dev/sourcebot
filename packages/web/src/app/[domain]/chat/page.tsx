@@ -13,8 +13,9 @@ import { env } from "@sourcebot/shared";
 import { loadJsonFile } from "@sourcebot/shared";
 import { DemoExamples, demoExamplesSchema } from "@/types";
 import { auth } from "@/auth";
-import ChatHistoryCard from "./components/chatHistoryCard";
-import { CHAT_HISTORY_DISPLAY_LIMIT } from "@/lib/constants";
+import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { ChatSidePanel } from "./components/chatSidePanel";
+import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
 
 interface PageProps {
     params: Promise<{
@@ -71,64 +72,60 @@ export default async function Page(props: PageProps) {
     })() : undefined;
 
     return (
-        <div className="flex flex-col items-center overflow-hidden min-h-screen">
+        <div className="flex flex-col items-center overflow-hidden h-screen">
             <NavigationMenu
                 domain={params.domain}
             />
-
-            <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
-                <div className="max-h-44 w-auto">
-                    <SourcebotLogo
-                        className="h-18 md:h-40 w-auto"
-                    />
-                </div>
-                <CustomSlateEditor>
-                    <LandingPageChatBox
-                        languageModels={languageModels}
-                        repos={allRepos}
-                        searchContexts={searchContexts}
-                    />
-                </CustomSlateEditor>
-
-                <div className="mt-8">
-                    <RepositoryCarousel
-                        numberOfReposWithIndex={repoStats.numberOfReposWithIndex}
-                        displayRepos={carouselRepos}
-                    />
-                </div>
-
-                {demoExamples && (
-                    <>
-                        <div className="flex flex-col items-center w-fit gap-6">
-                            <Separator className="mt-5 w-[700px]" />
-                        </div>
-
-                        <DemoCards
-                            demoExamples={demoExamples}
+            <ResizablePanelGroup
+                direction="horizontal"
+            >
+                <ChatSidePanel
+                    order={1}
+                    chatHistory={chatHistory}
+                    isAuthenticated={!!session}
+                    isCollapsedInitially={true}
+                />
+                <AnimatedResizableHandle />
+                <ResizablePanel 
+                    order={2}
+                    id="chat-home-panel"
+                    defaultSize={85}
+                >
+                <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-18 w-full px-5">
+                    <div className="max-h-44 w-auto">
+                        <SourcebotLogo
+                            className="h-18 md:h-40 w-auto"
                         />
-                    </>
-                )}
+                    </div>
+                    <CustomSlateEditor>
+                        <LandingPageChatBox
+                            languageModels={languageModels}
+                            repos={allRepos}
+                            searchContexts={searchContexts}
+                        />
+                    </CustomSlateEditor>
 
-                {chatHistory.length > 0 && (
-                    <>
-                        <div className="flex flex-col items-center w-fit gap-6">
-                            <Separator className="mt-5 w-[700px]" />
-                        </div>
-                        <div className="w-full max-w-4xl mt-8 flex flex-col items-center">
-                            <h2 className="text-2xl font-semibold mb-4">Recent Chats</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {chatHistory.slice(0, CHAT_HISTORY_DISPLAY_LIMIT).map((chat) => (
-                                    <ChatHistoryCard
-                                        key={chat.id}
-                                        chat={chat}
-                                        domain={params.domain}
-                                    />
-                                ))}
+                    <div className="mt-8">
+                        <RepositoryCarousel
+                            numberOfReposWithIndex={repoStats.numberOfReposWithIndex}
+                            displayRepos={carouselRepos}
+                        />
+                    </div>
+
+                    {demoExamples && (
+                        <>
+                            <div className="flex flex-col items-center w-fit gap-6">
+                                <Separator className="mt-5 w-[700px]" />
                             </div>
-                        </div>
-                    </>
-                )}
-            </div>
+
+                            <DemoCards
+                                demoExamples={demoExamples}
+                            />
+                        </>
+                    )}
+                </div>
+                </ResizablePanel>
+            </ResizablePanelGroup>
         </div>
     )
 }
