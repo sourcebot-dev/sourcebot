@@ -361,8 +361,12 @@ jobs:
               --generate-notes \
               --latest
 
+  update-helm-chart:
+    needs: finalize-release
+    uses: sourcebot-dev/sourcebot-helm-chart/.github/workflows/update-sourcebot-version.yaml@main
+
   cleanup:
-    needs: [prepare-release, build, finalize-release]
+    needs: [prepare-release, build, finalize-release, update-helm-chart]
     if: always() && needs.prepare-release.outputs.temp_branch != ''
     runs-on: ubuntu-latest
     permissions:
@@ -377,7 +381,7 @@ jobs:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
-      - name: Checkout temporary branch
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
