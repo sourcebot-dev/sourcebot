@@ -365,7 +365,8 @@ jobs:
   update-helm-chart:
     needs: finalize-release
     permissions:
-      contents: read
+      contents: write
+      pull-requests: write
     uses: sourcebot-dev/sourcebot-helm-chart/.github/workflows/update-sourcebot-version.yaml@main
 
   cleanup:
