@@ -138,7 +138,7 @@ export const CodePreview = ({
                         }}
                         title={file.filepath}
                     >
-                        {file.filepath}
+                        <span>{file.filepath}</span>
                     </span>
                 </div>
 

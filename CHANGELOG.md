@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Add warning logs when local repo index fails to match pattern. [#712](https://github.com/sourcebot-dev/sourcebot/pull/712)
+- Fixed issue with text direction issues with special characters in filter panel. [#474](https://github.com/sourcebot-dev/sourcebot/pull/474)
 
 ## [4.10.7] - 2025-12-29
 
