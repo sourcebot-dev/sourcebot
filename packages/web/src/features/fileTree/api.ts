@@ -37,6 +37,8 @@ export const getTree = async (params: { repoName: string, revisionName: string }
         let result: string;
         try {
             result = await git.raw([
+                // Disable quoting of non-ASCII characters in paths
+                '-c', 'core.quotePath=false',
                 'ls-tree',
                 revisionName,
                 // recursive
@@ -117,6 +119,8 @@ export const getFolderContents = async (params: { repoName: string, revisionName
         let result: string;
         try {
             result = await git.raw([
+                // Disable quoting of non-ASCII characters in paths
+                '-c', 'core.quotePath=false',
                 'ls-tree',
                 revisionName,
                 // format as output as {type},{path}
@@ -166,6 +170,8 @@ export const getFiles = async (params: { repoName: string, revisionName: string 
         let result: string;
         try {
             result = await git.raw([
+                // Disable quoting of non-ASCII characters in paths
+                '-c', 'core.quotePath=false',
                 'ls-tree',
                 revisionName,
                 // recursive
