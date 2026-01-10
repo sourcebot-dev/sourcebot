@@ -3,10 +3,6 @@
 # This workflow builds Docker images for linux/amd64 and linux/arm64 platforms,
 # pushes them by digest to GHCR, signs them with cosign/Sigstore for supply chain
 # security, and uploads build artifacts for subsequent manifest creation.
-#
-# Used by:
-# - publish-main-to-ghcr.yml (for main branch builds)
-# - release-sourcebot.yml (for versioned releases)
 
 name: Build Multi-Platform Images
 

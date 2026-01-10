@@ -3,10 +3,6 @@
 #
 # This workflow takes the individual platform image digests created by _build.yml,
 # combines them into a multi-platform manifest, and pushes the final tagged images.
-#
-# Used by:
-# - publish-main-to-ghcr.yml (for main branch builds)
-# - release-sourcebot.yml (for versioned releases)
 
 name: Merge Multi-Platform Manifest
 
