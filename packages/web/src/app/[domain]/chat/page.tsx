@@ -78,6 +78,7 @@ export default async function Page(props: PageProps) {
             />
             <ResizablePanelGroup
                 direction="horizontal"
+                className="flex-1"
             >
                 <ChatSidePanel
                     order={1}
