@@ -1,0 +1,63 @@
+# Internal reusable workflow for merging platform-specific image digests into a
+# single multi-platform manifest and pushing to GHCR.
+#
+# This workflow takes the individual platform image digests created by _build.yml,
+# combines them into a multi-platform manifest, and pushes the final tagged images.
+#
+# Used by:
+# - publish-main-to-ghcr.yml (for main branch builds)
+# - release-sourcebot.yml (for versioned releases)
+
+name: Merge Multi-Platform Manifest
+
+on:
+  workflow_call:
+    inputs:
+      docker_tags:
+        description: "Docker tags configuration (JSON array or raw tags)"
+        required: true
+        type: string
+
+env:
+  REGISTRY_IMAGE: ghcr.io/sourcebot-dev/sourcebot
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY_IMAGE }}
+          tags: ${{ inputs.docker_tags }}
+
+      - name: Login to GitHub Packages Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+      
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
+
