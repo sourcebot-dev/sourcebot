@@ -3,9 +3,6 @@ name: Release Sourcebot (Development)
 permissions:
   contents: read
 
-# This workflow is a modification of a example.
-# @ see: https://docs.docker.com/build/ci/github-actions/multi-platform/#distribute-build-across-multiple-runners
-
 on:
   push:
     branches: ["main"]

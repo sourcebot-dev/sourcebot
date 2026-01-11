@@ -3,6 +3,8 @@
 # This workflow builds Docker images for linux/amd64 and linux/arm64 platforms,
 # pushes them by digest to GHCR, signs them with cosign/Sigstore for supply chain
 # security, and uploads build artifacts for subsequent manifest creation.
+#
+# @ see: https://docs.docker.com/build/ci/github-actions/multi-platform/#distribute-build-across-multiple-runners
 
 name: Build Multi-Platform Images
 
