@@ -104,6 +104,12 @@
                         ]
                     },
                     {
+                        "group": "API Reference",
+                        "pages": [
+                            "docs/api/healthCheck"
+                        ]
+                    },
+                    {
                         "group": "Upgrade",
                         "pages": [
                             "docs/upgrade/v3-to-v4-guide",
