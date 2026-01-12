@@ -1,8 +1,5 @@
 name: Release Sourcebot (Development)
 
-permissions:
-  contents: read
-
 on:
   push:
     branches: ["main"]
