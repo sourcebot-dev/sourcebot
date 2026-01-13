@@ -161,6 +161,8 @@ export class AccountPermissionSyncer {
                     throw new Error(`User '${account.user.email}' does not have an GitHub OAuth access token associated with their GitHub account.`);
                 }
 
+                // @hack: we don't have a way of identifying specific identity providers in the config file.
+                // Instead, we'll use the first connection of type 'github' and hope for the best.
                 const baseUrl = Array.from(Object.values(config.connections ?? {}))
                     .find(connection => connection.type === 'github')?.url;
 
@@ -189,6 +191,8 @@ export class AccountPermissionSyncer {
                     throw new Error(`User '${account.user.email}' does not have a GitLab OAuth access token associated with their GitLab account.`);
                 }
 
+                // @hack: we don't have a way of identifying specific identity providers in the config file.
+                // Instead, we'll use the first connection of type 'gitlab' and hope for the best.
                 const baseUrl = Array.from(Object.values(config.connections ?? {}))
                     .find(connection => connection.type === 'gitlab')?.url
 
