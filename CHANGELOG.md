@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.8] - 2026-01-13
+
 ### Changed
 - Changed the default `/repos` pagination size to 20. [#706](https://github.com/sourcebot-dev/sourcebot/pull/706)
 - Changed pull policy in docker compose file to always. [#716](https://github.com/sourcebot-dev/sourcebot/pull/716)
