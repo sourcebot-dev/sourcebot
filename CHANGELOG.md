@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed issue where 403 errors were being raised during a user driven permission sync against a self-hosted code host. [#729](https://github.com/sourcebot-dev/sourcebot/pull/729)
+
 ## [4.10.8] - 2026-01-13
 
 ### Changed
