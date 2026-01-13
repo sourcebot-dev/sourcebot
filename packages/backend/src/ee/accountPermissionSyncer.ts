@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/node";
 import { PrismaClient, AccountPermissionSyncJobStatus, Account} from "@sourcebot/db";
-import { env, hasEntitlement, createLogger } from "@sourcebot/shared";
+import { env, hasEntitlement, createLogger, loadConfig } from "@sourcebot/shared";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
@@ -148,6 +148,8 @@ export class AccountPermissionSyncer {
             }
         });
 
+        const config = await loadConfig(env.CONFIG_PATH);
+
         logger.info(`Syncing permissions for ${account.provider} account (id: ${account.id}) for user ${account.user.email}...`);
 
         // Get a list of all repos that the user has access to from all connected accounts.
@@ -159,9 +161,12 @@ export class AccountPermissionSyncer {
                     throw new Error(`User '${account.user.email}' does not have an GitHub OAuth access token associated with their GitHub account.`);
                 }
 
+                const baseUrl = Array.from(Object.values(config.connections ?? {}))
+                    .find(connection => connection.type === 'github')?.url;
+
                 const { octokit } = await createOctokitFromToken({
                     token: account.access_token,
-                    url: env.AUTH_EE_GITHUB_BASE_URL,
+                    url: baseUrl,
                 });
                 // @note: we only care about the private repos since we don't need to build a mapping
                 // for public repos.
@@ -184,9 +189,12 @@ export class AccountPermissionSyncer {
                     throw new Error(`User '${account.user.email}' does not have a GitLab OAuth access token associated with their GitLab account.`);
                 }
 
+                const baseUrl = Array.from(Object.values(config.connections ?? {}))
+                    .find(connection => connection.type === 'gitlab')?.url
+
                 const api = await createGitLabFromOAuthToken({
                     oauthToken: account.access_token,
-                    url: env.AUTH_EE_GITLAB_BASE_URL,
+                    url: baseUrl,
                 });
 
                 // @note: we only care about the private and internal repos since we don't need to build a mapping
