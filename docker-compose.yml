@@ -1,6 +1,6 @@
 services:
   sourcebot:
-    image: ghcr.io/sourcebot-dev/sourcebot:latest
+    image: ghcr.io/sourcebot-dev/sourcebot:main
     pull_policy: always
     user: sourcebot
     restart: always
