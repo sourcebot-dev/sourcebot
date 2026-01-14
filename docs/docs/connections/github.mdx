@@ -5,6 +5,7 @@ icon: GitHub
 ---
 
 import GitHubSchema from '/snippets/schemas/v3/github.schema.mdx'
+import LicenseKeyRequired from '/snippets/license-key-required.mdx'
 
 Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub Enterprise Cloud.
 
@@ -106,55 +107,113 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
 
 ## Authenticating with GitHub
 
-In order to index private repositories, you'll need to generate a access token and provide it to Sourcebot. GitHub provides [two types](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#types-of-personal-access-tokens) of access tokens:
+In order to index private repositories, you'll need to authenticate with GitHub. Sourcebot supports the following mechanisms of authenticating a GitHub connection:
 
 
 <AccordionGroup>
+    <Accordion title="GitHub App">
+        <LicenseKeyRequired />
+        <Steps>
+            <Step title="Register a new GitHub App">
+                Register a new [GitHub App](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app#registering-a-github-app) and provide it with the following permissions:
+                    - “Contents” repository permissions (read)
+                    - “Metadata” repository permissions (read)
+                    - “Members” organization permissions (read)
+                    - “Email addresses” account permissions (read)
+
+                This can be the same GitHub App you've registered and configured as an [external identity provider](/docs/configuration/idp#github)          
+            </Step>
+            <Step title="Install the GitHub App">
+                Install the GitHub App into the GitHub orgs that you want Sourcebot to be aware of. **Sourcebot will only be able to index repos from orgs with the GitHub App installed.**
+            </Step>
+            <Step title="Create a private key for the GitHub App">
+                Create a [private key](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps) for the GitHub App.
+            </Step>
+            <Step title="Define the GitHub App config in Sourcebot">
+                Create a new `apps` object in the Sourcebot [config file](/docs/configuration/config-file). The private key you created in the previous
+                step must be passed in as a [token](/docs/configuration/config-file#tokens).
+                ```json wrap icon="code"
+                    "apps": [
+                        {
+                            "type": "github", // must be github
+                            "id": "1234567", // Your GitHub App ID
+                            "privateKey": {
+                                "env": "GITHUB_APP_PRIVATE_KEY" // Token which contains your Github App private key
+                            }
+                        }
+                    ]
+                ```
+            </Step>
+            <Step title="You're done!">
+                That's it! Sourcebot will now use this GitHub App to authenticate when pulling repos for this connection.
+            </Step>
+        </Steps>
+    </Accordion>
     <Accordion title="Fine-grained personal access tokens" defaultOpen>
-        Create a new fine-grained PAT [here](https://github.com/settings/personal-access-tokens/new). First, select the resource owner and the repositories that you want Sourcebot to have access to.
+        <Steps>
+            <Step title="Create PAT">
+                Create a new fine-grained PAT [here](https://github.com/settings/personal-access-tokens/new). Select the resource owner and the repositories that you want Sourcebot to have access to.
 
-        Next, under "Repository permissions", select permissions `Contents` and `Metadata` with access `Read-only`. The permissions should look like the following:
+                Next, under "Repository permissions", select permissions `Contents` and `Metadata` with access `Read-only`. The permissions should look like the following:
 
-        ![GitHub PAT Scope](/images/github_pat_scopes_fine_grained.png)
+                ![GitHub PAT Scope](/images/github_pat_scopes_fine_grained.png)
 
-        [GitHub docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#fine-grained-personal-access-tokens)
+                [GitHub docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#fine-grained-personal-access-tokens)
+            </Step>
+            <Step title="Pass PAT into Sourcebot">
+                Next, provide the PAT via a [token](/docs/configuration/config-file#tokens) which is referenced in the `token` field in the [connection](/docs/connections/overview) config object. 
+                
+                The most common mechanism of doing this is defining an environment variable that holds the PAT:
+
+                    ```json
+                    {
+                        "type": "github",
+                        "token": {
+                            // note: this env var can be named anything. It
+                            // doesn't need to be `GITHUB_TOKEN`.
+                            "env": "GITHUB_TOKEN"
+                        }
+                        // .. rest of config ..
+                    }
+                    ```
+            </Step>
+            <Step title="You're done!">
+                That's it! Sourcebot will now use this PAT to authenticate when pulling repos for this connection.
+            </Step>
+        </Steps>
     </Accordion>
     <Accordion title="Personal access tokens (classic)">
-        Create a new PAT [here](https://github.com/settings/tokens/new) and make sure you select the `repo` scope:
-        
-        ![GitHub PAT Scope](/images/github_pat_scopes.png)
+        <Steps>
+            <Step title="Create PAT">
+                Create a new PAT [here](https://github.com/settings/tokens/new) and make sure you select the `repo` scope:
+                
+                ![GitHub PAT Scope](/images/github_pat_scopes.png)
 
-        [GitHub docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#personal-access-tokens-classic)
+                [GitHub docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#personal-access-tokens-classic)
+            </Step>
+            <Step title="Pass PAT into Sourcebot">
+                Next, provide the PAT via a [token](/docs/configuration/config-file#tokens) which is referenced in the `token` field in the [connection](/docs/connections/overview) config object. 
+                
+                The most common mechanism of doing this is defining an environment variable that holds the PAT:
+
+                    ```json
+                    {
+                        "type": "github",
+                        "token": {
+                            // note: this env var can be named anything. It
+                            // doesn't need to be `GITHUB_TOKEN`.
+                            "env": "GITHUB_TOKEN"
+                        }
+                        // .. rest of config ..
+                    }
+                    ```
+            </Step>
+            <Step title="You're done!">
+                That's it! Sourcebot will now use this PAT to authenticate when pulling repos for this connection.
+            </Step>
+        </Steps>
     </Accordion>
 </AccordionGroup>
-
-Next, provide the access token via an environment variable [token](/docs/configuration/config-file#tokens) which is referenced in the `token` property:
-
-<Tabs>
-    <Tab title="Environment Variable">
-
-        1. Add the `token` property to your connection config:
-        ```json
-        {
-            "type": "github",
-            "token": {
-                // note: this env var can be named anything. It
-                // doesn't need to be `GITHUB_TOKEN`.
-                "env": "GITHUB_TOKEN"
-            }
-            // .. rest of config ..
-        }
-        ```
-
-        2. Pass this environment variable each time you run Sourcebot:
-        ```bash
-        docker run \
-            -e GITHUB_TOKEN=<PAT> \
-            /* additional args */ \
-            ghcr.io/sourcebot-dev/sourcebot:latest
-        ```
-    </Tab>
-</Tabs>
 
 ## Connecting to a custom GitHub host
 
