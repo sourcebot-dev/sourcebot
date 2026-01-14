@@ -1,10 +1,12 @@
-import { env } from "@sourcebot/shared";
+import { env, createLogger } from "@sourcebot/shared";
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { CheckRepoActions, GitConfigScope, simpleGit, SimpleGitProgressEvent } from 'simple-git';
 
 type onProgressFn = (event: SimpleGitProgressEvent) => void;
+
+const logger = createLogger('git-utils');
 
 /**
  * Creates a simple-git client that has it's working directory
@@ -292,7 +294,7 @@ export const getCommitHashForRefName = async ({
         // @note: Was hitting errors when the repository is empty,
         // so we're catching the error and returning undefined.
     } catch (error: unknown) {
-        console.error(error);
+        logger.debug(error);
         return undefined;
     }
 }

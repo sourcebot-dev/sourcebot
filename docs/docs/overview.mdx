@@ -8,14 +8,9 @@ title: "Overview"
 - [Ask Sourcebot](/docs/features/ask): Ask questions about your codebase and have Sourcebot provide detailed answers grounded with inline citations
 - [MCP](/docs/features/mcp-server): Enrich agent context windows with code across your organization
 
-<CardGroup>
 <Card title="Deployment guides" icon="server" href="/docs/deployment/docker-compose" horizontal="true">
   Learn how to self-host Sourcebot in a few simple steps.
 </Card>
-<Card title="Public demo" icon="globe" href="https://demo.sourcebot.dev/" horizontal="true">
-  Check out Sourcebot's features on our public demo instance.
-</Card>
-</CardGroup>
 
 <AccordionGroup>
   <Accordion title="Why Sourcebot?">
@@ -207,7 +202,7 @@ Sourcebot's core features are available under an [FSL licensed](https://github.c
 ## Telemetry
 ---
 
-By default, Sourcebot collects anonymized usage data through [PostHog](https://posthog.com/) to help us improve the performance and reliability of our tool. We don't collect or transmit <a href="https://demo.sourcebot.dev/~/search?query=captureEvent%5C(%20repo%3Asourcebot">any information related to your codebase</a>. In addition, all events are [sanitized](https://github.com/sourcebot-dev/sourcebot/blob/HEAD/packages/web/src/app/posthogProvider.tsx) to ensure that no sensitive details (ex. ip address, query info) leave your machine. 
+By default, Sourcebot collects anonymized usage data through [PostHog](https://posthog.com/) to help us improve the performance and reliability of our tool. We don't collect or transmit any information related to your codebase. In addition, all events are [sanitized](https://github.com/sourcebot-dev/sourcebot/blob/HEAD/packages/web/src/app/posthogProvider.tsx) to ensure that no sensitive details (ex. ip address, query info) leave your machine. 
 
 The data we collect includes general usage statistics and metadata such as query performance (e.g., search duration, error rates) to monitor the application's health and functionality. This information helps us better understand how Sourcebot is used and where improvements can be made.
 

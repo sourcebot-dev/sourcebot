@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.12] - 2026-01-13
+
+### Fixed
+- Fixed invalid file and url MCP results for local indexed repos [#718](https://github.com/sourcebot-dev/sourcebot/pull/718)
+
 ## [1.0.11] - 2025-12-03
 
 ### Changed

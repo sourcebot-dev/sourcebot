@@ -41,8 +41,8 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
     const token = config.token ?
         await getTokenFromConfig(config.token) :
         hostname === GITLAB_CLOUD_HOSTNAME ?
-        env.FALLBACK_GITLAB_CLOUD_TOKEN :
-        undefined;
+            env.FALLBACK_GITLAB_CLOUD_TOKEN :
+            undefined;
 
     const api = await createGitLabFromPersonalAccessToken({
         token,
@@ -207,7 +207,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
 
             return !isExcluded;
         });
-        
+
     logger.debug(`Found ${repos.length} total repositories.`);
 
     return {
@@ -314,6 +314,30 @@ export const getProjectsForAuthenticatedUser = async (visibility: 'private' | 'i
     } catch (error) {
         Sentry.captureException(error);
         logger.error(`Failed to fetch projects for authenticated user.`, error);
+        throw error;
+    }
+}
+
+// Fetches OAuth scopes for the authenticated user.
+// @see: https://github.com/doorkeeper-gem/doorkeeper/wiki/API-endpoint-descriptions-and-examples#get----oauthtokeninfo
+// @see: https://docs.gitlab.com/api/oauth2/#retrieve-the-token-information
+export const getOAuthScopesForAuthenticatedUser = async (api: InstanceType<typeof Gitlab>) => {
+    try {
+        const response = await api.requester.get('/oauth/token/info');
+        if (
+            response &&
+            typeof response.body === 'object' &&
+            response.body !== null &&
+            'scope' in response.body &&
+            Array.isArray(response.body.scope)
+        ) {
+            return response.body.scope;
+        }
+
+        throw new Error('/oauth/token_info response body is not in the expected format.');
+    } catch (error) {
+        Sentry.captureException(error);
+        logger.error('Failed to fetch OAuth scopes for authenticated user.', error);
         throw error;
     }
 }
