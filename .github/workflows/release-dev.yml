@@ -1,0 +1,25 @@
+name: Release Sourcebot (Development)
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build.yml
+    with:
+      git_ref: ${{ github.ref_name }}
+      docker_tags: type=raw,value=main
+      use_app_token: false
+    secrets: inherit
+
+  publish-to-registry:
+    needs: build
+    uses: ./.github/workflows/_merge.yml
+    with:
+      docker_tags: type=raw,value=main
