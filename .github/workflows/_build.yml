@@ -1,0 +1,143 @@
+# Internal reusable workflow for building multi-platform Docker images.
+#
+# This workflow builds Docker images for linux/amd64 and linux/arm64 platforms,
+# pushes them by digest to GHCR, signs them with cosign/Sigstore for supply chain
+# security, and uploads build artifacts for subsequent manifest creation.
+#
+# @ see: https://docs.docker.com/build/ci/github-actions/multi-platform/#distribute-build-across-multiple-runners
+
+name: Build Multi-Platform Images
+
+on:
+  workflow_call:
+    inputs:
+      git_ref:
+        description: "Git ref to checkout"
+        required: true
+        type: string
+      docker_tags:
+        description: "Docker tags configuration (JSON array or raw tags)"
+        required: true
+        type: string
+      use_app_token:
+        description: "Whether to use GitHub App token for checkout"
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      release_app_id:
+        description: "GitHub App ID (required if use_app_token is true)"
+        required: false
+      release_app_private_key:
+        description: "GitHub App private key (required if use_app_token is true)"
+        required: false
+
+env:
+  REGISTRY_IMAGE: ghcr.io/sourcebot-dev/sourcebot
+
+jobs:
+  build:
+    runs-on: ${{ matrix.runs-on}}
+    environment: oss
+    permissions:
+      contents: read
+      packages: write
+      # Required for keyless signing with cosign/Sigstore.
+      # Allows workflow to obtain OIDC token for ephemeral certificate from Fulcio.
+      id-token: write
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+        include:
+          - platform: linux/amd64
+            runs-on: ubuntu-latest
+          - platform: linux/arm64
+            runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Generate GitHub App token
+        if: inputs.use_app_token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.release_app_id }}
+          private-key: ${{ secrets.release_app_private_key }}
+
+      - name: Prepare
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_ref }}
+          submodules: "true"
+          fetch-depth: 0
+          token: ${{ inputs.use_app_token && steps.generate_token.outputs.token || github.token }}
+
+      # Extract metadata (tags, labels) for Docker
+      # https://github.com/docker/metadata-action
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY_IMAGE }}
+          tags: ${{ inputs.docker_tags }}
+
+      # Install the cosign tool except on PR
+      # https://github.com/sigstore/cosign-installer
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.5.0
+        with:
+          cosign-release: "v2.2.4"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Packages Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=${{ env.PLATFORM_PAIR }}
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true,annotation.org.opencontainers.image.description=Blazingly fast code search
+            
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+      # Sign the resulting Docker image digest except on PRs.
+      # This will only write to the public Rekor transparency log when the Docker
+      # repository is public to avoid leaking data.  If you would like to publish
+      # transparency data even for private images, pass --force to cosign below.
+      # https://github.com/sigstore/cosign
+      - name: Sign the published Docker image
+        env:
+          # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        # This step uses the identity token to provision an ephemeral certificate
+        # against the sigstore community Fulcio instance.
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+
