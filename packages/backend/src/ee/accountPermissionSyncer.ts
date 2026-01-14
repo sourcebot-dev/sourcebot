@@ -166,7 +166,7 @@ export class AccountPermissionSyncer {
 
             if (account.provider === 'github') {
                 if (!account.access_token) {
-                    throw new Error(`User '${account.user.email}' does not have an GitHub OAuth access token associated with their GitHub account.`);
+                    throw new Error(`User '${account.user.email}' does not have an GitHub OAuth access token associated with their GitHub account. Please re-authenticate with GitHub to refresh the token.`);
                 }
 
                 // @hack: we don't have a way of identifying specific identity providers in the config file.
@@ -202,7 +202,7 @@ export class AccountPermissionSyncer {
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
             } else if (account.provider === 'gitlab') {
                 if (!account.access_token) {
-                    throw new Error(`User '${account.user.email}' does not have a GitLab OAuth access token associated with their GitLab account.`);
+                    throw new Error(`User '${account.user.email}' does not have a GitLab OAuth access token associated with their GitLab account. Please re-authenticate with GitLab to refresh the token.`);
                 }
 
                 // @hack: we don't have a way of identifying specific identity providers in the config file.

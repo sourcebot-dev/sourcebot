@@ -324,7 +324,6 @@ export const getProjectsForAuthenticatedUser = async (visibility: 'private' | 'i
 export const getOAuthScopesForAuthenticatedUser = async (api: InstanceType<typeof Gitlab>) => {
     try {
         const response = await api.requester.get('/oauth/token/info');
-        console.log('response', response);
         if (
             response &&
             typeof response.body === 'object' &&
