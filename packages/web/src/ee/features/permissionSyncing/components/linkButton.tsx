@@ -12,7 +12,7 @@ interface LinkButtonProps {
 export const LinkButton = ({ provider, callbackUrl }: LinkButtonProps) => {
     const handleLink = () => {
         signIn(provider, {
-            redirectTo: callbackUrl,
+            redirectTo: callbackUrl
         });
     };
 

@@ -29,6 +29,7 @@ export const AuthMethodSelector = ({
         // Call the optional analytics callback first
         onProviderClick?.(provider);
 
+        // @nocheckin
         signIn(
             provider,
             {
@@ -39,6 +40,7 @@ export const AuthMethodSelector = ({
             // @see: https://next-auth.js.org/getting-started/client#additional-parameters
             {
                 prompt: 'consent',
+                scope: 'read:user user:email repo'
             }
         );
     }, [callbackUrl, onProviderClick]);
