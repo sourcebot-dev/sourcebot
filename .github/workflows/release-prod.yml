@@ -250,6 +250,9 @@ jobs:
       contents: write
       pull-requests: write
     uses: sourcebot-dev/sourcebot-helm-chart/.github/workflows/update-sourcebot-version.yaml@main
+    secrets:
+      GITHUB_APP_ID: ${{ secrets.RELEASE_APP_ID }}
+      GITHUB_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
   cleanup:
     needs: [prepare-release, build, publish-to-registry, finalize-release, update-helm-chart]
