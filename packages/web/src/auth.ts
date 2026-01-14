@@ -164,7 +164,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // Explicitly update the Account record with the OAuth token details.
             // This is necessary to update the access token when the user
             // re-authenticates.
-            if (account && account.provider && account.providerAccountId) {
+            if (account && account.provider && account.provider !== 'credentials' && account.providerAccountId) {
                 await prisma.account.update({
                     where: {
                         provider_providerAccountId: {
