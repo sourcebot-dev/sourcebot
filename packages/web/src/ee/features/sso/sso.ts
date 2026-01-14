@@ -1,8 +1,9 @@
 import type { IdentityProvider } from "@/auth";
 import { onCreateUser } from "@/lib/authUtils";
+import { getRequiredScopes } from "@/lib/oauthScopes";
 import { prisma } from "@/prisma";
 import { AuthentikIdentityProviderConfig, GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
-import { createLogger, env, getTokenFromConfig, hasEntitlement, loadConfig } from "@sourcebot/shared";
+import { createLogger, env, getTokenFromConfig, loadConfig } from "@sourcebot/shared";
 import { OAuth2Client } from "google-auth-library";
 import type { User as AuthJsUser } from "next-auth";
 import type { Provider } from "next-auth/providers";
@@ -126,19 +127,10 @@ const createGitHubProvider = (clientId: string, clientSecret: string, baseUrl?: 
         ...(hostname === GITHUB_CLOUD_HOSTNAME ? { enterprise: { baseUrl: baseUrl } } : {}), // if this is set the provider expects GHE so we need this check
         authorization: {
             params: {
-                scope: [
-                    'read:user',
-                    'user:email',
-                    // Permission syncing requires the `repo` scope in order to fetch repositories
-                    // for the authenticated user.
-                    // @see: https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-the-authenticated-user
-                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
-                        ['repo'] :
-                        []
-                    ),
-                ].join(' '),
+                scope: getRequiredScopes('github'),
             },
         },
+        allowDangerousEmailAccountLinking: true,
     });
 }
 
@@ -150,16 +142,7 @@ const createGitLabProvider = (clientId: string, clientSecret: string, baseUrl?: 
         authorization: {
             url: `${url}/oauth/authorize`,
             params: {
-                scope: [
-                    "read_user",
-                    // Permission syncing requires the `read_api` scope in order to fetch projects
-                    // for the authenticated user and project members.
-                    // @see: https://docs.gitlab.com/ee/api/projects.html#list-all-projects
-                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
-                        ['read_api'] :
-                        []
-                    ),
-                ].join(' '),
+                scope: getRequiredScopes('gitlab'),
             },
         },
         token: {
@@ -168,6 +151,7 @@ const createGitLabProvider = (clientId: string, clientSecret: string, baseUrl?: 
         userinfo: {
             url: `${url}/api/v4/user`,
         },
+        allowDangerousEmailAccountLinking: true,
     });
 }
 
@@ -175,6 +159,7 @@ const createGoogleProvider = (clientId: string, clientSecret: string): Provider 
     return Google({
         clientId: clientId,
         clientSecret: clientSecret,
+        allowDangerousEmailAccountLinking: true,
     });
 }
 
@@ -183,6 +168,7 @@ const createOktaProvider = (clientId: string, clientSecret: string, issuer: stri
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
+        allowDangerousEmailAccountLinking: true,
     });
 }
 
@@ -191,6 +177,7 @@ const createKeycloakProvider = (clientId: string, clientSecret: string, issuer: 
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
+        allowDangerousEmailAccountLinking: true,
     });
 }
 
@@ -199,6 +186,7 @@ const createMicrosoftEntraIDProvider = (clientId: string, clientSecret: string, 
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
+        allowDangerousEmailAccountLinking: true,
     });
 }
 
@@ -283,5 +271,6 @@ export const createAuthentikProvider = (clientId: string, clientSecret: string, 
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
+        allowDangerousEmailAccountLinking: true,
     });
 }

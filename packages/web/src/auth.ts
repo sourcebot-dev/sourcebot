@@ -19,6 +19,7 @@ import { onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
 import { refreshLinkedAccountTokens } from '@/ee/features/permissionSyncing/tokenRefresh';
+import { getRequiredScopes, normalizeScopes } from './lib/oauthScopes';
 
 const auditService = getAuditService();
 const eeIdentityProviders = hasEntitlement("sso") ? await getEEIdentityProviders() : [];
@@ -52,6 +53,8 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
     interface JWT {
         userId: string;
+        providerAccountId: string;
+        provider: string;
         linkedAccountTokens?: LinkedAccountTokensMap;
     }
 }
@@ -164,7 +167,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // Explicitly update the Account record with the OAuth token details.
             // This is necessary to update the access token when the user
             // re-authenticates.
-            if (account && account.provider && account.providerAccountId) {
+            if (account && account.provider && account.provider !== 'credentials' && account.providerAccountId) {
                 await prisma.account.update({
                     where: {
                         provider_providerAccountId: {
@@ -217,12 +220,58 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
     },
     callbacks: {
-        async jwt({ token, user: _user, account }) {
-            const user = _user as User | undefined;
+        async jwt({ token, user: _user, account: _account }) {
             // @note: `user` will be available on signUp or signIn triggers.
             // Cache the userId in the JWT for later use.
-            if (user) {
+            if (_user) {
+                const user = _user as User;
                 token.userId = user.id;
+            }
+
+            if (_account) {
+                token.providerAccountId = _account.providerAccountId;
+                token.provider = _account.provider;
+            }
+
+            const account = await prisma.account.findUnique({
+                where: {
+                    provider_providerAccountId: {
+                        provider: token.provider,
+                        providerAccountId: token.providerAccountId,
+                    },
+                },
+            });
+
+            if (!account) {
+                return null;
+            }
+
+            const currentScopes = normalizeScopes(account.scope);
+            const requiredScopes = getRequiredScopes(account.provider);
+
+            if (currentScopes !== requiredScopes) {
+                const doesAccountExist = await prisma.account.findUnique({
+                    where: {
+                        provider_providerAccountId: {
+                            provider: account.provider,
+                            providerAccountId: account.providerAccountId,
+                        },
+                    },
+                });
+
+                if (doesAccountExist) {
+                    await prisma.account.delete({
+                        where: {
+                            provider_providerAccountId: {
+                                provider: account.provider,
+                                providerAccountId: account.providerAccountId,
+                            },
+                        },
+                    });
+                    console.log(`Deleted account ${account.providerAccountId} for provider ${account.provider} because it did not have the required scopes.`);
+                }
+
+                return null;
             }
 
             if (hasEntitlement('permission-syncing')) {
