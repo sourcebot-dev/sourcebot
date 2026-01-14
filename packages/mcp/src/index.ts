@@ -106,7 +106,8 @@ server.tool(
                 (acc, chunk) => acc + chunk.matchRanges.length,
                 0,
             );
-            let text = `file: ${file.webUrl}\nnum_matches: ${numMatches}\nrepository: ${file.repository}\nlanguage: ${file.language}`;
+            const fileIdentifier = file.webUrl ?? file.fileName.text;
+            let text = `file: ${fileIdentifier}\nnum_matches: ${numMatches}\nrepository: ${file.repository}\nlanguage: ${file.language}`;
 
             if (includeCodeSnippets) {
                 const snippets = file.chunks.map(chunk => {
@@ -200,9 +201,10 @@ server.tool(
 
         // Format output
         const content: TextContent[] = paginated.map(repo => {
+            const repoUrl = repo.webUrl ?? repo.repoCloneUrl;
             return {
                 type: "text",
-                text: `id: ${repo.repoName}\nurl: ${repo.webUrl}`,
+                text: `id: ${repo.repoName}\nurl: ${repoUrl}`,
             }
         });
 
