@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Remove references to demo from docs. [#734](https://github.com/sourcebot-dev/sourcebot/pull/734)
 - Add docs for GitHub App connection auth. [#735](https://github.com/sourcebot-dev/sourcebot/pull/735)
+- Improved error messaging around oauth scope errors with user driven permission syncing. [#639](https://github.com/sourcebot-dev/sourcebot/pull/639)
 
 ### Fixed
 - Fixed issue where 403 errors were being raised during a user driven permission sync against a self-hosted code host. [#729](https://github.com/sourcebot-dev/sourcebot/pull/729)

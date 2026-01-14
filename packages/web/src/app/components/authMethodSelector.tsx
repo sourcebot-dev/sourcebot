@@ -29,9 +29,12 @@ export const AuthMethodSelector = ({
         // Call the optional analytics callback first
         onProviderClick?.(provider);
 
-        signIn(provider, {
-            redirectTo: callbackUrl ?? "/"
-        });
+        signIn(
+            provider,
+            {
+                redirectTo: callbackUrl ?? "/",
+            }
+        );
     }, [callbackUrl, onProviderClick]);
 
     // Separate OAuth providers from special auth methods

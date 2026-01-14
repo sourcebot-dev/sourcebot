@@ -27,6 +27,10 @@ docker run \
     ghcr.io/sourcebot-dev/sourcebot:latest
 ```
 
+<Warning>
+Enabling permission syncing on an **existing** deployment may result in errors that look like **"User does not have an OAuth access token..."**. This is because the OAuth access token associated with the user's existing account does not have the correct scopes necessary for permission syncing. To fix, have the user re-authenticate to refresh their access token by either logging out of Sourcebot and logging in again or unlinking and re-linking their account.
+</Warning>
+
 ## Platform support
 
 We are actively working on supporting more code hosts. If you'd like to see a specific code host supported, please [reach out](https://www.sourcebot.dev/contact).

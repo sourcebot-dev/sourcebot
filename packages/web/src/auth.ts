@@ -60,88 +60,92 @@ export const getProviders = () => {
     const providers: IdentityProvider[] = eeIdentityProviders;
 
     if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
-        providers.push({ provider: EmailProvider({
-            server: env.SMTP_CONNECTION_URL,
-            from: env.EMAIL_FROM_ADDRESS,
-            maxAge: 60 * 10,
-            generateVerificationToken: async () => {
-                const token = String(Math.floor(100000 + Math.random() * 900000));
-                return token;
-            },
-            sendVerificationRequest: async ({ identifier, provider, token }) => {
-                const transport = createTransport(provider.server);
-                const html = await render(MagicLinkEmail({ token: token }));
-                const result = await transport.sendMail({
-                    to: identifier,
-                    from: provider.from,
-                    subject: 'Log in to Sourcebot',
-                    html,
-                    text: `Log in to Sourcebot using this code: ${token}`
-                });
+        providers.push({
+            provider: EmailProvider({
+                server: env.SMTP_CONNECTION_URL,
+                from: env.EMAIL_FROM_ADDRESS,
+                maxAge: 60 * 10,
+                generateVerificationToken: async () => {
+                    const token = String(Math.floor(100000 + Math.random() * 900000));
+                    return token;
+                },
+                sendVerificationRequest: async ({ identifier, provider, token }) => {
+                    const transport = createTransport(provider.server);
+                    const html = await render(MagicLinkEmail({ token: token }));
+                    const result = await transport.sendMail({
+                        to: identifier,
+                        from: provider.from,
+                        subject: 'Log in to Sourcebot',
+                        html,
+                        text: `Log in to Sourcebot using this code: ${token}`
+                    });
 
-                const failed = result.rejected.concat(result.pending).filter(Boolean);
-                if (failed.length) {
-                    throw new Error(`Email(s) (${failed.join(", ")}) could not be sent`);
+                    const failed = result.rejected.concat(result.pending).filter(Boolean);
+                    if (failed.length) {
+                        throw new Error(`Email(s) (${failed.join(", ")}) could not be sent`);
+                    }
                 }
-            }
-        }), purpose: "sso"});
+            }), purpose: "sso"
+        });
     }
 
     if (env.AUTH_CREDENTIALS_LOGIN_ENABLED === 'true') {
-        providers.push({ provider: Credentials({
-            credentials: {
-                email: {},
-                password: {}
-            },
-            type: "credentials",
-            authorize: async (credentials) => {
-                const body = verifyCredentialsRequestSchema.safeParse(credentials);
-                if (!body.success) {
-                    return null;
-                }
-                const { email, password } = body.data;
+        providers.push({
+            provider: Credentials({
+                credentials: {
+                    email: {},
+                    password: {}
+                },
+                type: "credentials",
+                authorize: async (credentials) => {
+                    const body = verifyCredentialsRequestSchema.safeParse(credentials);
+                    if (!body.success) {
+                        return null;
+                    }
+                    const { email, password } = body.data;
 
-                const user = await prisma.user.findUnique({
-                    where: { email }
-                });
-
-                // The user doesn't exist, so create a new one.
-                if (!user) {
-                    const hashedPassword = bcrypt.hashSync(password, 10);
-                    const newUser = await prisma.user.create({
-                        data: {
-                            email,
-                            hashedPassword,
-                        }
+                    const user = await prisma.user.findUnique({
+                        where: { email }
                     });
 
-                    const authJsUser: AuthJsUser = {
-                        id: newUser.id,
-                        email: newUser.email,
+                    // The user doesn't exist, so create a new one.
+                    if (!user) {
+                        const hashedPassword = bcrypt.hashSync(password, 10);
+                        const newUser = await prisma.user.create({
+                            data: {
+                                email,
+                                hashedPassword,
+                            }
+                        });
+
+                        const authJsUser: AuthJsUser = {
+                            id: newUser.id,
+                            email: newUser.email,
+                        }
+
+                        onCreateUser({ user: authJsUser });
+                        return authJsUser;
+
+                        // Otherwise, the user exists, so verify the password.
+                    } else {
+                        if (!user.hashedPassword) {
+                            return null;
+                        }
+
+                        if (!bcrypt.compareSync(password, user.hashedPassword)) {
+                            return null;
+                        }
+
+                        return {
+                            id: user.id,
+                            email: user.email,
+                            name: user.name ?? undefined,
+                            image: user.image ?? undefined,
+                        };
                     }
-
-                    onCreateUser({ user: authJsUser });
-                    return authJsUser;
-
-                    // Otherwise, the user exists, so verify the password.
-                } else {
-                    if (!user.hashedPassword) {
-                        return null;
-                    }
-
-                    if (!bcrypt.compareSync(password, user.hashedPassword)) {
-                        return null;
-                    }
-
-                    return {
-                        id: user.id,
-                        email: user.email,
-                        name: user.name ?? undefined,
-                        image: user.image ?? undefined,
-                    };
                 }
-            }
-        }), purpose: "sso"});
+            }), purpose: "sso"
+        });
     }
 
     return providers;
@@ -156,7 +160,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     trustHost: true,
     events: {
         createUser: onCreateUser,
-        signIn: async ({ user }) => {
+        signIn: async ({ user, account }) => {
+            // Explicitly update the Account record with the OAuth token details.
+            // This is necessary to update the access token when the user
+            // re-authenticates.
+            if (account && account.provider && account.provider !== 'credentials' && account.providerAccountId) {
+                await prisma.account.update({
+                    where: {
+                        provider_providerAccountId: {
+                            provider: account.provider,
+                            providerAccountId: account.providerAccountId,
+                        },
+                    },
+                    data: {
+                        refresh_token: account.refresh_token,
+                        access_token: account.access_token,
+                        expires_at: account.expires_at,
+                        token_type: account.token_type,
+                        scope: account.scope,
+                        id_token: account.id_token,
+                    }
+                })
+            }
+
             if (user.id) {
                 await auditService.createAudit({
                     action: "user.signed_in",
@@ -225,7 +251,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 // Propagate the userId to the session.
                 id: token.userId,
             }
-            
+
             // Pass only linked account provider errors to the session (not sensitive tokens)
             if (token.linkedAccountTokens) {
                 const errors: Record<string, string> = {};
