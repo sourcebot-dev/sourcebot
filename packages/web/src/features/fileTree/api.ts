@@ -16,9 +16,9 @@ const logger = createLogger('file-tree');
  * Returns the tree of files (blobs) and directories (trees) for a given repository,
  * at a given revision.
  */
-export const getTree = async (params: { repoName: string, revisionName: string }) => sew(() =>
+export const getTree = async (params: { repoName: string, revisionName: string, path: string }) => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {
-        const { repoName, revisionName } = params;
+        const { repoName, revisionName, path } = params;
         const repo = await prisma.repo.findFirst({
             where: {
                 name: repoName,
@@ -33,21 +33,25 @@ export const getTree = async (params: { repoName: string, revisionName: string }
         const { path: repoPath } = getRepoPath(repo);
 
         const git = simpleGit().cwd(repoPath);
+        if (!isPathValid(path)) {
+            return notFound();
+        }
 
-        let result: string;
+        const pathSpecs = getPathspecs(path);
+
+        let result: string = '';
         try {
-            result = await git.raw([
+            result= await git.raw([
                 // Disable quoting of non-ASCII characters in paths
                 '-c', 'core.quotePath=false',
                 'ls-tree',
                 revisionName,
-                // recursive
-                '-r',
-                // include trees when recursing
-                '-t',
                 // format as output as {type},{path}
                 '--format=%(objecttype),%(path)',
-            ]);
+                '--',
+                '.',
+                ...pathSpecs,
+            ])
         } catch (error) {
             logger.error('git ls-tree failed.', { error });
             return unexpectedError('git ls-tree command failed.');
@@ -90,31 +94,12 @@ export const getFolderContents = async (params: { repoName: string, revisionName
         }
 
         const { path: repoPath } = getRepoPath(repo);
+        const git = simpleGit().cwd(repoPath);
 
-        // @note: we don't allow directory traversal
-        // or null bytes in the path.
-        if (path.includes('..') || path.includes('\0')) {
+        if (!isPathValid(path)) {
             return notFound();
         }
-
-        // Normalize the path by...
-        let normalizedPath = path;
-
-        // ... adding a trailing slash if it doesn't have one.
-        // This is important since ls-tree won't return the contents
-        // of a directory if it doesn't have a trailing slash.
-        if (!normalizedPath.endsWith('/')) {
-            normalizedPath = `${normalizedPath}/`;
-        }
-
-        // ... removing any leading slashes. This is needed since
-        // the path is relative to the repository's root, so we
-        // need a relative path.
-        if (normalizedPath.startsWith('/')) {
-            normalizedPath = normalizedPath.slice(1);
-        }
-
-        const git = simpleGit().cwd(repoPath);
+        const normalizedPath = normalizePath(path);
 
         let result: string;
         try {
@@ -198,6 +183,50 @@ export const getFiles = async (params: { repoName: string, revisionName: string 
         return files;
 
     }));
+
+// @note: we don't allow directory traversal
+// or null bytes in the path.
+const isPathValid = (path: string) => {
+    return !path.includes('..') && !path.includes('\0');
+}
+
+const normalizePath = (path: string): string => {
+    // Normalize the path by...
+    let normalizedPath = path;
+
+    // ... adding a trailing slash if it doesn't have one.
+    // This is important since ls-tree won't return the contents
+    // of a directory if it doesn't have a trailing slash.
+    if (!normalizedPath.endsWith('/')) {
+        normalizedPath = `${normalizedPath}/`;
+    }
+
+    // ... removing any leading slashes. This is needed since
+    // the path is relative to the repository's root, so we
+    // need a relative path.
+    if (normalizedPath.startsWith('/')) {
+        normalizedPath = normalizedPath.slice(1);
+    }
+
+    return normalizedPath;
+}
+
+const getPathspecs = (path: string): string[] => {
+    const normalizedPath = normalizePath(path);
+    if (normalizedPath.length === 0) {
+        return [];
+    }
+
+    const parts = normalizedPath.split('/').filter(part => part.length > 0);
+    const pathspecs: string[] = [];
+
+    for (let i = 0; i < parts.length; i++) {
+        const prefix = parts.slice(0, i + 1).join('/');
+        pathspecs.push(`${prefix}/`);
+    }
+
+    return pathspecs;
+}
 
 const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode => {
     const root: FileTreeNode = {

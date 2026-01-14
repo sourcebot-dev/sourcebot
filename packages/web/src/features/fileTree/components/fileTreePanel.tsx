@@ -21,7 +21,6 @@ import {
 import { ImperativePanelHandle } from "react-resizable-panels";
 import { PureFileTreePanel } from "./pureFileTreePanel";
 
-
 interface FileTreePanelProps {
     order: number;
 }
@@ -43,15 +42,16 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
 
     const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
     const { data, isPending, isError } = useQuery({
-        queryKey: ['tree', repoName, revisionName],
+        queryKey: ['tree', repoName, revisionName, path],
         queryFn: () => unwrapServiceError(
             getTree({
                 repoName,
                 revisionName: revisionName ?? 'HEAD',
+                path
             })
         ),
     });
-    
+
     useHotkeys("mod+b", () => {
         if (isFileTreePanelCollapsed) {
             fileTreePanelRef.current?.expand();

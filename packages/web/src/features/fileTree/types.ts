@@ -3,6 +3,7 @@ import { z } from "zod";
 export const getTreeRequestSchema = z.object({
     repoName: z.string(),
     revisionName: z.string(),
+    path: z.string(),
 });
 export type GetTreeRequest = z.infer<typeof getTreeRequestSchema>;
 

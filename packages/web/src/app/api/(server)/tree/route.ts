@@ -3,7 +3,7 @@
 import { getTree } from "@/features/fileTree/api";
 import { getTreeRequestSchema } from "@/features/fileTree/types";
 import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
-import { isServiceError } from "@/lib/utils";
+import { isServiceError, measure } from "@/lib/utils";
 import { NextRequest } from "next/server";
 
 export const POST = async (request: NextRequest) => {
@@ -13,7 +13,7 @@ export const POST = async (request: NextRequest) => {
         return serviceErrorResponse(schemaValidationError(parsed.error));
     }
 
-    const response = await getTree(parsed.data);
+    const { data: response } = await measure(() => getTree(parsed.data), 'getTree');
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }
