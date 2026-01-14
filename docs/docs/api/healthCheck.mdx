@@ -1,0 +1,115 @@
+---
+title: Health Check API
+sidebarTitle: Health Check
+---
+
+The Health Check API provides a simple endpoint to verify that the Sourcebot service is running and responsive. This endpoint is designed for use with monitoring systems, load balancers, container orchestration platforms (like Kubernetes), and reverse proxies (like nginx).
+
+## Endpoint
+
+```
+GET /api/health
+```
+
+## Response
+
+The endpoint returns a JSON response indicating the service status.
+
+### Success Response
+
+**Status Code:** `200 OK`
+
+**Response Body:**
+```json
+{
+    "status": "ok"
+}
+```
+
+## Usage Examples
+
+### cURL
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+### Docker Compose
+
+Add a health check to your `docker-compose.yml`:
+
+```yaml
+services:
+    sourcebot:
+        image: sourcebot/sourcebot:latest
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 40s
+```
+
+### Kubernetes
+
+Add a liveness and readiness probe to your Kubernetes deployment:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: sourcebot
+spec:
+    template:
+        spec:
+            containers:
+                - name: sourcebot
+                  image: sourcebot/sourcebot:latest
+                  livenessProbe:
+                      httpGet:
+                          path: /api/health
+                          port: 3000
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+                      timeoutSeconds: 5
+                      failureThreshold: 3
+                  readinessProbe:
+                      httpGet:
+                          path: /api/health
+                          port: 3000
+                      initialDelaySeconds: 10
+                      periodSeconds: 5
+                      timeoutSeconds: 3
+                      failureThreshold: 3
+```
+
+### Nginx
+
+Configure Nginx to use the health check endpoint for upstream monitoring:
+
+```nginx
+upstream sourcebot_backend {
+    server sourcebot:3000 max_fails=3 fail_timeout=30s;
+}
+
+server {
+    listen 80;
+    
+    location /api/health {
+        proxy_pass http://sourcebot_backend/api/health;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 5s;
+    }
+    
+    location / {
+        proxy_pass http://sourcebot_backend;
+    }
+}
+```
+
+## Notes
+
+- The health check endpoint does not require authentication
+- The endpoint logs each health check request for monitoring purposes
+- A `200 OK` response indicates the web server is operational
+- This is a basic health check that verifies service responsiveness
