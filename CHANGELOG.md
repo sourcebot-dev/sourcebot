@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.9] - 2026-01-14
+
 ### Changed
 - Remove references to demo from docs. [#734](https://github.com/sourcebot-dev/sourcebot/pull/734)
 - Add docs for GitHub App connection auth. [#735](https://github.com/sourcebot-dev/sourcebot/pull/735)
