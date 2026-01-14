@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Remove references to demo from docs. [#734](https://github.com/sourcebot-dev/sourcebot/pull/734)
+
 ### Fixed
 - Fixed issue where 403 errors were being raised during a user driven permission sync against a self-hosted code host. [#729](https://github.com/sourcebot-dev/sourcebot/pull/729)
 - Fixed "ambiguous argument 'HEAD^{commit}': unknown revision or path not in the working tree" error for blank repositories. [#733](https://github.com/sourcebot-dev/sourcebot/pull/733)
