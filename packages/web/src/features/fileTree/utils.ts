@@ -21,12 +21,6 @@ export const normalizePath = (path: string): string => {
     return normalizedPath;
 }
 
-// @note: we don't allow directory traversal
-// or null bytes in the path.
-export const isPathValid = (path: string) => {
-    return !path.includes('..') && !path.includes('\0');
-}
-
 export const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode => {
     const root: FileTreeNode = {
         name: 'root',
