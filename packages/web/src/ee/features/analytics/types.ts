@@ -5,6 +5,7 @@ export const analyticsResponseSchema = z.array(z.object({
   bucket: z.date(),
   code_searches: z.number(),
   navigations: z.number(),
+  ask_chats: z.number(),
   active_users: z.number(),
 }))
 export type AnalyticsResponse = z.infer<typeof analyticsResponseSchema>;
