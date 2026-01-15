@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { buildFileTree, getPathspecs, isPathValid, normalizePath } from './utils';
+import { buildFileTree, isPathValid, normalizePath } from './utils';
 
 test('normalizePath adds a trailing slash and strips leading slashes', () => {
     expect(normalizePath('/a/b')).toBe('a/b/');
@@ -20,14 +20,6 @@ test('isPathValid rejects traversal and null bytes', () => {
 
 test('isPathValid allows normal paths', () => {
     expect(isPathValid('a/b')).toBe(true);
-});
-
-test('getPathspecs returns path prefixes with trailing slashes', () => {
-    expect(getPathspecs('a/b/c')).toEqual(['a/', 'a/b/', 'a/b/c/']);
-});
-
-test('getPathspecs normalizes leading/trailing slashes', () => {
-    expect(getPathspecs('/a/b/')).toEqual(['a/', 'a/b/']);
 });
 
 test('buildFileTree handles a empty flat list', () => {

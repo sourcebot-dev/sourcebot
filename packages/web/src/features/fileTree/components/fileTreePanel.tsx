@@ -2,14 +2,14 @@
 
 import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
 import { useBrowseState } from "@/app/[domain]/browse/hooks/useBrowseState";
-import { getFolderContents, getTree } from "@/app/api/(client)/client";
+import { getTree } from "@/app/api/(client)/client";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Button } from "@/components/ui/button";
 import { ResizablePanel } from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { unwrapServiceError } from "@/lib/utils";
+import { measure, unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { SearchIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -41,28 +41,77 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
     const { repoName, revisionName, path } = useBrowseParams();
 
     const [tree, setTree] = useState<FileTreeNode | null>(null);
+    const [openPaths, setOpenPaths] = useState<Set<string>>(new Set());
 
     const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
-    const loadFolderContents = useCallback(async (folderPath: string) => {
-        return unwrapServiceError(
-            getFolderContents({
-                repoName,
-                revisionName: revisionName ?? 'HEAD',
-                path: folderPath
-            })
-        );
-    }, [repoName, revisionName]);
 
     const { data, isError } = useQuery({
-        queryKey: ['tree', repoName, revisionName, path],
-        queryFn: () => unwrapServiceError(
-            getTree({
-                repoName,
-                revisionName: revisionName ?? 'HEAD',
-                path
-            })
-        ),
+        queryKey: ['tree', repoName, revisionName, ...Array.from(openPaths)],
+        queryFn: async () => {
+            const result = await measure(async () => unwrapServiceError(
+                getTree({
+                    repoName,
+                    revisionName: revisionName ?? 'HEAD',
+                    paths: Array.from(openPaths),
+                })
+            ), 'getTree');
+
+            return result.data;
+        }
     });
+
+    useEffect(() => {
+        if (!data) {
+            return;
+        }
+        setTree(data.tree);
+    }, [data]);
+
+    // Whenever the repo name or revision name changes, we will need to
+    // reset the open paths since they no longer reference the same repository/revision.
+    useEffect(() => {
+        setOpenPaths(new Set());
+    }, [repoName, revisionName]);
+
+    // When the path changes (e.g., the user clicks a reference in the explore panel),
+    // we want this to be open and visible in the file tree.
+    useEffect(() => {
+        const pathParts = path.split('/').filter(Boolean);
+
+        setOpenPaths(current => {
+            const next = new Set<string>(current);
+            for (let i = 0; i < pathParts.length; i++) {
+                next.add(pathParts.slice(0, i + 1).join('/'));
+            }
+            return next;
+        });
+    }, [path]);
+
+    // When the user clicks a file tree node, we will want to either
+    // add or remove it from the open paths depending on if it's already open or not.
+    const onNodeClicked = useCallback((node: FileTreeNode) => {
+        if (!openPaths.has(node.path)) {
+            setOpenPaths(current => {
+                const next = new Set(current);
+                next.add(node.path);
+                return next;
+            })
+        } else {
+            setOpenPaths(current => {
+                const next = new Set(current);
+                next.delete(node.path);
+                return next;
+            })
+        }
+    }, [openPaths]);
+
+    // @debug: format the tree for console output.
+    // useEffect(() => {
+    //     if (!tree) {
+    //         return;
+    //     }
+    //     console.debug(__debugFormatTreeForConsole(tree));
+    // }, [tree]);
 
     useHotkeys("mod+b", () => {
         if (isFileTreePanelCollapsed) {
@@ -75,13 +124,6 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
         enableOnContentEditable: true,
         description: "Toggle file tree panel",
     });
-
-    useEffect(() => {
-        if (!data) {
-            return;
-        }
-        setTree(data.tree);
-    }, [data]);
 
     return (
         <>
@@ -151,8 +193,9 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                         ) : (
                             <PureFileTreePanel
                                 tree={tree}
+                                openPaths={openPaths}
                                 path={path}
-                                onLoadChildren={loadFolderContents}
+                                onNodeClicked={onNodeClicked}
                             />
                         )}
                 </div>
@@ -344,3 +387,18 @@ const FileTreePanelSkeleton = () => {
         </div>
     )
 }
+
+const __debugFormatTreeForConsole = (node: FileTreeNode): string => {
+    const lines: string[] = [];
+    const walk = (current: FileTreeNode, prefix: string, isLast: boolean, isRoot: boolean) => {
+        const label = current.name || current.path;
+        const connector = isRoot ? "" : (isLast ? "`-- " : "|-- ");
+        lines.push(`${prefix}${connector}${label}`);
+        const nextPrefix = isRoot ? "" : `${prefix}${isLast ? "    " : "|   "}`;
+        current.children.forEach((child, index) => {
+            walk(child, nextPrefix, index === current.children.length - 1, false);
+        });
+    };
+    walk(node, "", true, true);
+    return lines.join("\n");
+};

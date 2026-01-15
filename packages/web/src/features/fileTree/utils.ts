@@ -27,24 +27,6 @@ export const isPathValid = (path: string) => {
     return !path.includes('..') && !path.includes('\0');
 }
 
-export const getPathspecs = (path: string): string[] => {
-    const normalizedPath = normalizePath(path);
-    if (normalizedPath.length === 0) {
-        return [];
-    }
-
-    const parts = normalizedPath.split('/').filter((part: string) => part.length > 0);
-    const pathspecs: string[] = [];
-
-    for (let i = 0; i < parts.length; i++) {
-        const prefix = parts.slice(0, i + 1).join('/');
-        pathspecs.push(`${prefix}/`);
-    }
-
-    return pathspecs;
-}
-
-
 export const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode => {
     const root: FileTreeNode = {
         name: 'root',

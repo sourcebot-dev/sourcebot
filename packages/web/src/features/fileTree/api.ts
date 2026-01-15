@@ -9,7 +9,7 @@ import { createLogger } from '@sourcebot/shared';
 import path from 'path';
 import { simpleGit } from 'simple-git';
 import { FileTreeItem } from './types';
-import { buildFileTree, getPathspecs, isPathValid, normalizePath } from './utils';
+import { buildFileTree, isPathValid, normalizePath } from './utils';
 import { compareFileTreeItems } from './utils';
 
 const logger = createLogger('file-tree');
@@ -18,9 +18,9 @@ const logger = createLogger('file-tree');
  * Returns the tree of files (blobs) and directories (trees) for a given repository,
  * at a given revision.
  */
-export const getTree = async (params: { repoName: string, revisionName: string, path: string }) => sew(() =>
+export const getTree = async (params: { repoName: string, revisionName: string, paths: string[] }) => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {
-        const { repoName, revisionName, path } = params;
+        const { repoName, revisionName, paths } = params;
         const repo = await prisma.repo.findFirst({
             where: {
                 name: repoName,
@@ -35,11 +35,11 @@ export const getTree = async (params: { repoName: string, revisionName: string, 
         const { path: repoPath } = getRepoPath(repo);
 
         const git = simpleGit().cwd(repoPath);
-        if (!isPathValid(path)) {
+        if (!paths.every(path => isPathValid(path))) {
             return notFound();
         }
 
-        const pathSpecs = getPathspecs(path);
+        const normalizedPaths = paths.map(path => normalizePath(path));
 
         let result: string = '';
         try {
@@ -55,7 +55,7 @@ export const getTree = async (params: { repoName: string, revisionName: string, 
                 '-t',
                 '--',
                 '.',
-                ...pathSpecs,
+                ...normalizedPaths,
             ];
 
             result = await git.raw(command);
