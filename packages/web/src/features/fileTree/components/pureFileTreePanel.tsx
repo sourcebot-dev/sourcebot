@@ -22,10 +22,10 @@ interface PureFileTreePanelProps {
     tree: FileTreeNode;
     openPaths: Set<string>;
     path: string;
-    onNodeClicked: (node: FileTreeNode) => void;
+    onTreeNodeClicked: (node: FileTreeNode) => void;
 }
 
-export const PureFileTreePanel = ({ tree, openPaths, path, onNodeClicked }: PureFileTreePanelProps) => {
+export const PureFileTreePanel = ({ tree, openPaths, path, onTreeNodeClicked }: PureFileTreePanelProps) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { repoName, revisionName } = useBrowseParams();
     const domain = useDomain();
@@ -54,8 +54,8 @@ export const PureFileTreePanel = ({ tree, openPaths, path, onNodeClicked }: Pure
                                 // (i.e., not ctrl/cmd click).
                                 onClick={(e) => {
                                     const isMetaOrCtrlKey = e.metaKey || e.ctrlKey;
-                                    if (!isMetaOrCtrlKey) {
-                                        onNodeClicked(node);
+                                    if (node.type === 'tree' && !isMetaOrCtrlKey) {
+                                        onTreeNodeClicked(node);
                                     }
                                 }}
                                 // @note: onNavigate _won't_ be called when the user ctrl/cmd clicks on a tree node.
@@ -69,14 +69,18 @@ export const PureFileTreePanel = ({ tree, openPaths, path, onNodeClicked }: Pure
                                 parentRef={scrollAreaRef}
                             />
                             {node.type === 'tree' && node.children.length > 0 && openPaths.has(node.path) && renderTree(node, depth + 1)}
-                            {/* @note: a empty tree indicates that the contents are beaing loaded. Render a loading skeleton to indicate that. */}
+                            {/*
+                                @note: a empty tree indicates that the contents are beaing loaded. Render a loading skeleton to indicate that.
+                                This relies on the fact that you cannot have empty tress in git.
+                                @see: https://archive.kernel.org/oldwiki/git.wiki.kernel.org/index.php/GitFaq.html#Can_I_add_empty_directories.3F
+                            */}
                             {node.type === 'tree' && node.children.length === 0 && openPaths.has(node.path) && renderLoadingSkeleton(depth)}
                         </React.Fragment>
                     );
                 })}
             </>
         );
-    }, [domain, onNodeClicked, path, repoName, revisionName, openPaths]);
+    }, [domain, onTreeNodeClicked, path, repoName, revisionName, openPaths]);
 
     const renderedTree = useMemo(() => renderTree(tree), [tree, renderTree]);
 

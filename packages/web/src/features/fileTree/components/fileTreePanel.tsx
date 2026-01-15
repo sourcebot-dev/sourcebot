@@ -9,6 +9,7 @@ import { ResizablePanel } from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { measure, unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { SearchIcon } from "lucide-react";
@@ -19,8 +20,8 @@ import {
     GoSidebarCollapse as ExpandIcon
 } from "react-icons/go";
 import { ImperativePanelHandle } from "react-resizable-panels";
-import { PureFileTreePanel } from "./pureFileTreePanel";
 import { FileTreeNode } from "../types";
+import { PureFileTreePanel } from "./pureFileTreePanel";
 
 interface FileTreePanelProps {
     order: number;
@@ -38,14 +39,13 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
         updateBrowseState,
     } = useBrowseState();
 
-    const { repoName, revisionName, path } = useBrowseParams();
-
-    const [tree, setTree] = useState<FileTreeNode | null>(null);
+    const { repoName, revisionName, path, pathType } = useBrowseParams();
     const [openPaths, setOpenPaths] = useState<Set<string>>(new Set());
+    const captureEvent = useCaptureEvent();
 
     const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
 
-    const { data, isError } = useQuery({
+    const { data, isError, isPending } = useQuery({
         queryKey: ['tree', repoName, revisionName, ...Array.from(openPaths)],
         queryFn: async () => {
             const result = await measure(async () => unwrapServiceError(
@@ -56,16 +56,18 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                 })
             ), 'getTree');
 
-            return result.data;
-        }
-    });
+            captureEvent('wa_file_tree_loaded', {
+                durationMs: result.durationMs,
+            });
 
-    useEffect(() => {
-        if (!data) {
-            return;
-        }
-        setTree(data.tree);
-    }, [data]);
+            return result.data;
+        },
+        // The tree changes only when the query key changes (repo/revision/openPaths),
+        // so we can treat it as perpetually fresh and avoid background refetches.
+        staleTime: Infinity,
+        // Reuse the last tree during refetches (openPaths changes) to avoid UI flicker.
+        placeholderData: (previousData) => previousData,
+    });
 
     // Whenever the repo name or revision name changes, we will need to
     // reset the open paths since they no longer reference the same repository/revision.
@@ -76,7 +78,12 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
     // When the path changes (e.g., the user clicks a reference in the explore panel),
     // we want this to be open and visible in the file tree.
     useEffect(() => {
-        const pathParts = path.split('/').filter(Boolean);
+        let pathParts = path.split('/').filter(Boolean);
+
+        // If the path is a blob, we want to open the parent directory.
+        if (pathType === 'blob') {
+            pathParts = pathParts.slice(0, -1);
+        }
 
         setOpenPaths(current => {
             const next = new Set<string>(current);
@@ -85,11 +92,11 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
             }
             return next;
         });
-    }, [path]);
+    }, [path, pathType]);
 
     // When the user clicks a file tree node, we will want to either
     // add or remove it from the open paths depending on if it's already open or not.
-    const onNodeClicked = useCallback((node: FileTreeNode) => {
+    const onTreeNodeClicked = useCallback((node: FileTreeNode) => {
         if (!openPaths.has(node.path)) {
             setOpenPaths(current => {
                 const next = new Set(current);
@@ -104,14 +111,6 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
             })
         }
     }, [openPaths]);
-
-    // @debug: format the tree for console output.
-    // useEffect(() => {
-    //     if (!tree) {
-    //         return;
-    //     }
-    //     console.debug(__debugFormatTreeForConsole(tree));
-    // }, [tree]);
 
     useHotkeys("mod+b", () => {
         if (isFileTreePanelCollapsed) {
@@ -183,7 +182,7 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                         </Tooltip>
                     </div>
                     <Separator orientation="horizontal" className="w-full mb-2" />
-                    {!tree ? (
+                    {isPending ? (
                         <FileTreePanelSkeleton />
                     ) :
                         isError ? (
@@ -192,10 +191,10 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                             </div>
                         ) : (
                             <PureFileTreePanel
-                                tree={tree}
+                                tree={data.tree}
                                 openPaths={openPaths}
                                 path={path}
-                                onNodeClicked={onNodeClicked}
+                                onTreeNodeClicked={onTreeNodeClicked}
                             />
                         )}
                 </div>
@@ -387,18 +386,3 @@ const FileTreePanelSkeleton = () => {
         </div>
     )
 }
-
-const __debugFormatTreeForConsole = (node: FileTreeNode): string => {
-    const lines: string[] = [];
-    const walk = (current: FileTreeNode, prefix: string, isLast: boolean, isRoot: boolean) => {
-        const label = current.name || current.path;
-        const connector = isRoot ? "" : (isLast ? "`-- " : "|-- ");
-        lines.push(`${prefix}${connector}${label}`);
-        const nextPrefix = isRoot ? "" : `${prefix}${isLast ? "    " : "|   "}`;
-        current.children.forEach((child, index) => {
-            walk(child, nextPrefix, index === current.children.length - 1, false);
-        });
-    };
-    walk(node, "", true, true);
-    return lines.join("\n");
-};

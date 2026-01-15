@@ -18,8 +18,6 @@ import {
 import {
     GetFilesRequest,
     GetFilesResponse,
-    GetFolderContentsRequest,
-    GetFolderContentsResponse,
     GetTreeRequest,
     GetTreeResponse,
 } from "@/features/fileTree/types";
@@ -103,12 +101,4 @@ export const getFiles = async (body: GetFilesRequest): Promise<GetFilesResponse 
         body: JSON.stringify(body),
     }).then(response => response.json());
     return result as GetFilesResponse | ServiceError;
-}
-
-export const getFolderContents = async (body: GetFolderContentsRequest): Promise<GetFolderContentsResponse | ServiceError> => {
-    const result = await fetch("/api/folder_contents", {
-        method: "POST",
-        body: JSON.stringify(body),
-    }).then(response => response.json());
-    return result as GetFolderContentsResponse | ServiceError;
 }
