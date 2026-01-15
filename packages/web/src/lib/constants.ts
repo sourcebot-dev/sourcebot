@@ -34,4 +34,6 @@ export const SINGLE_TENANT_ORG_ID = 1;
 export const SINGLE_TENANT_ORG_DOMAIN = '~';
 export const SINGLE_TENANT_ORG_NAME = 'default';
 
+export const ANONYMOUS_SESSION_ID_COOKIE_NAME = 'sourcebot_anon_session_id';
+
 export { SOURCEBOT_SUPPORT_EMAIL } from "@sourcebot/shared/client";
