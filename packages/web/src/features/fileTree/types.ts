@@ -13,6 +13,13 @@ export const getFilesRequestSchema = z.object({
 });
 export type GetFilesRequest = z.infer<typeof getFilesRequestSchema>;
 
+export const getFolderContentsRequestSchema = z.object({
+    repoName: z.string(),
+    revisionName: z.string(),
+    path: z.string(),
+});
+export type GetFolderContentsRequest = z.infer<typeof getFolderContentsRequestSchema>;
+
 export const fileTreeItemSchema = z.object({
     type: z.string(),
     path: z.string(),
@@ -42,4 +49,7 @@ export type GetTreeResponse = z.infer<typeof getTreeResponseSchema>;
 
 export const getFilesResponseSchema = z.array(fileTreeItemSchema);
 export type GetFilesResponse = z.infer<typeof getFilesResponseSchema>;
+
+export const getFolderContentsResponseSchema = z.array(fileTreeItemSchema);
+export type GetFolderContentsResponse = z.infer<typeof getFolderContentsResponseSchema>;
 

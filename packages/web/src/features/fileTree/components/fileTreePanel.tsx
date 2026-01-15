@@ -2,7 +2,7 @@
 
 import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
 import { useBrowseState } from "@/app/[domain]/browse/hooks/useBrowseState";
-import { getTree } from "@/app/api/(client)/client";
+import { getFolderContents, getTree } from "@/app/api/(client)/client";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Button } from "@/components/ui/button";
 import { ResizablePanel } from "@/components/ui/resizable";
@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { SearchIcon } from "lucide-react";
-import { useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import {
     GoSidebarExpand as CollapseIcon,
@@ -20,6 +20,7 @@ import {
 } from "react-icons/go";
 import { ImperativePanelHandle } from "react-resizable-panels";
 import { PureFileTreePanel } from "./pureFileTreePanel";
+import { FileTreeNode } from "../types";
 
 interface FileTreePanelProps {
     order: number;
@@ -28,7 +29,6 @@ interface FileTreePanelProps {
 const FILE_TREE_PANEL_DEFAULT_SIZE = 20;
 const FILE_TREE_PANEL_MIN_SIZE = 10;
 const FILE_TREE_PANEL_MAX_SIZE = 30;
-
 
 export const FileTreePanel = ({ order }: FileTreePanelProps) => {
     const {
@@ -40,8 +40,20 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
 
     const { repoName, revisionName, path } = useBrowseParams();
 
+    const [tree, setTree] = useState<FileTreeNode | null>(null);
+
     const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
-    const { data, isPending, isError } = useQuery({
+    const loadFolderContents = useCallback(async (folderPath: string) => {
+        return unwrapServiceError(
+            getFolderContents({
+                repoName,
+                revisionName: revisionName ?? 'HEAD',
+                path: folderPath
+            })
+        );
+    }, [repoName, revisionName]);
+
+    const { data, isError } = useQuery({
         queryKey: ['tree', repoName, revisionName, path],
         queryFn: () => unwrapServiceError(
             getTree({
@@ -63,6 +75,13 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
         enableOnContentEditable: true,
         description: "Toggle file tree panel",
     });
+
+    useEffect(() => {
+        if (!data) {
+            return;
+        }
+        setTree(data.tree);
+    }, [data]);
 
     return (
         <>
@@ -122,7 +141,7 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                         </Tooltip>
                     </div>
                     <Separator orientation="horizontal" className="w-full mb-2" />
-                    {isPending ? (
+                    {!tree ? (
                         <FileTreePanelSkeleton />
                     ) :
                         isError ? (
@@ -131,8 +150,9 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                             </div>
                         ) : (
                             <PureFileTreePanel
-                                tree={data.tree}
+                                tree={tree}
                                 path={path}
+                                onLoadChildren={loadFolderContents}
                             />
                         )}
                 </div>
