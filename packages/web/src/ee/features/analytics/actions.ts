@@ -33,7 +33,8 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
           AND action IN (
             'user.performed_code_search',
             'user.performed_find_references',
-            'user.performed_goto_definition'
+            'user.performed_goto_definition',
+            'user.created_ask_chat'
           )
       ),
     
@@ -77,6 +78,7 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
           END AS bucket,
           COUNT(*) FILTER (WHERE c.action = 'user.performed_code_search') AS code_searches,
           COUNT(*) FILTER (WHERE c.action IN ('user.performed_find_references', 'user.performed_goto_definition')) AS navigations,
+          COUNT(*) FILTER (WHERE c.action = 'user.created_ask_chat') AS ask_chats,
           COUNT(DISTINCT c."actorId") AS active_users
         FROM core c
         JOIN LATERAL (
@@ -90,6 +92,7 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
         b.bucket,
         COALESCE(a.code_searches, 0)::int AS code_searches,
         COALESCE(a.navigations, 0)::int AS navigations,
+        COALESCE(a.ask_chats, 0)::int AS ask_chats,
         COALESCE(a.active_users, 0)::int AS active_users
       FROM buckets b
       LEFT JOIN aggregated a

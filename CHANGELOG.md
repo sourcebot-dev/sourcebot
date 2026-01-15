@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [EE] Add Ask chat usage metrics to analytics dashboard [#736](https://github.com/sourcebot-dev/sourcebot/pull/736)
+
 ## [4.10.9] - 2026-01-14
 
 ### Changed
