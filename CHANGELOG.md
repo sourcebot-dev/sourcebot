@@ -13,9 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Improved initial file tree load times, especially for larger repositories. [#739](https://github.com/sourcebot-dev/sourcebot/pull/739)
 
-### Fixed
-- Fixed "error loading tree preview" error when viewing a directory with `...`. [#531](https://github.com/sourcebot-dev/sourcebot/issues/531)
-
 ## [4.10.9] - 2026-01-14
 
 ### Changed
