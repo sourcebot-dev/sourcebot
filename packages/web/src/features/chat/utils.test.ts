@@ -512,3 +512,40 @@ test('buildSearchQuery handles query with special characters', () => {
     
     expect(result).toBe('console.log("hello world") reposet:test-repo');
 });
+
+test('buildSearchQuery handles repoNamesFilter with port in URL', () => {
+    const result = buildSearchQuery({
+        query: 'test.cpp',
+        repoNamesFilter: ['localhost:12030/testrepo']
+    });
+    
+    expect(result).toBe('test.cpp reposet:localhost:12030/testrepo');
+});
+
+test('buildSearchQuery handles multiple repoNamesFilter with ports', () => {
+    const result = buildSearchQuery({
+        query: 'function test',
+        repoNamesFilter: ['myserver:12030/repo1', 'localhost:3000/repo2']
+    });
+    
+    expect(result).toBe('function test reposet:myserver:12030/repo1,localhost:3000/repo2');
+});
+
+test('buildSearchQuery handles repoNamesFilterRegexp with port in URL', () => {
+    const result = buildSearchQuery({
+        query: 'test.cpp',
+        repoNamesFilterRegexp: ['localhost:12030/testrepo']
+    });
+    
+    expect(result).toBe('test.cpp ( repo:localhost:12030/testrepo )');
+});
+
+test('buildSearchQuery combines repoNamesFilter and repoNamesFilterRegexp with ports', () => {
+    const result = buildSearchQuery({
+        query: 'test.cpp',
+        repoNamesFilter: ['myserver:12030/testrepo'],
+        repoNamesFilterRegexp: ['localhost:12030/other']
+    });
+    
+    expect(result).toBe('test.cpp reposet:myserver:12030/testrepo ( repo:localhost:12030/other )');
+});
