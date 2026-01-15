@@ -10,6 +10,7 @@ import path from 'path';
 import { simpleGit } from 'simple-git';
 import { FileTreeItem } from './types';
 import { buildFileTree, getPathspecs, isPathValid, normalizePath } from './utils';
+import { compareFileTreeItems } from './utils';
 
 const logger = createLogger('file-tree');
 
@@ -135,6 +136,9 @@ export const getFolderContents = async (params: { repoName: string, revisionName
                 name,
             }
         });
+
+        // Sort the contents in place, first by type (trees before blobs), then by name.
+        contents.sort(compareFileTreeItems);
 
         return contents;
     }));

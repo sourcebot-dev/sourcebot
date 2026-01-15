@@ -1,4 +1,4 @@
-import { FileTreeNode } from "./types";
+import { FileTreeItem, FileTreeNode } from "./types";
 
 export const normalizePath = (path: string): string => {
     // Normalize the path by...
@@ -83,12 +83,7 @@ export const buildFileTree = (flatList: { type: string, path: string }[]): FileT
 
         const sortedChildren = node.children
             .map(sortTree)
-            .sort((a: FileTreeNode, b: FileTreeNode) => {
-                if (a.type !== b.type) {
-                    return a.type === 'tree' ? -1 : 1;
-                }
-                return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-            });
+            .sort(compareFileTreeItems);
 
         return {
             ...node,
@@ -97,4 +92,11 @@ export const buildFileTree = (flatList: { type: string, path: string }[]): FileT
     };
 
     return sortTree(root);
+}
+
+export const compareFileTreeItems = (a: FileTreeItem, b: FileTreeItem): number => {
+    if (a.type !== b.type) {
+        return a.type === 'tree' ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 }
