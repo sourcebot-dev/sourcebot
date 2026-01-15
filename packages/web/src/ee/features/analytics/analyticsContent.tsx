@@ -392,7 +392,9 @@ export function AnalyticsContent() {
 
     const totalSavings = useMemo(() => {
         if (!analyticsResponse) return 0
-        const totalOperations = analyticsResponse.reduce((sum, row) => sum + row.code_searches + row.navigations, 0)
+        // Only sum daily entries to avoid double-counting from overlapping time buckets
+        const dailyEntries = analyticsResponse.filter(row => row.period === "day")
+        const totalOperations = dailyEntries.reduce((sum, row) => sum + row.code_searches + row.navigations, 0)
         const totalMinutesSaved = totalOperations * numericAvgMinutesSaved
         const hourlyRate = numericAvgSalary / (40 * 52)
         return Math.round((totalMinutesSaved / 60 * hourlyRate) * 100) / 100
@@ -601,7 +603,7 @@ export function AnalyticsContent() {
                                     <p className="text-sm text-muted-foreground mb-2">Total Estimated Savings</p>
                                     <p className="text-3xl font-bold text-card-foreground">${totalSavings.toLocaleString()}</p>
                                     <p className="text-xs text-muted-foreground mt-1">
-                                        Based on {analyticsResponse.reduce((sum, row) => sum + row.code_searches + row.navigations, 0).toLocaleString()} total operations
+                                        Based on {dailyData.reduce((sum, row) => sum + row.code_searches + row.navigations, 0).toLocaleString()} total operations
                                     </p>
                                 </div>
                             </CardContent>
