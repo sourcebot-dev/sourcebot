@@ -9,18 +9,19 @@ import { ResizablePanel } from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { unwrapServiceError } from "@/lib/utils";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { measure, unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { SearchIcon } from "lucide-react";
-import { useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import {
     GoSidebarExpand as CollapseIcon,
     GoSidebarCollapse as ExpandIcon
 } from "react-icons/go";
 import { ImperativePanelHandle } from "react-resizable-panels";
+import { FileTreeNode } from "../types";
 import { PureFileTreePanel } from "./pureFileTreePanel";
-
 
 interface FileTreePanelProps {
     order: number;
@@ -30,7 +31,6 @@ const FILE_TREE_PANEL_DEFAULT_SIZE = 20;
 const FILE_TREE_PANEL_MIN_SIZE = 10;
 const FILE_TREE_PANEL_MAX_SIZE = 30;
 
-
 export const FileTreePanel = ({ order }: FileTreePanelProps) => {
     const {
         state: {
@@ -39,19 +39,79 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
         updateBrowseState,
     } = useBrowseState();
 
-    const { repoName, revisionName, path } = useBrowseParams();
+    const { repoName, revisionName, path, pathType } = useBrowseParams();
+    const [openPaths, setOpenPaths] = useState<Set<string>>(new Set());
+    const captureEvent = useCaptureEvent();
 
     const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
-    const { data, isPending, isError } = useQuery({
-        queryKey: ['tree', repoName, revisionName],
-        queryFn: () => unwrapServiceError(
-            getTree({
-                repoName,
-                revisionName: revisionName ?? 'HEAD',
-            })
-        ),
+
+    const { data, isError, isPending } = useQuery({
+        queryKey: ['tree', repoName, revisionName, ...Array.from(openPaths)],
+        queryFn: async () => {
+            const result = await measure(async () => unwrapServiceError(
+                getTree({
+                    repoName,
+                    revisionName: revisionName ?? 'HEAD',
+                    paths: Array.from(openPaths),
+                })
+            ), 'getTree');
+
+            captureEvent('wa_file_tree_loaded', {
+                durationMs: result.durationMs,
+            });
+
+            return result.data;
+        },
+        // The tree changes only when the query key changes (repo/revision/openPaths),
+        // so we can treat it as perpetually fresh and avoid background refetches.
+        staleTime: Infinity,
+        // Reuse the last tree during refetches (openPaths changes) to avoid UI flicker.
+        placeholderData: (previousData) => previousData,
     });
-    
+
+    // Whenever the repo name or revision name changes, we will need to
+    // reset the open paths since they no longer reference the same repository/revision.
+    useEffect(() => {
+        setOpenPaths(new Set());
+    }, [repoName, revisionName]);
+
+    // When the path changes (e.g., the user clicks a reference in the explore panel),
+    // we want this to be open and visible in the file tree.
+    useEffect(() => {
+        let pathParts = path.split('/').filter(Boolean);
+
+        // If the path is a blob, we want to open the parent directory.
+        if (pathType === 'blob') {
+            pathParts = pathParts.slice(0, -1);
+        }
+
+        setOpenPaths(current => {
+            const next = new Set<string>(current);
+            for (let i = 0; i < pathParts.length; i++) {
+                next.add(pathParts.slice(0, i + 1).join('/'));
+            }
+            return next;
+        });
+    }, [path, pathType]);
+
+    // When the user clicks a file tree node, we will want to either
+    // add or remove it from the open paths depending on if it's already open or not.
+    const onTreeNodeClicked = useCallback((node: FileTreeNode) => {
+        if (!openPaths.has(node.path)) {
+            setOpenPaths(current => {
+                const next = new Set(current);
+                next.add(node.path);
+                return next;
+            })
+        } else {
+            setOpenPaths(current => {
+                const next = new Set(current);
+                next.delete(node.path);
+                return next;
+            })
+        }
+    }, [openPaths]);
+
     useHotkeys("mod+b", () => {
         if (isFileTreePanelCollapsed) {
             fileTreePanelRef.current?.expand();
@@ -132,7 +192,9 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                         ) : (
                             <PureFileTreePanel
                                 tree={data.tree}
+                                openPaths={openPaths}
                                 path={path}
+                                onTreeNodeClicked={onTreeNodeClicked}
                             />
                         )}
                 </div>

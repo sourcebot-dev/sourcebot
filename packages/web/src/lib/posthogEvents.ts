@@ -181,6 +181,10 @@ export type PosthogEventMap = {
         isGlobalSearchEnabled: boolean,
     },
     //////////////////////////////////////////////////////////////////
+    wa_file_tree_loaded: {
+        durationMs: number,
+    },
+    //////////////////////////////////////////////////////////////////
     api_code_search_request: {
         source: string;
         type: 'streamed' | 'blocking';
