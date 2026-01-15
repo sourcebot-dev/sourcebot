@@ -93,7 +93,11 @@ export const getFolderContents = async (params: { repoName: string, revisionName
 
         // @note: we don't allow directory traversal
         // or null bytes in the path.
-        if (path.includes('..') || path.includes('\0')) {
+        // We split by '/' and check if any segment starts with '..'
+        // to allow legitimate paths containing '..' (e.g., '[...path]')
+        // while still blocking directory traversal attempts.
+        const pathSegments = path.split('/');
+        if (pathSegments.some(segment => segment.startsWith('..')) || path.includes('\0')) {
             return notFound();
         }
 
