@@ -25,14 +25,14 @@ export const rangeHighlightingExtension = (range: BrowseHighlightRange) => State
                 decorations.push(markDecoration.range(from, to));
             }
 
-            return Decoration.set(decorations);
+            return Decoration.set(decorations, /* sort = */ true);
         } else {
             const decorations: Range<Decoration>[] = [];
             for (let line = start.lineNumber; line <= end.lineNumber; line++) {
                 decorations.push(lineDecoration.range(state.doc.line(line).from));
             }
 
-            return Decoration.set(decorations);
+            return Decoration.set(decorations, /* sort = */ true);
         }
     },
     update(deco, tr) {
