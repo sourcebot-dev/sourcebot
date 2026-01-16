@@ -12,9 +12,9 @@ const logger = createLogger('gitlab');
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
 export const createGitLabFromPersonalAccessToken = async ({ token, url }: { token?: string, url?: string }) => {
-    const isGitLabCloud = url ? new URL(url).hostname === GITLAB_CLOUD_HOSTNAME : false;
+    const isGitLabCloud = url ? new URL(url).hostname === GITLAB_CLOUD_HOSTNAME : true;
     return new Gitlab({
-        token,
+        ...(token ? { token } : {}),
         ...(isGitLabCloud ? {} : {
             host: url,
         }),
@@ -23,9 +23,9 @@ export const createGitLabFromPersonalAccessToken = async ({ token, url }: { toke
 }
 
 export const createGitLabFromOAuthToken = async ({ oauthToken, url }: { oauthToken?: string, url?: string }) => {
-    const isGitLabCloud = url ? new URL(url).hostname === GITLAB_CLOUD_HOSTNAME : false;
+    const isGitLabCloud = url ? new URL(url).hostname === GITLAB_CLOUD_HOSTNAME : true;
     return new Gitlab({
-        oauthToken,
+        ...(oauthToken ? { oauthToken } : {}),
         ...(isGitLabCloud ? {} : {
             host: url,
         }),
@@ -99,7 +99,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 const status = e?.cause?.response?.status;
                 if (status !== undefined) {
                     const warning = `GitLab API returned ${status}`
-                    logger.warning(warning);
+                    logger.warn(warning);
                     return {
                         type: 'warning' as const,
                         warning
@@ -139,7 +139,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 const status = e?.cause?.response?.status;
                 if (status !== undefined) {
                     const warning = `GitLab API returned ${status}`
-                    logger.warning(warning);
+                    logger.warn(warning);
                     return {
                         type: 'warning' as const,
                         warning
@@ -177,7 +177,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 const status = e?.cause?.response?.status;
                 if (status !== undefined) {
                     const warning = `GitLab API returned ${status}`
-                    logger.warning(warning);
+                    logger.warn(warning);
                     return {
                         type: 'warning' as const,
                         warning

@@ -177,7 +177,7 @@ export class RepoPermissionSyncer {
 
         const accountIds = await (async () => {
             if (repo.external_codeHostType === 'github') {
-                const isGitHubCloud = credentials.hostUrl ? new URL(credentials.hostUrl).hostname === GITHUB_CLOUD_HOSTNAME : false;
+                const isGitHubCloud = credentials.hostUrl ? new URL(credentials.hostUrl).hostname === GITHUB_CLOUD_HOSTNAME : true;
                 const { octokit } = await createOctokitFromToken({
                     token: credentials.token,
                     url: isGitHubCloud ? undefined : credentials.hostUrl,
