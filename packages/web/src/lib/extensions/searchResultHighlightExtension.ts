@@ -41,7 +41,7 @@ const matchHighlighter = StateField.define<DecorationSet>({
                     })
                     .filter((decoration) => decoration !== undefined);
 
-                highlights = Decoration.set(decorations)
+                highlights = Decoration.set(decorations, /* sort = */ true);
             }
         }
 

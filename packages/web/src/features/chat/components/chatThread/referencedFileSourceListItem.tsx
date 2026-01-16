@@ -156,8 +156,7 @@ const ReferencedFileSourceListItem = ({
                         }
                     }
 
-                    decorations.sort((a, b) => a.from - b.from);
-                    return Decoration.set(decorations);
+                    return Decoration.set(decorations, /* sort = */ true);
                 },
                 update(deco, tr) {
                     return deco.map(tr.changes);
