@@ -28,6 +28,7 @@ import { SINGLE_TENANT_ORG_ID } from '@/lib/constants';
 import { ServiceErrorException } from '@/lib/serviceError';
 import { StatusCodes } from 'http-status-codes';
 import { ErrorCode } from '@/lib/errorCodes';
+import escapeStringRegexp from 'escape-string-regexp';
 
 // Configure the parser to throw errors when encountering invalid syntax.
 const parser = _parser.configure({
@@ -95,6 +96,26 @@ export const parseQuerySyntaxIntoIR = async ({
 
                 return context.repos.map((repo) => repo.name);
             },
+            onResolveRepoExactMatch: async (literalRepoName: string) => {
+                const repos = await prisma.repo.findMany({
+                    where: {
+                        orgId: SINGLE_TENANT_ORG_ID,
+                        OR: [
+                            { name: literalRepoName },
+                            { displayName: literalRepoName },
+                        ],
+                    },
+                    select: {
+                        name: true,
+                    }
+                });
+
+                if (repos.length === 0) {
+                    return undefined;
+                }
+
+                return repos.map((repo) => repo.name);
+            },
         });
     } catch (error) {
         if (error instanceof SyntaxError) {
@@ -117,12 +138,14 @@ const transformTreeToIR = async ({
     isCaseSensitivityEnabled,
     isRegexEnabled,
     onExpandSearchContext,
+    onResolveRepoExactMatch,
 }: {
     tree: Tree;
     input: string;
     isCaseSensitivityEnabled: boolean;
     isRegexEnabled: boolean;
     onExpandSearchContext: (contextName: string) => Promise<string[]>;
+    onResolveRepoExactMatch?: (literalRepoName: string) => Promise<string[] | undefined>;
 }): Promise<QueryIR> => {
     const transformNode = async (node: SyntaxNode): Promise<QueryIR> => {
         switch (node.type.id) {
@@ -239,6 +262,16 @@ const transformTreeToIR = async ({
                 };
 
             case RepoExpr:
+                if (onResolveRepoExactMatch) {
+                    const repoSet = await resolveRepoLiteralIfPossible({
+                        value,
+                        onResolveRepoExactMatch,
+                    });
+                    if (repoSet) {
+                        return repoSet;
+                    }
+                }
+
                 return {
                     repo: {
                         regexp: value
@@ -408,4 +441,47 @@ const getChildren = (node: SyntaxNode): SyntaxNode[] => {
         child = child.nextSibling;
     }
     return children;
+}
+
+const resolveRepoLiteralIfPossible = async ({
+    value,
+    onResolveRepoExactMatch,
+}: {
+    value: string;
+    onResolveRepoExactMatch: (literalRepoName: string) => Promise<string[] | undefined>;
+}): Promise<QueryIR | undefined> => {
+    const literalMatch = value.match(/^\^(.*)\$/);
+    if (!literalMatch) {
+        return undefined;
+    }
+
+    const innerPattern = literalMatch[1];
+    const unescaped = unescapeRegexLiteral(innerPattern);
+
+    if (escapeStringRegexp(unescaped) !== innerPattern) {
+        return undefined;
+    }
+
+    const repoNames = await onResolveRepoExactMatch(unescaped);
+    if (!repoNames || repoNames.length === 0) {
+        return undefined;
+    }
+
+    return {
+        repo_set: {
+            set: repoNames.reduce((acc, name) => {
+                acc[name.trim()] = true;
+                return acc;
+            }, {} as Record<string, boolean>)
+        },
+        query: "repo_set"
+    };
+}
+
+const unescapeRegexLiteral = (pattern: string) => {
+    const hexUnescaped = pattern.replace(/\\x([0-9a-fA-F]{2})/g, (_match, hex) => {
+        return String.fromCharCode(parseInt(hex, 16));
+    });
+
+    return hexUnescaped.replace(/\\([\\.^$|?*+()[\]{}])/g, (_match, char) => char);
 }
