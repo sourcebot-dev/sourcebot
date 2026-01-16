@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed issue with filtering on generic git repo indexed from http/https [#742](https://github.com/sourcebot-dev/sourcebot/pull/742)
+- Fixed auth error when trying to sync public gitlab.com project with no token [#748](https://github.com/sourcebot-dev/sourcebot/pull/748)
 
 ## [4.10.10] - 2026-01-16
 
