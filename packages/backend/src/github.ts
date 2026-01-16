@@ -47,7 +47,7 @@ const isHttpError = (error: unknown, status: number): boolean => {
 }
 
 export const createOctokitFromToken = async ({ token, url }: { token?: string, url?: string }): Promise<{ octokit: Octokit, isAuthenticated: boolean }> => {
-    const isGitHubCloud = url ? new URL(url).hostname === GITHUB_CLOUD_HOSTNAME : false;
+    const isGitHubCloud = url ? new URL(url).hostname === GITHUB_CLOUD_HOSTNAME : true;
     const octokit = new Octokit({
         auth: token,
         ...(url && !isGitHubCloud ? {
