@@ -250,6 +250,7 @@ jobs:
       contents: write
       pull-requests: write
     uses: sourcebot-dev/sourcebot-helm-chart/.github/workflows/update-sourcebot-version.yaml@main
+    secrets: inherit
 
   cleanup:
     needs: [prepare-release, build, publish-to-registry, finalize-release, update-helm-chart]
