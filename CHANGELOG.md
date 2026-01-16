@@ -7,9 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Added dialog when no authentication provider is configured. [#744](https://github.com/sourcebot-dev/sourcebot/pull/744)
+
+### Fixed
+- Fixed "Invalid line number XXX in 21-line document" error when a invalid highlight range is passed to the file viewer. [#745](https://github.com/sourcebot-dev/sourcebot/pull/745)
+- Fixed visual nit where ask sb search scope selector would render long repository names poorly. [#747](https://github.com/sourcebot-dev/sourcebot/pull/747)
+- Fixed visual nit where long search previews in ask sb would take up a lot of space. [#747](https://github.com/sourcebot-dev/sourcebot/pull/747)
+
+## [4.10.11] - 2026-01-16
+
 ### Fixed
 - Fixed issue with filtering on generic git repo indexed from http/https [#742](https://github.com/sourcebot-dev/sourcebot/pull/742)
 - Fixed auth error when trying to sync public gitlab.com project with no token [#748](https://github.com/sourcebot-dev/sourcebot/pull/748)
+- Fixed "Ranges must be added sorted by `from` position and `startSide`" error when browsing certain files. [#743](https://github.com/sourcebot-dev/sourcebot/pull/743)
 
 ## [4.10.10] - 2026-01-16
 
