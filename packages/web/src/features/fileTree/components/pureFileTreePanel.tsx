@@ -1,76 +1,34 @@
 'use client';
 
-import { FileTreeNode as RawFileTreeNode } from "../types";
+import { FileTreeNode } from "../types";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import React, { useCallback, useMemo, useState, useEffect, useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { FileTreeItemComponent } from "./fileTreeItemComponent";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
 import { useDomain } from "@/hooks/useDomain";
 
-export type FileTreeNode = Omit<RawFileTreeNode, 'children'> & {
-    isCollapsed: boolean;
-    children: FileTreeNode[];
-}
-
-const buildCollapsibleTree = (tree: RawFileTreeNode): FileTreeNode => {
-    return {
-        ...tree,
-        isCollapsed: true,
-        children: tree.children.map(buildCollapsibleTree),
-    }
-}
-
-const transformTree = (
-    tree: FileTreeNode,
-    transform: (node: FileTreeNode) => FileTreeNode
-): FileTreeNode => {
-    const newNode = transform(tree);
-    const newChildren = tree.children.map(child => transformTree(child, transform));
-    return {
-        ...newNode,
-        children: newChildren,
-    }
+const renderLoadingSkeleton = (depth: number) => {
+    return (
+        <div className="flex items-center gap-1 p-0.5 text-sm text-muted-foreground" style={{ paddingLeft: `${depth * 16}px` }}>
+            <div className="w-5 h-4" />
+            <div className="h-3 w-3 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground animate-spin" />
+            <span>Loading...</span>
+        </div>
+    );
 }
 
 interface PureFileTreePanelProps {
-    tree: RawFileTreeNode;
+    tree: FileTreeNode;
+    openPaths: Set<string>;
     path: string;
+    onTreeNodeClicked: (node: FileTreeNode) => void;
 }
 
-export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps) => {
-    const [tree, setTree] = useState<FileTreeNode>(buildCollapsibleTree(_tree));
+export const PureFileTreePanel = ({ tree, openPaths, path, onTreeNodeClicked }: PureFileTreePanelProps) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { repoName, revisionName } = useBrowseParams();
     const domain = useDomain();
-
-    // @note: When `_tree` changes, it indicates that a new tree has been loaded.
-    // In that case, we need to rebuild the collapsible tree.
-    useEffect(() => {
-        setTree(buildCollapsibleTree(_tree));
-    }, [_tree]);
-
-    const setIsCollapsed = useCallback((path: string, isCollapsed: boolean) => {
-        setTree(currentTree => transformTree(currentTree, (currentNode) => {
-            if (currentNode.path === path) {
-                currentNode.isCollapsed = isCollapsed;
-            }
-            return currentNode;
-        }));
-    }, []);
-
-    // When the path changes, expand all the folders up to the path
-    useEffect(() => {
-        const pathParts = path.split('/');
-        let currentPath = '';
-        for (let i = 0; i < pathParts.length; i++) {
-            currentPath += pathParts[i];
-            setIsCollapsed(currentPath, false);
-            if (i < pathParts.length - 1) {
-                currentPath += '/';
-            }
-        }
-    }, [path, setIsCollapsed]);
 
     const renderTree = useCallback((nodes: FileTreeNode, depth = 0): React.ReactNode => {
         return (
@@ -90,14 +48,14 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
                                 node={node}
                                 isActive={node.path === path}
                                 depth={depth}
-                                isCollapsed={node.isCollapsed}
+                                isCollapsed={!openPaths.has(node.path)}
                                 isCollapseChevronVisible={node.type === 'tree'}
                                 // Only collapse the tree when a regular click happens.
                                 // (i.e., not ctrl/cmd click).
                                 onClick={(e) => {
                                     const isMetaOrCtrlKey = e.metaKey || e.ctrlKey;
                                     if (node.type === 'tree' && !isMetaOrCtrlKey) {
-                                        setIsCollapsed(node.path, !node.isCollapsed);
+                                        onTreeNodeClicked(node);
                                     }
                                 }}
                                 // @note: onNavigate _won't_ be called when the user ctrl/cmd clicks on a tree node.
@@ -110,13 +68,19 @@ export const PureFileTreePanel = ({ tree: _tree, path }: PureFileTreePanelProps)
                                 }}
                                 parentRef={scrollAreaRef}
                             />
-                            {node.children.length > 0 && !node.isCollapsed && renderTree(node, depth + 1)}
+                            {node.type === 'tree' && node.children.length > 0 && openPaths.has(node.path) && renderTree(node, depth + 1)}
+                            {/*
+                                @note: a empty tree indicates that the contents are beaing loaded. Render a loading skeleton to indicate that.
+                                This relies on the fact that you cannot have empty tress in git.
+                                @see: https://archive.kernel.org/oldwiki/git.wiki.kernel.org/index.php/GitFaq.html#Can_I_add_empty_directories.3F
+                            */}
+                            {node.type === 'tree' && node.children.length === 0 && openPaths.has(node.path) && renderLoadingSkeleton(depth)}
                         </React.Fragment>
                     );
                 })}
             </>
         );
-    }, [domain, path, repoName, revisionName, setIsCollapsed]);
+    }, [domain, onTreeNodeClicked, path, repoName, revisionName, openPaths]);
 
     const renderedTree = useMemo(() => renderTree(tree), [tree, renderTree]);
 

@@ -609,9 +609,17 @@ export const compileGenericGitHostConfig_url = async (
             }
         },
         metadata: {
+            gitConfig: {
+                'zoekt.name': repoName,
+                'zoekt.web-url': remoteUrl.toString(),
+                'zoekt.archived': marshalBool(false),
+                'zoekt.fork': marshalBool(false),
+                'zoekt.public': marshalBool(true),
+                'zoekt.display-name': repoName,
+            },
             branches: config.revisions?.branches ?? undefined,
             tags: config.revisions?.tags ?? undefined,
-        }
+        } satisfies RepoMetadata,
     };
 
     return {

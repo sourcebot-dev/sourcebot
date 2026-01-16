@@ -7,8 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed issue with filtering on generic git repo indexed from http/https [#742](https://github.com/sourcebot-dev/sourcebot/pull/742)
+
+## [4.10.10] - 2026-01-16
+
 ### Added
 - [EE] Add Ask chat usage metrics to analytics dashboard [#736](https://github.com/sourcebot-dev/sourcebot/pull/736)
+
+### Changed
+- Improved initial file tree load times, especially for larger repositories. [#739](https://github.com/sourcebot-dev/sourcebot/pull/739)
 
 ## [4.10.9] - 2026-01-14
 
