@@ -114,6 +114,11 @@ export const PureCodePreviewPanel = ({
         const doc = editorRef.state.doc;
         const { start, end } = highlightRange;
 
+        if (start.lineNumber > doc.lines || end.lineNumber > doc.lines) {
+            console.warn(`Highlight range is out of bounds: start.lineNumber=${start.lineNumber}, end.lineNumber=${end.lineNumber}, doc.lines=${doc.lines}`);
+            return;
+        }
+
         const from = doc.line(start.lineNumber).from;
         const to = doc.line(end.lineNumber).to;
         const selection = EditorSelection.range(from, to);
