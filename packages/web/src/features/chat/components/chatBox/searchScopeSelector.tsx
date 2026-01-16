@@ -320,23 +320,17 @@ export const SearchScopeSelector = forwardRef<
                                                         >
                                                             <CheckIcon className="h-4 w-4" />
                                                         </div>
-                                                        <div className="flex items-center gap-2 flex-1">
+                                                        <div className="flex flex-row items-center gap-2 w-full overflow-hidden">
                                                             <SearchScopeIcon searchScope={item} />
-                                                            <div className="flex flex-col flex-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="font-medium">
-                                                                        {item.name}
-                                                                    </span>
-                                                                    {item.type === 'reposet' && (
-                                                                        <Badge
-                                                                            variant="default"
-                                                                            className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground"
-                                                                        >
-                                                                            {item.repoCount} repo{item.repoCount === 1 ? '' : 's'}
-                                                                        </Badge>
-                                                                    )}
-                                                                </div>
-                                                            </div>
+                                                            <p className="font-medium truncate-start">{item.name}</p>
+                                                            {item.type === 'reposet' && (
+                                                                <Badge
+                                                                    variant="default"
+                                                                    className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground"
+                                                                >
+                                                                    {item.repoCount} repo{item.repoCount === 1 ? '' : 's'}
+                                                                </Badge>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 );
