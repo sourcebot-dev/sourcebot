@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Added dialog when no authentication provider is configured. [#744](https://github.com/sourcebot-dev/sourcebot/pull/744)
+
 ## [4.10.11] - 2026-01-16
 
 ### Fixed
