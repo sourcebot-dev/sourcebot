@@ -1,10 +1,11 @@
 import { expect, test, vi, describe, beforeEach, afterEach } from 'vitest';
-import { compileGenericGitHostConfig_file } from './repoCompileUtils';
+import { compileGenericGitHostConfig_file, compileGenericGitHostConfig_url } from './repoCompileUtils';
 
 // Mock the git module
 vi.mock('./git.js', () => ({
     isPathAValidGitRepoRoot: vi.fn(),
     getOriginUrl: vi.fn(),
+    isUrlAValidGitRepo: vi.fn(),
 }));
 
 // Mock the glob module
@@ -12,12 +13,13 @@ vi.mock('glob', () => ({
     glob: vi.fn(),
 }));
 
-import { isPathAValidGitRepoRoot, getOriginUrl } from './git.js';
+import { isPathAValidGitRepoRoot, getOriginUrl, isUrlAValidGitRepo } from './git.js';
 import { glob } from 'glob';
 
 const mockedGlob = vi.mocked(glob);
 const mockedIsPathAValidGitRepoRoot = vi.mocked(isPathAValidGitRepoRoot);
 const mockedGetOriginUrl = vi.mocked(getOriginUrl);
+const mockedIsUrlAValidGitRepo = vi.mocked(isUrlAValidGitRepo);
 
 describe('compileGenericGitHostConfig_file', () => {
     beforeEach(() => {
@@ -120,5 +122,73 @@ describe('compileGenericGitHostConfig_file', () => {
         expect(result.warnings).toHaveLength(1);
         expect(result.warnings[0]).toContain('/path/to/invalid/repo');
         expect(result.warnings[0]).toContain('not a git repository');
+    });
+});
+
+describe('compileGenericGitHostConfig_url', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+        vi.resetAllMocks();
+    });
+
+    test('should return warning when url is not a valid git repo', async () => {
+        mockedIsUrlAValidGitRepo.mockResolvedValue(false);
+
+        const config = {
+            type: 'git' as const,
+            url: 'https://example.com/not-a-repo',
+        };
+
+        const result = await compileGenericGitHostConfig_url(config, 1);
+
+        expect(result.repoData).toHaveLength(0);
+        expect(result.warnings).toHaveLength(1);
+        expect(result.warnings[0]).toContain('not a git repository');
+    });
+
+    test('should successfully compile with gitConfig when valid git repo url is found', async () => {
+        mockedIsUrlAValidGitRepo.mockResolvedValue(true);
+
+        const config = {
+            type: 'git' as const,
+            url: 'https://git.kernel.org/pub/scm/bluetooth/bluez.git',
+        };
+
+        const result = await compileGenericGitHostConfig_url(config, 1);
+
+        expect(result.repoData).toHaveLength(1);
+        expect(result.warnings).toHaveLength(0);
+        expect(result.repoData[0].cloneUrl).toBe('https://git.kernel.org/pub/scm/bluetooth/bluez.git');
+        expect(result.repoData[0].name).toBe('git.kernel.org/pub/scm/bluetooth/bluez');
+        
+        // Verify gitConfig is set properly (this is the key fix for SOU-218)
+        const metadata = result.repoData[0].metadata as { gitConfig?: Record<string, string> };
+        expect(metadata.gitConfig).toBeDefined();
+        expect(metadata.gitConfig!['zoekt.name']).toBe('git.kernel.org/pub/scm/bluetooth/bluez');
+        expect(metadata.gitConfig!['zoekt.web-url']).toBe('https://git.kernel.org/pub/scm/bluetooth/bluez.git');
+        expect(metadata.gitConfig!['zoekt.display-name']).toBe('git.kernel.org/pub/scm/bluetooth/bluez');
+        expect(metadata.gitConfig!['zoekt.archived']).toBe('0');
+        expect(metadata.gitConfig!['zoekt.fork']).toBe('0');
+        expect(metadata.gitConfig!['zoekt.public']).toBe('1');
+    });
+
+    test('should handle url with trailing .git correctly', async () => {
+        mockedIsUrlAValidGitRepo.mockResolvedValue(true);
+
+        const config = {
+            type: 'git' as const,
+            url: 'https://github.com/test/repo.git',
+        };
+
+        const result = await compileGenericGitHostConfig_url(config, 1);
+
+        expect(result.repoData).toHaveLength(1);
+        expect(result.repoData[0].name).toBe('github.com/test/repo');
+        
+        const metadata = result.repoData[0].metadata as { gitConfig?: Record<string, string> };
+        expect(metadata.gitConfig!['zoekt.name']).toBe('github.com/test/repo');
     });
 });
