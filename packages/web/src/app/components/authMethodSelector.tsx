@@ -9,6 +9,7 @@ import { DividerSet } from "@/app/components/dividerSet";
 import { ProviderButton } from "@/app/components/providerButton";
 import { AuthSecurityNotice } from "@/app/components/authSecurityNotice";
 import type { IdentityProviderMetadata } from "@/lib/identityProviders";
+import Link from "next/link";
 
 interface AuthMethodSelectorProps {
     providers: IdentityProviderMetadata[];
@@ -43,6 +44,15 @@ export const AuthMethodSelector = ({
     );
     const hasCredentials = providers.some(p => p.purpose === "sso" && p.id === "credentials");
     const hasMagicLink = providers.some(p => p.purpose === "sso" && p.id === "nodemailer");
+
+    if (oauthProviders.length === 0 && !hasCredentials && !hasMagicLink) {
+        return (
+            <div className="flex flex-col items-center justify-center w-full gap-2">
+                <p className="text-center font-medium">No authentication methods available. Please contact your administrator to configure authentication.</p>
+                <Link href="https://docs.sourcebot.dev/docs/configuration/auth/overview" target="_blank" rel="noopener" className="text-link hover:underline">Learn more</Link>
+            </div>
+        )
+    }
 
     return (
         <>
