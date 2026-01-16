@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed "Invalid line number XXX in 21-line document" error when a invalid highlight range is passed to the file viewer. [#745](https://github.com/sourcebot-dev/sourcebot/pull/745)
 - Fixed visual nit where ask sb search scope selector would render long repository names poorly. [#747](https://github.com/sourcebot-dev/sourcebot/pull/747)
 - Fixed visual nit where long search previews in ask sb would take up a lot of space. [#747](https://github.com/sourcebot-dev/sourcebot/pull/747)
+- Fixed issue where the last search results was getting clipped for searches that exceed the viewport height. [#749](https://github.com/sourcebot-dev/sourcebot/pull/749)
 
 ## [4.10.11] - 2026-01-16
 
