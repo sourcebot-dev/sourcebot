@@ -451,4 +451,11 @@ model Chat {
   isReadonly Boolean        @default(false)
 
   messages Json // This is a JSON array of `Message` types from @ai-sdk/ui-utils.
+
+  // Temporary ID for chats created by anonymous users before they sign in
+  /// Use to migrate chats when anonymous users authenticate
+  anonSessionId String?
+  
+  @@index([anonSessionId])
+  @@index([createdById, anonSessionId])
 }
