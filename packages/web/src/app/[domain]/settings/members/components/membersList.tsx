@@ -71,7 +71,7 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                         description: `❌ Failed to remove member. Reason: ${response.message}`
                     })
                     captureEvent('wa_members_list_remove_member_fail', {
-                        error: response.errorCode,
+                        errorCode: response.errorCode,
                     })
                 } else {
                     toast({
@@ -91,7 +91,7 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                         description: `❌ Failed to transfer ownership. Reason: ${response.message}`
                     })
                     captureEvent('wa_members_list_transfer_ownership_fail', {
-                        error: response.errorCode,
+                        errorCode: response.errorCode,
                     })
                 } else {
                     toast({
@@ -111,7 +111,7 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                         description: `❌ Failed to leave organization. Reason: ${response.message}`
                     })
                     captureEvent('wa_members_list_leave_org_fail', {
-                        error: response.errorCode,
+                        errorCode: response.errorCode,
                     })
                 } else {
                     toast({

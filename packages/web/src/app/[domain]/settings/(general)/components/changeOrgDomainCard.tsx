@@ -50,7 +50,7 @@ export function ChangeOrgDomainCard({ orgDomain, currentUserRole, rootDomain }: 
                 description: `❌ Failed to update organization url. Reason: ${result.message}`,
             })
             captureEvent('wa_org_domain_updated_fail', {
-                error: result.errorCode,
+                errorCode: result.errorCode,
             });
         } else {
             toast({

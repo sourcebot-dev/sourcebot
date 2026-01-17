@@ -32,16 +32,24 @@ function PostHogPageView() {
 
 interface PostHogProviderProps {
     children: React.ReactNode
-    disabled: boolean
+    isDisabled: boolean
+    posthogApiKey: string
+    sourcebotVersion: string
+    sourcebotInstallId: string
 }
 
-export function PostHogProvider({ children, disabled }: PostHogProviderProps) {
+export function PostHogProvider({
+    children,
+    isDisabled,
+    posthogApiKey,
+    sourcebotVersion,
+    sourcebotInstallId,
+}: PostHogProviderProps) {
     const { data: session } = useSession();
 
     useEffect(() => {
-        if (!disabled && env.NEXT_PUBLIC_POSTHOG_PAPIK) {
-            console.debug(`PostHog telemetry enabled. Cloud environment: ${env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT}`);
-            posthog.init(env.NEXT_PUBLIC_POSTHOG_PAPIK, {
+        if (!isDisabled) {
+            posthog.init(posthogApiKey, {
                 // @see next.config.mjs for path rewrites to the "/ingest" route.
                 api_host: "/ingest",
                 person_profiles: 'identified_only',
@@ -61,27 +69,33 @@ export function PostHogProvider({ children, disabled }: PostHogProviderProps) {
                     '$referrer',
                     '$referring_domain',
                     '$ip',
-                ] : []
+                ] : [],
+                loaded: (posthog) => {
+                    // Include install id & version in all events.
+                    posthog.register({
+                        sourcebot_version: sourcebotVersion,
+                        install_id: sourcebotInstallId,
+                    });
+                }
             });
         } else {
             console.debug("PostHog telemetry disabled");
         }
-    }, [disabled]);
+    }, [isDisabled, posthogApiKey, sourcebotInstallId, sourcebotVersion]);
 
     useEffect(() => {
         if (!session) {
             return;
         }
 
-        // Only identify the user if we are running in a cloud environment.
-        if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined) {
-            posthog.identify(session.user.id, {
+        posthog.identify(
+            session.user.id,
+            // Only include email & name when running in a cloud environment.
+            env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined ? {
                 email: session.user.email,
                 name: session.user.name,
-            });
-        } else {
-            console.debug("PostHog identify skipped");
-        }
+            } : undefined
+        );
     }, [session]);
 
     return (

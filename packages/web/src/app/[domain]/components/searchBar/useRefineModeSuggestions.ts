@@ -26,7 +26,7 @@ export const useRefineModeSuggestions = () => {
                 },
             ] : []),
             {
-                value: SearchPrefix.public,
+                value: SearchPrefix.visibility,
                 description: "Filter on repository visibility."
             },
             {
@@ -85,10 +85,6 @@ export const useRefineModeSuggestions = () => {
             {
                 value: SearchPrefix.archived,
                 description: "Include results from archived repositories.",
-            },
-            {
-                value: SearchPrefix.case,
-                description: "Control case-sensitivity of search patterns."
             },
             {
                 value: SearchPrefix.fork,

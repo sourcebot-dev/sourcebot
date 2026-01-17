@@ -8,7 +8,7 @@ import { insertMention, slateContentToString } from "@/features/chat/utils";
 import { cn, IS_MAC } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
 import { ArrowUp, Loader2, StopCircleIcon, TriangleAlertIcon } from "lucide-react";
-import { Fragment, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, KeyboardEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Descendant, insertText } from "slate";
 import { Editable, ReactEditor, RenderElementProps, RenderLeafProps, useFocused, useSelected, useSlate } from "slate-react";
@@ -19,6 +19,7 @@ import { useSuggestionModeAndQuery } from "./useSuggestionModeAndQuery";
 import { useSuggestionsData } from "./useSuggestionsData";
 import { useToast } from "@/components/hooks/use-toast";
 import { SearchContextQuery } from "@/lib/types";
+import isEqual from "fast-deep-equal/react";
 
 interface ChatBoxProps {
     onSubmit: (children: Descendant[], editor: CustomEditor) => void;
@@ -34,7 +35,7 @@ interface ChatBoxProps {
     onContextSelectorOpenChanged: (isOpen: boolean) => void;
 }
 
-export const ChatBox = ({
+const ChatBoxComponent = ({
     onSubmit: _onSubmit,
     onStop,
     preferredSuggestionsBoxPlacement = "bottom-start",
@@ -367,6 +368,8 @@ export const ChatBox = ({
         </div>
     )
 }
+
+export const ChatBox = memo(ChatBoxComponent, isEqual);
 
 const DefaultElement = (props: RenderElementProps) => {
     return <p {...props.attributes}>{props.children}</p>

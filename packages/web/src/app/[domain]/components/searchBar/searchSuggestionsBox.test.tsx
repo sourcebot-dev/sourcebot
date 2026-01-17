@@ -219,3 +219,19 @@ test('completeSuggestions regex escapes suggestions when regexEscaped is true', 
     expect(newQuery).toEqual(expectedNewQuery);
     expect(newCursorPosition).toBe(newQuery.length);
 });
+
+test('completeSuggestions wraps regex-escaped suggestions in quotes when they contain spaces', () => {
+    const query = "repo:My";
+    const { newQuery, newCursorPosition } = completeSuggestion({
+        query,
+        suggestionQuery: "My",
+        suggestion: "My Project",
+        trailingSpace: true,
+        regexEscaped: true,
+        cursorPosition: query.length,
+    });
+
+    const expectedNewQuery = String.raw`repo:"^My Project$" `;
+    expect(newQuery).toEqual(expectedNewQuery);
+    expect(newCursorPosition).toBe(newQuery.length);
+});

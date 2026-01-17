@@ -11,6 +11,7 @@ import googleLogo from "@/public/google.svg";
 import oktaLogo from "@/public/okta.svg";
 import keycloakLogo from "@/public/keycloak.svg";
 import microsoftLogo from "@/public/microsoft_entra.svg";
+import authentikLogo from "@/public/authentik.svg";
 import { ServiceError } from "./serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
@@ -61,19 +62,17 @@ export const createPathWithQueryParams = (path: string, ...queryParams: [string,
         return path;
     }
 
-    const queryString = queryParams.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value ?? '')}`).join('&');
+    const queryString = queryParams.map(([key, value]) => `${encodeURIComponent(key)}=${encodeRFC3986URIComponent(value ?? '')}`).join('&');
     return `${path}?${queryString}`;
 }
 
-export type AuthProviderType =
-    "github" |
-    "gitlab" |
-    "google" |
-    "okta" |
-    "keycloak" |
-    "microsoft-entra-id" |
-    "credentials" |
-    "nodemailer";
+// @see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent#encoding_for_rfc3986
+const encodeRFC3986URIComponent = (str: string) => {
+    return encodeURIComponent(str).replace(
+      /[!'()*]/g,
+      (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+    );
+  }
 
 type AuthProviderInfo = {
     id: string;
@@ -140,6 +139,15 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
                     src: microsoftLogo,
                 },
             };
+        case "authentik":
+            return {
+                id: "authentik",
+                name: "Authentik",
+                displayName: "Authentik",
+                icon: {
+                    src: authentikLogo,
+                },
+            }
         case "credentials":
             return {
                 id: "credentials",
@@ -373,6 +381,42 @@ export const getCodeHostBrowseAtBranchUrl = ({
             return `${webUrl}/+/${branchName}`;
         case 'genericGitHost':
             return undefined;
+    }
+}
+
+export const getCodeHostBrowseFileAtBranchUrl = ({
+    webUrl,
+    codeHostType,
+    branchName,
+    filePath,
+}: {
+    webUrl?: string | null,
+    codeHostType: CodeHostType,
+    branchName: string,
+    filePath: string,
+}) => {
+    if (!webUrl) {
+        return undefined;
+    }
+
+    switch (codeHostType) {
+        case 'github':
+            return `${webUrl}/blob/${branchName}/${filePath}`;
+        case 'gitlab':
+            return `${webUrl}/-/blob/${branchName}/${filePath}`;
+        case 'gitea':
+            return `${webUrl}/src/branch/${branchName}/${filePath}`;
+        case 'azuredevops':
+            return `${webUrl}?path=${filePath}&version=${branchName}`;
+        case 'bitbucketCloud':
+            return `${webUrl}/src/${branchName}/${filePath}`;
+        case 'bitbucketServer':
+            return `${webUrl}/browse/${filePath}?at=${branchName}`;
+        case 'gerrit':
+            return `${webUrl}/+/${branchName}/${filePath}`;
+        case 'genericGitHost':
+            return undefined;
+
     }
 }
 

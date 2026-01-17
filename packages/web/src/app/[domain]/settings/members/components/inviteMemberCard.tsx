@@ -62,7 +62,7 @@ export const InviteMemberCard = ({ currentUserRole, isBillingEnabled, seatsAvail
                         description: `❌ Failed to invite members. Reason: ${res.message}`
                     });
                     captureEvent('wa_invite_member_card_invite_fail', {
-                        error: res.errorCode,
+                        errorCode: res.errorCode,
                         num_emails: data.emails.length,
                     });
                 } else {

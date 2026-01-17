@@ -15,6 +15,7 @@ import { useCallback, useRef } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useSyntaxGuide } from "./syntaxGuideProvider";
 import { CodeSnippet } from "@/app/components/codeSnippet";
+import { ExternalLinkIcon, RegexIcon } from "lucide-react";
 
 const LINGUIST_LINK = "https://github.com/github-linguist/linguist/blob/main/lib/linguist/languages.yml";
 const CTAGS_LINK = "https://ctags.io/";
@@ -61,70 +62,92 @@ export const SyntaxReferenceGuide = () => {
             onOpenChange={handleOpenChange}
         >
             <DialogContent
-                className="max-h-[80vh] max-w-[700px] overflow-scroll"
+                className="max-h-[80vh] max-w-[700px] overflow-scroll gap-2"
             >
                 <DialogHeader>
-                    <DialogTitle>Syntax Reference Guide</DialogTitle>
+                    <DialogTitle>Syntax Reference Guide <Link href="https://docs.sourcebot.dev/docs/features/search/syntax-reference"><ExternalLinkIcon className="inline w-4 h-4 ml-1 mb-1 text-muted-foreground cursor-pointer" /></Link></DialogTitle>
                     <DialogDescription className="text-sm text-foreground">
-                        Queries consist of space-seperated regular expressions. Wrapping expressions in <CodeSnippet>{`""`}</CodeSnippet> combines them. By default, a file must have at least one match for each expression to be included.
+                        Queries consist of space-separated search patterns that are matched against file contents. A file must have at least one match for each expression to be included. Queries can optionally contain search filters to further refine the search results.
                     </DialogDescription>
                 </DialogHeader>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="py-2">Example</TableHead>
-                            <TableHead className="py-2">Explanation</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        <TableRow>
-                            <TableCell className="py-2"><CodeSnippet>foo</CodeSnippet></TableCell>
-                            <TableCell className="py-2">Match files with regex <CodeSnippet>/foo/</CodeSnippet></TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className="py-2"><CodeSnippet>foo bar</CodeSnippet></TableCell>
-                            <TableCell className="py-2">Match files with regex <CodeSnippet>/foo/</CodeSnippet> <b>and</b> <CodeSnippet>/bar/</CodeSnippet></TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className="py-2"><CodeSnippet>{`"foo bar"`}</CodeSnippet></TableCell>
-                            <TableCell className="py-2">Match files with regex <CodeSnippet>/foo bar/</CodeSnippet></TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
 
-                <Separator className="my-2"/>
-                <p className="text-sm">
-                    {`Multiple expressions can be or'd together with `}<CodeSnippet>or</CodeSnippet>, negated with <CodeSnippet>-</CodeSnippet>, or grouped with <CodeSnippet>()</CodeSnippet>.
-                </p>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="py-2">Example</TableHead>
-                            <TableHead className="py-2">Explanation</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        <TableRow>
-                            <TableCell className="py-2"><CodeSnippet>foo <Highlight>or</Highlight> bar</CodeSnippet></TableCell>
-                            <TableCell className="py-2">Match files with regex <CodeSnippet>/foo/</CodeSnippet> <b>or</b> <CodeSnippet>/bar/</CodeSnippet></TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className="py-2"><CodeSnippet>foo -bar</CodeSnippet></TableCell>
-                            <TableCell className="py-2">Match files with regex <CodeSnippet>/foo/</CodeSnippet> but <b>not</b> <CodeSnippet>/bar/</CodeSnippet></TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className="py-2"><CodeSnippet>foo (bar <Highlight>or</Highlight> baz)</CodeSnippet></TableCell>
-                            <TableCell className="py-2">Match files with regex <CodeSnippet>/foo/</CodeSnippet> <b>and</b> either <CodeSnippet>/bar/</CodeSnippet> <b>or</b> <CodeSnippet>/baz/</CodeSnippet></TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
+                <div>
+                    <h3 className="text-lg font-semibold mt-4 mb-0">Keyword search (default)</h3>
+                    <p className="text-sm mb-2 mt-0">
+                        Keyword search matches search patterns exactly in file contents. Wrapping search patterns in <CodeSnippet>{`""`}</CodeSnippet> combines them as a single expression.
+                    </p>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="py-2">Example</TableHead>
+                                <TableHead className="py-2">Explanation</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell className="py-2"><CodeSnippet>foo</CodeSnippet></TableCell>
+                                <TableCell className="py-2">Match files containing the keyword <CodeSnippet>foo</CodeSnippet></TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-2"><CodeSnippet>foo bar</CodeSnippet></TableCell>
+                                <TableCell className="py-2">Match files containing both <CodeSnippet>foo</CodeSnippet> <b>and</b> <CodeSnippet>bar</CodeSnippet></TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-2"><CodeSnippet>{`"foo bar"`}</CodeSnippet></TableCell>
+                                <TableCell className="py-2">Match files containing the phrase <CodeSnippet>foo bar</CodeSnippet></TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-2"><CodeSnippet>{'"foo \\"bar\\""'}</CodeSnippet></TableCell>
+                                <TableCell className="py-2">Match files containing <CodeSnippet>foo &quot;bar&quot;</CodeSnippet> exactly (escaped quotes)</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </div>
 
-                <Separator className="my-2"/>
-                <p className="text-sm">
-                    Expressions can be prefixed with certain keywords to modify search behavior. Some keywords can be negated using the <CodeSnippet>-</CodeSnippet> prefix.
-                </p>
+                <Separator className="my-4"/>
 
-                <Table>
+                <div>
+                    <h3 className="text-lg font-semibold mt-4 mb-0">Regex search</h3>
+                    <p className="text-sm mb-2 mt-0">
+                        Toggle the <RegexIcon className="inline w-4 h-4 align-middle mx-0.5 border rounded px-0.5 py-0.5" /> button to interpret search patterns as regular expressions.
+                    </p>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="py-2">Example</TableHead>
+                                <TableHead className="py-2">Explanation</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell className="py-2"><CodeSnippet>foo</CodeSnippet></TableCell>
+                                <TableCell className="py-2">Match files with regex <CodeSnippet>/foo/</CodeSnippet></TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-2"><CodeSnippet>foo.*bar</CodeSnippet></TableCell>
+                                <TableCell className="py-2">Match files with regex <CodeSnippet>/foo.*bar/</CodeSnippet> (foo followed by any characters, then bar)</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-2"><CodeSnippet>{`^function\\s+\\w+`}</CodeSnippet></TableCell>
+                                <TableCell className="py-2">Match files with regex <CodeSnippet>/^function\s+\w+/</CodeSnippet> (function at start of line, followed by whitespace and word characters)</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-2"><CodeSnippet>{`"foo bar"`}</CodeSnippet></TableCell>
+                                <TableCell className="py-2">Match files with regex <CodeSnippet>/foo bar/</CodeSnippet>. Quotes are not matched.</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </div>
+
+                <Separator className="my-4"/>
+
+                <div>
+                    <h3 className="text-lg font-semibold mt-4 mb-0">Search filters</h3>
+                    <p className="text-sm mb-2 mt-0">
+                        Search queries (keyword or regex) can include multiple search filters to further refine the search results. Some filters can be negated using the <CodeSnippet>-</CodeSnippet> prefix.
+                    </p>
+
+                    <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead className="py-2">Prefix</TableHead>
@@ -219,7 +242,39 @@ export const SyntaxReferenceGuide = () => {
                             </TableCell>
                         </TableRow>
                     </TableBody>
-                </Table>
+                    </Table>
+                </div>
+
+                <Separator className="my-4"/>
+
+                <div>
+                    <h3 className="text-lg font-semibold mt-4 mb-0">Boolean operators &amp; grouping</h3>
+                    <p className="text-sm mb-2 mt-0">
+                        By default, space-seperated expressions are and&apos;d together. Using the <CodeSnippet>or</CodeSnippet> keyword as well as parantheses <CodeSnippet>()</CodeSnippet> can be used to create more complex boolean logic. Parantheses can be negated using the <CodeSnippet>-</CodeSnippet> prefix.
+                    </p>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="py-2">Example</TableHead>
+                                <TableHead className="py-2">Explanation</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell className="py-2"><CodeSnippet>foo <Highlight>or</Highlight> bar</CodeSnippet></TableCell>
+                                <TableCell className="py-2">Match files containing <CodeSnippet>foo</CodeSnippet> <b>or</b> <CodeSnippet>bar</CodeSnippet></TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-2"><CodeSnippet>foo (bar <Highlight>or</Highlight> baz)</CodeSnippet></TableCell>
+                                <TableCell className="py-2">Match files containing <CodeSnippet>foo</CodeSnippet> <b>and</b> either <CodeSnippet>bar</CodeSnippet> <b>or</b> <CodeSnippet>baz</CodeSnippet>.</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-2"><CodeSnippet>-(foo) bar</CodeSnippet></TableCell>
+                                <TableCell className="py-2">Match files containing <CodeSnippet>bar</CodeSnippet> <b>and not</b> <CodeSnippet>foo</CodeSnippet>.</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </div>
             </DialogContent>
         </Dialog>
     )

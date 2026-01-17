@@ -47,3 +47,6 @@ export {
 export {
     getDBConnectionString,
 } from "./db.js";
+export {
+    SOURCEBOT_VERSION,
+} from "./version.js";

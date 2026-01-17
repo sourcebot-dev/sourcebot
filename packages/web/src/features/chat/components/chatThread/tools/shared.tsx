@@ -2,12 +2,12 @@
 
 import { VscodeFileIcon } from '@/app/components/vscodeFileIcon';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useDomain } from '@/hooks/useDomain';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
 
 export const FileListItem = ({
@@ -17,8 +17,6 @@ export const FileListItem = ({
     path: string,
     repoName: string,
 }) => {
-    const domain = useDomain();
-
     return (
         <div key={path} className="flex flex-row items-center overflow-hidden hover:bg-accent hover:text-accent-foreground rounded-sm cursor-pointer p-0.5">
             <VscodeFileIcon fileName={path} className="mr-1 flex-shrink-0" />
@@ -28,11 +26,11 @@ export const FileListItem = ({
                     repoName,
                     revisionName: 'HEAD',
                     path,
-                    domain,
+                    domain: SINGLE_TENANT_ORG_DOMAIN,
                     pathType: 'blob',
                 })}
             >
-                {path}
+                <span>{path}</span>
             </Link>
         </div>
     )
@@ -92,7 +90,7 @@ export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpa
         <div
             tabIndex={0}
             className={cn(
-                "flex flex-row items-center gap-2 group w-fit select-none",
+                "flex flex-row items-center gap-2 group select-none",
                 {
                     'hover:text-foreground cursor-pointer': !isLoading,
                 },
@@ -109,16 +107,20 @@ export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpa
             }}
         >
             {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
             ) : (
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4 flex-shrink-0" />
             )}
-            <span className={cn("text-sm font-medium",
+            <span
+                className={cn("text-sm font-medium line-clamp-2",
                 {
                     'animate-pulse': isLoading,
                     'text-destructive': isError,
                 }
-            )}>{label}</span>
+            )}
+            >
+                {label}
+            </span>
             {!isLoading && (
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                     {isExpanded ? (

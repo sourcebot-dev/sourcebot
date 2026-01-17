@@ -4,16 +4,17 @@ import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle
 import { ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, Loader2 } from 'lucide-react';
-import { CSSProperties, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { Reference, referenceSchema, SBChatMessage, Source } from "../../types";
 import { useExtractReferences } from '../../useExtractReferences';
-import { getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences } from '../../utils';
+import { getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences, tryResolveFileReference } from '../../utils';
 import { AnswerCard } from './answerCard';
 import { DetailsCard } from './detailsCard';
 import { MarkdownRenderer, REFERENCE_PAYLOAD_ATTRIBUTE } from './markdownRenderer';
 import { ReferencedSourcesListView } from './referencedSourcesListView';
 import { uiVisiblePartTypes } from '../../constants';
+import isEqual from "fast-deep-equal/react";
 
 interface ChatThreadListItemProps {
     userMessage: SBChatMessage;
@@ -24,7 +25,7 @@ interface ChatThreadListItemProps {
     index: number;
 }
 
-export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemProps>(({
+const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListItemProps>(({
     userMessage,
     assistantMessage: _assistantMessage,
     isStreaming,
@@ -80,7 +81,6 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
         return getAnswerPartFromAssistantMessage(assistantMessage, isStreaming);
     }, [assistantMessage, isStreaming]);
 
-    const references = useExtractReferences(answerPart);
 
     // Groups parts into steps that are associated with thinking steps that
     // should be visible to the user. By "steps", we mean parts that originated
@@ -279,6 +279,26 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
         };
     }, [hoveredReference]);
 
+    const references = useExtractReferences(answerPart);
+
+    // Extract the file sources that are referenced by the answer part.
+    const referencedFileSources = useMemo(() => {
+        const fileSources = sources.filter((source) => source.type === 'file');
+
+        return references
+            .filter((reference) => reference.type === 'file')
+            .map((reference) => tryResolveFileReference(reference, fileSources))
+            .filter((file) => file !== undefined)
+            // de-duplicate files
+            .filter((file, index, self) =>
+                index === self.findIndex((t) =>
+                    t?.path === file?.path
+                    && t?.repo === file?.repo
+                    && t?.revision === file?.revision
+                )
+            );
+    }, [references, sources]);
+
 
     return (
         <div
@@ -364,11 +384,11 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
                     <div
                         className="sticky top-0"
                     >
-                        {references.length > 0 ? (
+                        {referencedFileSources.length > 0 ? (
                             <ReferencedSourcesListView
                                 index={index}
                                 references={references}
-                                sources={sources}
+                                sources={referencedFileSources}
                                 hoveredReference={hoveredReference}
                                 selectedReference={selectedReference}
                                 onSelectedReferenceChanged={setSelectedReference}
@@ -393,7 +413,34 @@ export const ChatThreadListItem = forwardRef<HTMLDivElement, ChatThreadListItemP
     )
 });
 
-ChatThreadListItem.displayName = 'ChatThreadListItem';
+ChatThreadListItemComponent.displayName = 'ChatThreadListItem';
+
+// Custom comparison function that handles the known issue where useChat mutates
+// message objects in place during streaming, causing fast-deep-equal to return
+// true even when content changes (because it checks reference equality first).
+// See: https://github.com/vercel/ai/issues/6466
+const arePropsEqual = (
+    prevProps: ChatThreadListItemProps,
+    nextProps: ChatThreadListItemProps
+): boolean => {
+    // Always re-render if streaming status changes
+    if (prevProps.isStreaming !== nextProps.isStreaming) {
+        return false;
+    }
+
+    // If currently streaming, always allow re-render
+    // This bypasses the fast-deep-equal reference check issue when useChat
+    // mutates message objects in place during token streaming
+    if (nextProps.isStreaming) {
+        return false;
+    }
+
+    // For non-streaming messages, use deep equality
+    // At this point, useChat should have finished and created final objects
+    return isEqual(prevProps, nextProps);
+};
+
+export const ChatThreadListItem = memo(ChatThreadListItemComponent, arePropsEqual);
 
 // Finds the nearest reference element to the viewport center.
 const getNearestReferenceElement = (referenceElements: Element[]) => {

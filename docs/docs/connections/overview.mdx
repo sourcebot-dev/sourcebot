@@ -24,7 +24,7 @@ Each connection defines how Sourcebot should authenticate and interact with a pa
                 "env": "GITHUB_TOKEN"
             }
         },
-        // 2. A self-hosted GitLab instance
+        // 2. A connection to a self-hosted GitLab instance
         "gitlab-connection": {
             "type": "gitlab",
             "url": "https://gitlab.example.com",
@@ -68,6 +68,26 @@ To learn more about how to create a connection for a specific code host, check o
 <SupportedPlatforms />
 
 <Note>Missing your code host? [Submit a feature request on GitHub](https://github.com/sourcebot-dev/sourcebot/issues/new?template=feature_request.md).</Note>
+
+## Indexing Large Files
+
+By default, Sourcebot will skip indexing files that are larger than 2MB or have more than 20,000 trigrams. You can configure this by setting the `maxFileSize` and `maxTrigramCount` [settings](/docs/configuration/config-file#settings).
+
+These limits can be ignored for specific files by passing in a comma separated list of glob patterns matching file paths to the `ALWAYS_INDEX_FILE_PATTERNS` environment variable. For example:
+
+```bash
+# Always index all .sum and .lock files
+ALWAYS_INDEX_FILE_PATTERNS=**/*.sum,**/*.lock
+```
+
+Files that have been skipped are assigned the `skipped` language. You can view a list of all skipped files by using the following query:
+```
+lang:skipped
+```
+
+## Indexing Binary Files
+
+Binary files cannot be indexed by Sourcebot. See [#575](https://github.com/sourcebot-dev/sourcebot/issues/575) for more information.
 
 
 ## Schema reference

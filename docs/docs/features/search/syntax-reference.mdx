@@ -4,32 +4,51 @@ title: Writing search queries
 
 Sourcebot uses a powerful regex-based query language that enabled precise code search within large codebases.
 
-
 ## Syntax reference guide
 
-Queries consist of space-separated regular expressions. Wrapping expressions in `""` combines them. By default, a file must have at least one match for each expression to be included.
+Queries consist of space-separated search patterns that are matched against file contents. A file must have at least one match for each expression to be included. Queries can optionally contain search filters to further refine the search results.
+
+## Keyword search (default)
+
+Keyword search matches search patterns exactly in file contents. Wrapping search patterns in `""` combines them as a single expression.
+
+| Example | Explanation |
+| :--- | :--- |
+| `foo` | Match files containing the keyword `foo` |
+| `foo bar` | Match files containing both `foo` **and** `bar` |
+| `"foo bar"` | Match files containing the phrase `foo bar` |
+| `"foo \"bar\""` | Match files containing `foo "bar"` exactly (escaped quotes) |
+
+## Regex search
+
+Toggle the regex button (`.*`) in the search bar to interpret search patterns as regular expressions.
 
 | Example | Explanation |
 | :--- | :--- |
 | `foo` | Match files with regex `/foo/` |
-| `foo bar` | Match files with regex `/foo/` **and** `/bar/` |
-| `"foo bar"` | Match files with regex `/foo bar/` |
+| `foo.*bar` | Match files with regex `/foo.*bar/` (foo followed by any characters, then bar) |
+| `^function\s+\w+` | Match files with regex `/^function\s+\w+/` (function at start of line, followed by whitespace and word characters) |
+| `"foo bar"` | Match files with regex `/foo bar/`. Quotes are not matched. |
 
-Multiple expressions can be or'd together with `or`, negated with `-`, or grouped with `()`.
+## Search filters
 
-| Example | Explanation |
-| :--- | :--- |
-| `foo or bar` | Match files with regex `/foo/` **or** `/bar/` |
-| `foo -bar` | Match files with regex `/foo/` but **not** `/bar/` |
-| `foo (bar or baz)` | Match files with regex `/foo/` **and** either `/bar/` **or** `/baz/` |
-
-Expressions can be prefixed with certain keywords to modify search behavior. Some keywords can be negated using the `-` prefix.
+Search queries (keyword or regex) can include multiple search filters to further refine the search results. Some filters can be negated using the `-` prefix.
 
 | Prefix | Description | Example |
 | :--- | :--- | :--- |
 | `file:` | Filter results from filepaths that match the regex. By default all files are searched. | `file:README` - Filter results to filepaths that match regex `/README/`<br/>`file:"my file"` - Filter results to filepaths that match regex `/my file/`<br/>`-file:test\.ts$` - Ignore results from filepaths match regex `/test\.ts$/` |
-| `repo:` | Filter results from repos that match the regex. By default all repos are searched. | `repo:linux` - Filter results to repos that match regex `/linux/`<br/>`-repo:^web/.*` - Ignore results from repos that match regex `/^web\/.*` |
+| `repo:` | Filter results from repos that match the regex. By default all repos are searched. | `repo:linux` - Filter results to repos that match regex `/linux/`<br/>`-repo:^web/.*` - Ignore results from repos that match regex `/^web\/.*/` |
 | `rev:` | Filter results from a specific branch or tag. By default **only** the default branch is searched. | `rev:beta` - Filter results to branches that match regex `/beta/` |
 | `lang:` | Filter results by language (as defined by [linguist](https://github.com/github-linguist/linguist/blob/main/lib/linguist/languages.yml)). By default all languages are searched. | `lang:TypeScript` - Filter results to TypeScript files<br/>`-lang:YAML` - Ignore results from YAML files |
 | `sym:` | Match symbol definitions created by [universal ctags](https://ctags.io/) at index time. | `sym:\bmain\b` - Filter results to symbols that match regex `/\bmain\b/` |
 | `context:` | Filter results to a predefined [search context](/docs/features/search/search-contexts). | `context:web` - Filter results to the web context<br/>`-context:pipelines` - Ignore results from the pipelines context |
+
+## Boolean operators & grouping
+
+By default, space-separated expressions are and'd together. Using the `or` keyword as well as parentheses `()` can be used to create more complex boolean logic. Parentheses can be negated using the `-` prefix.
+
+| Example | Explanation |
+| :--- | :--- |
+| `foo or bar` | Match files containing `foo` **or** `bar` |
+| `foo (bar or baz)` | Match files containing `foo` **and** either `bar` **or** `baz`. |
+| `-(foo) bar` | Match files containing `bar` **and not** `foo`. |

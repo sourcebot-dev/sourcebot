@@ -22,8 +22,12 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePre
         getRepoInfoByName(repoName),
     ]);
 
-    if (isServiceError(fileSourceResponse) || isServiceError(repoInfoResponse)) {
-        return <div>Error loading file source</div>
+    if (isServiceError(fileSourceResponse)) {
+        return <div>Error loading file source: {fileSourceResponse.message}</div>
+    }
+
+    if (isServiceError(repoInfoResponse)) {
+        return <div>Error loading repo info: {repoInfoResponse.message}</div>
     }
 
     const codeHostInfo = getCodeHostInfoForRepo({

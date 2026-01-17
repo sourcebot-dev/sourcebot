@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Brain, ChevronDown, ChevronRight, Clock, InfoIcon, Loader2, List, ScanSearchIcon, Zap } from 'lucide-react';
+import { memo } from 'react';
 import { MarkdownRenderer } from './markdownRenderer';
 import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
@@ -16,6 +17,7 @@ import { SearchReposToolComponent } from './tools/searchReposToolComponent';
 import { ListAllReposToolComponent } from './tools/listAllReposToolComponent';
 import { SBChatMessageMetadata, SBChatMessagePart } from '../../types';
 import { SearchScopeIcon } from '../searchScopeIcon';
+import isEqual from "fast-deep-equal/react";
 
 
 interface DetailsCardProps {
@@ -27,7 +29,7 @@ interface DetailsCardProps {
     metadata?: SBChatMessageMetadata;
 }
 
-export const DetailsCard = ({
+const DetailsCardComponent = ({
     isExpanded,
     onExpandedChanged,
     isThinking,
@@ -35,7 +37,6 @@ export const DetailsCard = ({
     metadata,
     thinkingSteps,
 }: DetailsCardProps) => {
-
     return (
         <Card className="mb-4">
             <Collapsible open={isExpanded} onOpenChange={onExpandedChanged}>
@@ -210,3 +211,5 @@ export const DetailsCard = ({
         </Card>
     )
 }
+
+export const DetailsCard = memo(DetailsCardComponent, isEqual);

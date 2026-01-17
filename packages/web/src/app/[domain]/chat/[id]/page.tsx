@@ -24,9 +24,9 @@ export default async function Page(props: PageProps) {
     const languageModels = await getConfiguredLanguageModelsInfo();
     const repos = await getRepos();
     const searchContexts = await getSearchContexts(params.domain);
-    const chatInfo = await getChatInfo({ chatId: params.id }, params.domain);
+    const chatInfo = await getChatInfo({ chatId: params.id });
     const session = await auth();
-    const chatHistory = session ? await getUserChatHistory(params.domain) : [];
+    const chatHistory = session ? await getUserChatHistory() : [];
 
     if (isServiceError(chatHistory)) {
         throw new ServiceErrorException(chatHistory);

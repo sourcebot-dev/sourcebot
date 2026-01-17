@@ -6,7 +6,7 @@ import { PostHogProvider } from "./posthogProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "next-auth/react";
-import { env } from "@sourcebot/shared";
+import { env, SOURCEBOT_VERSION } from "@sourcebot/shared";
 import { PlanProvider } from "@/features/entitlements/planProvider";
 import { getEntitlements } from "@sourcebot/shared";
 
@@ -37,7 +37,14 @@ export default function RootLayout({
                 <Toaster />
                 <SessionProvider>
                     <PlanProvider entitlements={getEntitlements()}>
-                        <PostHogProvider disabled={env.SOURCEBOT_TELEMETRY_DISABLED === "true"}>
+                        <PostHogProvider
+                            isDisabled={env.SOURCEBOT_TELEMETRY_DISABLED === "true"}
+                            // @note: the posthog api key doesn't need to be kept secret,
+                            // so we are safe to send it to the client.
+                            posthogApiKey={env.POSTHOG_PAPIK}
+                            sourcebotVersion={SOURCEBOT_VERSION}
+                            sourcebotInstallId={env.SOURCEBOT_INSTALL_ID}
+                        >
                             <ThemeProvider
                                 attribute="class"
                                 defaultTheme="system"

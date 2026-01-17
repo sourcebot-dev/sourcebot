@@ -48,7 +48,7 @@ export function ChangeOrgNameCard({ orgName, currentUserRole }: ChangeOrgNameCar
                 description: `❌ Failed to update organization name. Reason: ${result.message}`,
             })
             captureEvent('wa_org_name_updated_fail', {
-                error: result.errorCode,
+                errorCode: result.errorCode,
             });
         } else {
             toast({

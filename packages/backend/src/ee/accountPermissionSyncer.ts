@@ -1,11 +1,19 @@
 import * as Sentry from "@sentry/node";
 import { PrismaClient, AccountPermissionSyncJobStatus, Account} from "@sourcebot/db";
-import { env, hasEntitlement, createLogger } from "@sourcebot/shared";
+import { env, hasEntitlement, createLogger, loadConfig } from "@sourcebot/shared";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
-import { createOctokitFromToken, getReposForAuthenticatedUser } from "../github.js";
-import { createGitLabFromOAuthToken, getProjectsForAuthenticatedUser } from "../gitlab.js";
+import {
+    createOctokitFromToken,
+    getOAuthScopesForAuthenticatedUser as getGitHubOAuthScopesForAuthenticatedUser,
+    getReposForAuthenticatedUser,
+} from "../github.js";
+import {
+    createGitLabFromOAuthToken,
+    getOAuthScopesForAuthenticatedUser as getGitLabOAuthScopesForAuthenticatedUser,
+    getProjectsForAuthenticatedUser,
+} from "../gitlab.js";
 import { Settings } from "../types.js";
 import { setIntervalAsync } from "../utils.js";
 
@@ -102,7 +110,7 @@ export class AccountPermissionSyncer {
         if (this.interval) {
             clearInterval(this.interval);
         }
-        await this.worker.close();
+        await this.worker.close(/* force = */ true);
         await this.queue.close();
     }
 
@@ -148,6 +156,8 @@ export class AccountPermissionSyncer {
             }
         });
 
+        const config = await loadConfig(env.CONFIG_PATH);
+
         logger.info(`Syncing permissions for ${account.provider} account (id: ${account.id}) for user ${account.user.email}...`);
 
         // Get a list of all repos that the user has access to from all connected accounts.
@@ -156,13 +166,24 @@ export class AccountPermissionSyncer {
 
             if (account.provider === 'github') {
                 if (!account.access_token) {
-                    throw new Error(`User '${account.user.email}' does not have an GitHub OAuth access token associated with their GitHub account.`);
+                    throw new Error(`User '${account.user.email}' does not have an GitHub OAuth access token associated with their GitHub account. Please re-authenticate with GitHub to refresh the token.`);
                 }
+
+                // @hack: we don't have a way of identifying specific identity providers in the config file.
+                // Instead, we'll use the first connection of type 'github' and hope for the best.
+                const baseUrl = Array.from(Object.values(config.connections ?? {}))
+                    .find(connection => connection.type === 'github')?.url;
 
                 const { octokit } = await createOctokitFromToken({
                     token: account.access_token,
-                    url: env.AUTH_EE_GITHUB_BASE_URL,
+                    url: baseUrl,
                 });
+
+                const scopes = await getGitHubOAuthScopesForAuthenticatedUser(octokit);
+                if (!scopes.includes('repo')) {
+                    throw new Error(`OAuth token with scopes [${scopes.join(', ')}] is missing the 'repo' scope required for permission syncing.`);
+                }
+
                 // @note: we only care about the private repos since we don't need to build a mapping
                 // for public repos.
                 // @see: packages/web/src/prisma.ts
@@ -181,13 +202,23 @@ export class AccountPermissionSyncer {
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
             } else if (account.provider === 'gitlab') {
                 if (!account.access_token) {
-                    throw new Error(`User '${account.user.email}' does not have a GitLab OAuth access token associated with their GitLab account.`);
+                    throw new Error(`User '${account.user.email}' does not have a GitLab OAuth access token associated with their GitLab account. Please re-authenticate with GitLab to refresh the token.`);
                 }
+
+                // @hack: we don't have a way of identifying specific identity providers in the config file.
+                // Instead, we'll use the first connection of type 'gitlab' and hope for the best.
+                const baseUrl = Array.from(Object.values(config.connections ?? {}))
+                    .find(connection => connection.type === 'gitlab')?.url
 
                 const api = await createGitLabFromOAuthToken({
                     oauthToken: account.access_token,
-                    url: env.AUTH_EE_GITLAB_BASE_URL,
+                    url: baseUrl,
                 });
+
+                const scopes = await getGitLabOAuthScopesForAuthenticatedUser(api);
+                if (!scopes.includes('read_api')) {
+                    throw new Error(`OAuth token with scopes [${scopes.join(', ')}] is missing the 'read_api' scope required for permission syncing.`);
+                }
 
                 // @note: we only care about the private and internal repos since we don't need to build a mapping
                 // for public repos.

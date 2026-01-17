@@ -38,8 +38,8 @@ const auditService = getAuditService();
 /**
  * "Service Error Wrapper".
  * 
- * Captures any thrown exceptions and converts them to a unexpected
- * service error. Also logs them with Sentry.
+ * Captures any thrown exceptions, logs them to the console and Sentry,
+ * and returns a generic unexpected service error.
  */
 export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> => {
     try {
@@ -48,8 +48,8 @@ export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> =>
         Sentry.captureException(e);
         logger.error(e);
 
-        if (e instanceof Error) {
-            return unexpectedError(e.message);
+        if (e instanceof ServiceErrorException) {
+            return e.serviceError;
         }
 
         return unexpectedError(`An unexpected error occurred. Please try again later.`);

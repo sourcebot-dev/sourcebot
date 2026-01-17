@@ -123,6 +123,7 @@ export const compileGitlabConfig = async (
     const repos = gitlabRepos.map((project) => {
         const projectUrl = `${hostUrl}/${project.path_with_namespace}`;
         const cloneUrl = new URL(project.http_url_to_repo);
+        cloneUrl.protocol = new URL(hostUrl).protocol;
         const isFork = project.forked_from_project !== undefined;
         const isPublic = project.visibility === 'public';
         const repoDisplayName = project.path_with_namespace;
@@ -478,6 +479,19 @@ export const compileGenericGitHostConfig_file = async (
     const repos: RepoData[] = [];
     const warnings: string[] = [];
 
+    // Warn if the glob pattern matched no paths at all
+    if (repoPaths.length === 0) {
+        const warning = `No paths matched the pattern '${configUrl.pathname}'. Please verify the path exists and is accessible.`;
+        logger.warn(warning);
+        warnings.push(warning);
+        return {
+            repoData: repos,
+            warnings,
+        };
+    }
+
+    logger.info(`Found ${repoPaths.length} path(s) matching pattern '${configUrl.pathname}'`);
+
     await Promise.all(repoPaths.map((repoPath) => gitOperationLimit(async () => {
         const isGitRepo = await isPathAValidGitRepoRoot({
             path: repoPath,
@@ -534,6 +548,15 @@ export const compileGenericGitHostConfig_file = async (
         repos.push(repo);
     })));
 
+    // Log summary of results
+    if (repos.length === 0) {
+        const warning = `No valid git repositories found from ${repoPaths.length} matched path(s). Check the warnings for details on individual paths.`;
+        logger.warn(warning);
+        warnings.push(warning);
+    } else {
+        logger.info(`Successfully found ${repos.length} valid git repository(s) from ${repoPaths.length} matched path(s)`);
+    }
+
     return {
         repoData: repos,
         warnings,
@@ -586,9 +609,17 @@ export const compileGenericGitHostConfig_url = async (
             }
         },
         metadata: {
+            gitConfig: {
+                'zoekt.name': repoName,
+                'zoekt.web-url': remoteUrl.toString(),
+                'zoekt.archived': marshalBool(false),
+                'zoekt.fork': marshalBool(false),
+                'zoekt.public': marshalBool(true),
+                'zoekt.display-name': repoName,
+            },
             branches: config.revisions?.branches ?? undefined,
             tags: config.revisions?.tags ?? undefined,
-        }
+        } satisfies RepoMetadata,
     };
 
     return {

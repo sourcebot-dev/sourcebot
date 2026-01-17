@@ -12,9 +12,9 @@ const logger = createLogger('gitlab');
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
 export const createGitLabFromPersonalAccessToken = async ({ token, url }: { token?: string, url?: string }) => {
-    const isGitLabCloud = url ? new URL(url).hostname === GITLAB_CLOUD_HOSTNAME : false;
+    const isGitLabCloud = url ? new URL(url).hostname === GITLAB_CLOUD_HOSTNAME : true;
     return new Gitlab({
-        token,
+        ...(token ? { token } : {}),
         ...(isGitLabCloud ? {} : {
             host: url,
         }),
@@ -23,9 +23,9 @@ export const createGitLabFromPersonalAccessToken = async ({ token, url }: { toke
 }
 
 export const createGitLabFromOAuthToken = async ({ oauthToken, url }: { oauthToken?: string, url?: string }) => {
-    const isGitLabCloud = url ? new URL(url).hostname === GITLAB_CLOUD_HOSTNAME : false;
+    const isGitLabCloud = url ? new URL(url).hostname === GITLAB_CLOUD_HOSTNAME : true;
     return new Gitlab({
-        oauthToken,
+        ...(oauthToken ? { oauthToken } : {}),
         ...(isGitLabCloud ? {} : {
             host: url,
         }),
@@ -41,8 +41,8 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
     const token = config.token ?
         await getTokenFromConfig(config.token) :
         hostname === GITLAB_CLOUD_HOSTNAME ?
-        env.FALLBACK_GITLAB_CLOUD_TOKEN :
-        undefined;
+            env.FALLBACK_GITLAB_CLOUD_TOKEN :
+            undefined;
 
     const api = await createGitLabFromPersonalAccessToken({
         token,
@@ -97,14 +97,16 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 logger.error(`Failed to fetch projects for group ${group}.`, e);
 
                 const status = e?.cause?.response?.status;
-                if (status === 404) {
-                    const warning = `Group ${group} not found or no access`;
+                if (status !== undefined) {
+                    const warning = `GitLab API returned ${status}`
                     logger.warn(warning);
                     return {
                         type: 'warning' as const,
                         warning
-                    };
+                    }
                 }
+
+                logger.error("No API response status returned");
                 throw e;
             }
         }));
@@ -135,14 +137,16 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 logger.error(`Failed to fetch projects for user ${user}.`, e);
 
                 const status = e?.cause?.response?.status;
-                if (status === 404) {
-                    const warning = `User ${user} not found or no access`;
+                if (status !== undefined) {
+                    const warning = `GitLab API returned ${status}`
                     logger.warn(warning);
                     return {
                         type: 'warning' as const,
                         warning
-                    };
+                    }
                 }
+
+                logger.error("No API response status returned");
                 throw e;
             }
         }));
@@ -171,15 +175,16 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 logger.error(`Failed to fetch project ${project}.`, e);
 
                 const status = e?.cause?.response?.status;
-
-                if (status === 404) {
-                    const warning = `Project ${project} not found or no access`;
+                if (status !== undefined) {
+                    const warning = `GitLab API returned ${status}`
                     logger.warn(warning);
                     return {
                         type: 'warning' as const,
                         warning
-                    };
+                    }
                 }
+
+                logger.error("No API response status returned");
                 throw e;
             }
         }));
@@ -202,7 +207,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
 
             return !isExcluded;
         });
-        
+
     logger.debug(`Found ${repos.length} total repositories.`);
 
     return {
@@ -309,6 +314,30 @@ export const getProjectsForAuthenticatedUser = async (visibility: 'private' | 'i
     } catch (error) {
         Sentry.captureException(error);
         logger.error(`Failed to fetch projects for authenticated user.`, error);
+        throw error;
+    }
+}
+
+// Fetches OAuth scopes for the authenticated user.
+// @see: https://github.com/doorkeeper-gem/doorkeeper/wiki/API-endpoint-descriptions-and-examples#get----oauthtokeninfo
+// @see: https://docs.gitlab.com/api/oauth2/#retrieve-the-token-information
+export const getOAuthScopesForAuthenticatedUser = async (api: InstanceType<typeof Gitlab>) => {
+    try {
+        const response = await api.requester.get('/oauth/token/info');
+        if (
+            response &&
+            typeof response.body === 'object' &&
+            response.body !== null &&
+            'scope' in response.body &&
+            Array.isArray(response.body.scope)
+        ) {
+            return response.body.scope;
+        }
+
+        throw new Error('/oauth/token_info response body is not in the expected format.');
+    } catch (error) {
+        Sentry.captureException(error);
+        logger.error('Failed to fetch OAuth scopes for authenticated user.', error);
         throw error;
     }
 }

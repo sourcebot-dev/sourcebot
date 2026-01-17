@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { CodePreview } from "./codePreview";
-import { SearchResultFile } from "@/features/search/types";
+import { SearchResultFile } from "@/features/search";
 import { SymbolIcon } from "@radix-ui/react-icons";
 import { SetStateAction, Dispatch, useMemo } from "react";
 import { unwrapServiceError } from "@/lib/utils";

@@ -1,10 +1,8 @@
 'use client';
 
-import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 import { PathHeader } from "@/app/[domain]/components/pathHeader";
 import { SymbolHoverPopup } from '@/ee/features/codeNav/components/symbolHoverPopup';
 import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension";
-import { SymbolDefinition } from '@/ee/features/codeNav/components/symbolHoverPopup/useHoveredOverSymbolInfo';
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { useCodeMirrorLanguageExtension } from "@/hooks/useCodeMirrorLanguageExtension";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
@@ -12,15 +10,13 @@ import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { cn } from "@/lib/utils";
 import { Range } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from '@codemirror/view';
+import { CodeHostType } from "@sourcebot/db";
 import CodeMirror, { ReactCodeMirrorRef, StateField } from '@uiw/react-codemirror';
+import isEqual from "fast-deep-equal/react";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { forwardRef, Ref, useCallback, useImperativeHandle, useMemo, useState } from "react";
+import { forwardRef, memo, Ref, useCallback, useImperativeHandle, useMemo, useState } from "react";
 import { FileReference } from "../../types";
 import { createCodeFoldingExtension } from "./codeFoldingExtension";
-import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { createAuditAction } from "@/ee/features/audit/actions";
-import { useDomain } from "@/hooks/useDomain";
-import { CodeHostType } from "@sourcebot/db";
 
 const lineDecoration = Decoration.line({
     attributes: { class: "cm-range-border-radius chat-lineHighlight" },
@@ -74,8 +70,6 @@ const ReferencedFileSourceListItem = ({
 }: ReferencedFileSourceListItemProps, forwardedRef: Ref<ReactCodeMirrorRef>) => {
     const theme = useCodeMirrorTheme();
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
-    const captureEvent = useCaptureEvent();
-    const domain = useDomain();
 
     useImperativeHandle(
         forwardedRef,
@@ -85,7 +79,6 @@ const ReferencedFileSourceListItem = ({
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
 
     const languageExtension = useCodeMirrorLanguageExtension(language, editorRef?.view);
-    const { navigateToPath } = useBrowseNavigation();
 
     const getReferenceAtPos = useCallback((x: number, y: number, view: EditorView): FileReference | undefined => {
         const pos = view.posAtCoords({ x, y });
@@ -163,8 +156,7 @@ const ReferencedFileSourceListItem = ({
                         }
                     }
 
-                    decorations.sort((a, b) => a.from - b.from);
-                    return Decoration.set(decorations);
+                    return Decoration.set(decorations, /* sort = */ true);
                 },
                 update(deco, tr) {
                     return deco.map(tr.changes);
@@ -218,83 +210,6 @@ const ReferencedFileSourceListItem = ({
         codeFoldingExtension,
     ]);
 
-    const onGotoDefinition = useCallback((symbolName: string, symbolDefinitions: SymbolDefinition[]) => {
-        if (symbolDefinitions.length === 0) {
-            return;
-        }
-
-        captureEvent('wa_goto_definition_pressed', {
-            source: 'chat',
-        });
-        createAuditAction({
-            action: "user.performed_goto_definition",
-            metadata: {
-                message: symbolName,
-            },
-        }, domain);
-
-        if (symbolDefinitions.length === 1) {
-            const symbolDefinition = symbolDefinitions[0];
-            const { fileName, repoName } = symbolDefinition;
-
-            navigateToPath({
-                repoName,
-                revisionName: revision,
-                path: fileName,
-                pathType: 'blob',
-                highlightRange: symbolDefinition.range,
-            })
-        } else {
-            navigateToPath({
-                repoName,
-                revisionName: revision,
-                path: fileName,
-                pathType: 'blob',
-                setBrowseState: {
-                    selectedSymbolInfo: {
-                        symbolName,
-                        repoName,
-                        revisionName: revision,
-                        language: language,
-                    },
-                    activeExploreMenuTab: "definitions",
-                    isBottomPanelCollapsed: false,
-                }
-            });
-
-        }
-    }, [captureEvent, domain, navigateToPath, revision, repoName, fileName, language]);
-
-    const onFindReferences = useCallback((symbolName: string) => {
-        captureEvent('wa_find_references_pressed', {
-            source: 'chat',
-        });
-        createAuditAction({
-            action: "user.performed_find_references",
-            metadata: {
-                message: symbolName,
-            },
-        }, domain);
-
-        navigateToPath({
-            repoName,
-            revisionName: revision,
-            path: fileName,
-            pathType: 'blob',
-            setBrowseState: {
-                selectedSymbolInfo: {
-                    symbolName,
-                    repoName,
-                    revisionName: revision,
-                    language: language,
-                },
-                activeExploreMenuTab: "references",
-                isBottomPanelCollapsed: false,
-            }
-        })
-
-    }, [captureEvent, domain, fileName, language, navigateToPath, repoName, revision]);
-
     const ExpandCollapseIcon = useMemo(() => {
         return isExpanded ? ChevronDown : ChevronRight;
     }, [isExpanded]);
@@ -342,11 +257,12 @@ const ReferencedFileSourceListItem = ({
                 >
                     {editorRef && hasCodeNavEntitlement && (
                         <SymbolHoverPopup
+                            source="chat"
                             editorRef={editorRef}
                             revisionName={revision}
                             language={language}
-                            onFindReferences={onFindReferences}
-                            onGotoDefinition={onGotoDefinition}
+                            repoName={repoName}
+                            fileName={fileName}
                         />
                     )}
                 </CodeMirror>
@@ -355,6 +271,6 @@ const ReferencedFileSourceListItem = ({
     )
 }
 
-export default forwardRef(ReferencedFileSourceListItem) as (
+export default memo(forwardRef(ReferencedFileSourceListItem), isEqual) as (
     props: ReferencedFileSourceListItemProps & { ref?: Ref<ReactCodeMirrorRef> },
 ) => ReturnType<typeof ReferencedFileSourceListItem>;
