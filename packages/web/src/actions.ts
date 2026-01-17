@@ -27,10 +27,11 @@ import { IS_BILLING_ENABLED } from "./ee/features/billing/stripe";
 import InviteUserEmail from "./emails/inviteUserEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
-import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
+import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { ApiKeyPayload, TenancyMode } from "./lib/types";
 import { withAuthV2, withOptionalAuthV2 } from "./withAuthV2";
+import { getAnonymousSessionId, clearAnonymousSessionId } from './lib/anonymousSession';
 
 const logger = createLogger('web-actions');
 const auditService = getAuditService();
@@ -1812,4 +1813,87 @@ export const dismissMobileUnsupportedSplashScreen = async () => sew(async () => 
     const cookieStore = await cookies();
     cookieStore.set(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, 'true');
     return true;
+});
+
+
+
+
+export const migrateAnonymousChats = async (): Promise<{ success: boolean; migratedCount: number } | ServiceError> => sew(() =>
+  withAuth(async (userId) => {
+    const anonSessionId = await getAnonymousSessionId();
+    
+    if (!anonSessionId) {
+      logger.info(`No anonymous session ID found for user ${userId}. Skipping migration.`);
+      return { success: true, migratedCount: 0 };
+    }
+    
+    logger.info(`Attempting to migrate anonymous chats for session ${anonSessionId} to user ${userId}`);
+    
+    try {
+
+      const result = await prisma.chat.updateMany({
+        where: {
+          anonSessionId: anonSessionId,
+          createdById: SOURCEBOT_GUEST_USER_ID,
+        },
+        data: {
+          createdById: userId,
+          anonSessionId: null,
+        }
+      });
+      
+      logger.info(`Migrated ${result.count} anonymous chats for user ${userId}`);
+      
+      await clearAnonymousSessionId();
+      
+      await auditService.createAudit({
+        action: "user.anonymous_chats_migrated",
+        actor: {
+          id: userId,
+          type: "user"
+        },
+        target: {
+          id: userId,
+          type: "user"
+        },
+        orgId: SINGLE_TENANT_ORG_ID,
+        metadata: {
+          migratedCount: result.count,
+          anonSessionId: anonSessionId,
+        }
+      });
+      
+      return {
+        success: true,
+        migratedCount: result.count,
+      };
+    } catch (error) {
+      logger.error(`Failed to migrate anonymous chats for user ${userId}:`, error);
+      return {
+        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+        errorCode: ErrorCode.UNEXPECTED_ERROR,
+        message: "Failed to migrate anonymous chats",
+      } satisfies ServiceError;
+    }
+  })
+);
+
+
+
+// Gets the count of anonymous chats for the current browser session. Used to show UI prompts encouraging sign-in.
+export const getAnonymousChatsCount = async (): Promise<{ count: number } | ServiceError> => sew(async () => {
+  const anonSessionId = await getAnonymousSessionId();
+  
+  if (!anonSessionId) {
+    return { count: 0 };
+  }
+  
+  const count = await prisma.chat.count({
+    where: {
+      anonSessionId: anonSessionId,
+      createdById: SOURCEBOT_GUEST_USER_ID,
+    }
+  });
+  
+  return { count };
 });
