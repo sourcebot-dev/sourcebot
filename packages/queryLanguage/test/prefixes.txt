@@ -334,3 +334,51 @@ Program(ParenExpr(PrefixExpr(FileExpr)))
 
 Program(ParenExpr(AndExpr(PrefixExpr(FileExpr),PrefixExpr(LangExpr))))
 
+# Repo with port in URL
+
+repo:localhost:12030/testrepo
+
+==>
+
+Program(PrefixExpr(RepoExpr))
+
+# Repo short form with port in URL
+
+r:myserver:3000/project
+
+==>
+
+Program(PrefixExpr(RepoExpr))
+
+# RepoSet with port in URL
+
+reposet:localhost:12030/testrepo
+
+==>
+
+Program(PrefixExpr(RepoSetExpr))
+
+# RepoSet with multiple repos with ports
+
+reposet:myserver:12030/repo1,localhost:3000/repo2
+
+==>
+
+Program(PrefixExpr(RepoSetExpr))
+
+# Term and repo with port
+
+test.cpp repo:localhost:12030/testrepo
+
+==>
+
+Program(AndExpr(Term,PrefixExpr(RepoExpr)))
+
+# Term and reposet with port
+
+test.cpp reposet:myserver:12030/testrepo
+
+==>
+
+Program(AndExpr(Term,PrefixExpr(RepoSetExpr)))
+

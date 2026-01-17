@@ -223,8 +223,10 @@ const transformTreeToIR = async ({
             throw new Error(`${prefixNode.type.name} missing colon`);
         }
 
-        // Get the value part after the colon and remove quotes if present
-        const value = fullText.substring(colonIndex + 1).replace(/^"|"$/g, '');
+        // Get the value part after the colon, remove quotes if present, and trim whitespace.
+        // Trimming is necessary because the grammar may capture spaces between the prefix
+        // keyword and the value (e.g., "repo: localhost" instead of "repo:localhost").
+        const value = fullText.substring(colonIndex + 1).replace(/^"|"$/g, '').trim();
 
         switch (prefixTypeId) {
             case FileExpr:
