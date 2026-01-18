@@ -11,6 +11,7 @@ import { auth } from '@/auth';
 import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle';
 import { ChatSidePanel } from '../components/chatSidePanel';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
+import { ShareChatDialogButton } from './components/shareChatDialogButton';
 
 interface PageProps {
     params: Promise<{
@@ -58,14 +59,17 @@ export default async function Page(props: PageProps) {
                 domain={params.domain}
                 homePath={`/${params.domain}/chat`}
             >
-                <div className="flex flex-row gap-2 items-center">
-                    <span className="text-muted mx-2 select-none">/</span>
-                    <ChatName
-                        name={name}
-                        visibility={visibility}
-                        id={params.id}
-                        isReadonly={isReadonly}
-                    />
+                <div className='flex flex-row justify-between items-center w-full'>
+                    <div className="flex flex-row gap-2 items-center">
+                        <span className="text-muted mx-2 select-none">/</span>
+                        <ChatName
+                            name={name}
+                            visibility={visibility}
+                            id={params.id}
+                            isReadonly={isReadonly}
+                        />
+                    </div>
+                    <ShareChatDialogButton visibility={visibility} chatId={params.id}/>
                 </div>
             </TopBar>
             <ResizablePanelGroup
