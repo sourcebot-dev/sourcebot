@@ -27,7 +27,8 @@ export const injectAuditData: Script = {
         const actions = [
             'user.performed_code_search',
             'user.performed_find_references', 
-            'user.performed_goto_definition'
+            'user.performed_goto_definition',
+            'user.created_ask_chat'
         ];
 
         // Generate data for the last 90 days
@@ -116,6 +117,37 @@ export const injectAuditData: Script = {
                         targetType: 'symbol',
                         sourcebotVersion: '1.0.0',
                         orgId
+                        }
+                    });
+                }
+
+                // Generate Ask chat sessions (0-2 per day on weekdays, 0-1 on weekends)
+                const askChats = isWeekend
+                    ? Math.floor(Math.random() * 2)  // 0-1 on weekends
+                    : Math.floor(Math.random() * 3); // 0-2 on weekdays
+
+                // Create Ask chat records
+                for (let i = 0; i < askChats; i++) {
+                    const timestamp = new Date(currentDate);
+                    if (isWeekend) {
+                        timestamp.setHours(9 + Math.floor(Math.random() * 12));
+                        timestamp.setMinutes(Math.floor(Math.random() * 60));
+                    } else {
+                        timestamp.setHours(9 + Math.floor(Math.random() * 9));
+                        timestamp.setMinutes(Math.floor(Math.random() * 60));
+                    }
+                    timestamp.setSeconds(Math.floor(Math.random() * 60));
+
+                    await prisma.audit.create({
+                        data: {
+                            timestamp,
+                            action: 'user.created_ask_chat',
+                            actorId: userId,
+                            actorType: 'user',
+                            targetId: orgId.toString(),
+                            targetType: 'org',
+                            sourcebotVersion: '1.0.0',
+                            orgId
                         }
                     });
                 }
