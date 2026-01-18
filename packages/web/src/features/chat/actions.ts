@@ -346,6 +346,41 @@ export const submitFeedback = async ({
     })
 )
 
+export const changeChatVisibility=async ({chatId,visibility}:{chatId:string,visibility:ChatVisibility})=>sew(()=>
+    withOptionalAuthV2(async ({org,user,prisma})=>{
+        const chat=await prisma.chat.findUnique({
+            where:{
+                id:chatId,
+                orgId:org.id,
+            }
+        })
+
+        if (!chat) {
+            return notFound();
+        }
+
+        if (chat.createdById !== user?.id) {
+            return notFound();
+        }
+
+        console.log(chat)
+
+        await prisma.chat.update({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+            data: {
+                visibility,
+            },
+        });
+
+        return {
+            success: true,
+        }
+    })
+)
+
 /**
  * Returns the subset of information about the configured language models
  * that we can safely send to the client.
