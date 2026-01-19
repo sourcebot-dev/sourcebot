@@ -15,7 +15,7 @@ ARG NEXT_PUBLIC_SENTRY_BACKEND_DSN
 ARG NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY
 ARG NEXT_PUBLIC_LANGFUSE_BASE_URL
 
-FROM node:22-alpine3.20 AS node-alpine
+FROM node:22.21.0-alpine3.20 AS node-alpine
 FROM golang:1.23.4-alpine3.20 AS go-alpine
 # ----------------------------------
 
