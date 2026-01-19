@@ -38,12 +38,12 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `ALWAYS_INDEX_FILE_PATTERNS` | - | <p>A comma separated list of glob patterns matching file paths that should always be indexed, regardless of size or number of trigrams.</p> |
 
 ### HTTP Proxy Configuration
-|| Variable | Default | Description |
-|| :------- | :------ | :---------- |
-|| `HTTP_PROXY` | - | <p>HTTP proxy URL for routing non-SSL requests through a proxy server (e.g., `http://proxy.company.com:8080`). Requires Node.js to be configured with `NODE_USE_ENV_PROXY=1`.</p> |
-|| `HTTPS_PROXY` | - | <p>HTTPS proxy URL for routing SSL requests through a proxy server (e.g., `http://proxy.company.com:8080`). Requires Node.js to be configured with `NODE_USE_ENV_PROXY=1`.</p> |
-|| `NO_PROXY` | - | <p>Comma-separated list of hostnames or domains that should bypass the proxy (e.g., `localhost,127.0.0.1,.internal.domain`). Requires Node.js to be configured with `NODE_USE_ENV_PROXY=1`.</p> |
-|| `NODE_USE_ENV_PROXY` | `1` | <p>Enables Node.js to automatically use `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables for network requests. Set to `1` to enable or `0` to disable.</p> |
+| Variable | Default | Description |
+| :------- | :------ | :---------- |
+| `HTTP_PROXY` | - | <p>HTTP proxy URL for routing non-SSL requests through a proxy server (e.g., `http://proxy.company.com:8080`). Requires Node.js to be configured with `NODE_USE_ENV_PROXY=1`.</p> |
+| `HTTPS_PROXY` | - | <p>HTTPS proxy URL for routing SSL requests through a proxy server (e.g., `http://proxy.company.com:8080`). Requires Node.js to be configured with `NODE_USE_ENV_PROXY=1`.</p> |
+| `NO_PROXY` | - | <p>Comma-separated list of hostnames or domains that should bypass the proxy (e.g., `localhost,127.0.0.1,.internal.domain`). Requires Node.js to be configured with `NODE_USE_ENV_PROXY=1`.</p> |
+| `NODE_USE_ENV_PROXY` | `1` | <p>Enables Node.js to automatically use `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables for network requests. Set to `1` to enable or `0` to disable.</p> |
 
 ### Enterprise Environment Variables
 | Variable | Default | Description |
