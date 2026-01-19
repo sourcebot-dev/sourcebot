@@ -15,13 +15,8 @@ ARG NEXT_PUBLIC_SENTRY_BACKEND_DSN
 ARG NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY
 ARG NEXT_PUBLIC_LANGFUSE_BASE_URL
 
-<<<<<<< Updated upstream
-FROM node:22.21.0-alpine3.20 AS node-alpine
-FROM golang:1.23.4-alpine3.20 AS go-alpine
-=======
 FROM node:24-alpine3.23 AS node-alpine
 FROM golang:1.23.4-alpine3.19 AS go-alpine
->>>>>>> Stashed changes
 # ----------------------------------
 
 # ------ Build Zoekt ------
