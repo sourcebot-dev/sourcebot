@@ -31,6 +31,23 @@ const logger = createLogger('repo-compile-utils');
 const MAX_CONCURRENT_GIT_OPERATIONS = 100;
 const gitOperationLimit = pLimit(MAX_CONCURRENT_GIT_OPERATIONS);
 
+/**
+ * Extracts the host with port from an HTTP(S) URL string, preserving the port
+ * even if it's a default port (e.g., 443 for https, 80 for http).
+ *
+ * This is needed because JavaScript URL parsers normalize URLs and strip default
+ * ports, but Go's url.Parse preserves them. Since zoekt uses Go, we need to match
+ * its behavior for repo name derivation.
+ *
+ * @param url - The URL string to extract host:port from
+ * @returns The host with port if present (e.g., "example.com:443"), or null if not an HTTP(S) URL
+ */
+const extractHostWithPort = (url: string): string | null => {
+    // Match http(s):// URLs: protocol://host(:port)/path
+    const match = url.match(/^https?:\/\/([^/?#]+)/i);
+    return match ? match[1] : null;
+};
+
 type CompileResult = {
     repoData: RepoData[],
     warnings: string[],
@@ -515,7 +532,12 @@ export const compileGenericGitHostConfig_file = async (
 
         // @note: matches the naming here:
         // https://github.com/sourcebot-dev/zoekt/blob/main/gitindex/index.go#L293
-        const repoName = path.join(remoteUrl.host, remoteUrl.pathname.replace(/\.git$/, ''));
+        // Go's url.URL.Host includes the port if present (even default ports like 443),
+        // but JS URL parsers normalize and strip default ports. We need to extract
+        // the host:port directly from the raw URL to match zoekt's behavior.
+        // For non-HTTP URLs, remoteUrl.host preserves non-default ports (e.g., ssh://host:22/).
+        const hostWithPort = extractHostWithPort(origin) ?? remoteUrl.host;
+        const repoName = path.join(hostWithPort, remoteUrl.pathname.replace(/\.git$/, ''));
 
         const repo: RepoData = {
             external_codeHostType: 'genericGitHost',
