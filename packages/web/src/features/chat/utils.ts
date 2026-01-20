@@ -283,10 +283,19 @@ export const buildCodeHostFileUrl = (
         // Check if file is markdown
         const isMarkdown = /\.(md|mdx|markdown)$/i.test(filePath);
 
+        // Encode special characters in path components while preserving slashes
+        // This handles spaces, parentheses, and other special chars without breaking URL structure
+        const encodePathComponent = (str: string) => 
+            str.split('/').map(segment => encodeURIComponent(segment)).join('/');
+        
+        const encodedFilePath = encodePathComponent(filePath);
+        const encodedOwnerRepo = encodePathComponent(ownerRepo);
+        const encodedRevision = encodePathComponent(revision);
+
         // Detect code host type and construct appropriate URL
         if (host === 'github.com' || host.includes('github')) {
             // GitHub and GitHub Enterprise
-            url = `https://${host}/${ownerRepo}/blob/${revision}/${filePath}`;
+            url = `https://${host}/${encodedOwnerRepo}/blob/${encodedRevision}/${encodedFilePath}`;
             // Add ?plain=1 for markdown files to enable line numbers
             if (isMarkdown && startLine) {
                 url += `?plain=1#L${startLine}`;
@@ -301,7 +310,7 @@ export const buildCodeHostFileUrl = (
             }
         } else if (host === 'gitlab.com' || host.includes('gitlab')) {
             // GitLab.com and GitLab Self-Managed
-            url = `https://${host}/${ownerRepo}/-/blob/${revision}/${filePath}`;
+            url = `https://${host}/${encodedOwnerRepo}/-/blob/${encodedRevision}/${encodedFilePath}`;
             if (startLine) {
                 url += `#L${startLine}`;
                 if (endLine && startLine !== endLine) {
@@ -310,7 +319,7 @@ export const buildCodeHostFileUrl = (
             }
         } else if (host === 'bitbucket.org' || host.includes('bitbucket')) {
             // Bitbucket Cloud and Bitbucket Data Center
-            url = `https://${host}/${ownerRepo}/src/${revision}/${filePath}`;
+            url = `https://${host}/${encodedOwnerRepo}/src/${encodedRevision}/${encodedFilePath}`;
             if (startLine) {
                 // Bitbucket uses #lines-10 or #lines-10:20
                 url += `#lines-${startLine}`;
@@ -320,13 +329,13 @@ export const buildCodeHostFileUrl = (
             }
         } else if (host.includes('dev.azure.com') || host.includes('visualstudio.com')) {
             // Azure DevOps Cloud and Server
-            // Format: https://dev.azure.com/{org}/{project}/_git/{repo}?path={path}&version=GB{branch}&line={line}&lineEnd={endLine}
             const repoParts = ownerRepo.split('/');
             if (repoParts.length >= 3) {
-                const org = repoParts[0];
-                const project = repoParts[1];
-                const repoName = repoParts.slice(2).join('/');
-                url = `https://${host}/${org}/${project}/_git/${repoName}?path=/${filePath}&version=GB${revision}`;
+                const org = encodeURIComponent(repoParts[0]);
+                const project = encodeURIComponent(repoParts[1]);
+                const repoName = repoParts.slice(2).map(encodeURIComponent).join('/');
+                // For Azure DevOps, encode the path preserving forward slashes
+                url = `https://${host}/${org}/${project}/_git/${repoName}?path=/${encodedFilePath}&version=GB${encodedRevision}`;
                 if (startLine) {
                     url += `&line=${startLine}`;
                     if (endLine && startLine !== endLine) {
@@ -338,7 +347,7 @@ export const buildCodeHostFileUrl = (
             }
         } else if (host.includes('gitea')) {
             // Gitea Self-Hosted
-            url = `https://${host}/${ownerRepo}/src/branch/${revision}/${filePath}`;
+            url = `https://${host}/${encodedOwnerRepo}/src/branch/${encodedRevision}/${encodedFilePath}`;
             if (startLine) {
                 url += `#L${startLine}`;
                 if (endLine && startLine !== endLine) {
@@ -347,15 +356,14 @@ export const buildCodeHostFileUrl = (
             }
         } else if (host.includes('gerrit')) {
             // Gerrit Self-Hosted
-            // Format: https://{host}/plugins/gitiles/{repo}/+/refs/heads/{branch}/{path}#{line}
-            url = `https://${host}/plugins/gitiles/${ownerRepo}/+/refs/heads/${revision}/${filePath}`;
+            url = `https://${host}/plugins/gitiles/${encodedOwnerRepo}/+/refs/heads/${encodedRevision}/${encodedFilePath}`;
             if (startLine) {
                 url += `#${startLine}`;
             }
         } else {
             // For unknown hosts, attempt generic git web URL format
             // This works for many Git web interfaces like cgit, gitweb, etc.
-            url = `https://${host}/${ownerRepo}/src/branch/${revision}/${filePath}`;
+            url = `https://${host}/${encodedOwnerRepo}/src/branch/${encodedRevision}/${encodedFilePath}`;
             if (startLine) {
                 url += `#L${startLine}`;
                 if (endLine && startLine !== endLine) {
@@ -389,7 +397,9 @@ export const convertLLMOutputToPortableMarkdown = (
     return text
         .replace(ANSWER_TAG, '')
         .replace(FILE_REFERENCE_REGEX, (_, repo, fileName, startLine, endLine) => {
-            const displayName = fileName.split('/').pop() || fileName;
+            // Normalize the file path by removing leading slashes for consistent matching
+            const normalizedFileName = fileName.replace(/^\/+/, '');
+            const displayName = normalizedFileName.split('/').pop() || normalizedFileName;
 
             let linkText = displayName;
             if (startLine) {
@@ -400,14 +410,14 @@ export const convertLLMOutputToPortableMarkdown = (
                 }
             }
 
-            // Try to find matching source to get revision info
+            // Try to find matching source to get revision info using normalized path
             const matchingSource = options?.sources?.find(
-                (source) => source.repo === repo && source.path === fileName
+                (source) => source.repo === repo && source.path === normalizedFileName
             );
             const revision = matchingSource?.revision || 'main';
 
-            // Build the URL using the extracted utility function
-            const url = buildCodeHostFileUrl(repo, fileName, revision, startLine, endLine);
+            // Build the URL using the normalized file name
+            const url = buildCodeHostFileUrl(repo, normalizedFileName, revision, startLine, endLine);
 
             return `[${linkText}](${url})`;
         })

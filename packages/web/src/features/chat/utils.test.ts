@@ -934,6 +934,72 @@ test('buildCodeHostFileUrl handles generic git host with line numbers', () => {
     expect(url).toBe('https://git.internal.org/team/project/src/branch/staging/lib/utils.rb#L12-L18');
 });
 
+test('buildCodeHostFileUrl encodes spaces in file paths', () => {
+    const url = buildCodeHostFileUrl('github.com/owner/repo', 'docs/my file.txt', 'main');
+    expect(url).toBe('https://github.com/owner/repo/blob/main/docs/my%20file.txt');
+});
+
+test('buildCodeHostFileUrl encodes special characters in file paths', () => {
+    const url = buildCodeHostFileUrl('github.com/owner/repo', 'src/file (copy).js', 'main', '5');
+    expect(url).toBe('https://github.com/owner/repo/blob/main/src/file%20(copy).js#L5');
+});
+
+test('buildCodeHostFileUrl encodes spaces in branch names', () => {
+    const url = buildCodeHostFileUrl('github.com/owner/repo', 'app.ts', 'feature/my branch', '10');
+    expect(url).toBe('https://github.com/owner/repo/blob/feature/my%20branch/app.ts#L10');
+});
+
+test('buildCodeHostFileUrl encodes special characters in owner/repo names', () => {
+    const url = buildCodeHostFileUrl('github.com/my org/my repo', 'file.js', 'main');
+    expect(url).toBe('https://github.com/my%20org/my%20repo/blob/main/file.js');
+});
+
+test('buildCodeHostFileUrl encodes Azure DevOps query parameters', () => {
+    const url = buildCodeHostFileUrl('dev.azure.com/org/project/repo', 'path/my file.cs', 'my branch', '10', '20');
+    expect(url).toBe('https://dev.azure.com/org/project/_git/repo?path=/path/my%20file.cs&version=GBmy%20branch&line=10&lineEnd=20');
+});
+
+test('buildCodeHostFileUrl encodes GitLab paths with special characters', () => {
+    const url = buildCodeHostFileUrl('gitlab.com/group/project', 'docs/file & notes.md', 'dev', '15');
+    expect(url).toBe('https://gitlab.com/group/project/-/blob/dev/docs/file%20%26%20notes.md#L15');
+});
+
+test('buildCodeHostFileUrl encodes Bitbucket paths with spaces', () => {
+    const url = buildCodeHostFileUrl('bitbucket.org/workspace/repo', 'src/my module.py', 'feature', '5', '10');
+    expect(url).toBe('https://bitbucket.org/workspace/repo/src/feature/src/my%20module.py#lines-5:10');
+});
+
+test('buildCodeHostFileUrl encodes Gitea paths with unicode characters', () => {
+    const url = buildCodeHostFileUrl('gitea.example.com/user/repo', 'docs/文档.md', 'main', '1');
+    expect(url).toBe('https://gitea.example.com/user/repo/src/branch/main/docs/%E6%96%87%E6%A1%A3.md#L1');
+});
+
+test('convertLLMOutputToPortableMarkdown normalizes leading slashes in file paths', () => {
+    const text = 'See @file:{github.com/owner/repo::/src/app.ts:10}';
+    const result = convertLLMOutputToPortableMarkdown(text);
+    expect(result).toBe('See [app.ts:10](https://github.com/owner/repo/blob/main/src/app.ts#L10)');
+});
+
+test('convertLLMOutputToPortableMarkdown matches sources with normalized paths', () => {
+    const text = 'Check @file:{github.com/owner/repo::/lib/utils.js:5-10}';
+    const sources = [{
+        type: 'file' as const,
+        repo: 'github.com/owner/repo',
+        path: 'lib/utils.js', // No leading slash in source
+        name: 'utils.js',
+        language: 'javascript',
+        revision: 'develop',
+    }];
+    const result = convertLLMOutputToPortableMarkdown(text, { sources });
+    expect(result).toBe('Check [utils.js:5-10](https://github.com/owner/repo/blob/develop/lib/utils.js#L5-L10)');
+});
+
+test('convertLLMOutputToPortableMarkdown handles multiple leading slashes', () => {
+    const text = 'See @file:{gitlab.com/group/project::///deep/path/file.py:20}';
+    const result = convertLLMOutputToPortableMarkdown(text);
+    expect(result).toBe('See [file.py:20](https://gitlab.com/group/project/-/blob/main/deep/path/file.py#L20)');
+});
+
 test('buildCodeHostFileUrl adds ?plain=1 for GitHub markdown files with line numbers', () => {
     const url = buildCodeHostFileUrl('github.com/owner/repo', 'README.md', 'main', '10', '20');
     expect(url).toBe('https://github.com/owner/repo/blob/main/README.md?plain=1#L10-L20');
