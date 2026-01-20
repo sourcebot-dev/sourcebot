@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixes
 - Fix autocomplete when repo includes default port [#762](https://github.com/sourcebot-dev/sourcebot/pull/762)
+- Fixed "Repository not found for file: x" error when searching in orphaned shards. [#761](https://github.com/sourcebot-dev/sourcebot/pull/761)
 
 ## [4.10.12] - 2026-01-16
 
