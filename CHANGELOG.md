@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped AI SDK and associated packages version. [#752](https://github.com/sourcebot-dev/sourcebot/pull/752)
 - Bumped Node.js version to v24. [#753](https://github.com/sourcebot-dev/sourcebot/pull/753)
 
+### Fixes
+- Fix autocomplete when repo includes default port [#762](https://github.com/sourcebot-dev/sourcebot/pull/762)
+
 ## [4.10.12] - 2026-01-16
 
 ### Changed
