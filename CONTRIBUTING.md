@@ -30,6 +30,8 @@
 
     The zoekt binaries and web dependencies are placed into `bin` and `node_modules` respectively.
 
+    **Note**: `make` should also be run whenever switching between branches to ensure all dependencies are upto date.
+
 5. Start the development Docker containers for PostgreSQL and Redis.
 
     ```sh
