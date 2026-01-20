@@ -239,14 +239,156 @@ export const createFileReference = ({ repo, path, startLine, endLine }: { repo: 
 }
 
 /**
+ * Builds a web URL for a file hosted on a code host (GitHub, GitLab, Bitbucket, etc.)
+ * 
+ * Supported platforms:
+ * - GitHub (github.com and GitHub Enterprise)
+ * - GitLab (gitlab.com and self-managed)
+ * - Bitbucket (bitbucket.org Cloud and Data Center)
+ * - Azure DevOps (dev.azure.com and on-premises)
+ * - Gitea (self-hosted)
+ * - Gerrit (self-hosted)
+ * - Generic Git hosts
+ * 
+ * @param repo - Repository identifier (e.g., 'github.com/owner/repo')
+ * @param fileName - File path within the repository
+ * @param revision - Branch, tag, or commit SHA
+ * @param startLine - Optional starting line number
+ * @param endLine - Optional ending line number
+ * @returns Full URL to the file on the code host, or the original fileName if URL cannot be constructed
+ */
+export const buildCodeHostFileUrl = (
+    repo: string,
+    fileName: string,
+    revision: string,
+    startLine?: string,
+    endLine?: string
+): string => {
+    try {
+        if (!repo) {
+            return fileName;
+        }
+
+        const filePath = fileName.replace(/^\/+/, '');
+        const parts = repo.split('/');
+        
+        if (parts.length < 2) {
+            return fileName;
+        }
+
+        const host = parts[0].toLowerCase();
+        const ownerRepo = parts.slice(1).join('/');
+        let url: string;
+
+        // Check if file is markdown
+        const isMarkdown = /\.(md|mdx|markdown)$/i.test(filePath);
+
+        // Detect code host type and construct appropriate URL
+        if (host === 'github.com' || host.includes('github')) {
+            // GitHub and GitHub Enterprise
+            url = `https://${host}/${ownerRepo}/blob/${revision}/${filePath}`;
+            // Add ?plain=1 for markdown files to enable line numbers
+            if (isMarkdown && startLine) {
+                url += `?plain=1#L${startLine}`;
+                if (endLine && startLine !== endLine) {
+                    url += `-L${endLine}`;
+                }
+            } else if (startLine) {
+                url += `#L${startLine}`;
+                if (endLine && startLine !== endLine) {
+                    url += `-L${endLine}`;
+                }
+            }
+        } else if (host === 'gitlab.com' || host.includes('gitlab')) {
+            // GitLab.com and GitLab Self-Managed
+            url = `https://${host}/${ownerRepo}/-/blob/${revision}/${filePath}`;
+            if (startLine) {
+                url += `#L${startLine}`;
+                if (endLine && startLine !== endLine) {
+                    url += `-${endLine}`;
+                }
+            }
+        } else if (host === 'bitbucket.org' || host.includes('bitbucket')) {
+            // Bitbucket Cloud and Bitbucket Data Center
+            url = `https://${host}/${ownerRepo}/src/${revision}/${filePath}`;
+            if (startLine) {
+                // Bitbucket uses #lines-10 or #lines-10:20
+                url += `#lines-${startLine}`;
+                if (endLine && startLine !== endLine) {
+                    url += `:${endLine}`;
+                }
+            }
+        } else if (host.includes('dev.azure.com') || host.includes('visualstudio.com')) {
+            // Azure DevOps Cloud and Server
+            // Format: https://dev.azure.com/{org}/{project}/_git/{repo}?path={path}&version=GB{branch}&line={line}&lineEnd={endLine}
+            const repoParts = ownerRepo.split('/');
+            if (repoParts.length >= 3) {
+                const org = repoParts[0];
+                const project = repoParts[1];
+                const repoName = repoParts.slice(2).join('/');
+                url = `https://${host}/${org}/${project}/_git/${repoName}?path=/${filePath}&version=GB${revision}`;
+                if (startLine) {
+                    url += `&line=${startLine}`;
+                    if (endLine && startLine !== endLine) {
+                        url += `&lineEnd=${endLine}`;
+                    }
+                }
+            } else {
+                return fileName;
+            }
+        } else if (host.includes('gitea')) {
+            // Gitea Self-Hosted
+            url = `https://${host}/${ownerRepo}/src/branch/${revision}/${filePath}`;
+            if (startLine) {
+                url += `#L${startLine}`;
+                if (endLine && startLine !== endLine) {
+                    url += `-L${endLine}`;
+                }
+            }
+        } else if (host.includes('gerrit')) {
+            // Gerrit Self-Hosted
+            // Format: https://{host}/plugins/gitiles/{repo}/+/refs/heads/{branch}/{path}#{line}
+            url = `https://${host}/plugins/gitiles/${ownerRepo}/+/refs/heads/${revision}/${filePath}`;
+            if (startLine) {
+                url += `#${startLine}`;
+            }
+        } else {
+            // For unknown hosts, attempt generic git web URL format
+            // This works for many Git web interfaces like cgit, gitweb, etc.
+            url = `https://${host}/${ownerRepo}/src/branch/${revision}/${filePath}`;
+            if (startLine) {
+                url += `#L${startLine}`;
+                if (endLine && startLine !== endLine) {
+                    url += `-L${endLine}`;
+                }
+            }
+        }
+
+        return url;
+    } catch (_) {
+        // Fallback to the original fileName on any unexpected parsing error.
+        return fileName;
+    }
+}
+
+/**
  * Converts LLM text that includes references (e.g., @file:...) into a portable
  * Markdown format. Practically, this means converting references into Markdown
  * links and removing the answer tag.
+ * 
+ * @param text - The LLM output text containing file references
+ * @param options - Optional configuration
+ * @param options.sources - Array of FileSource objects to resolve revisions and repo info
  */
-export const convertLLMOutputToPortableMarkdown = (text: string): string => {
+export const convertLLMOutputToPortableMarkdown = (
+    text: string, 
+    options?: {
+        sources?: FileSource[];
+    }
+): string => {
     return text
         .replace(ANSWER_TAG, '')
-        .replace(FILE_REFERENCE_REGEX, (_, _repo, fileName, startLine, endLine) => {
+        .replace(FILE_REFERENCE_REGEX, (_, repo, fileName, startLine, endLine) => {
             const displayName = fileName.split('/').pop() || fileName;
 
             let linkText = displayName;
@@ -258,7 +400,16 @@ export const convertLLMOutputToPortableMarkdown = (text: string): string => {
                 }
             }
 
-            return `[${linkText}](${fileName})`;
+            // Try to find matching source to get revision info
+            const matchingSource = options?.sources?.find(
+                (source) => source.repo === repo && source.path === fileName
+            );
+            const revision = matchingSource?.revision || 'main';
+
+            // Build the URL using the extracted utility function
+            const url = buildCodeHostFileUrl(repo, fileName, revision, startLine, endLine);
+
+            return `[${linkText}](${url})`;
         })
         .trim();
 }
