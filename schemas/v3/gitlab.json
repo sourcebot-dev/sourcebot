@@ -65,6 +65,19 @@
             ],
             "description": "List of individual projects to sync with. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/"
         },
+        "projectQuery": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "examples": [
+                [
+                    "groups/group1/projects?include_subgroups=true",
+                    "projects?topic=devops"
+                ]
+            ],
+            "description": "List of GitLab API query paths to fetch projects from. Each string should be a path relative to the GitLab API root (e.g. `groups/my-group/projects`)."
+        },
         "topics": {
             "type": "array",
             "items": {
