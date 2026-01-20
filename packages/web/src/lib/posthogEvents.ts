@@ -185,6 +185,8 @@ export type PosthogEventMap = {
         durationMs: number,
     },
     //////////////////////////////////////////////////////////////////
+    wa_repo_not_found_for_zoekt_file: {},
+    //////////////////////////////////////////////////////////////////
     api_code_search_request: {
         source: string;
         type: 'streamed' | 'blocking';
