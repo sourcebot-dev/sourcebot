@@ -17,6 +17,7 @@ import { createLogger, env } from "@sourcebot/shared";
 import path from 'path';
 import { isBranchQuery, QueryIR, someInQueryIR } from './ir';
 import { RepositoryInfo, SearchResponse, SearchResultFile, SearchStats, SourceRange, StreamedSearchErrorResponse, StreamedSearchResponse } from "./types";
+import { captureEvent } from "@/lib/posthog";
 
 const logger = createLogger("zoekt-searcher");
 
@@ -383,9 +384,17 @@ const transformZoektSearchResponse = async (response: ZoektGrpcSearchResponse, r
         const repoId = getRepoIdForFile(file);
         const repo = reposMapCache.get(repoId);
 
-        // This should never happen.
+        // This can happen when a shard exists for a repository that does not exist in the database.
+        // In this case, issue a error message and skip the file.
+        // @see: https://github.com/sourcebot-dev/sourcebot/issues/669
         if (!repo) {
-            throw new Error(`Repository not found for file: ${file.file_name}`);
+            const errorMessage = `Unable to find repository "${file.repository}" in database for file "${file.file_name}". This can happen when a search shard exists for a repository that does not exist in the database. See https://github.com/sourcebot-dev/sourcebot/issues/669 for more details. Skipping file...`;
+
+            logger.error(errorMessage);
+            Sentry.captureMessage(errorMessage);
+            captureEvent('wa_repo_not_found_for_zoekt_file', {});
+
+            return undefined;
         }
 
         // @todo: address "file_name might not be a valid UTF-8 string" warning.
