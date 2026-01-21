@@ -8,9 +8,10 @@ import { Job, Queue, ReservedJob, Worker } from "groupmq";
 import { Redis } from 'ioredis';
 import micromatch from 'micromatch';
 import { GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS, INDEX_CACHE_DIR } from './constants.js';
-import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getTags, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
+import { cloneRepository, fetchRepository, getAllFiles, getBranches, getCommitHashForRefName, getRecentCommits, getTags, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
 import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
+import { TypesenseService } from './search/typesense.js';
 import { RepoWithConnections, Settings } from "./types.js";
 import { getAuthCredentialsForRepo, getRepoPath, getShardPrefix, groupmqLifecycleExceptionWrapper, measure, setIntervalAsync } from './utils.js';
 import { indexGitRepository } from './zoekt.js';
@@ -41,6 +42,7 @@ export class RepoIndexManager {
     private interval?: NodeJS.Timeout;
     private queue: Queue<JobPayload>;
     private worker: Worker<JobPayload>;
+    private typesenseService: TypesenseService;
 
     constructor(
         private db: PrismaClient,
@@ -48,6 +50,7 @@ export class RepoIndexManager {
         private redis: Redis,
         private promClient: PromClient,
     ) {
+        this.typesenseService = new TypesenseService();
         this.queue = new Queue<JobPayload>({
             redis,
             namespace: 'repo-index-queue',
@@ -242,7 +245,7 @@ export class RepoIndexManager {
                 status: true,
             }
         });
-        
+
         // Fail safe: if the job is not PENDING (first run) or IN_PROGRESS (retry), it indicates the job
         // is in an invalid state and should be skipped.
         if (
@@ -439,6 +442,21 @@ export class RepoIndexManager {
         const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, revisions, signal));
         const indexDuration_s = durationMs / 1000;
         logger.info(`Indexed ${repo.name} (id: ${repo.id}) in ${indexDuration_s}s`);
+
+        // Trigger Typesense indexing asynchronously (don't block main flow or fail job if it fails)
+        Promise.all([
+            this.typesenseService.indexRepo(repo),
+            (async () => {
+                const files = await getAllFiles(repoPath);
+                await this.typesenseService.indexFiles(repo.id, files);
+            })(),
+            (async () => {
+                const commits = await getRecentCommits(repoPath);
+                await this.typesenseService.indexCommits(repo.id, commits);
+            })()
+        ]).catch(err => {
+            logger.error(`Failed to index metadata for ${repo.name} in Typesense`, err);
+        });
 
         return revisions;
     }

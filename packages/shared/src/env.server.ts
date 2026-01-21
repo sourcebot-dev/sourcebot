@@ -64,7 +64,12 @@ export const env = createEnv({
     server: {
         // Zoekt
         ZOEKT_WEBSERVER_URL: z.string().url().default("http://localhost:6070"),
-        
+
+        // Typesense
+        TYPESENSE_HOST: z.string().default('typesense'),
+        TYPESENSE_PORT: z.string().default('8108'),
+        TYPESENSE_API_KEY: z.string().default('xyz'),
+
         // Auth
         FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
         AUTH_SECRET: z.string(),
