@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.14] - 2026-01-21
+
 ### Fixed
 - Fixed "The data directory was initialized by PostgreSQL version 16, which is not compatible with this version 18.1" error when using the embedded database and upgrading to v14.10.13. [#770](https://github.com/sourcebot-dev/sourcebot/pull/770)
 
