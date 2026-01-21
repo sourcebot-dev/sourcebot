@@ -20,20 +20,28 @@ import { ConnectionType, Org } from "@sourcebot/db";
 import { OrgMetadata, orgMetadataSchema } from "@/types";
 import { SINGLE_TENANT_ORG_DOMAIN } from "./constants";
 import { CodeHostType } from "@sourcebot/db";
+import { env } from "@sourcebot/shared";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
 /**
- * Gets the base URL from Next.js headers
+ * Gets the base URL from Next.js headers, falling back to AUTH_URL environment variable
  * @param headersList The headers from Next.js headers() function
  * @returns The base URL (e.g., "https://example.com")
  */
 export const getBaseUrl = (headersList: Headers): string => {
-    const host = headersList.get('host') || 'localhost:3000';
-    const protocol = headersList.get('x-forwarded-proto') || 'http';
-    return `${protocol}://${host}`;
+    const host = headersList.get('host');
+    const protocol = headersList.get('x-forwarded-proto');
+    
+    // If we have both host and protocol from headers, use them
+    if (host && protocol) {
+        return `${protocol}://${host}`;
+    }
+    
+    // Fall back to AUTH_URL environment variable
+    return env.AUTH_URL;
 }
 
 /**

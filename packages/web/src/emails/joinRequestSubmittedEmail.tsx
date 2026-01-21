@@ -127,15 +127,15 @@ const RequestorInfo = ({ email, name }: { email: string, name?: string }) => {
 }
 
 JoinRequestSubmittedEmail.PreviewProps = {
-    baseUrl: 'http://localhost:3000',
+    baseUrl: 'https://example.sourcebot.dev',
     requestor: {
         name: 'Alan Turing',
         email: 'alan.turing@example.com',
-        avatarUrl: `http://localhost:3000/placeholder_avatar.png`,
+        avatarUrl: SOURCEBOT_PLACEHOLDER_AVATAR_URL,
     },
     orgName: 'Enigma',
     orgDomain: '~',
-    orgImageUrl: `http://localhost:3000/placeholder_avatar.png`,
+    orgImageUrl: SOURCEBOT_PLACEHOLDER_AVATAR_URL,
 } satisfies JoinRequestSubmittedEmailProps;
 
 export default JoinRequestSubmittedEmail;
