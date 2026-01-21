@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped Node.js version to v24. [#753](https://github.com/sourcebot-dev/sourcebot/pull/753)
 
 ### Fixes
+- Fixed hardcoded localhost URLs in org URL and invite links by using AUTH_URL as fallback. [#764](https://github.com/sourcebot-dev/sourcebot/pull/764)
 - Fix autocomplete when repo includes default port [#762](https://github.com/sourcebot-dev/sourcebot/pull/762)
 - Fixed "Repository not found for file: x" error when searching in orphaned shards. [#761](https://github.com/sourcebot-dev/sourcebot/pull/761)
 

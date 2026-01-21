@@ -13,7 +13,7 @@ import {
     Text,
 } from '@react-email/components';
 import { EmailFooter } from './emailFooter';
-import { SOURCEBOT_LOGO_LIGHT_LARGE_URL } from './constants';
+import { SOURCEBOT_LOGO_LIGHT_LARGE_URL, SOURCEBOT_PLACEHOLDER_AVATAR_URL } from './constants';
 
 interface JoinRequestApprovedEmailProps {
     baseUrl: string;
@@ -83,11 +83,11 @@ export const JoinRequestApprovedEmail = ({
 };
 
 JoinRequestApprovedEmail.PreviewProps = {
-    baseUrl: 'http://localhost:3000',
+    baseUrl: 'https://sourcebot.example.com',
     user: {
         name: 'Alan Turing',
         email: 'alan.turing@example.com',
-        avatarUrl: `http://localhost:3000/placeholder_avatar.png`,
+        avatarUrl: SOURCEBOT_PLACEHOLDER_AVATAR_URL,
     },
     orgName: 'Enigma',
     orgDomain: '~',

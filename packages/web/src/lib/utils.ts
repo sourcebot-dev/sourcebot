@@ -26,17 +26,6 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Gets the base URL from Next.js headers
- * @param headersList The headers from Next.js headers() function
- * @returns The base URL (e.g., "https://example.com")
- */
-export const getBaseUrl = (headersList: Headers): string => {
-    const host = headersList.get('host') || 'localhost:3000';
-    const protocol = headersList.get('x-forwarded-proto') || 'http';
-    return `${protocol}://${host}`;
-}
-
-/**
  * Creates an invite link URL from the base URL and invite ID
  * @param baseUrl The base URL of the application
  * @param inviteLinkId The invite link ID
