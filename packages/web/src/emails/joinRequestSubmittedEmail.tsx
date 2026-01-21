@@ -127,7 +127,7 @@ const RequestorInfo = ({ email, name }: { email: string, name?: string }) => {
 }
 
 JoinRequestSubmittedEmail.PreviewProps = {
-    baseUrl: 'https://example.sourcebot.dev',
+    baseUrl: 'https://sourcebot.example.com',
     requestor: {
         name: 'Alan Turing',
         email: 'alan.turing@example.com',
