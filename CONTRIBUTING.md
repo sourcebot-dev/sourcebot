@@ -13,6 +13,11 @@
     snap install universal-ctags
     ```
 
+3. Install corepack:
+    ```sh
+    npm install -g corepack
+    ```
+
 3. Install `yarn`:
     ```sh
     npm install --global yarn
