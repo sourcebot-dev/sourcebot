@@ -1,4 +1,5 @@
-import { createInviteLink, getBaseUrl } from "@/lib/utils"
+import { createInviteLink } from "@/lib/utils"
+import { getBaseUrl } from "@/lib/utils.server"
 import { AnonymousAccessToggle } from "./anonymousAccessToggle"
 import { OrganizationAccessSettingsWrapper } from "./organizationAccessSettingsWrapper"
 import { getOrgFromDomain } from "@/data/org"
