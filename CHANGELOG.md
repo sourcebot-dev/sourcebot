@@ -7,13 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed "The data directory was initialized by PostgreSQL version 16, which is not compatible with this version 18.1" error when using the embedded database and upgrading to v14.10.13. [#770](https://github.com/sourcebot-dev/sourcebot/pull/770)
+
 ## [4.10.13] - 2026-01-21
 
 ### Changed
 - Bumped AI SDK and associated packages version. [#752](https://github.com/sourcebot-dev/sourcebot/pull/752)
 - Bumped Node.js version to v24. [#753](https://github.com/sourcebot-dev/sourcebot/pull/753)
 
-### Fixes
+### Fixed
 - Fixed hardcoded localhost URLs in org URL and invite links by using AUTH_URL as fallback. [#764](https://github.com/sourcebot-dev/sourcebot/pull/764)
 - Fix autocomplete when repo includes default port [#762](https://github.com/sourcebot-dev/sourcebot/pull/762)
 - Fixed "Repository not found for file: x" error when searching in orphaned shards. [#761](https://github.com/sourcebot-dev/sourcebot/pull/761)
