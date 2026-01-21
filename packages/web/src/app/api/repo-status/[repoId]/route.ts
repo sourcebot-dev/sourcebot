@@ -1,4 +1,4 @@
-import { getRepoInfo } from "@/app/askgh/[owner]/[repo]/api";
+import { getRepoInfo } from "@/app/[domain]/askgh/[owner]/[repo]/api";
 import { serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";

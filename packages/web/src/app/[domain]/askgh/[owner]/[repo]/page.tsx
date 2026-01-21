@@ -1,10 +1,13 @@
 import { addGithubRepo } from "@/features/workerApi/actions";
-import { RepoStatusDisplay } from "./components/repoStatusDisplay";
 import { isServiceError, unwrapServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { getRepoInfo } from "./api";
+import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
+import { RepoIndexedGuard } from "./components/repoIndexedGuard";
+import { LandingPage } from "./components/landingPage";
+import { getConfiguredLanguageModelsInfo } from "@/features/chat/actions";
 
 interface PageProps {
     params: Promise<{ owner: string; repo: string }>;
@@ -41,6 +44,19 @@ export default async function GitHubRepoPage(props: PageProps) {
     })();
 
     const repoInfo = await unwrapServiceError(getRepoInfo(repoId));
+    const languageModels = await unwrapServiceError(getConfiguredLanguageModelsInfo());
 
-    return <RepoStatusDisplay initialRepoInfo={repoInfo} />;
+    return (
+        <RepoIndexedGuard initialRepoInfo={repoInfo}>
+            <CustomSlateEditor>
+                <LandingPage
+                    languageModels={languageModels}
+                    repoName={repoInfo.name}
+                    repoDisplayName={repoInfo.displayName ?? undefined}
+                    imageUrl={repoInfo.imageUrl ?? undefined}
+                    repoId={repoInfo.id}
+                />
+            </CustomSlateEditor>
+        </RepoIndexedGuard>
+    )
 }

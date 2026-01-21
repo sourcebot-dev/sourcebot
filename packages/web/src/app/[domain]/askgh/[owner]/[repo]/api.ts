@@ -27,6 +27,7 @@ export const getRepoInfo = async (repoId: number): Promise<RepoInfo | ServiceErr
             id: repo.id,
             name: repo.name,
             displayName: repo.displayName,
+            imageUrl: repo.imageUrl,
             isIndexed: repo.indexedAt !== null,
         };
     })
