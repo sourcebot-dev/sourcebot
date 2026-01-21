@@ -68,7 +68,15 @@ export const addGithubRepo = async (owner: string, repo: string) => sew(() =>
             },
         });
 
+        if (!response.ok) {
+            return unexpectedError('Failed to add GitHub repo');
+        }
+
         const data = await response.json();
-        return data;
+        const schema = z.object({
+            jobId: z.string(),
+            repoId: z.number(),
+        });
+        return schema.parse(data);
     })
 );

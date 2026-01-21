@@ -116,6 +116,7 @@ export class Api {
         const record = createGitHubRepoRecord({
             repo: response.data,
             hostUrl: 'https://github.com',
+            isAutoCleanupDisabled: true,
         });
 
         const repo = await this.prisma.repo.create({
@@ -124,7 +125,7 @@ export class Api {
 
         const [jobId ] = await this.repoIndexManager.createJobs([repo], RepoIndexingJobType.INDEX);
 
-        res.status(200).json({ jobId });
+        res.status(200).json({ jobId, repoId: repo.id });
     }
 
     public async dispose() {

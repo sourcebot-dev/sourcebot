@@ -92,11 +92,13 @@ export const createGitHubRepoRecord = ({
     hostUrl,
     branches,
     tags,
+    isAutoCleanupDisabled,
 }: {
     repo: OctokitRepository,
     hostUrl: string,
     branches?: string[],
     tags?: string[],
+    isAutoCleanupDisabled?: boolean,
 }) => {
     const repoNameRoot = new URL(hostUrl)
         .toString()
@@ -121,6 +123,7 @@ export const createGitHubRepoRecord = ({
         isFork: repo.fork,
         isArchived: !!repo.archived,
         isPublic: isPublic,
+        isAutoCleanupDisabled,
         org: {
             connect: {
                 id: SINGLE_TENANT_ORG_ID,
