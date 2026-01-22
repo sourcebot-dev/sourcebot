@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Added `isBranchFilteringEnabled` flag to `search_finished` PostHog event. [#781](https://github.com/sourcebot-dev/sourcebot/pull/781)
+
 ## [4.10.15] - 2026-01-22
 
 ### Fixed

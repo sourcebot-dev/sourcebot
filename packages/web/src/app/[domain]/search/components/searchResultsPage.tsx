@@ -102,6 +102,13 @@ export const SearchResultsPage = ({
         ])
     }, [searchQuery, setSearchHistory]);
 
+    // Look for any files that are not on the default branch.
+    const isBranchFilteringEnabled = useMemo(() => {
+        return files.some((file) => {
+            return file.branches?.some((branch) => branch !== 'HEAD') ?? false;
+        });
+    }, [files]);
+
     useEffect(() => {
         if (isStreaming || !stats) {
             return;
@@ -138,6 +145,7 @@ export const SearchResultsPage = ({
             flushReason: stats.flushReason,
             fileLanguages,
             isSearchExhaustive: isExhaustive,
+            isBranchFilteringEnabled,
         });
     }, [
         captureEvent,
@@ -147,6 +155,7 @@ export const SearchResultsPage = ({
         stats,
         timeToSearchCompletionMs,
         timeToFirstSearchResultMs,
+        isBranchFilteringEnabled,
     ]);
 
     const onLoadMoreResults = useCallback(() => {
@@ -157,13 +166,7 @@ export const SearchResultsPage = ({
         router.push(url);
     }, [maxMatchCount, router, searchQuery, domain]);
 
-    // Look for any files that are not on the default branch.
-    const isBranchFilteringEnabled = useMemo(() => {
-        return files.some((file) => {
-            return file.branches?.some((branch) => branch !== 'HEAD') ?? false;
-        });
-    }, [files]);
-
+    
     return (
         <div className="flex flex-col h-screen overflow-clip">
             {/* TopBar */}
