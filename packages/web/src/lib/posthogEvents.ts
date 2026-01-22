@@ -27,7 +27,8 @@ export type PosthogEventMap = {
         regexpsConsidered: number,
         flushReason: string,
         fileLanguages: string[],
-        isSearchExhaustive: boolean
+        isSearchExhaustive: boolean,
+        isBranchFilteringEnabled: boolean,
     },
     ////////////////////////////////////////////////////////////////
     wa_trial_nav_pressed: {},
