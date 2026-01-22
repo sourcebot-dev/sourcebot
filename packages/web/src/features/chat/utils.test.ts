@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import { fileReferenceToString, getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences, buildSearchQuery } from './utils'
+import { fileReferenceToString, getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences, buildSearchQuery, escapeQueryForQuoting } from './utils'
 import { FILE_REFERENCE_REGEX, ANSWER_TAG } from './constants';
 import { SBChatMessage, SBChatMessagePart } from './types';
 
@@ -352,12 +352,32 @@ test('repairReferences handles malformed inline code blocks', () => {
     expect(repairReferences(input)).toBe(expected);
 });
 
-test('buildSearchQuery returns base query when no filters provided', () => {
+test('escapeQueryForQuoting escapes backslashes', () => {
+    expect(escapeQueryForQuoting('path\\to\\file')).toBe('path\\\\to\\\\file');
+});
+
+test('escapeQueryForQuoting escapes quotes', () => {
+    expect(escapeQueryForQuoting('say "hello"')).toBe('say \\"hello\\"');
+});
+
+test('escapeQueryForQuoting escapes newlines', () => {
+    expect(escapeQueryForQuoting('line1\nline2')).toBe('line1\\nline2');
+});
+
+test('escapeQueryForQuoting handles multiple special characters', () => {
+    expect(escapeQueryForQuoting('path\\to\\"file\n')).toBe('path\\\\to\\\\\\"file\\n');
+});
+
+test('escapeQueryForQuoting returns unchanged string with no special chars', () => {
+    expect(escapeQueryForQuoting('simple query')).toBe('simple query');
+});
+
+test('buildSearchQuery returns base query wrapped in quotes when no filters provided', () => {
     const result = buildSearchQuery({
         query: 'console.log'
     });
     
-    expect(result).toBe('console.log');
+    expect(result).toBe('"console.log"');
 });
 
 test('buildSearchQuery adds repoNamesFilter correctly', () => {
@@ -366,7 +386,7 @@ test('buildSearchQuery adds repoNamesFilter correctly', () => {
         repoNamesFilter: ['repo1', 'repo2']
     });
     
-    expect(result).toBe('function test reposet:repo1,repo2');
+    expect(result).toBe('"function test" reposet:repo1,repo2');
 });
 
 test('buildSearchQuery adds single repoNamesFilter correctly', () => {
@@ -375,7 +395,7 @@ test('buildSearchQuery adds single repoNamesFilter correctly', () => {
         repoNamesFilter: ['myrepo']
     });
     
-    expect(result).toBe('function test reposet:myrepo');
+    expect(result).toBe('"function test" reposet:myrepo');
 });
 
 test('buildSearchQuery ignores empty repoNamesFilter', () => {
@@ -384,7 +404,7 @@ test('buildSearchQuery ignores empty repoNamesFilter', () => {
         repoNamesFilter: []
     });
     
-    expect(result).toBe('function test');
+    expect(result).toBe('"function test"');
 });
 
 test('buildSearchQuery adds languageNamesFilter correctly', () => {
@@ -393,7 +413,7 @@ test('buildSearchQuery adds languageNamesFilter correctly', () => {
         languageNamesFilter: ['typescript', 'javascript']
     });
     
-    expect(result).toBe('class definition ( lang:typescript or lang:javascript )');
+    expect(result).toBe('"class definition" ( lang:typescript or lang:javascript )');
 });
 
 test('buildSearchQuery adds single languageNamesFilter correctly', () => {
@@ -402,7 +422,7 @@ test('buildSearchQuery adds single languageNamesFilter correctly', () => {
         languageNamesFilter: ['python']
     });
     
-    expect(result).toBe('class definition ( lang:python )');
+    expect(result).toBe('"class definition" ( lang:python )');
 });
 
 test('buildSearchQuery ignores empty languageNamesFilter', () => {
@@ -411,7 +431,7 @@ test('buildSearchQuery ignores empty languageNamesFilter', () => {
         languageNamesFilter: []
     });
     
-    expect(result).toBe('class definition');
+    expect(result).toBe('"class definition"');
 });
 
 test('buildSearchQuery adds fileNamesFilterRegexp correctly', () => {
@@ -420,7 +440,7 @@ test('buildSearchQuery adds fileNamesFilterRegexp correctly', () => {
         fileNamesFilterRegexp: ['*.ts', '*.js']
     });
     
-    expect(result).toBe('import statement ( file:*.ts or file:*.js )');
+    expect(result).toBe('"import statement" ( file:*.ts or file:*.js )');
 });
 
 test('buildSearchQuery adds single fileNamesFilterRegexp correctly', () => {
@@ -429,7 +449,7 @@ test('buildSearchQuery adds single fileNamesFilterRegexp correctly', () => {
         fileNamesFilterRegexp: ['*.tsx']
     });
     
-    expect(result).toBe('import statement ( file:*.tsx )');
+    expect(result).toBe('"import statement" ( file:*.tsx )');
 });
 
 test('buildSearchQuery ignores empty fileNamesFilterRegexp', () => {
@@ -438,7 +458,7 @@ test('buildSearchQuery ignores empty fileNamesFilterRegexp', () => {
         fileNamesFilterRegexp: []
     });
     
-    expect(result).toBe('import statement');
+    expect(result).toBe('"import statement"');
 });
 
 test('buildSearchQuery adds repoNamesFilterRegexp correctly', () => {
@@ -447,7 +467,7 @@ test('buildSearchQuery adds repoNamesFilterRegexp correctly', () => {
         repoNamesFilterRegexp: ['org/repo1', 'org/repo2']
     });
     
-    expect(result).toBe('bug fix ( repo:org/repo1 or repo:org/repo2 )');
+    expect(result).toBe('"bug fix" ( repo:org/repo1 or repo:org/repo2 )');
 });
 
 test('buildSearchQuery adds single repoNamesFilterRegexp correctly', () => {
@@ -456,7 +476,7 @@ test('buildSearchQuery adds single repoNamesFilterRegexp correctly', () => {
         repoNamesFilterRegexp: ['myorg/myrepo']
     });
     
-    expect(result).toBe('bug fix ( repo:myorg/myrepo )');
+    expect(result).toBe('"bug fix" ( repo:myorg/myrepo )');
 });
 
 test('buildSearchQuery ignores empty repoNamesFilterRegexp', () => {
@@ -465,7 +485,7 @@ test('buildSearchQuery ignores empty repoNamesFilterRegexp', () => {
         repoNamesFilterRegexp: []
     });
     
-    expect(result).toBe('bug fix');
+    expect(result).toBe('"bug fix"');
 });
 
 test('buildSearchQuery combines multiple filters correctly', () => {
@@ -478,7 +498,7 @@ test('buildSearchQuery combines multiple filters correctly', () => {
     });
     
     expect(result).toBe(
-        'authentication reposet:backend,frontend ( lang:typescript or lang:javascript ) ( file:*.ts or file:*.js ) ( repo:org/auth-* )'
+        '"authentication" reposet:backend,frontend ( lang:typescript or lang:javascript ) ( file:*.ts or file:*.js ) ( repo:org/auth-* )'
     );
 });
 
@@ -491,7 +511,7 @@ test('buildSearchQuery handles mixed empty and non-empty filters', () => {
         repoNamesFilterRegexp: ['error/*']
     });
     
-    expect(result).toBe('error handling ( lang:python ) ( repo:error/* )');
+    expect(result).toBe('"error handling" ( lang:python ) ( repo:error/* )');
 });
 
 test('buildSearchQuery handles empty base query', () => {
@@ -501,14 +521,67 @@ test('buildSearchQuery handles empty base query', () => {
         languageNamesFilter: ['typescript']
     });
     
-    expect(result).toBe(' reposet:repo1 ( lang:typescript )');
+    expect(result).toBe('"" reposet:repo1 ( lang:typescript )');
 });
 
-test('buildSearchQuery handles query with special characters', () => {
+test('buildSearchQuery handles query with embedded quotes', () => {
     const result = buildSearchQuery({
         query: 'console.log("hello world")',
         repoNamesFilter: ['test-repo']
     });
     
-    expect(result).toBe('console.log("hello world") reposet:test-repo');
+    // Quotes inside the query must be escaped
+    expect(result).toBe('"console.log(\\"hello world\\")" reposet:test-repo');
+});
+
+test('buildSearchQuery handles query with parentheses (the main bug fix)', () => {
+    // This is the main bug from issue SOU-245
+    // Searching for files with names like "(pr" should work
+    const result = buildSearchQuery({
+        query: '\\(pr',
+        repoNamesFilter: ['gitlab/example-repo']
+    });
+    
+    // The backslash-escaped parenthesis should be double-escaped in quotes
+    expect(result).toBe('"\\\\(pr" reposet:gitlab/example-repo');
+});
+
+test('buildSearchQuery handles query with literal parentheses', () => {
+    const result = buildSearchQuery({
+        query: 'function(args)',
+        repoNamesFilter: []
+    });
+    
+    // Parentheses are safely contained within quotes
+    expect(result).toBe('"function(args)"');
+});
+
+test('buildSearchQuery handles query with backslashes', () => {
+    const result = buildSearchQuery({
+        query: 'path\\to\\file',
+        repoNamesFilter: []
+    });
+    
+    // Backslashes must be escaped
+    expect(result).toBe('"path\\\\to\\\\file"');
+});
+
+test('buildSearchQuery handles query with newlines', () => {
+    const result = buildSearchQuery({
+        query: 'line1\nline2',
+        repoNamesFilter: []
+    });
+    
+    // Newlines must be escaped
+    expect(result).toBe('"line1\\nline2"');
+});
+
+test('buildSearchQuery handles regex pattern with special chars', () => {
+    const result = buildSearchQuery({
+        query: '\\[a-z\\]+',
+        repoNamesFilter: []
+    });
+    
+    // Regex special chars are preserved (backslashes are escaped)
+    expect(result).toBe('"\\\\[a-z\\\\]+"');
 });

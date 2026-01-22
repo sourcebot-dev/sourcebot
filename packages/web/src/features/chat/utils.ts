@@ -332,6 +332,28 @@ export const getAnswerPartFromAssistantMessage = (message: SBChatMessage, isStre
     return undefined;
 }
 
+/**
+ * Escapes special characters in a query string for safe inclusion in quotes.
+ * This is needed because the query language parser treats characters like
+ * parentheses `()` as grouping operators. By quoting the query and escaping
+ * internal special characters, we ensure the query is treated as a literal
+ * regex pattern.
+ *
+ * The query language's quoted string grammar is:
+ *   quotedString { '"' (!["\\\n] | "\\" _)* '"' }
+ *
+ * This means:
+ * - `\` must be escaped as `\\`
+ * - `"` must be escaped as `\"`
+ * - Newlines must be escaped as `\n`
+ */
+export const escapeQueryForQuoting = (query: string): string => {
+    return query
+        .replace(/\\/g, '\\\\')  // Escape backslashes first
+        .replace(/"/g, '\\"')    // Escape quotes
+        .replace(/\n/g, '\\n');  // Escape newlines
+};
+
 export const buildSearchQuery = (options: {
     query: string,
     repoNamesFilter?: string[],
@@ -347,7 +369,10 @@ export const buildSearchQuery = (options: {
         fileNamesFilterRegexp,
     } = options;
 
-    let query = `${_query}`;
+    // Wrap the query in quotes to ensure special characters (like parentheses)
+    // are not interpreted as query language operators.
+    const escapedQuery = escapeQueryForQuoting(_query);
+    let query = `"${escapedQuery}"`;
 
     if (repoNamesFilter && repoNamesFilter.length > 0) {
         query += ` reposet:${repoNamesFilter.join(',')}`;
