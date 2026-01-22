@@ -48,7 +48,18 @@ export const createAgentStream = async ({
             return null;
         }
 
-        return `Repository: ${repo}\nFile: AGENTS.md\nContent:\n${result.source}`;
+        let content = result.source;
+
+        // Security: Limit content length to prevent large context consumption
+        const MAX_LENGTH = 5000;
+        if (content.length > MAX_LENGTH) {
+            content = content.slice(0, MAX_LENGTH) + '\n... (truncated)';
+        }
+
+        // Security: Sanitize closing tags to prevent prompt injection
+        content = content.replace(/<\/repository_instructions>/g, '<\\/repository_instructions>');
+
+        return `Repository: ${repo}\nFile: AGENTS.md\nContent:\n${content}`;
     }));
 
     const agentsMdContent = agentsMdResults.filter((c) => c !== null).join('\n\n');
