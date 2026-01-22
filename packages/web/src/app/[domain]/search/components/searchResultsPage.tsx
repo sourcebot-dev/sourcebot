@@ -298,7 +298,7 @@ const PanelGroup = ({
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="flex flex-row items-center gap-2">
-                            <KeyboardShortcutHint shortcut="⌘ B" />
+                            <KeyboardShortcutHint shortcut="mod+b" />
                             <Separator orientation="vertical" className="h-4" />
                             <span>Open filter panel</span>
                         </TooltipContent>

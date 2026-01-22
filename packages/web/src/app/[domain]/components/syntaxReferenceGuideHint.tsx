@@ -11,7 +11,7 @@ export const SyntaxReferenceGuideHint = () => {
             className="text-sm cursor-pointer"
             onClick={() => onOpenChanged(!isOpen)}
         >
-            <span className="dark:text-gray-300">Reference guide: </span><KeyboardShortcutHint shortcut="⌘" /> <KeyboardShortcutHint shortcut="/" />
+            <span className="dark:text-gray-300">Reference guide: </span><KeyboardShortcutHint shortcut="mod" /> <KeyboardShortcutHint shortcut="/" />
         </div>
     )
 }
