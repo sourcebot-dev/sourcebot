@@ -57,7 +57,8 @@ export const createAgentStream = async ({
         }
 
         // Security: Sanitize closing tags to prevent prompt injection
-        content = content.replace(/<\/repository_instructions>/g, '<\\/repository_instructions>');
+        // We escape all closing XML-like tags to ensure the content cannot break out of the <repository_instructions> block
+        content = content.replace(/<\//g, '<\\/');
 
         return `Repository: ${repo}\nFile: AGENTS.md\nContent:\n${content}`;
     }));
