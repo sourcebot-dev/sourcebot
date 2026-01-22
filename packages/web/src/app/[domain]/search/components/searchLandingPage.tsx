@@ -81,7 +81,7 @@ export const SearchLandingPage = async ({
                                 <Query query={`"exit boot"`} domain={domain}>{`"exit boot"`}</Query> <QueryExplanation>(exact match)</QueryExplanation>
                             </QueryExample>
                             <QueryExample>
-                                <Query query="TODO case:yes" domain={domain}>TODO <Highlight>case:</Highlight>yes</Query> <QueryExplanation>(case sensitive)</QueryExplanation>
+                                <Query query="TODO" domain={domain} isCaseSensitivityEnabled={true}>TODO</Query> <QueryExplanation>(case sensitive)</QueryExplanation>
                             </QueryExample>
                         </HowToSection>
                         <HowToSection
@@ -158,10 +158,10 @@ const QueryExplanation = ({ children }: { children: React.ReactNode }) => {
     )
 }
 
-const Query = ({ query, domain, children }: { query: string, domain: string, children: React.ReactNode }) => {
+const Query = ({ query, domain, children, isCaseSensitivityEnabled = false }: { query: string, domain: string, children: React.ReactNode, isCaseSensitivityEnabled?: boolean }) => {
     return (
         <Link
-            href={`/${domain}/search?query=${query}`}
+            href={`/${domain}/search?query=${query}${isCaseSensitivityEnabled ? "&isCaseSensitivityEnabled=true" : ""}`}
             className="cursor-pointer hover:underline"
         >
             {children}
