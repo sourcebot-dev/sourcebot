@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Fixed
 - Fixed an issue where the value for ALWAYS_INDEX_FILE_PATTERNS env var wasn't being parsed correctly [#773](https://github.com/sourcebot-dev/sourcebot/pull/773)
 
 ## [4.10.14] - 2026-01-21
