@@ -981,6 +981,14 @@ const schema = {
                   ],
                   "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
                 },
+                "username": {
+                  "type": "string",
+                  "description": "The username to use for authentication."
+                },
+                "password": {
+                  "type": "string",
+                  "description": "The password (or HTTP password) to use for authentication."
+                },
                 "projects": {
                   "type": "array",
                   "items": {

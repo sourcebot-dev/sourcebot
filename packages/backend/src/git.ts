@@ -298,3 +298,31 @@ export const getCommitHashForRefName = async ({
         return undefined;
     }
 }
+
+export const getAllFiles = async (path: string) => {
+    const git = createGitClientForPath(path);
+    try {
+        const files = await git.raw(['ls-tree', '-r', '--name-only', 'HEAD']);
+        return files.split('\n').filter(f => f.length > 0);
+    } catch (err) {
+        logger.error(`Failed to get files for ${path}`, err);
+        return [];
+    }
+}
+
+export const getRecentCommits = async (path: string, limit = 100) => {
+    const git = createGitClientForPath(path);
+    try {
+        const log = await git.log({ maxCount: limit });
+        return log.all.map(commit => ({
+            hash: commit.hash,
+            date: new Date(commit.date).getTime(),
+            message: commit.message,
+            author_name: commit.author_name,
+            author_email: commit.author_email,
+        }));
+    } catch (err) {
+        logger.error(`Failed to get commits for ${path}`, err);
+        return [];
+    }
+}

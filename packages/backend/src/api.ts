@@ -7,12 +7,14 @@ import z from 'zod';
 import { ConnectionManager } from './connectionManager.js';
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from './repoIndexManager.js';
+import { TypesenseService } from './search/typesense.js';
 
 const logger = createLogger('api');
 const PORT = 3060;
 
 export class Api {
     private server: http.Server;
+    private typesenseService: TypesenseService;
 
     constructor(
         promClient: PromClient,
@@ -20,6 +22,7 @@ export class Api {
         private connectionManager: ConnectionManager,
         private repoIndexManager: RepoIndexManager,
     ) {
+        this.typesenseService = new TypesenseService();
         const app = express();
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
@@ -33,10 +36,35 @@ export class Api {
 
         app.post('/api/sync-connection', this.syncConnection.bind(this));
         app.post('/api/index-repo', this.indexRepo.bind(this));
+        app.get('/api/search/fuzzy', this.fuzzySearch.bind(this));
 
         this.server = app.listen(PORT, () => {
             logger.info(`API server is running on port ${PORT}`);
         });
+    }
+
+    private async fuzzySearch(req: Request, res: Response) {
+        const schema = z.object({
+            q: z.string().min(1),
+            type: z.enum(['repo', 'file', 'commit']).optional().default('repo'),
+            repoId: z.string().transform(val => parseInt(val)).optional(),
+        });
+
+        const parsed = schema.safeParse(req.query);
+        if (!parsed.success) {
+            res.status(400).json({ error: parsed.error.message });
+            return;
+        }
+
+        const { q, type, repoId } = parsed.data;
+
+        try {
+            const results = await this.typesenseService.search(q, type, repoId);
+            res.status(200).json(results);
+        } catch (error) {
+            logger.error('Fuzzy search failed', error);
+            res.status(500).json({ error: 'Internal server error during search' });
+        }
     }
 
     private async syncConnection(req: Request, res: Response) {

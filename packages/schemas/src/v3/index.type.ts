@@ -422,6 +422,14 @@ export interface GerritConnectionConfig {
    */
   url: string;
   /**
+   * The username to use for authentication.
+   */
+  username?: string;
+  /**
+   * The password (or HTTP password) to use for authentication.
+   */
+  password?: string;
+  /**
    * List of specific projects to sync. If not specified, all projects will be synced. Glob patterns are supported
    */
   projects?: string[];

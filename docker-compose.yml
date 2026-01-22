@@ -57,10 +57,29 @@ services:
     volumes:
       - sourcebot_redis_data:/data
 
+  typesense:
+    image: typesense/typesense:26.0
+    restart: always
+    ports:
+      - "8108:8108"
+    environment:
+      - TYPESENSE_DATA_DIR=/data
+      - TYPESENSE_API_KEY=${TYPESENSE_API_KEY:-xyz}
+      - TYPESENSE_ENABLE_CORS=true
+    volumes:
+      - sourcebot_typesense_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8108/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
 volumes:
   sourcebot_data:
     driver: local
   sourcebot_postgres_data:
     driver: local
   sourcebot_redis_data:
+    driver: local
+  sourcebot_typesense_data:
     driver: local
