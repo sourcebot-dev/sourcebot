@@ -172,7 +172,7 @@ export const ExploreMenu = ({
                             <TooltipContent side="top" align="center">
                                 Search all repositories
                                 <KeyboardShortcutHint
-                                    shortcut="⇧ A"
+                                    shortcut="shift+a"
                                     className="ml-2"
                                 />
                             </TooltipContent>

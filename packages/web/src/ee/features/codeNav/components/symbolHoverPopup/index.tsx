@@ -287,7 +287,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                         side="bottom"
                         className="flex flex-row items-center gap-2"
                     >
-                        <KeyboardShortcutHint shortcut="⌥ F12" />
+                        <KeyboardShortcutHint shortcut="alt+f12" />
                         <Separator orientation="vertical" className="h-4" />
                         <span>{`Go to ${symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 1 ? "definitions" : "definition"}`}</span>
                     </TooltipContent>
@@ -306,7 +306,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                         side="bottom"
                         className="flex flex-row items-center gap-2"
                     >
-                        <KeyboardShortcutHint shortcut="⌥ ⇧ F12" />
+                        <KeyboardShortcutHint shortcut="alt+shift+f12" />
                         <Separator orientation="vertical" className="h-4" />
                         <span>Find references</span>
                     </TooltipContent>

@@ -95,7 +95,7 @@ export const SearchModeSelector = ({
                                         <span>Search</span>
                                         <div className="flex flex-row items-center gap-2">
                                             <Separator orientation="vertical" className="h-4" />
-                                            <KeyboardShortcutHint shortcut="⌘ P" />
+                                            <KeyboardShortcutHint shortcut="mod+p" />
                                         </div>
                                     </div>
 
@@ -135,7 +135,7 @@ export const SearchModeSelector = ({
 
                                         <div className="flex flex-row items-center gap-2">
                                             <Separator orientation="vertical" className="h-4" />
-                                            <KeyboardShortcutHint shortcut="⌘ I" />
+                                            <KeyboardShortcutHint shortcut="mod+i" />
                                         </div>
                                     </div>
                                 </SelectItemNoItemText>
