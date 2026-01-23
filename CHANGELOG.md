@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Properly map all hotkeys in UI based on the platform [#784](https://github.com/sourcebot-dev/sourcebot/pull/784)
+- Allow parenthesis in query and filter terms [#788](https://github.com/sourcebot-dev/sourcebot/pull/788)
 
 ## [4.10.16] - 2026-01-22
 
