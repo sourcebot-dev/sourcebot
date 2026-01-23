@@ -212,7 +212,7 @@ or test
 
 ==>
 
-Program(⚠,Term)
+Program(AndExpr(Term,Term))
 
 # OR at end (or becomes term)
 
