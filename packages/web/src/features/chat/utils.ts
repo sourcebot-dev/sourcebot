@@ -1,5 +1,6 @@
 import { CreateUIMessage, TextUIPart, UIMessagePart } from "ai";
 import { Descendant, Editor, Point, Range, Transforms } from "slate";
+import { preprocessRegexp } from "@sourcebot/shared/client";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
 import {
     CustomEditor,
@@ -358,11 +359,13 @@ export const buildSearchQuery = (options: {
     }
 
     if (fileNamesFilterRegexp && fileNamesFilterRegexp.length > 0) {
-        query += ` ( file:${fileNamesFilterRegexp.join(' or file:')} )`;
+        const quotedFilters = fileNamesFilterRegexp.map(preprocessRegexp);
+        query += ` ( file:${quotedFilters.join(' or file:')} )`;
     }
 
     if (repoNamesFilterRegexp && repoNamesFilterRegexp.length > 0) {
-        query += ` ( repo:${repoNamesFilterRegexp.join(' or repo:')} )`;
+        const quotedFilters = repoNamesFilterRegexp.map(preprocessRegexp);
+        query += ` ( repo:${quotedFilters.join(' or repo:')} )`;
     }
 
     return query;

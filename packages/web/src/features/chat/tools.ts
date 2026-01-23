@@ -140,7 +140,8 @@ export type ReadFilesToolUIPart = ToolUIPart<{ [toolNames.readFiles]: ReadFilesT
 
 export const createCodeSearchTool = (selectedRepos: string[]) => tool({
     description: `Fetches code that matches the provided regex pattern in \`query\`. This is NOT a semantic search.
-    Results are returned as an array of matching files, with the file's URL, repository, and language.`,
+    Results are returned as an array of matching files, with the file's URL, repository, and language.
+    If the request is asking to search for a file, or asking to only search for results within a specific filepath, **YOU MUST** use the fileNamesFilterRegexp to properly fulfil this request.`,
     inputSchema: z.object({
         queryRegexp: z
             .string()
@@ -168,7 +169,7 @@ Multiple expressions can be or'd together with or, negated with -, or grouped wi
             .optional(),
         fileNamesFilterRegexp: z
             .array(z.string())
-            .describe(`Filter results from filepaths that match the regex. When this option is not specified, all files are searched.`)
+            .describe(`Filter results from filepaths that match the regex. When this option is not specified, all files are searched. If the regex expresion includes a paranthesis **YOU MUST** wrap this value in quotes when passing it in.`)
             .optional(),
         limit: z.number().default(10).describe("Maximum number of matches to return (default: 100)"),
     }),

@@ -3,6 +3,7 @@
 // Entry point for the MCP server
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { preprocessRegexp } from '@sourcebot/shared';
 import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
 import { listRepos, search, getFileSource } from './client.js';
@@ -25,7 +26,8 @@ server.tool(
     If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.
     If the \`includeCodeSnippets\` property is true, code snippets containing the matches will be included in the response. Only set this to true if the request requires code snippets (e.g., show me examples where library X is used).
     When referencing a file in your response, **ALWAYS** include the file's external URL as a link. This makes it easier for the user to view the file, even if they don't have it locally checked out.
-    **ONLY USE** the \`filterByRepoIds\` property if the request requires searching a specific repo(s). Otherwise, leave it empty.`,
+    **ONLY USE** the \`filterByRepoIds\` property if the request requires searching a specific repo(s). Otherwise, leave it empty.
+    If the request is asking to search for a specific file or results for files in a specific file path, **YOU MUST** ensure that the \`filterByFile\` property is used.`,
     {
         query: z
             .string()
@@ -40,6 +42,10 @@ server.tool(
         filterByLanguages: z
             .array(z.string())
             .describe(`Scope the search to the provided languages. The language MUST be formatted as a GitHub linguist language. Examples: Python, JavaScript, TypeScript, Java, C#, C++, PHP, Go, Rust, Ruby, Swift, Kotlin, Shell, C, Dart, HTML, CSS, PowerShell, SQL, R`)
+            .optional(),
+        filterByFile: z
+            .array(z.string())
+            .describe("Scope the search to results inside filepaths that match the provided regex expression. By default all files are searched, so **only use this filter if you need to filter on specific files**. **YOU MUST** ensure that this is a valid regex expression and any special characters are properly escaped. If the regex expresion includes a paranthesis **YOU MUST** wrap this value in quotes when passing it in.")
             .optional(),
         caseSensitive: z
             .boolean()
@@ -58,6 +64,7 @@ server.tool(
         query,
         filterByRepoIds: repoIds = [],
         filterByLanguages: languages = [],
+        filterByFile: filePath = [],
         maxTokens = env.DEFAULT_MINIMUM_TOKENS,
         includeCodeSnippets = false,
         caseSensitive = false,
@@ -68,6 +75,11 @@ server.tool(
 
         if (languages.length > 0) {
             query += ` ( lang:${languages.join(' or lang:')} )`;
+        }
+
+        if (filePath.length > 0) {
+            const quotedFilters = filePath.map(preprocessRegexp);
+            query += ` ( file:${quotedFilters.join(' or file:')} )`;
         }
 
         const response = await search({
