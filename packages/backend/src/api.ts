@@ -35,7 +35,7 @@ export class Api {
 
         app.post('/api/sync-connection', this.syncConnection.bind(this));
         app.post('/api/index-repo', this.indexRepo.bind(this));
-        app.post(`/api/experimental/add-github-repo`, this.addGithubRepo.bind(this));
+        app.post(`/api/experimental/add-github-repo`, this.experimental_addGithubRepo.bind(this));
 
         this.server = app.listen(PORT, () => {
             logger.info(`API server is running on port ${PORT}`);
@@ -95,7 +95,7 @@ export class Api {
         res.status(200).json({ jobId });
     }
 
-    private async addGithubRepo(req: Request, res: Response) {
+    private async experimental_addGithubRepo(req: Request, res: Response) {
         const schema = z.object({
             owner: z.string(),
             repo: z.string(),
