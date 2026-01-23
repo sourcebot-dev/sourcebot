@@ -8,7 +8,7 @@ import { Job, Queue, ReservedJob, Worker } from "groupmq";
 import { Redis } from 'ioredis';
 import micromatch from 'micromatch';
 import { GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS, INDEX_CACHE_DIR } from './constants.js';
-import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getTags, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
+import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
 import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
 import { RepoWithConnections, Settings } from "./types.js";
@@ -337,8 +337,6 @@ export class RepoIndexManager {
             }
         }
 
-        let defaultBranch: string | undefined = undefined;
-
         if (existsSync(repoPath) && !isReadOnly) {
             // @NOTE: in #483, we changed the cloning method s.t., we _no longer_
             // write the clone URL (which could contain a auth token) to the
@@ -353,7 +351,7 @@ export class RepoIndexManager {
             });
 
             logger.info(`Fetching ${repo.name} (id: ${repo.id})...`);
-            const { durationMs, data: remoteDefaultBranch } = await measure(() => fetchRepository({
+            const { durationMs } = await measure(() => fetchRepository({
                 cloneUrl: cloneUrlMaybeWithToken,
                 authHeader,
                 path: repoPath,
@@ -366,8 +364,6 @@ export class RepoIndexManager {
 
             process.stdout.write('\n');
             logger.info(`Fetched ${repo.name} (id: ${repo.id}) in ${fetchDuration_s}s`);
-
-            defaultBranch = remoteDefaultBranch;
         } else if (!isReadOnly) {
             logger.info(`Cloning ${repo.name} (id: ${repo.id})...`);
 
@@ -396,6 +392,10 @@ export class RepoIndexManager {
                 signal,
             });
         }
+
+        const defaultBranch = await getLocalDefaultBranch({
+            path: repoPath,
+        });
 
         let revisions = defaultBranch ? [defaultBranch] : ['HEAD'];
 
