@@ -9,6 +9,7 @@ import { PromClient } from './promClient.js';
 import { RepoIndexManager } from './repoIndexManager.js';
 import { createGitHubRepoRecord } from './repoCompileUtils.js';
 import { Octokit } from '@octokit/rest';
+import { SINGLE_TENANT_ORG_ID } from './constants.js';
 
 const logger = createLogger('api');
 const PORT = 3060;
@@ -119,8 +120,16 @@ export class Api {
             isAutoCleanupDisabled: true,
         });
 
-        const repo = await this.prisma.repo.create({
-            data: record,
+        const repo = await this.prisma.repo.upsert({
+            where: {
+                external_id_external_codeHostUrl_orgId: {
+                    external_id: record.external_id,
+                    external_codeHostUrl: record.external_codeHostUrl,
+                    orgId: SINGLE_TENANT_ORG_ID,
+                }
+            },
+            update: record,
+            create: record,
         });
 
         const [jobId ] = await this.repoIndexManager.createJobs([repo], RepoIndexingJobType.INDEX);
