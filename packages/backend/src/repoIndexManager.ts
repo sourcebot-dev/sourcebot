@@ -8,7 +8,7 @@ import { Job, Queue, ReservedJob, Worker } from "groupmq";
 import { Redis } from 'ioredis';
 import micromatch from 'micromatch';
 import { GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS, INDEX_CACHE_DIR } from './constants.js';
-import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getTags, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
+import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
 import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
 import { RepoWithConnections, Settings } from "./types.js";
@@ -364,7 +364,6 @@ export class RepoIndexManager {
 
             process.stdout.write('\n');
             logger.info(`Fetched ${repo.name} (id: ${repo.id}) in ${fetchDuration_s}s`);
-
         } else if (!isReadOnly) {
             logger.info(`Cloning ${repo.name} (id: ${repo.id})...`);
 
@@ -394,9 +393,11 @@ export class RepoIndexManager {
             });
         }
 
-        let revisions = [
-            'HEAD'
-        ];
+        const defaultBranch = await getLocalDefaultBranch({
+            path: repoPath,
+        });
+
+        let revisions = defaultBranch ? [defaultBranch] : ['HEAD'];
 
         if (metadata.branches) {
             const branchGlobs = metadata.branches

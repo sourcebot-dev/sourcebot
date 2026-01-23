@@ -31,6 +31,7 @@ interface FileHeaderProps {
         displayName?: string;
         webUrl?: string;
     },
+    isBranchDisplayNameVisible?: boolean;
     branchDisplayName?: string;
     branchDisplayTitle?: string;
     isCodeHostIconVisible?: boolean;
@@ -53,6 +54,7 @@ export const PathHeader = ({
     path,
     pathHighlightRange,
     branchDisplayName,
+    isBranchDisplayNameVisible = !!branchDisplayName,
     branchDisplayTitle,
     pathType = 'blob',
     isCodeHostIconVisible = true,
@@ -224,7 +226,7 @@ export const PathHeader = ({
             >
                 {info?.displayName}
             </Link>
-            {branchDisplayName && (
+            {(isBranchDisplayNameVisible && branchDisplayName) && (
                 <p
                     className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-[3px] flex items-center gap-0.5"
                     title={branchDisplayTitle}

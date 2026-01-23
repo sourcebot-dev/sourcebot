@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Properly map all hotkeys in UI based on the platform [#784](https://github.com/sourcebot-dev/sourcebot/pull/784)
 - Allow parenthesis in query and filter terms [#788](https://github.com/sourcebot-dev/sourcebot/pull/788)
+- Fixed issue where Sourcebot would not index the new default branch when changed. [#789](https://github.com/sourcebot-dev/sourcebot/pull/789)
+
+### Changed
+- Changed the UI to display the default branch name instead of HEAD where applicable. [#789](https://github.com/sourcebot-dev/sourcebot/pull/789)
 
 ## [4.10.16] - 2026-01-22
 
