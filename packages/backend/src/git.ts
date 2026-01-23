@@ -120,10 +120,21 @@ export const fetchRepository = async (
         await git.fetch([
             cloneUrl,
             "+refs/heads/*:refs/heads/*",
-            "+HEAD:HEAD",
             "--prune",
             "--progress"
         ]);
+
+        // Update HEAD to match the remote's default branch. This handles the case where the remote's
+        // default branch changes.
+        const remoteHead = await git.raw(['ls-remote', '--symref', cloneUrl, 'HEAD']);
+        const match = remoteHead.match(/^ref: refs\/heads\/(\S+)\s+HEAD/m);
+        if (match) {
+            const defaultBranch = match[1];
+            await git.raw(['symbolic-ref', 'HEAD', `refs/heads/${defaultBranch}`]);
+            return defaultBranch;
+        }
+
+        return undefined;
     } catch (error: unknown) {
         const baseLog = `Failed to fetch repository: ${path}`;
         if (env.SOURCEBOT_LOG_LEVEL !== "debug") {

@@ -104,10 +104,8 @@ export const SearchResultsPage = ({
 
     // Look for any files that are not on the default branch.
     const isBranchFilteringEnabled = useMemo(() => {
-        return files.some((file) => {
-            return file.branches?.some((branch) => branch !== 'HEAD') ?? false;
-        });
-    }, [files]);
+        return searchQuery.includes('rev:');
+    }, [searchQuery]);
 
     useEffect(() => {
         if (isStreaming || !stats) {

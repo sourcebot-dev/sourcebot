@@ -337,6 +337,8 @@ export class RepoIndexManager {
             }
         }
 
+        let defaultBranch: string | undefined = undefined;
+
         if (existsSync(repoPath) && !isReadOnly) {
             // @NOTE: in #483, we changed the cloning method s.t., we _no longer_
             // write the clone URL (which could contain a auth token) to the
@@ -351,7 +353,7 @@ export class RepoIndexManager {
             });
 
             logger.info(`Fetching ${repo.name} (id: ${repo.id})...`);
-            const { durationMs } = await measure(() => fetchRepository({
+            const { durationMs, data: remoteDefaultBranch } = await measure(() => fetchRepository({
                 cloneUrl: cloneUrlMaybeWithToken,
                 authHeader,
                 path: repoPath,
@@ -365,6 +367,7 @@ export class RepoIndexManager {
             process.stdout.write('\n');
             logger.info(`Fetched ${repo.name} (id: ${repo.id}) in ${fetchDuration_s}s`);
 
+            defaultBranch = remoteDefaultBranch;
         } else if (!isReadOnly) {
             logger.info(`Cloning ${repo.name} (id: ${repo.id})...`);
 
@@ -394,9 +397,7 @@ export class RepoIndexManager {
             });
         }
 
-        let revisions = [
-            'HEAD'
-        ];
+        let revisions = defaultBranch ? [defaultBranch] : ['HEAD'];
 
         if (metadata.branches) {
             const branchGlobs = metadata.branches
