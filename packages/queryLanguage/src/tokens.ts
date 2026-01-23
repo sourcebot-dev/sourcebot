@@ -106,19 +106,26 @@ function startsWithPrefix(input: InputStream): boolean {
  * Checks if a '(' at the given offset starts a balanced ParenExpr.
  * Uses peek() to avoid modifying stream position.
  * Returns true if we find a matching ')' that closes the initial '('.
+ * Handles escaped characters (backslash followed by any character).
  */
 function hasBalancedParensAt(input: InputStream, startOffset: number): boolean {
     if (input.peek(startOffset) !== OPEN_PAREN) {
         return false;
     }
-    
+
     let offset = startOffset + 1;
     let depth = 1;
-    
+
     while (true) {
         const ch = input.peek(offset);
         if (ch === EOF) break;
-        
+
+        // Handle escaped characters - skip the next character after a backslash
+        if (ch === 92 /* backslash */) {
+            offset += 2; // Skip backslash and the escaped character
+            continue;
+        }
+
         if (ch === OPEN_PAREN) {
             depth++;
         } else if (ch === CLOSE_PAREN) {
@@ -129,7 +136,7 @@ function hasBalancedParensAt(input: InputStream, startOffset: number): boolean {
         }
         offset++;
     }
-    
+
     return false;
 }
 
@@ -139,6 +146,7 @@ function hasBalancedParensAt(input: InputStream, startOffset: number): boolean {
  *
  * We only consider a '(' as a ParenExpr start if it's preceded by whitespace or
  * start-of-input, since "test()" has a '(' that's part of a word, not a ParenExpr.
+ * Handles escaped characters (backslash followed by any character).
  */
 function hasUnmatchedOpenParen(input: InputStream): boolean {
     // Count parens backwards from current position
@@ -153,27 +161,42 @@ function hasUnmatchedOpenParen(input: InputStream): boolean {
             return depth < 0;
         }
 
+        // Check if this character is escaped (preceded by backslash)
+        // Note: we need to be careful about escaped backslashes (\\)
+        // For simplicity, if we see a backslash immediately before, skip this char
+        const prevCh = input.peek(offset - 1);
+        if (prevCh === 92 /* backslash */) {
+            // Check if the backslash itself is escaped
+            const prevPrevCh = input.peek(offset - 2);
+            if (prevPrevCh !== 92) {
+                // Single backslash - this char is escaped, skip it
+                offset--;
+                continue;
+            }
+            // Double backslash - the backslash is escaped, so current char is not
+        }
+
         if (ch === CLOSE_PAREN) {
             depth++;
         } else if (ch === OPEN_PAREN) {
             // Check what's before this '('
-            const prevCh = input.peek(offset - 1);
+            const beforeParen = input.peek(offset - 1);
 
             // A '(' starts a ParenExpr if it's preceded by:
             // - EOF or whitespace (e.g., "(hello)" or "test (hello)")
             // - '-' for negation (e.g., "-(hello)")
             // - ':' for prefix values (e.g., "repo:(foo or bar)")
             const isDefinitelyParenExprStart =
-                prevCh === EOF ||
-                isWhitespace(prevCh) ||
-                prevCh === DASH ||
-                prevCh === COLON;
+                beforeParen === EOF ||
+                isWhitespace(beforeParen) ||
+                beforeParen === DASH ||
+                beforeParen === COLON;
 
             // Special case: '(' preceded by '(' could be nested ParenExprs like "((hello))"
             // BUT it could also be part of a word like "test((nested))"
             // To distinguish: if prev is '(', check what's before THAT '('
             let isParenExprStart = isDefinitelyParenExprStart;
-            if (!isParenExprStart && prevCh === OPEN_PAREN) {
+            if (!isParenExprStart && beforeParen === OPEN_PAREN) {
                 // Check what's before the previous '('
                 const prevPrevCh = input.peek(offset - 2);
                 // Only count as ParenExpr if the preceding '(' is also at a token boundary
@@ -192,7 +215,7 @@ function hasUnmatchedOpenParen(input: InputStream): boolean {
                     return true;
                 }
             }
-            // If prevCh is something else, this '(' is part of a word like "test()"
+            // If beforeParen is something else, this '(' is part of a word like "test()"
             // Don't count it in our depth tracking
         }
         offset--;

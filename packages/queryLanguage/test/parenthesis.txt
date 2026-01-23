@@ -149,3 +149,11 @@ file:(test search
 ==>
 
 Program(AndExpr(PrefixExpr(FileExpr),Term))
+
+# Grouped file filter with parenthesis
+
+( file:\(pr )
+
+==>
+
+Program(ParenExpr(PrefixExpr(FileExpr)))
