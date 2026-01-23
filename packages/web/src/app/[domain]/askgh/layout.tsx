@@ -1,16 +1,14 @@
 import { redirect } from "next/navigation";
 import { env } from "@sourcebot/shared";
 
-export default function AskGHLayout({
-    children,
-    params,
-}: {
+export default async function AskGHLayout(props: {
     children: React.ReactNode;
-    params: { domain: string };
+    params: Promise<{ domain: string }>;
 }) {
+    const params = await props.params;
     if (env.EXPERIMENT_ASK_GH_ENABLED !== 'true') {
         redirect(`/${params.domain}`);
     }
 
-    return <>{children}</>;
+    return <>{props.children}</>;
 }
