@@ -120,6 +120,7 @@ export const fetchRepository = async (
         await git.fetch([
             cloneUrl,
             "+refs/heads/*:refs/heads/*",
+            "+HEAD:HEAD",
             "--prune",
             "--progress"
         ]);
