@@ -1,0 +1,159 @@
+# Escaped parenthesis in file prefix value
+
+file:\(pr
+
+==>
+
+Program(PrefixExpr(FileExpr))
+
+# Parenthesis in file prefix value
+
+file:(pr
+
+==>
+
+Program(PrefixExpr(FileExpr))
+
+# Literal open parenthesis at end of term
+
+test(
+
+==>
+
+Program(Term)
+
+# Parenthesis in the middle of a term
+
+test(test
+
+==>
+
+Program(Term)
+
+# Closing parenthesis at end of term
+
+test)
+
+==>
+
+Program(Term)
+
+# Closing parenthesis in middle of term
+
+test)test
+
+==>
+
+Program(Term)
+
+# Both parentheses in term (function call pattern)
+
+test()
+
+==>
+
+Program(Term)
+
+# Function with argument pattern
+
+func(arg)
+
+==>
+
+Program(Term)
+
+# File prefix with closing parenthesis
+
+file:)pr
+
+==>
+
+Program(PrefixExpr(FileExpr))
+
+# File prefix with value containing parens
+
+file:test()
+
+==>
+
+Program(PrefixExpr(FileExpr))
+
+# Content prefix with parenthesis
+
+content:(test
+
+==>
+
+Program(PrefixExpr(ContentExpr))
+
+# Repo prefix with parenthesis
+
+repo:(org
+
+==>
+
+Program(PrefixExpr(RepoExpr))
+
+# Multiple parens in term
+
+test((nested))
+
+==>
+
+Program(Term)
+
+# Term with parens followed by valid grouping
+
+test( (grouped)
+
+==>
+
+Program(AndExpr(Term,ParenExpr(Term)))
+
+# Valid grouping still works
+
+(test)
+
+==>
+
+Program(ParenExpr(Term))
+
+# Valid nested grouping still works
+
+((nested))
+
+==>
+
+Program(ParenExpr(ParenExpr(Term)))
+
+# Valid grouping with multiple terms
+
+(one two)
+
+==>
+
+Program(ParenExpr(AndExpr(Term,Term)))
+
+# Mixed: term with paren and valid grouping
+
+func( (a or b)
+
+==>
+
+Program(AndExpr(Term,ParenExpr(OrExpr(Term,Term))))
+
+# Prefix with paren value followed by term
+
+file:(test search
+
+==>
+
+Program(AndExpr(PrefixExpr(FileExpr),Term))
+
+# Grouped file filter with parenthesis
+
+( file:\(pr )
+
+==>
+
+Program(ParenExpr(PrefixExpr(FileExpr)))
