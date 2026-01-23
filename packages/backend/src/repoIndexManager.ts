@@ -160,6 +160,7 @@ export class RepoIndexManager {
                 connections: {
                     none: {}
                 },
+                isAutoCleanupDisabled: false,
                 OR: [
                     { indexedAt: null },
                     { indexedAt: { lt: gcGracePeriodMs } },

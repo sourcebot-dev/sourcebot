@@ -29,8 +29,6 @@ export const LandingPageChatBox = ({
 
     return (
         <div className="w-full max-w-[800px] mt-4">
-           
-
             <div className="border rounded-md w-full shadow-sm">
                 <ChatBox
                     onSubmit={(children) => {
