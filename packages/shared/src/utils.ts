@@ -87,10 +87,6 @@ export const getConfigSettings = async (configPath?: string): Promise<ConfigSett
     }
 }
 
-
-// @todo: this is duplicated from the `getRepoPath` function in the
-// backend's `utils.ts` file. Eventually we should move this to a shared
-// package.
 export const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } => {
     // If we are dealing with a local repository, then use that as the path.
     // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.

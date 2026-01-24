@@ -8,6 +8,7 @@ import { parseQuerySyntaxIntoIR } from './parser';
 import { SearchOptions } from "./types";
 import { createZoektSearchRequest, zoektSearch, zoektStreamSearch } from './zoektSearcher';
 
+
 type QueryStringSearchRequest = {
     queryType: 'string';
     query: string;
@@ -45,7 +46,6 @@ export const search = (request: SearchRequest) => sew(() =>
 
 export const streamSearch = (request: SearchRequest) => sew(() =>
     withOptionalAuthV2(async ({ prisma, user }) => {
-        // Get repos filtered by permissions (if enabled)
         const repoSearchScope = await getAccessibleRepoNamesForUser({ user, prisma });
 
         // If needed, parse the query syntax into the query intermediate representation.

@@ -8,20 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Added comprehensive relative date support for all temporal parameters (e.g., "30 days ago", "last week", "yesterday")
-- Added `search_commits` tool to search commits by actual commit time with full temporal filtering. Accepts both numeric database IDs (e.g., 123) and string repository names (e.g., "github.com/owner/repo") for the `repoId` parameter, allowing direct use of repository names from `list_repos` output
-- Added `since`/`until` parameters to `search_code` (filters by index time - when Sourcebot indexed the repo)
-- Added `gitRevision` parameter to `search_code`
-- Added `activeAfter`/`activeBefore` parameters to `list_repos` (filters by index time - when Sourcebot indexed the repo)
-- Added date range validation to prevent invalid date ranges (since > until)
-- Added 30-second timeout for git operations to handle large repositories
-- Added enhanced error messages for git operations (timeout, repository not found, invalid git repository, ambiguous arguments)
-- Added clarification that repositories must be cloned on Sourcebot server disk for `search_commits` to work
-- Added comprehensive temporal parameter documentation to README with clear distinction between index time and commit time filtering
-- Added comprehensive unit tests for date parsing utilities (90+ test cases)
-- Added unit tests for git commit search functionality with mocking
-- Added integration tests for temporal parameter validation
-- Added unit tests for repository identifier resolution (both string and number types)
+- Added `search_commits` tool to search a repos commit history. [#625](https://github.com/sourcebot-dev/sourcebot/pull/625)
+- Added `gitRevision` parameter to the `search_code` tool to allow for searching on different branches. [#625](https://github.com/sourcebot-dev/sourcebot/pull/625)
 
 ## [1.0.12] - 2026-01-13
 

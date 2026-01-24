@@ -21,9 +21,7 @@ export const search = async (request: SearchRequest): Promise<SearchResponse | S
 }
 
 export const listRepos = async (): Promise<ListRepositoriesResponse | ServiceError> => {
-    const url = new URL(`${env.SOURCEBOT_HOST}/api/repos`);
-
-    const result = await fetch(url.toString(), {
+    const result = await fetch(`${env.SOURCEBOT_HOST}/api/repos`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',

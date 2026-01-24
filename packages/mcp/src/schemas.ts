@@ -203,7 +203,7 @@ export const searchCommitsRequestSchema = z.object({
     maxCount: z.number().int().positive().max(500).optional(),
 });
 
-export const commitSchema = z.object({
+export const searchCommitsResponseSchema = z.array(z.object({
     hash: z.string(),
     date: z.string(),
     message: z.string(),
@@ -211,6 +211,4 @@ export const commitSchema = z.object({
     body: z.string(),
     author_name: z.string(),
     author_email: z.string(),
-});
-
-export const searchCommitsResponseSchema = z.array(commitSchema);
+}));

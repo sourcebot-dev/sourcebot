@@ -166,8 +166,6 @@ For a more detailed guide, checkout [the docs](https://docs.sourcebot.dev/docs/f
 
 Fetches code that matches the provided regex pattern in `query`.
 
-**Temporal Filtering**: Use `since` and `until` to filter by repository index time (when Sourcebot last indexed the repo). This is different from commit time. See `search_commits` for commit-time filtering.
-
 <details>
 <summary>Parameters</summary>
 
@@ -178,9 +176,6 @@ Fetches code that matches the provided regex pattern in `query`.
 | `filterByLanguages`   | no       | Restrict search to specific languages (GitHub linguist format, e.g., Python, JavaScript).                                         |
 | `caseSensitive`       | no       | Case sensitive search (default: false).                                                                                           |
 | `includeCodeSnippets` | no       | Include code snippets in results (default: false).                                                                                |
-| `gitRevision`         | no       | Git revision to search (e.g., 'main', 'develop', 'v1.0.0'). Defaults to HEAD.                                                    |
-| `since`               | no       | Only search repos indexed after this date. Supports ISO 8601 or relative (e.g., "30 days ago").                                   |
-| `until`               | no       | Only search repos indexed before this date. Supports ISO 8601 or relative (e.g., "yesterday").                                    |
 | `maxTokens`           | no       | Max tokens to return (default: env.DEFAULT_MINIMUM_TOKENS).                                                                       |
 </details>
 
@@ -189,18 +184,14 @@ Fetches code that matches the provided regex pattern in `query`.
 
 Lists repositories indexed by Sourcebot with optional filtering and pagination.
 
-**Temporal Filtering**: Use `activeAfter` and `activeBefore` to filter by repository index time (when Sourcebot last indexed the repo). This is the same filtering behavior as `search_code`'s `since`/`until` parameters.
-
 <details>
 <summary>Parameters</summary>
 
-| Name            | Required | Description                                                                                    |
-|:----------------|:---------|:-----------------------------------------------------------------------------------------------|
-| `query`         | no       | Filter repositories by name (case-insensitive).                                                |
-| `pageNumber`    | no       | Page number (1-indexed, default: 1).                                                           |
-| `limit`         | no       | Number of repositories per page (default: 50).                                                 |
-| `activeAfter`   | no       | Only return repos indexed after this date. Supports ISO 8601 or relative (e.g., "30 days ago"). |
-| `activeBefore`  | no       | Only return repos indexed before this date. Supports ISO 8601 or relative (e.g., "yesterday").  |
+| Name         | Required | Description                                                         |
+|:-------------|:---------|:--------------------------------------------------------------------|
+| `query`      | no       | Filter repositories by name (case-insensitive).                     |
+| `pageNumber` | no       | Page number (1-indexed, default: 1).                                |
+| `limit`      | no       | Number of repositories per page (default: 50).                      |
 
 </details>
 
@@ -219,11 +210,7 @@ Fetches the source code for a given file.
 
 ### search_commits
 
-Searches for commits in a specific repository based on actual commit time (NOT index time).
-
-**Requirements**: Repository must be cloned on the Sourcebot server disk. Sourcebot automatically clones repositories during indexing, but the cloning process may not be finished when this query is executed. Use `list_repos` first to get the repository ID.
-
-**Date Formats**: Supports ISO 8601 dates (e.g., "2024-01-01") and relative formats (e.g., "30 days ago", "last week", "yesterday").
+Searches for commits in a specific repository based on actual commit time.
 
 <details>
 <summary>Parameters</summary>
@@ -238,17 +225,6 @@ Searches for commits in a specific repository based on actual commit time (NOT i
 | `maxCount` | no       | Maximum number of commits to return (default: 50).                                             |
 
 </details>
-
-## Date Format Examples
-
-All temporal parameters support:
-- **ISO 8601**: `"2024-01-01"`, `"2024-12-31T23:59:59Z"`
-- **Relative dates**: `"30 days ago"`, `"1 week ago"`, `"last month"`, `"yesterday"`
-
-**Important**: Different tools filter by different time dimensions:
-- `search_code` `since`/`until`: Filters by **index time** (when Sourcebot indexed the repo)
-- `list_repos` `activeAfter`/`activeBefore`: Filters by **index time** (when Sourcebot indexed the repo)
-- `search_commits` `since`/`until`: Filters by **commit time** (actual git commit dates)
 
 
 ## Supported Code Hosts

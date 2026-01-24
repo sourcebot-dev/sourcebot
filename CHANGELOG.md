@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added ask sidebar to homepage. [#721](https://github.com/sourcebot-dev/sourcebot/pull/721)
+- Added endpoint for searching commit history for a git repository. [#625](https://github.com/sourcebot-dev/sourcebot/pull/625)
 
 ## [4.10.17] - 2026-01-23
 
@@ -162,7 +163,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.10.0] - 2025-11-24
 
 ### Added
-- Added temporal filtering to search and repository APIs with support for git branch/revision filtering and repository index date filtering (since/until parameters). Supports both ISO 8601 and relative date formats (e.g., "30 days ago", "last week").
 - Added support for streaming code search results. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
 - Added buttons to toggle case sensitivity and regex patterns. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
 - Added counts to members, requets, and invites tabs in the members settings. [#621](https://github.com/sourcebot-dev/sourcebot/pull/621)

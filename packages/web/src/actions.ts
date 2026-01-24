@@ -312,12 +312,12 @@ export const createApiKey = async (name: string, domain: string): Promise<{ key:
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org, userRole }) => {
             if (env.EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS === 'true' && userRole !== OrgRole.OWNER) {
-                logger.error(`API key creation is disabled for non-admin users. User ${userId} is not an owner.`);
-                return {
-                    statusCode: StatusCodes.FORBIDDEN,
-                    errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
-                    message: "API key creation is disabled for non-admin users.",
-                } satisfies ServiceError;
+               logger.error(`API key creation is disabled for non-admin users. User ${userId} is not an owner.`);
+               return {
+                statusCode: StatusCodes.FORBIDDEN,
+                errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+                message: "API key creation is disabled for non-admin users.",
+               } satisfies ServiceError;
             }
 
             const existingApiKey = await prisma.apiKey.findFirst({
@@ -465,7 +465,7 @@ export const getRepos = async ({
     take,
 }: {
     where?: Prisma.RepoWhereInput,
-    take?: number,
+    take?: number
 } = {}) => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {
         const repos = await prisma.repo.findMany({
