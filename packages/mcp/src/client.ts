@@ -20,14 +20,8 @@ export const search = async (request: SearchRequest): Promise<SearchResponse | S
     return searchResponseSchema.parse(result);
 }
 
-export const listRepos = async (params?: { activeAfter?: string, activeBefore?: string }): Promise<ListRepositoriesResponse | ServiceError> => {
+export const listRepos = async (): Promise<ListRepositoriesResponse | ServiceError> => {
     const url = new URL(`${env.SOURCEBOT_HOST}/api/repos`);
-    if (params?.activeAfter) {
-        url.searchParams.append('activeAfter', params.activeAfter);
-    }
-    if (params?.activeBefore) {
-        url.searchParams.append('activeBefore', params.activeBefore);
-    }
 
     const result = await fetch(url.toString(), {
         method: 'GET',

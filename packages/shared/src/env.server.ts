@@ -1,9 +1,12 @@
-import { createEnv } from "@t3-oss/env-core";
-import { z } from "zod";
-import { loadConfig } from "./utils.js";
-import { tenancyModeSchema } from "./types.js";
+import { indexSchema } from "@sourcebot/schemas/v3/index.schema";
 import { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
+import { createEnv } from "@t3-oss/env-core";
+import { Ajv } from "ajv";
+import { readFile } from 'fs/promises';
+import stripJsonComments from "strip-json-comments";
+import { z } from "zod";
 import { getTokenFromConfig } from "./crypto.js";
+import { tenancyModeSchema } from "./types.js";
 
 // Booleans are specified as 'true' or 'false' strings.
 const booleanSchema = z.enum(["true", "false"]);
@@ -12,6 +15,10 @@ const booleanSchema = z.enum(["true", "false"]);
 // coerce helps us convert them to numbers.
 // @see: https://zod.dev/?id=coercion-for-primitives
 const numberSchema = z.coerce.number();
+
+const ajv = new Ajv({
+    validateFormats: false,
+});
 
 export const resolveEnvironmentVariableOverridesFromConfig = async (config: SourcebotConfig): Promise<Record<string, string>> => {
     if (!config.environmentOverrides) {
@@ -43,6 +50,66 @@ export const resolveEnvironmentVariableOverridesFromConfig = async (config: Sour
     console.debug(`resolved environment variable overrides in ${end - start}ms`);
 
     return resolved;
+}
+
+export const isRemotePath = (path: string) => {
+    return path.startsWith('https://') || path.startsWith('http://');
+}
+
+export const loadConfig = async (configPath?: string): Promise<SourcebotConfig> => {
+    if (!configPath) {
+        throw new Error('CONFIG_PATH is required but not provided');
+    }
+
+    const configContent = await (async () => {
+        if (isRemotePath(configPath)) {
+            const response = await fetch(configPath);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch config file ${configPath}: ${response.statusText}`);
+            }
+            return response.text();
+        } else {
+            // Retry logic for handling race conditions with mounted volumes
+            const maxAttempts = 5;
+            const retryDelayMs = 2000;
+            let lastError: Error | null = null;
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                try {
+                    return await readFile(configPath, {
+                        encoding: 'utf-8',
+                    });
+                } catch (error) {
+                    lastError = error as Error;
+                    
+                    // Only retry on ENOENT errors (file not found)
+                    if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+                        throw error; // Throw immediately for non-ENOENT errors
+                    }
+                    
+                    // Log warning before retry (except on the last attempt)
+                    if (attempt < maxAttempts) {
+                        console.warn(`Config file not found, retrying in 2s... (Attempt ${attempt}/${maxAttempts})`);
+                        await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+                    }
+                }
+            }
+            
+            // If we've exhausted all retries, throw the last ENOENT error
+            if (lastError) {
+                throw lastError;
+            }
+            
+            throw new Error('Failed to load config after all retry attempts');
+        }
+    })();
+
+    const config = JSON.parse(stripJsonComments(configContent)) as SourcebotConfig;
+    const isValidConfig = ajv.validate(indexSchema, config);
+    if (!isValidConfig) {
+        throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}`);
+    }
+    return config;
 }
 
 // Merge process.env with environment variables resolved from config.json

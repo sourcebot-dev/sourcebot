@@ -5,7 +5,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
-import { listRepos, search, getFileSource, searchCommits } from './client.js';
+import { getFileSource, listRepos, search, searchCommits } from './client.js';
 import { env, numberSchema } from './env.js';
 import { listReposRequestSchema } from './schemas.js';
 import { TextContent } from './types.js';
@@ -53,14 +53,6 @@ server.tool(
             .string()
             .describe(`The git revision to search in (e.g., 'main', 'HEAD', 'v1.0.0', 'a1b2c3d'). If not provided, defaults to the default branch (usually 'main' or 'master').`)
             .optional(),
-        since: z
-            .string()
-            .describe(`Filter repositories by when they were last indexed by Sourcebot (NOT by commit time). Only searches in repos indexed after this date. Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago', 'last week', 'yesterday').`)
-            .optional(),
-        until: z
-            .string()
-            .describe(`Filter repositories by when they were last indexed by Sourcebot (NOT by commit time). Only searches in repos indexed before this date. Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday').`)
-            .optional(),
         maxTokens: numberSchema
             .describe(`The maximum number of tokens to return (default: ${env.DEFAULT_MINIMUM_TOKENS}). Higher values provide more context but consume more tokens. Values less than ${env.DEFAULT_MINIMUM_TOKENS} will be ignored.`)
             .transform((val) => (val < env.DEFAULT_MINIMUM_TOKENS ? env.DEFAULT_MINIMUM_TOKENS : val))
@@ -74,8 +66,6 @@ server.tool(
         includeCodeSnippets = false,
         caseSensitive = false,
         gitRevision,
-        since,
-        until,
     }) => {
         if (repoIds.length > 0) {
             query += ` ( repo:${repoIds.map(id => escapeStringRegexp(id)).join(' or repo:')} )`;
@@ -85,6 +75,10 @@ server.tool(
             query += ` ( lang:${languages.join(' or lang:')} )`;
         }
 
+        if (gitRevision) {
+            query += ` ( rev:${gitRevision} )`;
+        }
+
         const response = await search({
             query,
             matches: env.DEFAULT_MATCHES,
@@ -92,9 +86,6 @@ server.tool(
             isRegexEnabled: true,
             isCaseSensitivityEnabled: caseSensitive,
             source: 'mcp',
-            gitRevision,
-            since,
-            until,
         });
 
         if (isServiceError(response)) {
@@ -182,21 +173,9 @@ server.tool(
 
 server.tool(
     "search_commits",
-    `Searches for commits in a specific repository based on actual commit time (NOT index time).
-
-    **Requirements**: The repository must be cloned on the Sourcebot server disk. Sourcebot automatically clones repositories during indexing, but the cloning process may not be finished when this query is executed. If the repository is not found on the server disk, an error will be returned asking you to try again later.
-
-    **Date Formats**: Supports ISO 8601 (e.g., "2024-01-01") or relative formats (e.g., "30 days ago", "last week", "yesterday").
-
-    **YOU MUST** call 'list_repos' first to obtain the exact repository ID.
-
-    If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.`,
+    `Searches for commits in a specific repository based on actual commit time. If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.`,
     {
-        repoId: z.union([z.number(), z.string()]).describe(`Repository identifier. Can be either:
-        - Numeric database ID (e.g., 123)
-        - Full repository name (e.g., "github.com/owner/repo") as returned by 'list_repos'
-
-        **YOU MUST** call 'list_repos' first to obtain the repository identifier.`),
+        repoId: z.string().describe(`The repository to search commits in. This is the Sourcebot compatible repository ID as returned by 'list_repos'.`),
         query: z.string().describe(`Search query to filter commits by message content (case-insensitive).`).optional(),
         since: z.string().describe(`Show commits more recent than this date. Filters by actual commit time. Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago', 'last week').`).optional(),
         until: z.string().describe(`Show commits older than this date. Filters by actual commit time. Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday').`).optional(),
@@ -205,7 +184,7 @@ server.tool(
     },
     async ({ repoId, query, since, until, author, maxCount }) => {
         const result = await searchCommits({
-            repoId,
+            repository: repoId,
             query,
             since,
             until,
@@ -228,47 +207,14 @@ server.tool(
 
 server.tool(
     "list_repos",
-    `Lists repositories in the organization with optional filtering and pagination.
-
-    **Temporal Filtering**: When using 'activeAfter' or 'activeBefore', only repositories indexed within the specified timeframe are returned. This filters by when Sourcebot last indexed the repository (indexedAt), NOT by git commit dates. For commit-time filtering, use 'search_commits'. When temporal filters are applied, the output includes a 'lastIndexed' field showing when each repository was last indexed.
-
-    **Date Formats**: Supports ISO 8601 (e.g., "2024-01-01") and relative dates (e.g., "30 days ago", "last week", "yesterday").
-
-    If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.`,
-    {
-        query: z
-            .string()
-            .describe("Filter repositories by name (case-insensitive).")
-            .optional(),
-        pageNumber: z
-            .number()
-            .int()
-            .positive()
-            .describe("Page number (1-indexed, default: 1)")
-            .default(1),
-        limit: z
-            .number()
-            .int()
-            .positive()
-            .describe("Number of repositories per page (default: 50)")
-            .default(50),
-        activeAfter: z
-            .string()
-            .describe("Only return repositories indexed after this date (filters by indexedAt). Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago', 'last week').")
-            .optional(),
-        activeBefore: z
-            .string()
-            .describe("Only return repositories indexed before this date (filters by indexedAt). Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday').")
-            .optional(),
-    },
-    async ({ query, pageNumber = 1, limit = 50, activeAfter, activeBefore }: {
+    `Lists repositories in the organization with optional filtering and pagination. If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.`,
+    listReposRequestSchema.shape,
+    async ({ query, pageNumber = 1, limit = 50 }: {
         query?: string;
         pageNumber?: number;
         limit?: number;
-        activeAfter?: string;
-        activeBefore?: string;
     }) => {
-        const response = await listRepos({ activeAfter, activeBefore });
+        const response = await listRepos();
         if (isServiceError(response)) {
             return {
                 content: [{
@@ -298,17 +244,10 @@ server.tool(
 
         // Format output
         const content: TextContent[] = paginated.map(repo => {
-          const repoUrl = repo.webUrl ?? repo.repoCloneUrl;
-            let output = `id: ${repo.repoName}\nurl: ${repoUrl}`;
-
-            // Include indexedAt when temporal filtering is used
-            if ((activeAfter || activeBefore) && repo.indexedAt) {
-                output += `\nlastIndexed: ${repo.indexedAt.toISOString()}`;
-            }
-
+            const repoUrl = repo.webUrl ?? repo.repoCloneUrl;
             return {
                 type: "text",
-                text: output,
+                text: `id: ${repo.repoName}\nurl: ${repoUrl}`,
             }
         });
 
