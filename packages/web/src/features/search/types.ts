@@ -163,3 +163,13 @@ export const fileSourceResponseSchema = z.object({
     webUrl: z.string().optional(),
 });
 export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
+
+export const searchCommitsRequestSchema = z.object({
+    repository: z.string(),
+    query: z.string().optional(),
+    since: z.string().optional(),
+    until: z.string().optional(),
+    author: z.string().optional(),
+    maxCount: z.number().int().positive().max(500).optional(),
+});
+export type SearchCommitsRequest = z.infer<typeof searchCommitsRequestSchema>;

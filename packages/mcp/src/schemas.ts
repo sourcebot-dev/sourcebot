@@ -1,4 +1,4 @@
-// @NOTE : Please keep this file in sync with @sourcebot/web/src/features/search/schemas.ts
+// @NOTE : Please keep this file in sync with @sourcebot/web/src/features/search/types.ts
 // At some point, we should move these to a shared package...
 import { z } from "zod";
 
@@ -193,3 +193,22 @@ export const serviceErrorSchema = z.object({
     errorCode: z.string(),
     message: z.string(),
 });
+
+export const searchCommitsRequestSchema = z.object({
+    repository: z.string(),
+    query: z.string().optional(),
+    since: z.string().optional(),
+    until: z.string().optional(),
+    author: z.string().optional(),
+    maxCount: z.number().int().positive().max(500).optional(),
+});
+
+export const searchCommitsResponseSchema = z.array(z.object({
+    hash: z.string(),
+    date: z.string(),
+    message: z.string(),
+    refs: z.string(),
+    body: z.string(),
+    author_name: z.string(),
+    author_email: z.string(),
+}));

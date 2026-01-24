@@ -5,7 +5,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
-import { listRepos, search, getFileSource } from './client.js';
+import { getFileSource, listRepos, search, searchCommits } from './client.js';
 import { env, numberSchema } from './env.js';
 import { listReposRequestSchema } from './schemas.js';
 import { TextContent } from './types.js';
@@ -49,6 +49,10 @@ server.tool(
             .boolean()
             .describe(`Whether to include the code snippets in the response (default: false). If false, only the file's URL, repository, and language will be returned. Set to false to get a more concise response.`)
             .optional(),
+        gitRevision: z
+            .string()
+            .describe(`The git revision to search in (e.g., 'main', 'HEAD', 'v1.0.0', 'a1b2c3d'). If not provided, defaults to the default branch (usually 'main' or 'master').`)
+            .optional(),
         maxTokens: numberSchema
             .describe(`The maximum number of tokens to return (default: ${env.DEFAULT_MINIMUM_TOKENS}). Higher values provide more context but consume more tokens. Values less than ${env.DEFAULT_MINIMUM_TOKENS} will be ignored.`)
             .transform((val) => (val < env.DEFAULT_MINIMUM_TOKENS ? env.DEFAULT_MINIMUM_TOKENS : val))
@@ -61,6 +65,7 @@ server.tool(
         maxTokens = env.DEFAULT_MINIMUM_TOKENS,
         includeCodeSnippets = false,
         caseSensitive = false,
+        gitRevision,
     }) => {
         if (repoIds.length > 0) {
             query += ` ( repo:${repoIds.map(id => escapeStringRegexp(id)).join(' or repo:')} )`;
@@ -70,13 +75,17 @@ server.tool(
             query += ` ( lang:${languages.join(' or lang:')} )`;
         }
 
+        if (gitRevision) {
+            query += ` ( rev:${gitRevision} )`;
+        }
+
         const response = await search({
             query,
             matches: env.DEFAULT_MATCHES,
             contextLines: env.DEFAULT_CONTEXT_LINES,
             isRegexEnabled: true,
             isCaseSensitivityEnabled: caseSensitive,
-            source: 'mcp'
+            source: 'mcp',
         });
 
         if (isServiceError(response)) {
@@ -163,8 +172,42 @@ server.tool(
 );
 
 server.tool(
+    "search_commits",
+    `Searches for commits in a specific repository based on actual commit time. If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.`,
+    {
+        repoId: z.string().describe(`The repository to search commits in. This is the Sourcebot compatible repository ID as returned by 'list_repos'.`),
+        query: z.string().describe(`Search query to filter commits by message content (case-insensitive).`).optional(),
+        since: z.string().describe(`Show commits more recent than this date. Filters by actual commit time. Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago', 'last week').`).optional(),
+        until: z.string().describe(`Show commits older than this date. Filters by actual commit time. Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday').`).optional(),
+        author: z.string().describe(`Filter commits by author name or email (supports partial matches and patterns).`).optional(),
+        maxCount: z.number().int().positive().default(50).describe(`Maximum number of commits to return (default: 50).`),
+    },
+    async ({ repoId, query, since, until, author, maxCount }) => {
+        const result = await searchCommits({
+            repository: repoId,
+            query,
+            since,
+            until,
+            author,
+            maxCount,
+        });
+
+        if (isServiceError(result)) {
+            return {
+                content: [{ type: "text", text: `Error: ${result.message}` }],
+                isError: true,
+            };
+        }
+
+        return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+    }
+);
+
+server.tool(
     "list_repos",
-    "Lists repositories in the organization with optional filtering and pagination. If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.",
+    `Lists repositories in the organization with optional filtering and pagination. If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.`,
     listReposRequestSchema.shape,
     async ({ query, pageNumber = 1, limit = 50 }: {
         query?: string;

@@ -1,9 +1,9 @@
 import { Repo } from "@sourcebot/db";
-import { createLogger, env } from "@sourcebot/shared";
+import { createLogger, env, getRepoPath } from "@sourcebot/shared";
 import { exec } from "child_process";
 import { INDEX_CACHE_DIR } from "./constants.js";
 import { Settings } from "./types.js";
-import { getRepoPath, getShardPrefix } from "./utils.js";
+import { getShardPrefix } from "./utils.js";
 
 const logger = createLogger('zoekt');
 

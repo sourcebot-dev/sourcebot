@@ -208,6 +208,24 @@ Fetches the source code for a given file.
 | `repoId`     | yes      | The Sourcebot repository ID.                                     |
 </details>
 
+### search_commits
+
+Searches for commits in a specific repository based on actual commit time.
+
+<details>
+<summary>Parameters</summary>
+
+| Name       | Required | Description                                                                                    |
+|:-----------|:---------|:-----------------------------------------------------------------------------------------------|
+| `repoId`   | yes      | Repository identifier: either numeric database ID (e.g., 123) or full repository name (e.g., "github.com/owner/repo") as returned by `list_repos`. |
+| `query`    | no       | Search query to filter commits by message (case-insensitive).                                  |
+| `since`    | no       | Show commits after this date (by commit time). Supports ISO 8601 or relative formats.          |
+| `until`    | no       | Show commits before this date (by commit time). Supports ISO 8601 or relative formats.         |
+| `author`   | no       | Filter by author name or email (supports partial matches).                                     |
+| `maxCount` | no       | Maximum number of commits to return (default: 50).                                             |
+
+</details>
+
 
 ## Supported Code Hosts
 Sourcebot supports the following code hosts:

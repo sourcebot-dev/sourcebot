@@ -10,6 +10,8 @@ import {
     fileSourceRequestSchema,
     symbolSchema,
     serviceErrorSchema,
+    searchCommitsRequestSchema,
+    searchCommitsResponseSchema,
 } from "./schemas.js";
 import { z } from "zod";
 
@@ -29,3 +31,6 @@ export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
 export type TextContent = { type: "text", text: string };
 
 export type ServiceError = z.infer<typeof serviceErrorSchema>;
+
+export type SearchCommitsRequest = z.infer<typeof searchCommitsRequestSchema>;
+export type SearchCommitsResponse = z.infer<typeof searchCommitsResponseSchema>;

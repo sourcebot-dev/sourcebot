@@ -1,12 +1,9 @@
 import 'server-only';
 
 import { sew } from '@/actions';
-import { env } from '@sourcebot/shared';
 import { notFound, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuthV2 } from '@/withAuthV2';
-import { Repo } from '@sourcebot/db';
-import { createLogger } from '@sourcebot/shared';
-import path from 'path';
+import { createLogger, getRepoPath } from '@sourcebot/shared';
 import { simpleGit } from 'simple-git';
 import { FileTreeItem } from './types';
 import { buildFileTree, isPathValid, normalizePath } from './utils';
@@ -195,24 +192,3 @@ export const getFiles = async (params: { repoName: string, revisionName: string 
 
     }));
 
-// @todo: this is duplicated from the `getRepoPath` function in the
-// backend's `utils.ts` file. Eventually we should move this to a shared
-// package.
-const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } => {
-    // If we are dealing with a local repository, then use that as the path.
-    // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.
-    const cloneUrl = new URL(repo.cloneUrl);
-    if (repo.external_codeHostType === 'genericGitHost' && cloneUrl.protocol === 'file:') {
-        return {
-            path: cloneUrl.pathname,
-            isReadOnly: true,
-        }
-    }
-
-    const reposPath = path.join(env.DATA_CACHE_DIR, 'repos');
-
-    return {
-        path: path.join(reposPath, repo.id.toString()),
-        isReadOnly: false,
-    }
-}

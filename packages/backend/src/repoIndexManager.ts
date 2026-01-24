@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node';
 import { PrismaClient, Repo, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
 import { createLogger, Logger } from "@sourcebot/shared";
-import { env, RepoIndexingJobMetadata, repoIndexingJobMetadataSchema, RepoMetadata, repoMetadataSchema } from '@sourcebot/shared';
+import { env, RepoIndexingJobMetadata, repoIndexingJobMetadataSchema, RepoMetadata, repoMetadataSchema, getRepoPath } from '@sourcebot/shared';
 import { existsSync } from 'fs';
 import { readdir, rm } from 'fs/promises';
 import { Job, Queue, ReservedJob, Worker } from "groupmq";
@@ -12,7 +12,7 @@ import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName,
 import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
 import { RepoWithConnections, Settings } from "./types.js";
-import { getAuthCredentialsForRepo, getRepoPath, getShardPrefix, groupmqLifecycleExceptionWrapper, measure, setIntervalAsync } from './utils.js';
+import { getAuthCredentialsForRepo, getShardPrefix, groupmqLifecycleExceptionWrapper, measure, setIntervalAsync } from './utils.js';
 import { indexGitRepository } from './zoekt.js';
 
 const LOG_TAG = 'repo-index-manager';
