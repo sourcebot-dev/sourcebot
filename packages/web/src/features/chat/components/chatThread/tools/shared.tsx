@@ -30,7 +30,7 @@ export const FileListItem = ({
                     pathType: 'blob',
                 })}
             >
-                {path}
+                <span>{path}</span>
             </Link>
         </div>
     )
@@ -90,7 +90,7 @@ export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpa
         <div
             tabIndex={0}
             className={cn(
-                "flex flex-row items-center gap-2 group w-fit select-none",
+                "flex flex-row items-center gap-2 group select-none",
                 {
                     'hover:text-foreground cursor-pointer': !isLoading,
                 },
@@ -107,16 +107,20 @@ export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpa
             }}
         >
             {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
             ) : (
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4 flex-shrink-0" />
             )}
-            <span className={cn("text-sm font-medium",
+            <span
+                className={cn("text-sm font-medium line-clamp-2",
                 {
                     'animate-pulse': isLoading,
                     'text-destructive': isError,
                 }
-            )}>{label}</span>
+            )}
+            >
+                {label}
+            </span>
             {!isLoading && (
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                     {isExpanded ? (

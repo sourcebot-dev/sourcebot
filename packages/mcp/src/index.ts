@@ -124,7 +124,8 @@ server.tool(
                 (acc, chunk) => acc + chunk.matchRanges.length,
                 0,
             );
-            let text = `file: ${file.webUrl}\nnum_matches: ${numMatches}\nrepository: ${file.repository}\nlanguage: ${file.language}`;
+            const fileIdentifier = file.webUrl ?? file.fileName.text;
+            let text = `file: ${fileIdentifier}\nnum_matches: ${numMatches}\nrepository: ${file.repository}\nlanguage: ${file.language}`;
 
             if (includeCodeSnippets) {
                 const snippets = file.chunks.map(chunk => {
@@ -297,7 +298,8 @@ server.tool(
 
         // Format output
         const content: TextContent[] = paginated.map(repo => {
-            let output = `id: ${repo.repoName}\nurl: ${repo.webUrl}`;
+          const repoUrl = repo.webUrl ?? repo.repoCloneUrl;
+            let output = `id: ${repo.repoName}\nurl: ${repoUrl}`;
 
             // Include indexedAt when temporal filtering is used
             if ((activeAfter || activeBefore) && repo.indexedAt) {

@@ -2,19 +2,11 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
-import { cn, getCodeHostCommitUrl, getCodeHostIcon, getCodeHostInfoForRepo, getRepoImageSrc } from "@/lib/utils"
+import { cn, getCodeHostCommitUrl, getCodeHostIcon, getRepoImageSrc, isServiceError } from "@/lib/utils"
 import {
     type ColumnDef,
     type VisibilityState,
@@ -23,7 +15,7 @@ import {
     useReactTable,
 } from "@tanstack/react-table"
 import { cva } from "class-variance-authority"
-import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink, Loader2, MoreHorizontal, RefreshCwIcon } from "lucide-react"
+import { ArrowDown, ArrowUp, ArrowUpDown, Loader2, RefreshCwIcon } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
@@ -35,6 +27,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { NotificationDot } from "../../components/notificationDot"
 import { CodeHostType } from "@sourcebot/db"
 import { useHotkeys } from "react-hotkeys-hook"
+import { indexRepo } from "@/features/workerApi/actions"
+import { RepoActionsDropdown } from "./repoActionsDropdown"
 
 // @see: https://v0.app/chat/repo-indexing-status-uhjdDim8OUS
 
@@ -84,6 +78,7 @@ interface ColumnsContext {
     onSortChange: (sortBy: string) => void;
     currentSortBy?: string;
     currentSortOrder: string;
+    onTriggerSync: (repoId: number) => void;
 }
 
 export const getColumns = (context: ColumnsContext): ColumnDef<Repo>[] => [
@@ -110,6 +105,10 @@ export const getColumns = (context: ColumnsContext): ColumnDef<Repo>[] => [
             const repo = row.original;
             const codeHostIcon = getCodeHostIcon(repo.codeHostType);
             const repoImageSrc = repo.imageUrl ? getRepoImageSrc(repo.imageUrl, repo.id) : undefined;
+            // Internal API routes require authentication headers (cookies/API keys) to be passed through.
+            // Next.js Image Optimization doesn't forward these headers, so we use unoptimized=true
+            // to bypass the optimization and make direct requests that include auth headers.
+            const isInternalApiImage = repoImageSrc?.startsWith('/api/');
 
             return (
                 <div className="flex flex-row gap-2 items-center">
@@ -121,6 +120,7 @@ export const getColumns = (context: ColumnsContext): ColumnDef<Repo>[] => [
                                 width={32}
                                 height={32}
                                 className="object-cover"
+                                unoptimized={isInternalApiImage}
                             />
                         ) : <Image
                             src={codeHostIcon.src}
@@ -248,40 +248,7 @@ export const getColumns = (context: ColumnsContext): ColumnDef<Repo>[] => [
         enableHiding: false,
         cell: ({ row }) => {
             const repo = row.original
-            const codeHostInfo = getCodeHostInfoForRepo({
-                codeHostType: repo.codeHostType,
-                name: repo.name,
-                displayName: repo.displayName ?? undefined,
-                webUrl: repo.webUrl ?? undefined,
-            });
-
-            return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                            <Link href={`/${SINGLE_TENANT_ORG_DOMAIN}/repos/${repo.id}`}>View details</Link>
-                        </DropdownMenuItem>
-                        {repo.webUrl && (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                    <a href={repo.webUrl} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                                        Open in {codeHostInfo.codeHostName}
-                                        <ExternalLink className="ml-2 h-3 w-3" />
-                                    </a>
-                                </DropdownMenuItem>
-                            </>
-                        )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            )
+            return <RepoActionsDropdown repo={repo} />
         },
     },
 ]
@@ -381,12 +348,29 @@ export const ReposTable = ({
         router.replace(`${pathname}?${params.toString()}`);
     };
 
+    const handleTriggerSync = async (repoId: number) => {
+        const response = await indexRepo(repoId);
+
+        if (!isServiceError(response)) {
+            const { jobId } = response;
+            toast({
+                description: `✅ Repository sync triggered successfully. Job ID: ${jobId}`,
+            });
+            router.refresh();
+        } else {
+            toast({
+                description: `❌ Failed to sync repository. ${response.message}`,
+            });
+        }
+    };
+
     const totalPages = Math.ceil(totalCount / pageSize);
 
     const columns = getColumns({
         onSortChange: handleSortChange,
         currentSortBy: initialSortBy,
         currentSortOrder: initialSortOrder,
+        onTriggerSync: handleTriggerSync
     });
 
     const table = useReactTable({

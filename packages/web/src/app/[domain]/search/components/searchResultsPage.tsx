@@ -102,6 +102,11 @@ export const SearchResultsPage = ({
         ])
     }, [searchQuery, setSearchHistory]);
 
+    // Look for any files that are not on the default branch.
+    const isBranchFilteringEnabled = useMemo(() => {
+        return searchQuery.includes('rev:');
+    }, [searchQuery]);
+
     useEffect(() => {
         if (isStreaming || !stats) {
             return;
@@ -138,6 +143,7 @@ export const SearchResultsPage = ({
             flushReason: stats.flushReason,
             fileLanguages,
             isSearchExhaustive: isExhaustive,
+            isBranchFilteringEnabled,
         });
     }, [
         captureEvent,
@@ -147,6 +153,7 @@ export const SearchResultsPage = ({
         stats,
         timeToSearchCompletionMs,
         timeToFirstSearchResultMs,
+        isBranchFilteringEnabled,
     ]);
 
     const onLoadMoreResults = useCallback(() => {
@@ -157,13 +164,7 @@ export const SearchResultsPage = ({
         router.push(url);
     }, [maxMatchCount, router, searchQuery, domain]);
 
-    // Look for any files that are not on the default branch.
-    const isBranchFilteringEnabled = useMemo(() => {
-        return files.some((file) => {
-            return file.branches?.some((branch) => branch !== 'HEAD') ?? false;
-        });
-    }, [files]);
-
+    
     return (
         <div className="flex flex-col h-screen overflow-clip">
             {/* TopBar */}
@@ -295,7 +296,7 @@ const PanelGroup = ({
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="flex flex-row items-center gap-2">
-                            <KeyboardShortcutHint shortcut="⌘ B" />
+                            <KeyboardShortcutHint shortcut="mod+b" />
                             <Separator orientation="vertical" className="h-4" />
                             <span>Open filter panel</span>
                         </TooltipContent>
@@ -310,79 +311,83 @@ const PanelGroup = ({
                 id={'search-results-panel'}
                 order={2}
             >
-                <div className="py-1 px-2 flex flex-row items-center">
-                    {isStreaming ? (
-                        <>
-                            <RefreshCwIcon className="h-4 w-4 animate-spin mr-2" />
-                            <p className="text-sm font-medium mr-1">Searching...</p>
-                            {numMatches > 0 && (
-                                <p className="text-sm font-medium">{`Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
-                            )}
-                        </>
-                    ) : (
-                        <>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <InfoCircledIcon className="w-4 h-4 mr-2" />
-                                </TooltipTrigger>
-                                <TooltipContent side="right" className="flex flex-col items-start gap-2 p-4">
-                                    <div className="flex flex-row items-center w-full">
-                                        <BugIcon className="w-4 h-4 mr-1.5" />
-                                        <p className="text-md font-medium">Search stats for nerds</p>
-                                        <CopyIconButton
-                                            onCopy={() => {
-                                                navigator.clipboard.writeText(JSON.stringify(searchStats, null, 2));
-                                                return true;
-                                            }}
-                                            className="ml-auto"
-                                        />
+                <div className="flex h-full flex-col">
+                    <div className="py-1 px-2 flex flex-row items-center">
+                        {isStreaming ? (
+                            <>
+                                <RefreshCwIcon className="h-4 w-4 animate-spin mr-2" />
+                                <p className="text-sm font-medium mr-1">Searching...</p>
+                                {numMatches > 0 && (
+                                    <p className="text-sm font-medium">{`Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <InfoCircledIcon className="w-4 h-4 mr-2" />
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right" className="flex flex-col items-start gap-2 p-4">
+                                        <div className="flex flex-row items-center w-full">
+                                            <BugIcon className="w-4 h-4 mr-1.5" />
+                                            <p className="text-md font-medium">Search stats for nerds</p>
+                                            <CopyIconButton
+                                                onCopy={() => {
+                                                    navigator.clipboard.writeText(JSON.stringify(searchStats, null, 2));
+                                                    return true;
+                                                }}
+                                                className="ml-auto"
+                                            />
+                                        </div>
+                                        <CodeSnippet renderNewlines>
+                                            {JSON.stringify(searchStats, null, 2)}
+                                        </CodeSnippet>
+                                    </TooltipContent>
+                                </Tooltip>
+                                {
+                                    fileMatches.length > 0 ? (
+                                        <p className="text-sm font-medium">{`[${searchDurationMs} ms] Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
+                                    ) : (
+                                        <p className="text-sm font-medium">No results</p>
+                                    )
+                                }
+                                {isMoreResultsButtonVisible && (
+                                    <div
+                                        className="cursor-pointer text-blue-500 text-sm hover:underline ml-4"
+                                        onClick={onLoadMoreResults}
+                                    >
+                                        (load more)
                                     </div>
-                                    <CodeSnippet renderNewlines>
-                                        {JSON.stringify(searchStats, null, 2)}
-                                    </CodeSnippet>
-                                </TooltipContent>
-                            </Tooltip>
-                            {
-                                fileMatches.length > 0 ? (
-                                    <p className="text-sm font-medium">{`[${searchDurationMs} ms] Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
-                                ) : (
-                                    <p className="text-sm font-medium">No results</p>
-                                )
-                            }
-                            {isMoreResultsButtonVisible && (
-                                <div
-                                    className="cursor-pointer text-blue-500 text-sm hover:underline ml-4"
-                                    onClick={onLoadMoreResults}
-                                >
-                                    (load more)
-                                </div>
-                            )}
-                        </>
-                    )}
+                                )}
+                            </>
+                        )}
+                    </div>
+                    <div className="flex-1 min-h-0">
+                        {filteredFileMatches.length > 0 ? (
+                            <SearchResultsPanel
+                                ref={searchResultsPanelRef}
+                                fileMatches={filteredFileMatches}
+                                onOpenFilePreview={(fileMatch, matchIndex) => {
+                                    setSelectedMatchIndex(matchIndex ?? 0);
+                                    setPreviewedFile(fileMatch);
+                                }}
+                                isLoadMoreButtonVisible={!!isMoreResultsButtonVisible}
+                                onLoadMoreButtonClicked={onLoadMoreResults}
+                                isBranchFilteringEnabled={isBranchFilteringEnabled}
+                                repoInfo={repoInfo}
+                            />
+                        ) : isStreaming ? (
+                            <div className="flex flex-col items-center justify-center h-full gap-2">
+                                <RefreshCwIcon className="h-6 w-6 animate-spin" />
+                                <p className="font-semibold text-center">Searching...</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full">
+                                <p className="text-sm text-muted-foreground">No results found</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
-                {filteredFileMatches.length > 0 ? (
-                    <SearchResultsPanel
-                        ref={searchResultsPanelRef}
-                        fileMatches={filteredFileMatches}
-                        onOpenFilePreview={(fileMatch, matchIndex) => {
-                            setSelectedMatchIndex(matchIndex ?? 0);
-                            setPreviewedFile(fileMatch);
-                        }}
-                        isLoadMoreButtonVisible={!!isMoreResultsButtonVisible}
-                        onLoadMoreButtonClicked={onLoadMoreResults}
-                        isBranchFilteringEnabled={isBranchFilteringEnabled}
-                        repoInfo={repoInfo}
-                    />
-                ) : isStreaming ? (
-                    <div className="flex flex-col items-center justify-center h-full gap-2">
-                        <RefreshCwIcon className="h-6 w-6 animate-spin" />
-                        <p className="font-semibold text-center">Searching...</p>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center h-full">
-                        <p className="text-sm text-muted-foreground">No results found</p>
-                    </div>
-                )}
             </ResizablePanel>
 
             {previewedFile && (

@@ -1,6 +1,7 @@
 services:
   sourcebot:
     image: ghcr.io/sourcebot-dev/sourcebot:latest
+    pull_policy: always
     user: sourcebot
     restart: always
     container_name: sourcebot
@@ -27,7 +28,7 @@ services:
       # https://docs.sourcebot.dev/docs/configuration/environment-variables
 
   postgres:
-    image: docker.io/postgres:${POSTGRES_VERSION:-latest}
+    image: docker.io/postgres:${POSTGRES_VERSION:-16}
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -44,7 +45,7 @@ services:
       - sourcebot_postgres_data:/var/lib/postgresql/data
 
   redis:
-    image: docker.io/redis:${REDIS_VERSION:-latest}
+    image: docker.io/redis:${REDIS_VERSION:-8}
     restart: always
     ports:
       - 127.0.0.1:6379:6379

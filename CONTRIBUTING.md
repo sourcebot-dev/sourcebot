@@ -2,7 +2,7 @@
 >[!NOTE]
 > Building from source is only required if you'd like to contribute. The recommended way to use Sourcebot is to use the [pre-built docker image](https://github.com/sourcebot-dev/sourcebot/pkgs/container/sourcebot).
 
-1. Install <a href="https://go.dev/doc/install"><img src="https://go.dev/favicon.ico" width="16" height="16"> go</a>, <a href="https://docs.docker.com/get-started/get-docker/"><img src="https://www.docker.com/favicon.ico" width="16" height="16"> docker</a>, and <a href="https://nodejs.org/"><img src="https://nodejs.org/favicon.ico" width="16" height="16"> NodeJS</a>. Note that a NodeJS version of at least `21.1.0` is required.
+1. Install <a href="https://go.dev/doc/install"><img src="https://go.dev/favicon.ico" width="16" height="16"> go</a>, <a href="https://docs.docker.com/get-started/get-docker/"><img src="https://www.docker.com/favicon.ico" width="16" height="16"> docker</a>, and <a href="https://nodejs.org/"><img src="https://nodejs.org/favicon.ico" width="16" height="16"> NodeJS</a>. Note that a NodeJS version of at least `24` is required.
 
 2. Install [ctags](https://github.com/universal-ctags/ctags) (required by zoekt)
     ```sh
@@ -11,6 +11,11 @@
 
     // Linux:
     snap install universal-ctags
+    ```
+
+3. Install corepack:
+    ```sh
+    npm install -g corepack
     ```
 
 3. Install `yarn`:
@@ -29,6 +34,8 @@
     ```
 
     The zoekt binaries and web dependencies are placed into `bin` and `node_modules` respectively.
+
+    **Note**: `make` should also be run whenever switching between branches to ensure all dependencies are upto date.
 
 5. Start the development Docker containers for PostgreSQL and Redis.
 

@@ -70,12 +70,12 @@ export const FileMatchContainer = ({
     }, [file.branches]);
 
     const branchDisplayName = useMemo(() => {
-        if (!isBranchFilteringEnabled || branches.length === 0) {
+        if (branches.length === 0) {
             return undefined;
         }
 
         return `${branches[0]}${branches.length > 1 ? ` +${branches.length - 1}` : ''}`;
-    }, [branches, isBranchFilteringEnabled]);
+    }, [branches]);
 
     const repo = useMemo(() => {
         return repoInfo[file.repositoryId];
@@ -99,6 +99,7 @@ export const FileMatchContainer = ({
                     }}
                     path={file.fileName.text}
                     pathHighlightRange={fileNameRange}
+                    isBranchDisplayNameVisible={isBranchFilteringEnabled}
                     branchDisplayName={branchDisplayName}
                     branchDisplayTitle={branches.join(", ")}
                 />

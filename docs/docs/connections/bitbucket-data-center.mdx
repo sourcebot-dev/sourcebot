@@ -79,6 +79,10 @@ Next, provide the access token to Sourcebot:
 
 <BitbucketToken />
 
+## Troubleshooting
+If you're seeing errors like `TypeError: fetch failed` when fetching repo info, it may be that Sourcebot is refusing to connect to your self-hosted Bitbucket instance due to unrecognized SSL certs. Try setting the `NODE_TLS_REJECT_UNAUTHORIZED=0` environment variable or providing Sourcebot your certs through the `NODE_EXTRA_CA_CERTS` environment variable.
+
+
 
 ## Schema reference
 

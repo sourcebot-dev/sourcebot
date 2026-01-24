@@ -74,7 +74,7 @@ export const symbolHoverTargetsExtension = StateField.define<DecorationSet>({
                 }
             },
         });
-        return Decoration.set(decorations);
+        return Decoration.set(decorations, /* sort = */ true);
     },
     update(deco, tr) {
         return deco.map(tr.changes);

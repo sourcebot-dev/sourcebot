@@ -1,5 +1,5 @@
 import { GithubConnectionConfig } from '@sourcebot/schemas/v3/github.type';
-import { getGitHubReposFromConfig } from "./github.js";
+import { getGitHubReposFromConfig, OctokitRepository } from "./github.js";
 import { getGitLabReposFromConfig } from "./gitlab.js";
 import { getGiteaReposFromConfig } from "./gitea.js";
 import { getGerritReposFromConfig } from "./gerrit.js";
@@ -31,6 +31,23 @@ const logger = createLogger('repo-compile-utils');
 const MAX_CONCURRENT_GIT_OPERATIONS = 100;
 const gitOperationLimit = pLimit(MAX_CONCURRENT_GIT_OPERATIONS);
 
+/**
+ * Extracts the host with port from an HTTP(S) URL string, preserving the port
+ * even if it's a default port (e.g., 443 for https, 80 for http).
+ *
+ * This is needed because JavaScript URL parsers normalize URLs and strip default
+ * ports, but Go's url.Parse preserves them. Since zoekt uses Go, we need to match
+ * its behavior for repo name derivation.
+ *
+ * @param url - The URL string to extract host:port from
+ * @returns The host with port if present (e.g., "example.com:443"), or null if not an HTTP(S) URL
+ */
+const extractHostWithPort = (url: string): string | null => {
+    // Match http(s):// URLs: protocol://host(:port)/path
+    const match = url.match(/^https?:\/\/([^/?#]+)/i);
+    return match ? match[1] : null;
+};
+
 type CompileResult = {
     repoData: RepoData[],
     warnings: string[],
@@ -45,66 +62,93 @@ export const compileGithubConfig = async (
     const warnings = gitHubReposResult.warnings;
 
     const hostUrl = config.url ?? 'https://github.com';
-    const repoNameRoot = new URL(hostUrl)
-        .toString()
-        .replace(/^https?:\/\//, '');
 
     const repos = gitHubRepos.map((repo) => {
-        const repoDisplayName = repo.full_name;
-        const repoName = path.join(repoNameRoot, repoDisplayName);
-        const cloneUrl = new URL(repo.clone_url!);
-        const isPublic = repo.private === false;
+        const record = createGitHubRepoRecord({
+            repo,
+            hostUrl,
+            branches: config.revisions?.branches ?? undefined,
+            tags: config.revisions?.tags ?? undefined,
+        })
 
-        logger.debug(`Found github repo ${repoDisplayName} with webUrl: ${repo.html_url}`);
-
-        const record: RepoData = {
-            external_id: repo.id.toString(),
-            external_codeHostType: 'github',
-            external_codeHostUrl: hostUrl,
-            cloneUrl: cloneUrl.toString(),
-            webUrl: repo.html_url,
-            name: repoName,
-            displayName: repoDisplayName,
-            imageUrl: repo.owner.avatar_url,
-            isFork: repo.fork,
-            isArchived: !!repo.archived,
-            isPublic: isPublic,
-            org: {
-                connect: {
-                    id: SINGLE_TENANT_ORG_ID,
-                },
-            },
+        return {
+            ...record,
             connections: {
                 create: {
                     connectionId: connectionId,
                 }
             },
-            metadata: {
-                gitConfig: {
-                    'zoekt.web-url-type': 'github',
-                    'zoekt.web-url': repo.html_url,
-                    'zoekt.name': repoName,
-                    'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
-                    'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
-                    'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
-                    'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
-                    'zoekt.archived': marshalBool(repo.archived),
-                    'zoekt.fork': marshalBool(repo.fork),
-                    'zoekt.public': marshalBool(isPublic),
-                    'zoekt.display-name': repoDisplayName,
-                },
-                branches: config.revisions?.branches ?? undefined,
-                tags: config.revisions?.tags ?? undefined,
-            } satisfies RepoMetadata,
         };
-
-        return record;
     })
 
     return {
         repoData: repos,
         warnings,
     };
+}
+
+export const createGitHubRepoRecord = ({
+    repo,
+    hostUrl,
+    branches,
+    tags,
+    isAutoCleanupDisabled,
+}: {
+    repo: OctokitRepository,
+    hostUrl: string,
+    branches?: string[],
+    tags?: string[],
+    isAutoCleanupDisabled?: boolean,
+}) => {
+    const repoNameRoot = new URL(hostUrl)
+        .toString()
+        .replace(/^https?:\/\//, '');
+
+    const repoDisplayName = repo.full_name;
+    const repoName = path.join(repoNameRoot, repoDisplayName);
+    const cloneUrl = new URL(repo.clone_url!);
+    const isPublic = repo.private === false;
+
+    logger.debug(`Found github repo ${repoDisplayName} with webUrl: ${repo.html_url}`);
+
+    const record: Prisma.RepoCreateInput = {
+        external_id: repo.id.toString(),
+        external_codeHostType: 'github',
+        external_codeHostUrl: hostUrl,
+        cloneUrl: cloneUrl.toString(),
+        webUrl: repo.html_url,
+        name: repoName,
+        displayName: repoDisplayName,
+        imageUrl: repo.owner.avatar_url,
+        isFork: repo.fork,
+        isArchived: !!repo.archived,
+        isPublic: isPublic,
+        isAutoCleanupDisabled,
+        org: {
+            connect: {
+                id: SINGLE_TENANT_ORG_ID,
+            },
+        },
+        metadata: {
+            gitConfig: {
+                'zoekt.web-url-type': 'github',
+                'zoekt.web-url': repo.html_url,
+                'zoekt.name': repoName,
+                'zoekt.github-stars': (repo.stargazers_count ?? 0).toString(),
+                'zoekt.github-watchers': (repo.watchers_count ?? 0).toString(),
+                'zoekt.github-subscribers': (repo.subscribers_count ?? 0).toString(),
+                'zoekt.github-forks': (repo.forks_count ?? 0).toString(),
+                'zoekt.archived': marshalBool(repo.archived),
+                'zoekt.fork': marshalBool(repo.fork),
+                'zoekt.public': marshalBool(isPublic),
+                'zoekt.display-name': repoDisplayName,
+            },
+            branches,
+            tags,
+        } satisfies RepoMetadata,
+    };
+
+    return record;
 }
 
 export const compileGitlabConfig = async (
@@ -479,6 +523,19 @@ export const compileGenericGitHostConfig_file = async (
     const repos: RepoData[] = [];
     const warnings: string[] = [];
 
+    // Warn if the glob pattern matched no paths at all
+    if (repoPaths.length === 0) {
+        const warning = `No paths matched the pattern '${configUrl.pathname}'. Please verify the path exists and is accessible.`;
+        logger.warn(warning);
+        warnings.push(warning);
+        return {
+            repoData: repos,
+            warnings,
+        };
+    }
+
+    logger.info(`Found ${repoPaths.length} path(s) matching pattern '${configUrl.pathname}'`);
+
     await Promise.all(repoPaths.map((repoPath) => gitOperationLimit(async () => {
         const isGitRepo = await isPathAValidGitRepoRoot({
             path: repoPath,
@@ -502,7 +559,12 @@ export const compileGenericGitHostConfig_file = async (
 
         // @note: matches the naming here:
         // https://github.com/sourcebot-dev/zoekt/blob/main/gitindex/index.go#L293
-        const repoName = path.join(remoteUrl.host, remoteUrl.pathname.replace(/\.git$/, ''));
+        // Go's url.URL.Host includes the port if present (even default ports like 443),
+        // but JS URL parsers normalize and strip default ports. We need to extract
+        // the host:port directly from the raw URL to match zoekt's behavior.
+        // For non-HTTP URLs, remoteUrl.host preserves non-default ports (e.g., ssh://host:22/).
+        const hostWithPort = extractHostWithPort(origin) ?? remoteUrl.host;
+        const repoName = path.join(hostWithPort, remoteUrl.pathname.replace(/\.git$/, ''));
 
         const repo: RepoData = {
             external_codeHostType: 'genericGitHost',
@@ -534,6 +596,15 @@ export const compileGenericGitHostConfig_file = async (
 
         repos.push(repo);
     })));
+
+    // Log summary of results
+    if (repos.length === 0) {
+        const warning = `No valid git repositories found from ${repoPaths.length} matched path(s). Check the warnings for details on individual paths.`;
+        logger.warn(warning);
+        warnings.push(warning);
+    } else {
+        logger.info(`Successfully found ${repos.length} valid git repository(s) from ${repoPaths.length} matched path(s)`);
+    }
 
     return {
         repoData: repos,
@@ -587,9 +658,17 @@ export const compileGenericGitHostConfig_url = async (
             }
         },
         metadata: {
+            gitConfig: {
+                'zoekt.name': repoName,
+                'zoekt.web-url': remoteUrl.toString(),
+                'zoekt.archived': marshalBool(false),
+                'zoekt.fork': marshalBool(false),
+                'zoekt.public': marshalBool(true),
+                'zoekt.display-name': repoName,
+            },
             branches: config.revisions?.branches ?? undefined,
             tags: config.revisions?.tags ?? undefined,
-        }
+        } satisfies RepoMetadata,
     };
 
     return {

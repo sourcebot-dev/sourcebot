@@ -1,4 +1,8 @@
 @external tokens negateToken from "./tokens" { negate }
+@external tokens parenToken from "./tokens" { openParen }
+@external tokens wordToken from "./tokens" { word }
+@external tokens closeParenToken from "./tokens" { closeParen }
+@external tokens orToken from "./tokens" { or }
 
 @top Program { query }
 
@@ -30,7 +34,7 @@ expr {
 
 NegateExpr { !negate negate (PrefixExpr | ParenExpr) }
 
-ParenExpr { "(" query? ")" }
+ParenExpr { openParen query? closeParen }
 
 PrefixExpr {
   ArchivedExpr |
@@ -83,20 +87,19 @@ value { quotedString | word }
   langKw { "lang:" }
   symKw { "sym:" }
   reposetKw { "reposet:" }
-  
-  or { "or" ![a-zA-Z0-9_] }
-  
+
+  // 'or' is now handled by external orToken tokenizer
+
   quotedString { '"' (!["\\\n] | "\\" _)* '"' }
   
-  word { (![ \t\n()]) (![ \t\n():] | ":" | "-")* }
+  // word is now handled by external wordToken tokenizer
   
   space { $[ \t\n]+ }
   
-  @precedence { 
+  @precedence {
     quotedString,
-    archivedKw, revisionKw, contentKw, contextKw, fileKw, 
-    forkKw, visibilityKw, repoKw, langKw, 
-    symKw, reposetKw, or,
-    word 
+    archivedKw, revisionKw, contentKw, contextKw, fileKw,
+    forkKw, visibilityKw, repoKw, langKw,
+    symKw, reposetKw
   }
 }

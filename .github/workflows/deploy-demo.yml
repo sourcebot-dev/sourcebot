@@ -7,6 +7,8 @@ on:
 
 jobs:
   deploy-demo:
+    # Demo instance is down so skip this job for now
+    if: false
     uses: ./.github/workflows/_gcp-deploy.yml
     secrets: inherit
     permissions:

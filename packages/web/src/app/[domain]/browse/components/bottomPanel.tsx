@@ -67,7 +67,7 @@ export const BottomPanel = ({ order }: BottomPanelProps) => {
                     >
                         <VscReferences className="w-4 h-4" />
                         Explore
-                        <KeyboardShortcutHint shortcut="⇧ ⌘ E" />
+                        <KeyboardShortcutHint shortcut="shift+mod+e" />
                     </Button>
                 </div>
 

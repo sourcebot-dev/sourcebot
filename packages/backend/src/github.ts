@@ -47,7 +47,7 @@ const isHttpError = (error: unknown, status: number): boolean => {
 }
 
 export const createOctokitFromToken = async ({ token, url }: { token?: string, url?: string }): Promise<{ octokit: Octokit, isAuthenticated: boolean }> => {
-    const isGitHubCloud = url ? new URL(url).hostname === GITHUB_CLOUD_HOSTNAME : false;
+    const isGitHubCloud = url ? new URL(url).hostname === GITHUB_CLOUD_HOSTNAME : true;
     const octokit = new Octokit({
         auth: token,
         ...(url && !isGitHubCloud ? {
@@ -193,6 +193,20 @@ export const getReposForAuthenticatedUser = async (visibility: 'all' | 'private'
     } catch (error) {
         Sentry.captureException(error);
         logger.error(`Failed to fetch repositories for authenticated user.`, error);
+        throw error;
+    }
+}
+
+// Gets oauth scopes
+// @see: https://github.com/octokit/auth-token.js/?tab=readme-ov-file#find-out-what-scopes-are-enabled-for-oauth-tokens
+export const getOAuthScopesForAuthenticatedUser = async (octokit: Octokit) => {
+    try {
+        const response = await octokit.request("HEAD /");
+        const scopes = response.headers["x-oauth-scopes"]?.split(/,\s+/) || [];
+        return scopes;
+    } catch (error) {
+        Sentry.captureException(error);
+        logger.error(`Failed to fetch OAuth scopes for authenticated user.`, error);
         throw error;
     }
 }

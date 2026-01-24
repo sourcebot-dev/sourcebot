@@ -7,8 +7,116 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added ask sidebar to homepage. [#721](https://github.com/sourcebot-dev/sourcebot/pull/721)
+
+## [4.10.17] - 2026-01-23
+
+### Fixed
+- Properly map all hotkeys in UI based on the platform [#784](https://github.com/sourcebot-dev/sourcebot/pull/784)
+- Allow parenthesis in query and filter terms [#788](https://github.com/sourcebot-dev/sourcebot/pull/788)
+- Fixed issue where Sourcebot would not index the new default branch when changed. [#789](https://github.com/sourcebot-dev/sourcebot/pull/789)
+
+### Changed
+- Changed the UI to display the default branch name instead of HEAD where applicable. [#789](https://github.com/sourcebot-dev/sourcebot/pull/789)
+
+## [4.10.16] - 2026-01-22
+
+### Changed
+- Added `isBranchFilteringEnabled` flag to `search_finished` PostHog event. [#781](https://github.com/sourcebot-dev/sourcebot/pull/781)
+
+### Fixed
+- Fixed reference guide key hint for PC [#782](https://github.com/sourcebot-dev/sourcebot/pull/782)
+
+## [4.10.15] - 2026-01-22
+
+### Fixed
+- Fixed an issue where the value for ALWAYS_INDEX_FILE_PATTERNS env var wasn't being parsed correctly [#773](https://github.com/sourcebot-dev/sourcebot/pull/773)
+
+## [4.10.14] - 2026-01-21
+
+### Fixed
+- Fixed "The data directory was initialized by PostgreSQL version 16, which is not compatible with this version 18.1" error when using the embedded database and upgrading to v14.10.13. [#770](https://github.com/sourcebot-dev/sourcebot/pull/770)
+
+## [4.10.13] - 2026-01-21
+
+### Changed
+- Bumped AI SDK and associated packages version. [#752](https://github.com/sourcebot-dev/sourcebot/pull/752)
+- Bumped Node.js version to v24. [#753](https://github.com/sourcebot-dev/sourcebot/pull/753)
+
+### Fixed
+- Fixed hardcoded localhost URLs in org URL and invite links by using AUTH_URL as fallback. [#764](https://github.com/sourcebot-dev/sourcebot/pull/764)
+- Fix autocomplete when repo includes default port [#762](https://github.com/sourcebot-dev/sourcebot/pull/762)
+- Fixed "Repository not found for file: x" error when searching in orphaned shards. [#761](https://github.com/sourcebot-dev/sourcebot/pull/761)
+
+## [4.10.12] - 2026-01-16
+
+### Changed
+- Added dialog when no authentication provider is configured. [#744](https://github.com/sourcebot-dev/sourcebot/pull/744)
+
+### Fixed
+- Fixed "Invalid line number XXX in 21-line document" error when a invalid highlight range is passed to the file viewer. [#745](https://github.com/sourcebot-dev/sourcebot/pull/745)
+- Fixed visual nit where ask sb search scope selector would render long repository names poorly. [#747](https://github.com/sourcebot-dev/sourcebot/pull/747)
+- Fixed visual nit where long search previews in ask sb would take up a lot of space. [#747](https://github.com/sourcebot-dev/sourcebot/pull/747)
+- Fixed issue where the last search results was getting clipped for searches that exceed the viewport height. [#749](https://github.com/sourcebot-dev/sourcebot/pull/749)
+
+## [4.10.11] - 2026-01-16
+
+### Fixed
+- Fixed issue with filtering on generic git repo indexed from http/https [#742](https://github.com/sourcebot-dev/sourcebot/pull/742)
+- Fixed auth error when trying to sync public gitlab.com project with no token [#748](https://github.com/sourcebot-dev/sourcebot/pull/748)
+- Fixed "Ranges must be added sorted by `from` position and `startSide`" error when browsing certain files. [#743](https://github.com/sourcebot-dev/sourcebot/pull/743)
+
+## [4.10.10] - 2026-01-16
+
+### Added
+- [EE] Add Ask chat usage metrics to analytics dashboard [#736](https://github.com/sourcebot-dev/sourcebot/pull/736)
+
+### Changed
+- Improved initial file tree load times, especially for larger repositories. [#739](https://github.com/sourcebot-dev/sourcebot/pull/739)
+
+## [4.10.9] - 2026-01-14
+
+### Changed
+- Remove references to demo from docs. [#734](https://github.com/sourcebot-dev/sourcebot/pull/734)
+- Add docs for GitHub App connection auth. [#735](https://github.com/sourcebot-dev/sourcebot/pull/735)
+- Improved error messaging around oauth scope errors with user driven permission syncing. [#639](https://github.com/sourcebot-dev/sourcebot/pull/639)
+
+### Fixed
+- Fixed issue where 403 errors were being raised during a user driven permission sync against a self-hosted code host. [#729](https://github.com/sourcebot-dev/sourcebot/pull/729)
+- Fixed "ambiguous argument 'HEAD^{commit}': unknown revision or path not in the working tree" error for blank repositories. [#733](https://github.com/sourcebot-dev/sourcebot/pull/733)
+- Fixed issue where folders containing files with non-ASCII characters in their paths would appear duplicated in the file tree. [#726](https://github.com/sourcebot-dev/sourcebot/pull/726)
+
+## [4.10.8] - 2026-01-13
+
+### Changed
+- Changed the default `/repos` pagination size to 20. [#706](https://github.com/sourcebot-dev/sourcebot/pull/706)
+- Changed pull policy in docker compose file to always. [#716](https://github.com/sourcebot-dev/sourcebot/pull/716)
+- Added Trigger Sync to /repos dropdown menu [#710](https://github.com/sourcebot-dev/sourcebot/pull/710)
+
+### Fixed
+- Add warning logs when local repo index fails to match pattern. [#712](https://github.com/sourcebot-dev/sourcebot/pull/712)
+- Fixed issue with text direction issues with special characters in filter panel. [#474](https://github.com/sourcebot-dev/sourcebot/pull/474)
+
+## [4.10.7] - 2025-12-29
+
+### Fixed
+- Fixed auto-suggestion dropdown breaking queries with whitespace in repository names. Repository names containing spaces are now properly wrapped in quotes. [#705](https://github.com/sourcebot-dev/sourcebot/pull/705)
+
+## [4.10.6] - 2025-12-28
+
+### Fixed
+- Fixed repository images not loading when anonymous access is disabled. [#703](https://github.com/sourcebot-dev/sourcebot/pull/703)
+
+### Changed
+- Enable browser assisted autofill for username and password.[#696](https://github.com/sourcebot-dev/sourcebot/pull/696)
+
+## [4.10.5] - 2025-12-23
+
 ### Changed
 - Bake Sourcebot version into code rather than relying on build arg. [#680](https://github.com/sourcebot-dev/sourcebot/pull/680)
+- Fix issue with `/repos` page pagination. [#689](https://github.com/sourcebot-dev/sourcebot/pull/689)
+- Add better logs for gitlab config sync fails. [#692](https://github.com/sourcebot-dev/sourcebot/pull/692)
 
 ## [4.10.4] - 2025-12-18
 

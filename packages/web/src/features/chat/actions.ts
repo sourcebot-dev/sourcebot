@@ -1,6 +1,7 @@
 'use server';
 
 import { sew } from "@/actions";
+import { getAuditService } from "@/ee/features/audit/factory";
 import { ErrorCode } from "@/lib/errorCodes";
 import { chatIsReadonly, notFound, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
@@ -30,6 +31,7 @@ import { LanguageModelInfo, SBChatMessage } from "./types";
 import { withAuthV2, withOptionalAuthV2 } from "@/withAuthV2";
 
 const logger = createLogger('chat-actions');
+const auditService = getAuditService();
 
 export const createChat = async () => sew(() =>
     withOptionalAuthV2(async ({ org, user, prisma }) => {
@@ -43,6 +45,22 @@ export const createChat = async () => sew(() =>
                 visibility: isGuestUser ? ChatVisibility.PUBLIC : ChatVisibility.PRIVATE,
             },
         });
+
+        // Only create audit log for authenticated users
+        if (!isGuestUser) {
+            await auditService.createAudit({
+                action: "user.created_ask_chat",
+                actor: {
+                    id: user.id,
+                    type: "user",
+                },
+                target: {
+                    id: org.id.toString(),
+                    type: "org",
+                },
+                orgId: org.id,
+            });
+        }
 
         return {
             id: chat.id,

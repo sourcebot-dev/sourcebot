@@ -23,7 +23,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, revisio
         `-tenant_id ${repo.orgId}`,
         `-repo_id ${repo.id}`,
         `-shard_prefix ${shardPrefix}`,
-        ...largeFileGlobPatterns.map((pattern) => `-large_file ${pattern}`),
+        ...largeFileGlobPatterns.map((pattern) => `-large_file "${pattern}"`),
         repoPath
     ].join(' ');
 

@@ -27,6 +27,10 @@ docker run \
     ghcr.io/sourcebot-dev/sourcebot:latest
 ```
 
+<Warning>
+Enabling permission syncing on an **existing** deployment may result in errors that look like **"User does not have an OAuth access token..."**. This is because the OAuth access token associated with the user's existing account does not have the correct scopes necessary for permission syncing. To fix, have the user re-authenticate to refresh their access token by either logging out of Sourcebot and logging in again or unlinking and re-linking their account.
+</Warning>
+
 ## Platform support
 
 We are actively working on supporting more code hosts. If you'd like to see a specific code host supported, please [reach out](https://www.sourcebot.dev/contact).
@@ -45,7 +49,9 @@ We are actively working on supporting more code hosts. If you'd like to see a sp
 
 ## GitHub
 
-Prerequisite: Configure GitHub as an [external identity provider](/docs/configuration/idp).
+Prerequisites:
+- Configure GitHub as an [external identity provider](/docs/configuration/idp).
+- **If you are using a self-hosted GitHub instance**, you must also set `AUTH_EE_GITHUB_BASE_URL` to the base URL of your GitHub instance (e.g. `https://github.example.com`).
 
 Permission syncing works with **GitHub.com**, **GitHub Enterprise Cloud**, and **GitHub Enterprise Server**. For organization-owned repositories, users that have **read-only** access (or above) via the following methods will have their access synced to Sourcebot:
 - Outside collaborators
@@ -60,7 +66,9 @@ Permission syncing works with **GitHub.com**, **GitHub Enterprise Cloud**, and *
 
 ## GitLab
 
-Prerequisite: Configure GitLab as an [external identity provider](/docs/configuration/idp).
+Prerequisites:
+- Configure GitLab as an [external identity provider](/docs/configuration/idp).
+- **If you are using a self-hosted GitLab instance**, you must also set `AUTH_EE_GITLAB_BASE_URL` to the base URL of your GitLab instance (e.g. `https://gitlab.example.com`).
 
 Permission syncing works with **GitLab Self-managed** and **GitLab Cloud**. Users with **Guest** role or above with membership to a group or project will have their access synced to Sourcebot. Both direct and indirect membership to a group or project will be synced with Sourcebot. For more details, see the [GitLab docs](https://docs.gitlab.com/user/project/members/#membership-types).
 

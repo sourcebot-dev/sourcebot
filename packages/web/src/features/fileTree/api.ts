@@ -8,17 +8,20 @@ import { Repo } from '@sourcebot/db';
 import { createLogger } from '@sourcebot/shared';
 import path from 'path';
 import { simpleGit } from 'simple-git';
-import { FileTreeItem, FileTreeNode } from './types';
+import { FileTreeItem } from './types';
+import { buildFileTree, isPathValid, normalizePath } from './utils';
+import { compareFileTreeItems } from './utils';
 
 const logger = createLogger('file-tree');
 
 /**
- * Returns the tree of files (blobs) and directories (trees) for a given repository,
- * at a given revision.
+ * Returns a file tree spanning the union of all provided paths for the given
+ * repo/revision, including intermediate directories needed to connect them
+ * into a single tree.
  */
-export const getTree = async (params: { repoName: string, revisionName: string }) => sew(() =>
+export const getTree = async (params: { repoName: string, revisionName: string, paths: string[] }) => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {
-        const { repoName, revisionName } = params;
+        const { repoName, revisionName, paths } = params;
         const repo = await prisma.repo.findFirst({
             where: {
                 name: repoName,
@@ -33,19 +36,30 @@ export const getTree = async (params: { repoName: string, revisionName: string }
         const { path: repoPath } = getRepoPath(repo);
 
         const git = simpleGit().cwd(repoPath);
+        if (!paths.every(path => isPathValid(path))) {
+            return notFound();
+        }
 
-        let result: string;
+        const normalizedPaths = paths.map(path => normalizePath(path));
+
+        let result: string = '';
         try {
-            result = await git.raw([
+
+            const command = [
+                // Disable quoting of non-ASCII characters in paths
+                '-c', 'core.quotePath=false',
                 'ls-tree',
                 revisionName,
-                // recursive
-                '-r',
-                // include trees when recursing
-                '-t',
                 // format as output as {type},{path}
                 '--format=%(objecttype),%(path)',
-            ]);
+                // include tree nodes
+                '-t',
+                '--',
+                '.',
+                ...normalizedPaths,
+            ];
+
+            result = await git.raw(command);
         } catch (error) {
             logger.error('git ls-tree failed.', { error });
             return unexpectedError('git ls-tree command failed.');
@@ -88,35 +102,18 @@ export const getFolderContents = async (params: { repoName: string, revisionName
         }
 
         const { path: repoPath } = getRepoPath(repo);
+        const git = simpleGit().cwd(repoPath);
 
-        // @note: we don't allow directory traversal
-        // or null bytes in the path.
-        if (path.includes('..') || path.includes('\0')) {
+        if (!isPathValid(path)) {
             return notFound();
         }
-
-        // Normalize the path by...
-        let normalizedPath = path;
-
-        // ... adding a trailing slash if it doesn't have one.
-        // This is important since ls-tree won't return the contents
-        // of a directory if it doesn't have a trailing slash.
-        if (!normalizedPath.endsWith('/')) {
-            normalizedPath = `${normalizedPath}/`;
-        }
-
-        // ... removing any leading slashes. This is needed since
-        // the path is relative to the repository's root, so we
-        // need a relative path.
-        if (normalizedPath.startsWith('/')) {
-            normalizedPath = normalizedPath.slice(1);
-        }
-
-        const git = simpleGit().cwd(repoPath);
+        const normalizedPath = normalizePath(path);
 
         let result: string;
         try {
             result = await git.raw([
+                // Disable quoting of non-ASCII characters in paths
+                '-c', 'core.quotePath=false',
                 'ls-tree',
                 revisionName,
                 // format as output as {type},{path}
@@ -140,6 +137,9 @@ export const getFolderContents = async (params: { repoName: string, revisionName
                 name,
             }
         });
+
+        // Sort the contents in place, first by type (trees before blobs), then by name.
+        contents.sort(compareFileTreeItems);
 
         return contents;
     }));
@@ -166,6 +166,8 @@ export const getFiles = async (params: { repoName: string, revisionName: string 
         let result: string;
         try {
             result = await git.raw([
+                // Disable quoting of non-ASCII characters in paths
+                '-c', 'core.quotePath=false',
                 'ls-tree',
                 revisionName,
                 // recursive
@@ -192,60 +194,6 @@ export const getFiles = async (params: { repoName: string, revisionName: string 
         return files;
 
     }));
-
-const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode => {
-    const root: FileTreeNode = {
-        name: 'root',
-        path: '',
-        type: 'tree',
-        children: [],
-    };
-
-    for (const item of flatList) {
-        const parts = item.path.split('/');
-        let current: FileTreeNode = root;
-
-        for (let i = 0; i < parts.length; i++) {
-            const part = parts[i];
-            const isLeaf = i === parts.length - 1;
-            const nodeType = isLeaf ? item.type : 'tree';
-            let next = current.children.find((child: FileTreeNode) => child.name === part && child.type === nodeType);
-
-            if (!next) {
-                next = {
-                    name: part,
-                    path: item.path,
-                    type: nodeType,
-                    children: [],
-                };
-                current.children.push(next);
-            }
-            current = next;
-        }
-    }
-
-    const sortTree = (node: FileTreeNode): FileTreeNode => {
-        if (node.type === 'blob') {
-            return node;
-        }
-
-        const sortedChildren = node.children
-            .map(sortTree)
-            .sort((a: FileTreeNode, b: FileTreeNode) => {
-                if (a.type !== b.type) {
-                    return a.type === 'tree' ? -1 : 1;
-                }
-                return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-            });
-
-        return {
-            ...node,
-            children: sortedChildren,
-        };
-    };
-
-    return sortTree(root);
-}
 
 // @todo: this is duplicated from the `getRepoPath` function in the
 // backend's `utils.ts` file. Eventually we should move this to a shared
