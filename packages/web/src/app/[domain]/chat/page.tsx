@@ -95,7 +95,7 @@ export default async function Page(props: PageProps) {
                 <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-16 w-full px-5">
                     <div className="max-h-44 w-auto">
                         <SourcebotLogo
-                            className="h-18 md:h-40 w-auto"
+                            className="h-16 md:h-32 w-auto"
                         />
                     </div>
                     <CustomSlateEditor>

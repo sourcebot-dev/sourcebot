@@ -101,7 +101,7 @@ export const NavigationMenu = async ({
                         className="mr-3 cursor-pointer"
                     >
                         <SourcebotLogo
-                            className="h-11"
+                            className="h-9"
                             size="small"
                         />
                     </Link>
