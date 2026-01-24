@@ -17,6 +17,9 @@ export const auditMetadataSchema = z.object({
     message: z.string().optional(),
     api_key: z.string().optional(),
     emails: z.string().optional(), // comma separated list of emails
+    // Anonymous chat migration fields
+    migratedCount: z.number().optional(),
+    anonSessionId: z.string().optional(),
 })
 export type AuditMetadata = z.infer<typeof auditMetadataSchema>;
 
@@ -32,4 +35,4 @@ export type AuditEvent = z.infer<typeof auditEventSchema>;
 
 export interface IAuditService {
   createAudit(event: Omit<AuditEvent, 'sourcebotVersion'>): Promise<Audit | null>;
-} 
+}
