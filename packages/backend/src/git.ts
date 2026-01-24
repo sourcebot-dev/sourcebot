@@ -369,3 +369,39 @@ export const getLocalDefaultBranch = async ({
         return undefined;
     }
 }
+
+/**
+ * Gets the timestamp of the most recent commit across all branches.
+ *
+ * @returns The Date of the most recent commit, or undefined if the repository
+ *          is empty or if there's an error retrieving the timestamp.
+ */
+export const getLatestCommitTimestamp = async ({
+    path,
+}: {
+    path: string,
+}): Promise<Date | undefined> => {
+    const git = createGitClientForPath(path);
+
+    try {
+        // git log --all -1 --format=%aI returns the author date of the most recent commit
+        // across all branches in ISO 8601 format
+        const result = await git.raw(['log', '--all', '-1', '--format=%aI']);
+        const trimmed = result.trim();
+
+        if (!trimmed) {
+            return undefined; // Empty repository
+        }
+
+        const date = new Date(trimmed);
+        if (isNaN(date.getTime())) {
+            logger.warn(`Failed to parse commit timestamp: ${trimmed}`);
+            return undefined;
+        }
+
+        return date;
+    } catch (error) {
+        logger.debug(`Failed to get latest commit timestamp for ${path}:`, error);
+        return undefined;
+    }
+}
