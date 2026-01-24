@@ -23,7 +23,7 @@ export const MessageAvatar = ({ role, className }: MessageAvatarProps) => {
                 <AvatarImage src={session?.user.image ?? "/placeholder_avatar.png?height=32&width=32"} />
             ) : (
                 <AvatarImage
-                    src={`/${theme === 'dark' ? 'sb_logo_dark_small' : 'sb_logo_light_small'}.png?height=32&width=32`}
+                    src={`/${theme === 'dark' ? 'tcup_logo_small_dark_mono' : 'tcup_logo_small_light_color'}.png?height=32&width=32`}
                 />
             )}
         </Avatar>

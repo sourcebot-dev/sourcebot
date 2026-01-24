@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import mentionsDemo from "@/public/ask_sb_tutorial_at_mentions.png"
 import citationsDemo from "@/public/ask_sb_tutorial_citations.png"
 import searchScopeDemo from "@/public/ask_sb_tutorial_search_scope.png"
-import logoDarkSmall from "@/public/sb_logo_dark_small.png"
+import logoDarkSmall from "@/public/tcup_logo_small_dark_mono.png"
 import { useQuery } from "@tanstack/react-query"
 import {
     ArrowLeftRightIcon,
