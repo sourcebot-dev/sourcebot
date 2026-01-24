@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added ask sidebar to homepage. [#721](https://github.com/sourcebot-dev/sourcebot/pull/721)
+
 ## [4.10.17] - 2026-01-23
 
 ### Fixed
