@@ -2,7 +2,7 @@
 
 import { sew } from "@/actions";
 import { unexpectedError } from "@/lib/serviceError";
-import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
+import { withAuthV2, withMinimumOrgRole, withOptionalAuthV2 } from "@/withAuthV2";
 import { OrgRole } from "@sourcebot/db";
 import z from "zod";
 
@@ -56,4 +56,27 @@ export const indexRepo = async (repoId: number) => sew(() =>
             return schema.parse(data);
         })
     )
+);
+
+export const addGithubRepo = async (owner: string, repo: string) => sew(() =>
+    withOptionalAuthV2(async () => {
+        const response = await fetch(`${WORKER_API_URL}/api/experimental/add-github-repo`, {
+            method: 'POST',
+            body: JSON.stringify({ owner, repo }),
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            return unexpectedError('Failed to add GitHub repo');
+        }
+
+        const data = await response.json();
+        const schema = z.object({
+            jobId: z.string(),
+            repoId: z.number(),
+        });
+        return schema.parse(data);
+    })
 );

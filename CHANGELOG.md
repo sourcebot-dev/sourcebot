@@ -7,8 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.17] - 2026-01-23
+
+### Fixed
+- Properly map all hotkeys in UI based on the platform [#784](https://github.com/sourcebot-dev/sourcebot/pull/784)
+- Allow parenthesis in query and filter terms [#788](https://github.com/sourcebot-dev/sourcebot/pull/788)
+- Fixed issue where Sourcebot would not index the new default branch when changed. [#789](https://github.com/sourcebot-dev/sourcebot/pull/789)
+
+### Changed
+- Changed the UI to display the default branch name instead of HEAD where applicable. [#789](https://github.com/sourcebot-dev/sourcebot/pull/789)
+
+## [4.10.16] - 2026-01-22
+
+### Changed
+- Added `isBranchFilteringEnabled` flag to `search_finished` PostHog event. [#781](https://github.com/sourcebot-dev/sourcebot/pull/781)
+
+### Fixed
+- Fixed reference guide key hint for PC [#782](https://github.com/sourcebot-dev/sourcebot/pull/782)
+
+## [4.10.15] - 2026-01-22
+
+### Fixed
+- Fixed an issue where the value for ALWAYS_INDEX_FILE_PATTERNS env var wasn't being parsed correctly [#773](https://github.com/sourcebot-dev/sourcebot/pull/773)
+
+## [4.10.14] - 2026-01-21
+
+### Fixed
+- Fixed "The data directory was initialized by PostgreSQL version 16, which is not compatible with this version 18.1" error when using the embedded database and upgrading to v14.10.13. [#770](https://github.com/sourcebot-dev/sourcebot/pull/770)
+
+## [4.10.13] - 2026-01-21
+
 ### Changed
 - Bumped AI SDK and associated packages version. [#752](https://github.com/sourcebot-dev/sourcebot/pull/752)
+- Bumped Node.js version to v24. [#753](https://github.com/sourcebot-dev/sourcebot/pull/753)
+
+### Fixed
+- Fixed hardcoded localhost URLs in org URL and invite links by using AUTH_URL as fallback. [#764](https://github.com/sourcebot-dev/sourcebot/pull/764)
+- Fix autocomplete when repo includes default port [#762](https://github.com/sourcebot-dev/sourcebot/pull/762)
+- Fixed "Repository not found for file: x" error when searching in orphaned shards. [#761](https://github.com/sourcebot-dev/sourcebot/pull/761)
 
 ## [4.10.12] - 2026-01-16
 

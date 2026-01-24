@@ -155,7 +155,7 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="flex flex-row items-center gap-2">
-                                <KeyboardShortcutHint shortcut="⌘ B" />
+                                <KeyboardShortcutHint shortcut="mod+b" />
                                 <Separator orientation="vertical" className="h-4" />
                                 <span>Close file tree</span>
                             </TooltipContent>
@@ -175,7 +175,7 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="flex flex-row items-center gap-2">
-                                <KeyboardShortcutHint shortcut="⌘ P" />
+                                <KeyboardShortcutHint shortcut="mod+p" />
                                 <Separator orientation="vertical" className="h-4" />
                                 <span>Search files</span>
                             </TooltipContent>
@@ -217,7 +217,7 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="bottom" className="flex flex-row items-center gap-2">
-                            <KeyboardShortcutHint shortcut="⌘ B" />
+                            <KeyboardShortcutHint shortcut="mod+b" />
                             <Separator orientation="vertical" className="h-4" />
                             <span>Open file tree</span>
                         </TooltipContent>

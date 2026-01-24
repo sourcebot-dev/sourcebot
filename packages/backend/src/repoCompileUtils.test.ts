@@ -99,6 +99,25 @@ describe('compileGenericGitHostConfig_file', () => {
         expect(result.repoData[0].name).toBe('github.com/test/repo');
     });
 
+    test('should include port in repo name when origin url has a port', async () => {
+        mockedGlob.mockResolvedValue(['/path/to/valid/repo']);
+        mockedIsPathAValidGitRepoRoot.mockResolvedValue(true);
+        mockedGetOriginUrl.mockResolvedValue('https://git.kernel.org:443/pub/scm/bluetooth/bluez.git');
+
+        const config = {
+            type: 'git' as const,
+            url: 'file:///path/to/valid/repo',
+        };
+
+        const result = await compileGenericGitHostConfig_file(config, 1);
+
+        expect(result.repoData).toHaveLength(1);
+        expect(result.warnings).toHaveLength(0);
+        expect(result.repoData[0].cloneUrl).toBe('file:///path/to/valid/repo');
+        // The name should include the port to match what zoekt derives from the origin URL
+        expect(result.repoData[0].name).toBe('git.kernel.org:443/pub/scm/bluetooth/bluez');
+    });
+
     test('should return warnings for invalid repos and success for valid ones', async () => {
         mockedGlob.mockResolvedValue(['/path/to/valid/repo', '/path/to/invalid/repo']);
         mockedIsPathAValidGitRepoRoot.mockImplementation(async ({ path }) => {

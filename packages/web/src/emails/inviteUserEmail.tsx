@@ -138,7 +138,7 @@ InviteUserEmail.PreviewProps = {
     },
     orgName: 'Enigma',
     orgImageUrl: SOURCEBOT_PLACEHOLDER_AVATAR_URL,
-    inviteLink: 'https://localhost:3000/redeem?invite_id=1234',
+    inviteLink: 'https://sourcebot.example.com/redeem?invite_id=1234',
 } satisfies InviteUserEmailProps;
 
 export default InviteUserEmail;

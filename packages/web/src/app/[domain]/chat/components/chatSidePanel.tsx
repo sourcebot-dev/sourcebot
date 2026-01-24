@@ -232,7 +232,7 @@ export const ChatSidePanel = ({
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="bottom" className="flex flex-row items-center gap-2">
-                            <KeyboardShortcutHint shortcut="⌘ B" />
+                            <KeyboardShortcutHint shortcut="mod+b" />
                             <Separator orientation="vertical" className="h-4" />
                             <span>Open side panel</span>
                         </TooltipContent>

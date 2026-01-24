@@ -7,6 +7,9 @@ import z from 'zod';
 import { ConnectionManager } from './connectionManager.js';
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from './repoIndexManager.js';
+import { createGitHubRepoRecord } from './repoCompileUtils.js';
+import { Octokit } from '@octokit/rest';
+import { SINGLE_TENANT_ORG_ID } from './constants.js';
 
 const logger = createLogger('api');
 const PORT = 3060;
@@ -33,6 +36,7 @@ export class Api {
 
         app.post('/api/sync-connection', this.syncConnection.bind(this));
         app.post('/api/index-repo', this.indexRepo.bind(this));
+        app.post(`/api/experimental/add-github-repo`, this.experimental_addGithubRepo.bind(this));
 
         this.server = app.listen(PORT, () => {
             logger.info(`API server is running on port ${PORT}`);
@@ -90,6 +94,47 @@ export class Api {
 
         const [jobId] = await this.repoIndexManager.createJobs([repo], RepoIndexingJobType.INDEX);
         res.status(200).json({ jobId });
+    }
+
+    private async experimental_addGithubRepo(req: Request, res: Response) {
+        const schema = z.object({
+            owner: z.string(),
+            repo: z.string(),
+        }).strict();
+
+        const parsed = schema.safeParse(req.body);
+        if (!parsed.success) {
+            res.status(400).json({ error: parsed.error.message });
+            return;
+        }
+
+        const octokit = new Octokit();
+        const response = await octokit.rest.repos.get({
+            owner: parsed.data.owner,
+            repo: parsed.data.repo,
+        });
+
+        const record = createGitHubRepoRecord({
+            repo: response.data,
+            hostUrl: 'https://github.com',
+            isAutoCleanupDisabled: true,
+        });
+
+        const repo = await this.prisma.repo.upsert({
+            where: {
+                external_id_external_codeHostUrl_orgId: {
+                    external_id: record.external_id,
+                    external_codeHostUrl: record.external_codeHostUrl,
+                    orgId: SINGLE_TENANT_ORG_ID,
+                }
+            },
+            update: record,
+            create: record,
+        });
+
+        const [jobId ] = await this.repoIndexManager.createJobs([repo], RepoIndexingJobType.INDEX);
+
+        res.status(200).json({ jobId, repoId: repo.id });
     }
 
     public async dispose() {

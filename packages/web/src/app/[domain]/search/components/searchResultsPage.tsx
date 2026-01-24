@@ -102,6 +102,11 @@ export const SearchResultsPage = ({
         ])
     }, [searchQuery, setSearchHistory]);
 
+    // Look for any files that are not on the default branch.
+    const isBranchFilteringEnabled = useMemo(() => {
+        return searchQuery.includes('rev:');
+    }, [searchQuery]);
+
     useEffect(() => {
         if (isStreaming || !stats) {
             return;
@@ -138,6 +143,7 @@ export const SearchResultsPage = ({
             flushReason: stats.flushReason,
             fileLanguages,
             isSearchExhaustive: isExhaustive,
+            isBranchFilteringEnabled,
         });
     }, [
         captureEvent,
@@ -147,6 +153,7 @@ export const SearchResultsPage = ({
         stats,
         timeToSearchCompletionMs,
         timeToFirstSearchResultMs,
+        isBranchFilteringEnabled,
     ]);
 
     const onLoadMoreResults = useCallback(() => {
@@ -157,13 +164,7 @@ export const SearchResultsPage = ({
         router.push(url);
     }, [maxMatchCount, router, searchQuery, domain]);
 
-    // Look for any files that are not on the default branch.
-    const isBranchFilteringEnabled = useMemo(() => {
-        return files.some((file) => {
-            return file.branches?.some((branch) => branch !== 'HEAD') ?? false;
-        });
-    }, [files]);
-
+    
     return (
         <div className="flex flex-col h-screen overflow-clip">
             {/* TopBar */}
@@ -295,7 +296,7 @@ const PanelGroup = ({
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="flex flex-row items-center gap-2">
-                            <KeyboardShortcutHint shortcut="⌘ B" />
+                            <KeyboardShortcutHint shortcut="mod+b" />
                             <Separator orientation="vertical" className="h-4" />
                             <span>Open filter panel</span>
                         </TooltipContent>

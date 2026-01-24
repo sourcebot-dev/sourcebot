@@ -123,6 +123,17 @@ export const fetchRepository = async (
             "--prune",
             "--progress"
         ]);
+
+        // Update HEAD to match the remote's default branch. This handles the case where the remote's
+        // default branch changes.
+        const remoteDefaultBranch = await getRemoteDefaultBranch({
+            path,
+            cloneUrl,
+        });
+
+        if (remoteDefaultBranch) {
+            await git.raw(['symbolic-ref', 'HEAD', `refs/heads/${remoteDefaultBranch}`]);
+        }
     } catch (error: unknown) {
         const baseLog = `Failed to fetch repository: ${path}`;
         if (env.SOURCEBOT_LOG_LEVEL !== "debug") {
@@ -295,6 +306,66 @@ export const getCommitHashForRefName = async ({
         // so we're catching the error and returning undefined.
     } catch (error: unknown) {
         logger.debug(error);
+        return undefined;
+    }
+}
+
+/**
+ * Gets the default branch name from the remote repository by querying what
+ * the remote's HEAD symbolic ref points to.
+ *
+ * This is useful for detecting when a remote repository's default branch has
+ * changed (e.g., from "master" to "main").
+ *
+ * @returns The branch name (e.g., "main", "master") or undefined if it cannot be determined
+ */
+export const getRemoteDefaultBranch = async ({
+    path,
+    cloneUrl,
+}: {
+    path: string,
+    cloneUrl: string,
+}) => {
+    const git = createGitClientForPath(path);
+    try {
+        const remoteHead = await git.raw(['ls-remote', '--symref', cloneUrl, 'HEAD']);
+        const match = remoteHead.match(/^ref: refs\/heads\/(\S+)\s+HEAD/m);
+        if (match) {
+            return match[1];
+        }
+    } catch (error: unknown) {
+        // Avoid printing error here since cloneUrl may contain credentials.
+        console.error(`Failed to get remote default branch for repository: ${path}`);
+        return undefined;
+    }
+}
+
+/**
+ * Gets the branch name that the local HEAD symbolic ref points to.
+ *
+ * In a git repository, HEAD is typically a symbolic reference that points to
+ * a branch (e.g., refs/heads/main). This function resolves that symbolic ref
+ * and returns just the branch name.
+ *
+ * @returns The branch name (e.g., "main", "master") or undefined if HEAD is not a symbolic ref
+ */
+export const getLocalDefaultBranch = async ({
+    path,
+}: {
+    path: string,
+}) => {
+    const git = createGitClientForPath(path);
+
+    try {
+        const ref = await git.raw(['symbolic-ref', 'HEAD']);
+        // Returns something like "refs/heads/main\n", so trim and remove prefix
+        const trimmed = ref.trim();
+        const match = trimmed.match(/^refs\/heads\/(.+)$/);
+        if (match) {
+            return match[1];
+        }
+    } catch (error: unknown) {
+        console.error(`Failed to get local default branch for repository: ${path}`);
         return undefined;
     }
 }

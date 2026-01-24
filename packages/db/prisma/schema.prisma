@@ -45,19 +45,20 @@ enum CodeHostType {
 }
 
 model Repo {
-  id                 Int                    @id @default(autoincrement())
-  name               String /// Full repo name, including the vcs hostname (ex. github.com/sourcebot-dev/sourcebot)
-  displayName        String? /// Display name of the repo for UI (ex. sourcebot-dev/sourcebot)
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  isFork             Boolean
-  isArchived         Boolean
-  isPublic           Boolean                @default(false)
-  metadata           Json /// For schema see repoMetadataSchema in packages/shared/src/types.ts
-  cloneUrl           String
-  webUrl             String?
-  connections        RepoToConnection[]
-  imageUrl           String?
+  id                    Int                    @id @default(autoincrement())
+  name                  String /// Full repo name, including the vcs hostname (ex. github.com/sourcebot-dev/sourcebot)
+  displayName           String? /// Display name of the repo for UI (ex. sourcebot-dev/sourcebot)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  isFork                Boolean
+  isArchived            Boolean
+  isPublic              Boolean                @default(false)
+  isAutoCleanupDisabled Boolean                @default(false) /// If true, automatic cleanup of this repo when it becomes orphaned will be disabled.
+  metadata              Json /// For schema see repoMetadataSchema in packages/shared/src/types.ts
+  cloneUrl              String
+  webUrl                String?
+  connections           RepoToConnection[]
+  imageUrl              String?
 
   permittedAccounts  AccountToRepoPermission[]
   permissionSyncJobs RepoPermissionSyncJob[]

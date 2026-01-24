@@ -27,7 +27,8 @@ export type PosthogEventMap = {
         regexpsConsidered: number,
         flushReason: string,
         fileLanguages: string[],
-        isSearchExhaustive: boolean
+        isSearchExhaustive: boolean,
+        isBranchFilteringEnabled: boolean,
     },
     ////////////////////////////////////////////////////////////////
     wa_trial_nav_pressed: {},
@@ -184,6 +185,8 @@ export type PosthogEventMap = {
     wa_file_tree_loaded: {
         durationMs: number,
     },
+    //////////////////////////////////////////////////////////////////
+    wa_repo_not_found_for_zoekt_file: {},
     //////////////////////////////////////////////////////////////////
     api_code_search_request: {
         source: string;

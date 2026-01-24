@@ -411,13 +411,13 @@ const SearchSuggestionsBox = forwardRef(({
                         Syntax help:
                     </p>
                     <div className="flex flex-row gap-0.5 items-center">
-                        <KeyboardShortcutHint shortcut="⌘" />
+                        <KeyboardShortcutHint shortcut="mod" />
                         <KeyboardShortcutHint shortcut="/" />
                     </div>
                 </div>
                 {isFocused && (
                     <span className="flex flex-row gap-1.5 items-center">
-                        <KeyboardShortcutHint shortcut="↵" />
+                        <KeyboardShortcutHint shortcut="enter" />
                         <span className="text-muted-foreground text-sm font-medium">
                             to select
                         </span>
