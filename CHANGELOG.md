@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added ask sidebar to homepage. [#721](https://github.com/sourcebot-dev/sourcebot/pull/721)
 - Added endpoint for searching commit history for a git repository. [#625](https://github.com/sourcebot-dev/sourcebot/pull/625)
+- Added `pushedAt` field to the Repo table to track when a repository last was committed to across all branches. [#790](https://github.com/sourcebot-dev/sourcebot/pull/790)
 
 ## [4.10.17] - 2026-01-23
 
