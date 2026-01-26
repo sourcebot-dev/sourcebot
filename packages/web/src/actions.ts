@@ -485,6 +485,7 @@ export const getRepos = async ({
             webUrl: repo.webUrl ?? undefined,
             imageUrl: repo.imageUrl ?? undefined,
             indexedAt: repo.indexedAt ?? undefined,
+            pushedAt: repo.pushedAt ?? undefined,
         }))
     }));
 

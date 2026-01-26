@@ -22,6 +22,7 @@ export const repositoryQuerySchema = z.object({
     webUrl: z.string().optional(),
     imageUrl: z.string().optional(),
     indexedAt: z.coerce.date().optional(),
+    pushedAt: z.coerce.date().optional(),
 });
 
 export const searchContextQuerySchema = z.object({
