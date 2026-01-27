@@ -231,7 +231,7 @@ const ReferencedFileSourceListItem = ({
                         displayName: repoDisplayName,
                         webUrl: repoWebUrl,
                     }}
-                    branchDisplayName={revision === 'HEAD' ? undefined : revision}
+                    revisionName={revision === 'HEAD' ? undefined : revision}
                     repoNameClassName="font-normal text-muted-foreground text-sm"
                 />
             </div>

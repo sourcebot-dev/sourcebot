@@ -69,13 +69,13 @@ export const FileMatchContainer = ({
         return file.branches;
     }, [file.branches]);
 
-    const branchDisplayName = useMemo(() => {
-        if (branches.length === 0) {
-            return undefined;
-        }
-
-        return `${branches[0]}${branches.length > 1 ? ` +${branches.length - 1}` : ''}`;
+    const revisionName = useMemo(() => {
+        return branches.length > 0 ? branches[0] : undefined;
     }, [branches]);
+
+    const branchDisplayName = useMemo(() => {
+        return revisionName ? `${revisionName}${branches.length > 1 ? ` +${branches.length - 1}` : ''}` : undefined;
+    }, [branches.length, revisionName]);
 
     const repo = useMemo(() => {
         return repoInfo[file.repositoryId];
@@ -99,8 +99,9 @@ export const FileMatchContainer = ({
                     }}
                     path={file.fileName.text}
                     pathHighlightRange={fileNameRange}
-                    isBranchDisplayNameVisible={isBranchFilteringEnabled}
+                    revisionName={revisionName}
                     branchDisplayName={branchDisplayName}
+                    isBranchDisplayNameVisible={isBranchFilteringEnabled}
                     branchDisplayTitle={branches.join(", ")}
                 />
                     <Button
