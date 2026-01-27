@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Added commit graph generation to improve performance for commit traversal operations. [#791](https://github.com/sourcebot-dev/sourcebot/pull/791)
 
+### Fixed
+- Fixed issue where a file would fail to load when opening it from the /search view and it matched multiple branches. [#797](https://github.com/sourcebot-dev/sourcebot/pull/797)
+
 ## [4.10.17] - 2026-01-23
 
 ### Fixed
