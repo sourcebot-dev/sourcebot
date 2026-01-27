@@ -20,7 +20,7 @@ export const buildLinkHeader = (baseUrl: string, params: PaginationParams): stri
     const buildUrl = (targetPage: number): string => {
         const url = new URL(baseUrl);
         url.searchParams.set('page', targetPage.toString());
-        url.searchParams.set('per_page', perPage.toString());
+        url.searchParams.set('perPage', perPage.toString());
         if (extraParams) {
             for (const [key, value] of Object.entries(extraParams)) {
                 url.searchParams.set(key, value);

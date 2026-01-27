@@ -9,7 +9,7 @@ import { buildLinkHeader, getBaseUrl } from "@/lib/pagination";
 
 const querySchema = z.object({
     page: z.coerce.number().int().positive().default(1),
-    per_page: z.coerce.number().int().positive().max(100).default(30),
+    perPage: z.coerce.number().int().positive().max(100).default(30),
     sort: z.enum(['name', 'pushed']).default('name'),
     direction: z.enum(['asc', 'desc']).default('asc'),
     query: z.string().optional(),
@@ -18,7 +18,7 @@ const querySchema = z.object({
 export const GET = async (request: NextRequest) => {
     const parseResult = querySchema.safeParse({
         page: request.nextUrl.searchParams.get('page') ?? undefined,
-        per_page: request.nextUrl.searchParams.get('per_page') ?? undefined,
+        perPage: request.nextUrl.searchParams.get('perPage') ?? undefined,
         sort: request.nextUrl.searchParams.get('sort') ?? undefined,
         direction: request.nextUrl.searchParams.get('direction') ?? undefined,
         query: request.nextUrl.searchParams.get('query') ?? undefined,
@@ -28,7 +28,7 @@ export const GET = async (request: NextRequest) => {
         return serviceErrorResponse(queryParamsSchemaValidationError(parseResult.error));
     }
 
-    const { page, per_page: perPage, sort, direction, query } = parseResult.data;
+    const { page, perPage, sort, direction, query } = parseResult.data;
     const skip = (page - 1) * perPage;
     const orderByField = sort === 'pushed' ? 'pushedAt' : 'name';
 

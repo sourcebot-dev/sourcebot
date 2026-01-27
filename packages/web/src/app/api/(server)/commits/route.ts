@@ -1,4 +1,5 @@
 import { searchCommits } from "@/features/search/gitApi";
+import { buildLinkHeader, getBaseUrl } from "@/lib/pagination";
 import { serviceErrorResponse, queryParamsSchemaValidationError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
@@ -10,7 +11,8 @@ const querySchema = z.object({
     since: z.string().optional(),
     until: z.string().optional(),
     author: z.string().optional(),
-    maxCount: z.coerce.number().int().positive().max(500).optional(),
+    page: z.coerce.number().int().positive().default(1),
+    perPage: z.coerce.number().int().positive().max(100).default(50),
 });
 
 export const GET = async (request: NextRequest): Promise<Response> => {
@@ -20,7 +22,8 @@ export const GET = async (request: NextRequest): Promise<Response> => {
         since: request.nextUrl.searchParams.get('since') ?? undefined,
         until: request.nextUrl.searchParams.get('until') ?? undefined,
         author: request.nextUrl.searchParams.get('author') ?? undefined,
-        maxCount: request.nextUrl.searchParams.get('maxCount') ?? undefined,
+        page: request.nextUrl.searchParams.get('page') ?? undefined,
+        perPage: request.nextUrl.searchParams.get('perPage') ?? undefined,
     });
 
     if (!parsed.success) {
@@ -29,11 +32,33 @@ export const GET = async (request: NextRequest): Promise<Response> => {
         );
     }
 
-    const result = await searchCommits(parsed.data);
+    const { page, perPage, ...searchParams } = parsed.data;
+    const skip = (page - 1) * perPage;
+
+    const result = await searchCommits({ ...searchParams, maxCount: perPage, skip });
 
     if (isServiceError(result)) {
         return serviceErrorResponse(result);
     }
 
-    return Response.json(result);
+    const { commits, totalCount } = result;
+
+    const headers = new Headers({ 'Content-Type': 'application/json' });
+    headers.set('X-Total-Count', totalCount.toString());
+
+    const linkHeader = buildLinkHeader(getBaseUrl(request), {
+        page,
+        perPage,
+        totalCount,
+        extraParams: {
+            repository: searchParams.repository,
+            ...(searchParams.query && { query: searchParams.query }),
+            ...(searchParams.since && { since: searchParams.since }),
+            ...(searchParams.until && { until: searchParams.until }),
+            ...(searchParams.author && { author: searchParams.author }),
+        },
+    });
+    if (linkHeader) headers.set('Link', linkHeader);
+
+    return new Response(JSON.stringify(commits), { status: 200, headers });
 }

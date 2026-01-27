@@ -171,5 +171,6 @@ export const searchCommitsRequestSchema = z.object({
     until: z.string().optional(),
     author: z.string().optional(),
     maxCount: z.number().int().positive().max(500).optional(),
+    skip: z.number().int().nonnegative().optional(),
 });
 export type SearchCommitsRequest = z.infer<typeof searchCommitsRequestSchema>;

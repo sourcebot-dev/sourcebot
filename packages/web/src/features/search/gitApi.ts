@@ -16,6 +16,11 @@ export interface Commit {
     author_email: string;
 }
 
+export interface SearchCommitsResult {
+    commits: Commit[];
+    totalCount: number;
+}
+
 /**
  * Search commits in a repository using git log.
  *
@@ -30,7 +35,8 @@ export const searchCommits = async ({
     until,
     author,
     maxCount = 50,
-}: SearchCommitsRequest): Promise<Commit[] | ServiceError> => sew(() =>
+    skip = 0,
+}: SearchCommitsRequest): Promise<SearchCommitsResult | ServiceError> => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {
         const repo = await prisma.repo.findFirst({
             where: {
@@ -42,7 +48,7 @@ export const searchCommits = async ({
         if (!repo) {
             return notFound(`Repository "${repository}" not found.`);
         }
-        
+
         const { path: repoPath } = getRepoPath(repo);
 
         // Validate date range if both since and until are provided
@@ -58,29 +64,32 @@ export const searchCommits = async ({
         const git = simpleGit().cwd(repoPath);
 
         try {
-            const logOptions: Record<string, string | number | null> = {
-                maxCount,
+            const sharedOptions: Record<string, string | number | null> = {
+                ...(gitSince ? { '--since': gitSince } : {}),
+                ...(gitUntil ? { '--until': gitUntil } : {}),
+                ...(author ? { '--author': author } : {}),
+                ...(query ? {
+                    '--grep': query,
+                    '--regexp-ignore-case': null /// Case insensitive
+                } : {}),
             };
 
-            if (gitSince) {
-                logOptions['--since'] = gitSince;
+            // First, get the commits
+            const log = await git.log({
+                maxCount,
+                ...(skip > 0 ? { '--skip': skip } : {}),
+                ...sharedOptions,
+            });
+
+            // Then, use rev-list to get the total count of commits
+            const countArgs = ['rev-list', '--count', 'HEAD'];
+            for (const [key, value] of Object.entries(sharedOptions)) {
+                countArgs.push(value !== null ? `${key}=${value}` : key);
             }
 
-            if (gitUntil) {
-                logOptions['--until'] = gitUntil;
-            }
+            const totalCount = parseInt((await git.raw(countArgs)).trim(), 10);
 
-            if (author) {
-                logOptions['--author'] = author;
-            }
-
-            if (query) {
-                logOptions['--grep'] = query;
-                logOptions['--regexp-ignore-case'] = null; // Case insensitive
-            }
-
-            const log = await git.log(logOptions);
-            return log.all as unknown as Commit[];
+            return { commits: log.all as unknown as Commit[], totalCount };
         } catch (error: unknown) {
             // Provide detailed error messages for common git errors
             const errorMessage = error instanceof Error ? error.message : String(error);

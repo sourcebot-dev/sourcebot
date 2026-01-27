@@ -99,5 +99,7 @@ export const listCommits = async (request: ListCommitsRequestSchema) => {
         },
     });
 
-    return parseResponse(response, listCommitsResponseSchema);
+    const commits = await parseResponse(response, listCommitsResponseSchema);
+    const totalCount = parseInt(response.headers.get('X-Total-Count') ?? '0', 10);
+    return { commits, totalCount };
 }

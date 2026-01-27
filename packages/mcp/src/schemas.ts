@@ -216,6 +216,8 @@ export const listCommitsRequestSchema = z.object({
     until: z.string().optional(),
     author: z.string().optional(),
     maxCount: z.number().int().positive().max(100).optional(),
+    page: z.number().int().positive().optional(),
+    perPage: z.number().int().positive().max(100).optional(),
 });
 
 export const listCommitsResponseSchema = z.array(z.object({
