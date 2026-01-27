@@ -82,6 +82,12 @@ export const cloneRepository = async (
             keys: ["remote.origin.url"],
             signal,
         });
+
+        // @note: operations that need to iterate over a lot of commits (e.g., rev-list --count)
+        // can be slow on larger repositories. Commit graphs are a acceleration structure that
+        // speed up these operations.
+        // @see: https://git-scm.com/docs/commit-graph
+        await writeCommitGraph({ path, signal });
     } catch (error: unknown) {
         const baseLog = `Failed to clone repository: ${path}`;
 
@@ -121,7 +127,10 @@ export const fetchRepository = async (
             cloneUrl,
             "+refs/heads/*:refs/heads/*",
             "--prune",
-            "--progress"
+            "--progress",
+            // On fetch, ensure the commit graph is up to date.
+            // @see: https://git-scm.com/docs/commit-graph
+            "--write-commit-graph"
         ]);
 
         // Update HEAD to match the remote's default branch. This handles the case where the remote's
@@ -403,5 +412,29 @@ export const getLatestCommitTimestamp = async ({
     } catch (error) {
         logger.debug(`Failed to get latest commit timestamp for ${path}:`, error);
         return undefined;
+    }
+}
+
+/**
+ * Writes or updates the commit-graph file for the repository.
+ * This pre-computes commit metadata to speed up operations like
+ * rev-list --count, log, and merge-base.
+ */
+export const writeCommitGraph = async ({
+    path,
+    onProgress,
+    signal,
+}: {
+    path: string,
+    onProgress?: onProgressFn,
+    signal?: AbortSignal,
+}): Promise<void> => {
+    const git = createGitClientForPath(path, onProgress, signal);
+
+    try {
+        await git.raw(['commit-graph', 'write', '--reachable']);
+    } catch (error) {
+        // Don't throw an exception here since this is just a performance optimization.
+        logger.debug(`Failed to write commit-graph for ${path}:`, error);
     }
 }
