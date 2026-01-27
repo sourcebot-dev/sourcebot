@@ -7,8 +7,8 @@ import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
 import { getFileSource, listRepos, search, listCommits } from './client.js';
 import { env, numberSchema } from './env.js';
-import { listCommitsQueryParamsSchema, listReposRequestSchema } from './schemas.js';
-import { ListCommitsRequestSchema, ListReposRequest, TextContent } from './types.js';
+import { listCommitsQueryParamsSchema, listReposQueryParamsSchema } from './schemas.js';
+import { ListCommitsQueryParamsSchema, ListReposQueryParams, TextContent } from './types.js';
 import _dedent from "dedent";
 
 const dedent = _dedent.withOptions({ alignValues: true });
@@ -175,7 +175,7 @@ server.tool(
     "list_commits",
     dedent`Get a list of commits for a given repository.`,
     listCommitsQueryParamsSchema.shape,
-    async (request: ListCommitsRequestSchema) => {
+    async (request: ListCommitsQueryParamsSchema) => {
         const result = await listCommits(request);
 
         return {
@@ -187,8 +187,8 @@ server.tool(
 server.tool(
     "list_repos",
     dedent`Lists repositories in the organization with optional filtering and pagination.`,
-    listReposRequestSchema.shape,
-    async (request: ListReposRequest) => {
+    listReposQueryParamsSchema.shape,
+    async (request: ListReposQueryParams) => {
         const result = await listRepos(request);
 
         return { content: [{ type: "text", text: JSON.stringify(result) }] };

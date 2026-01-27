@@ -1,13 +1,8 @@
 import { env } from './env.js';
-import { listRepositoriesResponseSchema, searchResponseSchema, fileSourceResponseSchema, listCommitsResponseSchema } from './schemas.js';
-import { FileSourceRequest, ListReposRequest, SearchRequest, ListCommitsRequestSchema } from './types.js';
+import { listReposResponseSchema, searchResponseSchema, fileSourceResponseSchema, listCommitsResponseSchema } from './schemas.js';
+import { FileSourceRequest, ListReposQueryParams, SearchRequest, ListCommitsQueryParamsSchema } from './types.js';
 import { isServiceError, ServiceErrorException } from './utils.js';
 import { z } from 'zod';
-
-export interface ListReposResult {
-    repos: z.infer<typeof listRepositoriesResponseSchema>;
-    totalCount: number;
-}
 
 const parseResponse = async <T extends z.ZodTypeAny>(
     response: Response,
@@ -48,10 +43,10 @@ export const search = async (request: SearchRequest) => {
     return parseResponse(response, searchResponseSchema);
 }
 
-export const listRepos = async (request: ListReposRequest = {}) => {
+export const listRepos = async (queryParams: ListReposQueryParams = {}) => {
     const url = new URL(`${env.SOURCEBOT_HOST}/api/repos`);
 
-    for (const [key, value] of Object.entries(request)) {
+    for (const [key, value] of Object.entries(queryParams)) {
         if (value) {
             url.searchParams.set(key, value.toString());
         }
@@ -65,7 +60,7 @@ export const listRepos = async (request: ListReposRequest = {}) => {
         },
     });
 
-    const repos = await parseResponse(response, listRepositoriesResponseSchema);
+    const repos = await parseResponse(response, listReposResponseSchema);
     const totalCount = parseInt(response.headers.get('X-Total-Count') ?? '0', 10);
     return { repos, totalCount };
 }
@@ -83,9 +78,9 @@ export const getFileSource = async (request: FileSourceRequest) => {
     return parseResponse(response, fileSourceResponseSchema);
 }
 
-export const listCommits = async (request: ListCommitsRequestSchema) => {
+export const listCommits = async (queryParams: ListCommitsQueryParamsSchema) => {
     const url = new URL(`${env.SOURCEBOT_HOST}/api/commits`);
-    for (const [key, value] of Object.entries(request)) {
+    for (const [key, value] of Object.entries(queryParams)) {
         if (value) {
             url.searchParams.set(key, value.toString());
         }

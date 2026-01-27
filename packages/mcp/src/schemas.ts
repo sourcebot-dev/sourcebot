@@ -156,9 +156,9 @@ export const repositoryQuerySchema = z.object({
     indexedAt: z.coerce.date().optional(),
 });
 
-export const listRepositoriesResponseSchema = repositoryQuerySchema.array();
+export const listReposResponseSchema = repositoryQuerySchema.array();
 
-export const listReposRequestSchema = z.object({
+export const listReposQueryParamsSchema = z.object({
     query: z
         .string()
         .describe("Filter repositories by name (case-insensitive)")

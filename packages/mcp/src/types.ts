@@ -2,8 +2,7 @@
 // At some point, we should move these to a shared package...
 import {
     fileSourceResponseSchema,
-    listRepositoriesResponseSchema,
-    listReposRequestSchema,
+    listReposQueryParamsSchema,
     locationSchema,
     searchRequestSchema,
     searchResponseSchema,
@@ -24,8 +23,7 @@ export type SearchResultFile = SearchResponse["files"][number];
 export type SearchResultChunk = SearchResultFile["chunks"][number];
 export type SearchSymbol = z.infer<typeof symbolSchema>;
 
-export type ListRepositoriesResponse = z.infer<typeof listRepositoriesResponseSchema>;
-export type ListReposRequest = z.input<typeof listReposRequestSchema>;
+export type ListReposQueryParams = z.input<typeof listReposQueryParamsSchema>;
 
 export type FileSourceRequest = z.infer<typeof fileSourceRequestSchema>;
 export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
@@ -34,5 +32,5 @@ export type TextContent = { type: "text", text: string };
 
 export type ServiceError = z.infer<typeof serviceErrorSchema>;
 
-export type ListCommitsRequestSchema = z.infer<typeof listCommitsQueryParamsSchema>;
+export type ListCommitsQueryParamsSchema = z.infer<typeof listCommitsQueryParamsSchema>;
 export type ListCommitsResponse = z.infer<typeof listCommitsResponseSchema>;
