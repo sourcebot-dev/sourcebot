@@ -191,9 +191,16 @@ export const listReposQueryParamsSchema = z.object({
 });
 
 export const fileSourceRequestSchema = z.object({
-    repo: z.string().describe("The repository name."),
-    path: z.string().describe("The path to the file."),
-    ref: z.string().optional().describe("The git ref (branch, tag, or commit)."),
+    repo: z
+        .string()
+        .describe("The repository name."),
+    path: z
+        .string()
+        .describe("The path to the file."),
+    ref: z
+        .string()
+        .optional()
+        .describe("Commit SHA, branch or tag name to fetch the source code for. If not provided, uses the default branch of the repository."),
 });
 
 export const fileSourceResponseSchema = z.object({
@@ -225,7 +232,7 @@ export const listCommitsQueryParamsSchema = z.object({
         .optional(),
     author: z
         .string()
-        .describe(`Filter commits by author name or email`)
+        .describe(`Filter commits by author name or email (case-insensitive).`)
         .optional(),
     ref: z
         .string()

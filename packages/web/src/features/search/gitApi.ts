@@ -79,7 +79,10 @@ export const listCommits = async ({
                 [ref]: null,
                 ...(gitSince ? { '--since': gitSince } : {}),
                 ...(gitUntil ? { '--until': gitUntil } : {}),
-                ...(author ? { '--author': author } : {}),
+                ...(author ? {
+                    '--author': author,
+                    '--regexp-ignore-case': null /// Case insensitive
+                } : {}),
                 ...(query ? {
                     '--grep': query,
                     '--regexp-ignore-case': null /// Case insensitive
