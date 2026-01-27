@@ -1,19 +1,10 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { sew } from "@/actions";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { repositoryQuerySchema } from "@/lib/schemas";
+import { listReposQueryParamsSchema, repositoryQuerySchema } from "@/lib/schemas";
 import { buildLinkHeader, getBaseUrl } from "@/lib/pagination";
-
-const listReposQueryParamsSchema = z.object({
-    page: z.coerce.number().int().positive().default(1),
-    perPage: z.coerce.number().int().positive().max(100).default(30),
-    sort: z.enum(['name', 'pushed']).default('name'),
-    direction: z.enum(['asc', 'desc']).default('asc'),
-    query: z.string().optional(),
-});
 
 export const GET = async (request: NextRequest) => {
     const rawParams = Object.fromEntries(

@@ -155,6 +155,7 @@ const SearchSuggestionsBox = forwardRef(({
                         list: repoSuggestions,
                         DefaultIcon: VscRepo,
                         onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: true }),
+                        isClientSideSearchEnabled: false,
                     }
                 case "language": {
                     return {
