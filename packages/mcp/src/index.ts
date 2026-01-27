@@ -10,6 +10,7 @@ import { env, numberSchema } from './env.js';
 import { fileSourceRequestSchema, listCommitsQueryParamsSchema, listReposQueryParamsSchema } from './schemas.js';
 import { FileSourceRequest, ListCommitsQueryParamsSchema, ListReposQueryParams, TextContent } from './types.js';
 import _dedent from "dedent";
+import { addLineNumbers } from './utils.js';
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -218,7 +219,7 @@ server.tool(
         return {
             content: [{
                 type: "text", text: JSON.stringify({
-                    source: response.source,
+                    source: addLineNumbers(response.source),
                     language: response.language,
                     path: response.path,
                     url: response.webUrl,
