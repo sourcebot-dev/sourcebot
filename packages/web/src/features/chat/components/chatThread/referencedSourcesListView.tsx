@@ -235,9 +235,9 @@ const ReferencedSourcesListViewComponent = ({
                             language={fileData.language}
                             revision={fileSource.revision}
                             repoName={fileSource.repo}
-                            repoCodeHostType={fileData.repositoryCodeHostType}
-                            repoDisplayName={fileData.repositoryDisplayName}
-                            repoWebUrl={fileData.repositoryWebUrl}
+                            repoCodeHostType={fileData.repoCodeHostType}
+                            repoDisplayName={fileData.repoDisplayName}
+                            repoWebUrl={fileData.repoExternalWebUrl}
                             fileName={fileData.path}
                             references={referencesInFile}
                             ref={ref => {

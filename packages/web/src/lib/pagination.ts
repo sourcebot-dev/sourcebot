@@ -11,14 +11,15 @@ export interface PaginationParams {
  * Build RFC 5988 Link header value
  * @see https://datatracker.ietf.org/doc/html/rfc5988
  */
-export const buildLinkHeader = (baseUrl: string, params: PaginationParams): string | null => {
+export const buildLinkHeader = (request: NextRequest, params: PaginationParams): string | null => {
     const { page, perPage, totalCount, extraParams } = params;
     const totalPages = Math.ceil(totalCount / perPage);
 
     if (totalPages <= 1) return null;
 
     const buildUrl = (targetPage: number): string => {
-        const url = new URL(baseUrl);
+        const url = new URL(request.url);
+        url.search = '';
         url.searchParams.set('page', targetPage.toString());
         url.searchParams.set('perPage', perPage.toString());
         if (extraParams) {
@@ -36,13 +37,4 @@ export const buildLinkHeader = (baseUrl: string, params: PaginationParams): stri
     links.push(`<${buildUrl(totalPages)}>; rel="last"`);
 
     return links.join(', ');
-};
-
-/**
- * Extract base URL from request (without query params)
- */
-export const getBaseUrl = (request: NextRequest): string => {
-    const url = new URL(request.url);
-    url.search = '';
-    return url.toString();
 };

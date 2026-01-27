@@ -1,5 +1,5 @@
 import { listCommits } from "@/features/search/gitApi";
-import { buildLinkHeader, getBaseUrl } from "@/lib/pagination";
+import { buildLinkHeader } from "@/lib/pagination";
 import { serviceErrorResponse, queryParamsSchemaValidationError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
@@ -45,7 +45,7 @@ export const GET = async (request: NextRequest): Promise<Response> => {
     const headers = new Headers({ 'Content-Type': 'application/json' });
     headers.set('X-Total-Count', totalCount.toString());
 
-    const linkHeader = buildLinkHeader(getBaseUrl(request), {
+    const linkHeader = buildLinkHeader(request, {
         page,
         perPage,
         totalCount,

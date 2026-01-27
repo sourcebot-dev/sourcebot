@@ -95,7 +95,7 @@ export const ReferenceList = ({
                                         name: repoInfo.name,
                                         displayName: repoInfo.displayName,
                                         codeHostType: repoInfo.codeHostType,
-                                        webUrl: repoInfo.webUrl,
+                                        externalWebUrl: repoInfo.webUrl,
                                     }}
                                     path={file.fileName}
                                     branchDisplayName={revisionName === "HEAD" ? undefined : revisionName}

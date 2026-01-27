@@ -125,7 +125,7 @@ export const readFilesTool = tool({
 
         return (responses as FileSourceResponse[]).map((response) => ({
             path: response.path,
-            repository: response.repository,
+            repository: response.repo,
             language: response.language,
             source: addLineNumbers(response.source),
             revision,

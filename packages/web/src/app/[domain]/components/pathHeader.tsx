@@ -29,7 +29,7 @@ interface FileHeaderProps {
         name: string;
         codeHostType: CodeHostType;
         displayName?: string;
-        webUrl?: string;
+        externalWebUrl?: string;
     },
     isBranchDisplayNameVisible?: boolean;
     branchDisplayName?: string;
@@ -65,7 +65,7 @@ export const PathHeader = ({
         name: repo.name,
         codeHostType: repo.codeHostType,
         displayName: repo.displayName,
-        webUrl: repo.webUrl,
+        externalWebUrl: repo.externalWebUrl,
     });
 
     const { toast } = useToast();
@@ -204,7 +204,7 @@ export const PathHeader = ({
         <div className="flex flex-row gap-2 items-center w-full overflow-hidden">
             {isCodeHostIconVisible && (
                 <>
-                    <a href={info.repoLink} target="_blank" rel="noopener noreferrer">
+                    <a href={info.externalWebUrl} target="_blank" rel="noopener noreferrer">
                         <Image
                             src={info.icon}
                             alt={info.codeHostName}

@@ -154,11 +154,12 @@ export const fileSourceResponseSchema = z.object({
     source: z.string(),
     language: z.string(),
     path: z.string(),
-    repository: z.string(),
-    repositoryCodeHostType: z.nativeEnum(CodeHostType),
-    repositoryDisplayName: z.string().optional(),
-    repositoryWebUrl: z.string().optional(),
+    repo: z.string(),
+    repoCodeHostType: z.nativeEnum(CodeHostType),
+    repoDisplayName: z.string().optional(),
+    repoExternalWebUrl: z.string().optional(),
     branch: z.string().optional(),
-    webUrl: z.string().optional(),
+    webUrl: z.string(),
+    externalWebUrl: z.string().optional(),
 });
 export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;

@@ -4,7 +4,8 @@ import { withOptionalAuthV2 } from "@/withAuthV2";
 import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { listReposQueryParamsSchema, repositoryQuerySchema } from "@/lib/schemas";
-import { buildLinkHeader, getBaseUrl } from "@/lib/pagination";
+import { buildLinkHeader } from "@/lib/pagination";
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 
 export const GET = async (request: NextRequest) => {
     const rawParams = Object.fromEntries(
@@ -47,9 +48,14 @@ export const GET = async (request: NextRequest) => {
                     codeHostType: repo.external_codeHostType,
                     repoId: repo.id,
                     repoName: repo.name,
+                    webUrl: `${request.nextUrl.origin}${getBrowsePath({
+                        repoName: repo.name,
+                        path: '',
+                        pathType: 'tree',
+                        domain: org.domain,
+                    })}`,
                     repoDisplayName: repo.displayName ?? undefined,
-                    repoCloneUrl: repo.cloneUrl,
-                    webUrl: repo.webUrl ?? undefined,
+                    externalWebUrl: repo.webUrl ?? undefined,
                     imageUrl: repo.imageUrl ?? undefined,
                     indexedAt: repo.indexedAt ?? undefined,
                     pushedAt: repo.pushedAt ?? undefined,
@@ -68,7 +74,7 @@ export const GET = async (request: NextRequest) => {
     const headers = new Headers({ 'Content-Type': 'application/json' });
     headers.set('X-Total-Count', totalCount.toString());
 
-    const linkHeader = buildLinkHeader(getBaseUrl(request), {
+    const linkHeader = buildLinkHeader(request, {
         page,
         perPage,
         totalCount,

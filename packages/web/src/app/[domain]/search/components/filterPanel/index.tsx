@@ -61,7 +61,7 @@ export const FilterPanel = ({
                     name: repo.name,
                     codeHostType: repo.codeHostType,
                     displayName: repo.displayName,
-                    webUrl: repo.webUrl,
+                    externalWebUrl: repo.webUrl,
                 }) : undefined;
 
                 const Icon = info ? (

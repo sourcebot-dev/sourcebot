@@ -150,10 +150,11 @@ export const repositoryQuerySchema = z.object({
     repoId: z.number(),
     repoName: z.string(),
     repoDisplayName: z.string().optional(),
-    repoCloneUrl: z.string(),
-    webUrl: z.string().optional(),
+    webUrl: z.string(),
+    externalWebUrl: z.string().optional(),
     imageUrl: z.string().optional(),
     indexedAt: z.coerce.date().optional(),
+    pushedAt: z.coerce.date().optional(),
 });
 
 export const listReposResponseSchema = repositoryQuerySchema.array();
@@ -206,6 +207,14 @@ export const fileSourceRequestSchema = z.object({
 export const fileSourceResponseSchema = z.object({
     source: z.string(),
     language: z.string(),
+    path: z.string(),
+    repo: z.string(),
+    repoCodeHostType: z.string(),
+    repoDisplayName: z.string().optional(),
+    repoExternalWebUrl: z.string().optional(),
+    branch: z.string().optional(),
+    webUrl: z.string(),
+    externalWebUrl: z.string().optional(),
 });
 
 export const serviceErrorSchema = z.object({

@@ -179,7 +179,9 @@ server.tool(
         const result = await listCommits(request);
 
         return {
-            content: [{ type: "text", text: JSON.stringify(result) }],
+            content: [{
+                type: "text", text: JSON.stringify(result)
+            }],
         };
     }
 );
@@ -191,7 +193,18 @@ server.tool(
     async (request: ListReposQueryParams) => {
         const result = await listRepos(request);
 
-        return { content: [{ type: "text", text: JSON.stringify(result) }] };
+        return {
+            content: [{
+                type: "text", text: JSON.stringify({
+                    repos: result.repos.map((repo) => ({
+                        name: repo.repoName,
+                        url: repo.webUrl,
+                        pushedAt: repo.pushedAt,
+                    })),
+                    totalCount: result.totalCount,
+                })
+            }]
+        };
     }
 );
 
@@ -202,7 +215,16 @@ server.tool(
     async (request: FileSourceRequest) => {
         const response = await getFileSource(request);
 
-        return { content: [{ type: "text", text: JSON.stringify(response) }] };
+        return {
+            content: [{
+                type: "text", text: JSON.stringify({
+                    source: response.source,
+                    language: response.language,
+                    path: response.path,
+                    url: response.webUrl,
+                })
+            }]
+        };
     }
 );
 

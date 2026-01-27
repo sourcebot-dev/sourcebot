@@ -7,6 +7,10 @@ import { sew } from "@/actions";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { QueryIR } from './ir';
 import escapeStringRegexp from "escape-string-regexp";
+import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
+import { getBrowsePath } from '@/app/[domain]/browse/hooks/utils';
+import { headers } from 'next/headers';
+import { getBaseUrl } from '@/lib/utils.server';
 
 // @todo (bkellam) #574 : We should really be using `git show <hash>:<path>` to fetch file contents here.
 // This will allow us to support permalinks to files at a specific revision that may not be indexed
@@ -14,6 +18,9 @@ import escapeStringRegexp from "escape-string-regexp";
 
 export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => sew(() =>
     withOptionalAuthV2(async () => {
+        const headersList = await headers();
+        const baseUrl = getBaseUrl(headersList);
+
         const query: QueryIR = {
             and: {
                 children: [
@@ -73,12 +80,19 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
             source,
             language,
             path: fileName,
-            repository,
-            repositoryCodeHostType: repoInfo.codeHostType,
-            repositoryDisplayName: repoInfo.displayName,
-            repositoryWebUrl: repoInfo.webUrl,
+            repo: repository,
+            repoCodeHostType: repoInfo.codeHostType,
+            repoDisplayName: repoInfo.displayName,
+            repoExternalWebUrl: repoInfo.webUrl,
             branch,
-            webUrl: file.webUrl,
+            webUrl: `${baseUrl}${getBrowsePath({
+                repoName: repository,
+                revisionName: branch,
+                path: fileName,
+                pathType: 'blob',
+                domain: SINGLE_TENANT_ORG_DOMAIN,
+            })}`,
+            externalWebUrl: file.webUrl,
         } satisfies FileSourceResponse;
 
     }));
