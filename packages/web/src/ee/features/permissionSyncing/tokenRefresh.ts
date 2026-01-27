@@ -128,9 +128,9 @@ export async function refreshOAuthToken(
                 };
 
                 // GitLab requires redirect_uri to match the original authorization request
-                // even when refreshing tokens
+                // even when refreshing tokens. Use URL constructor to handle trailing slashes.
                 if (provider === 'gitlab') {
-                    bodyParams.redirect_uri = `${env.AUTH_URL}/api/auth/callback/gitlab`;
+                    bodyParams.redirect_uri = new URL('/api/auth/callback/gitlab', env.AUTH_URL).toString();
                 }
 
                 const response = await fetch(url, {
