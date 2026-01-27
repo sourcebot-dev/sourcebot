@@ -191,11 +191,9 @@ export const listReposQueryParamsSchema = z.object({
 });
 
 export const fileSourceRequestSchema = z.object({
-    fileName: z
-        .string()
-        .describe("The name of the file to fetch the source code for."),
-    repository: z.string(),
-    branch: z.string().optional(),
+    repo: z.string().describe("The repository name."),
+    path: z.string().describe("The path to the file."),
+    ref: z.string().optional().describe("The git ref (branch, tag, or commit)."),
 });
 
 export const fileSourceResponseSchema = z.object({

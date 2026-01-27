@@ -7,8 +7,8 @@ import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
 import { getFileSource, listRepos, search, listCommits } from './client.js';
 import { env, numberSchema } from './env.js';
-import { listCommitsQueryParamsSchema, listReposQueryParamsSchema } from './schemas.js';
-import { ListCommitsQueryParamsSchema, ListReposQueryParams, TextContent } from './types.js';
+import { fileSourceRequestSchema, listCommitsQueryParamsSchema, listReposQueryParamsSchema } from './schemas.js';
+import { FileSourceRequest, ListCommitsQueryParamsSchema, ListReposQueryParams, TextContent } from './types.js';
 import _dedent from "dedent";
 
 const dedent = _dedent.withOptions({ alignValues: true });
@@ -198,15 +198,9 @@ server.tool(
 server.tool(
     "read_file",
     dedent`Reads the source code for a given file.`,
-    {
-        fileName: z.string().describe("The file to fetch the source code for."),
-        repoName: z.string().describe("The name of the repository to fetch the source code for."),
-    },
-    async ({ fileName, repoName }) => {
-        const response = await getFileSource({
-            fileName,
-            repository: repoName,
-        });
+    fileSourceRequestSchema.shape,
+    async (request: FileSourceRequest) => {
+        const response = await getFileSource(request);
 
         return { content: [{ type: "text", text: JSON.stringify(response) }] };
     }

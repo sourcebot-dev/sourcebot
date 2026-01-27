@@ -38,13 +38,16 @@ export const search = async (body: SearchRequest): Promise<SearchResponse | Serv
     return result as SearchResponse | ServiceError;
 }
 
-export const getFileSource = async (body: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
-    const result = await fetch("/api/source", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
+export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
+    const url = new URL("/api/source", window.location.origin);
+    url.searchParams.set("repo", repository);
+    url.searchParams.set("path", fileName);
+    if (branch) {
+        url.searchParams.set("ref", branch);
+    }
+
+    const result = await fetch(url, {
+        method: "GET",
     }).then(response => response.json());
 
     return result as FileSourceResponse | ServiceError;
