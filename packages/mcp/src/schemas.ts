@@ -161,24 +161,39 @@ export const listRepositoriesResponseSchema = repositoryQuerySchema.array();
 export const listReposRequestSchema = z.object({
     query: z
         .string()
-        .describe("Filter repositories by name or displayName (case-insensitive)")
+        .describe("Filter repositories by name (case-insensitive)")
         .optional(),
-    pageNumber: z
+    page: z
         .number()
         .int()
         .positive()
-        .describe("Page number (1-indexed, default: 1)")
+        .describe("Page number for pagination (min 1). Default: 1")
+        .optional()
         .default(1),
-    limit: z
+    perPage: z
         .number()
         .int()
         .positive()
-        .describe("Number of repositories per page (default: 50)")
-        .default(50),
+        .max(100)
+        .describe("Results per page for pagination (min 1, max 100). Default: 30")
+        .optional()
+        .default(30),
+    sort: z
+        .enum(['name', 'pushed'])
+        .describe("Sort repositories by 'name' or 'pushed' (most recent commit). Default: 'name'")
+        .optional()
+        .default('name'),
+    direction: z
+        .enum(['asc', 'desc'])
+        .describe("Sort direction: 'asc' or 'desc'. Default: 'asc'")
+        .optional()
+        .default('asc'),
 });
 
 export const fileSourceRequestSchema = z.object({
-    fileName: z.string(),
+    fileName: z
+        .string()
+        .describe("The name of the file to fetch the source code for."),
     repository: z.string(),
     branch: z.string().optional(),
 });
@@ -194,16 +209,16 @@ export const serviceErrorSchema = z.object({
     message: z.string(),
 });
 
-export const searchCommitsRequestSchema = z.object({
+export const listCommitsRequestSchema = z.object({
     repository: z.string(),
     query: z.string().optional(),
     since: z.string().optional(),
     until: z.string().optional(),
     author: z.string().optional(),
-    maxCount: z.number().int().positive().max(500).optional(),
+    maxCount: z.number().int().positive().max(100).optional(),
 });
 
-export const searchCommitsResponseSchema = z.array(z.object({
+export const listCommitsResponseSchema = z.array(z.object({
     hash: z.string(),
     date: z.string(),
     message: z.string(),

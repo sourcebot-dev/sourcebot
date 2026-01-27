@@ -12,6 +12,7 @@ const querySchema = z.object({
     per_page: z.coerce.number().int().positive().max(100).default(30),
     sort: z.enum(['name', 'pushed']).default('name'),
     direction: z.enum(['asc', 'desc']).default('asc'),
+    query: z.string().optional(),
 });
 
 export const GET = async (request: NextRequest) => {
@@ -20,21 +21,27 @@ export const GET = async (request: NextRequest) => {
         per_page: request.nextUrl.searchParams.get('per_page') ?? undefined,
         sort: request.nextUrl.searchParams.get('sort') ?? undefined,
         direction: request.nextUrl.searchParams.get('direction') ?? undefined,
+        query: request.nextUrl.searchParams.get('query') ?? undefined,
     });
 
     if (!parseResult.success) {
         return serviceErrorResponse(schemaValidationError(parseResult.error));
     }
 
-    const { page, per_page: perPage, sort, direction } = parseResult.data;
+    const { page, per_page: perPage, sort, direction, query } = parseResult.data;
     const skip = (page - 1) * perPage;
-    const orderByField = sort === 'pushed' ? 'pushedAt' : 'displayName';
+    const orderByField = sort === 'pushed' ? 'pushedAt' : 'name';
 
     const response = await sew(() =>
         withOptionalAuthV2(async ({ org, prisma }) => {
             const [repos, totalCount] = await Promise.all([
                 prisma.repo.findMany({
-                    where: { orgId: org.id },
+                    where: {
+                        orgId: org.id,
+                        ...(query ? {
+                            name: { contains: query, mode: 'insensitive' },
+                        } : {}),
+                    },
                     skip,
                     take: perPage,
                     orderBy: { [orderByField]: direction },

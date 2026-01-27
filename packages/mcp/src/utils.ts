@@ -8,3 +8,9 @@ export const isServiceError = (data: unknown): data is ServiceError => {
         'errorCode' in data &&
         'message' in data;
 }
+
+export class ServiceErrorException extends Error {
+    constructor(public readonly serviceError: ServiceError) {
+        super(JSON.stringify(serviceError));
+    }
+}

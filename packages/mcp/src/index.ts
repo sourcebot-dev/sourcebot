@@ -5,11 +5,13 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
-import { getFileSource, listRepos, search, searchCommits } from './client.js';
+import { getFileSource, listRepos, search, listCommits } from './client.js';
 import { env, numberSchema } from './env.js';
 import { listReposRequestSchema } from './schemas.js';
-import { TextContent } from './types.js';
-import { isServiceError } from './utils.js';
+import { ListReposRequest, TextContent } from './types.js';
+import _dedent from "dedent";
+
+const dedent = _dedent.withOptions({ alignValues: true });
 
 // Create MCP server
 const server = new McpServer({
@@ -20,9 +22,11 @@ const server = new McpServer({
 
 server.tool(
     "search_code",
-    `Fetches code that matches the provided regex pattern in \`query\`. This is NOT a semantic search.
+    dedent`
+    Fetches code that matches the provided regex pattern in \`query\`.
+
     Results are returned as an array of matching files, with the file's URL, repository, and language.
-    If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.
+
     If the \`includeCodeSnippets\` property is true, code snippets containing the matches will be included in the response. Only set this to true if the request requires code snippets (e.g., show me examples where library X is used).
     When referencing a file in your response, **ALWAYS** include the file's external URL as a link. This makes it easier for the user to view the file, even if they don't have it locally checked out.
     **ONLY USE** the \`filterByRepoIds\` property if the request requires searching a specific repo(s). Otherwise, leave it empty.`,
@@ -88,15 +92,6 @@ server.tool(
             source: 'mcp',
         });
 
-        if (isServiceError(response)) {
-            return {
-                content: [{
-                    type: "text",
-                    text: `Error searching code: ${response.message}`,
-                }],
-            };
-        }
-
         if (response.files.length === 0) {
             return {
                 content: [{
@@ -116,7 +111,12 @@ server.tool(
                 0,
             );
             const fileIdentifier = file.webUrl ?? file.fileName.text;
-            let text = `file: ${fileIdentifier}\nnum_matches: ${numMatches}\nrepository: ${file.repository}\nlanguage: ${file.language}`;
+            let text = dedent`
+            file: ${fileIdentifier}
+            num_matches: ${numMatches}
+            repository: ${file.repository}
+            language: ${file.language}
+            `;
 
             if (includeCodeSnippets) {
                 const snippets = file.chunks.map(chunk => {
@@ -172,19 +172,19 @@ server.tool(
 );
 
 server.tool(
-    "search_commits",
-    `Searches for commits in a specific repository based on actual commit time. If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.`,
+    "list_commits",
+    dedent`Get a list of commits for a given repository.`,
     {
-        repoId: z.string().describe(`The repository to search commits in. This is the Sourcebot compatible repository ID as returned by 'list_repos'.`),
+        repoName: z.string().describe(`The name of the repository to search commits in.`),
         query: z.string().describe(`Search query to filter commits by message content (case-insensitive).`).optional(),
         since: z.string().describe(`Show commits more recent than this date. Filters by actual commit time. Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago', 'last week').`).optional(),
         until: z.string().describe(`Show commits older than this date. Filters by actual commit time. Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday').`).optional(),
-        author: z.string().describe(`Filter commits by author name or email (supports partial matches and patterns).`).optional(),
-        maxCount: z.number().int().positive().default(50).describe(`Maximum number of commits to return (default: 50).`),
+        author: z.string().describe(`Filter commits by author name or email`).optional(),
+        maxCount: z.number().int().positive().max(100).default(50).describe(`Maximum number of commits to return (default: 50).`),
     },
-    async ({ repoId, query, since, until, author, maxCount }) => {
-        const result = await searchCommits({
-            repository: repoId,
+    async ({ repoName, query, since, until, author, maxCount }) => {
+        const result = await listCommits({
+            repository: repoName,
             query,
             since,
             until,
@@ -192,114 +192,37 @@ server.tool(
             maxCount,
         });
 
-        if (isServiceError(result)) {
-            return {
-                content: [{ type: "text", text: `Error: ${result.message}` }],
-                isError: true,
-            };
-        }
-
         return {
-            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+            content: [{ type: "text", text: JSON.stringify(result) }],
         };
     }
 );
 
 server.tool(
     "list_repos",
-    `Lists repositories in the organization with optional filtering and pagination. If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.`,
+    dedent`Lists repositories in the organization with optional filtering and pagination.`,
     listReposRequestSchema.shape,
-    async ({ query, pageNumber = 1, limit = 50 }: {
-        query?: string;
-        pageNumber?: number;
-        limit?: number;
-    }) => {
-        const response = await listRepos();
-        if (isServiceError(response)) {
-            return {
-                content: [{
-                    type: "text",
-                    text: `Error listing repositories: ${response.message}`,
-                }],
-            };
-        }
+    async ({ query, page = 1, perPage = 30, sort = 'name', direction = 'asc' }: ListReposRequest) => {
+        const result = await listRepos({ query, page, perPage, sort, direction });
 
-        // Apply query filter if provided
-        let filtered = response;
-        if (query) {
-            const lowerQuery = query.toLowerCase();
-            filtered = response.filter(repo =>
-                repo.repoName.toLowerCase().includes(lowerQuery) ||
-                repo.repoDisplayName?.toLowerCase().includes(lowerQuery)
-            );
-        }
-
-        // Sort alphabetically for consistent pagination
-        filtered.sort((a, b) => a.repoName.localeCompare(b.repoName));
-
-        // Apply pagination
-        const startIndex = (pageNumber - 1) * limit;
-        const endIndex = startIndex + limit;
-        const paginated = filtered.slice(startIndex, endIndex);
-
-        // Format output
-        const content: TextContent[] = paginated.map(repo => {
-            const repoUrl = repo.webUrl ?? repo.repoCloneUrl;
-            return {
-                type: "text",
-                text: `id: ${repo.repoName}\nurl: ${repoUrl}`,
-            }
-        });
-
-        // Add pagination info
-        if (content.length === 0 && filtered.length > 0) {
-            content.push({
-                type: "text",
-                text: `No results on page ${pageNumber}. Total matching repositories: ${filtered.length}`,
-            });
-        } else if (filtered.length > endIndex) {
-            content.push({
-                type: "text",
-                text: `Showing ${paginated.length} repositories (page ${pageNumber}). Total matching: ${filtered.length}. Use pageNumber ${pageNumber + 1} to see more.`,
-            });
-        }
-
-        return {
-            content,
-        };
+        return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
 );
 
 server.tool(
-    "get_file_source",
-    "Fetches the source code for a given file. If you receive an error that indicates that you're not authenticated, please inform the user to set the SOURCEBOT_API_KEY environment variable.",
+    "read_file",
+    dedent`Reads the source code for a given file.`,
     {
         fileName: z.string().describe("The file to fetch the source code for."),
-        repoId: z.string().describe("The repository to fetch the source code for. This is the Sourcebot compatible repository ID."),
+        repoName: z.string().describe("The name of the repository to fetch the source code for."),
     },
-    async ({ fileName, repoId }) => {
+    async ({ fileName, repoName }) => {
         const response = await getFileSource({
             fileName,
-            repository: repoId,
+            repository: repoName,
         });
 
-        if (isServiceError(response)) {
-            return {
-                content: [{
-                    type: "text",
-                    text: `Error fetching file source: ${response.message}`,
-                }],
-            };
-        }
-
-        const content: TextContent[] = [{
-            type: "text",
-            text: `file: ${fileName}\nrepository: ${repoId}\nlanguage: ${response.language}\nsource:\n${response.source}`,
-        }]
-
-        return {
-            content,
-        };
+        return { content: [{ type: "text", text: JSON.stringify(response) }] };
     }
 );
 

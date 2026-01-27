@@ -3,6 +3,7 @@
 import {
     fileSourceResponseSchema,
     listRepositoriesResponseSchema,
+    listReposRequestSchema,
     locationSchema,
     searchRequestSchema,
     searchResponseSchema,
@@ -10,8 +11,8 @@ import {
     fileSourceRequestSchema,
     symbolSchema,
     serviceErrorSchema,
-    searchCommitsRequestSchema,
-    searchCommitsResponseSchema,
+    listCommitsRequestSchema,
+    listCommitsResponseSchema,
 } from "./schemas.js";
 import { z } from "zod";
 
@@ -24,6 +25,7 @@ export type SearchResultChunk = SearchResultFile["chunks"][number];
 export type SearchSymbol = z.infer<typeof symbolSchema>;
 
 export type ListRepositoriesResponse = z.infer<typeof listRepositoriesResponseSchema>;
+export type ListReposRequest = z.input<typeof listReposRequestSchema>;
 
 export type FileSourceRequest = z.infer<typeof fileSourceRequestSchema>;
 export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
@@ -32,5 +34,5 @@ export type TextContent = { type: "text", text: string };
 
 export type ServiceError = z.infer<typeof serviceErrorSchema>;
 
-export type SearchCommitsRequest = z.infer<typeof searchCommitsRequestSchema>;
-export type SearchCommitsResponse = z.infer<typeof searchCommitsResponseSchema>;
+export type ListCommitsRequestSchema = z.infer<typeof listCommitsRequestSchema>;
+export type ListCommitsResponse = z.infer<typeof listCommitsResponseSchema>;
