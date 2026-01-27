@@ -1,16 +1,31 @@
 import { searchCommits } from "@/features/search/gitApi";
-import { serviceErrorResponse, schemaValidationError } from "@/lib/serviceError";
+import { serviceErrorResponse, queryParamsSchemaValidationError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
-import { searchCommitsRequestSchema } from "@/features/search/types";
+import { z } from "zod";
 
-export async function POST(request: NextRequest): Promise<Response> {
-    const body = await request.json();
-    const parsed = await searchCommitsRequestSchema.safeParseAsync(body);
+const querySchema = z.object({
+    repository: z.string(),
+    query: z.string().optional(),
+    since: z.string().optional(),
+    until: z.string().optional(),
+    author: z.string().optional(),
+    maxCount: z.coerce.number().int().positive().max(500).optional(),
+});
+
+export const GET = async (request: NextRequest): Promise<Response> => {
+    const parsed = querySchema.safeParse({
+        repository: request.nextUrl.searchParams.get('repository') ?? undefined,
+        query: request.nextUrl.searchParams.get('query') ?? undefined,
+        since: request.nextUrl.searchParams.get('since') ?? undefined,
+        until: request.nextUrl.searchParams.get('until') ?? undefined,
+        author: request.nextUrl.searchParams.get('author') ?? undefined,
+        maxCount: request.nextUrl.searchParams.get('maxCount') ?? undefined,
+    });
 
     if (!parsed.success) {
         return serviceErrorResponse(
-            schemaValidationError(parsed.error)
+            queryParamsSchemaValidationError(parsed.error)
         );
     }
 

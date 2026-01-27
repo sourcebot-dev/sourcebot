@@ -2,7 +2,7 @@
 
 import { streamSearch, searchRequestSchema } from '@/features/search';
 import { captureEvent } from '@/lib/posthog';
-import { schemaValidationError, serviceErrorResponse } from '@/lib/serviceError';
+import { requestBodySchemaValidationError, serviceErrorResponse } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
 import { NextRequest } from 'next/server';
 
@@ -11,7 +11,7 @@ export const POST = async (request: NextRequest) => {
     const parsed = await searchRequestSchema.safeParseAsync(body);
 
     if (!parsed.success) {
-        return serviceErrorResponse(schemaValidationError(parsed.error));
+        return serviceErrorResponse(requestBodySchemaValidationError(parsed.error));
     }
 
     const {

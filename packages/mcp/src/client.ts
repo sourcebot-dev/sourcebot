@@ -84,14 +84,19 @@ export const getFileSource = async (request: FileSourceRequest) => {
 }
 
 export const listCommits = async (request: ListCommitsRequestSchema) => {
-    const response = await fetch(`${env.SOURCEBOT_HOST}/api/commits`, {
-        method: 'POST',
+    const url = new URL(`${env.SOURCEBOT_HOST}/api/commits`);
+    for (const [key, value] of Object.entries(request)) {
+        if (value) {
+            url.searchParams.set(key, value.toString());
+        }
+    }
+
+    const response = await fetch(url, {
+        method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
             'X-Org-Domain': '~',
             ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
-        body: JSON.stringify(request)
     });
 
     return parseResponse(response, listCommitsResponseSchema);

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { sew } from "@/actions";
 import { withOptionalAuthV2 } from "@/withAuthV2";
-import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
+import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { repositoryQuerySchema } from "@/lib/schemas";
 import { buildLinkHeader, getBaseUrl } from "@/lib/pagination";
@@ -25,7 +25,7 @@ export const GET = async (request: NextRequest) => {
     });
 
     if (!parseResult.success) {
-        return serviceErrorResponse(schemaValidationError(parseResult.error));
+        return serviceErrorResponse(queryParamsSchemaValidationError(parseResult.error));
     }
 
     const { page, per_page: perPage, sort, direction, query } = parseResult.data;
