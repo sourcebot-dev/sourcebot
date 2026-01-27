@@ -209,15 +209,45 @@ export const serviceErrorSchema = z.object({
     message: z.string(),
 });
 
-export const listCommitsRequestSchema = z.object({
-    repository: z.string(),
-    query: z.string().optional(),
-    since: z.string().optional(),
-    until: z.string().optional(),
-    author: z.string().optional(),
-    maxCount: z.number().int().positive().max(100).optional(),
-    page: z.number().int().positive().optional(),
-    perPage: z.number().int().positive().max(100).optional(),
+export const listCommitsQueryParamsSchema = z.object({
+    repo: z
+        .string()
+        .describe("The name of the repository to list commits for."),
+    query: z
+        .string()
+        .describe("Search query to filter commits by message content (case-insensitive).")
+        .optional(),
+    since: z
+        .string()
+        .describe(`Show commits more recent than this date. Filters by actual commit time. Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago', 'last week').`)
+        .optional(),
+    until: z
+        .string()
+        .describe(`Show commits older than this date. Filters by actual commit time. Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday').`)
+        .optional(),
+    author: z
+        .string()
+        .describe(`Filter commits by author name or email`)
+        .optional(),
+    ref: z
+        .string()
+        .describe("Commit SHA, branch or tag name to list commits of. If not provided, uses the default branch of the repository.")
+        .optional(),
+    page: z
+        .number()
+        .int()
+        .positive()
+        .describe("Page number for pagination (min 1). Default: 1")
+        .optional()
+        .default(1),
+    perPage: z
+        .number()
+        .int()
+        .positive()
+        .max(100)
+        .describe("Results per page for pagination (min 1, max 100). Default: 50")
+        .optional()
+        .default(50),
 });
 
 export const listCommitsResponseSchema = z.array(z.object({

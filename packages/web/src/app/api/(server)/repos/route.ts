@@ -7,7 +7,7 @@ import { isServiceError } from "@/lib/utils";
 import { repositoryQuerySchema } from "@/lib/schemas";
 import { buildLinkHeader, getBaseUrl } from "@/lib/pagination";
 
-const querySchema = z.object({
+const listReposQueryParamsSchema = z.object({
     page: z.coerce.number().int().positive().default(1),
     perPage: z.coerce.number().int().positive().max(100).default(30),
     sort: z.enum(['name', 'pushed']).default('name'),
@@ -16,13 +16,13 @@ const querySchema = z.object({
 });
 
 export const GET = async (request: NextRequest) => {
-    const parseResult = querySchema.safeParse({
-        page: request.nextUrl.searchParams.get('page') ?? undefined,
-        perPage: request.nextUrl.searchParams.get('perPage') ?? undefined,
-        sort: request.nextUrl.searchParams.get('sort') ?? undefined,
-        direction: request.nextUrl.searchParams.get('direction') ?? undefined,
-        query: request.nextUrl.searchParams.get('query') ?? undefined,
-    });
+    const rawParams = Object.fromEntries(
+        Object.keys(listReposQueryParamsSchema.shape).map(key => [
+            key,
+            request.nextUrl.searchParams.get(key) ?? undefined
+        ])
+    );
+    const parseResult = listReposQueryParamsSchema.safeParse(rawParams);
 
     if (!parseResult.success) {
         return serviceErrorResponse(queryParamsSchemaValidationError(parseResult.error));

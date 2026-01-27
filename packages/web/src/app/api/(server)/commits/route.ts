@@ -1,30 +1,29 @@
-import { searchCommits } from "@/features/search/gitApi";
+import { listCommits } from "@/features/search/gitApi";
 import { buildLinkHeader, getBaseUrl } from "@/lib/pagination";
 import { serviceErrorResponse, queryParamsSchemaValidationError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 
-const querySchema = z.object({
-    repository: z.string(),
+const listCommitsQueryParamsSchema = z.object({
+    repo: z.string(),
     query: z.string().optional(),
     since: z.string().optional(),
     until: z.string().optional(),
     author: z.string().optional(),
+    ref: z.string().optional(),
     page: z.coerce.number().int().positive().default(1),
     perPage: z.coerce.number().int().positive().max(100).default(50),
 });
 
 export const GET = async (request: NextRequest): Promise<Response> => {
-    const parsed = querySchema.safeParse({
-        repository: request.nextUrl.searchParams.get('repository') ?? undefined,
-        query: request.nextUrl.searchParams.get('query') ?? undefined,
-        since: request.nextUrl.searchParams.get('since') ?? undefined,
-        until: request.nextUrl.searchParams.get('until') ?? undefined,
-        author: request.nextUrl.searchParams.get('author') ?? undefined,
-        page: request.nextUrl.searchParams.get('page') ?? undefined,
-        perPage: request.nextUrl.searchParams.get('perPage') ?? undefined,
-    });
+    const rawParams = Object.fromEntries(
+        Object.keys(listCommitsQueryParamsSchema.shape).map(key => [
+            key,
+            request.nextUrl.searchParams.get(key) ?? undefined
+        ])
+    );
+    const parsed = listCommitsQueryParamsSchema.safeParse(rawParams);
 
     if (!parsed.success) {
         return serviceErrorResponse(
@@ -35,7 +34,7 @@ export const GET = async (request: NextRequest): Promise<Response> => {
     const { page, perPage, ...searchParams } = parsed.data;
     const skip = (page - 1) * perPage;
 
-    const result = await searchCommits({ ...searchParams, maxCount: perPage, skip });
+    const result = await listCommits({ ...searchParams, maxCount: perPage, skip });
 
     if (isServiceError(result)) {
         return serviceErrorResponse(result);
@@ -51,11 +50,12 @@ export const GET = async (request: NextRequest): Promise<Response> => {
         perPage,
         totalCount,
         extraParams: {
-            repository: searchParams.repository,
+            repo: searchParams.repo,
             ...(searchParams.query && { query: searchParams.query }),
             ...(searchParams.since && { since: searchParams.since }),
             ...(searchParams.until && { until: searchParams.until }),
             ...(searchParams.author && { author: searchParams.author }),
+            ...(searchParams.ref && { ref: searchParams.ref }),
         },
     });
     if (linkHeader) headers.set('Link', linkHeader);

@@ -7,8 +7,8 @@ import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
 import { getFileSource, listRepos, search, listCommits } from './client.js';
 import { env, numberSchema } from './env.js';
-import { listReposRequestSchema } from './schemas.js';
-import { ListReposRequest, TextContent } from './types.js';
+import { listCommitsQueryParamsSchema, listReposRequestSchema } from './schemas.js';
+import { ListCommitsRequestSchema, ListReposRequest, TextContent } from './types.js';
 import _dedent from "dedent";
 
 const dedent = _dedent.withOptions({ alignValues: true });
@@ -174,23 +174,9 @@ server.tool(
 server.tool(
     "list_commits",
     dedent`Get a list of commits for a given repository.`,
-    {
-        repoName: z.string().describe(`The name of the repository to search commits in.`),
-        query: z.string().describe(`Search query to filter commits by message content (case-insensitive).`).optional(),
-        since: z.string().describe(`Show commits more recent than this date. Filters by actual commit time. Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago', 'last week').`).optional(),
-        until: z.string().describe(`Show commits older than this date. Filters by actual commit time. Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday').`).optional(),
-        author: z.string().describe(`Filter commits by author name or email`).optional(),
-        maxCount: z.number().int().positive().max(100).default(50).describe(`Maximum number of commits to return (default: 50).`),
-    },
-    async ({ repoName, query, since, until, author, maxCount }) => {
-        const result = await listCommits({
-            repository: repoName,
-            query,
-            since,
-            until,
-            author,
-            maxCount,
-        });
+    listCommitsQueryParamsSchema.shape,
+    async (request: ListCommitsRequestSchema) => {
+        const result = await listCommits(request);
 
         return {
             content: [{ type: "text", text: JSON.stringify(result) }],
@@ -202,8 +188,8 @@ server.tool(
     "list_repos",
     dedent`Lists repositories in the organization with optional filtering and pagination.`,
     listReposRequestSchema.shape,
-    async ({ query, page = 1, perPage = 30, sort = 'name', direction = 'asc' }: ListReposRequest) => {
-        const result = await listRepos({ query, page, perPage, sort, direction });
+    async (request: ListReposRequest) => {
+        const result = await listRepos(request);
 
         return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }

@@ -11,7 +11,7 @@ import {
     fileSourceRequestSchema,
     symbolSchema,
     serviceErrorSchema,
-    listCommitsRequestSchema,
+    listCommitsQueryParamsSchema,
     listCommitsResponseSchema,
 } from "./schemas.js";
 import { z } from "zod";
@@ -34,5 +34,5 @@ export type TextContent = { type: "text", text: string };
 
 export type ServiceError = z.infer<typeof serviceErrorSchema>;
 
-export type ListCommitsRequestSchema = z.infer<typeof listCommitsRequestSchema>;
+export type ListCommitsRequestSchema = z.infer<typeof listCommitsQueryParamsSchema>;
 export type ListCommitsResponse = z.infer<typeof listCommitsResponseSchema>;
