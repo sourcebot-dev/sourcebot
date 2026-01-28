@@ -119,18 +119,27 @@ export async function refreshOAuthToken(
                     continue;
                 }
 
+                // Build request body parameters
+                const bodyParams: Record<string, string> = {
+                    client_id: clientId,
+                    client_secret: clientSecret,
+                    grant_type: 'refresh_token',
+                    refresh_token: refreshToken,
+                };
+
+                // GitLab requires redirect_uri to match the original authorization request
+                // even when refreshing tokens. Use URL constructor to handle trailing slashes.
+                if (provider === 'gitlab') {
+                    bodyParams.redirect_uri = new URL('/api/auth/callback/gitlab', env.AUTH_URL).toString();
+                }
+
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'Accept': 'application/json',
                     },
-                    body: new URLSearchParams({
-                        client_id: clientId,
-                        client_secret: clientSecret,
-                        grant_type: 'refresh_token',
-                        refresh_token: refreshToken,
-                    }),
+                    body: new URLSearchParams(bodyParams),
                 });
 
                 if (!response.ok) {
