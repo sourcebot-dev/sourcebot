@@ -76,7 +76,6 @@ export const listCommits = async ({
 
         try {
             const sharedOptions: Record<string, string | number | null> = {
-                [ref]: null,
                 ...(gitSince ? { '--since': gitSince } : {}),
                 ...(gitUntil ? { '--until': gitUntil } : {}),
                 ...(author ? {
@@ -91,6 +90,7 @@ export const listCommits = async ({
 
             // First, get the commits
             const log = await git.log({
+                [ref]: null,
                 maxCount,
                 ...(skip > 0 ? { '--skip': skip } : {}),
                 ...sharedOptions,

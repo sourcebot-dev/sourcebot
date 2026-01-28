@@ -78,7 +78,11 @@ export const GET = async (request: NextRequest) => {
         page,
         perPage,
         totalCount,
-        extraParams: { sort, direction },
+        extraParams: {
+            sort,
+            direction,
+            ...(query ? { query } : {}),
+        },
     });
     if (linkHeader) headers.set('Link', linkHeader);
 

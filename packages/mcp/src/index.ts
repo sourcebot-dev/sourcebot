@@ -45,7 +45,7 @@ server.tool(
             .optional(),
         filterByFilepaths: z
             .array(z.string())
-            .describe(`Scope the search to the provided filepaths. Interpretted as a regex.`)
+            .describe(`Scope the search to the provided filepaths.`)
             .optional(),
         caseSensitive: z
             .boolean()

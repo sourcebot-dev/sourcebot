@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added commit graph generation to improve performance for commit traversal operations. [#791](https://github.com/sourcebot-dev/sourcebot/pull/791)
 - Made the code search `lang:` filter case insensitive. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
 - Changed the `/api/source` endpoint from a POST request to a GET request. Repo, path, and ref are specified as query params. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
-- Changed the `/api/commits` endpoint to be a POST request to a GET request. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+- Changed the `/api/commits` endpoint from a POST request to a GET request. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
 - Renamed `webUrl` to `externalWebUrl` for various apis. Moving forward, `webUrl` will be used for URLs that point to Sourcebot, and `externalWebUrl` will be used for URLs that point to external code hosts. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
 - Renamed various fields on the `/api/source` endpoint response body. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
 

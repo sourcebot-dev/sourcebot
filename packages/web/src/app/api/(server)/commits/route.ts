@@ -51,11 +51,11 @@ export const GET = async (request: NextRequest): Promise<Response> => {
         totalCount,
         extraParams: {
             repo: searchParams.repo,
-            ...(searchParams.query && { query: searchParams.query }),
-            ...(searchParams.since && { since: searchParams.since }),
-            ...(searchParams.until && { until: searchParams.until }),
-            ...(searchParams.author && { author: searchParams.author }),
-            ...(searchParams.ref && { ref: searchParams.ref }),
+            ...(searchParams.query ? { query: searchParams.query } : {}),
+            ...(searchParams.since ? { since: searchParams.since } : {}),
+            ...(searchParams.until ? { until: searchParams.until } : {}),
+            ...(searchParams.author ? { author: searchParams.author } : {}),
+            ...(searchParams.ref ? { ref: searchParams.ref } : {}),
         },
     });
     if (linkHeader) headers.set('Link', linkHeader);
