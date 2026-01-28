@@ -1,7 +1,7 @@
 import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { useToast } from "@/components/hooks/use-toast";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -15,6 +15,9 @@ import { createPortal } from "react-dom";
 import { useHotkeys } from "react-hotkeys-hook";
 import { SymbolDefinitionPreview } from "./symbolDefinitionPreview";
 import { useHoveredOverSymbolInfo } from "./useHoveredOverSymbolInfo";
+import { useDomain } from "@/hooks/useDomain";
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import Link from "next/link";
 
 interface SymbolHoverPopupProps {
     editorRef: ReactCodeMirrorRef;
@@ -105,6 +108,24 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
 
         return symbolInfo.symbolDefinitions[0];
     }, [fileName, repoName, symbolInfo?.symbolDefinitions]);
+
+    // Logic to generate the definition link
+    const domain = useDomain();
+
+    const definitionHref = useMemo(() => {
+        if (!previewedSymbolDefinition || (symbolInfo?.symbolDefinitions?.length ?? 0) > 1) {
+            return undefined;
+        }
+        const { fileName, repoName, revisionName, range } = previewedSymbolDefinition;
+        return getBrowsePath({
+            repoName,
+            revisionName,
+            path: fileName,
+            pathType: 'blob',
+            highlightRange: range,
+            domain,
+        });
+    }, [previewedSymbolDefinition, symbolInfo?.symbolDefinitions, domain]);
 
     const onGotoDefinition = useCallback(() => {
         if (
@@ -269,19 +290,35 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
             <div className="flex flex-row gap-2 mt-2">
                 <Tooltip delayDuration={500}>
                     <TooltipTrigger asChild>
-                        <LoadingButton
-                            loading={symbolInfo.isSymbolDefinitionsLoading}
-                            disabled={!previewedSymbolDefinition}
-                            variant="outline"
-                            size="sm"
-                            onClick={onGotoDefinition}
-                        >
-                            {
-                                !symbolInfo.isSymbolDefinitionsLoading && !previewedSymbolDefinition ?
-                                    "No definition found" :
-                                    `Go to ${symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 1 ? "definitions" : "definition"}`
-                            }
-                        </LoadingButton>
+                        {definitionHref ? (
+                            <Link
+                                href={definitionHref}
+                                className={buttonVariants({ variant: "outline", size: "sm" })}
+                                onClick={() => {
+                                    captureEvent('wa_goto_definition_pressed', { source });
+                                    createAuditAction({
+                                        action: "user.performed_goto_definition",
+                                        metadata: { message: symbolInfo.symbolName },
+                                    });
+                                }}
+                            >
+                                Go to definition
+                            </Link>
+                        ) : (
+                            <LoadingButton
+                                loading={symbolInfo.isSymbolDefinitionsLoading}
+                                disabled={!previewedSymbolDefinition}
+                                variant="outline"
+                                size="sm"
+                                onClick={onGotoDefinition}
+                            >
+                                {
+                                    !symbolInfo.isSymbolDefinitionsLoading && !previewedSymbolDefinition ?
+                                        "No definition found" :
+                                        `Go to ${symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 1 ? "definitions" : "definition"}`
+                                }
+                            </LoadingButton>
+                        )}
                     </TooltipTrigger>
                     <TooltipContent
                         side="bottom"
