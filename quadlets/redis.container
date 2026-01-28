@@ -1,0 +1,18 @@
+# sourcebot-redis.container
+[Unit]
+Description=Redis Instance for Sourcebot
+
+[Container]
+Image=docker.io/library/redis:8
+HealthCmd=["redis-cli","ping"]
+HealthInterval=3s
+HealthRetries=10
+HealthTimeout=10s
+Pod=sourcebot.pod
+Volume=sourcebot_redis_data:/data
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,24 @@
+# sourcebot-postgres.container
+[Unit]
+Description=PostgreSQL Instance for Sourcebot
+
+[Container]
+Image=docker.io/library/postgres:17
+Pull=always
+Pod=sourcebot.pod
+AutoUpdate=registry
+HealthCmd=pg_isready -U postgres
+HealthInterval=3s
+HealthRetries=10
+HealthTimeout=3s
+Volume=sourcebot_postgres_data:/var/lib/postgresql/data
+Environment=POSTGRES_USER=postgres
+Environment=POSTGRES_PASSWORD_FILE=/run/secrets/postgres_admin_password
+Environment=POSTGRES_DB=postgres
+Secret=postgres_admin_password
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target
