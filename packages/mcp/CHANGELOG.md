@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.13] - 2026-01-27
+
 ### Added
 - Added `search_commits` tool to search a repos commit history. [#625](https://github.com/sourcebot-dev/sourcebot/pull/625)
 - Added `gitRevision` parameter to the `search_code` tool to allow for searching on different branches. [#625](https://github.com/sourcebot-dev/sourcebot/pull/625)
