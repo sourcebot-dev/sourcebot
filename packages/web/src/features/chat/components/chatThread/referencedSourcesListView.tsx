@@ -76,9 +76,9 @@ const ReferencedSourcesListViewComponent = ({
         queries: sources.map((file) => ({
             queryKey: ['fileSource', file.path, file.repo, file.revision],
             queryFn: () => unwrapServiceError(getFileSource({
-                fileName: file.path,
-                repository: file.repo,
-                branch: file.revision,
+                path: file.path,
+                repo: file.repo,
+                ref: file.revision,
             })),
             staleTime: Infinity,
         })),

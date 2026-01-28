@@ -248,9 +248,9 @@ ${addLineNumbers(file.source)}
 
 const resolveFileSource = async ({ path, repo, revision }: FileSource) => {
     const fileSource = await getFileSource({
-        fileName: path,
-        repository: repo,
-        branch: revision,
+        path,
+        repo,
+        ref: revision,
     });
 
     if (isServiceError(fileSource)) {

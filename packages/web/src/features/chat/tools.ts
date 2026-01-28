@@ -111,9 +111,9 @@ export const readFilesTool = tool({
 
         const responses = await Promise.all(paths.map(async (path) => {
             return getFileSource({
-                fileName: path,
-                repository,
-                branch: revision,
+                path,
+                repo: repository,
+                ref: revision,
                 // @todo(mt): handle multi-tenancy.
             });
         }));

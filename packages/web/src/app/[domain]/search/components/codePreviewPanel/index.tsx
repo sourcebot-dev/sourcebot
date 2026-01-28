@@ -32,9 +32,9 @@ export const CodePreviewPanel = ({
         queryKey: ["source", previewedFile, branch],
         queryFn: () => unwrapServiceError(
             getFileSource({
-                fileName: previewedFile.fileName.text,
-                repository: previewedFile.repository,
-                branch,
+                path: previewedFile.fileName.text,
+                repo: previewedFile.repository,
+                ref: branch,
             })
         ),
         select: (data) => {
