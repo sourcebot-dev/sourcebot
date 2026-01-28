@@ -13,9 +13,9 @@ HealthRetries=10
 HealthTimeout=3s
 Volume=sourcebot_postgres_data:/var/lib/postgresql/data
 Environment=POSTGRES_USER=postgres
-Environment=POSTGRES_PASSWORD_FILE=/run/secrets/postgres_admin_password
+Environment=POSTGRES_PASSWORD_FILE=/run/secrets/POSTGRES_ADMIN_PASSWORD
 Environment=POSTGRES_DB=postgres
-Secret=postgres_admin_password
+Secret=POSTGRES_ADMIN_PASSWORD
 
 [Service]
 Restart=always

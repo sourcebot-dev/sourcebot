@@ -24,11 +24,11 @@ if [ $GENERATE_NEW_SECRETS = 'Y' -o $GENERATE_NEW_SECRETS = 'y' ]; then
 fi
 
 # Removing old versions of these secrets
-podman secret ls -f name="(postgres_admin_password|sourcebot_auth_secret|sourcebot_encryption_key|sourcebot_database_url)" --format "{{.ID}}" | sudo xargs --no-run-if-empty podman secret rm
+podman secret ls -f name="(POSTGRES_ADMIN_PASSWORD|SOURCEBOT_AUTH_SECRET|SOURCEBOT_ENCRYPTION_KEY|SOURCEBOT_DATABASE_URL)" --format "{{.ID}}" | sudo xargs --no-run-if-empty podman secret rm
 # If you want to create secrets inline: printf 'Hello World!' | podman secret create hello_world -
-podman secret create postgres_admin_password "./secrets/postgres_admin_password"
-podman secret create sourcebot_auth_secret "./secrets/sourcebot_auth_secret"
-podman secret create sourcebot_encryption_key "./secrets/sourcebot_encryption_key"
+podman secret create POSTGRES_ADMIN_PASSWORD "./secrets/postgres_admin_password"
+podman secret create SOURCEBOT_AUTH_SECRET "./secrets/sourcebot_auth_secret"
+podman secret create SOURCEBOT_ENCRYPTION_KEY "./secrets/sourcebot_encryption_key"
 
 # URL encodes everything following the function name using just native sh and printf.
 # Invoke via:
@@ -52,7 +52,7 @@ url_encode () {
 
 # * Generate URL-encoded DATABASE_URL based on secrets. Allows use of special characters in passwords.
 # When running on podman 5+, all containers run in the same pod, so the correct address for postgres is 'localhost'.
-printf 'postgresql://postgres:%s@localhost/postgres' "$(url_encode $(cat ./secrets/postgres_admin_password))" | podman secret create sourcebot_database_url -
+printf 'postgresql://postgres:%s@localhost/postgres' "$(url_encode $(cat ./secrets/postgres_admin_password))" | podman secret create SOURCEBOT_DATABASE_URL -
 
 
 # * Alter Passwords of PostgreSQL users
