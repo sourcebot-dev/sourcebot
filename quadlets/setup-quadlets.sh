@@ -11,10 +11,11 @@ fi
 echo "(Re)creating Podman Secret Cache"
 if [ $GENERATE_NEW_SECRETS = 'Y' -o $GENERATE_NEW_SECRETS = 'y' ]; then
     if [ ! -d './secrets' ]; then
-        mkdir --mode='u=rw,g=,o=' './secrets'
+        mkdir --mode='u=rwx,g=,o=' './secrets'
     else
-        chmod -R 'u=rw,g=,o=' './secrets'
+        chmod 'u=rwx,g=,o=' './secrets'
     fi
+    find './secrets' -type f -exec chmod 'u=rw,g=,o=' {} +
 
     # Use gpg dry-run to generate random passwords without worrying about profile polution.
     # Additionally, it does not add linebreaks to long random strings like openssl does.
