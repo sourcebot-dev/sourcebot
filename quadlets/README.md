@@ -56,3 +56,10 @@ Note that as systemd services can specify the user they run as, rootful quadlets
 > 2. Pipe values to `tr -d '\n'` prior to piping to `podman secret create` to remove newline characters.
 
 3. Optionally delete the `secrets` subdirectory.  This is more secure, but will prevent rerunning the `setup-quadlets.sh` script with `GENERATE_NEW_SECRETS` set to 'N'. That is used to drop and recreate the secrets without changing them.  Useful if you suspect you've succumbed to the important issue noted above.
+
+4. Once everything is in place, you can start the pod via:
+```bash
+systemctl daemon-reload
+systemctl start sourcebot-pod
+```
+This will start all services in the pod.

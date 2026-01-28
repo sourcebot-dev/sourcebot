@@ -24,7 +24,7 @@ if [ $GENERATE_NEW_SECRETS = 'Y' -o $GENERATE_NEW_SECRETS = 'y' ]; then
 fi
 
 # Removing old versions of these secrets
-podman secret ls -f name="(POSTGRES_ADMIN_PASSWORD|SOURCEBOT_AUTH_SECRET|SOURCEBOT_ENCRYPTION_KEY|SOURCEBOT_DATABASE_URL)" --format "{{.ID}}" | sudo xargs --no-run-if-empty podman secret rm
+podman secret ls -f name="(POSTGRES_ADMIN_PASSWORD|SOURCEBOT_AUTH_SECRET|SOURCEBOT_ENCRYPTION_KEY|SOURCEBOT_DATABASE_URL)" --format "{{.ID}}" | xargs --no-run-if-empty podman secret rm
 # If you want to create secrets inline: printf 'Hello World!' | podman secret create hello_world -
 podman secret create POSTGRES_ADMIN_PASSWORD "./secrets/postgres_admin_password"
 podman secret create SOURCEBOT_AUTH_SECRET "./secrets/sourcebot_auth_secret"
