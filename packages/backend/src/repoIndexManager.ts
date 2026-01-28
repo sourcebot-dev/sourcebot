@@ -13,7 +13,7 @@ import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
 import { RepoWithConnections, Settings } from "./types.js";
 import { getAuthCredentialsForRepo, getShardPrefix, groupmqLifecycleExceptionWrapper, measure, setIntervalAsync } from './utils.js';
-import { indexGitRepository } from './zoekt.js';
+import { cleanupTempShards, indexGitRepository } from './zoekt.js';
 
 const LOG_TAG = 'repo-index-manager';
 const logger = createLogger(LOG_TAG);
@@ -438,9 +438,17 @@ export class RepoIndexManager {
         }
 
         logger.info(`Indexing ${repo.name} (id: ${repo.id})...`);
-        const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, revisions, signal));
-        const indexDuration_s = durationMs / 1000;
-        logger.info(`Indexed ${repo.name} (id: ${repo.id}) in ${indexDuration_s}s`);
+        try {
+            const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, revisions, signal));
+            const indexDuration_s = durationMs / 1000;
+            logger.info(`Indexed ${repo.name} (id: ${repo.id}) in ${indexDuration_s}s`);
+        } catch (error) {
+            // Clean up any temporary shard files left behind by the failed indexing operation.
+            // Zoekt creates .tmp files during indexing which can accumulate if indexing fails repeatedly.
+            logger.warn(`Indexing failed for ${repo.name} (id: ${repo.id}), cleaning up temp shard files...`);
+            await cleanupTempShards(repo);
+            throw error;
+        }
 
         return revisions;
     }

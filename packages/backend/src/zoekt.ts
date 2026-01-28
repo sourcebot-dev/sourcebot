@@ -1,6 +1,7 @@
 import { Repo } from "@sourcebot/db";
 import { createLogger, env, getRepoPath } from "@sourcebot/shared";
 import { exec } from "child_process";
+import { readdir, rm } from "fs/promises";
 import { INDEX_CACHE_DIR } from "./constants.js";
 import { Settings } from "./types.js";
 import { getShardPrefix } from "./utils.js";
@@ -53,4 +54,35 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, revisio
             });
         })
     });
+}
+
+/**
+ * Cleans up temporary shard files left behind by a failed indexing operation.
+ * Zoekt creates temporary files (with `.tmp` suffix) during indexing, which
+ * can be left behind if the indexing process fails or is interrupted.
+ * 
+ * @param repo - The repository whose temp shards should be cleaned up
+ */
+export const cleanupTempShards = async (repo: Repo) => {
+    const shardPrefix = getShardPrefix(repo.orgId, repo.id);
+    
+    try {
+        const files = await readdir(INDEX_CACHE_DIR);
+        const tempFiles = files.filter(file => 
+            file.startsWith(shardPrefix) && file.includes('.tmp')
+        );
+        
+        for (const file of tempFiles) {
+            const filePath = `${INDEX_CACHE_DIR}/${file}`;
+            logger.info(`Cleaning up temp shard file: ${filePath}`);
+            await rm(filePath, { force: true });
+        }
+        
+        if (tempFiles.length > 0) {
+            logger.info(`Cleaned up ${tempFiles.length} temp shard file(s) for repo ${repo.id}`);
+        }
+    } catch (error) {
+        // Log but don't throw - cleanup is best effort
+        logger.warn(`Failed to cleanup temp shards for repo ${repo.id}:`, error);
+    }
 }
