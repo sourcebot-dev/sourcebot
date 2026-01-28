@@ -5,7 +5,7 @@ import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, Se
 import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notFound, requestBodySchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
+import { notFound, requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
@@ -63,11 +63,11 @@ export const POST = apiHandler(async (req: NextRequest) => {
             }
 
             if (chat.isReadonly) {
-                return serviceErrorResponse({
+                return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
                     message: "Chat is readonly and cannot be edited.",
-                });
+                } satisfies ServiceError;
             }
 
             // From the language model ID, attempt to find the
@@ -77,11 +77,11 @@ export const POST = apiHandler(async (req: NextRequest) => {
                     .find((model) => getLanguageModelKey(model) === getLanguageModelKey(languageModel));
 
             if (!languageModelConfig) {
-                return serviceErrorResponse({
+                return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
                     message: `Language model ${languageModel.model} is not configured.`,
-                });
+                } satisfies ServiceError;
             }
 
             const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);

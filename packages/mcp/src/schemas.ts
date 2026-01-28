@@ -272,3 +272,35 @@ export const listCommitsResponseSchema = z.array(z.object({
     author_name: z.string(),
     author_email: z.string(),
 }));
+
+// ============================================================================
+// Ask Codebase (Blocking Chat API)
+// ============================================================================
+
+export const askCodebaseRequestSchema = z.object({
+    question: z.string().describe("The question to ask about the codebase"),
+    repos: z.array(z.string()).optional().describe("Optional: filter to specific repositories by name"),
+});
+
+export const sourceSchema = z.object({
+    type: z.literal('file'),
+    repo: z.string(),
+    path: z.string(),
+    name: z.string(),
+    language: z.string(),
+    revision: z.string(),
+});
+
+export const askCodebaseResponseSchema = z.object({
+    answer: z.string().describe("The agent's final answer in markdown format"),
+    chatId: z.string().describe("ID of the persisted chat session"),
+    chatUrl: z.string().describe("URL to view the chat in the web UI"),
+    sources: z.array(sourceSchema).describe("Files the agent referenced during research"),
+    metadata: z.object({
+        totalTokens: z.number(),
+        inputTokens: z.number(),
+        outputTokens: z.number(),
+        totalResponseTimeMs: z.number(),
+        modelName: z.string(),
+    }).describe("Metadata about the response"),
+});

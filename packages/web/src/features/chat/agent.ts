@@ -4,7 +4,7 @@ import { getFileSource } from '@/features/git';
 import { isServiceError } from "@/lib/utils";
 import { ProviderOptions } from "@ai-sdk/provider-utils";
 import { createLogger } from "@sourcebot/shared";
-import { LanguageModel, ModelMessage, StopCondition, streamText } from "ai";
+import { generateText, LanguageModel, ModelMessage, StopCondition, streamText } from "ai";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, toolNames } from "./constants";
 import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, readFilesTool, searchReposTool, listAllReposTool } from "./tools";
 import { FileSource, Source } from "./types";
@@ -266,4 +266,165 @@ const resolveFileSource = async ({ path, repo, revision }: FileSource) => {
         language: fileSource.language,
         revision,
     }
+}
+
+// ============================================================================
+// Blocking Agent Execution (for MCP and other non-streaming use cases)
+// ============================================================================
+
+interface BlockingAgentOptions {
+    model: LanguageModel;
+    providerOptions?: ProviderOptions;
+    searchScopeRepoNames: string[];
+    inputMessages: ModelMessage[];
+    inputSources: Source[];
+    traceId: string;
+}
+
+export interface BlockingAgentResult {
+    text: string;
+    sources: Source[];
+    usage: {
+        inputTokens: number;
+        outputTokens: number;
+        totalTokens: number;
+    };
+    responseTimeMs: number;
+}
+
+/**
+ * Runs the chat agent in blocking mode, waiting for the complete response.
+ * This is used by the MCP server and other integrations that don't support streaming.
+ */
+export const runAgentBlocking = async ({
+    model,
+    providerOptions,
+    inputMessages,
+    inputSources,
+    searchScopeRepoNames,
+    traceId,
+}: BlockingAgentOptions): Promise<BlockingAgentResult> => {
+    const startTime = Date.now();
+    const collectedSources: Source[] = [];
+
+    const onWriteSource = (source: Source) => {
+        // Deduplicate sources by checking if we already have this file
+        const exists = collectedSources.some(
+            (s) => s.type === source.type && 
+                   s.type === 'file' && source.type === 'file' &&
+                   s.repo === source.repo && 
+                   s.path === source.path
+        );
+        if (!exists) {
+            collectedSources.push(source);
+        }
+    };
+
+    const baseSystemPrompt = createBaseSystemPrompt({ searchScopeRepoNames });
+
+    // Resolve any input file sources for the first step
+    let systemPromptWithSources = baseSystemPrompt;
+    if (inputSources.length > 0) {
+        const fileSources = inputSources.filter((source) => source.type === 'file');
+        const resolvedFileSources = (
+            await Promise.all(fileSources.map(resolveFileSource))
+        ).filter((source) => source !== undefined);
+
+        if (resolvedFileSources.length > 0) {
+            const fileSourcesSystemPrompt = await createFileSourcesSystemPrompt({
+                files: resolvedFileSources
+            });
+            systemPromptWithSources = `${baseSystemPrompt}\n\n${fileSourcesSystemPrompt}`;
+        }
+    }
+
+    const result = await generateText({
+        model,
+        providerOptions,
+        system: systemPromptWithSources,
+        messages: inputMessages,
+        tools: {
+            [toolNames.searchCode]: createCodeSearchTool(searchScopeRepoNames),
+            [toolNames.readFiles]: readFilesTool,
+            [toolNames.findSymbolReferences]: findSymbolReferencesTool,
+            [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
+            [toolNames.searchRepos]: searchReposTool,
+            [toolNames.listAllRepos]: listAllReposTool,
+        },
+        temperature: env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
+        stopWhen: [
+            stepCountIsGTE(env.SOURCEBOT_CHAT_MAX_STEP_COUNT),
+        ],
+        toolChoice: "auto",
+        onStepFinish: ({ toolResults }) => {
+            // Extract sources from tool results (same logic as streaming version)
+            toolResults.forEach(({ toolName, output, dynamic }) => {
+                // We don't care about dynamic tool results here.
+                if (dynamic) {
+                    return;
+                }
+
+                if (isServiceError(output)) {
+                    return;
+                }
+
+                if (toolName === toolNames.readFiles) {
+                    (output as { path: string; repository: string; language: string; revision: string }[]).forEach((file) => {
+                        onWriteSource({
+                            type: 'file',
+                            language: file.language,
+                            repo: file.repository,
+                            path: file.path,
+                            revision: file.revision,
+                            name: file.path.split('/').pop() ?? file.path,
+                        });
+                    });
+                }
+                else if (toolName === toolNames.searchCode) {
+                    const searchOutput = output as { files: { language: string; repository: string; fileName: string; revision: string }[] };
+                    searchOutput.files.forEach((file) => {
+                        onWriteSource({
+                            type: 'file',
+                            language: file.language,
+                            repo: file.repository,
+                            path: file.fileName,
+                            revision: file.revision,
+                            name: file.fileName.split('/').pop() ?? file.fileName,
+                        });
+                    });
+                }
+                else if (toolName === toolNames.findSymbolDefinitions || toolName === toolNames.findSymbolReferences) {
+                    (output as { language: string; repository: string; fileName: string; revision: string }[]).forEach((file) => {
+                        onWriteSource({
+                            type: 'file',
+                            language: file.language,
+                            repo: file.repository,
+                            path: file.fileName,
+                            revision: file.revision,
+                            name: file.fileName.split('/').pop() ?? file.fileName,
+                        });
+                    });
+                }
+            });
+        },
+        experimental_telemetry: {
+            isEnabled: clientEnv.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined,
+            metadata: {
+                langfuseTraceId: traceId,
+            },
+        },
+    });
+
+    const responseTimeMs = Date.now() - startTime;
+
+    return {
+        text: result.text,
+        sources: collectedSources,
+        usage: {
+            inputTokens: result.totalUsage.inputTokens ?? 0,
+            outputTokens: result.totalUsage.outputTokens ?? 0,
+            totalTokens: result.totalUsage.totalTokens ?? 0,
+        },
+        responseTimeMs,
+    };
 }

@@ -1,6 +1,6 @@
 import { env } from './env.js';
-import { listReposResponseSchema, searchResponseSchema, fileSourceResponseSchema, listCommitsResponseSchema } from './schemas.js';
-import { FileSourceRequest, ListReposQueryParams, SearchRequest, ListCommitsQueryParamsSchema } from './types.js';
+import { listReposResponseSchema, searchResponseSchema, fileSourceResponseSchema, listCommitsResponseSchema, askCodebaseResponseSchema } from './schemas.js';
+import { AskCodebaseRequest, AskCodebaseResponse, FileSourceRequest, ListReposQueryParams, SearchRequest, ListCommitsQueryParamsSchema } from './types.js';
 import { isServiceError, ServiceErrorException } from './utils.js';
 import { z } from 'zod';
 
@@ -106,4 +106,24 @@ export const listCommits = async (queryParams: ListCommitsQueryParamsSchema) => 
     const commits = await parseResponse(response, listCommitsResponseSchema);
     const totalCount = parseInt(response.headers.get('X-Total-Count') ?? '0', 10);
     return { commits, totalCount };
+}
+
+/**
+ * Asks a natural language question about the codebase using the Sourcebot AI agent.
+ * This is a blocking call that runs the full agent loop and returns when complete.
+ * 
+ * @param request - The question and optional repo filters
+ * @returns The agent's answer, chat URL, sources, and metadata
+ */
+export const askCodebase = async (request: AskCodebaseRequest): Promise<AskCodebaseResponse> => {
+    const response = await fetch(`${env.SOURCEBOT_HOST}/api/chat/blocking`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
+        },
+        body: JSON.stringify(request),
+    });
+
+    return parseResponse(response, askCodebaseResponseSchema);
 }

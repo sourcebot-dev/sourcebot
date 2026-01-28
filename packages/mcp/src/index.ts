@@ -6,10 +6,10 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import _dedent from "dedent";
 import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
-import { getFileSource, listCommits, listRepos, search } from './client.js';
+import { askCodebase, getFileSource, listCommits, listRepos, search } from './client.js';
 import { env, numberSchema } from './env.js';
-import { fileSourceRequestSchema, listCommitsQueryParamsSchema, listReposQueryParamsSchema } from './schemas.js';
-import { FileSourceRequest, ListCommitsQueryParamsSchema, ListReposQueryParams, TextContent } from './types.js';
+import { askCodebaseRequestSchema, fileSourceRequestSchema, listCommitsQueryParamsSchema, listReposQueryParamsSchema } from './schemas.js';
+import { AskCodebaseRequest, FileSourceRequest, ListCommitsQueryParamsSchema, ListReposQueryParams, TextContent } from './types.js';
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -238,7 +238,53 @@ server.tool(
     }
 );
 
+server.tool(
+    "ask_codebase",
+    dedent`
+    Ask a natural language question about the codebase. This tool uses an AI agent to autonomously search code, read files, and find symbol references/definitions to answer your question.
 
+    The agent will:
+    - Analyze your question and determine what context it needs
+    - Search the codebase using multiple strategies (code search, symbol lookup, file reading)
+    - Synthesize findings into a comprehensive answer with code references
+
+    Returns a detailed answer in markdown format with code references, plus a link to view the full research session (including all tool calls and reasoning) in the Sourcebot web UI.
+
+    This is a blocking operation that may take 30-60+ seconds for complex questions as the agent researches the codebase.
+    `,
+    {
+        question: z.string().describe("The question to ask about the codebase."),
+        repo: z.string().describe("The repository to ask the question on."),
+    },
+    async ({
+        question,
+        repo,
+    }) => {
+        const response = await askCodebase({
+            question,
+            repos: [repo],
+        });
+
+        // Format the response with the answer and a link to the chat
+        const formattedResponse = dedent`
+        ${response.answer}
+
+        ---
+        **View full research session:** ${response.chatUrl}
+
+        **Sources referenced:** ${response.sources.length} files
+        **Response time:** ${(response.metadata.totalResponseTimeMs / 1000).toFixed(1)}s
+        **Model:** ${response.metadata.modelName}
+        `;
+
+        return {
+            content: [{
+                type: "text",
+                text: formattedResponse,
+            }],
+        };
+    }
+);
 
 const runServer = async () => {
     const transport = new StdioServerTransport();
