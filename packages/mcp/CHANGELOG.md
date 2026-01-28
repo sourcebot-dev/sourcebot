@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added `search_commits` tool to search a repos commit history. [#625](https://github.com/sourcebot-dev/sourcebot/pull/625)
 - Added `gitRevision` parameter to the `search_code` tool to allow for searching on different branches. [#625](https://github.com/sourcebot-dev/sourcebot/pull/625)
+- Added server side pagination support for `list_commits` and `list_repos`. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+- Added `filterByFilepaths` and `useRegex` params to the `search_code` tool. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+
+### Changed
+- Renamed `search_commits` tool to `list_commits`. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+- Renamed `gitRevision` param to `ref` on `search_code` tool. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+- Generally improved tool and tool param descriptions for all tools. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
 
 ## [1.0.12] - 2026-01-13
 

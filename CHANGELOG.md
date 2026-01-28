@@ -11,10 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added ask sidebar to homepage. [#721](https://github.com/sourcebot-dev/sourcebot/pull/721)
 - Added endpoint for searching commit history for a git repository. [#625](https://github.com/sourcebot-dev/sourcebot/pull/625)
 - Added `pushedAt` field to the Repo table to track when a repository last was committed to across all branches. [#790](https://github.com/sourcebot-dev/sourcebot/pull/790)
+- Added offset pagination to the `/api/repos` endpoint. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+- Added offset pagination to the `/api/commits` endpoint. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
 
 ### Changed
 - Added commit graph generation to improve performance for commit traversal operations. [#791](https://github.com/sourcebot-dev/sourcebot/pull/791)
 - Made the code search `lang:` filter case insensitive. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+- Changed the `/api/source` endpoint from a POST request to a GET request. Repo, path, and ref are specified as query params. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+- Changed the `/api/commits` endpoint to be a POST request to a GET request. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+- Renamed `webUrl` to `externalWebUrl` for various apis. Moving forward, `webUrl` will be used for URLs that point to Sourcebot, and `externalWebUrl` will be used for URLs that point to external code hosts. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+- Renamed various fields on the `/api/source` endpoint response body. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
 
 ## [4.10.17] - 2026-01-23
 
