@@ -46,7 +46,9 @@ This particular deployment assumes you are running podman 5+ as it uses Quadlets
 
 Note that as systemd services can specify the user they run as, rootful quadlets do not necessarily run as the root user. This is demonstrated in [sourcebot.container](sourcebot.container), where user `sourcebot` is specified.
 
-2. Create podman secrets for sensitive settings.  As an example, see [setup-quadlets.sh](setup-quadlets.sh), which generates basic required secrets.  You'll need to add others like API Keys yourself.
+2. If you are *not* using Enterprise Edition, edit the [sourcebot.container](sourcebot.container) file and remove the `Secret=SOURCEBOT_EE_LICENSE_KEY,type=env` line.
+
+3. Create podman secrets for sensitive settings.  As an example, see [setup-quadlets.sh](setup-quadlets.sh), which generates basic required secrets.  You'll need to add others like API Keys yourself.
 
 > [!important]
 > `podman secret create` does not trim newlines from input. If you do not account for this then secrets can 'mysteriously' not work.
@@ -55,9 +57,9 @@ Note that as systemd services can specify the user they run as, rootful quadlets
 > 1. Use `printf` instead of `echo` to pipe values to `podman secret create` without appending a newline character.
 > 2. Pipe values to `tr -d '\n'` prior to piping to `podman secret create` to remove newline characters.
 
-3. Optionally delete the `secrets` subdirectory.  This is more secure, but will prevent rerunning the `setup-quadlets.sh` script with `GENERATE_NEW_SECRETS` set to 'N'. That is used to drop and recreate the secrets without changing them.  Useful if you suspect you've succumbed to the important issue noted above.
+4. Optionally delete the `secrets` subdirectory.  This is more secure, but will prevent rerunning the `setup-quadlets.sh` script with `GENERATE_NEW_SECRETS` set to 'N'. That is used to drop and recreate the secrets without changing them.  Useful if you suspect you've succumbed to the important issue noted above.
 
-4. Once everything is in place, you can start the pod via:
+5. Once everything is in place, you can start the pod via:
 ```bash
 systemctl daemon-reload
 systemctl start sourcebot-pod
