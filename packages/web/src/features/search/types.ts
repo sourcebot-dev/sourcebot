@@ -145,11 +145,13 @@ export const streamedSearchResponseSchema = z.discriminatedUnion('type', [
 ]);
 export type StreamedSearchResponse = z.infer<typeof streamedSearchResponseSchema>;
 
-export interface FileSourceRequest {
-    fileName: string;
-    repository: string;
-    branch?: string;
-}
+
+export const fileSourceRequestSchema = z.object({
+    path: z.string(),
+    repo: z.string(),
+    ref: z.string().optional(),
+});
+export type FileSourceRequest = z.infer<typeof fileSourceRequestSchema>;
 
 export const fileSourceResponseSchema = z.object({
     source: z.string(),

@@ -12,27 +12,27 @@ import escapeStringRegexp from "escape-string-regexp";
 // This will allow us to support permalinks to files at a specific revision that may not be indexed
 // by zoekt. We should also refactor this out of the /search folder.
 
-export const getFileSource = async ({ fileName, repository, branch }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => sew(() =>
+export const getFileSource = async ({ path, repo, ref }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => sew(() =>
     withOptionalAuthV2(async () => {
         const query: QueryIR = {
             and: {
                 children: [
                     {
                         repo: {
-                            regexp: `^${escapeStringRegexp(repository)}$`,
+                            regexp: `^${escapeStringRegexp(repo)}$`,
                         },
                     },
                     {
                         substring: {
-                            pattern: fileName,
+                            pattern: path,
                             case_sensitive: true,
                             file_name: true,
                             content: false,
                         }
                     },
-                    ...(branch ? [{
+                    ...(ref ? [{
                         branch: {
-                            pattern: branch,
+                            pattern: ref,
                             exact: true,
                         },
                     }]: [])
@@ -56,7 +56,7 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
         const files = searchResponse.files;
 
         if (!files || files.length === 0) {
-            return fileNotFound(fileName, repository);
+            return fileNotFound(path, repo);
         }
 
         const file = files[0];
@@ -72,12 +72,12 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
         return {
             source,
             language,
-            path: fileName,
-            repo: repository,
+            path,
+            repo,
             repoCodeHostType: repoInfo.codeHostType,
             repoDisplayName: repoInfo.displayName,
             repoExternalWebUrl: repoInfo.webUrl,
-            branch,
+            branch: ref,
             webUrl: file.webUrl,
             externalWebUrl: file.externalWebUrl,
         } satisfies FileSourceResponse;
