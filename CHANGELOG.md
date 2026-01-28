@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.20] - 2026-01-28
+
 ### Fixed
 - Fixed issue where searching for refs/heads/<default_branch> would return no matches. [#809](https://github.com/sourcebot-dev/sourcebot/pull/809)
 - Fixed issue where source files would fail to load in the search preview panel and ask client. [#812](https://github.com/sourcebot-dev/sourcebot/issues/812)
