@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.19] - 2026-01-28
+
 ### Fixed
 - Fixed loadConfig import in resolveEnvOverrides [#802](https://github.com/sourcebot-dev/sourcebot/pull/802)
 
