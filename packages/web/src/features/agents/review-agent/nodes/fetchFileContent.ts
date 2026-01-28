@@ -11,8 +11,8 @@ export const fetchFileContent = async (pr_payload: sourcebot_pr_payload, filenam
 
     const repoPath = pr_payload.hostDomain + "/" + pr_payload.owner + "/" + pr_payload.repo;
     const fileSourceRequest = {
-        fileName: filename,
-        repository: repoPath,
+        path: filename,
+        repo: repoPath,
     }
     logger.debug(JSON.stringify(fileSourceRequest, null, 2));
 

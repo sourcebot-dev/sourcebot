@@ -29,9 +29,9 @@ export const GET = async (request: NextRequest) => {
 
     const { repo, path, ref } = parsed.data;
     const response = await getFileSource({
-        fileName: path,
-        repository: repo,
-        branch: ref,
+        path,
+        repo,
+        ref,
     });
 
     if (isServiceError(response)) {
