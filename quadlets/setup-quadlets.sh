@@ -54,19 +54,4 @@ url_encode () {
 # When running on podman 5+, all containers run in the same pod, so the correct address for postgres is 'localhost'.
 printf 'postgresql://postgres:%s@localhost/postgres' "$(url_encode $(cat ./secrets/postgres_admin_password))" | podman secret create SOURCEBOT_DATABASE_URL -
 
-
-# * Alter Passwords of PostgreSQL users
-# Ensures that passwords are changed when secrets change.
-if [ $GENERATE_NEW_SECRETS = 'Y' -o $GENERATE_NEW_SECRETS = 'y' ]; then
-	# Wait up to 90 seconds for the instance to be ready.
-	timeout 90s bash -c "until podman exec \"systemd-postgres\" pg_isready -U postgres ; do sleep 3 ; done"
-	# Wait another 1 second to ensure it's actually up.
-	sleep 1
-
-	echo "Updating superuser Password"
-  awk -v usr=postgres -v usrpwd="$(cat ./secrets/postgres_admin_password)" \
-    'BEGIN { print "ALTER USER "usr" WITH PASSWORD ""'\''"usrpwd"'\'';" }' \
-    | podman exec systemd-postgres psql -U postgres
-fi
-
 echo "Setup complete!"
