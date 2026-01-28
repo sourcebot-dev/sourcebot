@@ -1,3 +1,12 @@
+This directory contains the files needed to deploy Sourcebot via Podman Quadlets.  This is an alternative to Docker Compose that has a number of notable differences:
+
+- Containers are managed as systemd services, including logging as such.
+- Online Auto-Update of container images with automatic rollback on update failure. NOTE: This is not scheduled by default, but you can manually run it via `podman auto-update`.
+- Supports injecting podman secrets as environmental values (not just as files like docker does). This is very useful for keeping things like SOURCEBOT_AUTH_SECRET, SOURCEBOT_ENCRYPTION_KEY, DATABASE_URL, and various other sensitive environmental variables secret.
+- Supports podman pods (podman 5+ only), which make it easy to isolate inter-container networking.
+
+This particular deployment assumes you are running podman 5+ as it uses Quadlets to define a Pod.
+
 # Usage
 1. Copy the contents of this directory to a [valid quadlet directory](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html#synopsis) on the destination machine. At the time of this writing that can be:
 
@@ -37,7 +46,7 @@
 
 Note that as systemd services can specify the user they run as, rootful quadlets do not necessarily run as the root user. This is demonstrated in [sourcebot.container](sourcebot.container), where user `sourcebot` is specified.
 
-2. Create podman secrets for sensitive settings.  As an example, see `setup-quadlets.sh`, which generates basic required secrets.  You'll need to add others like API Keys yourself.
+2. Create podman secrets for sensitive settings.  As an example, see [setup-quadlets.sh](setup-quadlets.sh), which generates basic required secrets.  You'll need to add others like API Keys yourself.
 
 > [!important]
 > `podman secret create` does not trim newlines from input. If you do not account for this then secrets can 'mysteriously' not work.
@@ -46,4 +55,4 @@ Note that as systemd services can specify the user they run as, rootful quadlets
 > 1. Use `printf` instead of `echo` to pipe values to `podman secret create` without appending a newline character.
 > 2. Pipe values to `tr -d '\n'` prior to piping to `podman secret create` to remove newline characters.
 
-1. Optionally delete the `secrets` subdirectory.  This is more secure, but will prevent rerunning the `setup-quadlets.sh` script with `GENERATE_NEW_SECRETS` set to 'N'. That is used to drop and recreate the secrets without changing them.
+3. Optionally delete the `secrets` subdirectory.  This is more secure, but will prevent rerunning the `setup-quadlets.sh` script with `GENERATE_NEW_SECRETS` set to 'N'. That is used to drop and recreate the secrets without changing them.  Useful if you suspect you've succumbed to the important issue noted above.
