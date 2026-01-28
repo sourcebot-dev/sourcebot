@@ -397,7 +397,12 @@ export class RepoIndexManager {
             path: repoPath,
         });
 
-        let revisions = defaultBranch ? [defaultBranch] : ['HEAD'];
+        // Ensure defaultBranch has refs/heads/ prefix for consistent searching
+        const defaultBranchWithPrefix = defaultBranch && !defaultBranch.startsWith('refs/')
+            ? `refs/heads/${defaultBranch}`
+            : defaultBranch;
+
+        let revisions = defaultBranchWithPrefix ? [defaultBranchWithPrefix] : ['HEAD'];
 
         if (metadata.branches) {
             const branchGlobs = metadata.branches
@@ -426,6 +431,9 @@ export class RepoIndexManager {
                 ...matchingTags
             ];
         }
+
+        // De-duplicate revisions to ensure we don't have duplicate branches/tags
+        revisions = [...new Set(revisions)];
 
         // zoekt has a limit of 64 branches/tags to index.
         if (revisions.length > 64) {
