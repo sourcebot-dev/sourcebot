@@ -1,5 +1,5 @@
 import { getCodeHostBrowseFileAtBranchUrl } from "@/lib/utils";
-import { unexpectedError } from "@/lib/serviceError";
+import { ServiceErrorException, unexpectedError } from "@/lib/serviceError";
 import type { ProtoGrpcType } from '@/proto/webserver';
 import { FileMatch__Output as ZoektGrpcFileMatch } from "@/proto/zoekt/webserver/v1/FileMatch";
 import { FlushReason as ZoektGrpcFlushReason } from "@/proto/zoekt/webserver/v1/FlushReason";
@@ -18,6 +18,10 @@ import path from 'path';
 import { isBranchQuery, QueryIR, someInQueryIR } from './ir';
 import { RepositoryInfo, SearchResponse, SearchResultFile, SearchStats, SourceRange, StreamedSearchErrorResponse, StreamedSearchResponse } from "./types";
 import { captureEvent } from "@/lib/posthog";
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
+import { headers } from "next/headers";
+import { getBaseUrl } from "@/lib/utils.server";
 
 const logger = createLogger("zoekt-searcher");
 
@@ -123,7 +127,7 @@ export const zoektSearch = async (searchRequest: ZoektGrpcSearchRequest, prisma:
     return new Promise((resolve, reject) => {
         client.Search(searchRequest, metadata, (error, response) => {
             if (error || !response) {
-                reject(error || new Error('No response received'));
+                reject(new ServiceErrorException(unexpectedError(error?.details || 'No response received')))
                 return;
             }
 
@@ -379,6 +383,9 @@ const transformZoektSearchResponse = async (response: ZoektGrpcSearchResponse, r
     files: SearchResultFile[],
     repositoryInfo: RepositoryInfo[],
 }> => {
+    const headersList = await headers();
+    const baseUrl = getBaseUrl(headersList);
+
     const files = response.files.map((file) => {
         const fileNameChunks = file.chunk_matches.filter((chunk) => chunk.file_name);
         const repoId = getRepoIdForFile(file);
@@ -413,6 +420,9 @@ const transformZoektSearchResponse = async (response: ZoektGrpcSearchResponse, r
             }
         })
 
+        // If a file has multiple branches, default to the first one.
+        const branchName = file.branches.length > 0 ? file.branches[0] : undefined;
+
         return {
             fileName: {
                 text: fileName,
@@ -421,11 +431,17 @@ const transformZoektSearchResponse = async (response: ZoektGrpcSearchResponse, r
             repository: repo.name,
             repositoryId: repo.id,
             language: file.language,
-            webUrl: getCodeHostBrowseFileAtBranchUrl({
+            webUrl: `${baseUrl}${getBrowsePath({
+                repoName: repo.name,
+                path: fileName,
+                pathType: 'blob',
+                domain: SINGLE_TENANT_ORG_DOMAIN,
+                revisionName: branchName,
+            })}`,
+            externalWebUrl: getCodeHostBrowseFileAtBranchUrl({
                 webUrl: repo.webUrl,
                 codeHostType: repo.external_codeHostType,
-                // If a file has multiple branches, default to the first one.
-                branchName: file.branches?.[0] ?? 'HEAD',
+                branchName: branchName ?? 'HEAD',
                 filePath: fileName,
             }),
             chunks: file.chunk_matches

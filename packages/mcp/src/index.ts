@@ -3,14 +3,13 @@
 // Entry point for the MCP server
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import _dedent from "dedent";
 import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
-import { getFileSource, listRepos, search, listCommits } from './client.js';
+import { getFileSource, listCommits, listRepos, search } from './client.js';
 import { env, numberSchema } from './env.js';
 import { fileSourceRequestSchema, listCommitsQueryParamsSchema, listReposQueryParamsSchema } from './schemas.js';
 import { FileSourceRequest, ListCommitsQueryParamsSchema, ListReposQueryParams, TextContent } from './types.js';
-import _dedent from "dedent";
-import { addLineNumbers } from './utils.js';
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -24,27 +23,29 @@ const server = new McpServer({
 server.tool(
     "search_code",
     dedent`
-    Fetches code that matches the provided regex pattern in \`query\`.
-
-    Results are returned as an array of matching files, with the file's URL, repository, and language.
-
-    If the \`includeCodeSnippets\` property is true, code snippets containing the matches will be included in the response. Only set this to true if the request requires code snippets (e.g., show me examples where library X is used).
-    When referencing a file in your response, **ALWAYS** include the file's external URL as a link. This makes it easier for the user to view the file, even if they don't have it locally checked out.
-    **ONLY USE** the \`filterByRepoIds\` property if the request requires searching a specific repo(s). Otherwise, leave it empty.`,
+    Searches for code that matches the provided search query as a substring by default, or as a regular expression if useRegex is true. Useful for exploring remote repositories by searching for exact symbols, functions, variables, or specific code patterns. To determine if a repository is indexed, use the \`list_repos\` tool. By default, searches are global and will search the default branch of all repositories. Searches can be scoped to specific repositories, languages, and branches. When referencing code outputted by this tool, always include the file's external URL as a link. This makes it easier for the user to view the file, even if they don't have it locally checked out.
+    `,
     {
         query: z
             .string()
-            .describe(`The regex pattern to search for. RULES:
-        1. When a regex special character needs to be escaped, ALWAYS use a single backslash (\) (e.g., 'console\.log')
-        2. **ALWAYS** escape spaces with a single backslash (\) (e.g., 'console\ log')
-        `),
-        filterByRepoIds: z
+            .describe(`The search pattern to match against code contents. Do not escape quotes in your query.`)
+            // Wrap in quotes so the query is treated as a literal phrase (like grep).
+            .transform((val) => `"${val.replace(/"/g, '\\"')}"`),
+        useRegex: z
+            .boolean()
+            .describe(`Whether to use regular expression matching to match the search query against code contents. When false, substring matching is used. (default: false)`)
+            .optional(),
+        filterByRepos: z
             .array(z.string())
-            .describe(`Scope the search to the provided repositories to the Sourcebot compatible repository IDs. **DO NOT** use this property if you want to search all repositories. **YOU MUST** call 'list_repos' first to obtain the exact repository ID.`)
+            .describe(`Scope the search to the provided repositories.`)
             .optional(),
         filterByLanguages: z
             .array(z.string())
-            .describe(`Scope the search to the provided languages. The language MUST be formatted as a GitHub linguist language. Examples: Python, JavaScript, TypeScript, Java, C#, C++, PHP, Go, Rust, Ruby, Swift, Kotlin, Shell, C, Dart, HTML, CSS, PowerShell, SQL, R`)
+            .describe(`Scope the search to the provided languages.`)
+            .optional(),
+        filterByFilepaths: z
+            .array(z.string())
+            .describe(`Scope the search to the provided filepaths. Interpretted as a regex.`)
             .optional(),
         caseSensitive: z
             .boolean()
@@ -52,11 +53,11 @@ server.tool(
             .optional(),
         includeCodeSnippets: z
             .boolean()
-            .describe(`Whether to include the code snippets in the response (default: false). If false, only the file's URL, repository, and language will be returned. Set to false to get a more concise response.`)
+            .describe(`Whether to include the code snippets in the response. If false, only the file's URL, repository, and language will be returned. (default: false)`)
             .optional(),
-        gitRevision: z
+        ref: z
             .string()
-            .describe(`The git revision to search in (e.g., 'main', 'HEAD', 'v1.0.0', 'a1b2c3d'). If not provided, defaults to the default branch (usually 'main' or 'master').`)
+            .describe(`Commit SHA, branch or tag name to search on. If not provided, defaults to the default branch (usually 'main' or 'master').`)
             .optional(),
         maxTokens: numberSchema
             .describe(`The maximum number of tokens to return (default: ${env.DEFAULT_MINIMUM_TOKENS}). Higher values provide more context but consume more tokens. Values less than ${env.DEFAULT_MINIMUM_TOKENS} will be ignored.`)
@@ -65,30 +66,36 @@ server.tool(
     },
     async ({
         query,
-        filterByRepoIds: repoIds = [],
+        filterByRepos: repos = [],
         filterByLanguages: languages = [],
+        filterByFilepaths: filepaths = [],
         maxTokens = env.DEFAULT_MINIMUM_TOKENS,
         includeCodeSnippets = false,
         caseSensitive = false,
-        gitRevision,
+        ref,
+        useRegex = false,
     }) => {
-        if (repoIds.length > 0) {
-            query += ` ( repo:${repoIds.map(id => escapeStringRegexp(id)).join(' or repo:')} )`;
+        if (repos.length > 0) {
+            query += ` (repo:${repos.map(id => escapeStringRegexp(id)).join(' or repo:')})`;
         }
 
         if (languages.length > 0) {
-            query += ` ( lang:${languages.join(' or lang:')} )`;
+            query += ` (lang:${languages.join(' or lang:')})`;
         }
 
-        if (gitRevision) {
-            query += ` ( rev:${gitRevision} )`;
+        if (filepaths.length > 0) {
+            query += ` (file:${filepaths.map(filepath => escapeStringRegexp(filepath)).join(' or file:')})`;
+        }
+
+        if (ref) {
+            query += ` ( rev:${ref} )`;
         }
 
         const response = await search({
             query,
             matches: env.DEFAULT_MATCHES,
             contextLines: env.DEFAULT_CONTEXT_LINES,
-            isRegexEnabled: true,
+            isRegexEnabled: useRegex,
             isCaseSensitivityEnabled: caseSensitive,
             source: 'mcp',
         });
@@ -111,11 +118,10 @@ server.tool(
                 (acc, chunk) => acc + chunk.matchRanges.length,
                 0,
             );
-            const fileIdentifier = file.webUrl ?? file.fileName.text;
             let text = dedent`
-            file: ${fileIdentifier}
+            file: ${file.webUrl}
             num_matches: ${numMatches}
-            repository: ${file.repository}
+            repo: ${file.repository}
             language: ${file.language}
             `;
 
@@ -219,7 +225,7 @@ server.tool(
         return {
             content: [{
                 type: "text", text: JSON.stringify({
-                    source: addLineNumbers(response.source),
+                    source: response.source,
                     language: response.language,
                     path: response.path,
                     url: response.webUrl,

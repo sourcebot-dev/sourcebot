@@ -25,7 +25,7 @@ export const findRelatedSymbolsResponseSchema = z.object({
         fileName: z.string(),
         repository: z.string(),
         repositoryId: z.number(),
-        webUrl: z.string().optional(),
+        webUrl: z.string(),
         language: z.string(),
         matches: z.array(z.object({
             lineContent: z.string(),

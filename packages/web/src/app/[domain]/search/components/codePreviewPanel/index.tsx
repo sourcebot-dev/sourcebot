@@ -42,7 +42,7 @@ export const CodePreviewPanel = ({
                 content: data.source,
                 filepath: previewedFile.fileName.text,
                 matches: previewedFile.chunks,
-                link: previewedFile.webUrl,
+                link: previewedFile.externalWebUrl,
                 language: previewedFile.language,
                 revision: branch ?? "HEAD",
             };

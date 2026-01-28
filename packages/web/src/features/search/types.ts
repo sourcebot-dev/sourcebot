@@ -63,7 +63,8 @@ export const searchFileSchema = z.object({
         // Any matching ranges
         matchRanges: z.array(rangeSchema),
     }),
-    webUrl: z.string().optional(),
+    webUrl: z.string(),
+    externalWebUrl: z.string().optional(),
     repository: z.string(),
     repositoryId: z.number(),
     language: z.string(),
