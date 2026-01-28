@@ -15,8 +15,7 @@
     console.warn = () => {};
     // console.error = () => {}; // Keep errors
 
-    const { loadConfig } = await import("../src/utils.js");
-    const { resolveEnvironmentVariableOverridesFromConfig } = await import("../src/env.server.js");
+    const { loadConfig, resolveEnvironmentVariableOverridesFromConfig } = await import("../src/env.server.js");
 
     const config = await loadConfig(process.env.CONFIG_PATH);
     const overrides = await resolveEnvironmentVariableOverridesFromConfig(config);
