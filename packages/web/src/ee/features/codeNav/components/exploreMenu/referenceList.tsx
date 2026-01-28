@@ -98,7 +98,7 @@ export const ReferenceList = ({
                                         externalWebUrl: repoInfo.webUrl,
                                     }}
                                     path={file.fileName}
-                                    branchDisplayName={revisionName === "HEAD" ? undefined : revisionName}
+                                    revisionName={revisionName === "HEAD" ? undefined : revisionName}
                                 />
                             </div>
                             <div className="divide-y">

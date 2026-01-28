@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `webUrl` to `externalWebUrl` for various apis. Moving forward, `webUrl` will be used for URLs that point to Sourcebot, and `externalWebUrl` will be used for URLs that point to external code hosts. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
 - Renamed various fields on the `/api/source` endpoint response body. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
 
+### Fixed
+- Fixed issue where a file would fail to load when opening it from the /search view and it matched multiple branches. [#797](https://github.com/sourcebot-dev/sourcebot/pull/797)
+- [EE] Fixed GitLab OAuth token refresh failures by including the required `redirect_uri` parameter. [#798](https://github.com/sourcebot-dev/sourcebot/pull/798)
+
 ## [4.10.17] - 2026-01-23
 
 ### Fixed

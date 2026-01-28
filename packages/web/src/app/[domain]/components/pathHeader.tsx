@@ -33,6 +33,7 @@ interface FileHeaderProps {
     },
     isBranchDisplayNameVisible?: boolean;
     branchDisplayName?: string;
+    revisionName?: string;
     branchDisplayTitle?: string;
     isCodeHostIconVisible?: boolean;
     isFileIconVisible?: boolean;
@@ -53,7 +54,8 @@ export const PathHeader = ({
     repo,
     path,
     pathHighlightRange,
-    branchDisplayName,
+    revisionName,
+    branchDisplayName = revisionName,
     isBranchDisplayNameVisible = !!branchDisplayName,
     branchDisplayTitle,
     pathType = 'blob',
@@ -220,7 +222,7 @@ export const PathHeader = ({
                     repoName: repo.name,
                     path: '/',
                     pathType: 'tree',
-                    revisionName: branchDisplayName,
+                    revisionName,
                     domain,
                 })}
             >
@@ -259,7 +261,7 @@ export const PathHeader = ({
                                                 repoName: repo.name,
                                                 path: segment.fullPath,
                                                 pathType: segment.isLastSegment ? pathType : 'tree',
-                                                revisionName: branchDisplayName,
+                                                revisionName,
                                                 domain,
                                             })}
                                             className="font-mono text-sm hover:cursor cursor-pointer"
@@ -288,7 +290,7 @@ export const PathHeader = ({
                                     repoName: repo.name,
                                     path: segment.fullPath,
                                     pathType: segment.isLastSegment ? pathType : 'tree',
-                                    revisionName: branchDisplayName,
+                                    revisionName,
                                     domain,
                                 })}
                             >
