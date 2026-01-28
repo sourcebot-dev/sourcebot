@@ -404,8 +404,7 @@ export class RepoIndexManager {
             const allBranches = await getBranches(repoPath);
             const matchingBranches =
                 allBranches
-                    .filter((branch) => micromatch.isMatch(branch, branchGlobs))
-                    .map((branch) => `refs/heads/${branch}`);
+                    .filter((branch) => micromatch.isMatch(branch, branchGlobs));
 
             revisions = [
                 ...revisions,
