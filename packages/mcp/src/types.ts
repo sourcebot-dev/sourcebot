@@ -2,7 +2,7 @@
 // At some point, we should move these to a shared package...
 import {
     fileSourceResponseSchema,
-    listRepositoriesResponseSchema,
+    listReposQueryParamsSchema,
     locationSchema,
     searchRequestSchema,
     searchResponseSchema,
@@ -10,8 +10,8 @@ import {
     fileSourceRequestSchema,
     symbolSchema,
     serviceErrorSchema,
-    searchCommitsRequestSchema,
-    searchCommitsResponseSchema,
+    listCommitsQueryParamsSchema,
+    listCommitsResponseSchema,
 } from "./schemas.js";
 import { z } from "zod";
 
@@ -23,7 +23,7 @@ export type SearchResultFile = SearchResponse["files"][number];
 export type SearchResultChunk = SearchResultFile["chunks"][number];
 export type SearchSymbol = z.infer<typeof symbolSchema>;
 
-export type ListRepositoriesResponse = z.infer<typeof listRepositoriesResponseSchema>;
+export type ListReposQueryParams = z.input<typeof listReposQueryParamsSchema>;
 
 export type FileSourceRequest = z.infer<typeof fileSourceRequestSchema>;
 export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
@@ -32,5 +32,5 @@ export type TextContent = { type: "text", text: string };
 
 export type ServiceError = z.infer<typeof serviceErrorSchema>;
 
-export type SearchCommitsRequest = z.infer<typeof searchCommitsRequestSchema>;
-export type SearchCommitsResponse = z.infer<typeof searchCommitsResponseSchema>;
+export type ListCommitsQueryParamsSchema = z.infer<typeof listCommitsQueryParamsSchema>;
+export type ListCommitsResponse = z.infer<typeof listCommitsResponseSchema>;

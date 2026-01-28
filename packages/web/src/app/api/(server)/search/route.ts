@@ -3,7 +3,7 @@
 import { search, searchRequestSchema } from "@/features/search";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
-import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
+import { requestBodySchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { captureEvent } from "@/lib/posthog";
 
 export const POST = async (request: NextRequest) => {
@@ -11,7 +11,7 @@ export const POST = async (request: NextRequest) => {
     const parsed = await searchRequestSchema.safeParseAsync(body);
     if (!parsed.success) {
         return serviceErrorResponse(
-            schemaValidationError(parsed.error)
+            requestBodySchemaValidationError(parsed.error)
         );
     }
 

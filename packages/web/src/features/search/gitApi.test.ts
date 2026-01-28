@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { searchCommits } from './gitApi';
+import { listCommits } from './gitApi';
 import * as dateUtils from './dateUtils';
 
 // Mock dependencies
@@ -61,6 +61,7 @@ import { existsSync } from 'fs';
 
 describe('searchCommits', () => {
     const mockGitLog = vi.fn();
+    const mockGitRaw = vi.fn();
     const mockCwd = vi.fn();
     const mockSimpleGit = simpleGit as unknown as vi.Mock;
     const mockExistsSync = existsSync as unknown as vi.Mock;
@@ -75,6 +76,7 @@ describe('searchCommits', () => {
         mockExistsSync.mockReturnValue(true);
         mockCwd.mockReturnValue({
             log: mockGitLog,
+            raw: mockGitRaw,
         });
         mockSimpleGit.mockReturnValue({
             cwd: mockCwd,
@@ -82,14 +84,16 @@ describe('searchCommits', () => {
 
         // Setup default repo mock
         mockFindFirst.mockResolvedValue({ id: 123, name: 'github.com/test/repo' });
+        // Setup default raw mock for rev-list count
+        mockGitRaw.mockResolvedValue('10');
     });
 
     describe('repository validation', () => {
         it('should return error when repository is not found in database', async () => {
             mockFindFirst.mockResolvedValue(null);
 
-            const result = await searchCommits({
-                repository: 'github.com/nonexistent/repo',
+            const result = await listCommits({
+                repo: 'github.com/nonexistent/repo',
             });
 
             expect(result).toMatchObject({
@@ -102,8 +106,8 @@ describe('searchCommits', () => {
             mockFindFirst.mockResolvedValue({ id: 456, name: 'github.com/test/repo' });
             mockGitLog.mockResolvedValue({ all: [] });
 
-            await searchCommits({
-                repository: 'github.com/test/repo',
+            await listCommits({
+                repo: 'github.com/test/repo',
             });
 
             expect(mockFindFirst).toHaveBeenCalledWith({
@@ -121,8 +125,8 @@ describe('searchCommits', () => {
                 'Invalid date range: since must be before until'
             );
 
-            const result = await searchCommits({
-                repository: 'github.com/test/repo',
+            const result = await listCommits({
+                repo: 'github.com/test/repo',
                 since: '2024-12-31',
                 until: '2024-01-01',
             });
@@ -138,13 +142,13 @@ describe('searchCommits', () => {
             vi.spyOn(dateUtils, 'toGitDate').mockImplementation((date) => date);
             mockGitLog.mockResolvedValue({ all: [] });
 
-            const result = await searchCommits({
-                repository: 'github.com/test/repo',
+            const result = await listCommits({
+                repo: 'github.com/test/repo',
                 since: '2024-01-01',
                 until: '2024-12-31',
             });
 
-            expect(Array.isArray(result)).toBe(true);
+            expect(result).toMatchObject({ commits: [], totalCount: expect.any(Number) });
         });
     });
 
@@ -154,8 +158,8 @@ describe('searchCommits', () => {
             toGitDateSpy.mockImplementation((date) => date);
             mockGitLog.mockResolvedValue({ all: [] });
 
-            await searchCommits({
-                repository: 'github.com/test/repo',
+            await listCommits({
+                repo: 'github.com/test/repo',
                 since: '30 days ago',
                 until: 'yesterday',
             });
@@ -170,8 +174,8 @@ describe('searchCommits', () => {
                 .mockReturnValueOnce('2024-12-31');
             mockGitLog.mockResolvedValue({ all: [] });
 
-            await searchCommits({
-                repository: 'github.com/test/repo',
+            await listCommits({
+                repo: 'github.com/test/repo',
                 since: '30 days ago',
                 until: 'yesterday',
             });
@@ -192,72 +196,78 @@ describe('searchCommits', () => {
         });
 
         it('should set default maxCount', async () => {
-            await searchCommits({
-                repository: 'github.com/test/repo',
+            await listCommits({
+                repo: 'github.com/test/repo',
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
                 expect.objectContaining({
                     maxCount: 50,
+                    HEAD: null,
                 })
             );
         });
 
         it('should use custom maxCount', async () => {
-            await searchCommits({
-                repository: 'github.com/test/repo',
+            await listCommits({
+                repo: 'github.com/test/repo',
                 maxCount: 100,
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
                 expect.objectContaining({
                     maxCount: 100,
+                    HEAD: null,
                 })
             );
         });
 
         it('should add --since when since is provided', async () => {
-            await searchCommits({
-                repository: 'github.com/test/repo',
+            await listCommits({
+                repo: 'github.com/test/repo',
                 since: '30 days ago',
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
                 expect.objectContaining({
                     '--since': '30 days ago',
+                    HEAD: null,
                 })
             );
         });
 
         it('should add --until when until is provided', async () => {
-            await searchCommits({
-                repository: 'github.com/test/repo',
+            await listCommits({
+                repo: 'github.com/test/repo',
                 until: 'yesterday',
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
                 expect.objectContaining({
                     '--until': 'yesterday',
+                    HEAD: null,
                 })
             );
         });
 
         it('should add --author when author is provided', async () => {
-            await searchCommits({
-                repository: 'github.com/test/repo',
+            await listCommits({
+                repo: 'github.com/test/repo',
                 author: 'john@example.com',
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
                 expect.objectContaining({
                     '--author': 'john@example.com',
+                    '--regexp-ignore-case': null,
+                    HEAD: null,
                 })
             );
         });
 
         it('should add --grep and --regexp-ignore-case when query is provided', async () => {
-            await searchCommits({
-                repository: 'github.com/test/repo',
+            await listCommits({
+                repo: 'github.com/test/repo',
                 query: 'fix bug',
             });
 
@@ -265,13 +275,14 @@ describe('searchCommits', () => {
                 expect.objectContaining({
                     '--grep': 'fix bug',
                     '--regexp-ignore-case': null,
+                    HEAD: null,
                 })
             );
         });
 
         it('should combine all options', async () => {
-            await searchCommits({
-                repository: 'github.com/test/repo',
+            await listCommits({
+                repo: 'github.com/test/repo',
                 query: 'feature',
                 since: '2024-01-01',
                 until: '2024-12-31',
@@ -281,17 +292,18 @@ describe('searchCommits', () => {
 
             expect(mockGitLog).toHaveBeenCalledWith({
                 maxCount: 25,
+                HEAD: null,
                 '--since': '2024-01-01',
                 '--until': '2024-12-31',
                 '--author': 'jane@example.com',
-                '--grep': 'feature',
                 '--regexp-ignore-case': null,
+                '--grep': 'feature',
             });
         });
     });
 
     describe('successful responses', () => {
-        it('should return commit array from git log', async () => {
+        it('should return commits and totalCount from git log', async () => {
             const mockCommits = [
                 {
                     hash: 'abc123',
@@ -314,23 +326,25 @@ describe('searchCommits', () => {
             ];
 
             mockGitLog.mockResolvedValue({ all: mockCommits });
+            mockGitRaw.mockResolvedValue('2');
 
-            const result = await searchCommits({
-                repository: 'github.com/test/repo',
+            const result = await listCommits({
+                repo: 'github.com/test/repo',
             });
 
-            expect(result).toEqual(mockCommits);
+            expect(result).toEqual({ commits: mockCommits, totalCount: 2 });
         });
 
-        it('should return empty array when no commits match', async () => {
+        it('should return empty commits array when no commits match', async () => {
             mockGitLog.mockResolvedValue({ all: [] });
+            mockGitRaw.mockResolvedValue('0');
 
-            const result = await searchCommits({
-                repository: 'github.com/test/repo',
+            const result = await listCommits({
+                repo: 'github.com/test/repo',
                 query: 'nonexistent',
             });
 
-            expect(result).toEqual([]);
+            expect(result).toEqual({ commits: [], totalCount: 0 });
         });
     });
 
@@ -338,8 +352,8 @@ describe('searchCommits', () => {
         it('should return error for "not a git repository"', async () => {
             mockGitLog.mockRejectedValue(new Error('not a git repository'));
 
-            const result = await searchCommits({
-                repository: 'github.com/test/repo',
+            const result = await listCommits({
+                repo: 'github.com/test/repo',
             });
 
             expect(result).toMatchObject({
@@ -351,8 +365,8 @@ describe('searchCommits', () => {
         it('should return error for "ambiguous argument"', async () => {
             mockGitLog.mockRejectedValue(new Error('ambiguous argument'));
 
-            const result = await searchCommits({
-                repository: 'github.com/test/repo',
+            const result = await listCommits({
+                repo: 'github.com/test/repo',
                 since: 'invalid-date',
             });
 
@@ -365,8 +379,8 @@ describe('searchCommits', () => {
         it('should return error for timeout', async () => {
             mockGitLog.mockRejectedValue(new Error('timeout exceeded'));
 
-            const result = await searchCommits({
-                repository: 'github.com/test/repo',
+            const result = await listCommits({
+                repo: 'github.com/test/repo',
             });
 
             expect(result).toMatchObject({
@@ -378,8 +392,8 @@ describe('searchCommits', () => {
         it('should return ServiceError for other Error instances', async () => {
             mockGitLog.mockRejectedValue(new Error('some other error'));
 
-            const result = await searchCommits({
-                repository: 'github.com/test/repo',
+            const result = await listCommits({
+                repo: 'github.com/test/repo',
             });
 
             expect(result).toMatchObject({
@@ -391,8 +405,8 @@ describe('searchCommits', () => {
         it('should return ServiceError for non-Error exceptions', async () => {
             mockGitLog.mockRejectedValue('string error');
 
-            const result = await searchCommits({
-                repository: 'github.com/test/repo',
+            const result = await listCommits({
+                repo: 'github.com/test/repo',
             });
 
             expect(result).toMatchObject({
@@ -406,8 +420,8 @@ describe('searchCommits', () => {
         it('should set working directory using cwd', async () => {
             mockGitLog.mockResolvedValue({ all: [] });
 
-            await searchCommits({
-                repository: 'github.com/test/repo',
+            await listCommits({
+                repo: 'github.com/test/repo',
             });
 
             expect(mockCwd).toHaveBeenCalledWith('/mock/cache/dir/123');
@@ -417,8 +431,8 @@ describe('searchCommits', () => {
             mockFindFirst.mockResolvedValue({ id: 456, name: 'github.com/other/repo' });
             mockGitLog.mockResolvedValue({ all: [] });
 
-            await searchCommits({
-                repository: 'github.com/other/repo',
+            await listCommits({
+                repo: 'github.com/other/repo',
             });
 
             expect(mockCwd).toHaveBeenCalledWith('/mock/cache/dir/456');
@@ -442,9 +456,10 @@ describe('searchCommits', () => {
             vi.spyOn(dateUtils, 'validateDateRange').mockReturnValue(null);
             vi.spyOn(dateUtils, 'toGitDate').mockImplementation((date) => date);
             mockGitLog.mockResolvedValue({ all: mockCommits });
+            mockGitRaw.mockResolvedValue('1');
 
-            const result = await searchCommits({
-                repository: 'github.com/test/repo',
+            const result = await listCommits({
+                repo: 'github.com/test/repo',
                 query: 'authentication',
                 since: '30 days ago',
                 until: 'yesterday',
@@ -452,22 +467,23 @@ describe('searchCommits', () => {
                 maxCount: 20,
             });
 
-            expect(result).toEqual(mockCommits);
+            expect(result).toEqual({ commits: mockCommits, totalCount: 1 });
             expect(mockGitLog).toHaveBeenCalledWith({
                 maxCount: 20,
+                HEAD: null,
                 '--since': '30 days ago',
                 '--until': 'yesterday',
                 '--author': 'security',
-                '--grep': 'authentication',
                 '--regexp-ignore-case': null,
+                '--grep': 'authentication',
             });
         });
 
         it('should handle repository not found in database', async () => {
             mockFindFirst.mockResolvedValue(null);
 
-            const result = await searchCommits({
-                repository: 'github.com/nonexistent/repo',
+            const result = await listCommits({
+                repo: 'github.com/nonexistent/repo',
                 query: 'feature',
             });
 
@@ -491,11 +507,11 @@ describe('searchCommits', () => {
             mockFindFirst.mockResolvedValue({ id: 456, name: 'github.com/owner/repo' });
             mockGitLog.mockResolvedValue({ all: [] });
 
-            const result = await searchCommits({
-                repository: 'github.com/owner/repo',
+            const result = await listCommits({
+                repo: 'github.com/owner/repo',
             });
 
-            expect(Array.isArray(result)).toBe(true);
+            expect(result).toMatchObject({ commits: [], totalCount: expect.any(Number) });
             expect(mockFindFirst).toHaveBeenCalledWith({
                 where: {
                     name: 'github.com/owner/repo',
@@ -507,8 +523,8 @@ describe('searchCommits', () => {
         it('should return NOT_FOUND error when repository is not found', async () => {
             mockFindFirst.mockResolvedValue(null);
 
-            const result = await searchCommits({
-                repository: 'github.com/nonexistent/repo',
+            const result = await listCommits({
+                repo: 'github.com/nonexistent/repo',
             });
 
             expect(result).toMatchObject({
@@ -521,8 +537,8 @@ describe('searchCommits', () => {
             mockFindFirst.mockResolvedValue({ id: 789, name: 'github.com/example/project' });
             mockGitLog.mockResolvedValue({ all: [] });
 
-            await searchCommits({
-                repository: 'github.com/example/project',
+            await listCommits({
+                repo: 'github.com/example/project',
             });
 
             expect(mockCwd).toHaveBeenCalledWith('/mock/cache/dir/789');
@@ -545,15 +561,16 @@ describe('searchCommits', () => {
             vi.spyOn(dateUtils, 'validateDateRange').mockReturnValue(null);
             vi.spyOn(dateUtils, 'toGitDate').mockImplementation((date) => date);
             mockGitLog.mockResolvedValue({ all: mockCommits });
+            mockGitRaw.mockResolvedValue('1');
 
-            const result = await searchCommits({
-                repository: 'github.com/test/repository',
+            const result = await listCommits({
+                repo: 'github.com/test/repository',
                 query: 'feature',
                 since: '7 days ago',
                 author: 'Developer',
             });
 
-            expect(result).toEqual(mockCommits);
+            expect(result).toEqual({ commits: mockCommits, totalCount: 1 });
             expect(mockCwd).toHaveBeenCalledWith('/mock/cache/dir/555');
         });
     });

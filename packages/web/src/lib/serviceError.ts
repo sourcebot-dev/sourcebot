@@ -37,11 +37,19 @@ export const missingQueryParam = (name: string): ServiceError => {
     };
 }
 
-export const schemaValidationError = (error: ZodError): ServiceError => {
+export const requestBodySchemaValidationError = (error: ZodError): ServiceError => {
     return {
         statusCode: StatusCodes.BAD_REQUEST,
         errorCode: ErrorCode.INVALID_REQUEST_BODY,
         message: `Schema validation failed with: ${error.message}`,
+    };
+}
+
+export const queryParamsSchemaValidationError = (error: ZodError): ServiceError => {
+    return {
+        statusCode: StatusCodes.BAD_REQUEST,
+        errorCode: ErrorCode.INVALID_QUERY_PARAMS,
+        message: `Query params validation failed with: ${error.message}`,
     };
 }
 

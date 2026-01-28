@@ -4,7 +4,7 @@ import { createAgentStream } from "@/features/chat/agent";
 import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notFound, schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
+import { notFound, requestBodySchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     const requestBody = await req.json();
     const parsed = await chatRequestSchema.safeParseAsync(requestBody);
     if (!parsed.success) {
-        return serviceErrorResponse(schemaValidationError(parsed.error));
+        return serviceErrorResponse(requestBodySchemaValidationError(parsed.error));
     }
 
     const { messages, id, selectedSearchScopes, languageModel: _languageModel } = parsed.data;

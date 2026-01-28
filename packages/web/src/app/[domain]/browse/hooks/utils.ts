@@ -64,7 +64,7 @@ export const getBrowseParamsFromPathParam = (pathParam: string) => {
 };
 
 export const getBrowsePath = ({
-    repoName, revisionName = 'HEAD', path, pathType, highlightRange, setBrowseState, domain,
+    repoName, revisionName, path, pathType, highlightRange, setBrowseState, domain,
 }: GetBrowsePathProps) => {
     const params = new URLSearchParams();
 
@@ -83,7 +83,7 @@ export const getBrowsePath = ({
     }
 
     const encodedPath = encodeURIComponent(path);
-    const browsePath = `/${domain}/browse/${repoName}@${revisionName}/-/${pathType}/${encodedPath}${params.size > 0 ? `?${params.toString()}` : ''}`;
+    const browsePath = `/${domain}/browse/${repoName}${revisionName ? `@${revisionName}` : ''}/-/${pathType}/${encodedPath}${params.size > 0 ? `?${params.toString()}` : ''}`;
     return browsePath;
 };
 

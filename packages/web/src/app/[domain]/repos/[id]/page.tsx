@@ -32,7 +32,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
         codeHostType: repo.external_codeHostType,
         name: repo.name,
         displayName: repo.displayName ?? undefined,
-        webUrl: repo.webUrl ?? undefined,
+        externalWebUrl: repo.webUrl ?? undefined,
     });
 
     const configSettings = await getConfigSettings(env.CONFIG_PATH);
@@ -71,9 +71,9 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                         <h1 className="text-3xl font-semibold">{repo.displayName || repo.name}</h1>
                         <p className="text-muted-foreground mt-2">{repo.name}</p>
                     </div>
-                    {codeHostInfo.repoLink && (
+                    {codeHostInfo.externalWebUrl && (
                         <Button variant="outline" asChild>
-                            <Link href={codeHostInfo.repoLink} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                            <Link href={codeHostInfo.externalWebUrl} target="_blank" rel="noopener noreferrer" className="flex items-center">
                                 <Image
                                     src={codeHostInfo.icon}
                                     alt={codeHostInfo.codeHostName}

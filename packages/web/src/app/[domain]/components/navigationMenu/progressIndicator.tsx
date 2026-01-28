@@ -87,7 +87,7 @@ const RepoItem = ({ repo }: { repo: RepositoryQuery }) => {
             name: repo.repoName,
             codeHostType: repo.codeHostType,
             displayName: repo.repoDisplayName,
-            webUrl: repo.webUrl,
+            externalWebUrl: repo.externalWebUrl,
         });
 
         return {
@@ -98,7 +98,7 @@ const RepoItem = ({ repo }: { repo: RepositoryQuery }) => {
             />,
             displayName: info.displayName,
         }
-    }, [repo.repoName, repo.codeHostType, repo.repoDisplayName, repo.webUrl]);
+    }, [repo.repoName, repo.codeHostType, repo.repoDisplayName, repo.externalWebUrl]);
 
 
     return (

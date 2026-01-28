@@ -1,72 +1,105 @@
 import { env } from './env.js';
-import { listRepositoriesResponseSchema, searchResponseSchema, fileSourceResponseSchema, searchCommitsResponseSchema } from './schemas.js';
-import { FileSourceRequest, FileSourceResponse, ListRepositoriesResponse, SearchRequest, SearchResponse, ServiceError, SearchCommitsRequest, SearchCommitsResponse } from './types.js';
-import { isServiceError } from './utils.js';
+import { listReposResponseSchema, searchResponseSchema, fileSourceResponseSchema, listCommitsResponseSchema } from './schemas.js';
+import { FileSourceRequest, ListReposQueryParams, SearchRequest, ListCommitsQueryParamsSchema } from './types.js';
+import { isServiceError, ServiceErrorException } from './utils.js';
+import { z } from 'zod';
 
-export const search = async (request: SearchRequest): Promise<SearchResponse | ServiceError> => {
-    const result = await fetch(`${env.SOURCEBOT_HOST}/api/search`, {
+const parseResponse = async <T extends z.ZodTypeAny>(
+    response: Response,
+    schema: T
+): Promise<z.infer<T>> => {
+    const text = await response.text();
+
+    let json: unknown;
+    try {
+        json = JSON.parse(text);
+    } catch {
+        throw new Error(`Invalid JSON response: ${text}`);
+    }
+
+    // Check if the response is already a service error from the API
+    if (isServiceError(json)) {
+        throw new ServiceErrorException(json);
+    }
+
+    const parsed = schema.safeParse(json);
+    if (!parsed.success) {
+        throw new Error(`Failed to parse response: ${parsed.error.message}`);
+    }
+
+    return parsed.data;
+};
+
+export const search = async (request: SearchRequest) => {
+    const response = await fetch(`${env.SOURCEBOT_HOST}/api/search`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
         body: JSON.stringify(request)
-    }).then(response => response.json());
+    });
 
-    if (isServiceError(result)) {
-        return result;
-    }
-
-    return searchResponseSchema.parse(result);
+    return parseResponse(response, searchResponseSchema);
 }
 
-export const listRepos = async (): Promise<ListRepositoriesResponse | ServiceError> => {
-    const result = await fetch(`${env.SOURCEBOT_HOST}/api/repos`, {
+export const listRepos = async (queryParams: ListReposQueryParams = {}) => {
+    const url = new URL(`${env.SOURCEBOT_HOST}/api/repos`);
+
+    for (const [key, value] of Object.entries(queryParams)) {
+        if (value) {
+            url.searchParams.set(key, value.toString());
+        }
+    }
+
+    const response = await fetch(url, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
             ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
-    }).then(response => response.json());
+    });
 
-    if (isServiceError(result)) {
-        return result;
-    }
-
-    return listRepositoriesResponseSchema.parse(result);
+    const repos = await parseResponse(response, listReposResponseSchema);
+    const totalCount = parseInt(response.headers.get('X-Total-Count') ?? '0', 10);
+    return { repos, totalCount };
 }
 
-export const getFileSource = async (request: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
-    const result = await fetch(`${env.SOURCEBOT_HOST}/api/source`, {
-        method: 'POST',
+export const getFileSource = async (request: FileSourceRequest) => {
+    const url = new URL(`${env.SOURCEBOT_HOST}/api/source`);
+    for (const [key, value] of Object.entries(request)) {
+        if (value) {
+            url.searchParams.set(key, value.toString());
+        }
+    }
+
+    const response = await fetch(url, {
+        method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
             ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
-        body: JSON.stringify(request)
-    }).then(response => response.json());
+    });
 
-    if (isServiceError(result)) {
-        return result;
-    }
-
-    return fileSourceResponseSchema.parse(result);
+    return parseResponse(response, fileSourceResponseSchema);
 }
 
-export const searchCommits = async (request: SearchCommitsRequest): Promise<SearchCommitsResponse | ServiceError> => {
-    const result = await fetch(`${env.SOURCEBOT_HOST}/api/commits`, {
-        method: 'POST',
+export const listCommits = async (queryParams: ListCommitsQueryParamsSchema) => {
+    const url = new URL(`${env.SOURCEBOT_HOST}/api/commits`);
+    for (const [key, value] of Object.entries(queryParams)) {
+        if (value) {
+            url.searchParams.set(key, value.toString());
+        }
+    }
+
+    const response = await fetch(url, {
+        method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
             'X-Org-Domain': '~',
             ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
-        body: JSON.stringify(request)
-    }).then(response => response.json());
+    });
 
-    if (isServiceError(result)) {
-        return result;
-    }
-
-    return searchCommitsResponseSchema.parse(result);
+    const commits = await parseResponse(response, listCommitsResponseSchema);
+    const totalCount = parseInt(response.headers.get('X-Total-Count') ?? '0', 10);
+    return { commits, totalCount };
 }

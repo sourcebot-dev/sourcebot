@@ -95,7 +95,7 @@ export const FileMatchContainer = ({
                         name: repo.name,
                         codeHostType: repo.codeHostType,
                         displayName: repo.displayName,
-                        webUrl: repo.webUrl,
+                        externalWebUrl: repo.webUrl,
                     }}
                     path={file.fileName.text}
                     pathHighlightRange={fileNameRange}

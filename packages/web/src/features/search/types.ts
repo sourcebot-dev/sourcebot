@@ -63,7 +63,8 @@ export const searchFileSchema = z.object({
         // Any matching ranges
         matchRanges: z.array(rangeSchema),
     }),
-    webUrl: z.string().optional(),
+    webUrl: z.string(),
+    externalWebUrl: z.string().optional(),
     repository: z.string(),
     repositoryId: z.number(),
     language: z.string(),
@@ -144,32 +145,22 @@ export const streamedSearchResponseSchema = z.discriminatedUnion('type', [
 ]);
 export type StreamedSearchResponse = z.infer<typeof streamedSearchResponseSchema>;
 
-export const fileSourceRequestSchema = z.object({
-    fileName: z.string(),
-    repository: z.string(),
-    branch: z.string().optional(),
-});
-export type FileSourceRequest = z.infer<typeof fileSourceRequestSchema>;
+export interface FileSourceRequest {
+    fileName: string;
+    repository: string;
+    branch?: string;
+}
 
 export const fileSourceResponseSchema = z.object({
     source: z.string(),
     language: z.string(),
     path: z.string(),
-    repository: z.string(),
-    repositoryCodeHostType: z.nativeEnum(CodeHostType),
-    repositoryDisplayName: z.string().optional(),
-    repositoryWebUrl: z.string().optional(),
+    repo: z.string(),
+    repoCodeHostType: z.nativeEnum(CodeHostType),
+    repoDisplayName: z.string().optional(),
+    repoExternalWebUrl: z.string().optional(),
     branch: z.string().optional(),
-    webUrl: z.string().optional(),
+    webUrl: z.string(),
+    externalWebUrl: z.string().optional(),
 });
 export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
-
-export const searchCommitsRequestSchema = z.object({
-    repository: z.string(),
-    query: z.string().optional(),
-    since: z.string().optional(),
-    until: z.string().optional(),
-    author: z.string().optional(),
-    maxCount: z.number().int().positive().max(500).optional(),
-});
-export type SearchCommitsRequest = z.infer<typeof searchCommitsRequestSchema>;

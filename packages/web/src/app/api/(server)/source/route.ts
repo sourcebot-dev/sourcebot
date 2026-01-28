@@ -1,21 +1,39 @@
 'use server';
 
 import { getFileSource } from "@/features/search/fileSourceApi";
-import { schemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
+import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
-import { fileSourceRequestSchema } from "@/features/search/types";
+import { z } from "zod";
 
-export const POST = async (request: NextRequest) => {
-    const body = await request.json();
-    const parsed = await fileSourceRequestSchema.safeParseAsync(body);
+const querySchema = z.object({
+    repo: z.string(),
+    path: z.string(),
+    ref: z.string().optional(),
+});
+
+export const GET = async (request: NextRequest) => {
+    const rawParams = Object.fromEntries(
+        Object.keys(querySchema.shape).map(key => [
+            key,
+            request.nextUrl.searchParams.get(key) ?? undefined
+        ])
+    );
+    const parsed = querySchema.safeParse(rawParams);
+
     if (!parsed.success) {
         return serviceErrorResponse(
-            schemaValidationError(parsed.error)
+            queryParamsSchemaValidationError(parsed.error)
         );
     }
-    
-    const response = await getFileSource(parsed.data);
+
+    const { repo, path, ref } = parsed.data;
+    const response = await getFileSource({
+        fileName: path,
+        repository: repo,
+        branch: ref,
+    });
+
     if (isServiceError(response)) {
         return serviceErrorResponse(response);
     }

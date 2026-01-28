@@ -124,7 +124,8 @@ export const searchResponseSchema = z.object({
             // Any matching ranges
             matchRanges: z.array(rangeSchema),
         }),
-        webUrl: z.string().optional(),
+        webUrl: z.string(),
+        externalWebUrl: z.string().optional(),
         repository: z.string(),
         repositoryId: z.number(),
         language: z.string(),
@@ -150,42 +151,71 @@ export const repositoryQuerySchema = z.object({
     repoId: z.number(),
     repoName: z.string(),
     repoDisplayName: z.string().optional(),
-    repoCloneUrl: z.string(),
-    webUrl: z.string().optional(),
+    webUrl: z.string(),
+    externalWebUrl: z.string().optional(),
     imageUrl: z.string().optional(),
     indexedAt: z.coerce.date().optional(),
+    pushedAt: z.coerce.date().optional(),
 });
 
-export const listRepositoriesResponseSchema = repositoryQuerySchema.array();
+export const listReposResponseSchema = repositoryQuerySchema.array();
 
-export const listReposRequestSchema = z.object({
+export const listReposQueryParamsSchema = z.object({
     query: z
         .string()
-        .describe("Filter repositories by name or displayName (case-insensitive)")
+        .describe("Filter repositories by name (case-insensitive)")
         .optional(),
-    pageNumber: z
+    page: z
         .number()
         .int()
         .positive()
-        .describe("Page number (1-indexed, default: 1)")
+        .describe("Page number for pagination (min 1). Default: 1")
+        .optional()
         .default(1),
-    limit: z
+    perPage: z
         .number()
         .int()
         .positive()
-        .describe("Number of repositories per page (default: 50)")
-        .default(50),
+        .max(100)
+        .describe("Results per page for pagination (min 1, max 100). Default: 30")
+        .optional()
+        .default(30),
+    sort: z
+        .enum(['name', 'pushed'])
+        .describe("Sort repositories by 'name' or 'pushed' (most recent commit). Default: 'name'")
+        .optional()
+        .default('name'),
+    direction: z
+        .enum(['asc', 'desc'])
+        .describe("Sort direction: 'asc' or 'desc'. Default: 'asc'")
+        .optional()
+        .default('asc'),
 });
 
 export const fileSourceRequestSchema = z.object({
-    fileName: z.string(),
-    repository: z.string(),
-    branch: z.string().optional(),
+    repo: z
+        .string()
+        .describe("The repository name."),
+    path: z
+        .string()
+        .describe("The path to the file."),
+    ref: z
+        .string()
+        .optional()
+        .describe("Commit SHA, branch or tag name to fetch the source code for. If not provided, uses the default branch of the repository."),
 });
 
 export const fileSourceResponseSchema = z.object({
     source: z.string(),
     language: z.string(),
+    path: z.string(),
+    repo: z.string(),
+    repoCodeHostType: z.string(),
+    repoDisplayName: z.string().optional(),
+    repoExternalWebUrl: z.string().optional(),
+    branch: z.string().optional(),
+    webUrl: z.string(),
+    externalWebUrl: z.string().optional(),
 });
 
 export const serviceErrorSchema = z.object({
@@ -194,16 +224,48 @@ export const serviceErrorSchema = z.object({
     message: z.string(),
 });
 
-export const searchCommitsRequestSchema = z.object({
-    repository: z.string(),
-    query: z.string().optional(),
-    since: z.string().optional(),
-    until: z.string().optional(),
-    author: z.string().optional(),
-    maxCount: z.number().int().positive().max(500).optional(),
+export const listCommitsQueryParamsSchema = z.object({
+    repo: z
+        .string()
+        .describe("The name of the repository to list commits for."),
+    query: z
+        .string()
+        .describe("Search query to filter commits by message content (case-insensitive).")
+        .optional(),
+    since: z
+        .string()
+        .describe(`Show commits more recent than this date. Filters by actual commit time. Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago', 'last week').`)
+        .optional(),
+    until: z
+        .string()
+        .describe(`Show commits older than this date. Filters by actual commit time. Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday').`)
+        .optional(),
+    author: z
+        .string()
+        .describe(`Filter commits by author name or email (case-insensitive).`)
+        .optional(),
+    ref: z
+        .string()
+        .describe("Commit SHA, branch or tag name to list commits of. If not provided, uses the default branch of the repository.")
+        .optional(),
+    page: z
+        .number()
+        .int()
+        .positive()
+        .describe("Page number for pagination (min 1). Default: 1")
+        .optional()
+        .default(1),
+    perPage: z
+        .number()
+        .int()
+        .positive()
+        .max(100)
+        .describe("Results per page for pagination (min 1, max 100). Default: 50")
+        .optional()
+        .default(50),
 });
 
-export const searchCommitsResponseSchema = z.array(z.object({
+export const listCommitsResponseSchema = z.array(z.object({
     hash: z.string(),
     date: z.string(),
     message: z.string(),

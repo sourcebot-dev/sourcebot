@@ -73,12 +73,13 @@ export const getFileSource = async ({ fileName, repository, branch }: FileSource
             source,
             language,
             path: fileName,
-            repository,
-            repositoryCodeHostType: repoInfo.codeHostType,
-            repositoryDisplayName: repoInfo.displayName,
-            repositoryWebUrl: repoInfo.webUrl,
+            repo: repository,
+            repoCodeHostType: repoInfo.codeHostType,
+            repoDisplayName: repoInfo.displayName,
+            repoExternalWebUrl: repoInfo.webUrl,
             branch,
             webUrl: file.webUrl,
+            externalWebUrl: file.externalWebUrl,
         } satisfies FileSourceResponse;
 
     }));
