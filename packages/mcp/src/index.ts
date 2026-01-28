@@ -29,8 +29,12 @@ server.tool(
         query: z
             .string()
             .describe(`The search pattern to match against code contents. Do not escape quotes in your query.`)
-            // Wrap in quotes so the query is treated as a literal phrase (like grep).
-            .transform((val) => `"${val.replace(/"/g, '\\"')}"`),
+            // Escape backslashes first, then quotes, and wrap in double quotes
+            // so the query is treated as a literal phrase (like grep).
+            .transform((val) => {
+                const escaped = val.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+                return `"${escaped}"`;
+            }),
         useRegex: z
             .boolean()
             .describe(`Whether to use regular expression matching to match the search query against code contents. When false, substring matching is used. (default: false)`)
