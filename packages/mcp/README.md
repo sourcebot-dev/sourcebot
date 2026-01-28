@@ -164,19 +164,22 @@ For a more detailed guide, checkout [the docs](https://docs.sourcebot.dev/docs/f
 
 ### search_code
 
-Fetches code that matches the provided regex pattern in `query`.
+Searches for code that matches the provided search query as a substring by default, or as a regular expression if `useRegex` is true.
 
 <details>
 <summary>Parameters</summary>
 
 | Name                  | Required | Description                                                                                                                       |
 |:----------------------|:---------|:----------------------------------------------------------------------------------------------------------------------------------|
-| `query`               | yes      | Regex pattern to search for. Escape special characters and spaces with a single backslash (e.g., 'console\.log', 'console\ log'). |
-| `filterByRepoIds`     | no       | Restrict search to specific repository IDs (from 'list_repos'). Leave empty to search all.                                        |
-| `filterByLanguages`   | no       | Restrict search to specific languages (GitHub linguist format, e.g., Python, JavaScript).                                         |
-| `caseSensitive`       | no       | Case sensitive search (default: false).                                                                                           |
-| `includeCodeSnippets` | no       | Include code snippets in results (default: false).                                                                                |
-| `maxTokens`           | no       | Max tokens to return (default: env.DEFAULT_MINIMUM_TOKENS).                                                                       |
+| `query`               | yes      | The search pattern to match against code contents. Do not escape quotes in your query.                                            |
+| `useRegex`            | no       | Whether to use regular expression matching. When false, substring matching is used (default: false).                              |
+| `filterByRepos`       | no       | Scope the search to specific repositories.                                                                                        |
+| `filterByLanguages`   | no       | Scope the search to specific languages.                                                                                           |
+| `filterByFilepaths`   | no       | Scope the search to specific filepaths.                                                                                           |
+| `caseSensitive`       | no       | Whether the search should be case sensitive (default: false).                                                                     |
+| `includeCodeSnippets` | no       | Whether to include code snippets in the response (default: false).                                                                |
+| `ref`                 | no       | Commit SHA, branch or tag name to search on. If not provided, defaults to the default branch.                                     |
+| `maxTokens`           | no       | The maximum number of tokens to return (default: 10000). Higher values provide more context but consume more tokens.              |
 </details>
 
 
@@ -187,42 +190,47 @@ Lists repositories indexed by Sourcebot with optional filtering and pagination.
 <details>
 <summary>Parameters</summary>
 
-| Name         | Required | Description                                                         |
-|:-------------|:---------|:--------------------------------------------------------------------|
-| `query`      | no       | Filter repositories by name (case-insensitive).                     |
-| `pageNumber` | no       | Page number (1-indexed, default: 1).                                |
-| `limit`      | no       | Number of repositories per page (default: 50).                      |
+| Name        | Required | Description                                                                     |
+|:------------|:---------|:--------------------------------------------------------------------------------|
+| `query`     | no       | Filter repositories by name (case-insensitive).                                 |
+| `page`      | no       | Page number for pagination (min 1, default: 1).                                 |
+| `perPage`   | no       | Results per page for pagination (min 1, max 100, default: 30).                  |
+| `sort`      | no       | Sort repositories by 'name' or 'pushed' (most recent commit). Default: 'name'. |
+| `direction` | no       | Sort direction: 'asc' or 'desc' (default: 'asc').                               |
 
 </details>
 
-### get_file_source
+### read_file
 
-Fetches the source code for a given file.
+Reads the source code for a given file.
 
 <details>
 <summary>Parameters</summary>
 
-| Name         | Required | Description                                                      |
-|:-------------|:---------|:-----------------------------------------------------------------|
-| `fileName`   | yes      | The file to fetch the source code for.                           |
-| `repoId`     | yes      | The Sourcebot repository ID.                                     |
+| Name   | Required | Description                                                                                                    |
+|:-------|:---------|:---------------------------------------------------------------------------------------------------------------|
+| `repo` | yes      | The repository name.                                                                                           |
+| `path` | yes      | The path to the file.                                                                                          |
+| `ref`  | no       | Commit SHA, branch or tag name to fetch the source code for. If not provided, uses the default branch.         |
 </details>
 
-### search_commits
+### list_commits
 
-Searches for commits in a specific repository based on actual commit time.
+Get a list of commits for a given repository.
 
 <details>
 <summary>Parameters</summary>
 
-| Name       | Required | Description                                                                                    |
-|:-----------|:---------|:-----------------------------------------------------------------------------------------------|
-| `repoId`   | yes      | Repository identifier: either numeric database ID (e.g., 123) or full repository name (e.g., "github.com/owner/repo") as returned by `list_repos`. |
-| `query`    | no       | Search query to filter commits by message (case-insensitive).                                  |
-| `since`    | no       | Show commits after this date (by commit time). Supports ISO 8601 or relative formats.          |
-| `until`    | no       | Show commits before this date (by commit time). Supports ISO 8601 or relative formats.         |
-| `author`   | no       | Filter by author name or email (supports partial matches).                                     |
-| `maxCount` | no       | Maximum number of commits to return (default: 50).                                             |
+| Name      | Required | Description                                                                                                                           |
+|:----------|:---------|:--------------------------------------------------------------------------------------------------------------------------------------|
+| `repo`    | yes      | The name of the repository to list commits for.                                                                                       |
+| `query`   | no       | Search query to filter commits by message content (case-insensitive).                                                                 |
+| `since`   | no       | Show commits more recent than this date. Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago').            |
+| `until`   | no       | Show commits older than this date. Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday').                    |
+| `author`  | no       | Filter commits by author name or email (case-insensitive).                                                                            |
+| `ref`     | no       | Commit SHA, branch or tag name to list commits of. If not provided, uses the default branch.                                          |
+| `page`    | no       | Page number for pagination (min 1, default: 1).                                                                                       |
+| `perPage` | no       | Results per page for pagination (min 1, max 100, default: 50).                                                                        |
 
 </details>
 
