@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.18] - 2026-01-28
+
 ### Added
 - Added ask sidebar to homepage. [#721](https://github.com/sourcebot-dev/sourcebot/pull/721)
 - Added endpoint for searching commit history for a git repository. [#625](https://github.com/sourcebot-dev/sourcebot/pull/625)
