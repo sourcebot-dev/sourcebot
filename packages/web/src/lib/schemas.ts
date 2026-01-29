@@ -2,6 +2,7 @@ import { checkIfOrgDomainExists } from "@/actions";
 import { z } from "zod";
 import { isServiceError } from "./utils";
 import { CodeHostType } from "@sourcebot/db";
+import { serviceErrorSchema } from "@/lib/serviceError";
 
 export const secretCreateRequestSchema = z.object({
     key: z.string(),
@@ -80,3 +81,16 @@ export const listReposQueryParamsSchema = z.object({
 });
 
 export const listReposResponseSchema = repositoryQuerySchema.array();
+
+export const getRefsRequestSchema = z.object({
+    repoName: z.string(),
+});
+
+export const getRefsResponseSchema = z.union([
+    z.object({
+        branches: z.array(z.string()),
+        tags: z.array(z.string()),
+        defaultBranch: z.string().nullable(),
+    }),
+    serviceErrorSchema
+]);

@@ -260,16 +260,22 @@ const transformTreeToIR = async ({
                     query: "repo"
                 };
 
-            case RevisionExpr:
+            case RevisionExpr: {
+                // normalize the ref to match zoekt's indexed format
+                // zoekt stores branches as 'refs/heads/branch-name' and tags as 'refs/tags/tag-name'
+                const normalizedPattern = value === '*' ? "" :
+                    value === 'HEAD' ? 'HEAD' :
+                    value.startsWith('refs/') ? value :
+                    `refs/heads/${value}`;
+
                 return {
                     branch: {
-                        // Special case - "*" means search all branches. Passing in a
-                        // blank string will match all branches.
-                        pattern: value === '*' ? "" : value,
+                        pattern: normalizedPattern,
                         exact: false
                     },
                     query: "branch"
                 };
+            }
 
             case ContentExpr:
                 return {

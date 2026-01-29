@@ -22,6 +22,10 @@ import {
 import { ImperativePanelHandle } from "react-resizable-panels";
 import { FileTreeNode } from "../types";
 import { PureFileTreePanel } from "./pureFileTreePanel";
+import { BranchTagSelector } from "@/app/[domain]/components/branchTagSelector";
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { useDomain } from "@/hooks/useDomain";
+import { useRouter } from "next/navigation";
 
 interface FileTreePanelProps {
     order: number;
@@ -42,8 +46,22 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
     const { repoName, revisionName, path, pathType } = useBrowseParams();
     const [openPaths, setOpenPaths] = useState<Set<string>>(new Set());
     const captureEvent = useCaptureEvent();
+    const domain = useDomain();
+    const router = useRouter();
 
     const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
+
+    const handleRefChange = useCallback((newRef: string) => {
+        // Navigate to the same path but with the new revision
+        const newPath = getBrowsePath({
+            repoName,
+            path,
+            pathType,
+            revisionName: newRef,
+            domain,
+        });
+        router.push(newPath);
+    }, [repoName, path, pathType, domain, router]);
 
     const { data, isError, isPending } = useQuery({
         queryKey: ['tree', repoName, revisionName, ...Array.from(openPaths)],
@@ -161,6 +179,13 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                             </TooltipContent>
                         </Tooltip>
                         <p className="font-medium">File Tree</p>
+                        {repoName && (
+                            <BranchTagSelector
+                                repoName={repoName}
+                                currentRef={revisionName ?? 'HEAD'}
+                                onRefChange={handleRefChange}
+                            />
+                        )}
                         <Tooltip delayDuration={100}>
                             <TooltipTrigger asChild>
                                 <Button

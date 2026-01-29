@@ -1,7 +1,13 @@
 'use client';
 
 import { ServiceError } from "@/lib/serviceError";
-import { GetVersionResponse, ListReposQueryParams, ListReposResponse } from "@/lib/types";
+import {
+    GetVersionResponse,
+    GetRefsRequest,
+    GetRefsResponse,
+    ListReposQueryParams,
+    ListReposResponse
+} from "@/lib/types";
 import { isServiceError } from "@/lib/utils";
 import {
     SearchRequest,
@@ -107,4 +113,12 @@ export const getFiles = async (body: GetFilesRequest): Promise<GetFilesResponse 
         body: JSON.stringify(body),
     }).then(response => response.json());
     return result as GetFilesResponse | ServiceError;
+}
+
+export const getRefs = async (body: GetRefsRequest): Promise<GetRefsResponse | ServiceError> => {
+    const result = await fetch("/api/refs", {
+        method: "POST",
+        body: JSON.stringify(body),
+    }).then(response => response.json());
+    return result as GetRefsResponse | ServiceError;
 }

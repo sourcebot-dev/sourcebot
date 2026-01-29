@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { listReposResponseSchema, getVersionResponseSchema, repositoryQuerySchema, searchContextQuerySchema, listReposQueryParamsSchema } from "./schemas";
+import {
+    getRefsRequestSchema, getRefsResponseSchema, getVersionResponseSchema, listReposQueryParamsSchema, listReposResponseSchema, repositoryQuerySchema, searchContextQuerySchema } from "./schemas";
 import { tenancyModeSchema } from "@sourcebot/shared";
 
 export type KeymapType = "default" | "vim";
@@ -31,3 +32,5 @@ export type RepositoryQuery = z.infer<typeof repositoryQuerySchema>;
 export type SearchContextQuery = z.infer<typeof searchContextQuerySchema>;
 export type ListReposResponse = z.infer<typeof listReposResponseSchema>;
 export type ListReposQueryParams = z.infer<typeof listReposQueryParamsSchema>;
+export type GetRefsRequest = z.infer<typeof getRefsRequestSchema>;
+export type GetRefsResponse = z.infer<typeof getRefsResponseSchema>;
