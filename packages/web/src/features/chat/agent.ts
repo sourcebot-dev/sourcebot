@@ -38,8 +38,36 @@ export const createAgentStream = async ({
     onWriteSource,
     traceId,
 }: AgentOptions) => {
+    const agentsMdResults = await Promise.all(searchScopeRepoNames.map(async (repo) => {
+        const result = await getFileSource({
+            fileName: 'AGENTS.md',
+            repository: repo,
+        });
+
+        if (isServiceError(result)) {
+            return null;
+        }
+
+        let content = result.source;
+
+        // Security: Limit content length to prevent large context consumption
+        const MAX_LENGTH = 5000;
+        if (content.length > MAX_LENGTH) {
+            content = content.slice(0, MAX_LENGTH) + '\n... (truncated)';
+        }
+
+        // Security: Sanitize closing tags to prevent prompt injection
+        // We escape all closing XML-like tags to ensure the content cannot break out of the <repository_instructions> block
+        content = content.replace(/<\//g, '<\\/');
+
+        return `Repository: ${repo}\nFile: AGENTS.md\nContent:\n${content}`;
+    }));
+
+    const agentsMdContent = agentsMdResults.filter((c) => c !== null).join('\n\n');
+
     const baseSystemPrompt = createBaseSystemPrompt({
         searchScopeRepoNames,
+        agentsMdContent,
     });
 
     const stream = streamText({
@@ -62,7 +90,7 @@ export const createAgentStream = async ({
 
                 const resolvedFileSources = (
                     await Promise.all(fileSources.map(resolveFileSource)))
-                        .filter((source) => source !== undefined)
+                    .filter((source) => source !== undefined)
 
                 const fileSourcesSystemPrompt = await createFileSourcesSystemPrompt({
                     files: resolvedFileSources
@@ -156,10 +184,12 @@ export const createAgentStream = async ({
 
 interface BaseSystemPromptOptions {
     searchScopeRepoNames: string[];
+    agentsMdContent?: string;
 }
 
 export const createBaseSystemPrompt = ({
     searchScopeRepoNames,
+    agentsMdContent,
 }: BaseSystemPromptOptions) => {
     return `
 You are a powerful agentic AI code assistant built into Sourcebot, the world's best code-intelligence platform. Your job is to help developers understand and navigate their large codebases.
@@ -184,6 +214,12 @@ The user has selected the following repositories for analysis:
 ${searchScopeRepoNames.map(repo => `- ${repo}`).join('\n')}
 </available_repositories>
 
+${agentsMdContent ? `<repository_instructions>
+The following are verified instructions from the repository maintainers (AGENTS.md). You MUST follow these instructions when generating code or answering questions for these repositories.
+
+${agentsMdContent}
+</repository_instructions>` : ''}
+
 <research_phase_instructions>
 During the research phase, use the tools available to you to gather comprehensive context before answering. Always explain why you're using each tool. Depending on the user's question, you may need to use multiple tools. If the question is vague, ask the user for more information.
 </research_phase_instructions>
@@ -199,7 +235,7 @@ When you have sufficient context, output your answer as a structured markdown re
 **Required Response Format:**
 - **CRITICAL**: You MUST always prefix your answer with a \`${ANSWER_TAG}\` tag at the very top of your response
 - **CRITICAL**: You MUST provide your complete response in markdown format with embedded code references
-- **CODE REFERENCE REQUIREMENT**: Whenever you mention, discuss, or refer to ANY specific part of the code (files, functions, variables, methods, classes, imports, etc.), you MUST immediately follow with a code reference using the format \`${fileReferenceToString({ repo: 'repository', path: 'filename'})}\` or \`${fileReferenceToString({ repo: 'repository', path: 'filename', range: { startLine: 1, endLine: 10 } })}\` (where the numbers are the start and end line numbers of the code snippet). This includes:
+- **CODE REFERENCE REQUIREMENT**: Whenever you mention, discuss, or refer to ANY specific part of the code (files, functions, variables, methods, classes, imports, etc.), you MUST immediately follow with a code reference using the format \`${fileReferenceToString({ repo: 'repository', path: 'filename' })}\` or \`${fileReferenceToString({ repo: 'repository', path: 'filename', range: { startLine: 1, endLine: 10 } })}\` (where the numbers are the start and end line numbers of the code snippet). This includes:
   - Files (e.g., "The \`auth.ts\` file" → must include \`${fileReferenceToString({ repo: 'repository', path: 'auth.ts' })}\`)
   - Function names (e.g., "The \`getRepos()\` function" → must include \`${fileReferenceToString({ repo: 'repository', path: 'auth.ts', range: { startLine: 15, endLine: 20 } })}\`)
   - Variable names (e.g., "The \`suggestionQuery\` variable" → must include \`${fileReferenceToString({ repo: 'repository', path: 'search.ts', range: { startLine: 42, endLine: 42 } })}\`)
