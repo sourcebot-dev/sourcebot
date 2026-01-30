@@ -12,42 +12,79 @@ import escapeStringRegexp from "escape-string-regexp";
 // This will allow us to support permalinks to files at a specific revision that may not be indexed
 // by zoekt. We should also refactor this out of the /search folder.
 
+/**
+ * Determines which refs to try when searching for a file.
+ * If ref is not provided, searches across all branches.
+ * If ref is HEAD or already in full format (refs/...), uses it directly.
+ * Otherwise, tries both branch and tag patterns.
+ */
+const getRefsToTry = (ref: string | undefined): (string | undefined)[] => {
+    if (!ref) {
+        return [undefined];
+    }
+    if (ref === 'HEAD' || ref.startsWith('refs/')) {
+        return [ref];
+    }
+    return [`refs/heads/${ref}`, `refs/tags/${ref}`];
+};
+
 export const getFileSource = async ({ path, repo, ref }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => sew(() =>
     withOptionalAuthV2(async () => {
-        const query: QueryIR = {
-            and: {
-                children: [
-                    {
-                        repo: {
-                            regexp: `^${escapeStringRegexp(repo)}$`,
+        // Try to find the file with the given ref
+        // If ref is provided and not in full format, try both branch (refs/heads/) and tag (refs/tags/) patterns
+        const refsToTry = getRefsToTry(ref);
+
+        const searchPromises = refsToTry.map(normalizedRef => {
+            const query: QueryIR = {
+                and: {
+                    children: [
+                        {
+                            repo: {
+                                regexp: `^${escapeStringRegexp(repo)}$`,
+                            },
                         },
-                    },
-                    {
-                        substring: {
-                            pattern: path,
-                            case_sensitive: true,
-                            file_name: true,
-                            content: false,
-                        }
-                    },
-                    ...(ref ? [{
-                        branch: {
-                            pattern: ref,
-                            exact: true,
+                        {
+                            substring: {
+                                pattern: path,
+                                case_sensitive: true,
+                                file_name: true,
+                                content: false,
+                            }
                         },
-                    }]: [])
-                ]
+                        ...(normalizedRef ? [{
+                            branch: {
+                                pattern: normalizedRef,
+                                exact: true,
+                            },
+                        }]: [])
+                    ]
+                }
             }
+
+            return search({
+                queryType: 'ir',
+                query,
+                options: {
+                    matches: 1,
+                    whole: true,
+                }
+            });
+        });
+
+        const responses = await Promise.all(searchPromises);
+
+        let searchResponse = responses.find(
+            response => !isServiceError(response) && response.files && response.files.length > 0
+        );
+
+        // If no successful response, use the first one
+        if (!searchResponse) {
+            searchResponse = responses[0];
         }
 
-        const searchResponse = await search({
-            queryType: 'ir',
-            query,
-            options: {
-                matches: 1,
-                whole: true,
-            }
-        });
+        if (!searchResponse) {
+            return fileNotFound(path, repo);
+        }
 
         if (isServiceError(searchResponse)) {
             return searchResponse;

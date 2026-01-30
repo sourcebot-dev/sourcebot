@@ -57,7 +57,7 @@ export const PathHeader = ({
     revisionName,
     branchDisplayName = revisionName,
     isBranchDisplayNameVisible = !!branchDisplayName,
-    branchDisplayTitle,
+    branchDisplayTitle: _branchDisplayTitle,
     pathType = 'blob',
     isCodeHostIconVisible = true,
     isFileIconVisible = true,
@@ -231,7 +231,6 @@ export const PathHeader = ({
             {(isBranchDisplayNameVisible && branchDisplayName) && (
                 <p
                     className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-[3px] flex items-center gap-0.5"
-                    title={branchDisplayTitle}
                     style={{
                         marginBottom: "0.1rem",
                     }}
