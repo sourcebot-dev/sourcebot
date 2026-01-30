@@ -274,6 +274,8 @@ model Org {
   inviteLinkEnabled Boolean @default(false)
   inviteLinkId      String?
 
+  upgradeToastEnabled Boolean @default(true)
+
   audits Audit[]
 
   accountRequests AccountRequest[]

@@ -1810,6 +1810,55 @@ export const setAnonymousAccessStatus = async (domain: string, enabled: boolean)
     });
 });
 
+export const getUpgradeToastEnabled = async (domain: string): Promise<boolean | ServiceError> => sew(async () => {
+    const org = await getOrgFromDomain(domain);
+    if (!org) {
+        return {
+            statusCode: StatusCodes.NOT_FOUND,
+            errorCode: ErrorCode.NOT_FOUND,
+            message: "Organization not found",
+        } satisfies ServiceError;
+    }
+
+    if (org.metadata === null) {
+        return true;
+    }
+
+    const orgMetadata = getOrgMetadata(org);
+    if (!orgMetadata) {
+        return {
+            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+            errorCode: ErrorCode.INVALID_ORG_METADATA,
+            message: "Invalid organization metadata",
+        } satisfies ServiceError;
+    }
+
+    return orgMetadata.upgradeToastEnabled ?? true;
+});
+
+export const setUpgradeToastEnabled = async (domain: string, enabled: boolean): Promise<ServiceError | boolean> => sew(async () => {
+    return await withAuth(async (userId) => {
+        return await withOrgMembership(userId, domain, async ({ org }) => {
+            const currentMetadata = getOrgMetadata(org);
+            const mergedMetadata = {
+                ...(currentMetadata ?? {}),
+                upgradeToastEnabled: enabled,
+            };
+
+            await prisma.org.update({
+                where: {
+                    id: org.id,
+                },
+                data: {
+                    metadata: mergedMetadata,
+                },
+            });
+
+            return true;
+        }, OrgRole.OWNER);
+    });
+});
+
 export const setAgenticSearchTutorialDismissedCookie = async (dismissed: boolean) => sew(async () => {
     const cookieStore = await cookies();
     cookieStore.set(AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, dismissed ? "true" : "false", {

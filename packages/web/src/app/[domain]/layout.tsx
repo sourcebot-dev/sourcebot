@@ -18,13 +18,14 @@ import { SubmitJoinRequest } from "./components/submitJoinRequest";
 import { hasEntitlement } from "@sourcebot/shared";
 import { env } from "@sourcebot/shared";
 import { GcpIapAuth } from "./components/gcpIapAuth";
-import { getAnonymousAccessStatus, getMemberApprovalRequired } from "@/actions";
+import { getAnonymousAccessStatus, getMemberApprovalRequired, getUpgradeToastEnabled } from "@/actions";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { GitHubStarToast } from "./components/githubStarToast";
 import { UpgradeToast } from "./components/upgradeToast";
 import { getLinkedAccountProviderStates } from "@/ee/features/permissionSyncing/actions";
 import { LinkAccounts } from "@/ee/features/permissionSyncing/components/linkAccounts";
+import { OrgRole } from "@sourcebot/db";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -61,6 +62,10 @@ export default async function Layout(props: LayoutProps) {
 
         return status;
     })();
+
+    const upgradeToastSetting = await getUpgradeToastEnabled(domain);
+    const upgradeToastEnabled = isServiceError(upgradeToastSetting) ? true : upgradeToastSetting;
+    let userRole: OrgRole | null = null;
 
     // If the user is authenticated, we must check if they're a member of the org
     if (session) {
@@ -104,6 +109,8 @@ export default async function Layout(props: LayoutProps) {
                 }
             }
         }
+
+        userRole = membership.role;
     } else {
         // If the user isn't authenticated and anonymous access isn't enabled, we need to redirect them to the login page.
         if (!anonymousAccessEnabled) {
@@ -142,7 +149,7 @@ export default async function Layout(props: LayoutProps) {
                 </div>
             )
         }
-
+        
         const hasUnlinkedProviders = linkedAccountProviderStates.some(state => state.isLinked === false);
         if (hasUnlinkedProviders) {
             const cookieStore = await cookies();
@@ -188,12 +195,13 @@ export default async function Layout(props: LayoutProps) {
             <MobileUnsupportedSplashScreen />
         )
     }
+
     return (
         <SyntaxGuideProvider>
             {children}
             <SyntaxReferenceGuide />
             <GitHubStarToast />
-            <UpgradeToast />
+            {(upgradeToastEnabled || userRole === OrgRole.OWNER) ? <UpgradeToast /> : null}
         </SyntaxGuideProvider>
     )
 }
