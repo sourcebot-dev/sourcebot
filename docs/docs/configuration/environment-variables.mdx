@@ -14,7 +14,7 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `AUTH_EMAIL_CODE_LOGIN_ENABLED` | `false` | <p>Enables/disables authentication with a login code that's sent to a users email. `SMTP_CONNECTION_URL` and `EMAIL_FROM_ADDRESS` must also be set. Checkout the [auth docs](/docs/configuration/auth/overview) for more info </p> |
 | `AUTH_SECRET` | Automatically generated at startup if no value is provided. Generated using `openssl rand -base64 33` | <p>Used to validate login session cookies</p> |
 | `AUTH_URL` | - | <p>URL of your Sourcebot deployment, e.g., `https://example.com` or `http://localhost:3000`.</p> |
-| `CONFIG_PATH` | `-` | <p>The container relative path to the declerative configuration file. See [this doc](/docs/configuration/declarative-config) for more info.</p> | 
+| `CONFIG_PATH` | `-` | <p>The container relative path to the declarative configuration file. See [this doc](/docs/configuration/declarative-config) for more info.</p> | 
 | `DATA_CACHE_DIR` | `$DATA_DIR/.sourcebot` | <p>The root data directory in which all data written to disk by Sourcebot will be located.</p> |
 | `DATA_DIR` | `/data` | <p>The directory within the container to store all persistent data. Typically, this directory will be volume mapped such that data is persisted across container restarts (e.g., `docker run -v $(pwd):/data`)</p> |
 | `DATABASE_DATA_DIR` | `$DATA_CACHE_DIR/db` | <p>The data directory for the default Postgres database.</p> |
