@@ -9,6 +9,10 @@
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
 
+  "remoteEnv": {
+    "AUTH_URL": "https://${containerEnv:CODESPACE_NAME}-3000.app.github.dev"
+  },
+
   "forwardPorts": [3000],
   "portsAttributes": {
     "3000": { "label": "Web App", "onAutoForward": "notify" }
