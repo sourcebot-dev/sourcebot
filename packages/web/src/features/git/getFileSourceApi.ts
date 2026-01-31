@@ -25,7 +25,6 @@ export const fileSourceResponseSchema = z.object({
     repoCodeHostType: z.nativeEnum(CodeHostType),
     repoDisplayName: z.string().optional(),
     repoExternalWebUrl: z.string().optional(),
-    branch: z.string().optional(),
     webUrl: z.string(),
     externalWebUrl: z.string().optional(),
 });
@@ -83,7 +82,6 @@ export const getFileSource = async ({ path: filePath, repo: repoName, ref }: Fil
         repoCodeHostType: repo.external_codeHostType,
         repoDisplayName: repo.displayName ?? undefined,
         repoExternalWebUrl: repo.webUrl ?? undefined,
-        branch: ref,
         webUrl,
         externalWebUrl,
     } satisfies FileSourceResponse;

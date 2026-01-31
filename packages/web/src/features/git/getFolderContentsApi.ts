@@ -1,9 +1,8 @@
 import { sew } from '@/actions';
 import { FileTreeItem } from "./types";
-import { unexpectedError } from '@/lib/serviceError';
+import { notFound, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { getRepoPath } from '@sourcebot/shared';
-import { notFound } from 'next/navigation';
 import simpleGit from 'simple-git';
 import z from 'zod';
 import { compareFileTreeItems, isPathValid, logger, normalizePath } from './utils';

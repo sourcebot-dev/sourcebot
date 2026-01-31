@@ -213,7 +213,6 @@ export const fileSourceResponseSchema = z.object({
     repoCodeHostType: z.string(),
     repoDisplayName: z.string().optional(),
     repoExternalWebUrl: z.string().optional(),
-    branch: z.string().optional(),
     webUrl: z.string(),
     externalWebUrl: z.string().optional(),
 });
