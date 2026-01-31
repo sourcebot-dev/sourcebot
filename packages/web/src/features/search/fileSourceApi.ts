@@ -22,7 +22,9 @@ export const getFileSource = async ({ path: filePath, repo: repoName, ref }: Fil
         const { path: repoPath } = getRepoPath(repo);
         const git = simpleGit().cwd(repoPath);
 
-        const gitRef = ref ?? 'HEAD';
+        const gitRef = ref ??
+            repo.defaultBranch ??
+            'HEAD';
 
         let source: string;
         try {
