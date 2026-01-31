@@ -1,54 +1,52 @@
 {
-  "name": "Sourcebot Development",
-  "dockerComposeFile": "docker-compose.yml",
-  "service": "devcontainer",
-  "workspaceFolder": "/workspaces/sourcebot",
+    "name": "Sourcebot Development",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "devcontainer",
+    "workspaceFolder": "/workspaces/sourcebot",
 
-  "features": {
-    "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers/features/github-cli:1": {}
-  },
+    "features": {
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    },
 
-  "remoteEnv": {
-    "AUTH_URL": "https://${containerEnv:CODESPACE_NAME}-3000.app.github.dev"
-  },
+    "remoteEnv": {
+        "AUTH_URL": "https://${containerEnv:CODESPACE_NAME}-3000.app.github.dev"
+    },
 
-  "forwardPorts": [3000],
-  "portsAttributes": {
-    "3000": { "label": "Web App", "onAutoForward": "notify" }
-  },
+    "forwardPorts": [3000],
+    "portsAttributes": {
+        "3000": { "label": "Web App", "onAutoForward": "notify" }
+    },
 
-  "initializeCommand": "git submodule update --init --recursive",
-  "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
-  "postStartCommand": "bash .devcontainer/scripts/post-start.sh",
+    "initializeCommand": "git submodule update --init --recursive",
+    "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
+    "postStartCommand": "bash .devcontainer/scripts/post-start.sh",
 
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "dbaeumer.vscode-eslint",
-        "bradlc.vscode-tailwindcss",
-        "Prisma.prisma",
-        "esbenp.prettier-vscode",
-        "golang.go",
-        "ms-azuretools.vscode-docker",
-        "mikestead.dotenv",
-        "eamodio.gitlens"
-      ],
-      "settings": {
-        "editor.formatOnSave": true,
-        "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "[typescript]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
-        },
-        "[typescriptreact]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
-        },
-        "[prisma]": {
-          "editor.defaultFormatter": "Prisma.prisma"
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "bradlc.vscode-tailwindcss",
+                "Prisma.prisma",
+                "esbenp.prettier-vscode",
+                "golang.go",
+                "eamodio.gitlens"
+            ],
+            "settings": {
+                "editor.formatOnSave": false,
+                "editor.defaultFormatter": "esbenp.prettier-vscode",
+                "[typescript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                },
+                "[typescriptreact]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                },
+                "[prisma]": {
+                    "editor.defaultFormatter": "Prisma.prisma"
+                }
+            }
         }
-      }
-    }
-  },
+    },
 
-  "remoteUser": "node"
+    "remoteUser": "node"
 }
