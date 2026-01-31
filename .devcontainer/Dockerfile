@@ -58,3 +58,7 @@ WORKDIR /workspaces/sourcebot
 
 # Switch to non-root user
 USER node
+
+# Install Claude CLI (native binary)
+RUN curl -fsSL https://claude.ai/install.sh | bash
+ENV PATH="/home/node/.claude/bin:${PATH}"
