@@ -32,7 +32,7 @@ export const getFileSource = async ({ path: filePath, repo: repoName, ref }: Fil
             if (errorMessage.includes('does not exist') || errorMessage.includes('fatal: path')) {
                 return fileNotFound(filePath, repoName);
             }
-            if (errorMessage.includes('unknown revision') || errorMessage.includes('bad revision')) {
+            if (errorMessage.includes('unknown revision') || errorMessage.includes('bad revision') || errorMessage.includes('invalid object name')) {
                 return unexpectedError(`Invalid git reference: ${gitRef}`);
             }
             throw error;
