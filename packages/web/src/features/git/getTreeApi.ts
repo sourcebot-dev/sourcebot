@@ -74,6 +74,9 @@ export const getTree = async ({ repoName, revisionName, paths }: GetTreeRequest)
 
         const flatList = lines.map(line => {
             const commaIndex = line.indexOf(',');
+            if (commaIndex === -1) {
+                throw new Error(`Unexpected ls-tree output: ${line}`);
+            }
             const type = line.substring(0, commaIndex);
             const path = line.substring(commaIndex + 1);
             return {
