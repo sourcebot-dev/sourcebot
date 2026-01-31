@@ -5,6 +5,9 @@ import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils";
 import Image from "next/image";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
 import { getFileSource } from '@/features/git';
+import { OpenInIdeButton } from "./openInIdeButton";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface CodePreviewPanelProps {
     path: string;
@@ -56,22 +59,29 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePre
                     revisionName={revisionName}
                 />
 
-                {fileWebUrl && (
+                <div className="flex flex-row items-center gap-2">
+                    <OpenInIdeButton path={path} />
 
-                    <a
-                        href={fileWebUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-row items-center gap-2 px-2 py-0.5 rounded-md flex-shrink-0"
-                    >
-                        <Image
-                            src={codeHostInfo.icon}
-                            alt={codeHostInfo.codeHostName}
-                            className={cn('w-4 h-4 flex-shrink-0', codeHostInfo.iconClassName)}
-                        />
-                        <span className="text-sm font-medium">Open in {codeHostInfo.codeHostName}</span>
-                    </a>
-                )}
+                    {fileWebUrl && (
+                        <Button
+                            asChild
+                            variant="ghost"
+                            size="sm"
+                            className="px-2 py-0.5 h-8"
+                        >
+                            <Link
+                                href={fileWebUrl}
+                            >
+                                <Image
+                                    src={codeHostInfo.icon}
+                                    alt={codeHostInfo.codeHostName}
+                                    className={cn('w-4 h-4 flex-shrink-0', codeHostInfo.iconClassName)}
+                                />
+                                <span className="text-sm font-medium">Open in {codeHostInfo.codeHostName}</span>
+                            </Link>
+                        </Button>
+                    )}
+                </div>
             </div>
             <Separator />
             <PureCodePreviewPanel
