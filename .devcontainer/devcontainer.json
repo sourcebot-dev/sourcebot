@@ -10,7 +10,7 @@
     },
 
     "remoteEnv": {
-        "AUTH_URL": "https://${containerEnv:CODESPACE_NAME}-3000.app.github.dev"
+        "AUTH_URL": "https://${localEnv:CODESPACE_NAME}-3000.${localEnv:GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
     },
 
     "forwardPorts": [3000],
