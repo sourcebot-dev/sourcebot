@@ -1,6 +1,5 @@
 import { sourcebot_context, sourcebot_pr_payload } from "@/features/agents/review-agent/types";
-import { getFileSource } from "@/features/search/fileSourceApi";
-import { fileSourceResponseSchema } from "@/features/search/types";
+import { fileSourceResponseSchema, getFileSource } from '@/features/git';
 import { isServiceError } from "@/lib/utils";
 import { createLogger } from "@sourcebot/shared";
 

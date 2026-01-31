@@ -2,9 +2,8 @@ import { z } from "zod"
 import { search } from "@/features/search"
 import { InferToolInput, InferToolOutput, InferUITool, tool, ToolUIPart } from "ai";
 import { isServiceError } from "@/lib/utils";
-import { getFileSource } from "../search/fileSourceApi";
+import { FileSourceResponse, getFileSource } from '@/features/git';
 import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "../codeNav/api";
-import { FileSourceResponse } from "../search/types";
 import { addLineNumbers, buildSearchQuery } from "./utils";
 import { toolNames } from "./constants";
 import { getRepos } from "@/actions";

@@ -1,7 +1,6 @@
 'use server';
 
-import { getFiles } from "@/features/fileTree/api";
-import { getFilesRequestSchema } from "@/features/fileTree/types";
+import { getFiles, getFilesRequestSchema } from "@/features/git/getFilesApi";
 import { requestBodySchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";

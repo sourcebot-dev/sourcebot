@@ -1,6 +1,6 @@
 'use client';
 
-import { FileTreeNode } from "../types";
+import { FileTreeNode } from "@/features/git";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import React, { useCallback, useMemo, useRef } from "react";
 import { FileTreeItemComponent } from "./fileTreeItemComponent";

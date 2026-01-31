@@ -1,4 +1,4 @@
-import { listCommits } from "@/features/search/gitApi";
+import { listCommits } from "@/features/git";
 import { buildLinkHeader } from "@/lib/pagination";
 import { serviceErrorResponse, queryParamsSchemaValidationError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";

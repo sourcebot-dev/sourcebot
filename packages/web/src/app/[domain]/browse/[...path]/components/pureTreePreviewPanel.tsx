@@ -1,12 +1,12 @@
 'use client';
 
 import { useRef } from "react";
-import { FileTreeItemComponent } from "@/features/fileTree/components/fileTreeItemComponent";
+import { FileTreeItemComponent } from "@/app/[domain]/browse/components/fileTreeItemComponent";
 import { getBrowsePath } from "../../hooks/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBrowseParams } from "../../hooks/useBrowseParams";
 import { useDomain } from "@/hooks/useDomain";
-import { FileTreeItem } from "@/features/fileTree/types";
+import { FileTreeItem } from "@/features/git";
 
 interface PureTreePreviewPanelProps {
     items: FileTreeItem[];
