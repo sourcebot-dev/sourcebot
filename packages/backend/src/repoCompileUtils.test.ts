@@ -6,6 +6,7 @@ vi.mock('./git.js', () => ({
     isPathAValidGitRepoRoot: vi.fn(),
     getOriginUrl: vi.fn(),
     isUrlAValidGitRepo: vi.fn(),
+    getLocalDefaultBranch: vi.fn(),
 }));
 
 // Mock the glob module

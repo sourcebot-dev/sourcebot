@@ -498,6 +498,7 @@ export class RepoIndexManager {
                 });
 
                 const pushedAt = await getLatestCommitTimestamp({ path: repoPath });
+                const defaultBranch = await getLocalDefaultBranch({ path: repoPath });
 
                 const jobMetadata = repoIndexingJobMetadataSchema.parse(jobData.metadata);
 
@@ -511,6 +512,13 @@ export class RepoIndexManager {
                             ...(jobData.repo.metadata as RepoMetadata),
                             indexedRevisions: jobMetadata.indexedRevisions,
                         } satisfies RepoMetadata,
+                        // @note: always update the default branch. While this field can be set
+                        // during connection syncing, by setting it here we ensure that a) the
+                        // default branch is as up to date as possible (since repo indexing happens
+                        // more frequently than connection syncing) and b) for hosts where it is
+                        // impossible to determine the default branch from the host's API
+                        // (e.g., generic git url), we still set the default branch here.
+                        defaultBranch: defaultBranch,
                     }
                 });
 

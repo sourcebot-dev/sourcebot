@@ -8395,6 +8395,7 @@ __metadata:
     jsdom: "npm:^25.0.1"
     langfuse: "npm:^3.38.4"
     langfuse-vercel: "npm:^3.38.4"
+    linguist-languages: "npm:^9.3.1"
     lucide-react: "npm:^0.517.0"
     micromatch: "npm:^4.0.8"
     next: "npm:15.5.9"
@@ -15015,6 +15016,13 @@ __metadata:
   version: 1.2.4
   resolution: "lines-and-columns@npm:1.2.4"
   checksum: 10c0/3da6ee62d4cd9f03f5dc90b4df2540fb85b352081bee77fe4bbcd12c9000ead7f35e0a38b8d09a9bb99b13223446dd8689ff3c4959807620726d788701a83d2d
+  languageName: node
+  linkType: hard
+
+"linguist-languages@npm:^9.3.1":
+  version: 9.3.1
+  resolution: "linguist-languages@npm:9.3.1"
+  checksum: 10c0/41d5c16b9f7095310003598f4568254ac9736fc6f67daa1f62a11ae9aaf6acc847451675dbb8387b70ed8daaef75656dba8c8057ae93e07152304f3c27aa7440
   languageName: node
   linkType: hard
 

@@ -72,7 +72,7 @@ export const invalidZoektResponse = async (zoektResponse: Response): Promise<Ser
     };
 }
 
-export const fileNotFound = async (fileName: string, repository: string): Promise<ServiceError> => {
+export const fileNotFound = (fileName: string, repository: string): ServiceError => {
     return {
         statusCode: StatusCodes.NOT_FOUND,
         errorCode: ErrorCode.FILE_NOT_FOUND,
