@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed issue where files with a comma would not render correctly in file tree. [#831](https://github.com/sourcebot-dev/sourcebot/pull/831)
+
 ### Changed
 - Changed `/api/source` api to support fetching source code for any revision, not just revisions that are indexed by zoekt. [#829](https://github.com/sourcebot-dev/sourcebot/pull/829)
 
