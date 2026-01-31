@@ -1,6 +1,6 @@
 import { env } from "@sourcebot/shared";
 import { env as clientEnv } from "@sourcebot/shared/client";
-import { getFileSource } from "@/features/search/fileSourceApi";
+import { getFileSource } from '@/features/git';
 import { isServiceError } from "@/lib/utils";
 import { ProviderOptions } from "@ai-sdk/provider-utils";
 import { createLogger } from "@sourcebot/shared";

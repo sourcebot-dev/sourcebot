@@ -4,7 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils";
 import Image from "next/image";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
-import { getFileSource } from "@/features/search/fileSourceApi";
+import { getFileSource } from '@/features/git';
 
 interface CodePreviewPanelProps {
     path: string;

@@ -2,7 +2,7 @@
 import { Separator } from "@/components/ui/separator";
 import { getRepoInfoByName } from "@/actions";
 import { PathHeader } from "@/app/[domain]/components/pathHeader";
-import { getFolderContents } from "@/features/fileTree/api";
+import { getFolderContents } from "@/features/git/getFolderContentsApi";
 import { isServiceError } from "@/lib/utils";
 import { PureTreePreviewPanel } from "./pureTreePreviewPanel";
 

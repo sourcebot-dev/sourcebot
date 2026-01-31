@@ -9,10 +9,10 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { useBrowseNavigation } from "../hooks/useBrowseNavigation";
 import { useBrowseState } from "../hooks/useBrowseState";
 import { useBrowseParams } from "../hooks/useBrowseParams";
-import { FileTreeItemIcon } from "@/features/fileTree/components/fileTreeItemIcon";
+import { FileTreeItemIcon } from "@/app/[domain]/browse/components/fileTreeItemIcon";
 import { useLocalStorage } from "usehooks-ts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileTreeItem } from "@/features/fileTree/types";
+import { FileTreeItem } from "@/features/git";
 import { getFiles } from "@/app/api/(client)/client";
 
 const MAX_RESULTS = 100;

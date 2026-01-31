@@ -6,7 +6,7 @@ import scrollIntoView from 'scroll-into-view-if-needed';
 import { ChevronDownIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import { FileTreeItemIcon } from "./fileTreeItemIcon";
 import Link from "next/link";
-import { FileTreeItem } from "../types";
+import { FileTreeItem } from "@/features/git";
 
 export const FileTreeItemComponent = ({
     node,

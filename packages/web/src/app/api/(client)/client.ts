@@ -8,10 +8,6 @@ import {
     SearchResponse,
 } from "@/features/search";
 import {
-    FileSourceRequest,
-    FileSourceResponse,
-} from "@/features/search/types";
-import {
     FindRelatedSymbolsRequest,
     FindRelatedSymbolsResponse,
 } from "@/features/codeNav/types";
@@ -20,7 +16,9 @@ import {
     GetFilesResponse,
     GetTreeRequest,
     GetTreeResponse,
-} from "@/features/fileTree/types";
+    FileSourceRequest,
+    FileSourceResponse,
+} from "@/features/git";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
