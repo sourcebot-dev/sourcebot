@@ -23,7 +23,7 @@ echo "[3/4] Running database migrations..."
 yarn dev:prisma:migrate:dev
 
 echo ""
-echo "[4/4] Creating default config.json..."
+echo "[4/5] Creating default config.json..."
 cat > config.json << 'EOF'
 {
     "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
@@ -35,6 +35,21 @@ cat > config.json << 'EOF'
     }
 }
 EOF
+
+echo ""
+echo "[5/5] Configuring Claude Code to skip onboarding..."
+# Create or update ~/.claude.json to skip onboarding
+if [ -f ~/.claude.json ]; then
+    # Update existing file
+    node -e "const fs=require('fs');const cfg=JSON.parse(fs.readFileSync('$HOME/.claude.json','utf8'));cfg.hasCompletedOnboarding=true;fs.writeFileSync('$HOME/.claude.json',JSON.stringify(cfg,null,2));"
+else
+    # Create minimal config with onboarding skipped
+    cat > ~/.claude.json << 'EOF'
+{
+  "hasCompletedOnboarding": true
+}
+EOF
+fi
 
 echo ""
 echo "=========================================="
