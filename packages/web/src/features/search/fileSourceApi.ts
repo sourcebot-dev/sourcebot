@@ -1,85 +1,68 @@
 import 'server-only';
-import { fileNotFound, ServiceError, unexpectedError } from "../../lib/serviceError";
+import { fileNotFound, notFound, ServiceError, unexpectedError } from "../../lib/serviceError";
 import { FileSourceRequest, FileSourceResponse } from "./types";
-import { isServiceError } from "../../lib/utils";
-import { search } from "./searchApi";
 import { sew } from "@/actions";
 import { withOptionalAuthV2 } from "@/withAuthV2";
-import { QueryIR } from './ir';
-import escapeStringRegexp from "escape-string-regexp";
+import { getRepoPath } from '@sourcebot/shared';
+import { simpleGit } from 'simple-git';
+import { detectLanguageFromFilename } from "@/lib/languageDetection";
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { getCodeHostBrowseFileAtBranchUrl } from "@/lib/utils";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
-// @todo (bkellam) #574 : We should really be using `git show <hash>:<path>` to fetch file contents here.
-// This will allow us to support permalinks to files at a specific revision that may not be indexed
-// by zoekt. We should also refactor this out of the /search folder.
-
-export const getFileSource = async ({ path, repo, ref }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => sew(() =>
-    withOptionalAuthV2(async () => {
-        const query: QueryIR = {
-            and: {
-                children: [
-                    {
-                        repo: {
-                            regexp: `^${escapeStringRegexp(repo)}$`,
-                        },
-                    },
-                    {
-                        substring: {
-                            pattern: path,
-                            case_sensitive: true,
-                            file_name: true,
-                            content: false,
-                        }
-                    },
-                    ...(ref ? [{
-                        branch: {
-                            pattern: ref,
-                            exact: true,
-                        },
-                    }]: [])
-                ]
-            }
-        }
-
-        const searchResponse = await search({
-            queryType: 'ir',
-            query,
-            options: {
-                matches: 1,
-                whole: true,
-            }
+export const getFileSource = async ({ path: filePath, repo: repoName, ref }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => sew(() =>
+    withOptionalAuthV2(async ({ org, prisma }) => {
+        const repo = await prisma.repo.findFirst({
+            where: { name: repoName, orgId: org.id },
         });
-
-        if (isServiceError(searchResponse)) {
-            return searchResponse;
+        if (!repo) {
+            return notFound(`Repository "${repoName}" not found.`);
         }
 
-        const files = searchResponse.files;
+        const { path: repoPath } = getRepoPath(repo);
+        const git = simpleGit().cwd(repoPath);
 
-        if (!files || files.length === 0) {
-            return fileNotFound(path, repo);
+        const gitRef = ref ?? 'HEAD';
+
+        let source: string;
+        try {
+            source = await git.raw(['show', `${gitRef}:${filePath}`]);
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            if (errorMessage.includes('does not exist') || errorMessage.includes('fatal: path')) {
+                return fileNotFound(filePath, repoName);
+            }
+            if (errorMessage.includes('unknown revision') || errorMessage.includes('bad revision')) {
+                return unexpectedError(`Invalid git reference: ${gitRef}`);
+            }
+            throw error;
         }
 
-        const file = files[0];
-        const source = file.content ?? '';
-        const language = file.language;
-
-        const repoInfo = searchResponse.repositoryInfo.find((repo) => repo.id === file.repositoryId);
-        if (!repoInfo) {
-            // This should never happen.
-            return unexpectedError("Repository info not found");
-        }
+        const language = detectLanguageFromFilename(filePath);
+        const webUrl = getBrowsePath({
+            repoName: repo.name,
+            revisionName: ref,
+            path: filePath,
+            pathType: 'blob',
+            domain: SINGLE_TENANT_ORG_DOMAIN,
+        });
+        const externalWebUrl = getCodeHostBrowseFileAtBranchUrl({
+            webUrl: repo.webUrl,
+            codeHostType: repo.external_codeHostType,
+            branchName: gitRef,
+            filePath,
+        });
 
         return {
             source,
             language,
-            path,
-            repo,
-            repoCodeHostType: repoInfo.codeHostType,
-            repoDisplayName: repoInfo.displayName,
-            repoExternalWebUrl: repoInfo.webUrl,
+            path: filePath,
+            repo: repoName,
+            repoCodeHostType: repo.external_codeHostType,
+            repoDisplayName: repo.displayName ?? undefined,
+            repoExternalWebUrl: repo.webUrl ?? undefined,
             branch: ref,
-            webUrl: file.webUrl,
-            externalWebUrl: file.externalWebUrl,
+            webUrl,
+            externalWebUrl,
         } satisfies FileSourceResponse;
-
     }));
