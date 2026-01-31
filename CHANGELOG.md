@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Changed `/api/source` api to support fetching source code for any revision, not just revisions that are indexed by zoekt. [#829](https://github.com/sourcebot-dev/sourcebot/pull/829)
+
 ## [4.10.20] - 2026-01-28
 
 ### Fixed
