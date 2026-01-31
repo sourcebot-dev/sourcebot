@@ -10,16 +10,16 @@ cd /workspaces/sourcebot
 
 # 1. Initialize git submodules (in case initializeCommand didn't run)
 echo ""
-echo "[1/4] Initializing git submodules..."
+echo "[1/5] Initializing git submodules..."
 git submodule update --init --recursive
 
 # 2. Build Zoekt and install dependencies (uses Makefile)
 echo ""
-echo "[2/4] Building Zoekt and installing dependencies..."
+echo "[2/5] Building Zoekt and installing dependencies..."
 make
 
 echo ""
-echo "[3/4] Running database migrations..."
+echo "[3/5] Running database migrations..."
 yarn dev:prisma:migrate:dev
 
 echo ""
