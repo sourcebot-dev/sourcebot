@@ -28,6 +28,7 @@ import { SINGLE_TENANT_ORG_ID } from '@/lib/constants';
 import { ServiceErrorException } from '@/lib/serviceError';
 import { StatusCodes } from 'http-status-codes';
 import { ErrorCode } from '@/lib/errorCodes';
+import { languageMetadataMap } from '@/lib/languageMetadata';
 
 // Configure the parser to throw errors when encountering invalid syntax.
 const parser = _parser.configure({
@@ -48,6 +49,19 @@ const isVisibilityValue = (value: string): value is VisibilityValue => {
 
 const isForkValue = (value: string): value is ForkValue => {
     return value === 'yes' || value === 'no' || value === 'only';
+}
+
+// Build a map for case-insensitive language lookup
+const languageKeyLowerCaseMap: Map<string, string> = new Map(
+    Object.keys(languageMetadataMap).map(key => [key.toLowerCase(), key])
+);
+
+/**
+ * Finds the correct linguist language name from a case-insensitive input.
+ * Returns the correctly-cased language name if found, otherwise returns the original input.
+ */
+const findLinguistLanguage = (value: string): string => {
+    return languageKeyLowerCaseMap.get(value.toLowerCase()) ?? value;
 }
 
 /**
@@ -269,13 +283,14 @@ const transformTreeToIR = async ({
                 };
 
 
-            case LangExpr:
+            case LangExpr: {
                 return {
                     language: {
-                        language: value
+                        language: findLinguistLanguage(value)
                     },
                     query: "language"
                 };
+            }
 
             case SymExpr:
                 // Symbol search wraps a pattern

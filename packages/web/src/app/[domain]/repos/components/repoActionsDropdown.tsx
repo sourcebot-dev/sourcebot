@@ -25,7 +25,7 @@ export const RepoActionsDropdown = ({ repo }: RepoActionsDropdownProps) => {
         codeHostType: repo.codeHostType,
         name: repo.name,
         displayName: repo.displayName ?? undefined,
-        webUrl: repo.webUrl ?? undefined,
+        externalWebUrl: repo.webUrl ?? undefined,
     })
 
     const handleTriggerSync = async () => {

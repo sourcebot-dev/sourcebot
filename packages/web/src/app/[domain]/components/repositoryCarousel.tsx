@@ -12,7 +12,6 @@ import clsx from "clsx";
 import Autoscroll from "embla-carousel-auto-scroll";
 import Image from "next/image";
 import Link from "next/link";
-import { getBrowsePath } from "../browse/hooks/utils";
 import { useDomain } from "@/hooks/useDomain";
 
 interface RepositoryCarouselProps {
@@ -111,13 +110,12 @@ interface RepositoryBadgeProps {
 const RepositoryBadge = ({
     repo
 }: RepositoryBadgeProps) => {
-    const domain = useDomain();
     const { repoIcon, displayName } = (() => {
         const info = getCodeHostInfoForRepo({
             codeHostType: repo.codeHostType,
             name: repo.repoName,
             displayName: repo.repoDisplayName,
-            webUrl: repo.webUrl,
+            externalWebUrl: repo.externalWebUrl,
         });
 
         return {
@@ -132,13 +130,7 @@ const RepositoryBadge = ({
 
     return (
         <Link
-            href={getBrowsePath({
-                repoName: repo.repoName,
-                path: '/',
-                pathType: 'tree',
-                domain,
-            })}
-
+            href={repo.webUrl}
             className={clsx("flex flex-row items-center gap-2 border rounded-md p-2 text-clip")}
         >
             {repoIcon}

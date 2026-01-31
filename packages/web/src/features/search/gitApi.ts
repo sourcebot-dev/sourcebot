@@ -4,7 +4,6 @@ import { withOptionalAuthV2 } from '@/withAuthV2';
 import { getRepoPath } from '@sourcebot/shared';
 import { simpleGit } from 'simple-git';
 import { toGitDate, validateDateRange } from './dateUtils';
-import { SearchCommitsRequest } from './types';
 
 export interface Commit {
     hash: string;
@@ -16,33 +15,51 @@ export interface Commit {
     author_email: string;
 }
 
+export interface SearchCommitsResult {
+    commits: Commit[];
+    totalCount: number;
+}
+
+type ListCommitsRequest = {
+    repo: string;
+    query?: string;
+    since?: string;
+    until?: string;
+    author?: string;
+    ref?: string;
+    maxCount?: number;
+    skip?: number;
+}
+
 /**
- * Search commits in a repository using git log.
+ * List commits in a repository using git log.
  *
  * **Date Formats**: Supports both ISO 8601 dates and relative formats
  * (e.g., "30 days ago", "last week", "yesterday"). Git natively handles
  * these formats in the --since and --until flags.
  */
-export const searchCommits = async ({
-    repository,
+export const listCommits = async ({
+    repo: repoName,
     query,
     since,
     until,
     author,
+    ref = 'HEAD',
     maxCount = 50,
-}: SearchCommitsRequest): Promise<Commit[] | ServiceError> => sew(() =>
+    skip = 0,
+}: ListCommitsRequest): Promise<SearchCommitsResult | ServiceError> => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {
         const repo = await prisma.repo.findFirst({
             where: {
-                name: repository,
+                name: repoName,
                 orgId: org.id,
             },
         });
 
         if (!repo) {
-            return notFound(`Repository "${repository}" not found.`);
+            return notFound(`Repository "${repoName}" not found.`);
         }
-        
+
         const { path: repoPath } = getRepoPath(repo);
 
         // Validate date range if both since and until are provided
@@ -58,29 +75,36 @@ export const searchCommits = async ({
         const git = simpleGit().cwd(repoPath);
 
         try {
-            const logOptions: Record<string, string | number | null> = {
-                maxCount,
+            const sharedOptions: Record<string, string | number | null> = {
+                ...(gitSince ? { '--since': gitSince } : {}),
+                ...(gitUntil ? { '--until': gitUntil } : {}),
+                ...(author ? {
+                    '--author': author,
+                    '--regexp-ignore-case': null /// Case insensitive
+                } : {}),
+                ...(query ? {
+                    '--grep': query,
+                    '--regexp-ignore-case': null /// Case insensitive
+                } : {}),
             };
 
-            if (gitSince) {
-                logOptions['--since'] = gitSince;
+            // First, get the commits
+            const log = await git.log({
+                [ref]: null,
+                maxCount,
+                ...(skip > 0 ? { '--skip': skip } : {}),
+                ...sharedOptions,
+            });
+
+            // Then, use rev-list to get the total count of commits
+            const countArgs = ['rev-list', '--count', ref];
+            for (const [key, value] of Object.entries(sharedOptions)) {
+                countArgs.push(value !== null ? `${key}=${value}` : key);
             }
 
-            if (gitUntil) {
-                logOptions['--until'] = gitUntil;
-            }
+            const totalCount = parseInt((await git.raw(countArgs)).trim(), 10);
 
-            if (author) {
-                logOptions['--author'] = author;
-            }
-
-            if (query) {
-                logOptions['--grep'] = query;
-                logOptions['--regexp-ignore-case'] = null; // Case insensitive
-            }
-
-            const log = await git.log(logOptions);
-            return log.all as unknown as Commit[];
+            return { commits: log.all as unknown as Commit[], totalCount };
         } catch (error: unknown) {
             // Provide detailed error messages for common git errors
             const errorMessage = error instanceof Error ? error.message : String(error);
@@ -101,7 +125,7 @@ export const searchCommits = async ({
 
             if (errorMessage.includes('timeout')) {
                 return unexpectedError(
-                    `Git operation timed out after 30 seconds for repository ${repository}. ` +
+                    `Git operation timed out after 30 seconds for repository ${repoName}. ` +
                     `The repository may be too large or the git operation is taking too long.`
                 );
             }
@@ -109,11 +133,11 @@ export const searchCommits = async ({
             // Generic error fallback
             if (error instanceof Error) {
                 throw new Error(
-                    `Failed to search commits in repository ${repository}: ${error.message}`
+                    `Failed to search commits in repository ${repoName}: ${error.message}`
                 );
             } else {
                 throw new Error(
-                    `Failed to search commits in repository ${repository}: ${errorMessage}`
+                    `Failed to search commits in repository ${repoName}: ${errorMessage}`
                 );
             }
         }

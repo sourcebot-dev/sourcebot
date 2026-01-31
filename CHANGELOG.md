@@ -7,16 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Changed `/api/source` api to support fetching source code for any revision, not just revisions that are indexed by zoekt. [#829](https://github.com/sourcebot-dev/sourcebot/pull/829)
+
+## [4.10.20] - 2026-01-28
+
+### Fixed
+- Fixed issue where searching for refs/heads/<default_branch> would return no matches. [#809](https://github.com/sourcebot-dev/sourcebot/pull/809)
+- Fixed issue where source files would fail to load in the search preview panel and ask client. [#812](https://github.com/sourcebot-dev/sourcebot/issues/812)
+
+## [4.10.19] - 2026-01-28
+
+### Fixed
+- Fixed loadConfig import in resolveEnvOverrides [#802](https://github.com/sourcebot-dev/sourcebot/pull/802)
+
+## [4.10.18] - 2026-01-28
+
 ### Added
 - Added ask sidebar to homepage. [#721](https://github.com/sourcebot-dev/sourcebot/pull/721)
 - Added endpoint for searching commit history for a git repository. [#625](https://github.com/sourcebot-dev/sourcebot/pull/625)
 - Added `pushedAt` field to the Repo table to track when a repository last was committed to across all branches. [#790](https://github.com/sourcebot-dev/sourcebot/pull/790)
+- Added offset pagination to the `/api/repos` endpoint. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+- Added offset pagination to the `/api/commits` endpoint. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
 
 ### Changed
 - Added commit graph generation to improve performance for commit traversal operations. [#791](https://github.com/sourcebot-dev/sourcebot/pull/791)
+- Made the code search `lang:` filter case insensitive. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+- Changed the `/api/source` endpoint from a POST request to a GET request. Repo, path, and ref are specified as query params. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+- Changed the `/api/commits` endpoint from a POST request to a GET request. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+- Renamed `webUrl` to `externalWebUrl` for various apis. Moving forward, `webUrl` will be used for URLs that point to Sourcebot, and `externalWebUrl` will be used for URLs that point to external code hosts. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
+- Renamed various fields on the `/api/source` endpoint response body. [#795](https://github.com/sourcebot-dev/sourcebot/pull/795)
 
 ### Fixed
 - Fixed issue where a file would fail to load when opening it from the /search view and it matched multiple branches. [#797](https://github.com/sourcebot-dev/sourcebot/pull/797)
+- [EE] Fixed GitLab OAuth token refresh failures by including the required `redirect_uri` parameter. [#798](https://github.com/sourcebot-dev/sourcebot/pull/798)
 
 ## [4.10.17] - 2026-01-23
 

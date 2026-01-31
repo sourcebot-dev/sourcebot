@@ -76,9 +76,9 @@ const ReferencedSourcesListViewComponent = ({
         queries: sources.map((file) => ({
             queryKey: ['fileSource', file.path, file.repo, file.revision],
             queryFn: () => unwrapServiceError(getFileSource({
-                fileName: file.path,
-                repository: file.repo,
-                branch: file.revision,
+                path: file.path,
+                repo: file.repo,
+                ref: file.revision,
             })),
             staleTime: Infinity,
         })),
@@ -235,9 +235,9 @@ const ReferencedSourcesListViewComponent = ({
                             language={fileData.language}
                             revision={fileSource.revision}
                             repoName={fileSource.repo}
-                            repoCodeHostType={fileData.repositoryCodeHostType}
-                            repoDisplayName={fileData.repositoryDisplayName}
-                            repoWebUrl={fileData.repositoryWebUrl}
+                            repoCodeHostType={fileData.repoCodeHostType}
+                            repoDisplayName={fileData.repoDisplayName}
+                            repoWebUrl={fileData.repoExternalWebUrl}
                             fileName={fileData.path}
                             references={referencesInFile}
                             ref={ref => {

@@ -37,11 +37,19 @@ export const missingQueryParam = (name: string): ServiceError => {
     };
 }
 
-export const schemaValidationError = (error: ZodError): ServiceError => {
+export const requestBodySchemaValidationError = (error: ZodError): ServiceError => {
     return {
         statusCode: StatusCodes.BAD_REQUEST,
         errorCode: ErrorCode.INVALID_REQUEST_BODY,
         message: `Schema validation failed with: ${error.message}`,
+    };
+}
+
+export const queryParamsSchemaValidationError = (error: ZodError): ServiceError => {
+    return {
+        statusCode: StatusCodes.BAD_REQUEST,
+        errorCode: ErrorCode.INVALID_QUERY_PARAMS,
+        message: `Query params validation failed with: ${error.message}`,
     };
 }
 
@@ -64,7 +72,7 @@ export const invalidZoektResponse = async (zoektResponse: Response): Promise<Ser
     };
 }
 
-export const fileNotFound = async (fileName: string, repository: string): Promise<ServiceError> => {
+export const fileNotFound = (fileName: string, repository: string): ServiceError => {
     return {
         statusCode: StatusCodes.NOT_FOUND,
         errorCode: ErrorCode.FILE_NOT_FOUND,

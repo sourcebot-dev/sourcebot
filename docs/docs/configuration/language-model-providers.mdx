@@ -111,7 +111,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
             "model": "YOUR_MODEL_HERE",
             "displayName": "OPTIONAL_DISPLAY_NAME",
             "resourceName": "YOUR_RESOURCE_NAME", // defaults to the AZURE_RESOURCE_NAME env var if not set
-            "apiVersion": "OPTIONAL_API_VERSION", // defailts to 'preview' if not set
+            "apiVersion": "OPTIONAL_API_VERSION", // defaults to 'preview' if not set
             "token": {
                 "env": "AZURE_API_KEY"
             },
@@ -166,7 +166,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 ### Google Vertex
 
 <Note>If you're using an Anthropic model on Google Vertex, you must define a [Google Vertex Anthropic](#google-vertex-anthropic) provider instead</Note>
-<Note>The `credentials` paramater here expects a **path** to a [credentials](https://console.cloud.google.com/apis/credentials) file. This file **must be in a volume mounted by Sourcebot** for it to be readable.</Note>
+<Note>The `credentials` parameter here expects a **path** to a [credentials](https://console.cloud.google.com/apis/credentials) file. This file **must be in a volume mounted by Sourcebot** for it to be readable.</Note>
 
 [Vercel AI SDK Google Vertex AI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex)
 
@@ -191,7 +191,7 @@ For a detailed description of all the providers, please refer to the [schema](ht
 
 ### Google Vertex Anthropic
 
-<Note>The `credentials` paramater here expects a **path** to a [credentials](https://console.cloud.google.com/apis/credentials) file. This file **must be in a volume mounted by Sourcebot** for it to be readable.</Note>
+<Note>The `credentials` parameter here expects a **path** to a [credentials](https://console.cloud.google.com/apis/credentials) file. This file **must be in a volume mounted by Sourcebot** for it to be readable.</Note>
 
 
 [Vercel AI SDK Google Vertex Anthropic Docs](https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex#google-vertex-anthropic-provider-usage)

@@ -229,7 +229,7 @@ const ReferencedFileSourceListItem = ({
                         name: repoName,
                         codeHostType: repoCodeHostType,
                         displayName: repoDisplayName,
-                        webUrl: repoWebUrl,
+                        externalWebUrl: repoWebUrl,
                     }}
                     revisionName={revision === 'HEAD' ? undefined : revision}
                     repoNameClassName="font-normal text-muted-foreground text-sm"

@@ -165,7 +165,7 @@ type CodeHostInfo = {
     type: CodeHostType;
     displayName: string;
     codeHostName: string;
-    repoLink?: string;
+    externalWebUrl?: string;
     icon: string;
     iconClassName?: string;
 }
@@ -174,9 +174,9 @@ export const getCodeHostInfoForRepo = (repo: {
     codeHostType: CodeHostType,
     name: string,
     displayName?: string,
-    webUrl?: string,
+    externalWebUrl?: string,
 }): CodeHostInfo => {
-    const { codeHostType, name, displayName, webUrl } = repo;
+    const { codeHostType, name, displayName, externalWebUrl } = repo;
 
     switch (codeHostType) {
         case 'github': {
@@ -185,7 +185,7 @@ export const getCodeHostInfoForRepo = (repo: {
                 type: "github",
                 displayName: displayName ?? name,
                 codeHostName: "GitHub",
-                repoLink: webUrl,
+                externalWebUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -196,7 +196,7 @@ export const getCodeHostInfoForRepo = (repo: {
                 type: "gitlab",
                 displayName: displayName ?? name,
                 codeHostName: "GitLab",
-                repoLink: webUrl,
+                externalWebUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -207,7 +207,7 @@ export const getCodeHostInfoForRepo = (repo: {
                 type: "azuredevops",
                 displayName: displayName ?? name,
                 codeHostName: "Azure DevOps",
-                repoLink: webUrl,
+                externalWebUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -218,7 +218,7 @@ export const getCodeHostInfoForRepo = (repo: {
                 type: "gitea",
                 displayName: displayName ?? name,
                 codeHostName: "Gitea",
-                repoLink: webUrl,
+                externalWebUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -229,7 +229,7 @@ export const getCodeHostInfoForRepo = (repo: {
                 type: "gerrit",
                 displayName: displayName ?? name,
                 codeHostName: "Gerrit",
-                repoLink: webUrl,
+                externalWebUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -240,7 +240,7 @@ export const getCodeHostInfoForRepo = (repo: {
                 type: "bitbucketServer",
                 displayName: displayName ?? name,
                 codeHostName: "Bitbucket",
-                repoLink: webUrl,
+                externalWebUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -251,7 +251,7 @@ export const getCodeHostInfoForRepo = (repo: {
                 type: "bitbucketCloud",
                 displayName: displayName ?? name,
                 codeHostName: "Bitbucket",
-                repoLink: webUrl,
+                externalWebUrl,
                 icon: src,
                 iconClassName: className,
             }
@@ -262,7 +262,7 @@ export const getCodeHostInfoForRepo = (repo: {
                 type: "genericGitHost",
                 displayName: displayName ?? name,
                 codeHostName: "Git Host",
-                repoLink: webUrl,
+                externalWebUrl,
                 icon: src,
                 iconClassName: className,
             }

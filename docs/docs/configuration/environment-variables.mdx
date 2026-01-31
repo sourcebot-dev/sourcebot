@@ -14,7 +14,7 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `AUTH_EMAIL_CODE_LOGIN_ENABLED` | `false` | <p>Enables/disables authentication with a login code that's sent to a users email. `SMTP_CONNECTION_URL` and `EMAIL_FROM_ADDRESS` must also be set. Checkout the [auth docs](/docs/configuration/auth/overview) for more info </p> |
 | `AUTH_SECRET` | Automatically generated at startup if no value is provided. Generated using `openssl rand -base64 33` | <p>Used to validate login session cookies</p> |
 | `AUTH_URL` | - | <p>URL of your Sourcebot deployment, e.g., `https://example.com` or `http://localhost:3000`.</p> |
-| `CONFIG_PATH` | `-` | <p>The container relative path to the declerative configuration file. See [this doc](/docs/configuration/declarative-config) for more info.</p> | 
+| `CONFIG_PATH` | `-` | <p>The container relative path to the declarative configuration file. See [this doc](/docs/configuration/declarative-config) for more info.</p> | 
 | `DATA_CACHE_DIR` | `$DATA_DIR/.sourcebot` | <p>The root data directory in which all data written to disk by Sourcebot will be located.</p> |
 | `DATA_DIR` | `/data` | <p>The directory within the container to store all persistent data. Typically, this directory will be volume mapped such that data is persisted across container restarts (e.g., `docker run -v $(pwd):/data`)</p> |
 | `DATABASE_DATA_DIR` | `$DATA_CACHE_DIR/db` | <p>The data directory for the default Postgres database.</p> |
@@ -33,7 +33,7 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `SOURCEBOT_LOG_LEVEL` | `info` | <p>The Sourcebot logging level. Valid values are `debug`, `info`, `warn`, `error`, in order of severity.</p> |
 | `SOURCEBOT_STRUCTURED_LOGGING_ENABLED` | `false` | <p>Enables/disable structured JSON logging. See [this doc](/docs/configuration/structured-logging) for more info.</p> |
 | `SOURCEBOT_STRUCTURED_LOGGING_FILE` | - | <p>Optional file to log to if structured logging is enabled</p> | 
-| `SOURCEBOT_TELEMETRY_DISABLED` | `false` | <p>Enables/disables telemetry collection in Sourcebot. See [this doc](/docs/overview.mdx#telemetry) for more info.</p> |
+| `SOURCEBOT_TELEMETRY_DISABLED` | `false` | <p>Enables/disables telemetry collection in Sourcebot. See [this doc](/docs/overview#telemetry) for more info.</p> |
 | `DEFAULT_MAX_MATCH_COUNT` | `10000` | <p>The default maximum number of search results to return when using search in the web app.</p> |
 | `ALWAYS_INDEX_FILE_PATTERNS` | - | <p>A comma separated list of glob patterns matching file paths that should always be indexed, regardless of size or number of trigrams.</p> |
 | `NODE_USE_ENV_PROXY` | `0` | <p>Enables Node.js to automatically use `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables for network requests. Set to `1` to enable or `0` to disable. See [this doc](https://nodejs.org/en/learn/http/enterprise-network-configuration) for more info.</p> |

@@ -28,6 +28,7 @@ export type OctokitRepository = {
     stargazers_count?: number,
     watchers_count?: number,
     subscribers_count?: number,
+    default_branch?: string,
     forks_count?: number,
     archived?: boolean,
     topics?: string[],

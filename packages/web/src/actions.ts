@@ -31,6 +31,8 @@ import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLAS
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { ApiKeyPayload, TenancyMode } from "./lib/types";
 import { withAuthV2, withOptionalAuthV2 } from "./withAuthV2";
+import { getBaseUrl } from "./lib/utils.server";
+import { getBrowsePath } from "./app/[domain]/browse/hooks/utils";
 
 const logger = createLogger('web-actions');
 const auditService = getAuditService();
@@ -475,16 +477,25 @@ export const getRepos = async ({
             },
             take,
         });
+        
+        const headersList = await headers();
+        const baseUrl = getBaseUrl(headersList);
 
         return repos.map((repo) => repositoryQuerySchema.parse({
             codeHostType: repo.external_codeHostType,
             repoId: repo.id,
             repoName: repo.name,
             repoDisplayName: repo.displayName ?? undefined,
-            repoCloneUrl: repo.cloneUrl,
-            webUrl: repo.webUrl ?? undefined,
+            webUrl: `${baseUrl}${getBrowsePath({
+                repoName: repo.name,
+                path: '',
+                pathType: 'tree',
+                domain: org.domain,
+            })}`,
+            externalWebUrl: repo.webUrl ?? undefined,
             imageUrl: repo.imageUrl ?? undefined,
             indexedAt: repo.indexedAt ?? undefined,
+            pushedAt: repo.pushedAt ?? undefined,
         }))
     }));
 
@@ -631,7 +642,7 @@ export const getRepoInfoByName = async (repoName: string) => sew(() =>
             name: repo.name,
             displayName: repo.displayName ?? undefined,
             codeHostType: repo.external_codeHostType,
-            webUrl: repo.webUrl ?? undefined,
+            externalWebUrl: repo.webUrl ?? undefined,
             imageUrl: repo.imageUrl ?? undefined,
             indexedAt: repo.indexedAt ?? undefined,
         }

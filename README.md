@@ -81,7 +81,6 @@ curl -o docker-compose.yml https://raw.githubusercontent.com/sourcebot-dev/sourc
 
 2. In the same directory as the `docker-compose.yml` file, create a [configuration file](https://docs.sourcebot.dev/docs/configuration/config-file). The configuration file is a JSON file that configures Sourcebot's behaviour, including what repositories to index, language model providers, auth providers, and more.
 ```sh
-touch config.json
 echo '{
     "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
     // Comments are supported.

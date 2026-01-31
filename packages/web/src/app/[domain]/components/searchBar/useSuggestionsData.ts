@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Suggestion, SuggestionMode } from "./searchSuggestionsBox";
-import { getRepos, search } from "@/app/api/(client)/client";
+import { listRepos, search } from "@/app/api/(client)/client";
 import { getSearchContexts } from "@/actions";
 import { useMemo } from "react";
 import { SearchSymbol } from "@/features/search";
@@ -37,8 +37,14 @@ export const useSuggestionsData = ({
 }: Props) => {
     const domain = useDomain();
     const { data: repoSuggestions, isLoading: _isLoadingRepos } = useQuery({
-        queryKey: ["repoSuggestions"],
-        queryFn: () => unwrapServiceError(getRepos()),
+        queryKey: ["repoSuggestions", suggestionQuery],
+        queryFn: () => unwrapServiceError(listRepos({
+            page: 1,
+            direction: "asc",
+            sort: "name",
+            perPage: 15,
+            query: suggestionQuery,
+        })),
         select: (data): Suggestion[] => {
             return data
                 .map(r => ({

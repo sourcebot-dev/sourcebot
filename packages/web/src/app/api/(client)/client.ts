@@ -1,7 +1,7 @@
 'use client';
 
 import { ServiceError } from "@/lib/serviceError";
-import { GetVersionResponse, GetReposResponse } from "@/lib/types";
+import { GetVersionResponse, ListReposQueryParams, ListReposResponse } from "@/lib/types";
 import { isServiceError } from "@/lib/utils";
 import {
     SearchRequest,
@@ -38,27 +38,33 @@ export const search = async (body: SearchRequest): Promise<SearchResponse | Serv
     return result as SearchResponse | ServiceError;
 }
 
-export const getFileSource = async (body: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
-    const result = await fetch("/api/source", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
+export const getFileSource = async (queryParams: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
+    const url = new URL("/api/source", window.location.origin);
+    for (const [key, value] of Object.entries(queryParams)) {
+        url.searchParams.set(key, value.toString());
+    }
+
+    const result = await fetch(url, {
+        method: "GET",
     }).then(response => response.json());
 
     return result as FileSourceResponse | ServiceError;
 }
 
-export const getRepos = async (): Promise<GetReposResponse> => {
-    const result = await fetch("/api/repos", {
+export const listRepos = async (queryParams: ListReposQueryParams): Promise<ListReposResponse | ServiceError> => {
+    const url = new URL("/api/repos", window.location.origin);
+    for (const [key, value] of Object.entries(queryParams)) {
+        url.searchParams.set(key, value.toString());
+    }
+
+    const result = await fetch(url, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
         },
     }).then(response => response.json());
 
-    return result as GetReposResponse | ServiceError;
+    return result as ListReposResponse | ServiceError;
 }
 
 export const getVersion = async (): Promise<GetVersionResponse> => {

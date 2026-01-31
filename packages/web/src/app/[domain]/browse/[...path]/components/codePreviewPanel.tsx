@@ -15,9 +15,9 @@ interface CodePreviewPanelProps {
 export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePreviewPanelProps) => {
     const [fileSourceResponse, repoInfoResponse] = await Promise.all([
         getFileSource({
-            fileName: path,
-            repository: repoName,
-            branch: revisionName,
+            path,
+            repo: repoName,
+            ref: revisionName,
         }),
         getRepoInfoByName(repoName),
     ]);
@@ -34,13 +34,13 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePre
         codeHostType: repoInfoResponse.codeHostType,
         name: repoInfoResponse.name,
         displayName: repoInfoResponse.displayName,
-        webUrl: repoInfoResponse.webUrl,
+        externalWebUrl: repoInfoResponse.externalWebUrl,
     });
 
     // @todo: this is a hack to support linking to files for ADO. ADO doesn't support web urls with HEAD so we replace it with main. THis
     // will break if the default branch is not main.
-    const fileWebUrl = repoInfoResponse.codeHostType === "azuredevops" && fileSourceResponse.webUrl ?
-        fileSourceResponse.webUrl.replace("version=GBHEAD", "version=GBmain") : fileSourceResponse.webUrl;
+    const fileWebUrl = repoInfoResponse.codeHostType === "azuredevops" && fileSourceResponse.externalWebUrl ?
+        fileSourceResponse.externalWebUrl.replace("version=GBHEAD", "version=GBmain") : fileSourceResponse.externalWebUrl;
 
     return (
         <>
@@ -51,7 +51,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePre
                         name: repoName,
                         codeHostType: repoInfoResponse.codeHostType,
                         displayName: repoInfoResponse.displayName,
-                        webUrl: repoInfoResponse.webUrl,
+                        externalWebUrl: repoInfoResponse.externalWebUrl,
                     }}
                     revisionName={revisionName}
                 />
