@@ -6,8 +6,9 @@ const extensionToLanguage = new Map<string, string>();
 for (const [languageName, languageData] of Object.entries(linguistLanguages)) {
     if ('extensions' in languageData && languageData.extensions) {
         for (const ext of languageData.extensions) {
-            if (!extensionToLanguage.has(ext)) {
-                extensionToLanguage.set(ext, languageName);
+            const normalizedExt = ext.toLowerCase();
+            if (!extensionToLanguage.has(normalizedExt)) {
+                extensionToLanguage.set(normalizedExt, languageName);
             }
         }
     }
