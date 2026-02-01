@@ -1,5 +1,6 @@
 import { getFileSource } from '@/features/git';
 import { isServiceError } from "@/lib/utils";
+import { captureEvent } from "@/lib/posthog";
 import { ProviderOptions } from "@ai-sdk/provider-utils";
 import { createLogger, env } from "@sourcebot/shared";
 import { env as clientEnv } from "@sourcebot/shared/client";
@@ -82,6 +83,11 @@ export const createAgentStream = async ({
         toolChoice: "auto",
         onStepFinish: ({ toolResults }) => {
             toolResults.forEach(({ toolName, output, dynamic }) => {
+                captureEvent('wa_chat_tool_used', {
+                    toolName,
+                    success: !isServiceError(output),
+                });
+
                 if (dynamic || isServiceError(output)) {
                     return;
                 }
