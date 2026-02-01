@@ -120,6 +120,7 @@ export const askCodebase = async (request: AskCodebaseRequest): Promise<AskCodeb
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-Sourcebot-Client-Source': 'mcp',
             ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
         body: JSON.stringify(request),
