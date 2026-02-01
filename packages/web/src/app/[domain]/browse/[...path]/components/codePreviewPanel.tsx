@@ -5,6 +5,8 @@ import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils";
 import Image from "next/image";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
 import { getFileSource } from '@/features/git';
+import { FileNotFound } from "./404NotFound";
+import { StatusCodes } from "http-status-codes";
 
 interface CodePreviewPanelProps {
     path: string;
@@ -23,7 +25,16 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePre
     ]);
 
     if (isServiceError(fileSourceResponse)) {
-        return <div>Error loading file source: {fileSourceResponse.message}</div>
+        if (fileSourceResponse.statusCode === StatusCodes.NOT_FOUND) 
+            return <FileNotFound 
+            repoInfoResponse={repoInfoResponse} 
+            fileSourceResponse={fileSourceResponse}
+            revisionName={revisionName}
+            path={path}
+            repoName={repoName}
+            />
+        else
+            return <div>Error loading file source: {fileSourceResponse.message}</div>
     }
 
     if (isServiceError(repoInfoResponse)) {
