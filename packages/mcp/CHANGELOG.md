@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `list_language_models` tool to discover available language models configured on the Sourcebot instance. [#814](https://github.com/sourcebot-dev/sourcebot/pull/814)
+
 ## [1.0.14] - 2026-01-27
 
 ### Changed

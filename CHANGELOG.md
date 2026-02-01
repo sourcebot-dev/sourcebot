@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `/api/models` endpoint to list configured language models. [#814](https://github.com/sourcebot-dev/sourcebot/pull/814)
+
 ### Fixed
 - Fixed issue where files with a comma would not render correctly in file tree. [#831](https://github.com/sourcebot-dev/sourcebot/pull/831)
 
