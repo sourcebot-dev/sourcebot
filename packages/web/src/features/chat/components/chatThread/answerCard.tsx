@@ -18,12 +18,14 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { LangfuseWeb } from "langfuse";
 import { env } from "@sourcebot/shared/client";
 import isEqual from "fast-deep-equal/react";
+import { FileSource } from "../../types";
 
 interface AnswerCardProps {
     answerText: string;
     messageId: string;
     chatId: string;
     traceId?: string;
+    sources?: FileSource[];
 }
 
 const langfuseWeb = (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined && env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY) ? new LangfuseWeb({
@@ -35,7 +37,8 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
     answerText,
     messageId,
     chatId,
-    traceId,
+    traceId,    
+    sources,
 }, forwardedRef) => {
     const markdownRendererRef = useRef<HTMLDivElement>(null);
     const { tocItems, activeId } = useExtractTOCItems({ target: markdownRendererRef.current });
@@ -51,13 +54,13 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
     );
 
     const onCopyAnswer = useCallback(() => {
-        const markdownText = convertLLMOutputToPortableMarkdown(answerText);
+        const markdownText = convertLLMOutputToPortableMarkdown(answerText, { sources });
         navigator.clipboard.writeText(markdownText);
         toast({
             description: "✅ Copied to clipboard",
         });
         return true;
-    }, [answerText, toast]);
+    }, [answerText, sources, toast]);
 
     const onFeedback = useCallback(async (feedbackType: 'like' | 'dislike') => {
         setIsSubmittingFeedback(true);
