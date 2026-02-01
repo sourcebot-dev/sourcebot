@@ -274,7 +274,13 @@ export const listCommitsResponseSchema = z.array(z.object({
 }));
 
 export const askCodebaseRequestSchema = z.object({
-    question: z.string().describe("The question to ask about the codebase"),
+    query: z
+        .string()
+        .describe("The query to ask about the codebase."),
+    repos: z
+        .array(z.string())
+        .optional()
+        .describe("The repositories that are accessible to the agent during the chat. If not provided, all repositories are accessible."),
 });
 
 export const sourceSchema = z.object({
@@ -290,12 +296,4 @@ export const askCodebaseResponseSchema = z.object({
     answer: z.string().describe("The agent's final answer in markdown format"),
     chatId: z.string().describe("ID of the persisted chat session"),
     chatUrl: z.string().describe("URL to view the chat in the web UI"),
-    sources: z.array(sourceSchema).describe("Files the agent referenced during research"),
-    metadata: z.object({
-        totalTokens: z.number(),
-        inputTokens: z.number(),
-        outputTokens: z.number(),
-        totalResponseTimeMs: z.number(),
-        modelName: z.string(),
-    }).describe("Metadata about the response"),
 });

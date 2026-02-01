@@ -184,7 +184,7 @@ export const createMessageStream = async ({
 
             const startTime = new Date();
 
-            const expandedReposArrays = await Promise.all(selectedSearchScopes.map(async (scope) => {
+            const expandedRepos = (await Promise.all(selectedSearchScopes.map(async (scope) => {
                 if (scope.type === 'repo') {
                     return [scope.value];
                 }
@@ -206,15 +206,14 @@ export const createMessageStream = async ({
                 }
 
                 return [];
-            }));
-            const expandedRepos = expandedReposArrays.flat();
+            }))).flat()
 
             const researchStream = await createAgentStream({
                 model,
                 providerOptions: modelProviderOptions,
                 inputMessages: messageHistory,
                 inputSources: sources,
-                searchScopeRepoNames: expandedRepos,
+                selectedRepos: expandedRepos,
                 onWriteSource: (source) => {
                     writer.write({
                         type: 'data-source',

@@ -8,8 +8,8 @@ import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
 import { askCodebase, getFileSource, listCommits, listRepos, search } from './client.js';
 import { env, numberSchema } from './env.js';
-import { fileSourceRequestSchema, listCommitsQueryParamsSchema, listReposQueryParamsSchema } from './schemas.js';
-import { FileSourceRequest, ListCommitsQueryParamsSchema, ListReposQueryParams, TextContent } from './types.js';
+import { askCodebaseRequestSchema, fileSourceRequestSchema, listCommitsQueryParamsSchema, listReposQueryParamsSchema } from './schemas.js';
+import { AskCodebaseRequest, FileSourceRequest, ListCommitsQueryParamsSchema, ListReposQueryParams, TextContent } from './types.js';
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -252,15 +252,9 @@ server.tool(
 
     This is a blocking operation that may take 30-60+ seconds for complex questions as the agent researches the codebase.
     `,
-    {
-        question: z.string().describe("The question to ask about the codebase."),
-    },
-    async ({
-        question,
-    }) => {
-        const response = await askCodebase({
-            question,
-        });
+    askCodebaseRequestSchema.shape,
+    async (request: AskCodebaseRequest) => {
+        const response = await askCodebase(request);
 
         // Format the response with the answer and a link to the chat
         const formattedResponse = dedent`
@@ -268,10 +262,6 @@ server.tool(
 
         ---
         **View full research session:** ${response.chatUrl}
-
-        **Sources referenced:** ${response.sources.length} files
-        **Response time:** ${(response.metadata.totalResponseTimeMs / 1000).toFixed(1)}s
-        **Model:** ${response.metadata.modelName}
         `;
 
         return {

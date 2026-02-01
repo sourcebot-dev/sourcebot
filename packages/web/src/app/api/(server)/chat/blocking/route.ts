@@ -1,9 +1,9 @@
 import { sew } from "@/actions";
 import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, updateChatMessages, generateAndUpdateChatNameFromMessage } from "@/features/chat/actions";
-import { SBChatMessage, Source } from "@/features/chat/types";
+import { SBChatMessage, SearchScope } from "@/features/chat/types";
 import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";
-import { requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
+import { requestBodySchemaValidationError, ServiceError, ServiceErrorException, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { getBaseUrl } from "@/lib/utils.server";
 import { withOptionalAuthV2 } from "@/withAuthV2";
@@ -24,8 +24,13 @@ const logger = createLogger('chat-blocking-api');
  * This is a simpler interface designed for MCP and other programmatic integrations.
  */
 const blockingChatRequestSchema = z.object({
-    // The question to ask about the codebase
-    question: z.string().min(1, "Question is required"),
+    query: z
+        .string()
+        .describe("The query to ask about the codebase."),
+    repos: z
+        .array(z.string())
+        .optional()
+        .describe("The repositories that are accessible to the agent during the chat. If not provided, all repositories are accessible."),
 });
 
 /**
@@ -54,7 +59,7 @@ export async function POST(request: Request) {
         return serviceErrorResponse(requestBodySchemaValidationError(parsed.error));
     }
 
-    const { question } = parsed.data;
+    const { query, repos = [] } = parsed.data;
 
     const response: BlockingChatResponse | ServiceError = await sew(() =>
         withOptionalAuthV2(async ({ org, user, prisma }) => {
@@ -88,7 +93,7 @@ export async function POST(request: Request) {
             // Run the agent to completion
             logger.debug(`Starting blocking agent for chat ${chat.id}`, {
                 chatId: chat.id,
-                question: question.substring(0, 100),
+                query: query.substring(0, 100),
                 model: modelName,
             });
 
@@ -96,15 +101,39 @@ export async function POST(request: Request) {
             const userMessage: SBChatMessage = {
                 id: randomUUID(),
                 role: 'user',
-                parts: [{ type: 'text', text: question }],
+                parts: [{ type: 'text', text: query }],
             };
+
+            const selectedSearchScopes: SearchScope[] = [];
+            for (const repo of repos) {
+                const repoDB = await prisma.repo.findFirst({
+                    where: {
+                        name: repo,
+                    },
+                });
+
+                if (!repoDB) {
+                    throw new ServiceErrorException({
+                        statusCode: StatusCodes.BAD_REQUEST,
+                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                        message: `Repository '${repo}' not found.`,
+                    })
+                }
+
+                selectedSearchScopes.push({
+                    type: 'repo',
+                    value: repoDB.name,
+                    name: repoDB.displayName ?? repoDB.name.split('/').pop() ?? repoDB.name,
+                    codeHostType: repoDB.external_codeHostType,
+                })
+            }
 
             // We'll capture the final messages and usage from the stream
             let finalMessages: SBChatMessage[] = [];
 
             const stream = await createMessageStream({
                 messages: [userMessage],
-                selectedSearchScopes: [],
+                selectedSearchScopes,
                 model,
                 modelName,
                 modelProviderOptions: providerOptions,
@@ -122,7 +151,7 @@ export async function POST(request: Request) {
                 generateAndUpdateChatNameFromMessage({
                     chatId: chat.id,
                     languageModelId: languageModelConfig.model,
-                    message: question,
+                    message: query,
                 })
             ]);
 

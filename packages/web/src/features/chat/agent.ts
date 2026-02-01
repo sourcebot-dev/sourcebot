@@ -17,7 +17,7 @@ const logger = createLogger('chat-agent');
 interface AgentOptions {
     model: LanguageModel;
     providerOptions?: ProviderOptions;
-    searchScopeRepoNames: string[];
+    selectedRepos: string[];
     inputMessages: ModelMessage[];
     inputSources: Source[];
     onWriteSource: (source: Source) => void;
@@ -29,7 +29,7 @@ export const createAgentStream = async ({
     providerOptions,
     inputMessages,
     inputSources,
-    searchScopeRepoNames,
+    selectedRepos,
     onWriteSource,
     traceId,
 }: AgentOptions) => {
@@ -59,7 +59,7 @@ export const createAgentStream = async ({
     ).filter((source) => source !== undefined);
 
     const systemPrompt = createPrompt({
-        repos: searchScopeRepoNames,
+        repos: selectedRepos,
         files: resolvedFileSources,
     });
 
@@ -69,7 +69,7 @@ export const createAgentStream = async ({
         messages: inputMessages,
         system: systemPrompt,
         tools: {
-            [toolNames.searchCode]: createCodeSearchTool(searchScopeRepoNames),
+            [toolNames.searchCode]: createCodeSearchTool(selectedRepos),
             [toolNames.readFiles]: readFilesTool,
             [toolNames.findSymbolReferences]: findSymbolReferencesTool,
             [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
@@ -172,10 +172,12 @@ const createPrompt = ({
     During the research phase, use the tools available to you to gather comprehensive context before answering. Always explain why you're using each tool. Depending on the user's question, you may need to use multiple tools. If the question is vague, ask the user for more information.
     </research_phase_instructions>
 
-    <available_repositories>
-    The user has selected the following repositories for analysis:
-    ${repos.map(scope => `- ${scope}`).join('\n')}
-    </available_repositories>
+    ${repos.length > 0 ? dedent`
+        <selected_repositories>
+        The user has explicitly selected the following repositories for analysis:
+        ${repos.map(repo => `- ${repo}`).join('\n')}
+        </selected_repositories>
+    ` : ''}
 
     ${files ? dedent`
         <files>
