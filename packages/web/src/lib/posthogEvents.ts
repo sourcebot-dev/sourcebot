@@ -151,6 +151,13 @@ export type PosthogEventMap = {
         messageId: string,
     },
     wa_chat_thread_created: {},
+    wa_chat_message_sent: {
+        messageCount: number,
+    },
+    wa_chat_tool_used: {
+        toolName: string,
+        success: boolean,
+    },
     //////////////////////////////////////////////////////////////////
     wa_demo_docs_link_pressed: {},
     wa_demo_search_example_card_pressed: {

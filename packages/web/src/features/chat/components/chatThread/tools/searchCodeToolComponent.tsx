@@ -1,17 +1,12 @@
 'use client';
 
 import { SearchCodeToolUIPart } from "@/features/chat/tools";
-import { createPathWithQueryParams, isServiceError } from "@/lib/utils";
+import { isServiceError } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { FileListItem, ToolHeader, TreeList } from "./shared";
 import { CodeSnippet } from "@/app/components/codeSnippet";
 import { Separator } from "@/components/ui/separator";
 import { SearchIcon } from "lucide-react";
-import Link from "next/link";
-import { SearchQueryParams } from "@/lib/types";
-import { PlayIcon } from "@radix-ui/react-icons";
-import { buildSearchQuery } from "@/features/chat/utils";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
 export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -21,14 +16,7 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
             return '';
         }
 
-        const query = buildSearchQuery({
-            query: part.input.queryRegexp,
-            repoNamesFilterRegexp: part.input.repoNamesFilterRegexp,
-            languageNamesFilter: part.input.languageNamesFilter,
-            fileNamesFilterRegexp: part.input.fileNamesFilterRegexp,
-        });
-
-        return query;
+        return part.input.query;
     }, [part]);
 
     const label = useMemo(() => {
@@ -76,15 +64,6 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
                                     })}
                                 </TreeList>
                             )}
-                            <Link
-                                href={createPathWithQueryParams(`/${SINGLE_TENANT_ORG_DOMAIN}/search`,
-                                    [SearchQueryParams.query, part.output.query],
-                                )}
-                                className='flex flex-row items-center gap-2 text-sm text-muted-foreground mt-2 ml-auto w-fit hover:text-foreground'
-                            >
-                                <PlayIcon className='h-4 w-4' />
-                                Manually run query
-                            </Link>
                         </>
                     )}
                     <Separator className='ml-[7px] my-2' />

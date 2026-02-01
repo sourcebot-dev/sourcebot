@@ -147,32 +147,84 @@ The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP)
 
 ### `search_code`
 
-Fetches code that matches the provided regex pattern in `query`.
+Searches for code that matches the provided search query as a substring by default, or as a regular expression if `useRegex` is true.
 
 Parameters:
-| Name                  | Required | Description                                                                                                                       |
-|:----------------------|:---------|:----------------------------------------------------------------------------------------------------------------------------------|
-| `query`               | yes      | Regex pattern to search for. Escape special characters and spaces with a single backslash (e.g., 'console\.log', 'console\ log'). |
-| `filterByRepoIds`     | no       | Restrict search to specific repository IDs (from 'list_repos'). Leave empty to search all.                                        |
-| `filterByLanguages`   | no       | Restrict search to specific languages (GitHub linguist format, e.g., Python, JavaScript).                                         |
-| `caseSensitive`       | no       | Case sensitive search (default: false).                                                                                           |
-| `includeCodeSnippets` | no       | Include code snippets in results (default: false).                                                                                |
-| `maxTokens`           | no       | Max tokens to return (default: env.DEFAULT_MINIMUM_TOKENS).                                                                       |
+| Name                  | Required | Description                                                                                                          |
+|:----------------------|:---------|:---------------------------------------------------------------------------------------------------------------------|
+| `query`               | yes      | The search pattern to match against code contents. Do not escape quotes in your query.                               |
+| `useRegex`            | no       | Whether to use regular expression matching. When false, substring matching is used (default: false).                 |
+| `filterByRepos`       | no       | Scope the search to specific repositories.                                                                           |
+| `filterByLanguages`   | no       | Scope the search to specific languages.                                                                              |
+| `filterByFilepaths`   | no       | Scope the search to specific filepaths.                                                                              |
+| `caseSensitive`       | no       | Whether the search should be case sensitive (default: false).                                                        |
+| `includeCodeSnippets` | no       | Whether to include code snippets in the response (default: false).                                                   |
+| `ref`                 | no       | Commit SHA, branch or tag name to search on. If not provided, defaults to the default branch.                        |
+| `maxTokens`           | no       | The maximum number of tokens to return (default: 10000).                                                             |
 
 
 ### `list_repos`
 
-Lists all repositories indexed by Sourcebot.
-
-### `get_file_source`
-
-Fetches the source code for a given file.
+Lists repositories indexed by Sourcebot with optional filtering and pagination.
 
 Parameters:
-| Name         | Required | Description                                                      |
-|:-------------|:---------|:-----------------------------------------------------------------|
-| `fileName`   | yes      | The file to fetch the source code for.                           |
-| `repoId`     | yes      | The Sourcebot repository ID.                                     |
+| Name        | Required | Description                                                                     |
+|:------------|:---------|:--------------------------------------------------------------------------------|
+| `query`     | no       | Filter repositories by name (case-insensitive).                                 |
+| `page`      | no       | Page number for pagination (min 1, default: 1).                                 |
+| `perPage`   | no       | Results per page for pagination (min 1, max 100, default: 30).                  |
+| `sort`      | no       | Sort repositories by 'name' or 'pushed' (most recent commit). Default: 'name'. |
+| `direction` | no       | Sort direction: 'asc' or 'desc' (default: 'asc').                               |
+
+
+### `read_file`
+
+Reads the source code for a given file.
+
+Parameters:
+| Name   | Required | Description                                                                                            |
+|:-------|:---------|:-------------------------------------------------------------------------------------------------------|
+| `repo` | yes      | The repository name.                                                                                   |
+| `path` | yes      | The path to the file.                                                                                  |
+| `ref`  | no       | Commit SHA, branch or tag name to fetch the source code for. If not provided, uses the default branch. |
+
+
+### `list_commits`
+
+Get a list of commits for a given repository.
+
+Parameters:
+| Name      | Required | Description                                                                                                            |
+|:----------|:---------|:-----------------------------------------------------------------------------------------------------------------------|
+| `repo`    | yes      | The name of the repository to list commits for.                                                                        |
+| `query`   | no       | Search query to filter commits by message content (case-insensitive).                                                  |
+| `since`   | no       | Show commits more recent than this date. Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago'). |
+| `until`   | no       | Show commits older than this date. Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday').     |
+| `author`  | no       | Filter commits by author name or email (case-insensitive).                                                             |
+| `ref`     | no       | Commit SHA, branch or tag name to list commits of. If not provided, uses the default branch.                           |
+| `page`    | no       | Page number for pagination (min 1, default: 1).                                                                        |
+| `perPage` | no       | Results per page for pagination (min 1, max 100, default: 50).                                                         |
+
+
+### `list_language_models`
+
+Lists the available language models configured on the Sourcebot instance. Use this to discover which models can be specified when calling `ask_codebase`.
+
+Parameters:
+
+This tool takes no parameters.
+
+
+### `ask_codebase`
+
+Ask a natural language question about the codebase. This tool uses an AI agent to autonomously search code, read files, and find symbol references/definitions to answer your question. Returns a detailed answer in markdown format with code references, plus a link to view the full research session in the Sourcebot web UI.
+
+Parameters:
+| Name            | Required | Description                                                                                                                                    |
+|:----------------|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `query`         | yes      | The query to ask about the codebase.                                                                                                           |
+| `repos`         | no       | The repositories that are accessible to the agent during the chat. If not provided, all repositories are accessible.                           |
+| `languageModel` | no       | The language model to use for answering the question. Object with `provider` and `model`. If not provided, defaults to the first model in the config. Use `list_language_models` to see available options. |
 
 
 ## Environment Variables

@@ -8379,6 +8379,7 @@ __metadata:
     codemirror-lang-zig: "npm:^0.1.0"
     cross-env: "npm:^7.0.3"
     date-fns: "npm:^4.1.0"
+    dedent: "npm:^1.7.1"
     embla-carousel-auto-scroll: "npm:^8.3.0"
     embla-carousel-react: "npm:^8.3.0"
     escape-string-regexp: "npm:^5.0.0"

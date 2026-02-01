@@ -332,42 +332,6 @@ export const getAnswerPartFromAssistantMessage = (message: SBChatMessage, isStre
     return undefined;
 }
 
-export const buildSearchQuery = (options: {
-    query: string,
-    repoNamesFilter?: string[],
-    repoNamesFilterRegexp?: string[],
-    languageNamesFilter?: string[],
-    fileNamesFilterRegexp?: string[],
-}) => {
-    const {
-        query: _query,
-        repoNamesFilter,
-        repoNamesFilterRegexp,
-        languageNamesFilter,
-        fileNamesFilterRegexp,
-    } = options;
-
-    let query = `${_query}`;
-
-    if (repoNamesFilter && repoNamesFilter.length > 0) {
-        query += ` reposet:${repoNamesFilter.join(',')}`;
-    }
-
-    if (languageNamesFilter && languageNamesFilter.length > 0) {
-        query += ` ( lang:${languageNamesFilter.join(' or lang:')} )`;
-    }
-
-    if (fileNamesFilterRegexp && fileNamesFilterRegexp.length > 0) {
-        query += ` ( file:${fileNamesFilterRegexp.join(' or file:')} )`;
-    }
-
-    if (repoNamesFilterRegexp && repoNamesFilterRegexp.length > 0) {
-        query += ` ( repo:${repoNamesFilterRegexp.join(' or repo:')} )`;
-    }
-
-    return query;
-}
-
 /**
  * Generates a unique key given a LanguageModelInfo object.
  */

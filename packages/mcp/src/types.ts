@@ -12,6 +12,10 @@ import {
     serviceErrorSchema,
     listCommitsQueryParamsSchema,
     listCommitsResponseSchema,
+    askCodebaseRequestSchema,
+    askCodebaseResponseSchema,
+    languageModelInfoSchema,
+    listLanguageModelsResponseSchema,
 } from "./schemas.js";
 import { z } from "zod";
 
@@ -34,3 +38,9 @@ export type ServiceError = z.infer<typeof serviceErrorSchema>;
 
 export type ListCommitsQueryParamsSchema = z.infer<typeof listCommitsQueryParamsSchema>;
 export type ListCommitsResponse = z.infer<typeof listCommitsResponseSchema>;
+
+export type AskCodebaseRequest = z.infer<typeof askCodebaseRequestSchema>;
+export type AskCodebaseResponse = z.infer<typeof askCodebaseResponseSchema>;
+
+export type LanguageModelInfo = z.infer<typeof languageModelInfoSchema>;
+export type ListLanguageModelsResponse = z.infer<typeof listLanguageModelsResponseSchema>;

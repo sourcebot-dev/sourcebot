@@ -13,8 +13,7 @@ import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinition
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
 import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
 import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
-import { SearchReposToolComponent } from './tools/searchReposToolComponent';
-import { ListAllReposToolComponent } from './tools/listAllReposToolComponent';
+import { ListReposToolComponent } from './tools/listReposToolComponent';
 import { SBChatMessageMetadata, SBChatMessagePart } from '../../types';
 import { SearchScopeIcon } from '../searchScopeIcon';
 import isEqual from "fast-deep-equal/react";
@@ -184,16 +183,9 @@ const DetailsCardComponent = ({
                                                         part={part}
                                                     />
                                                 )
-                                            case 'tool-searchRepos':
+                                            case 'tool-listRepos':
                                                 return (
-                                                    <SearchReposToolComponent
-                                                        key={index}
-                                                        part={part}
-                                                    />
-                                                )
-                                            case 'tool-listAllRepos':
-                                                return (
-                                                    <ListAllReposToolComponent
+                                                    <ListReposToolComponent
                                                         key={index}
                                                         part={part}
                                                     />
