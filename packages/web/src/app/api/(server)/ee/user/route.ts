@@ -1,19 +1,20 @@
 'use server';
 
+import { getAuditService } from "@/ee/features/audit/factory";
+import { apiHandler } from "@/lib/apiHandler";
+import { ErrorCode } from "@/lib/errorCodes";
+import { serviceErrorResponse, missingQueryParam, notFound } from "@/lib/serviceError";
+import { isServiceError } from "@/lib/utils";
 import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
 import { OrgRole } from "@sourcebot/db";
-import { isServiceError } from "@/lib/utils";
-import { serviceErrorResponse, missingQueryParam, notFound } from "@/lib/serviceError";
 import { createLogger } from "@sourcebot/shared";
-import { NextRequest } from "next/server";
 import { StatusCodes } from "http-status-codes";
-import { ErrorCode } from "@/lib/errorCodes";
-import { getAuditService } from "@/ee/features/audit/factory";
+import { NextRequest } from "next/server";
 
 const logger = createLogger('ee-user-api');
 const auditService = getAuditService();
 
-export const DELETE = async (request: NextRequest) => {
+export const DELETE = apiHandler(async (request: NextRequest) => {
     const url = new URL(request.url);
     const userId = url.searchParams.get('userId');
 
@@ -89,5 +90,5 @@ export const DELETE = async (request: NextRequest) => {
     }
 
     return Response.json(result, { status: StatusCodes.OK });
-};
+});
 

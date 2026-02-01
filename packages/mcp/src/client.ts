@@ -35,6 +35,7 @@ export const search = async (request: SearchRequest) => {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-Sourcebot-Client-Source': 'mcp',
             ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
         body: JSON.stringify(request)
@@ -56,6 +57,7 @@ export const listRepos = async (queryParams: ListReposQueryParams = {}) => {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
+            'X-Sourcebot-Client-Source': 'mcp',
             ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
     });
@@ -76,6 +78,7 @@ export const getFileSource = async (request: FileSourceRequest) => {
     const response = await fetch(url, {
         method: 'GET',
         headers: {
+            'X-Sourcebot-Client-Source': 'mcp',
             ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
     });
@@ -95,6 +98,7 @@ export const listCommits = async (queryParams: ListCommitsQueryParamsSchema) => 
         method: 'GET',
         headers: {
             'X-Org-Domain': '~',
+            'X-Sourcebot-Client-Source': 'mcp',
             ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
     });
@@ -103,3 +107,27 @@ export const listCommits = async (queryParams: ListCommitsQueryParamsSchema) => 
     const totalCount = parseInt(response.headers.get('X-Total-Count') ?? '0', 10);
     return { commits, totalCount };
 }
+<<<<<<< Updated upstream
+=======
+
+/**
+ * Asks a natural language question about the codebase using the Sourcebot AI agent.
+ * This is a blocking call that runs the full agent loop and returns when complete.
+ * 
+ * @param request - The question and optional repo filters
+ * @returns The agent's answer, chat URL, sources, and metadata
+ */
+export const askCodebase = async (request: AskCodebaseRequest): Promise<AskCodebaseResponse> => {
+    const response = await fetch(`${env.SOURCEBOT_HOST}/api/chat/blocking`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Sourcebot-Client-Source': 'mcp',
+            ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
+        },
+        body: JSON.stringify(request),
+    });
+
+    return parseResponse(response, askCodebaseResponseSchema);
+}
+>>>>>>> Stashed changes

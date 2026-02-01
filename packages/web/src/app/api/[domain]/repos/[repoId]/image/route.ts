@@ -1,13 +1,13 @@
 import { getRepoImage } from "@/actions";
+import { apiHandler } from "@/lib/apiHandler";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 
-export async function GET(
+export const GET = apiHandler(async (
     _request: NextRequest,
-    props: { params: Promise<{ domain: string; repoId: string }> }
-) {
-    const params = await props.params;
-    const { repoId } = params;
+    { params }: { params: Promise<{ domain: string; repoId: string }> }
+) => {
+    const { repoId } = await params;
     const repoIdNum = parseInt(repoId);
 
     if (isNaN(repoIdNum)) {
@@ -25,4 +25,4 @@ export async function GET(
             'Cache-Control': 'public, max-age=3600',
         },
     });
-} 
+}); 

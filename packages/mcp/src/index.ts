@@ -101,7 +101,6 @@ server.tool(
             contextLines: env.DEFAULT_CONTEXT_LINES,
             isRegexEnabled: useRegex,
             isCaseSensitivityEnabled: caseSensitive,
-            source: 'mcp',
         });
 
         if (response.files.length === 0) {

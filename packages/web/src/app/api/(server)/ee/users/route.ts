@@ -1,16 +1,17 @@
 'use server';
 
+import { getAuditService } from "@/ee/features/audit/factory";
+import { apiHandler } from "@/lib/apiHandler";
+import { serviceErrorResponse } from "@/lib/serviceError";
+import { isServiceError } from "@/lib/utils";
 import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
 import { OrgRole } from "@sourcebot/db";
-import { isServiceError } from "@/lib/utils";
-import { serviceErrorResponse } from "@/lib/serviceError";
 import { createLogger } from "@sourcebot/shared";
-import { getAuditService } from "@/ee/features/audit/factory";
 
 const logger = createLogger('ee-users-api');
 const auditService = getAuditService();
 
-export const GET = async () => {
+export const GET = apiHandler(async () => {
     const result = await withAuthV2(async ({ prisma, org, role, user }) => {
         return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             try {
@@ -77,5 +78,5 @@ export const GET = async () => {
     }
 
     return Response.json(result);
-};
+});
 

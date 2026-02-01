@@ -1,13 +1,14 @@
 'use server';
 
 import { fetchAuditRecords } from "@/ee/features/audit/actions";
+import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { getEntitlements } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
 
-export const GET = async () => {
+export const GET = apiHandler(async () => {
     const entitlements = getEntitlements();
     if (!entitlements.includes('audit')) {
         return serviceErrorResponse({
@@ -22,4 +23,4 @@ export const GET = async () => {
         return serviceErrorResponse(result);
     }
     return Response.json(result);
-}; 
+}); 

@@ -1,4 +1,5 @@
 import { SOURCEBOT_VERSION } from "@sourcebot/shared";
+import { apiHandler } from "@/lib/apiHandler";
 import { GetVersionResponse } from "@/lib/types";
 
 // Note: In Next.JS 14, GET methods with no params are cached by default at build time.
@@ -8,8 +9,8 @@ import { GetVersionResponse } from "@/lib/types";
 // @see: https://nextjs.org/docs/14/app/building-your-application/routing/route-handlers#caching
 export const dynamic = "force-dynamic";
 
-export const GET = async () => {
+export const GET = apiHandler(async () => {
     return Response.json({
         version: SOURCEBOT_VERSION,
     } satisfies GetVersionResponse);
-}
+});
