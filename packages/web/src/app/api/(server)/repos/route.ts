@@ -40,7 +40,12 @@ export const GET = apiHandler(async (request: NextRequest) => {
                     orderBy: { [orderByField]: direction },
                 }),
                 prisma.repo.count({
-                    where: { orgId: org.id },
+                    where: {
+                        orgId: org.id,
+                        ...(query ? {
+                            name: { contains: query, mode: 'insensitive' },
+                        } : {}),
+                    },
                 }),
             ]);
 
