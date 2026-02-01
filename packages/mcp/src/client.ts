@@ -1,6 +1,6 @@
 import { env } from './env.js';
-import { listReposResponseSchema, searchResponseSchema, fileSourceResponseSchema, listCommitsResponseSchema, askCodebaseResponseSchema } from './schemas.js';
-import { AskCodebaseRequest, AskCodebaseResponse, FileSourceRequest, ListReposQueryParams, SearchRequest, ListCommitsQueryParamsSchema } from './types.js';
+import { listReposResponseSchema, searchResponseSchema, fileSourceResponseSchema, listCommitsResponseSchema, askCodebaseResponseSchema, listLanguageModelsResponseSchema } from './schemas.js';
+import { AskCodebaseRequest, AskCodebaseResponse, FileSourceRequest, ListReposQueryParams, SearchRequest, ListCommitsQueryParamsSchema, ListLanguageModelsResponse } from './types.js';
 import { isServiceError, ServiceErrorException } from './utils.js';
 import { z } from 'zod';
 
@@ -111,7 +111,7 @@ export const listCommits = async (queryParams: ListCommitsQueryParamsSchema) => 
 /**
  * Asks a natural language question about the codebase using the Sourcebot AI agent.
  * This is a blocking call that runs the full agent loop and returns when complete.
- * 
+ *
  * @param request - The question and optional repo filters
  * @returns The agent's answer, chat URL, sources, and metadata
  */
@@ -127,4 +127,22 @@ export const askCodebase = async (request: AskCodebaseRequest): Promise<AskCodeb
     });
 
     return parseResponse(response, askCodebaseResponseSchema);
+}
+
+/**
+ * Lists the available language models configured on the Sourcebot instance.
+ *
+ * @returns Array of language model info objects
+ */
+export const listLanguageModels = async (): Promise<ListLanguageModelsResponse> => {
+    const response = await fetch(`${env.SOURCEBOT_HOST}/api/models`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Sourcebot-Client-Source': 'mcp',
+            ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
+        },
+    });
+
+    return parseResponse(response, listLanguageModelsResponseSchema);
 }

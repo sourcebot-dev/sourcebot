@@ -273,6 +273,14 @@ export const listCommitsResponseSchema = z.array(z.object({
     author_email: z.string(),
 }));
 
+export const languageModelInfoSchema = z.object({
+    provider: z.string().describe("The model provider (e.g., 'anthropic', 'openai')"),
+    model: z.string().describe("The model ID"),
+    displayName: z.string().optional().describe("Optional display name for the model"),
+});
+
+export const listLanguageModelsResponseSchema = z.array(languageModelInfoSchema);
+
 export const askCodebaseRequestSchema = z.object({
     query: z
         .string()
@@ -281,6 +289,10 @@ export const askCodebaseRequestSchema = z.object({
         .array(z.string())
         .optional()
         .describe("The repositories that are accessible to the agent during the chat. If not provided, all repositories are accessible."),
+    languageModel: languageModelInfoSchema
+        .omit({ displayName: true })
+        .optional()
+        .describe("The language model to use for answering the question. If not provided, defaults to the first model in the config. Use list_language_models to see available options."),
 });
 
 export const sourceSchema = z.object({
@@ -296,4 +308,9 @@ export const askCodebaseResponseSchema = z.object({
     answer: z.string().describe("The agent's final answer in markdown format"),
     chatId: z.string().describe("ID of the persisted chat session"),
     chatUrl: z.string().describe("URL to view the chat in the web UI"),
+    languageModel: z.object({
+        provider: z.string().describe("The model provider (e.g., 'anthropic', 'openai')"),
+        model: z.string().describe("The model ID"),
+        displayName: z.string().optional().describe("Optional display name for the model"),
+    }).describe("The language model used to generate the response"),
 });

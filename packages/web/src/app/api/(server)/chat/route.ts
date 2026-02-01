@@ -30,7 +30,6 @@ import { z } from "zod";
 const logger = createLogger('chat-api');
 
 const chatRequestSchema = z.object({
-    // These paramt
     messages: z.array(z.any()),
     id: z.string(),
     ...additionalChatRequestParamsSchema.shape,

@@ -6,7 +6,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import _dedent from "dedent";
 import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
-import { askCodebase, getFileSource, listCommits, listRepos, search } from './client.js';
+import { askCodebase, getFileSource, listCommits, listLanguageModels, listRepos, search } from './client.js';
 import { env, numberSchema } from './env.js';
 import { askCodebaseRequestSchema, fileSourceRequestSchema, listCommitsQueryParamsSchema, listReposQueryParamsSchema } from './schemas.js';
 import { AskCodebaseRequest, FileSourceRequest, ListCommitsQueryParamsSchema, ListReposQueryParams, TextContent } from './types.js';
@@ -239,6 +239,22 @@ server.tool(
 );
 
 server.tool(
+    "list_language_models",
+    dedent`Lists the available language models configured on the Sourcebot instance. Use this to discover which models can be specified when calling ask_codebase.`,
+    {},
+    async () => {
+        const models = await listLanguageModels();
+
+        return {
+            content: [{
+                type: "text",
+                text: JSON.stringify(models),
+            }],
+        };
+    }
+);
+
+server.tool(
     "ask_codebase",
     dedent`
     Ask a natural language question about the codebase. This tool uses an AI agent to autonomously search code, read files, and find symbol references/definitions to answer your question.
@@ -262,6 +278,7 @@ server.tool(
 
         ---
         **View full research session:** ${response.chatUrl}
+        **Model used:** ${response.languageModel.model}
         `;
 
         return {

@@ -1,7 +1,7 @@
 import { sew } from "@/actions";
 import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, updateChatMessages, generateAndUpdateChatNameFromMessage } from "@/features/chat/actions";
-import { SBChatMessage, SearchScope } from "@/features/chat/types";
-import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage } from "@/features/chat/utils";
+import { LanguageModelInfo, languageModelInfoSchema, SBChatMessage, SearchScope } from "@/features/chat/types";
+import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { requestBodySchemaValidationError, ServiceError, ServiceErrorException, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
@@ -32,6 +32,9 @@ const blockingChatRequestSchema = z.object({
         .array(z.string())
         .optional()
         .describe("The repositories that are accessible to the agent during the chat. If not provided, all repositories are accessible."),
+    languageModel: languageModelInfoSchema
+        .optional()
+        .describe("The language model to use for the chat. If not provided, the first configured model is used."),
 });
 
 /**
@@ -41,6 +44,7 @@ interface BlockingChatResponse {
     answer: string;
     chatId: string;
     chatUrl: string;
+    languageModel: LanguageModelInfo;
 }
 
 /**
@@ -60,7 +64,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
         return serviceErrorResponse(requestBodySchemaValidationError(parsed.error));
     }
 
-    const { query, repos = [] } = parsed.data;
+    const { query, repos = [], languageModel: requestedLanguageModel } = parsed.data;
 
     const response: BlockingChatResponse | ServiceError = await sew(() =>
         withOptionalAuthV2(async ({ org, user, prisma }) => {
@@ -70,13 +74,25 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "No language models are configured. Please configure at least one language model.",
+                    message: "No language models are configured. Please configure at least one language model. See: https://docs.sourcebot.dev/docs/configuration/language-model-providers",
                 } satisfies ServiceError;
             }
 
-            // @todo: we should probably have a option of passing the language model
-            // into the request body. For now, just use the first configured model.
-            const languageModelConfig = configuredModels[0];
+            // Use the requested language model if provided, otherwise default to the first configured model
+            let languageModelConfig = configuredModels[0];
+            if (requestedLanguageModel) {
+                const matchingModel = configuredModels.find(
+                    (m) => getLanguageModelKey(m) === getLanguageModelKey(requestedLanguageModel as LanguageModelInfo)
+                );
+                if (!matchingModel) {
+                    return {
+                        statusCode: StatusCodes.BAD_REQUEST,
+                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                        message: `Language model '${requestedLanguageModel.provider}/${requestedLanguageModel.model}' is not configured.`,
+                    } satisfies ServiceError;
+                }
+                languageModelConfig = matchingModel;
+            }
 
             const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
             const modelName = languageModelConfig.displayName ?? languageModelConfig.model;
@@ -184,6 +200,11 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 answer: portableAnswer,
                 chatId: chat.id,
                 chatUrl,
+                languageModel: {
+                    provider: languageModelConfig.provider,
+                    model: languageModelConfig.model,
+                    displayName: languageModelConfig.displayName,
+                },
             } satisfies BlockingChatResponse;
         })
     );
