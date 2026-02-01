@@ -105,8 +105,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 parts: [{ type: 'text', text: query }],
             };
 
-            const selectedSearchScopes: SearchScope[] = [];
-            for (const repo of repos) {
+            const selectedSearchScopes = await Promise.all(repos.map(async (repo) => {
                 const repoDB = await prisma.repo.findFirst({
                     where: {
                         name: repo,
@@ -121,13 +120,13 @@ export const POST = apiHandler(async (request: NextRequest) => {
                     })
                 }
 
-                selectedSearchScopes.push({
+                return {
                     type: 'repo',
                     value: repoDB.name,
                     name: repoDB.displayName ?? repoDB.name.split('/').pop() ?? repoDB.name,
                     codeHostType: repoDB.external_codeHostType,
-                })
-            }
+                } satisfies SearchScope;
+            }));
 
             // We'll capture the final messages and usage from the stream
             let finalMessages: SBChatMessage[] = [];
