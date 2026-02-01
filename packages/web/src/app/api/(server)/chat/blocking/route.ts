@@ -12,10 +12,11 @@ import { createLogger } from "@sourcebot/shared";
 import { randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
 import { headers } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createMessageStream } from "../route";
 import { InferUIMessageChunk, UITools, UIDataTypes, UIMessage } from "ai";
+import { apiHandler } from "@/lib/apiHandler";
 
 const logger = createLogger('chat-blocking-api');
 
@@ -51,7 +52,7 @@ interface BlockingChatResponse {
  * The chat session is persisted to the database, allowing users to view the full
  * conversation (including tool calls and reasoning) in the web UI.
  */
-export async function POST(request: Request) {
+export const POST = apiHandler(async (request: NextRequest) => {
     const requestBody = await request.json();
     const parsed = await blockingChatRequestSchema.safeParseAsync(requestBody);
 
@@ -193,7 +194,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(response);
-}
+});
 
 const blockStreamUntilFinish = async <T extends UIMessage<unknown, UIDataTypes, UITools>>(stream: ReadableStream<InferUIMessageChunk<T>>) => {
     const reader = stream.getReader();
