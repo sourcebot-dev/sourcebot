@@ -273,13 +273,8 @@ export const listCommitsResponseSchema = z.array(z.object({
     author_email: z.string(),
 }));
 
-// ============================================================================
-// Ask Codebase (Blocking Chat API)
-// ============================================================================
-
 export const askCodebaseRequestSchema = z.object({
     question: z.string().describe("The question to ask about the codebase"),
-    repos: z.array(z.string()).optional().describe("Optional: filter to specific repositories by name"),
 });
 
 export const sourceSchema = z.object({

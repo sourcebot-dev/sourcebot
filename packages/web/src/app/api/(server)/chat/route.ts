@@ -18,6 +18,7 @@ import {
     JSONValue,
     ModelMessage,
     StreamTextResult,
+    UIMessageStreamOnFinishCallback,
     UIMessageStreamOptions,
     UIMessageStreamWriter
 } from "ai";
@@ -86,15 +87,24 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
 
-            return createMessageStreamResponse({
+            const stream = await createMessageStream({
                 messages,
-                id,
                 selectedSearchScopes,
                 model,
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                 modelProviderOptions: providerOptions,
                 orgId: org.id,
                 prisma,
+                onFinish: async ({ messages }) => {
+                    await updateChatMessages({
+                        chatId: id,
+                        messages
+                    });
+                },
+            });
+
+            return createUIMessageStreamResponse({
+                stream,
             });
         })
     )
@@ -118,24 +128,24 @@ const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMe
 
 interface CreateMessageStreamResponseProps {
     messages: SBChatMessage[];
-    id: string;
     selectedSearchScopes: SearchScope[];
     model: AISDKLanguageModelV2;
     modelName: string;
     modelProviderOptions?: Record<string, Record<string, JSONValue>>;
     orgId: number;
     prisma: PrismaClient;
+    onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;
 }
 
-const createMessageStreamResponse = async ({
+export const createMessageStream = async ({
     messages,
-    id,
     selectedSearchScopes,
     model,
     modelName,
     modelProviderOptions,
     orgId,
     prisma,
+    onFinish,
 }: CreateMessageStreamResponseProps) => {
     const latestMessage = messages[messages.length - 1];
     const sources = latestMessage.parts
@@ -241,17 +251,10 @@ const createMessageStreamResponse = async ({
         },
         onError: errorHandler,
         originalMessages: messages,
-        onFinish: async ({ messages }) => {
-            await updateChatMessages({
-                chatId: id,
-                messages
-            });
-        },
+        onFinish,
     });
 
-    return createUIMessageStreamResponse({
-        stream,
-    });
+    return stream;
 };
 
 const errorHandler = (error: unknown) => {

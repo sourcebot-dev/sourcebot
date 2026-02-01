@@ -8,8 +8,8 @@ import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
 import { askCodebase, getFileSource, listCommits, listRepos, search } from './client.js';
 import { env, numberSchema } from './env.js';
-import { askCodebaseRequestSchema, fileSourceRequestSchema, listCommitsQueryParamsSchema, listReposQueryParamsSchema } from './schemas.js';
-import { AskCodebaseRequest, FileSourceRequest, ListCommitsQueryParamsSchema, ListReposQueryParams, TextContent } from './types.js';
+import { fileSourceRequestSchema, listCommitsQueryParamsSchema, listReposQueryParamsSchema } from './schemas.js';
+import { FileSourceRequest, ListCommitsQueryParamsSchema, ListReposQueryParams, TextContent } from './types.js';
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -254,15 +254,12 @@ server.tool(
     `,
     {
         question: z.string().describe("The question to ask about the codebase."),
-        repo: z.string().describe("The repository to ask the question on."),
     },
     async ({
         question,
-        repo,
     }) => {
         const response = await askCodebase({
             question,
-            repos: [repo],
         });
 
         // Format the response with the answer and a link to the chat
