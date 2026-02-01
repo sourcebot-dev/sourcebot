@@ -13,6 +13,7 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { measure, unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { SearchIcon } from "lucide-react";
+import { FolderOpen } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import {
@@ -55,7 +56,7 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                     paths: Array.from(openPaths),
                 })
             ), 'getTree');
-
+            
             captureEvent('wa_file_tree_loaded', {
                 durationMs: result.durationMs,
             });
@@ -188,6 +189,12 @@ export const FileTreePanel = ({ order }: FileTreePanelProps) => {
                         isError ? (
                             <div className="flex flex-col items-center justify-center h-full">
                                 <p>Error loading file tree</p>
+                            </div>
+                        ) : !data.tree.children || data.tree.children.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground px-4">
+                                <FolderOpen className="w-12 h-12 mb-3" />
+                                <p className="text-sm font-medium">No files yet</p>
+                                <p className="text-xs mt-1 text-center">This repository doesn&apos;t have any code yet</p>
                             </div>
                         ) : (
                             <PureFileTreePanel

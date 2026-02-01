@@ -39,6 +39,13 @@ export const getTree = async (params: { repoName: string, revisionName: string, 
 
         const normalizedPaths = paths.map(path => normalizePath(path));
 
+        // Verify that the revision is not empty
+        try{
+            await git.raw(["rev-parse","--verify",revisionName])
+        }catch(_error){
+            return {tree:{}}
+        }
+
         let result: string = '';
         try {
 
@@ -105,6 +112,13 @@ export const getFolderContents = async (params: { repoName: string, revisionName
             return notFound();
         }
         const normalizedPath = normalizePath(path);
+
+        // Verify that the revision is not empty
+        try{
+            await git.raw(["rev-parse","--verify",revisionName])
+        } catch(_error){
+            return [];
+        }
 
         let result: string;
         try {

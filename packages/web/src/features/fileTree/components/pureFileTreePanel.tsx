@@ -31,6 +31,10 @@ export const PureFileTreePanel = ({ tree, openPaths, path, onTreeNodeClicked }: 
     const domain = useDomain();
 
     const renderTree = useCallback((nodes: FileTreeNode, depth = 0): React.ReactNode => {
+        if (!nodes.children || nodes.children.length === 0) {
+            return null;
+        }
+
         return (
             <>
                 {nodes.children.map((node) => {
