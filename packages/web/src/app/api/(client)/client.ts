@@ -38,7 +38,7 @@ export const search = async (body: SearchRequest): Promise<SearchResponse | Serv
 }
 
 export const getFileSource = async (queryParams: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => {
-    const url = new URL("/api/source");
+    const url = new URL("/api/source", window.location.origin);
     for (const [key, value] of Object.entries(queryParams)) {
         url.searchParams.set(key, value.toString());
     }
@@ -54,7 +54,7 @@ export const getFileSource = async (queryParams: FileSourceRequest): Promise<Fil
 }
 
 export const listRepos = async (queryParams: ListReposQueryParams): Promise<ListReposResponse | ServiceError> => {
-    const url = new URL("/api/repos");
+    const url = new URL("/api/repos", window.location.origin);
     for (const [key, value] of Object.entries(queryParams)) {
         url.searchParams.set(key, value.toString());
     }
