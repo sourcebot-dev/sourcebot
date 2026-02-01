@@ -1,17 +1,12 @@
-<<<<<<< Updated upstream
-import { NextRequest } from "next/server";
 import { sew } from "@/actions";
-import { withOptionalAuthV2 } from "@/withAuthV2";
-=======
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { apiHandler } from "@/lib/apiHandler";
 import { buildLinkHeader } from "@/lib/pagination";
-import { listReposQueryParamsSchema } from "@/lib/schemas";
->>>>>>> Stashed changes
+import { listReposQueryParamsSchema, repositoryQuerySchema } from "@/lib/schemas";
 import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { listReposQueryParamsSchema, repositoryQuerySchema } from "@/lib/schemas";
-import { buildLinkHeader } from "@/lib/pagination";
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { withOptionalAuthV2 } from "@/withAuthV2";
+import { NextRequest } from "next/server";
 
 export const GET = apiHandler(async (request: NextRequest) => {
     const rawParams = Object.fromEntries(
