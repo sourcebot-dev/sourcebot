@@ -6,8 +6,9 @@ import { FileSourceResponse, getFileSource } from '@/features/git';
 import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "../codeNav/api";
 import { addLineNumbers, buildSearchQuery } from "./utils";
 import { toolNames } from "./constants";
-import { getRepos } from "@/actions";
-import Fuse from "fuse.js";
+import { listReposQueryParamsSchema } from "@/lib/schemas";
+import { ListReposQueryParams } from "@/lib/types";
+import { listRepos } from "@/app/api/(server)/repos/listReposApi";
 
 // @NOTE: When adding a new tool, follow these steps:
 // 1. Add the tool to the `toolNames` constant in `constants.ts`.
@@ -217,58 +218,21 @@ export type SearchCodeToolInput = InferToolInput<ReturnType<typeof createCodeSea
 export type SearchCodeToolOutput = InferToolOutput<ReturnType<typeof createCodeSearchTool>>;
 export type SearchCodeToolUIPart = ToolUIPart<{ [toolNames.searchCode]: SearchCodeTool }>;
 
-export const searchReposTool = tool({
-    description: `Search for repositories by name using fuzzy search. This helps find repositories in the codebase when you know part of their name.`,
-    inputSchema: z.object({
-        query: z.string().describe("The search query to find repositories by name (supports fuzzy matching)"),
-        limit: z.number().default(10).describe("Maximum number of repositories to return (default: 10)")
-    }),
-    execute: async ({ query, limit }) => {
-        const reposResponse = await getRepos();
+export const listReposTool = tool({
+    description: 'Lists repositories in the organization with optional filtering and pagination.',
+    inputSchema: listReposQueryParamsSchema,
+    execute: async (request: ListReposQueryParams) => {
+        const reposResponse = await listRepos(request);
 
         if (isServiceError(reposResponse)) {
             return reposResponse;
         }
 
-        // Configure Fuse.js for fuzzy searching
-        const fuse = new Fuse(reposResponse, {
-            keys: [
-                { name: 'repoName', weight: 0.7 },
-                { name: 'repoDisplayName', weight: 0.3 }
-            ],
-            threshold: 0.4, // Lower threshold = more strict matching
-            includeScore: true,
-            minMatchCharLength: 1,
-        });
-
-        const searchResults = fuse.search(query, { limit: limit ?? 10 });
-
-        searchResults.sort((a, b) => (a.score ?? 0) - (b.score ?? 0));
-
-        return searchResults.map(({ item }) => item.repoName);
+        return reposResponse.data.map((repo) => repo.repoName);
     }
 });
 
-export type SearchReposTool = InferUITool<typeof searchReposTool>;
-export type SearchReposToolInput = InferToolInput<typeof searchReposTool>;
-export type SearchReposToolOutput = InferToolOutput<typeof searchReposTool>;
-export type SearchReposToolUIPart = ToolUIPart<{ [toolNames.searchRepos]: SearchReposTool }>;
-
-export const listAllReposTool = tool({
-    description: `Lists all repositories in the codebase. This provides a complete overview of all available repositories.`,
-    inputSchema: z.object({}),
-    execute: async () => {
-        const reposResponse = await getRepos();
-
-        if (isServiceError(reposResponse)) {
-            return reposResponse;
-        }
-
-        return reposResponse.map((repo) => repo.repoName);
-    }
-});
-
-export type ListAllReposTool = InferUITool<typeof listAllReposTool>;
-export type ListAllReposToolInput = InferToolInput<typeof listAllReposTool>;
-export type ListAllReposToolOutput = InferToolOutput<typeof listAllReposTool>;
-export type ListAllReposToolUIPart = ToolUIPart<{ [toolNames.listAllRepos]: ListAllReposTool }>;
+export type ListReposTool = InferUITool<typeof listReposTool>;
+export type ListReposToolInput = InferToolInput<typeof listReposTool>;
+export type ListReposToolOutput = InferToolOutput<typeof listReposTool>;
+export type ListReposToolUIPart = ToolUIPart<{ [toolNames.listRepos]: ListReposTool }>;

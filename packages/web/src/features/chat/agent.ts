@@ -5,7 +5,7 @@ import { createLogger, env } from "@sourcebot/shared";
 import { env as clientEnv } from "@sourcebot/shared/client";
 import { LanguageModel, ModelMessage, StopCondition, streamText } from "ai";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, toolNames } from "./constants";
-import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, listAllReposTool, readFilesTool, searchReposTool } from "./tools";
+import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, listReposTool, readFilesTool } from "./tools";
 import { Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
 import _dedent from "dedent";
@@ -73,8 +73,7 @@ export const createAgentStream = async ({
             [toolNames.readFiles]: readFilesTool,
             [toolNames.findSymbolReferences]: findSymbolReferencesTool,
             [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
-            [toolNames.searchRepos]: searchReposTool,
-            [toolNames.listAllRepos]: listAllReposTool,
+            [toolNames.listRepos]: listReposTool,
         },
         temperature: env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
         stopWhen: [
