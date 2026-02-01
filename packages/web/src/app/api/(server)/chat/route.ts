@@ -3,6 +3,7 @@ import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, upd
 import { createAgentStream } from "@/features/chat/agent";
 import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
+import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, requestBodySchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
@@ -22,6 +23,7 @@ import {
 } from "ai";
 import { randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 
 const logger = createLogger('chat-api');
@@ -33,7 +35,7 @@ const chatRequestSchema = z.object({
     ...additionalChatRequestParamsSchema.shape,
 })
 
-export async function POST(req: Request) {
+export const POST = apiHandler(async (req: NextRequest) => {
     const requestBody = await req.json();
     const parsed = await chatRequestSchema.safeParseAsync(requestBody);
     if (!parsed.success) {
@@ -102,7 +104,7 @@ export async function POST(req: Request) {
     }
 
     return response;
-}
+});
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMessageStreamWriter<SBChatMessage>, options: UIMessageStreamOptions<SBChatMessage> = {}) => {

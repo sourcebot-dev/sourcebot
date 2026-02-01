@@ -1,13 +1,14 @@
-import { NextRequest } from "next/server";
 import { sew } from "@/actions";
-import { withOptionalAuthV2 } from "@/withAuthV2";
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { apiHandler } from "@/lib/apiHandler";
+import { buildLinkHeader } from "@/lib/pagination";
+import { listReposQueryParamsSchema, repositoryQuerySchema } from "@/lib/schemas";
 import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { listReposQueryParamsSchema, repositoryQuerySchema } from "@/lib/schemas";
-import { buildLinkHeader } from "@/lib/pagination";
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { withOptionalAuthV2 } from "@/withAuthV2";
+import { NextRequest } from "next/server";
 
-export const GET = async (request: NextRequest) => {
+export const GET = apiHandler(async (request: NextRequest) => {
     const rawParams = Object.fromEntries(
         Object.keys(listReposQueryParamsSchema.shape).map(key => [
             key,
@@ -39,7 +40,12 @@ export const GET = async (request: NextRequest) => {
                     orderBy: { [orderByField]: direction },
                 }),
                 prisma.repo.count({
-                    where: { orgId: org.id },
+                    where: {
+                        orgId: org.id,
+                        ...(query ? {
+                            name: { contains: query, mode: 'insensitive' },
+                        } : {}),
+                    },
                 }),
             ]);
 
@@ -87,4 +93,4 @@ export const GET = async (request: NextRequest) => {
     if (linkHeader) headers.set('Link', linkHeader);
 
     return new Response(JSON.stringify(data), { status: 200, headers });
-};
+});

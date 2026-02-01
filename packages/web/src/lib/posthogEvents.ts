@@ -192,5 +192,9 @@ export type PosthogEventMap = {
         source: string;
         type: 'streamed' | 'blocking';
     },
+    api_request: {
+        path: string;
+        source: string;
+    },
 } 
 export type PosthogEvent = keyof PosthogEventMap;

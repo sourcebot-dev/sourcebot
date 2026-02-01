@@ -25,6 +25,7 @@ export const search = async (body: SearchRequest): Promise<SearchResponse | Serv
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
         },
         body: JSON.stringify(body),
     }).then(response => response.json());
@@ -44,6 +45,9 @@ export const getFileSource = async (queryParams: FileSourceRequest): Promise<Fil
 
     const result = await fetch(url, {
         method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        }
     }).then(response => response.json());
 
     return result as FileSourceResponse | ServiceError;
@@ -59,6 +63,7 @@ export const listRepos = async (queryParams: ListReposQueryParams): Promise<List
         method: "GET",
         headers: {
             "Content-Type": "application/json",
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
         },
     }).then(response => response.json());
 
@@ -70,6 +75,7 @@ export const getVersion = async (): Promise<GetVersionResponse> => {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
         },
     }).then(response => response.json());
     return result as GetVersionResponse;
@@ -78,6 +84,9 @@ export const getVersion = async (): Promise<GetVersionResponse> => {
 export const findSearchBasedSymbolReferences = async (body: FindRelatedSymbolsRequest): Promise<FindRelatedSymbolsResponse | ServiceError> => {
     const result = await fetch("/api/find_references", {
         method: "POST",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
         body: JSON.stringify(body),
     }).then(response => response.json());
     return result as FindRelatedSymbolsResponse | ServiceError;
@@ -86,6 +95,9 @@ export const findSearchBasedSymbolReferences = async (body: FindRelatedSymbolsRe
 export const findSearchBasedSymbolDefinitions = async (body: FindRelatedSymbolsRequest): Promise<FindRelatedSymbolsResponse | ServiceError> => {
     const result = await fetch("/api/find_definitions", {
         method: "POST",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
         body: JSON.stringify(body),
     }).then(response => response.json());
     return result as FindRelatedSymbolsResponse | ServiceError;
@@ -94,6 +106,9 @@ export const findSearchBasedSymbolDefinitions = async (body: FindRelatedSymbolsR
 export const getTree = async (body: GetTreeRequest): Promise<GetTreeResponse | ServiceError> => {
     const result = await fetch("/api/tree", {
         method: "POST",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
         body: JSON.stringify(body),
     }).then(response => response.json());
     return result as GetTreeResponse | ServiceError;
@@ -102,6 +117,9 @@ export const getTree = async (body: GetTreeRequest): Promise<GetTreeResponse | S
 export const getFiles = async (body: GetFilesRequest): Promise<GetFilesResponse | ServiceError> => {
     const result = await fetch("/api/files", {
         method: "POST",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
         body: JSON.stringify(body),
     }).then(response => response.json());
     return result as GetFilesResponse | ServiceError;

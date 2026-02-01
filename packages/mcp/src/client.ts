@@ -35,6 +35,7 @@ export const search = async (request: SearchRequest) => {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-Sourcebot-Client-Source': 'mcp',
             ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
         body: JSON.stringify(request)
@@ -56,6 +57,7 @@ export const listRepos = async (queryParams: ListReposQueryParams = {}) => {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
+            'X-Sourcebot-Client-Source': 'mcp',
             ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
     });
@@ -76,6 +78,7 @@ export const getFileSource = async (request: FileSourceRequest) => {
     const response = await fetch(url, {
         method: 'GET',
         headers: {
+            'X-Sourcebot-Client-Source': 'mcp',
             ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
     });
@@ -95,6 +98,7 @@ export const listCommits = async (queryParams: ListCommitsQueryParamsSchema) => 
         method: 'GET',
         headers: {
             'X-Org-Domain': '~',
+            'X-Sourcebot-Client-Source': 'mcp',
             ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
         },
     });
