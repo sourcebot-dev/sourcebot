@@ -234,6 +234,20 @@ Get a list of commits for a given repository.
 
 </details>
 
+### ask_codebase
+
+Ask a natural language question about the codebase. This tool uses an AI agent to autonomously search code, read files, and find symbol references/definitions to answer your question. Returns a detailed answer in markdown format with code references, plus a link to view the full research session in the Sourcebot web UI.
+
+<details>
+<summary>Parameters</summary>
+
+| Name    | Required | Description                                                                                                       |
+|:--------|:---------|:------------------------------------------------------------------------------------------------------------------|
+| `query` | yes      | The query to ask about the codebase.                                                                              |
+| `repos` | no       | The repositories that are accessible to the agent during the chat. If not provided, all repositories are accessible. |
+
+</details>
+
 
 ## Supported Code Hosts
 Sourcebot supports the following code hosts:
