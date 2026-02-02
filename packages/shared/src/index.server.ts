@@ -12,10 +12,12 @@ export type {
 export type {
     RepoMetadata,
     RepoIndexingJobMetadata,
+    CachedPermittedExternalAccounts,
 } from "./types.js";
 export {
     repoMetadataSchema,
     repoIndexingJobMetadataSchema,
+    cachedPermittedExternalAccountsSchema,
     tenancyModeSchema,
 } from "./types.js";
 export {

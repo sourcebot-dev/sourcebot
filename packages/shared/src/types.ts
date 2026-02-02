@@ -44,4 +44,17 @@ export const repoIndexingJobMetadataSchema = z.object({
 
 export type RepoIndexingJobMetadata = z.infer<typeof repoIndexingJobMetadataSchema>;
 
+// Structure of the `cachedPermittedExternalAccounts` field in the `Repo` table.
+//
+// @WARNING: If you modify this schema, please make sure it is backwards
+// compatible with any prior versions of the schema!!
+// @NOTE: If you move this schema, please update the comment in schema.prisma
+// to point to the new location.
+export const cachedPermittedExternalAccountsSchema = z.record(
+    z.enum(["github", "gitlab", "gitea", "gerrit", "bitbucket", "azuredevops"]),
+    z.array(z.string())
+);
+
+export type CachedPermittedExternalAccounts = z.infer<typeof cachedPermittedExternalAccountsSchema>;
+
 export const tenancyModeSchema = z.enum(["multi", "single"]);

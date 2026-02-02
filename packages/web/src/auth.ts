@@ -19,6 +19,7 @@ import { onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
 import { refreshLinkedAccountTokens } from '@/ee/features/permissionSyncing/tokenRefresh';
+import { rebuildPermissionsFromCache } from '@/ee/features/permissionSyncing/permissionUtils';
 
 const auditService = getAuditService();
 const eeIdentityProviders = hasEntitlement("sso") ? await getEEIdentityProviders() : [];
@@ -165,7 +166,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // This is necessary to update the access token when the user
             // re-authenticates.
             if (account && account.provider && account.provider !== 'credentials' && account.providerAccountId) {
-                await prisma.account.update({
+                const updatedAccount = await prisma.account.update({
                     where: {
                         provider_providerAccountId: {
                             provider: account.provider,
@@ -180,7 +181,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         scope: account.scope,
                         id_token: account.id_token,
                     }
-                })
+                });
+
+                // Rebuild permissions from cache if permission syncing is enabled
+                if (hasEntitlement('permission-syncing') && env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true') {
+                    await rebuildPermissionsFromCache(
+                        updatedAccount.id,
+                        account.provider,
+                        account.providerAccountId
+                    ).catch(error => {
+                        // Don't fail sign-in if permission rebuild fails
+                        console.error('Failed to rebuild permissions from cache:', error);
+                    });
+                }
             }
 
             if (user.id) {

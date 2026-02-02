@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/node";
 import { PrismaClient, Repo, RepoPermissionSyncJobStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/shared";
 import { env, hasEntitlement } from "@sourcebot/shared";
+import { CachedPermittedExternalAccounts } from "@sourcebot/shared";
 import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
@@ -175,7 +176,11 @@ export class RepoPermissionSyncer {
             throw new Error(`No credentials found for repo ${id}`);
         }
 
-        const accountIds = await (async () => {
+        // Fetch the external account IDs and map them to internal account IDs
+        const { accountIds, cachedExternalAccounts } = await (async (): Promise<{
+            accountIds: string[];
+            cachedExternalAccounts: CachedPermittedExternalAccounts;
+        }> => {
             if (repo.external_codeHostType === 'github') {
                 const isGitHubCloud = credentials.hostUrl ? new URL(credentials.hostUrl).hostname === GITHUB_CLOUD_HOSTNAME : true;
                 const { octokit } = await createOctokitFromToken({
@@ -204,7 +209,12 @@ export class RepoPermissionSyncer {
                     },
                 });
 
-                return accounts.map(account => account.id);
+                return {
+                    accountIds: accounts.map(account => account.id),
+                    cachedExternalAccounts: {
+                        github: githubUserIds,
+                    },
+                };
             } else if (repo.external_codeHostType === 'gitlab') {
                 const api = await createGitLabFromPersonalAccessToken({
                     token: credentials.token,
@@ -228,10 +238,18 @@ export class RepoPermissionSyncer {
                     },
                 });
 
-                return accounts.map(account => account.id);
+                return {
+                    accountIds: accounts.map(account => account.id),
+                    cachedExternalAccounts: {
+                        gitlab: gitlabUserIds,
+                    },
+                };
             }
 
-            return [];
+            return {
+                accountIds: [],
+                cachedExternalAccounts: {},
+            };
         })();
 
         await this.db.$transaction([
@@ -242,7 +260,8 @@ export class RepoPermissionSyncer {
                 data: {
                     permittedAccounts: {
                         deleteMany: {},
-                    }
+                    },
+                    cachedPermittedExternalAccounts: cachedExternalAccounts,
                 }
             }),
             this.db.accountToRepoPermission.createMany({

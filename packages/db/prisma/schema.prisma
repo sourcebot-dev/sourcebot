@@ -64,6 +64,7 @@ model Repo {
   permittedAccounts  AccountToRepoPermission[]
   permissionSyncJobs RepoPermissionSyncJob[]
   permissionSyncedAt    DateTime? /// When the permissions were last synced successfully.
+  cachedPermittedExternalAccounts Json? /// Cached mapping of provider -> external account IDs that have access to this repo. For schema see cachedPermittedExternalAccountsSchema in packages/shared/src/types.ts
 
   jobs RepoIndexingJob[]
   indexedAt          DateTime? /// When the repo was last indexed successfully.
