@@ -1,7 +1,7 @@
 This directory contains the files needed to deploy Sourcebot via Podman Quadlets.  This is an alternative to Docker Compose that has a number of notable differences:
 
 - Containers are managed as systemd services, including logging as such.
-- Online Auto-Update of container images with automatic rollback on update failure. NOTE: This is not scheduled by default, but you can manually run it via `podman auto-update`.
+- Online Auto-Update of container images with automatic rollback on update failure. NOTE: The schedule for auto-updating is disabled by default. For instructions on running it manually or enabling the schedule, see the [Podman AutoUpdate](#podman-autoupdate) section.
 - Supports injecting podman secrets as environmental values (not just as files like docker does). This is very useful for keeping things like SOURCEBOT_AUTH_SECRET, SOURCEBOT_ENCRYPTION_KEY, DATABASE_URL, and various other sensitive environmental variables secret.
 - Supports podman pods (podman 5+ only), which make it easy to isolate inter-container networking.
 
@@ -67,9 +67,8 @@ systemctl start sourcebot-pod
 This will start all services in the pod.
 
 ## Podman AutoUpdate
-Podman includes auto-update functionality that will pull the latest version of a container, try to get it running, and revert if it fails.  The included quadlets are configured to take advantage of this process if desired. 
+Podman includes auto-update functionality that will pull the latest version of a container, try to get it running, and revert if it fails.  The included quadlets are configured to take advantage of this process if desired.
 
-This can be run on a scheduled basis by enabling a systemd timer via `systemctl enable podman-auto-update`. By default the timer runs at midnight.
+You can run auto-update manually via `podman auto-update`.  This runs auto-update once but does not enable automatic runs.
 
-Alternatively you can run auto-update manually via `podman auto-update`.  This runs auto-update once but does not enable automatic runs.
-
+To run auto-update on a scheduled basis, enable the systemd timer via `systemctl enable podman-auto-update`. By default, the timer is set to trigger at midnight.
