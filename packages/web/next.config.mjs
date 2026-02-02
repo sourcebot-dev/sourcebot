@@ -38,7 +38,18 @@ const nextConfig = {
         ]
     },
 
-    turbopack: {}
+    turbopack: {},
+
+    // @see: https://github.com/vercel/next.js/issues/58019#issuecomment-1910531929
+    ...(process.env.NODE_ENV === 'development' ? {
+        experimental: {
+            serverActions: {
+                allowedOrigins: [
+                    'localhost:3000'
+                ]
+            }
+        }
+    } : {}),
 };
 
 export default withSentryConfig(nextConfig, {

@@ -52,6 +52,8 @@ The following are settings that can be provided in your config file to modify So
 | `enablePublicAccess` **(deprecated)**           | boolean | false      | —       | Use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.                  |
 | `experiment_repoDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       | Interval at which the repo permission syncer should run.                               |
 | `experiment_userDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       | Interval at which the user permission syncer should run.                               |
+| `maxAccountPermissionSyncJobConcurrency`        | number  | 8          | 1       | Concurrent account permission sync jobs.                                               |
+| `maxRepoPermissionSyncJobConcurrency`           | number  | 8          | 1       | Concurrent repo permission sync jobs.                                                  |
 
 # Tokens
 

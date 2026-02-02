@@ -1,14 +1,14 @@
 import { getRepoInfo } from "@/app/[domain]/askgh/[owner]/[repo]/api";
+import { apiHandler } from "@/lib/apiHandler";
 import { serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 
-export async function GET(
+export const GET = apiHandler(async (
     _request: NextRequest,
-    props: { params: Promise<{ repoId: string }> }
-) {
-    const params = await props.params;
-    const { repoId } = params;
+    { params }: { params: Promise<{ repoId: string }> }
+) => {
+    const { repoId } = await params;
     const repoIdNum = parseInt(repoId);
 
     if (isNaN(repoIdNum)) {
@@ -22,4 +22,4 @@ export async function GET(
     }
 
     return Response.json(result);
-}
+});

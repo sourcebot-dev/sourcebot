@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.15] - 2026-02-02
+
+### Added
+- Added `ask_codebase` tool that can invoke the Ask subagent to explore a set of codebases and return a summarized answer. [#814](https://github.com/sourcebot-dev/sourcebot/pull/814)
+- Added `list_language_models` tool to discover available language models configured on the Sourcebot instance. [#814](https://github.com/sourcebot-dev/sourcebot/pull/814)
+
 ## [1.0.14] - 2026-01-27
 
 ### Changed
