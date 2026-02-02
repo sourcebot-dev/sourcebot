@@ -29,4 +29,6 @@ export const DEFAULT_CONFIG_SETTINGS: ConfigSettings = {
     enablePublicAccess: false, // deprected, use FORCE_ENABLE_ANONYMOUS_ACCESS instead
     experiment_repoDrivenPermissionSyncIntervalMs: 1000 * 60 * 60 * 24, // 24 hours
     experiment_userDrivenPermissionSyncIntervalMs: 1000 * 60 * 60 * 24, // 24 hours
+    maxAccountPermissionSyncJobConcurrency: 8,
+    maxRepoPermissionSyncJobConcurrency: 8,
 }

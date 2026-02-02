@@ -42,7 +42,7 @@ export class AccountPermissionSyncer {
         });
         this.worker = new Worker<AccountPermissionSyncJob>(QUEUE_NAME, this.runJob.bind(this), {
             connection: redis,
-            concurrency: 1,
+            concurrency: this.settings.maxAccountPermissionSyncJobConcurrency,
         });
         this.worker.on('completed', this.onJobCompleted.bind(this));
         this.worker.on('failed', this.onJobFailed.bind(this));
