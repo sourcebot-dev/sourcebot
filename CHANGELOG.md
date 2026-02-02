@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.22] - 2026-02-02
+
 ### Added
 - Added `maxAccountPermissionSyncJobConcurrency` and `maxRepoPermissionSyncJobConcurrency` settings to configure concurrency for permission sync jobs (default: 8). [#840](https://github.com/sourcebot-dev/sourcebot/pull/840)
 
