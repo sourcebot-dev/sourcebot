@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.21] - 2026-02-02
+
 ### Added
 - Added `/api/chat/blocking` endpoint that creates a blocking Ask thread, used by the MCP server. [#814](https://github.com/sourcebot-dev/sourcebot/pull/814)
 - Added `/api/models` endpoint to list configured language models. [#814](https://github.com/sourcebot-dev/sourcebot/pull/814)
