@@ -65,3 +65,11 @@ systemctl daemon-reload
 systemctl start sourcebot-pod
 ```
 This will start all services in the pod.
+
+## Podman AutoUpdate
+Podman includes auto-update functionality that will pull the latest version of a container, try to get it running, and revert if it fails.  The included quadlets are configured to take advantage of this process if desired. 
+
+This can be run on a scheduled basis by enabling a systemd timer via `systemctl enable podman-auto-update`. By default the timer runs at midnight.
+
+Alternatively you can run auto-update manually via `podman auto-update`.  This runs auto-update once but does not enable automatic runs.
+
