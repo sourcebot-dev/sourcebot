@@ -76,6 +76,93 @@ export async function refreshLinkedAccountTokens(
     return updatedTokens;
 }
 
+type ProviderCredentials = {
+    clientId: string;
+    clientSecret: string;
+    baseUrl?: string;
+};
+
+/**
+ * Get credentials from deprecated environment variables.
+ * This is for backwards compatibility with deployments using env vars instead of config file.
+ */
+function getDeprecatedEnvCredentials(provider: string): ProviderCredentials | null {
+    if (provider === 'github' && env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
+        return {
+            clientId: env.AUTH_EE_GITHUB_CLIENT_ID,
+            clientSecret: env.AUTH_EE_GITHUB_CLIENT_SECRET,
+            baseUrl: env.AUTH_EE_GITHUB_BASE_URL,
+        };
+    }
+    if (provider === 'gitlab' && env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
+        return {
+            clientId: env.AUTH_EE_GITLAB_CLIENT_ID,
+            clientSecret: env.AUTH_EE_GITLAB_CLIENT_SECRET,
+            baseUrl: env.AUTH_EE_GITLAB_BASE_URL,
+        };
+    }
+    return null;
+}
+
+async function tryRefreshToken(
+    provider: string,
+    refreshToken: string,
+    credentials: ProviderCredentials
+): Promise<{ accessToken: string; refreshToken: string | null; expiresAt: number } | null> {
+    const { clientId, clientSecret, baseUrl } = credentials;
+
+    let url: string;
+    if (baseUrl) {
+        url = provider === 'github'
+            ? `${baseUrl}/login/oauth/access_token`
+            : `${baseUrl}/oauth/token`;
+    } else if (provider === 'github') {
+        url = 'https://github.com/login/oauth/access_token';
+    } else if (provider === 'gitlab') {
+        url = 'https://gitlab.com/oauth/token';
+    } else {
+        logger.error(`Unsupported provider for token refresh: ${provider}`);
+        return null;
+    }
+
+    // Build request body parameters
+    const bodyParams: Record<string, string> = {
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+    };
+
+    // GitLab requires redirect_uri to match the original authorization request
+    // even when refreshing tokens. Use URL constructor to handle trailing slashes.
+    if (provider === 'gitlab') {
+        bodyParams.redirect_uri = new URL('/api/auth/callback/gitlab', env.AUTH_URL).toString();
+    }
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+        },
+        body: new URLSearchParams(bodyParams),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        logger.debug(`Failed to refresh ${provider} token: ${response.status} ${errorText}`);
+        return null;
+    }
+
+    const data = await response.json();
+
+    return {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token ?? null,
+        expiresAt: data.expires_in ? Math.floor(Date.now() / 1000) + data.expires_in : 0,
+    };
+}
+
 export async function refreshOAuthToken(
     provider: string,
     refreshToken: string,
@@ -85,14 +172,24 @@ export async function refreshOAuthToken(
         const identityProviders = config?.identityProviders ?? [];
 
         const providerConfigs = identityProviders.filter(idp => idp.provider === provider);
+
+        // If no provider configs in the config file, try deprecated env vars
         if (providerConfigs.length === 0) {
+            const envCredentials = getDeprecatedEnvCredentials(provider);
+            if (envCredentials) {
+                logger.debug(`Using deprecated env vars for ${provider} token refresh`);
+                const result = await tryRefreshToken(provider, refreshToken, envCredentials);
+                if (result) {
+                    return result;
+                }
+            }
             logger.error(`Provider config not found or invalid for: ${provider}`);
             return null;
         }
 
         // Loop through all provider configs and return on first successful fetch
         //
-        // The reason we have to do this is because 1) we might have multiple providers of the same type (ex. we're connecting to multiple gitlab instances) and 2) there isn't 
+        // The reason we have to do this is because 1) we might have multiple providers of the same type (ex. we're connecting to multiple gitlab instances) and 2) there isn't
         // a trivial way to map a provider config to the associated Account object in the DB. The reason the config is involved at all here is because we need the client
         // id/secret in order to refresh the token, and that info is in the config. We could in theory bypass this by storing the client id/secret for the provider in the
         // Account table but we decided not to do that since these are secret. Instead, we simply try all of the client/id secrets for the associated provider type. This is safe
@@ -103,60 +200,12 @@ export async function refreshOAuthToken(
                 const linkedAccountProviderConfig = providerConfig as GitHubIdentityProviderConfig | GitLabIdentityProviderConfig
                 const clientId = await getTokenFromConfig(linkedAccountProviderConfig.clientId);
                 const clientSecret = await getTokenFromConfig(linkedAccountProviderConfig.clientSecret);
-                const baseUrl = linkedAccountProviderConfig.baseUrl
+                const baseUrl = linkedAccountProviderConfig.baseUrl;
 
-                let url: string;
-                if (baseUrl) {
-                    url = provider === 'github'
-                        ? `${baseUrl}/login/oauth/access_token`
-                        : `${baseUrl}/oauth/token`;
-                } else if (provider === 'github') {
-                    url = 'https://github.com/login/oauth/access_token';
-                } else if (provider === 'gitlab') {
-                    url = 'https://gitlab.com/oauth/token';
-                } else {
-                    logger.error(`Unsupported provider for token refresh: ${provider}`);
-                    continue;
+                const result = await tryRefreshToken(provider, refreshToken, { clientId, clientSecret, baseUrl });
+                if (result) {
+                    return result;
                 }
-
-                // Build request body parameters
-                const bodyParams: Record<string, string> = {
-                    client_id: clientId,
-                    client_secret: clientSecret,
-                    grant_type: 'refresh_token',
-                    refresh_token: refreshToken,
-                };
-
-                // GitLab requires redirect_uri to match the original authorization request
-                // even when refreshing tokens. Use URL constructor to handle trailing slashes.
-                if (provider === 'gitlab') {
-                    bodyParams.redirect_uri = new URL('/api/auth/callback/gitlab', env.AUTH_URL).toString();
-                }
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Accept': 'application/json',
-                    },
-                    body: new URLSearchParams(bodyParams),
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    logger.debug(`Failed to refresh ${provider} token with config: ${response.status} ${errorText}`);
-                    continue;
-                }
-
-                const data = await response.json();
-
-                const result = {
-                    accessToken: data.access_token,
-                    refreshToken: data.refresh_token ?? null,
-                    expiresAt: data.expires_in ? Math.floor(Date.now() / 1000) + data.expires_in : 0,
-                };
-
-                return result;
             } catch (configError) {
                 logger.debug(`Error trying provider config for ${provider}:`, configError);
                 continue;
