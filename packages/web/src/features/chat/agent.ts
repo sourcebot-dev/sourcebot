@@ -184,7 +184,7 @@ const createPrompt = ({
         </selected_repositories>
     ` : ''}
 
-    ${files ? dedent`
+    ${(files && files.length > 0) ? dedent`
         <files>
         The user has mentioned the following files, which are automatically included for analysis.
 
@@ -223,7 +223,6 @@ const createPrompt = ({
     ${ANSWER_TAG}
     Authentication in Sourcebot is built on NextAuth.js with a session-based approach using JWT tokens and Prisma as the database adapter ${fileReferenceToString({ repo: 'github.com/sourcebot-dev/sourcebot', path: 'auth.ts', range: { startLine: 135, endLine: 140 } })}. The system supports multiple authentication providers and implements organization-based authorization with role-defined permissions.
     \`\`\`
-
     </answer_instructions>
     `
 }
