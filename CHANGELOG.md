@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed token refresh error "Provider config not found or invalid for: x" when a sso is configured using deprecated env vars. [#841](https://github.com/sourcebot-dev/sourcebot/pull/841)
+
 ## [4.10.21] - 2026-02-02
 
 ### Added
