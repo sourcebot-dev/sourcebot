@@ -5,7 +5,7 @@ import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, Se
 import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notFound, requestBodySchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
+import { notFound, requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
@@ -18,6 +18,7 @@ import {
     JSONValue,
     ModelMessage,
     StreamTextResult,
+    UIMessageStreamOnFinishCallback,
     UIMessageStreamOptions,
     UIMessageStreamWriter
 } from "ai";
@@ -29,7 +30,6 @@ import { z } from "zod";
 const logger = createLogger('chat-api');
 
 const chatRequestSchema = z.object({
-    // These paramt
     messages: z.array(z.any()),
     id: z.string(),
     ...additionalChatRequestParamsSchema.shape,
@@ -63,11 +63,11 @@ export const POST = apiHandler(async (req: NextRequest) => {
             }
 
             if (chat.isReadonly) {
-                return serviceErrorResponse({
+                return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
                     message: "Chat is readonly and cannot be edited.",
-                });
+                } satisfies ServiceError;
             }
 
             // From the language model ID, attempt to find the
@@ -77,24 +77,33 @@ export const POST = apiHandler(async (req: NextRequest) => {
                     .find((model) => getLanguageModelKey(model) === getLanguageModelKey(languageModel));
 
             if (!languageModelConfig) {
-                return serviceErrorResponse({
+                return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
                     message: `Language model ${languageModel.model} is not configured.`,
-                });
+                } satisfies ServiceError;
             }
 
             const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
 
-            return createMessageStreamResponse({
+            const stream = await createMessageStream({
                 messages,
-                id,
                 selectedSearchScopes,
                 model,
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                 modelProviderOptions: providerOptions,
                 orgId: org.id,
                 prisma,
+                onFinish: async ({ messages }) => {
+                    await updateChatMessages({
+                        chatId: id,
+                        messages
+                    });
+                },
+            });
+
+            return createUIMessageStreamResponse({
+                stream,
             });
         })
     )
@@ -118,24 +127,24 @@ const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMe
 
 interface CreateMessageStreamResponseProps {
     messages: SBChatMessage[];
-    id: string;
     selectedSearchScopes: SearchScope[];
     model: AISDKLanguageModelV2;
     modelName: string;
     modelProviderOptions?: Record<string, Record<string, JSONValue>>;
     orgId: number;
     prisma: PrismaClient;
+    onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;
 }
 
-const createMessageStreamResponse = async ({
+export const createMessageStream = async ({
     messages,
-    id,
     selectedSearchScopes,
     model,
     modelName,
     modelProviderOptions,
     orgId,
     prisma,
+    onFinish,
 }: CreateMessageStreamResponseProps) => {
     const latestMessage = messages[messages.length - 1];
     const sources = latestMessage.parts
@@ -174,7 +183,7 @@ const createMessageStreamResponse = async ({
 
             const startTime = new Date();
 
-            const expandedReposArrays = await Promise.all(selectedSearchScopes.map(async (scope) => {
+            const expandedRepos = (await Promise.all(selectedSearchScopes.map(async (scope) => {
                 if (scope.type === 'repo') {
                     return [scope.value];
                 }
@@ -196,15 +205,14 @@ const createMessageStreamResponse = async ({
                 }
 
                 return [];
-            }));
-            const expandedRepos = expandedReposArrays.flat();
+            }))).flat()
 
             const researchStream = await createAgentStream({
                 model,
                 providerOptions: modelProviderOptions,
                 inputMessages: messageHistory,
                 inputSources: sources,
-                searchScopeRepoNames: expandedRepos,
+                selectedRepos: expandedRepos,
                 onWriteSource: (source) => {
                     writer.write({
                         type: 'data-source',
@@ -241,17 +249,10 @@ const createMessageStreamResponse = async ({
         },
         onError: errorHandler,
         originalMessages: messages,
-        onFinish: async ({ messages }) => {
-            await updateChatMessages({
-                chatId: id,
-                messages
-            });
-        },
+        onFinish,
     });
 
-    return createUIMessageStreamResponse({
-        stream,
-    });
+    return stream;
 };
 
 const errorHandler = (error: unknown) => {
