@@ -79,6 +79,16 @@
           "type": "number",
           "description": "The interval (in milliseconds) at which the user permission syncer should run. Defaults to 24 hours.",
           "minimum": 1
+        },
+        "maxAccountPermissionSyncJobConcurrency": {
+          "type": "number",
+          "description": "The number of account permission sync jobs to run concurrently. Defaults to 8.",
+          "minimum": 1
+        },
+        "maxRepoPermissionSyncJobConcurrency": {
+          "type": "number",
+          "description": "The number of repo permission sync jobs to run concurrently. Defaults to 8.",
+          "minimum": 1
         }
       },
       "additionalProperties": false
@@ -214,6 +224,16 @@
         "experiment_userDrivenPermissionSyncIntervalMs": {
           "type": "number",
           "description": "The interval (in milliseconds) at which the user permission syncer should run. Defaults to 24 hours.",
+          "minimum": 1
+        },
+        "maxAccountPermissionSyncJobConcurrency": {
+          "type": "number",
+          "description": "The number of account permission sync jobs to run concurrently. Defaults to 8.",
+          "minimum": 1
+        },
+        "maxRepoPermissionSyncJobConcurrency": {
+          "type": "number",
+          "description": "The number of repo permission sync jobs to run concurrently. Defaults to 8.",
           "minimum": 1
         }
       },

@@ -35,7 +35,7 @@ export class RepoPermissionSyncer {
         });
         this.worker = new Worker<RepoPermissionSyncJob>(QUEUE_NAME, this.runJob.bind(this), {
             connection: redis,
-            concurrency: 1,
+            concurrency: this.settings.maxRepoPermissionSyncJobConcurrency,
         });
         this.worker.on('completed', this.onJobCompleted.bind(this));
         this.worker.on('failed', this.onJobFailed.bind(this));

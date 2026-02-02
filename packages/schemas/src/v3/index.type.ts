@@ -129,6 +129,14 @@ export interface Settings {
    * The interval (in milliseconds) at which the user permission syncer should run. Defaults to 24 hours.
    */
   experiment_userDrivenPermissionSyncIntervalMs?: number;
+  /**
+   * The number of account permission sync jobs to run concurrently. Defaults to 8.
+   */
+  maxAccountPermissionSyncJobConcurrency?: number;
+  /**
+   * The number of repo permission sync jobs to run concurrently. Defaults to 8.
+   */
+  maxRepoPermissionSyncJobConcurrency?: number;
 }
 /**
  * Search context
