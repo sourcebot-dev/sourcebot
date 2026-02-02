@@ -32,6 +32,10 @@
         "url": "https://github.com/sourcebot-dev/sourcebot.git",
         "directory": "packages/mcp"
     },
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org/"
+    },
     "keywords": [
         "mcp",
         "modelcontextprotocol",

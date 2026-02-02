@@ -1,0 +1,201 @@
+name: Release MCP Package
+
+permissions:
+  contents: write
+  id-token: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Type of version bump to apply"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+concurrency:
+  group: release-mcp
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate GitHub App token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Calculate new version
+        id: calculate_version
+        run: |
+          # Extract current version from package.json
+          CURRENT_VERSION=$(node -p "require('./packages/mcp/package.json').version")
+
+          if [ -z "$CURRENT_VERSION" ]; then
+              echo "Error: Could not extract current version from package.json"
+              exit 1
+          fi
+
+          echo "Current version: $CURRENT_VERSION"
+
+          # Parse version components
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          # Apply bump based on input
+          BUMP_TYPE="${{ inputs.bump_type }}"
+          case "$BUMP_TYPE" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+            *)
+              echo "Error: Invalid bump type: $BUMP_TYPE"
+              exit 1
+              ;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "New version: $NEW_VERSION"
+
+          # Export to GITHUB_ENV for use in subsequent steps
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+          # Export to GITHUB_OUTPUT for use in other jobs
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if version already exists
+        run: |
+          if grep -q "## \[$VERSION\]" packages/mcp/CHANGELOG.md; then
+              echo "Error: Version $VERSION already exists in CHANGELOG.md"
+              exit 1
+          fi
+          if git tag | grep -q "^mcp-v$VERSION$"; then
+              echo "Error: Tag mcp-v$VERSION already exists"
+              exit 1
+          fi
+
+      - name: Update CHANGELOG.md
+        run: |
+          DATE=$(date +%Y-%m-%d)
+
+          # Insert the new version header after the [Unreleased] line
+          sed -i "/## \[Unreleased\]/a\\
+          \\
+          ## [$VERSION] - $DATE" packages/mcp/CHANGELOG.md
+
+          echo "Updated CHANGELOG.md with version $VERSION"
+          cat packages/mcp/CHANGELOG.md | head -n 20
+
+      - name: Update package.json version
+        run: |
+          cd packages/mcp
+          npm version $VERSION --no-git-tag-version
+          echo "Updated package.json to version $VERSION"
+          cat package.json | head -n 5
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit changes
+        run: |
+          git add packages/mcp/CHANGELOG.md packages/mcp/package.json
+          git commit -m "Release @sourcebot/mcp v$VERSION"
+
+      - name: Push to temporary branch
+        id: push_temp_branch
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+        run: |
+          TEMP_BRANCH="release-mcp-v$VERSION"
+          git push origin HEAD:refs/heads/$TEMP_BRANCH
+          echo "Pushed commit to temporary branch: $TEMP_BRANCH"
+          echo "temp_branch=$TEMP_BRANCH" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build MCP package
+        run: yarn workspace @sourcebot/mcp build
+
+      - name: Publish to npm
+        run: |
+          cd packages/mcp
+          npm publish --provenance --access public
+
+      - name: Fast-forward main to temporary branch
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+          TEMP_BRANCH: ${{ steps.push_temp_branch.outputs.temp_branch }}
+        run: |
+          # Fetch main branch
+          git fetch origin main:main
+          git checkout main
+
+          # Check if fast-forward is possible
+          if ! git merge-base --is-ancestor main "$TEMP_BRANCH"; then
+            echo "❌ ERROR: Cannot fast-forward main branch to release commit"
+            echo ""
+            echo "This means new commits were pushed to main after the release process started."
+            echo ""
+            echo "Recent commits on main that caused the conflict:"
+            git log --oneline $TEMP_BRANCH..main | head -5
+            exit 1
+          fi
+
+          # Fast-forward main to release commit
+          git merge --ff-only "$TEMP_BRANCH"
+
+          echo "✓ Successfully fast-forwarded main to release commit"
+
+      - name: Push main
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+        run: |
+          git push origin main
+          echo "Pushed main branch"
+
+      - name: Delete temporary branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+          TEMP_BRANCH: ${{ steps.push_temp_branch.outputs.temp_branch }}
+        run: |
+          if [ -n "$TEMP_BRANCH" ]; then
+            # Check if branch exists before attempting to delete
+            if git ls-remote --heads origin "$TEMP_BRANCH" | grep -q "$TEMP_BRANCH"; then
+              git push origin --delete "$TEMP_BRANCH"
+              echo "✓ Deleted temporary branch: $TEMP_BRANCH"
+            else
+              echo "ℹ Temporary branch $TEMP_BRANCH does not exist (may have been already deleted)"
+            fi
+          fi
