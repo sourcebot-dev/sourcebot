@@ -15,6 +15,7 @@ export const toolNames = {
     findSymbolReferences: 'findSymbolReferences',
     findSymbolDefinitions: 'findSymbolDefinitions',
     listRepos: 'listRepos',
+    listCommits: 'listCommits',
 } as const;
 
 // These part types are visible in the UI.
@@ -26,4 +27,5 @@ export const uiVisiblePartTypes: SBChatMessagePart['type'][] = [
     'tool-findSymbolDefinitions',
     'tool-findSymbolReferences',
     'tool-listRepos',
+    'tool-listCommits',
 ] as const;
