@@ -1,4 +1,5 @@
-import { listCommits } from "@/features/search/gitApi";
+import { listCommits } from "@/features/git";
+import { apiHandler } from "@/lib/apiHandler";
 import { buildLinkHeader } from "@/lib/pagination";
 import { serviceErrorResponse, queryParamsSchemaValidationError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
@@ -16,7 +17,7 @@ const listCommitsQueryParamsSchema = z.object({
     perPage: z.coerce.number().int().positive().max(100).default(50),
 });
 
-export const GET = async (request: NextRequest): Promise<Response> => {
+export const GET = apiHandler(async (request: NextRequest): Promise<Response> => {
     const rawParams = Object.fromEntries(
         Object.keys(listCommitsQueryParamsSchema.shape).map(key => [
             key,
@@ -61,4 +62,4 @@ export const GET = async (request: NextRequest): Promise<Response> => {
     if (linkHeader) headers.set('Link', linkHeader);
 
     return new Response(JSON.stringify(commits), { status: 200, headers });
-}
+});

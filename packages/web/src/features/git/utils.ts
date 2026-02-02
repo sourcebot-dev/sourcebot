@@ -1,4 +1,18 @@
+import { createLogger } from '@sourcebot/shared';
 import { FileTreeItem, FileTreeNode } from "./types";
+
+export const logger = createLogger('git');
+
+// @note: we don't allow directory traversal
+// or null bytes in the path.
+export const isPathValid = (path: string) => {
+    const pathSegments = path.split('/');
+    if (pathSegments.some(segment => segment === '..') || path.includes('\0')) {
+        return false;
+    }
+
+    return true;
+}
 
 export const normalizePath = (path: string): string => {
     // Normalize the path by...
@@ -21,16 +35,14 @@ export const normalizePath = (path: string): string => {
     return normalizedPath;
 }
 
-// @note: we don't allow directory traversal
-// or null bytes in the path.
-export const isPathValid = (path: string) => {
-    const pathSegments = path.split('/');
-    if (pathSegments.some(segment => segment === '..') || path.includes('\0')) {
-        return false;
+export const compareFileTreeItems = (a: FileTreeItem, b: FileTreeItem): number => {
+    if (a.type !== b.type) {
+        return a.type === 'tree' ? -1 : 1;
     }
-
-    return true;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 }
+
+
 
 export const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode => {
     const root: FileTreeNode = {
@@ -79,11 +91,4 @@ export const buildFileTree = (flatList: { type: string, path: string }[]): FileT
     };
 
     return sortTree(root);
-}
-
-export const compareFileTreeItems = (a: FileTreeItem, b: FileTreeItem): number => {
-    if (a.type !== b.type) {
-        return a.type === 'tree' ? -1 : 1;
-    }
-    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 }

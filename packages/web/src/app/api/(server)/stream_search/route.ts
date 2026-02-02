@@ -1,12 +1,13 @@
 'use server';
 
 import { streamSearch, searchRequestSchema } from '@/features/search';
+import { apiHandler } from '@/lib/apiHandler';
 import { captureEvent } from '@/lib/posthog';
 import { requestBodySchemaValidationError, serviceErrorResponse } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
 import { NextRequest } from 'next/server';
 
-export const POST = async (request: NextRequest) => {
+export const POST = apiHandler(async (request: NextRequest) => {
     const body = await request.json();
     const parsed = await searchRequestSchema.safeParseAsync(body);
 
@@ -16,12 +17,12 @@ export const POST = async (request: NextRequest) => {
 
     const {
         query,
-        source,
         ...options
     } = parsed.data;
 
+    const source = request.headers.get('X-Sourcebot-Client-Source') ?? 'unknown';
     await captureEvent('api_code_search_request', {
-        source: source ?? 'unknown',
+        source,
         type: 'streamed',
     });
 
@@ -43,4 +44,4 @@ export const POST = async (request: NextRequest) => {
             'X-Accel-Buffering': 'no', // Disable nginx buffering if applicable
         },
     });
-};
+});

@@ -30,6 +30,7 @@ test('isPathValid allows paths with dots', () => {
     expect(isPathValid('a/b/[..path]')).toBe(true);
 });
 
+
 test('buildFileTree handles a empty flat list', () => {
     const flatList: { type: string, path: string }[] = [];
     const tree = buildFileTree(flatList);

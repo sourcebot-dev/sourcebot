@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.22] - 2026-02-02
+
+### Added
+- Added `maxAccountPermissionSyncJobConcurrency` and `maxRepoPermissionSyncJobConcurrency` settings to configure concurrency for permission sync jobs (default: 8). [#840](https://github.com/sourcebot-dev/sourcebot/pull/840)
+
+## [4.10.21] - 2026-02-02
+
+### Added
+- Added `/api/chat/blocking` endpoint that creates a blocking Ask thread, used by the MCP server. [#814](https://github.com/sourcebot-dev/sourcebot/pull/814)
+- Added `/api/models` endpoint to list configured language models. [#814](https://github.com/sourcebot-dev/sourcebot/pull/814)
+- Added additional telemetry for api requests. [#835](https://github.com/sourcebot-dev/sourcebot/pull/835)
+
+### Fixed
+- Fixed issue where files with a comma would not render correctly in file tree. [#831](https://github.com/sourcebot-dev/sourcebot/pull/831)
+
+### Changed
+- Changed `/api/source` api to support fetching source code for any revision, not just revisions that are indexed by zoekt. [#829](https://github.com/sourcebot-dev/sourcebot/pull/829)
+- Adjusted prompts and tools for Ask agent. [#814](https://github.com/sourcebot-dev/sourcebot/pull/814)
+
 ## [4.10.20] - 2026-01-28
 
 ### Fixed
