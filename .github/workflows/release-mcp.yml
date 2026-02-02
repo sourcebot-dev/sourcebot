@@ -157,27 +157,43 @@ jobs:
           cd packages/mcp
           npm publish --provenance --access public
 
-      - name: Push release commit to main
+      - name: Checkout temporary branch
+        env:
+          TEMP_BRANCH: ${{ steps.push_temp_branch.outputs.temp_branch }}
+        run: |
+          git checkout "$TEMP_BRANCH"
+
+      - name: Fast-forward main to temporary branch
         env:
           GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+          TEMP_BRANCH: ${{ steps.push_temp_branch.outputs.temp_branch }}
         run: |
-          # Fetch latest main to check if fast-forward is possible
-          git fetch origin main
+          # Fetch main branch
+          git fetch origin main:main
+          git checkout main
 
-          # Check if fast-forward is possible (current HEAD must be ahead of origin/main)
-          if ! git merge-base --is-ancestor origin/main HEAD; then
+          # Check if fast-forward is possible
+          if ! git merge-base --is-ancestor main "$TEMP_BRANCH"; then
             echo "❌ ERROR: Cannot fast-forward main branch to release commit"
             echo ""
             echo "This means new commits were pushed to main after the release process started."
             echo ""
             echo "Recent commits on main that caused the conflict:"
-            git log --oneline HEAD..origin/main | head -5
+            git log --oneline $TEMP_BRANCH..main | head -5
             exit 1
           fi
 
-          # Push current HEAD to main (fast-forward)
-          git push origin HEAD:main
-          echo "✓ Successfully pushed release commit to main"
+          # Fast-forward main to release commit
+          git merge --ff-only "$TEMP_BRANCH"
+
+          echo "✓ Successfully fast-forwarded main to release commit"
+
+      - name: Push main
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+        run: |
+          git push origin main
+          echo "Pushed main branch"
 
       - name: Delete temporary branch
         if: always()
