@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `listCommits` tool to Ask agent. [#843](https://github.com/sourcebot-dev/sourcebot/pull/843)
+
 ## [4.10.22] - 2026-02-02
 
 ### Added
