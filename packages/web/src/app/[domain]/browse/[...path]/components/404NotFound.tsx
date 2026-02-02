@@ -1,5 +1,3 @@
-'use client';
-
 import { $Enums } from "@sourcebot/db";
 import { ServiceError } from "@/lib/serviceError";
 import { TriangleAlert } from "lucide-react";
@@ -7,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
-import { useEffect } from "react";
 import { FileSourceResponse } from "@/features/git/getFileSourceApi";
 import { PathHeader } from "@/app/[domain]/components/pathHeader";
 
@@ -104,6 +101,7 @@ export const FileNotFound = ({
                             path: '/',
                             pathType: 'tree',
                             domain: SINGLE_TENANT_ORG_DOMAIN,
+                            revisionName
                         })}
                     >
                         Return to the repository overview
