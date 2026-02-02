@@ -116,10 +116,15 @@ jobs:
 
       - name: Update package.json version
         run: |
-          cd packages/mcp
-          npm version $VERSION --no-git-tag-version
+          node -e "
+            const fs = require('fs');
+            const path = 'packages/mcp/package.json';
+            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+            pkg.version = process.env.VERSION;
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 4) + '\n');
+          "
           echo "Updated package.json to version $VERSION"
-          cat package.json | head -n 5
+          head -n 5 packages/mcp/package.json
 
       - name: Configure git
         run: |
