@@ -138,8 +138,14 @@ export const env = createEnv({
         AUTH_URL: z.string().url(),
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
         AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.default('false'),
-
+        
         // Enterprise Auth
+
+        AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING:
+            booleanSchema
+            .default('false')
+            .describe('When enabled, different SSO accounts with the same email address will automatically be linked.'),
+
         AUTH_EE_GITHUB_CLIENT_ID: z.string().optional(),
         AUTH_EE_GITHUB_CLIENT_SECRET: z.string().optional(),
         AUTH_EE_GITHUB_BASE_URL: z.string().optional(),
