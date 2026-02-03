@@ -182,11 +182,11 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 : undefined;
             const answerText = answerPart?.text ?? '';
 
-            // Convert to portable markdown (replaces @file: references with markdown links)
-            const portableAnswer = convertLLMOutputToPortableMarkdown(answerText);
-
-            // Build the chat URL
+            // Build the base URL and chat URL
             const baseUrl = env.AUTH_URL;
+
+            // Convert to portable markdown (replaces @file: references with markdown links)
+            const portableAnswer = convertLLMOutputToPortableMarkdown(answerText, baseUrl);
             const chatUrl = `${baseUrl}/${org.domain}/chat/${chat.id}`;
 
             logger.debug(`Completed blocking agent for chat ${chat.id}`, {

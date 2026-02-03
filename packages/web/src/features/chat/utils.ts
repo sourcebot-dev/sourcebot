@@ -1,6 +1,8 @@
 import { CreateUIMessage, TextUIPart, UIMessagePart } from "ai";
 import { Descendant, Editor, Point, Range, Transforms } from "slate";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
+import { getBrowsePath, BrowseHighlightRange } from "@/app/[domain]/browse/hooks/utils";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import {
     CustomEditor,
     CustomText,
@@ -243,10 +245,10 @@ export const createFileReference = ({ repo, path, startLine, endLine }: { repo: 
  * Markdown format. Practically, this means converting references into Markdown
  * links and removing the answer tag.
  */
-export const convertLLMOutputToPortableMarkdown = (text: string): string => {
+export const convertLLMOutputToPortableMarkdown = (text: string, baseUrl: string): string => {
     return text
         .replace(ANSWER_TAG, '')
-        .replace(FILE_REFERENCE_REGEX, (_, _repo, fileName, startLine, endLine) => {
+        .replace(FILE_REFERENCE_REGEX, (_, repo, fileName, startLine, endLine) => {
             const displayName = fileName.split('/').pop() || fileName;
 
             let linkText = displayName;
@@ -258,7 +260,23 @@ export const convertLLMOutputToPortableMarkdown = (text: string): string => {
                 }
             }
 
-            return `[${linkText}](${fileName})`;
+            // Construct highlight range for line numbers
+            const highlightRange: BrowseHighlightRange | undefined = startLine ? {
+                start: { lineNumber: parseInt(startLine) },
+                end: { lineNumber: parseInt(endLine || startLine) },
+            } : undefined;
+
+            // Construct full browse URL
+            const browsePath = getBrowsePath({
+                repoName: repo,
+                path: fileName,
+                pathType: 'blob',
+                domain: SINGLE_TENANT_ORG_DOMAIN,
+                highlightRange,
+            });
+
+            const fullUrl = `${baseUrl}${browsePath}`;
+            return `[${linkText}](${fullUrl})`;
         })
         .trim();
 }

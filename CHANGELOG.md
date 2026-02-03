@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed issue where opening GitLab file links would result in a 404. [#846](https://github.com/sourcebot-dev/sourcebot/pull/846)
+- Fixed issue where file references in copied chat answers were relative paths instead of full browse URLs. [#847](https://github.com/sourcebot-dev/sourcebot/pull/847)
 
 ## [4.10.24] - 2026-02-03
 
