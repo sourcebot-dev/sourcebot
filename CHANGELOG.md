@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed issue where opening GitLab file links would result in a 404. [#846](https://github.com/sourcebot-dev/sourcebot/pull/846)
+
 ## [4.10.24] - 2026-02-03
 
 ### Fixed

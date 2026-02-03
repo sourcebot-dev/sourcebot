@@ -343,7 +343,7 @@ export const getCodeHostCommitUrl = ({
 export const getCodeHostBrowseAtBranchUrl = ({
     webUrl,
     codeHostType,
-    branchName,
+    branchName: _branchName,
 }: {
     webUrl?: string | null,
     codeHostType: CodeHostType,
@@ -352,6 +352,8 @@ export const getCodeHostBrowseAtBranchUrl = ({
     if (!webUrl) {
         return undefined;
     }
+
+    const branchName = _branchName.replace(/^refs\/(heads|tags)\//, '');
 
     switch (codeHostType) {
         case 'github':
@@ -376,7 +378,7 @@ export const getCodeHostBrowseAtBranchUrl = ({
 export const getCodeHostBrowseFileAtBranchUrl = ({
     webUrl,
     codeHostType,
-    branchName,
+    branchName: _branchName,
     filePath,
 }: {
     webUrl?: string | null,
@@ -387,6 +389,8 @@ export const getCodeHostBrowseFileAtBranchUrl = ({
     if (!webUrl) {
         return undefined;
     }
+
+    const branchName = _branchName.replace(/^refs\/(heads|tags)\//, '');
 
     switch (codeHostType) {
         case 'github':
