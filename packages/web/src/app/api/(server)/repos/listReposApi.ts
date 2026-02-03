@@ -2,17 +2,14 @@ import { sew } from "@/actions";
 import { repositoryQuerySchema } from "@/lib/schemas";
 import { ListReposQueryParams } from "@/lib/types";
 import { withOptionalAuthV2 } from "@/withAuthV2";
-import { headers } from "next/headers";
-import { getBaseUrl } from "@/lib/utils.server";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { env } from "@sourcebot/shared";
 
 export const listRepos = async ({ query, page, perPage, sort, direction }: ListReposQueryParams) => sew(() =>
     withOptionalAuthV2(async ({ org, prisma }) => {
         const skip = (page - 1) * perPage;
         const orderByField = sort === 'pushed' ? 'pushedAt' : 'name';
-
-        const headersList = await headers();
-        const baseUrl = getBaseUrl(headersList);
+        const baseUrl = env.AUTH_URL;
 
         const [repos, totalCount] = await Promise.all([
             prisma.repo.findMany({

@@ -31,7 +31,6 @@ import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLAS
 import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
 import { ApiKeyPayload, TenancyMode } from "./lib/types";
 import { withAuthV2, withOptionalAuthV2 } from "./withAuthV2";
-import { getBaseUrl } from "./lib/utils.server";
 import { getBrowsePath } from "./app/[domain]/browse/hooks/utils";
 
 const logger = createLogger('web-actions');
@@ -478,8 +477,7 @@ export const getRepos = async ({
             take,
         });
         
-        const headersList = await headers();
-        const baseUrl = getBaseUrl(headersList);
+        const baseUrl = env.AUTH_URL;
 
         return repos.map((repo) => repositoryQuerySchema.parse({
             codeHostType: repo.external_codeHostType,
