@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.24] - 2026-02-03
+
 ### Fixed
 - Fixed issue where external links would use internal service DNS names in k8s deployments, making them inaccessible. [#844](https://github.com/sourcebot-dev/sourcebot/pull/844)
 
