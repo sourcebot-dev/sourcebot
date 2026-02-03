@@ -17,7 +17,7 @@ import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
 import { getPlan, hasEntitlement } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { createTransport } from "nodemailer";
 import { Octokit } from "octokit";
 import { auth } from "./auth";
@@ -891,7 +891,6 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
 
             // Send invites to recipients
             if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
-                const origin = (await headers()).get('origin')!;
                 await Promise.all(emails.map(async (email) => {
                     const invite = await prisma.invite.findUnique({
                         where: {
@@ -914,7 +913,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                             email,
                         },
                     });
-                    const inviteLink = `${origin}/redeem?invite_id=${invite.id}`;
+                    const inviteLink = `${env.AUTH_URL}/redeem?invite_id=${invite.id}`;
                     const transport = createTransport(env.SMTP_CONNECTION_URL);
                     const html = await render(InviteUserEmail({
                         host: {
@@ -1583,10 +1582,8 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
 
             // Send approval email to the user
             if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
-                const origin = (await headers()).get('origin')!;
-
                 const html = await render(JoinRequestApprovedEmail({
-                    baseUrl: origin,
+                    baseUrl: env.AUTH_URL,
                     user: {
                         name: request.requestedBy.name ?? undefined,
                         email: request.requestedBy.email!,
