@@ -1,5 +1,6 @@
 import { createInviteLink } from "@/lib/utils"
 import { AnonymousAccessToggle } from "./anonymousAccessToggle"
+import { UpgradeToastToggle } from "./upgradeToastToggle"
 import { OrganizationAccessSettingsWrapper } from "./organizationAccessSettingsWrapper"
 import { getOrgFromDomain } from "@/data/org"
 import { getOrgMetadata } from "@/lib/utils"
@@ -14,6 +15,7 @@ export async function OrganizationAccessSettings() {
 
     const metadata = getOrgMetadata(org);
     const anonymousAccessEnabled = metadata?.anonymousAccessEnabled ?? false;
+    const upgradeToastEnabled = metadata?.upgradeToastEnabled ?? true;
 
     const baseUrl = env.AUTH_URL;
     const inviteLink = createInviteLink(baseUrl, org.inviteLinkId)
@@ -35,6 +37,11 @@ export async function OrganizationAccessSettings() {
                 inviteLinkEnabled={org.inviteLinkEnabled}
                 inviteLink={inviteLink}
             />
+
+            <UpgradeToastToggle
+                upgradeToastEnabled={upgradeToastEnabled}
+            />
+
         </div>
     )
 }
