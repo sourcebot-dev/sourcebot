@@ -12,6 +12,43 @@ import { fetchWithRetry, measure } from "./utils.js";
 
 export const GITHUB_CLOUD_HOSTNAME = "github.com";
 
+/**
+ * GitHub token types and their prefixes.
+ * @see https://github.blog/2021-04-05-behind-githubs-new-authentication-token-formats/
+ */
+export type GitHubTokenType =
+    | 'classic_pat'      // ghp_ - Personal Access Token (classic)
+    | 'oauth_user'       // gho_ - OAuth App user token
+    | 'app_user'         // ghu_ - GitHub App user token
+    | 'app_installation' // ghs_ - GitHub App installation token
+    | 'fine_grained_pat' // github_pat_ - Fine-grained PAT
+    | 'unknown';
+
+/**
+ * Token types that support scope introspection via x-oauth-scopes header.
+ */
+export const SCOPE_INTROSPECTABLE_TOKEN_TYPES: GitHubTokenType[] = ['classic_pat', 'oauth_user'];
+
+/**
+ * Detects the GitHub token type based on its prefix.
+ * @see https://github.blog/2021-04-05-behind-githubs-new-authentication-token-formats/
+ */
+export const detectGitHubTokenType = (token: string): GitHubTokenType => {
+    if (token.startsWith('ghp_')) return 'classic_pat';
+    if (token.startsWith('gho_')) return 'oauth_user';
+    if (token.startsWith('ghu_')) return 'app_user';
+    if (token.startsWith('ghs_')) return 'app_installation';
+    if (token.startsWith('github_pat_')) return 'fine_grained_pat';
+    return 'unknown';
+};
+
+/**
+ * Checks if a token type supports OAuth scope introspection via x-oauth-scopes header.
+ */
+export const supportsOAuthScopeIntrospection = (tokenType: GitHubTokenType): boolean => {
+    return SCOPE_INTROSPECTABLE_TOKEN_TYPES.includes(tokenType);
+};
+
 // Limit concurrent GitHub requests to avoid hitting rate limits and overwhelming installations.
 const MAX_CONCURRENT_GITHUB_QUERIES = 5;
 const githubQueryLimit = pLimit(MAX_CONCURRENT_GITHUB_QUERIES);
@@ -182,6 +219,10 @@ export const getRepoCollaborators = async (owner: string, repo: string, octokit:
     }
 }
 
+/**
+ * Lists repositories that the authenticated user has explicit permission (:read, :write, or :admin) to access.
+ * @see: https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-the-authenticated-user
+ */
 export const getReposForAuthenticatedUser = async (visibility: 'all' | 'private' | 'public' = 'all', octokit: Octokit) => {
     try {
         const fetchFn = () => octokit.paginate(octokit.repos.listForAuthenticatedUser, {
@@ -198,9 +239,30 @@ export const getReposForAuthenticatedUser = async (visibility: 'all' | 'private'
     }
 }
 
-// Gets oauth scopes
-// @see: https://github.com/octokit/auth-token.js/?tab=readme-ov-file#find-out-what-scopes-are-enabled-for-oauth-tokens
-export const getOAuthScopesForAuthenticatedUser = async (octokit: Octokit) => {
+/**
+ * Gets OAuth scopes for a GitHub token.
+ *
+ * Returns `null` for token types that don't support scope introspection:
+ * - GitHub App user tokens (ghu_)
+ * - GitHub App installation tokens (ghs_)
+ * - Fine-grained PATs (github_pat_)
+ *
+ * Returns scope array for tokens that support introspection:
+ * - Classic PATs (ghp_)
+ * - OAuth App user tokens (gho_)
+ *
+ * @see https://github.com/octokit/auth-token.js/?tab=readme-ov-file#find-out-what-scopes-are-enabled-for-oauth-tokens
+ * @see https://github.blog/2021-04-05-behind-githubs-new-authentication-token-formats/
+ */
+export const getOAuthScopesForAuthenticatedUser = async (octokit: Octokit, token?: string): Promise<string[] | null> => {
+    // If token is provided, check if it supports scope introspection
+    if (token) {
+        const tokenType = detectGitHubTokenType(token);
+        if (!supportsOAuthScopeIntrospection(tokenType)) {
+            return null;
+        }
+    }
+
     try {
         const response = await octokit.request("HEAD /");
         const scopes = response.headers["x-oauth-scopes"]?.split(/,\s+/) || [];
