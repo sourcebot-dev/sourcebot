@@ -1,0 +1,125 @@
+---
+title: Connected Accounts
+sidebarTitle: Connected accounts
+---
+
+import LicenseKeyRequired from '/snippets/license-key-required.mdx'
+
+<LicenseKeyRequired />
+
+Connected accounts allow users to link external service accounts (like GitHub or GitLab) to their Sourcebot account **after** signing in. This is primarily used for [permission syncing](/docs/features/permission-syncing) when your SSO provider is different from your code host.
+
+## When Do You Need This?
+
+| Your login method | Your code host | Do you need connected accounts? |
+|-------------------|----------------|--------------------------------|
+| GitHub | GitHub | No — permission syncing works automatically |
+| GitLab | GitLab | No — permission syncing works automatically |
+| Okta, Google, etc. | GitHub | **Yes** — users must link their GitHub account |
+| Okta, Google, etc. | GitLab | **Yes** — users must link their GitLab account |
+
+## How It Works
+
+1. User signs in to Sourcebot with your primary SSO provider (e.g., Okta)
+2. User is prompted to connect their GitHub/GitLab account
+3. User authorizes the connection via OAuth
+4. Sourcebot can now sync permissions from GitHub/GitLab for that user
+
+## Configuration
+
+To set up a connected account provider, add it to your `identityProviders` array with `"purpose": "account_linking"`:
+
+```json
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "identityProviders": [
+        {
+            "provider": "okta",
+            "purpose": "sso",
+            "clientId": { "env": "OKTA_CLIENT_ID" },
+            "clientSecret": { "env": "OKTA_CLIENT_SECRET" },
+            "issuer": { "env": "OKTA_ISSUER" }
+        },
+        {
+            "provider": "github",
+            "purpose": "account_linking",
+            "accountLinkingRequired": true,
+            "clientId": { "env": "GITHUB_CLIENT_ID" },
+            "clientSecret": { "env": "GITHUB_CLIENT_SECRET" }
+        }
+    ]
+}
+```
+
+### Configuration Options
+
+| Field | Description |
+|-------|-------------|
+| `purpose` | Set to `"account_linking"` — this provider will NOT appear on the login screen |
+| `accountLinkingRequired` | If `true`, users must connect this account before using Sourcebot. If `false`, connecting is optional. |
+
+## Setup Instructions
+
+The OAuth setup for connected accounts is the same as for SSO. Follow the setup instructions for your provider:
+
+- [GitHub setup](/docs/configuration/auth/sso#github)
+- [GitLab setup](/docs/configuration/auth/sso#gitlab)
+
+<Note>
+Make sure to request the necessary OAuth scopes for permission syncing:
+- **GitHub:** The OAuth app needs access to list repositories
+- **GitLab:** Enable the `read_api` scope
+</Note>
+
+## Example: Okta SSO with GitHub Permission Syncing
+
+This configuration uses Okta for login and requires users to connect their GitHub account for permission syncing:
+
+```json
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "identityProviders": [
+        {
+            "provider": "okta",
+            "purpose": "sso",
+            "clientId": { "env": "OKTA_CLIENT_ID" },
+            "clientSecret": { "env": "OKTA_CLIENT_SECRET" },
+            "issuer": { "env": "OKTA_ISSUER" }
+        },
+        {
+            "provider": "github",
+            "purpose": "account_linking",
+            "accountLinkingRequired": true,
+            "clientId": { "env": "GITHUB_CLIENT_ID" },
+            "clientSecret": { "env": "GITHUB_CLIENT_SECRET" }
+        }
+    ]
+}
+```
+
+## Example: Google SSO with GitLab Permission Syncing
+
+This configuration uses Google for login and requires users to connect their GitLab account:
+
+```json
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "identityProviders": [
+        {
+            "provider": "google",
+            "purpose": "sso",
+            "clientId": { "env": "GOOGLE_CLIENT_ID" },
+            "clientSecret": { "env": "GOOGLE_CLIENT_SECRET" }
+        },
+        {
+            "provider": "gitlab",
+            "purpose": "account_linking",
+            "accountLinkingRequired": true,
+            "clientId": { "env": "GITLAB_CLIENT_ID" },
+            "clientSecret": { "env": "GITLAB_CLIENT_SECRET" },
+            // Optional: for self-hosted GitLab
+            "baseUrl": "https://gitlab.example.com"
+        }
+    ]
+}
+```

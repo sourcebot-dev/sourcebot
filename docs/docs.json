@@ -85,12 +85,13 @@
                                 ]
                             },
                             "docs/configuration/language-model-providers",
-                            "docs/configuration/idp",
                             {
                                 "group": "Authentication",
                                 "pages": [
                                     "docs/configuration/auth/overview",
-                                    "docs/configuration/auth/providers",
+                                    "docs/configuration/auth/email",
+                                    "docs/configuration/auth/sso",
+                                    "docs/configuration/auth/connected-accounts",
                                     "docs/configuration/auth/access-settings",
                                     "docs/configuration/auth/roles-and-permissions",
                                     "docs/configuration/auth/faq"

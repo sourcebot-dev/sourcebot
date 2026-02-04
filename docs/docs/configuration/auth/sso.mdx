@@ -1,0 +1,335 @@
+---
+title: Single Sign-On (SSO)
+sidebarTitle: SSO
+---
+
+import LicenseKeyRequired from '/snippets/license-key-required.mdx'
+
+<LicenseKeyRequired />
+
+Sourcebot supports single sign-on (SSO) with various identity providers, allowing users to sign in with their existing accounts.
+
+## Quick Start
+
+SSO providers are configured in the [config file](/docs/configuration/config-file) under the `identityProviders` array:
+
+```json
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "identityProviders": [
+        {
+            "provider": "google",
+            "purpose": "sso",
+            "clientId": { "env": "GOOGLE_CLIENT_ID" },
+            "clientSecret": { "env": "GOOGLE_CLIENT_SECRET" }
+        }
+    ]
+}
+```
+
+Secret values (such as `clientId` and `clientSecret`) can be provided as environment variables or Google Cloud secrets via [tokens](/docs/configuration/config-file#tokens).
+
+<Note>
+**Using GitHub or GitLab for SSO?** If you also want [permission syncing](/docs/features/permission-syncing), it works automatically—no additional configuration needed.
+</Note>
+
+## Supported Providers
+
+| Provider | Permission Syncing Support |
+|----------|---------------------------|
+| [GitHub](#github) | ✅ |
+| [GitLab](#gitlab) | ✅ |
+| [Google](#google) | — |
+| [Okta](#okta) | — |
+| [Microsoft Entra ID](#microsoft-entra-id) | — |
+| [Keycloak](#keycloak) | — |
+| [Authentik](#authentik) | — |
+
+If there's a provider you'd like us to support, please submit a [feature request](https://github.com/sourcebot-dev/sourcebot/issues).
+
+---
+
+## GitHub
+
+[Auth.js GitHub Provider Docs](https://authjs.dev/getting-started/providers/github)
+
+<Accordion title="Setup instructions">
+<Steps>
+    <Step title="Register an OAuth Client">
+        Register an OAuth client in GitHub. You can create a **GitHub App** ([recommended](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/differences-between-github-apps-and-oauth-apps)) or a **GitHub OAuth App**.
+
+        <Tabs>
+        <Tab title="GitHub App">
+            <Note>You don't need to install the app to use it for authentication.</Note>
+            Follow [this guide](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app) to register a new GitHub App.
+
+            - **Callback URL:** `<sourcebot_url>/api/auth/callback/github`
+            - **Permissions:**
+                - `"Email addresses" account permissions (read)`
+                - `"Metadata" repository permissions (read)` — only needed for [permission syncing](/docs/features/permission-syncing)
+        </Tab>
+        <Tab title="GitHub OAuth App">
+            Follow [this guide](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) to create an OAuth App.
+
+            - **Callback URL:** `<sourcebot_url>/api/auth/callback/github`
+        </Tab>
+        </Tabs>
+    </Step>
+    <Step title="Set environment variables">
+        Set the client ID and secret as environment variables (e.g., `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`).
+    </Step>
+    <Step title="Configure the identity provider">
+        Add the provider to your config file:
+
+        ```json
+        {
+            "identityProviders": [
+                {
+                    "provider": "github",
+                    "purpose": "sso",
+                    "clientId": { "env": "GITHUB_CLIENT_ID" },
+                    "clientSecret": { "env": "GITHUB_CLIENT_SECRET" }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+---
+
+## GitLab
+
+[Auth.js GitLab Provider Docs](https://authjs.dev/getting-started/providers/gitlab)
+
+<Accordion title="Setup instructions">
+<Steps>
+    <Step title="Register an OAuth Application">
+        Follow [this guide](https://docs.gitlab.com/integration/oauth_provider/) to create an OAuth application.
+
+        - **Callback URL:** `<sourcebot_url>/api/auth/callback/gitlab`
+        - **Scopes:**
+            - `read_user` — required
+            - `read_api` — only needed for [permission syncing](/docs/features/permission-syncing)
+    </Step>
+    <Step title="Set environment variables">
+        Set the application ID and secret as environment variables.
+    </Step>
+    <Step title="Configure the identity provider">
+        ```json
+        {
+            "identityProviders": [
+                {
+                    "provider": "gitlab",
+                    "purpose": "sso",
+                    "clientId": { "env": "GITLAB_CLIENT_ID" },
+                    "clientSecret": { "env": "GITLAB_CLIENT_SECRET" },
+                    // Optional: for self-hosted GitLab
+                    "baseUrl": "https://gitlab.example.com"
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+---
+
+## Google
+
+[Auth.js Google Provider Docs](https://authjs.dev/getting-started/providers/google)
+
+<Accordion title="Setup instructions">
+<Steps>
+    <Step title="Create OAuth credentials">
+        Follow [this guide](https://support.google.com/cloud/answer/6158849) to create OAuth 2.0 credentials in Google Cloud Console.
+
+        - **Application type:** Web application
+        - **Redirect URI:** `<sourcebot_url>/api/auth/callback/google`
+    </Step>
+    <Step title="Set environment variables">
+        Set the client ID and secret as environment variables.
+    </Step>
+    <Step title="Configure the identity provider">
+        ```json
+        {
+            "identityProviders": [
+                {
+                    "provider": "google",
+                    "purpose": "sso",
+                    "clientId": { "env": "GOOGLE_CLIENT_ID" },
+                    "clientSecret": { "env": "GOOGLE_CLIENT_SECRET" }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+---
+
+## Okta
+
+[Auth.js Okta Provider Docs](https://authjs.dev/getting-started/providers/okta)
+
+<Accordion title="Setup instructions">
+<Steps>
+    <Step title="Create an OAuth application">
+        Follow [this guide](https://developer.okta.com/docs/guides/implement-oauth-for-okta/main/) to create an OAuth application.
+
+        - **Application type:** Web Application
+        - **Redirect URI:** `<sourcebot_url>/api/auth/callback/okta`
+    </Step>
+    <Step title="Set environment variables">
+        Set the client ID, client secret, and issuer URL as environment variables.
+    </Step>
+    <Step title="Configure the identity provider">
+        ```json
+        {
+            "identityProviders": [
+                {
+                    "provider": "okta",
+                    "purpose": "sso",
+                    "clientId": { "env": "OKTA_CLIENT_ID" },
+                    "clientSecret": { "env": "OKTA_CLIENT_SECRET" },
+                    "issuer": { "env": "OKTA_ISSUER" }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+---
+
+## Microsoft Entra ID
+
+[Auth.js Microsoft Entra ID Provider Docs](https://authjs.dev/getting-started/providers/microsoft-entra-id)
+
+<Accordion title="Setup instructions">
+<Steps>
+    <Step title="Register an application">
+        Follow [this guide](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app) to register an application.
+
+        - **Platform:** Web
+        - **Redirect URI:** `<sourcebot_url>/api/auth/callback/microsoft-entra-id`
+        - Create a client secret under "Certificates & secrets"
+
+        The issuer URL format is: `https://login.microsoftonline.com/<TENANT_ID>/v2.0`
+    </Step>
+    <Step title="Set environment variables">
+        Set the client ID, client secret, and issuer URL as environment variables.
+    </Step>
+    <Step title="Configure the identity provider">
+        ```json
+        {
+            "identityProviders": [
+                {
+                    "provider": "microsoft-entra-id",
+                    "purpose": "sso",
+                    "clientId": { "env": "ENTRA_CLIENT_ID" },
+                    "clientSecret": { "env": "ENTRA_CLIENT_SECRET" },
+                    "issuer": { "env": "ENTRA_ISSUER" }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+---
+
+## Keycloak
+
+[Auth.js Keycloak Provider Docs](https://authjs.dev/getting-started/providers/keycloak)
+
+<Accordion title="Setup instructions">
+<Steps>
+    <Step title="Create an OpenID Connect client">
+        Follow [this guide](https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients) to create a client.
+
+        - **Client protocol:** openid-connect
+        - **Access type:** confidential
+        - **Redirect URI:** `<sourcebot_url>/api/auth/callback/keycloak`
+
+        The issuer URL format is: `https://<keycloak-domain>/realms/<realm-name>`
+    </Step>
+    <Step title="Set environment variables">
+        Set the client ID, client secret, and issuer URL as environment variables.
+    </Step>
+    <Step title="Configure the identity provider">
+        ```json
+        {
+            "identityProviders": [
+                {
+                    "provider": "keycloak",
+                    "purpose": "sso",
+                    "clientId": { "env": "KEYCLOAK_CLIENT_ID" },
+                    "clientSecret": { "env": "KEYCLOAK_CLIENT_SECRET" },
+                    "issuer": { "env": "KEYCLOAK_ISSUER" }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+---
+
+## Authentik
+
+[Auth.js Authentik Provider Docs](https://authjs.dev/getting-started/providers/authentik)
+
+<Accordion title="Setup instructions">
+<Steps>
+    <Step title="Create an OAuth2/OpenID Connect application">
+        Follow [this guide](https://docs.goauthentik.io/add-secure-apps/applications/manage_apps/#create-an-application-and-provider-pair) to create an application.
+
+        - **Provider type:** OAuth2/OpenID Connect
+        - **Client type:** Confidential
+        - **Redirect URI:** `<sourcebot_url>/api/auth/callback/authentik`
+
+        The issuer URL format is: `https://<authentik-domain>/application/o/<provider-slug>/`
+    </Step>
+    <Step title="Set environment variables">
+        Set the client ID, client secret, and issuer URL as environment variables.
+    </Step>
+    <Step title="Configure the identity provider">
+        ```json
+        {
+            "identityProviders": [
+                {
+                    "provider": "authentik",
+                    "purpose": "sso",
+                    "clientId": { "env": "AUTHENTIK_CLIENT_ID" },
+                    "clientSecret": { "env": "AUTHENTIK_CLIENT_SECRET" },
+                    "issuer": { "env": "AUTHENTIK_ISSUER" }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+---
+
+## Advanced: Multiple SSO Providers
+
+By default, if a user signs in with one SSO provider (e.g., Google), they cannot sign in with a different provider (e.g., Okta) using the same email address.
+
+To allow users to sign in with multiple SSO providers that share the same email, set:
+
+```bash
+AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING=true
+```
+
+<Warning>
+Only enable this if you trust all configured SSO providers. This setting allows any provider that returns a verified email to access the associated account.
+</Warning>

@@ -1,28 +1,54 @@
 ---
-title: Overview
+title: Authentication
+sidebarTitle: Overview
 ---
 
 <Warning>If you're deploying Sourcebot behind a domain, you must set the [AUTH_URL](/docs/configuration/environment-variables) environment variable.</Warning>
 
-Sourcebot's built-in authentication system gates your deployment, and allows administrators to manage users and their permissions. 
+Sourcebot's authentication system controls how users sign in to your deployment.
+
+## Choosing Your Authentication Method
+
+<AccordionGroup>
+<Accordion title="I want users to sign in with email/password">
+Email and password authentication is enabled by default. You can also enable [email codes](/docs/configuration/auth/email#email-codes) for passwordless login.
+</Accordion>
+
+<Accordion title="I want users to sign in with Google, Okta, or another SSO provider">
+Configure an [SSO provider](/docs/configuration/auth/sso). Sourcebot supports Google, Okta, Microsoft Entra ID, Keycloak, Authentik, and more.
+</Accordion>
+
+<Accordion title="I want users to sign in with GitHub or GitLab">
+Configure GitHub or GitLab as an [SSO provider](/docs/configuration/auth/sso). If you also want [permission syncing](/docs/features/permission-syncing), it will work automatically since users are already authenticated with that provider.
+</Accordion>
+
+<Accordion title="I use Okta/Google for SSO, but need GitHub/GitLab permission syncing">
+Configure your primary SSO provider for login, then set up GitHub/GitLab as a [connected account](/docs/configuration/auth/connected-accounts). Users will sign in with your SSO provider, then separately link their GitHub/GitLab account.
+</Accordion>
+</AccordionGroup>
 
 <CardGroup cols={2}>
-    <Card horizontal title="Authentication providers" icon="lock" href="/docs/configuration/auth/providers">
-        Configure additional authentication providers for your deployment.
+    <Card horizontal title="Email authentication" icon="envelope" href="/docs/configuration/auth/email">
+        Configure email/password and email code authentication.
+    </Card>
+    <Card horizontal title="SSO providers" icon="key" href="/docs/configuration/auth/sso">
+        Configure single sign-on with Google, Okta, GitHub, and more.
+    </Card>
+    <Card horizontal title="Connected accounts" icon="link" href="/docs/configuration/auth/connected-accounts">
+        Allow users to link external accounts for features like permission syncing.
     </Card>
     <Card horizontal title="Access settings" icon="user" href="/docs/configuration/auth/access-settings">
-        Learn how to configure how members join your deployment.
+        Configure how members join your deployment.
     </Card>
     <Card horizontal title="Roles and permissions" icon="shield" href="/docs/configuration/auth/roles-and-permissions">
-        Learn more about the different roles and permissions in Sourcebot.
+        Learn about different roles and permissions.
     </Card>
     <Card horizontal title="FAQ" icon="question" href="/docs/configuration/auth/faq">
-        Have a question about Sourcebot's auth system? We might have the answers here.
+        Common questions about authentication.
     </Card>
 </CardGroup>
 
-
-# Troubleshooting
+## Troubleshooting
 
 - If you experience issues logging in, logging out, or accessing an organization you should have access to, try clearing your cookies & performing a full page refresh (`Cmd/Ctrl + Shift + R` on most browsers).
 - Still not working? Reach out to us on our [discord](https://discord.gg/HDScTs3ptP) or [GitHub](https://github.com/sourcebot-dev/sourcebot/issues/new/choose)

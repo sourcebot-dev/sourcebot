@@ -1,0 +1,30 @@
+---
+title: Email Authentication
+sidebarTitle: Email
+---
+
+Sourcebot supports two forms of email-based authentication: traditional email/password and passwordless email codes.
+
+## Email / Password
+
+Email and password authentication is **enabled by default**. Users can sign up with an email address and password.
+
+To disable email/password authentication, set the following environment variable:
+
+```bash
+AUTH_CREDENTIALS_LOGIN_ENABLED=false
+```
+
+## Email Codes
+
+Email codes provide passwordless authentication by sending a 6-digit code to the user's email address.
+
+To enable email codes, you must configure [transactional emails](/docs/configuration/transactional-emails) with the following environment variables:
+
+| Variable | Description |
+|----------|-------------|
+| `AUTH_EMAIL_CODE_LOGIN_ENABLED` | Set to `true` to enable email code login |
+| `SMTP_CONNECTION_URL` | Your SMTP server connection string |
+| `EMAIL_FROM_ADDRESS` | The "from" address for authentication emails |
+
+See [transactional emails](/docs/configuration/transactional-emails) for detailed setup instructions.
