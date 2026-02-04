@@ -21,7 +21,7 @@ export function PermissionSyncBanner() {
             return data.hasPendingFirstSync;
         },
         refetchInterval: (query) => {
-            const hasPendingFirstSync = query.state.data;
+            const hasPendingFirstSync = query.state.data?.hasPendingFirstSync;
             // Keep polling while sync is in progress, stop when done
             return hasPendingFirstSync ? POLL_INTERVAL_MS : false;
         },

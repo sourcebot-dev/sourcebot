@@ -22,7 +22,7 @@ export const GET = apiHandler(async () => {
     if (!entitlements.includes('permission-syncing')) {
         return serviceErrorResponse({
             statusCode: StatusCodes.FORBIDDEN,
-            errorCode: ErrorCode.NOT_FOUND,
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
             message: "Permission syncing is not enabled for your license",
         });
     }
