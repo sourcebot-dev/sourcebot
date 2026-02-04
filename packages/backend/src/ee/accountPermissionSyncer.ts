@@ -179,9 +179,13 @@ export class AccountPermissionSyncer {
                     url: baseUrl,
                 });
 
-                const scopes = await getGitHubOAuthScopesForAuthenticatedUser(octokit);
-                if (!scopes.includes('repo')) {
-                    throw new Error(`OAuth token with scopes [${scopes.join(', ')}] is missing the 'repo' scope required for permission syncing.`);
+                const scopes = await getGitHubOAuthScopesForAuthenticatedUser(octokit, account.access_token);
+
+                // Token supports scope introspection (classic PAT or OAuth app token)
+                if (scopes !== null) {
+                    if (!scopes.includes('repo')) {
+                        throw new Error(`OAuth token with scopes [${scopes.join(', ')}] is missing the 'repo' scope required for permission syncing. Please re-authorize with GitHub to grant the required scope.`);
+                    }
                 }
 
                 // @note: we only care about the private repos since we don't need to build a mapping
