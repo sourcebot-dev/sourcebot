@@ -5,13 +5,11 @@ import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, 
 import { ErrorCode } from "@/lib/errorCodes";
 import { requestBodySchemaValidationError, ServiceError, ServiceErrorException, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { getBaseUrl } from "@/lib/utils.server";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { ChatVisibility, Prisma } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/shared";
+import { createLogger, env } from "@sourcebot/shared";
 import { randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
-import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createMessageStream } from "../route";
@@ -184,12 +182,11 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 : undefined;
             const answerText = answerPart?.text ?? '';
 
-            // Convert to portable markdown (replaces @file: references with markdown links)
-            const portableAnswer = convertLLMOutputToPortableMarkdown(answerText);
+            // Build the base URL and chat URL
+            const baseUrl = env.AUTH_URL;
 
-            // Build the chat URL
-            const headersList = await headers();
-            const baseUrl = getBaseUrl(headersList);
+            // Convert to portable markdown (replaces @file: references with markdown links)
+            const portableAnswer = convertLLMOutputToPortableMarkdown(answerText, baseUrl);
             const chatUrl = `${baseUrl}/${org.domain}/chat/${chat.id}`;
 
             logger.debug(`Completed blocking agent for chat ${chat.id}`, {
