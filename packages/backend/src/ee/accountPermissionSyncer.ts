@@ -179,15 +179,33 @@ export class AccountPermissionSyncer {
                     url: baseUrl,
                 });
 
-                const scopes = await getGitHubOAuthScopesForAuthenticatedUser(octokit);
-                if (!scopes.includes('repo')) {
-                    throw new Error(`OAuth token with scopes [${scopes.join(', ')}] is missing the 'repo' scope required for permission syncing.`);
+                const scopes = await getGitHubOAuthScopesForAuthenticatedUser(octokit, account.access_token);
+
+                // Token supports scope introspection (classic PAT or OAuth app token)
+                if (scopes !== null) {
+                    if (!scopes.includes('repo')) {
+                        throw new Error(`OAuth token with scopes [${scopes.join(', ')}] is missing the 'repo' scope required for permission syncing. Please re-authorize with GitHub to grant the required scope.`);
+                    }
                 }
 
                 // @note: we only care about the private repos since we don't need to build a mapping
                 // for public repos.
                 // @see: packages/web/src/prisma.ts
-                const githubRepos = await getReposForAuthenticatedUser(/* visibility = */ 'private', octokit);
+                let githubRepos;
+                try {
+                    githubRepos = await getReposForAuthenticatedUser(/* visibility = */ 'private', octokit);
+                } catch (error) {
+                    if (error && typeof error === 'object' && 'status' in error) {
+                        const status = (error as { status: number }).status;
+                        if (status === 401 || status === 403) {
+                            throw new Error(
+                                `GitHub API returned ${status} error. Your token may have expired or lacks the required permissions. ` +
+                                `Please re-authorize with GitHub to grant the necessary access.`
+                            );
+                        }
+                    }
+                    throw error;
+                }
                 const gitHubRepoIds = githubRepos.map(repo => repo.id.toString());
 
                 const repos = await this.db.repo.findMany({
