@@ -20,8 +20,6 @@ import { RepositoryInfo, SearchResponse, SearchResultFile, SearchStats, SourceRa
 import { captureEvent } from "@/lib/posthog";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
-import { headers } from "next/headers";
-import { getBaseUrl } from "@/lib/utils.server";
 
 const logger = createLogger("zoekt-searcher");
 
@@ -383,9 +381,6 @@ const transformZoektSearchResponse = async (response: ZoektGrpcSearchResponse, r
     files: SearchResultFile[],
     repositoryInfo: RepositoryInfo[],
 }> => {
-    const headersList = await headers();
-    const baseUrl = getBaseUrl(headersList);
-
     const files = response.files.map((file) => {
         const fileNameChunks = file.chunk_matches.filter((chunk) => chunk.file_name);
         const repoId = getRepoIdForFile(file);
@@ -431,7 +426,7 @@ const transformZoektSearchResponse = async (response: ZoektGrpcSearchResponse, r
             repository: repo.name,
             repositoryId: repo.id,
             language: file.language,
-            webUrl: `${baseUrl}${getBrowsePath({
+            webUrl: `${env.AUTH_URL}${getBrowsePath({
                 repoName: repo.name,
                 path: fileName,
                 pathType: 'blob',

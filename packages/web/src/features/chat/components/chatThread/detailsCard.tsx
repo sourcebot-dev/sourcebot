@@ -14,6 +14,7 @@ import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesT
 import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
 import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
 import { ListReposToolComponent } from './tools/listReposToolComponent';
+import { ListCommitsToolComponent } from './tools/listCommitsToolComponent';
 import { SBChatMessageMetadata, SBChatMessagePart } from '../../types';
 import { SearchScopeIcon } from '../searchScopeIcon';
 import isEqual from "fast-deep-equal/react";
@@ -186,6 +187,13 @@ const DetailsCardComponent = ({
                                             case 'tool-listRepos':
                                                 return (
                                                     <ListReposToolComponent
+                                                        key={index}
+                                                        part={part}
+                                                    />
+                                                )
+                                            case 'tool-listCommits':
+                                                return (
+                                                    <ListCommitsToolComponent
                                                         key={index}
                                                         part={part}
                                                     />

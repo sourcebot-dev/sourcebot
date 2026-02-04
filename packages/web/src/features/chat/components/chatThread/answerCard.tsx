@@ -51,7 +51,8 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
     );
 
     const onCopyAnswer = useCallback(() => {
-        const markdownText = convertLLMOutputToPortableMarkdown(answerText);
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+        const markdownText = convertLLMOutputToPortableMarkdown(answerText, baseUrl);
         navigator.clipboard.writeText(markdownText);
         toast({
             description: "✅ Copied to clipboard",
