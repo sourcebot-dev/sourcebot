@@ -32,7 +32,8 @@ export const RepoBranchesTable = ({ indexRevisions, repoWebUrl, repoCodeHostType
     const columns = React.useMemo<ColumnDef<string>[]>(() => {
         return [
             {
-                accessorKey: "refName",
+                id: "refName",
+                accessorFn: (row) => row,
                 header: "Revision",
                 cell: ({ row }) => {
                     const refName = row.original;
