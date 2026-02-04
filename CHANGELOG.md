@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed issue where file references in copied chat answers were relative paths instead of full browse URLs. [#847](https://github.com/sourcebot-dev/sourcebot/pull/847)
 - [EE] Fixed issue where account driven permission syncing would fail when attempting to authenticate with a GitHub App user token. [#850](https://github.com/sourcebot-dev/sourcebot/pull/850)
 
+### Added
+- [EE] Added `AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING` env var that, when enabled, will automatically link SSO accounts with the same email address. [#849](https://github.com/sourcebot-dev/sourcebot/pull/849)
+
 ## [4.10.24] - 2026-02-03
 
 ### Fixed
