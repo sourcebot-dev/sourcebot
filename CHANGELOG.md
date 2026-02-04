@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed issue where the branch filter in the repos detail page would not return any results. [#851](https://github.com/sourcebot-dev/sourcebot/pull/851)
+
 ## [4.10.25] - 2026-02-04
 
 ### Fixed
