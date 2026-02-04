@@ -1,0 +1,65 @@
+name: Sync Environment Variables Documentation
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'packages/shared/src/env.server.ts'
+      - 'docs/docs/configuration/environment-variables.mdx'
+
+jobs:
+  sync-env-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Run Claude to sync env docs
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          direct_prompt: |
+            You are checking if environment variable documentation is in sync with the code.
+
+            1. Read the file `packages/shared/src/env.server.ts` and extract all environment variables defined in the `createEnv({ server: { ... } })` block.
+
+            2. Read the file `docs/docs/configuration/environment-variables.mdx` and extract all documented environment variables from the markdown tables.
+
+            3. Compare the two lists and identify:
+               - Environment variables that exist in the code but are NOT documented
+               - Environment variables that are documented but NO LONGER exist in the code
+
+            4. Skip internal/non-user-facing variables that shouldn't be documented:
+               - ZOEKT_WEBSERVER_URL, NODE_ENV, POSTHOG_PAPIK
+               - STRIPE_*, LOGTAIL_*, DEBUG_*, LANGFUSE_*
+               - SOURCEBOT_TENANCY_MODE, SECURITY_CARD_ENABLED
+               - EXPERIMENT_* (except EXPERIMENT_EE_PERMISSION_SYNC_ENABLED)
+               - FALLBACK_*_TOKEN, SOURCEBOT_INSTALL_ID
+               - SOURCEBOT_CHAT_*, CONNECTION_MANAGER_*
+               - AI provider keys (ANTHROPIC_*, AZURE_*, DEEPSEEK_*, OPENROUTER_*, XAI_*, MISTRAL_*, GOOGLE_*, AWS_*) except OPENAI_API_KEY which is documented for review agent
+
+            5. If there are discrepancies:
+               - For missing docs: Add the variable to the appropriate section (Core, Enterprise, or Review Agent) in the markdown table. Use the variable's default value and any `.describe()` text for the description. If no description exists, write a brief one.
+               - For removed variables: Remove the row from the documentation.
+               - Enterprise variables start with AUTH_EE_, SOURCEBOT_EE_, or EXPERIMENT_EE_
+               - Review Agent variables contain REVIEW_AGENT or are GITHUB_REVIEW_AGENT_*
+
+            6. If you made changes, commit them with the message: "docs: sync environment variables documentation"
+
+            7. If no changes are needed, just report that the documentation is already in sync.
+
+            IMPORTANT: Only modify the docs file if there are actual discrepancies. Do not reformat or reorganize existing content.
+          allowed_tools: |
+            Read
+            Edit
+            Bash(git status)
+            Bash(git add)
+            Bash(git commit)
+            Bash(git diff)
