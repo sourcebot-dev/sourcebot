@@ -126,6 +126,9 @@ export class RepoPermissionSyncer {
             data: repos.map(repo => ({
                 repoId: repo.id,
             })),
+            include: {
+                repo: true,
+            }
         });
 
         await this.queue.addBulk(jobs.map((job) => ({
@@ -136,6 +139,8 @@ export class RepoPermissionSyncer {
             opts: {
                 removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
                 removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+                // Priority 1 (high) for never-synced, Priority 2 (normal) for re-sync
+                priority: job.repo.permissionSyncedAt === null ? 1 : 2,
             }
         })))
     }

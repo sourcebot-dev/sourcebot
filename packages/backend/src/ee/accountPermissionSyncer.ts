@@ -122,6 +122,9 @@ export class AccountPermissionSyncer {
             data: accounts.map(account => ({
                 accountId: account.id,
             })),
+            include: {
+                account: true,
+            }
         });
 
         await this.queue.addBulk(jobs.map((job) => ({
@@ -132,6 +135,8 @@ export class AccountPermissionSyncer {
             opts: {
                 removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
                 removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+                // Priority 1 (high) for never-synced, Priority 2 (normal) for re-sync
+                priority: job.account.permissionSyncedAt === null ? 1 : 2,
             }
         })))
     }
