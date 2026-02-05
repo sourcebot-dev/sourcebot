@@ -247,16 +247,15 @@ export class AccountPermissionSyncer {
                     throw new Error(`OAuth token with scopes [${scopes.join(', ')}] is missing the 'read_api' scope required for permission syncing.`);
                 }
 
-                // @note: we only care about the private and internal repos since we don't need to build a mapping
-                // for public repos.
+                // @note: we only care about the private repos since we don't need to build a
+                // mapping for public or internal repos. Note that internal repos are _not_
+                // enforced by permission syncing and therefore we don't need to fetch them
+                // here.
+                // 
                 // @see: packages/web/src/prisma.ts
-                const privateGitLabProjects = await getProjectsForAuthenticatedUser('private', api);
-                const internalGitLabProjects = await getProjectsForAuthenticatedUser('internal', api);
-
-                const gitLabProjectIds = [
-                    ...privateGitLabProjects,
-                    ...internalGitLabProjects,
-                ].map(project => project.id.toString());
+                const gitLabProjectIds = (
+                    await getProjectsForAuthenticatedUser('private', api)
+                ).map(project => project.id.toString());
 
                 const repos = await this.db.repo.findMany({
                     where: {
