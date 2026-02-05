@@ -19,6 +19,7 @@ import {
     FileSourceRequest,
     FileSourceResponse,
 } from "@/features/git";
+import { PermissionSyncStatusResponse } from "../(server)/ee/permissionSyncStatus/route";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -123,4 +124,14 @@ export const getFiles = async (body: GetFilesRequest): Promise<GetFilesResponse 
         body: JSON.stringify(body),
     }).then(response => response.json());
     return result as GetFilesResponse | ServiceError;
+}
+
+export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusResponse | ServiceError> => {
+    const result = await fetch("/api/ee/permissionSyncStatus", {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    }).then(response => response.json());
+    return result as PermissionSyncStatusResponse | ServiceError;
 }

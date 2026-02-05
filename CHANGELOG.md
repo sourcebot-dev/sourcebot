@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [EE] Added notification banner when an account's permissions are being synced for the first time. [#852](https://github.com/sourcebot-dev/sourcebot/pull/852)
+
 ### Fixed
 - Fixed issue where the branch filter in the repos detail page would not return any results. [#851](https://github.com/sourcebot-dev/sourcebot/pull/851)
 - Fixed token refresh error "Provider config not found or invalid for: x" when a sso is configured using deprecated env vars. [#841](https://github.com/sourcebot-dev/sourcebot/pull/841)
