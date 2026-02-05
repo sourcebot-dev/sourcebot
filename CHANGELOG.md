@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.26] - 2026-02-05
+
 ### Added
 - [EE] Added notification banner when an account's permissions are being synced for the first time. [#852](https://github.com/sourcebot-dev/sourcebot/pull/852)
 
