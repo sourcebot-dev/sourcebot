@@ -167,7 +167,7 @@ export class AccountPermissionSyncer {
         logger.info(`Syncing permissions for ${account.provider} account (id: ${account.id}) for user ${account.user.email}...`);
 
         // Decrypt tokens (stored encrypted in the database)
-        const accessToken = decryptOAuthToken(account.access_token, env.AUTH_SECRET);
+        const accessToken = decryptOAuthToken(account.access_token);
 
         // Get a list of all repos that the user has access to from all connected accounts.
         const repoIds = await (async () => {

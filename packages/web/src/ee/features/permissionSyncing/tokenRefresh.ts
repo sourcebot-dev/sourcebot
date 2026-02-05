@@ -42,8 +42,8 @@ export async function refreshLinkedAccountTokens(
                                 }
                             },
                             data: {
-                                access_token: encryptOAuthToken(refreshedTokens.accessToken, env.AUTH_SECRET),
-                                refresh_token: encryptOAuthToken(refreshedTokens.refreshToken, env.AUTH_SECRET),
+                                access_token: encryptOAuthToken(refreshedTokens.accessToken),
+                                refresh_token: encryptOAuthToken(refreshedTokens.refreshToken),
                                 expires_at: refreshedTokens.expiresAt,
                             },
                         });
