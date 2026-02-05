@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- [EE] Fixed issue where internal GitLab projects were not visibile in Sourcebot when permission syncing is enabled. [#857](https://github.com/sourcebot-dev/sourcebot/pull/857)
+- [EE] Fixed issue where internal GitLab projects were not visible in Sourcebot when permission syncing is enabled. [#857](https://github.com/sourcebot-dev/sourcebot/pull/857)
 
 ## [4.10.26] - 2026-02-05
 
