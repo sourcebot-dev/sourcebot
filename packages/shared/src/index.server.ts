@@ -44,6 +44,8 @@ export {
     hashSecret,
     generateApiKey,
     verifySignature,
+    encryptOAuthToken,
+    decryptOAuthToken,
 } from "./crypto.js";
 export {
     getDBConnectionString,

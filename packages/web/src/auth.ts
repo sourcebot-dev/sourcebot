@@ -2,7 +2,6 @@ import 'next-auth/jwt';
 import NextAuth, { DefaultSession, User as AuthJsUser } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/nodemailer";
-import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
 import { env } from "@sourcebot/shared";
 import { User } from '@sourcebot/db';
@@ -19,6 +18,7 @@ import { onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
 import { refreshLinkedAccountTokens } from '@/ee/features/permissionSyncing/tokenRefresh';
+import { EncryptedPrismaAdapter, encryptAccountData } from '@/lib/encryptedPrismaAdapter';
 
 const auditService = getAuditService();
 const eeIdentityProviders = hasEntitlement("sso") ? await getEEIdentityProviders() : [];
@@ -153,7 +153,7 @@ export const getProviders = () => {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     secret: env.AUTH_SECRET,
-    adapter: PrismaAdapter(prisma),
+    adapter: EncryptedPrismaAdapter(prisma),
     session: {
         strategy: "jwt",
     },
@@ -164,6 +164,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // Explicitly update the Account record with the OAuth token details.
             // This is necessary to update the access token when the user
             // re-authenticates.
+            // NOTE: Tokens are encrypted before storage for security
             if (account && account.provider && account.provider !== 'credentials' && account.providerAccountId) {
                 await prisma.account.update({
                     where: {
@@ -172,14 +173,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                             providerAccountId: account.providerAccountId,
                         },
                     },
-                    data: {
+                    data: encryptAccountData({
                         refresh_token: account.refresh_token,
                         access_token: account.access_token,
                         expires_at: account.expires_at,
                         token_type: account.token_type,
                         scope: account.scope,
                         id_token: account.id_token,
-                    }
+                    })
                 })
             }
 

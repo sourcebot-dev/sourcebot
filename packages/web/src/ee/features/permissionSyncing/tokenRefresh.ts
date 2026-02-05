@@ -1,5 +1,5 @@
 import { loadConfig } from "@sourcebot/shared";
-import { getTokenFromConfig, createLogger, env } from "@sourcebot/shared";
+import { getTokenFromConfig, createLogger, env, encryptOAuthToken } from "@sourcebot/shared";
 import { GitHubIdentityProviderConfig, GitLabIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
 import { LinkedAccountTokensMap } from "@/auth"
 const { prisma } = await import('@/prisma');
@@ -42,8 +42,8 @@ export async function refreshLinkedAccountTokens(
                                 }
                             },
                             data: {
-                                access_token: refreshedTokens.accessToken,
-                                refresh_token: refreshedTokens.refreshToken,
+                                access_token: encryptOAuthToken(refreshedTokens.accessToken, env.AUTH_SECRET),
+                                refresh_token: encryptOAuthToken(refreshedTokens.refreshToken, env.AUTH_SECRET),
                                 expires_at: refreshedTokens.expiresAt,
                             },
                         });
