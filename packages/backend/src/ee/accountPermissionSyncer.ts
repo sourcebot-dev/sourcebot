@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/node";
 import { PrismaClient, AccountPermissionSyncJobStatus, Account} from "@sourcebot/db";
-import { env, hasEntitlement, createLogger, loadConfig } from "@sourcebot/shared";
+import { env, hasEntitlement, createLogger, loadConfig, decryptOAuthToken } from "@sourcebot/shared";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
@@ -166,12 +166,15 @@ export class AccountPermissionSyncer {
 
         logger.info(`Syncing permissions for ${account.provider} account (id: ${account.id}) for user ${account.user.email}...`);
 
+        // Decrypt tokens (stored encrypted in the database)
+        const accessToken = decryptOAuthToken(account.access_token);
+
         // Get a list of all repos that the user has access to from all connected accounts.
         const repoIds = await (async () => {
             const aggregatedRepoIds: Set<number> = new Set();
 
             if (account.provider === 'github') {
-                if (!account.access_token) {
+                if (!accessToken) {
                     throw new Error(`User '${account.user.email}' does not have an GitHub OAuth access token associated with their GitHub account. Please re-authenticate with GitHub to refresh the token.`);
                 }
 
@@ -181,11 +184,11 @@ export class AccountPermissionSyncer {
                     .find(connection => connection.type === 'github')?.url;
 
                 const { octokit } = await createOctokitFromToken({
-                    token: account.access_token,
+                    token: accessToken,
                     url: baseUrl,
                 });
 
-                const scopes = await getGitHubOAuthScopesForAuthenticatedUser(octokit, account.access_token);
+                const scopes = await getGitHubOAuthScopesForAuthenticatedUser(octokit, accessToken);
 
                 // Token supports scope introspection (classic PAT or OAuth app token)
                 if (scopes !== null) {
@@ -225,7 +228,7 @@ export class AccountPermissionSyncer {
 
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
             } else if (account.provider === 'gitlab') {
-                if (!account.access_token) {
+                if (!accessToken) {
                     throw new Error(`User '${account.user.email}' does not have a GitLab OAuth access token associated with their GitLab account. Please re-authenticate with GitLab to refresh the token.`);
                 }
 
@@ -235,7 +238,7 @@ export class AccountPermissionSyncer {
                     .find(connection => connection.type === 'gitlab')?.url
 
                 const api = await createGitLabFromOAuthToken({
-                    oauthToken: account.access_token,
+                    oauthToken: accessToken,
                     url: baseUrl,
                 });
 

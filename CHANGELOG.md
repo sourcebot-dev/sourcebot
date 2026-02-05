@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Changed the queuing behaviour for permission syncing to prioritize newly created accounts & repos. [#856](https://github.com/sourcebot-dev/sourcebot/pull/856)
+- Changed auth behaviour to store OAuth tokens, refresh tokens, and id tokens encrypted at rest in the database. [#853](https://github.com/sourcebot-dev/sourcebot/pull/853)
+- Changed refresh token behaviour to source provider tokens from the DB rather than storing them in the JWT token. [#853](https://github.com/sourcebot-dev/sourcebot/pull/853)
 
 ## [4.10.25] - 2026-02-04
 
