@@ -17,3 +17,15 @@ To build a specific package:
 ```bash
 yarn workspace @sourcebot/<package-name> build
 ```
+
+## Tailwind CSS
+
+Use Tailwind color classes directly instead of CSS variable syntax:
+
+```tsx
+// Correct
+className="border-border bg-card text-foreground text-muted-foreground bg-muted bg-secondary"
+
+// Incorrect
+className="border-[var(--border)] bg-[var(--card)] text-[var(--foreground)]"
+```
