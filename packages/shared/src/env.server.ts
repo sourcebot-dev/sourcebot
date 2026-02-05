@@ -134,6 +134,7 @@ export const env = createEnv({
         
         // Auth
         FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
+        REQUIRE_APPROVAL_NEW_MEMBERS: booleanSchema.optional(),
         AUTH_SECRET: z.string(),
         AUTH_URL: z.string().url(),
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
