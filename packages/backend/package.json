@@ -46,6 +46,7 @@
         "gitea-js": "^1.22.0",
         "glob": "^11.1.0",
         "groupmq": "^1.0.0",
+        "http-status-codes": "^2.3.0",
         "ioredis": "^5.4.2",
         "lowdb": "^7.0.1",
         "micromatch": "^4.0.8",

@@ -1,4 +1,5 @@
 import { Octokit } from "@octokit/rest";
+import { RequestError } from "@octokit/request-error";
 import * as Sentry from "@sentry/node";
 import { getTokenFromConfig } from "@sourcebot/shared";
 import { createLogger } from "@sourcebot/shared";
@@ -47,6 +48,20 @@ export const detectGitHubTokenType = (token: string): GitHubTokenType => {
  */
 export const supportsOAuthScopeIntrospection = (tokenType: GitHubTokenType): boolean => {
     return SCOPE_INTROSPECTABLE_TOKEN_TYPES.includes(tokenType);
+};
+
+/**
+ * Type guard to check if an error is an Octokit RequestError.
+ */
+export const isOctokitRequestError = (error: unknown): error is RequestError => {
+    return (
+        error !== null &&
+        typeof error === 'object' &&
+        'status' in error &&
+        typeof error.status === 'number' &&
+        'name' in error &&
+        error.name === 'HttpError'
+    );
 };
 
 // Limit concurrent GitHub requests to avoid hitting rate limits and overwhelming installations.
