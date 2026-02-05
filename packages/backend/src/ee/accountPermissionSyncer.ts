@@ -22,6 +22,7 @@ const logger = createLogger(LOG_TAG);
 const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}`);
 
 const QUEUE_NAME = 'accountPermissionSyncQueue';
+const POLLING_INTERVAL_MS = 1000;
 
 type AccountPermissionSyncJob = {
     jobId: string;
@@ -103,7 +104,7 @@ export class AccountPermissionSyncer {
             });
 
             await this.schedulePermissionSync(accounts);
-        }, 1000 * 5);
+        }, POLLING_INTERVAL_MS);
     }
 
     public async dispose() {
@@ -122,6 +123,9 @@ export class AccountPermissionSyncer {
             data: accounts.map(account => ({
                 accountId: account.id,
             })),
+            include: {
+                account: true,
+            }
         });
 
         await this.queue.addBulk(jobs.map((job) => ({
@@ -132,6 +136,8 @@ export class AccountPermissionSyncer {
             opts: {
                 removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
                 removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+                // Priority 1 (high) for never-synced, Priority 2 (normal) for re-sync
+                priority: job.account.permissionSyncedAt === null ? 1 : 2,
             }
         })))
     }
