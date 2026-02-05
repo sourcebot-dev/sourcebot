@@ -22,6 +22,7 @@ const logger = createLogger(LOG_TAG);
 const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}`);
 
 const QUEUE_NAME = 'accountPermissionSyncQueue';
+const POLLING_INTERVAL_MS = 1000;
 
 type AccountPermissionSyncJob = {
     jobId: string;
@@ -103,7 +104,7 @@ export class AccountPermissionSyncer {
             });
 
             await this.schedulePermissionSync(accounts);
-        }, 1000 * 5);
+        }, POLLING_INTERVAL_MS);
     }
 
     public async dispose() {

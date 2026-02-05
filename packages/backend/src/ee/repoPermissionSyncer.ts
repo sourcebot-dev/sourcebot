@@ -15,8 +15,9 @@ type RepoPermissionSyncJob = {
 }
 
 const QUEUE_NAME = 'repoPermissionSyncQueue';
-
+const POLLING_INTERVAL_MS = 1000;
 const LOG_TAG = 'repo-permission-syncer';
+
 const logger = createLogger(LOG_TAG);
 const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}`);
 
@@ -107,7 +108,7 @@ export class RepoPermissionSyncer {
             });
 
             await this.schedulePermissionSync(repos);
-        }, 1000 * 5);
+        }, POLLING_INTERVAL_MS);
     }
 
     public async dispose() {
