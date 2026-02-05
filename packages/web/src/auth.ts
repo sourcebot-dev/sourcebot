@@ -158,6 +158,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         strategy: "jwt",
     },
     trustHost: true,
+    cookies: {
+        pkceCodeVerifier: {
+            name: "next-auth.pkce.code_verifier",
+            options: {
+                httpOnly: true,
+                sameSite: "lax",
+                path: "/",
+                secure: env.AUTH_URL?.startsWith("https://") ?? false,
+                maxAge: 60 * 15, // 15 minutes
+            },
+        },
+    },
     events: {
         createUser: onCreateUser,
         signIn: async ({ user, account }) => {
