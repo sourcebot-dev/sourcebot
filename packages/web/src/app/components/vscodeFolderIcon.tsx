@@ -18,7 +18,7 @@ export const VscodeFolderIcon = ({ folderName, className }: VscodeFolderIconProp
                 return iconName;
         }
 
-        return "vscode-icons:folder";
+        return "vscode-icons:default-folder";
     }, [folderName]);
 
     return <Icon icon={iconName} className={cn("w-4 h-4 flex-shrink-0", className)} />;

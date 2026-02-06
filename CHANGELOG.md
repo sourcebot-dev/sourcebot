@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Improved stability for connection and repo indexing workers. [#860](https://github.com/sourcebot-dev/sourcebot/pull/860)
 
+### Fixed
+- Fixed issue where certain file and folder names would cause type errors. [#862](https://github.com/sourcebot-dev/sourcebot/pull/862)
+
 ## [4.10.27] - 2026-02-05
 
 ### Fixed
