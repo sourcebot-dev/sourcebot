@@ -249,22 +249,6 @@ const createGitCloneUrlWithToken = (cloneUrl: string, credentials: { username?: 
 }
 
 
-/**
- * Wraps groupmq worker lifecycle callbacks with exception handling. This prevents
- * uncaught exceptions (e.g., like a RepoIndexingJob not existing in the DB) from crashing
- * the app. 
- * @see: https://openpanel-dev.github.io/groupmq/api-worker/#events
- */
-export const groupmqLifecycleExceptionWrapper = async (name: string, logger: Logger, fn: () => Promise<void>) => {
-    try {
-        await fn();
-    } catch (error) {
-        Sentry.captureException(error);
-        logger.error(`Exception thrown while executing lifecycle function \`${name}\`.`, error);
-    }
-}
-
-
 // setInterval wrapper that ensures async callbacks are not executed concurrently.
 // @see: https://mottaquikarim.github.io/dev/posts/setinterval-that-blocks-on-await/
 export const setIntervalAsync = (target: () => Promise<void>, pollingIntervalMs: number): NodeJS.Timeout => {
