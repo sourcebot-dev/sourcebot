@@ -253,7 +253,7 @@ export class RepoIndexManager {
         const lockKey = `${LOCK_PREFIX}${groupId}`;
 
         try {
-            return await this.redlock.using([lockKey], LOCK_TTL_MS, async (lockSignal) => {
+            return await this.redlock.using([lockKey], LOCK_TTL_MS, async (lockSignal: AbortSignal) => {
                 const signal = AbortSignal.any([
                     this.abortController.signal,
                     lockSignal,
