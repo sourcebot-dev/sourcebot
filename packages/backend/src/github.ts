@@ -306,7 +306,12 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
                     // the username as a parameter.
                     // @see: https://github.com/orgs/community/discussions/24382#discussioncomment-3243958
                     // @see: https://api.github.com/search/repositories?q=user:USERNAME
-                    const searchResults = await octokitToUse.paginate(octokitToUse.rest.search.repos, {
+
+                    // @note: We use paginate.iterator() instead of paginate() to check
+                    // signal.aborted between pages. paginate() only passes the signal to
+                    // individual fetch requests but doesn't check abort state between pages.
+                    const allRepos: OctokitRepository[] = [];
+                    const iterator = octokitToUse.paginate.iterator(octokitToUse.rest.search.repos, {
                         q: query,
                         per_page: 100,
                         request: {
@@ -314,7 +319,14 @@ const getReposOwnedByUsers = async (users: string[], octokit: Octokit, signal: A
                         },
                     });
 
-                    return searchResults as OctokitRepository[];
+                    for await (const { data: repos } of iterator) {
+                        if (signal.aborted) {
+                            throw new DOMException('Operation aborted', 'AbortError');
+                        }
+                        allRepos.push(...(repos as OctokitRepository[]));
+                    }
+
+                    return allRepos;
                 };
 
                 return fetchWithRetry(fetchFn, `user ${user}`, logger);
@@ -357,13 +369,28 @@ const getReposForOrgs = async (orgs: string[], octokit: Octokit, signal: AbortSi
 
             const octokitToUse = await getOctokitWithGithubApp(octokit, org, url, `org ${org}`);
             const { durationMs, data } = await measure(async () => {
-                const fetchFn = () => octokitToUse.paginate(octokitToUse.repos.listForOrg, {
-                    org: org,
-                    per_page: 100,
-                    request: {
-                        signal
+                // @note: We use paginate.iterator() instead of paginate() to check
+                // signal.aborted between pages. paginate() only passes the signal to
+                // individual fetch requests but doesn't check abort state between pages.
+                const fetchFn = async () => {
+                    const allRepos: OctokitRepository[] = [];
+                    const iterator = octokitToUse.paginate.iterator(octokitToUse.repos.listForOrg, {
+                        org: org,
+                        per_page: 100,
+                        request: {
+                            signal
+                        }
+                    });
+
+                    for await (const { data: repos } of iterator) {
+                        if (signal.aborted) {
+                            throw new DOMException('Operation aborted', 'AbortError');
+                        }
+                        allRepos.push(...repos);
                     }
-                });
+
+                    return allRepos;
+                };
 
                 return fetchWithRetry(fetchFn, `org ${org}`, logger);
             });

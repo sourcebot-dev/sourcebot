@@ -1,17 +1,16 @@
 import * as Sentry from "@sentry/node";
 import { Connection, ConnectionSyncJobStatus, PrismaClient } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/shared";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
-import { loadConfig, env } from "@sourcebot/shared";
-import { Job, Queue, ReservedJob, Worker } from "groupmq";
+import { createLogger, env, loadConfig } from "@sourcebot/shared";
+import { Job, Queue, Worker } from "bullmq";
 import { Redis } from 'ioredis';
-import { compileAzureDevOpsConfig, compileBitbucketConfig, compileGenericGitHostConfig, compileGerritConfig, compileGiteaConfig, compileGithubConfig, compileGitlabConfig } from "./repoCompileUtils.js";
-import { Settings } from "./types.js";
-import { groupmqLifecycleExceptionWrapper, setIntervalAsync } from "./utils.js";
+import { WORKER_STOP_GRACEFUL_TIMEOUT_MS } from "./constants.js";
 import { syncSearchContexts } from "./ee/syncSearchContexts.js";
 import { captureEvent } from "./posthog.js";
 import { PromClient } from "./promClient.js";
-import { GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS } from "./constants.js";
+import { compileAzureDevOpsConfig, compileBitbucketConfig, compileGenericGitHostConfig, compileGerritConfig, compileGiteaConfig, compileGithubConfig, compileGitlabConfig } from "./repoCompileUtils.js";
+import { Settings } from "./types.js";
+import { setIntervalAsync } from "./utils.js";
 
 const LOG_TAG = 'connection-manager';
 const logger = createLogger(LOG_TAG);
@@ -29,52 +28,55 @@ type JobResult = {
     repoCount: number,
 }
 
-const JOB_TIMEOUT_MS = 1000 * 60 * 60 * 2; // 2 hour timeout
-
 export class ConnectionManager {
-    private worker: Worker<JobPayload>;
+    private worker: Worker<JobPayload, JobResult>;
     private queue: Queue<JobPayload>;
+    private abortController: AbortController;
     private interval?: NodeJS.Timeout;
 
     constructor(
         private db: PrismaClient,
         private settings: Settings,
-        private redis: Redis,
+        redis: Redis,
         private promClient: PromClient,
     ) {
-        this.queue = new Queue<JobPayload>({
-            redis,
-            namespace: QUEUE_NAME,
-            jobTimeoutMs: JOB_TIMEOUT_MS,
-            maxAttempts: 3,
-            logger: env.DEBUG_ENABLE_GROUPMQ_LOGGING === 'true',
+        this.abortController = new AbortController();
+
+        this.queue = new Queue<JobPayload>(QUEUE_NAME, {
+            connection: redis,
+            defaultJobOptions: {
+                removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+                removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+            },
         });
 
-        this.worker = new Worker<JobPayload>({
-            queue: this.queue,
-            maxStalledCount: 1,
-            handler: this.runJob.bind(this),
-            concurrency: this.settings.maxConnectionSyncJobConcurrency,
-            ...(env.DEBUG_ENABLE_GROUPMQ_LOGGING === 'true' ? {
-                logger: true,
-            } : {}),
-        });
+        this.worker = new Worker<JobPayload, JobResult>(
+            QUEUE_NAME,
+            this.runJob.bind(this),
+            {
+                connection: redis,
+                concurrency: this.settings.maxConnectionSyncJobConcurrency,
+                maxStalledCount: 1,
+            }
+        );
 
         this.worker.on('completed', this.onJobCompleted.bind(this));
         this.worker.on('failed', this.onJobFailed.bind(this));
-        this.worker.on('stalled', this.onJobStalled.bind(this));
-        this.worker.on('error', this.onWorkerError.bind(this));
-        // graceful-timeout is triggered when a job is still processing after
-        // worker.close() is called and the timeout period has elapsed. In this case,
-        // we fail the job with no retry.
-        this.worker.on('graceful-timeout', this.onJobGracefulTimeout.bind(this));
+        this.worker.on('stalled', (jobId) => {
+            // Just log - BullMQ will automatically retry the job (up to maxStalledCount times).
+            // If all retries fail, onJobFailed will handle marking it as failed.
+            logger.warn(`Job ${jobId} stalled - BullMQ will retry`);
+        });
+        this.worker.on('error', (error) => {
+            logger.error(`Connection syncer worker error:`, error);
+        });
     }
 
     public startScheduler() {
         logger.debug('Starting scheduler');
         this.interval = setIntervalAsync(async () => {
             const thresholdDate = new Date(Date.now() - this.settings.resyncConnectionIntervalMs);
-            const timeoutDate = new Date(Date.now() - JOB_TIMEOUT_MS);
+            const timeoutDate = new Date(Date.now() - this.settings.resyncConnectionIntervalMs);
 
             const connections = await this.db.connection.findMany({
                 where: {
@@ -118,8 +120,6 @@ export class ConnectionManager {
                 await this.createJobs(connections);
             }
         }, this.settings.resyncConnectionPollingIntervalMs);
-
-        this.worker.run();
     }
 
 
@@ -135,16 +135,16 @@ export class ConnectionManager {
 
         for (const job of jobs) {
             logger.info(`Scheduling job ${job.id} for connection ${job.connection.name} (id: ${job.connectionId})`);
-            await this.queue.add({
-                groupId: `connection:${job.connectionId}`,
-                data: {
+            await this.queue.add(
+                'connection-sync-job',
+                {
                     jobId: job.id,
                     connectionId: job.connectionId,
                     connectionName: job.connection.name,
                     orgId: job.connection.orgId,
                 },
-                jobId: job.id,
-            });
+                { jobId: job.id }
+            );
 
             this.promClient.pendingConnectionSyncJobs.inc({ connection: job.connection.name });
         }
@@ -152,10 +152,10 @@ export class ConnectionManager {
         return jobs.map(job => job.id);
     }
 
-    private async runJob(job: ReservedJob<JobPayload>): Promise<JobResult> {
+    private async runJob(job: Job<JobPayload>): Promise<JobResult> {
         const { jobId, connectionName } = job.data;
         const logger = createJobLogger(jobId);
-        logger.info(`Running connection sync job ${jobId} for connection ${connectionName} (id: ${job.data.connectionId}) (attempt ${job.attempts + 1} / ${job.maxAttempts})`);
+        logger.info(`Running connection sync job ${jobId} for connection ${connectionName} (id: ${job.data.connectionId})`);
 
         const currentStatus = await this.db.connectionSyncJob.findUniqueOrThrow({
             where: {
@@ -172,12 +172,8 @@ export class ConnectionManager {
             throw new Error(`Job ${jobId} is not in a valid state. Expected: ${ConnectionSyncJobStatus.PENDING} or ${ConnectionSyncJobStatus.IN_PROGRESS}. Actual: ${currentStatus.status}. Skipping.`);
         }
 
-
         this.promClient.pendingConnectionSyncJobs.dec({ connection: connectionName });
         this.promClient.activeConnectionSyncJobs.inc({ connection: connectionName });
-
-        // @note: We aren't actually doing anything with this atm.
-        const abortController = new AbortController();
 
         const { connection: { config: rawConnectionConfig, orgId } } = await this.db.connectionSyncJob.update({
             where: {
@@ -201,7 +197,7 @@ export class ConnectionManager {
         const result = await (async () => {
             switch (config.type) {
                 case 'github': {
-                    return await compileGithubConfig(config, job.data.connectionId, abortController.signal);
+                    return await compileGithubConfig(config, job.data.connectionId, this.abortController.signal);
                 }
                 case 'gitlab': {
                     return await compileGitlabConfig(config, job.data.connectionId);
@@ -291,14 +287,14 @@ export class ConnectionManager {
     }
 
 
-    private onJobCompleted = async (job: Job<JobPayload>) =>
-        groupmqLifecycleExceptionWrapper('onJobCompleted', logger, async () => {
-            const logger = createJobLogger(job.id);
+    private async onJobCompleted(job: Job<JobPayload>, result: JobResult) {
+        try {
+            const logger = createJobLogger(job.id!);
             const { connectionId, connectionName, orgId } = job.data;
 
             await this.db.connectionSyncJob.update({
                 where: {
-                    id: job.id,
+                    id: job.id!,
                 },
                 data: {
                     status: ConnectionSyncJobStatus.COMPLETED,
@@ -333,89 +329,31 @@ export class ConnectionManager {
             this.promClient.activeConnectionSyncJobs.dec({ connection: connectionName });
             this.promClient.connectionSyncJobSuccessTotal.inc({ connection: connectionName });
 
-            const result = job.returnvalue as JobResult;
             captureEvent('backend_connection_sync_job_completed', {
                 connectionId: connectionId,
                 repoCount: result.repoCount,
             });
-        });
+        } catch (error) {
+            Sentry.captureException(error);
+            logger.error(`Exception thrown while executing lifecycle function \`onJobCompleted\`.`, error);
+        }
+    }
 
-    private onJobFailed = async (job: Job<JobPayload>) =>
-        groupmqLifecycleExceptionWrapper('onJobFailed', logger, async () => {
-            const logger = createJobLogger(job.id);
-
-            const attempt = job.attemptsMade + 1;
-            const wasLastAttempt = attempt >= job.opts.attempts;
-
-            if (wasLastAttempt) {
-                const { connection } = await this.db.connectionSyncJob.update({
-                    where: { id: job.id },
-                    data: {
-                        status: ConnectionSyncJobStatus.FAILED,
-                        completedAt: new Date(),
-                        errorMessage: job.failedReason,
-                    },
-                    select: {
-                        connection: true,
-                    }
-                });
-
-                this.promClient.activeConnectionSyncJobs.dec({ connection: connection.name });
-                this.promClient.connectionSyncJobFailTotal.inc({ connection: connection.name });
-
-                logger.error(`Failed job ${job.id} for connection ${connection.name} (id: ${connection.id}). Attempt ${attempt} / ${job.opts.attempts}. Failing job.`);
-            } else {
-                const connection = await this.db.connection.findUniqueOrThrow({
-                    where: { id: job.data.connectionId },
-                });
-
-                this.promClient.connectionSyncJobReattemptsTotal.inc({ connection: connection.name });
-
-                logger.warn(`Failed job ${job.id} for connection ${connection.name} (id: ${connection.id}). Attempt ${attempt} / ${job.opts.attempts}. Retrying.`);
+    private async onJobFailed(job: Job<JobPayload> | undefined, error: Error) {
+        try {
+            if (!job) {
+                logger.error(`Job failed but job object is undefined. Error: ${error.message}`);
+                return;
             }
 
-            captureEvent('backend_connection_sync_job_failed', {
-                connectionId: job.data.connectionId,
-                error: job.failedReason,
-            });
-        });
-
-    private onJobStalled = async (jobId: string) =>
-        groupmqLifecycleExceptionWrapper('onJobStalled', logger, async () => {
-            const logger = createJobLogger(jobId);
-            const { connection } = await this.db.connectionSyncJob.update({
-                where: { id: jobId },
-                data: {
-                    status: ConnectionSyncJobStatus.FAILED,
-                    completedAt: new Date(),
-                    errorMessage: 'Job stalled',
-                },
-                select: {
-                    connection: true,
-                }
-            });
-
-            this.promClient.activeConnectionSyncJobs.dec({ connection: connection.name });
-            this.promClient.connectionSyncJobFailTotal.inc({ connection: connection.name });
-
-            logger.error(`Job ${jobId} stalled for connection ${connection.name} (id: ${connection.id})`);
-
-            captureEvent('backend_connection_sync_job_failed', {
-                connectionId: connection.id,
-                error: 'Job stalled',
-            });
-        });
-
-    private onJobGracefulTimeout = async (job: Job<JobPayload>) =>
-        groupmqLifecycleExceptionWrapper('onJobGracefulTimeout', logger, async () => {
-            const logger = createJobLogger(job.id);
+            const jobLogger = createJobLogger(job.id!);
 
             const { connection } = await this.db.connectionSyncJob.update({
                 where: { id: job.id },
                 data: {
                     status: ConnectionSyncJobStatus.FAILED,
                     completedAt: new Date(),
-                    errorMessage: 'Job timed out',
+                    errorMessage: job.failedReason,
                 },
                 select: {
                     connection: true,
@@ -425,17 +363,16 @@ export class ConnectionManager {
             this.promClient.activeConnectionSyncJobs.dec({ connection: connection.name });
             this.promClient.connectionSyncJobFailTotal.inc({ connection: connection.name });
 
-            logger.error(`Job ${job.id} timed out for connection ${connection.name} (id: ${connection.id})`);
+            jobLogger.error(`Failed job ${job.id} for connection ${connection.name} (id: ${connection.id}). Failing job.`);
 
             captureEvent('backend_connection_sync_job_failed', {
-                connectionId: connection.id,
-                error: 'Job timed out',
+                connectionId: job.data.connectionId,
+                error: error.message,
             });
-        });
-
-    private async onWorkerError(error: Error) {
-        Sentry.captureException(error);
-        logger.error(`Connection syncer worker error.`, error);
+        } catch (err) {
+            Sentry.captureException(err);
+            logger.error(`Exception thrown while executing lifecycle function \`onJobFailed\`.`, err);
+        }
     }
 
     public async dispose() {
@@ -443,27 +380,15 @@ export class ConnectionManager {
             clearInterval(this.interval);
         }
 
-        const inProgressJobs = this.worker.getCurrentJobs();
-        await this.worker.close(GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS);
+        // Signal all active jobs to abort
+        this.abortController.abort();
 
-        // Manually release group locks for in progress jobs to prevent deadlocks.
-        // @see: https://github.com/Openpanel-dev/groupmq/issues/8
-        for (const { job } of inProgressJobs) {
-            const lockKey = `groupmq:${QUEUE_NAME}:lock:${job.groupId}`;
-            logger.debug(`Releasing group lock ${lockKey} for in progress job ${job.id}`);
-            try {
-                await this.redis.del(lockKey);
-            } catch (error) {
-                Sentry.captureException(error);
-                logger.error(`Failed to release group lock ${lockKey} for in progress job ${job.id}. Error: `, error);
-            }
-        }
+        // Wait for worker to finish with timeout
+        await Promise.race([
+            this.worker.close(),
+            new Promise(resolve => setTimeout(resolve, WORKER_STOP_GRACEFUL_TIMEOUT_MS))
+        ]);
 
-        // @note: As of groupmq v1.0.0, queue.close() will just close the underlying
-        // redis connection. Since we share the same redis client between, skip this
-        // step and close the redis client directly in index.ts.
-        // @see: https://github.com/Openpanel-dev/groupmq/blob/main/src/queue.ts#L1900
-        // await this.queue.close();
+        await this.queue.close();
     }
 }
-

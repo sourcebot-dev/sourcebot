@@ -4,20 +4,22 @@ import { createLogger, Logger } from "@sourcebot/shared";
 import { env, RepoIndexingJobMetadata, repoIndexingJobMetadataSchema, RepoMetadata, repoMetadataSchema, getRepoPath } from '@sourcebot/shared';
 import { existsSync } from 'fs';
 import { readdir, rm } from 'fs/promises';
-import { Job, Queue, ReservedJob, Worker } from "groupmq";
+import { DelayedError, Job, Queue, Worker } from "bullmq";
 import { Redis } from 'ioredis';
+import Redlock, { ExecutionError } from 'redlock';
 import micromatch from 'micromatch';
-import { GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS, INDEX_CACHE_DIR } from './constants.js';
+import { WORKER_STOP_GRACEFUL_TIMEOUT_MS, INDEX_CACHE_DIR } from './constants.js';
 import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLatestCommitTimestamp, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
 import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
 import { RepoWithConnections, Settings } from "./types.js";
-import { getAuthCredentialsForRepo, getShardPrefix, groupmqLifecycleExceptionWrapper, measure, setIntervalAsync } from './utils.js';
+import { getAuthCredentialsForRepo, getShardPrefix, measure, setIntervalAsync } from './utils.js';
 import { indexGitRepository } from './zoekt.js';
 
 const LOG_TAG = 'repo-index-manager';
 const logger = createLogger(LOG_TAG);
 const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}`);
+const QUEUE_NAME = 'repo-index-queue';
 
 type JobPayload = {
     type: 'INDEX' | 'CLEANUP';
@@ -26,12 +28,19 @@ type JobPayload = {
     repoName: string;
 };
 
+// Lock TTL with auto-extension - minimizes dead lock time after crashes
+const LOCK_TTL_MS = 60 * 1000; // 1 minute
+const LOCK_PREFIX = `bullmq:${QUEUE_NAME}:lock:`;
+
+// Delay before retrying a job when the group lock cannot be acquired
+const LOCK_RETRY_DELAY_MS = 5000;
+
 /**
  * Manages the lifecycle of repository data on disk, including git working copies
  * and search index shards. Handles both indexing operations (cloning/fetching repos
  * and building search indexes) and cleanup operations (removing orphaned repos and
  * their associated data).
- * 
+ *
  * Uses a job queue system to process indexing and cleanup tasks asynchronously,
  * with configurable concurrency limits and retry logic. Automatically schedules
  * re-indexing of repos based on configured intervals and manages garbage collection
@@ -41,39 +50,50 @@ export class RepoIndexManager {
     private interval?: NodeJS.Timeout;
     private queue: Queue<JobPayload>;
     private worker: Worker<JobPayload>;
+    private redlock: Redlock;
+    private abortController: AbortController;
 
     constructor(
         private db: PrismaClient,
         private settings: Settings,
-        private redis: Redis,
+        redis: Redis,
         private promClient: PromClient,
     ) {
-        this.queue = new Queue<JobPayload>({
-            redis,
-            namespace: 'repo-index-queue',
-            jobTimeoutMs: this.settings.repoIndexTimeoutMs,
-            maxAttempts: 3,
-            logger: env.DEBUG_ENABLE_GROUPMQ_LOGGING === 'true',
+        this.abortController = new AbortController();
+
+        this.queue = new Queue<JobPayload>(QUEUE_NAME, {
+            connection: redis,
+            defaultJobOptions: {
+                removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+                removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+            },
         });
 
-        this.worker = new Worker<JobPayload>({
-            queue: this.queue,
-            maxStalledCount: 1,
-            handler: this.runJob.bind(this),
-            concurrency: this.settings.maxRepoIndexingJobConcurrency,
-            ...(env.DEBUG_ENABLE_GROUPMQ_LOGGING === 'true' ? {
-                logger: true,
-            } : {}),
+        this.redlock = new Redlock([redis], {
+            retryCount: 0, // Don't retry - we'll delay the job instead
+            automaticExtensionThreshold: LOCK_TTL_MS / 2, // Extend when 50% of TTL remains
         });
+
+        this.worker = new Worker<JobPayload>(
+            QUEUE_NAME,
+            this.processJob.bind(this),
+            {
+                connection: redis,
+                concurrency: this.settings.maxRepoIndexingJobConcurrency,
+                maxStalledCount: 1,
+            }
+        );
 
         this.worker.on('completed', this.onJobCompleted.bind(this));
         this.worker.on('failed', this.onJobFailed.bind(this));
-        this.worker.on('stalled', this.onJobStalled.bind(this));
-        this.worker.on('error', this.onWorkerError.bind(this));
-        // graceful-timeout is triggered when a job is still processing after
-        // worker.close() is called and the timeout period has elapsed. In this case,
-        // we fail the job with no retry.
-        this.worker.on('graceful-timeout', this.onJobGracefulTimeout.bind(this));
+        this.worker.on('stalled', (jobId) => {
+            // Just log - BullMQ will automatically retry the job (up to maxStalledCount times).
+            // If all retries fail, onJobFailed will handle marking it as failed.
+            logger.warn(`Job ${jobId} stalled - BullMQ will retry`);
+        });
+        this.worker.on('error', (error) => {
+            logger.error(`Index syncer worker error:`, error);
+        });
     }
 
     public startScheduler() {
@@ -82,8 +102,6 @@ export class RepoIndexManager {
             await this.scheduleIndexJobs();
             await this.scheduleCleanupJobs();
         }, this.settings.reindexRepoPollingIntervalMs);
-
-        this.worker.run();
     }
 
     private async scheduleIndexJobs() {
@@ -212,16 +230,16 @@ export class RepoIndexManager {
         });
 
         for (const job of jobs) {
-            await this.queue.add({
-                groupId: `repo:${job.repoId}`,
-                data: {
+            await this.queue.add(
+                'repo-index-job',
+                {
                     jobId: job.id,
                     type,
                     repoName: job.repo.name,
                     repoId: job.repo.id,
                 },
-                jobId: job.id,
-            });
+                { jobId: job.id }
+            );
 
             const jobTypeLabel = getJobTypePrometheusLabel(type);
             this.promClient.pendingRepoIndexJobs.inc({ repo: job.repo.name, type: jobTypeLabel });
@@ -230,10 +248,36 @@ export class RepoIndexManager {
         return jobs.map(job => job.id);
     }
 
-    private async runJob(job: ReservedJob<JobPayload>) {
+    private async processJob(job: Job<JobPayload>): Promise<void> {
+        const groupId = `repo:${job.data.repoId}`;
+        const lockKey = `${LOCK_PREFIX}${groupId}`;
+
+        try {
+            return await this.redlock.using([lockKey], LOCK_TTL_MS, async (lockSignal) => {
+                const signal = AbortSignal.any([
+                    this.abortController.signal,
+                    lockSignal,
+                ]);
+
+                return await this.runJob(job, signal);
+            });
+        } catch (error) {
+            if (error instanceof ExecutionError) {
+                // Lock could not be acquired - another job for this group is running
+                // Delay this job and let BullMQ retry later
+                // DelayedError tells BullMQ to delay without counting as a failed attempt
+                logger.debug(`Group ${groupId} locked, delaying job ${job.id}`);
+                await job.moveToDelayed(Date.now() + LOCK_RETRY_DELAY_MS, job.token);
+                throw new DelayedError(`Group ${groupId} locked, delaying job`);
+            }
+            throw error;
+        }
+    }
+
+    private async runJob(job: Job<JobPayload>, signal: AbortSignal) {
         const id = job.data.jobId;
         const logger = createJobLogger(id);
-        logger.info(`Running ${job.data.type} job ${id} for repo ${job.data.repoName} (id: ${job.data.repoId}) (attempt ${job.attempts + 1} / ${job.maxAttempts})`);
+        logger.info(`Running ${job.data.type} job ${id} for repo ${job.data.repoName} (id: ${job.data.repoId})`);
 
         const currentStatus = await this.db.repoIndexingJob.findUniqueOrThrow({
             where: {
@@ -243,7 +287,7 @@ export class RepoIndexManager {
                 status: true,
             }
         });
-        
+
         // Fail safe: if the job is not PENDING (first run) or IN_PROGRESS (retry), it indicates the job
         // is in an invalid state and should be skipped.
         if (
@@ -283,34 +327,21 @@ export class RepoIndexManager {
         this.promClient.pendingRepoIndexJobs.dec({ repo: job.data.repoName, type: jobTypeLabel });
         this.promClient.activeRepoIndexJobs.inc({ repo: job.data.repoName, type: jobTypeLabel });
 
-        const abortController = new AbortController();
-        const signalHandler = () => {
-            logger.info(`Received shutdown signal, aborting...`);
-            abortController.abort(); // This cancels all operations
-        };
+        if (jobType === RepoIndexingJobType.INDEX) {
+            const revisions = await this.indexRepository(repo, logger, signal);
 
-        process.on('SIGTERM', signalHandler);
-        process.on('SIGINT', signalHandler);
-
-        try {
-            if (jobType === RepoIndexingJobType.INDEX) {
-                const revisions = await this.indexRepository(repo, logger, abortController.signal);
-
-                await this.db.repoIndexingJob.update({
-                    where: { id },
-                    data: {
-                        metadata: {
-                            indexedRevisions: revisions,
-                        } satisfies RepoIndexingJobMetadata,
-                    },
-                });
-            } else if (jobType === RepoIndexingJobType.CLEANUP) {
-                await this.cleanupRepository(repo, logger);
-            }
-        } finally {
-            process.off('SIGTERM', signalHandler);
-            process.off('SIGINT', signalHandler);
+            await this.db.repoIndexingJob.update({
+                where: { id },
+                data: {
+                    metadata: {
+                        indexedRevisions: revisions,
+                    } satisfies RepoIndexingJobMetadata,
+                },
+            });
+        } else if (jobType === RepoIndexingJobType.CLEANUP) {
+            await this.cleanupRepository(repo, logger);
         }
+
     }
 
     private async indexRepository(repo: RepoWithConnections, logger: Logger, signal: AbortSignal) {
@@ -469,8 +500,8 @@ export class RepoIndexManager {
         }
     }
 
-    private onJobCompleted = async (job: Job<JobPayload>) =>
-        groupmqLifecycleExceptionWrapper('onJobCompleted', logger, async () => {
+    private async onJobCompleted(job: Job<JobPayload>) {
+        try {
             const logger = createJobLogger(job.data.jobId);
             const jobData = await this.db.repoIndexingJob.update({
                 where: { id: job.data.jobId },
@@ -535,76 +566,20 @@ export class RepoIndexManager {
             // Track metrics for successful job
             this.promClient.activeRepoIndexJobs.dec({ repo: job.data.repoName, type: jobTypeLabel });
             this.promClient.repoIndexJobSuccessTotal.inc({ repo: job.data.repoName, type: jobTypeLabel });
-        });
+        } catch (error) {
+            Sentry.captureException(error);
+            logger.error(`Exception thrown while executing lifecycle function \`onJobCompleted\`.`, error);
+        }
+    }
 
-    private onJobFailed = async (job: Job<JobPayload>) =>
-        groupmqLifecycleExceptionWrapper('onJobFailed', logger, async () => {
-            const logger = createJobLogger(job.data.jobId);
-
-            const attempt = job.attemptsMade + 1;
-            const wasLastAttempt = attempt >= job.opts.attempts;
-
-            const jobTypeLabel = getJobTypePrometheusLabel(job.data.type);
-
-            if (wasLastAttempt) {
-                const { repo } = await this.db.repoIndexingJob.update({
-                    where: { id: job.data.jobId },
-                    data: {
-                        status: RepoIndexingJobStatus.FAILED,
-                        completedAt: new Date(),
-                        errorMessage: job.failedReason,
-                        repo: {
-                            update: {
-                                latestIndexingJobStatus: RepoIndexingJobStatus.FAILED,
-                            }
-                        }
-                    },
-                    select: { repo: true }
-                });
-
-                this.promClient.activeRepoIndexJobs.dec({ repo: job.data.repoName, type: jobTypeLabel });
-                this.promClient.repoIndexJobFailTotal.inc({ repo: job.data.repoName, type: jobTypeLabel });
-
-                logger.error(`Failed job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id}). Attempt ${attempt} / ${job.opts.attempts}. Failing job.`);
-            } else {
-                const repo = await this.db.repo.findUniqueOrThrow({
-                    where: { id: job.data.repoId },
-                });
-
-                this.promClient.repoIndexJobReattemptsTotal.inc({ repo: job.data.repoName, type: jobTypeLabel });
-
-                logger.warn(`Failed job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id}). Attempt ${attempt} / ${job.opts.attempts}. Retrying.`);
+    private async onJobFailed(job: Job<JobPayload> | undefined, error: Error) {
+        try {
+            if (!job) {
+                logger.error(`Job failed but job object is undefined. Error: ${error.message}`);
+                return;
             }
-        });
 
-    private onJobStalled = async (jobId: string) =>
-        groupmqLifecycleExceptionWrapper('onJobStalled', logger, async () => {
-            const logger = createJobLogger(jobId);
-            const { repo, type } = await this.db.repoIndexingJob.update({
-                where: { id: jobId },
-                data: {
-                    status: RepoIndexingJobStatus.FAILED,
-                    completedAt: new Date(),
-                    errorMessage: 'Job stalled',
-                    repo: {
-                        update: {
-                            latestIndexingJobStatus: RepoIndexingJobStatus.FAILED,
-                        }
-                    }
-                },
-                select: { repo: true, type: true }
-            });
-
-            const jobTypeLabel = getJobTypePrometheusLabel(type);
-            this.promClient.activeRepoIndexJobs.dec({ repo: repo.name, type: jobTypeLabel });
-            this.promClient.repoIndexJobFailTotal.inc({ repo: repo.name, type: jobTypeLabel });
-
-            logger.error(`Job ${jobId} stalled for repo ${repo.name} (id: ${repo.id})`);
-        });
-
-    private onJobGracefulTimeout = async (job: Job<JobPayload>) =>
-        groupmqLifecycleExceptionWrapper('onJobGracefulTimeout', logger, async () => {
-            const logger = createJobLogger(job.data.jobId);
+            const jobLogger = createJobLogger(job.data.jobId);
             const jobTypeLabel = getJobTypePrometheusLabel(job.data.type);
 
             const { repo } = await this.db.repoIndexingJob.update({
@@ -612,7 +587,7 @@ export class RepoIndexManager {
                 data: {
                     status: RepoIndexingJobStatus.FAILED,
                     completedAt: new Date(),
-                    errorMessage: 'Job timed out',
+                    errorMessage: error.message,
                     repo: {
                         update: {
                             latestIndexingJobStatus: RepoIndexingJobStatus.FAILED,
@@ -625,33 +600,30 @@ export class RepoIndexManager {
             this.promClient.activeRepoIndexJobs.dec({ repo: job.data.repoName, type: jobTypeLabel });
             this.promClient.repoIndexJobFailTotal.inc({ repo: job.data.repoName, type: jobTypeLabel });
 
-            logger.error(`Job ${job.data.jobId} timed out for repo ${repo.name} (id: ${repo.id}). Failing job.`);
+            jobLogger.error(`Failed job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id}).`);
 
-        });
-
-    private async onWorkerError(error: Error) {
-        Sentry.captureException(error);
-        logger.error(`Index syncer worker error.`, error);
+        } catch (err) {
+            Sentry.captureException(err);
+            logger.error(`Exception thrown while executing lifecycle function \`onJobFailed\`.`, err);
+        }
     }
 
     public async dispose() {
         if (this.interval) {
             clearInterval(this.interval);
         }
-        const inProgressJobs = this.worker.getCurrentJobs();
-        await this.worker.close(GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS);
-        // Manually release group locks for in progress jobs to prevent deadlocks.
-        // @see: https://github.com/Openpanel-dev/groupmq/issues/8
-        for (const { job } of inProgressJobs) {
-            const lockKey = `groupmq:repo-index-queue:lock:${job.groupId}`;
-            logger.debug(`Releasing group lock ${lockKey} for in progress job ${job.id}`);
-            await this.redis.del(lockKey);
-        }
 
-        // @note: As of groupmq v1.0.0, queue.close() will just close the underlying
-        // redis connection. Since we share the same redis client between, skip this
-        // step and close the redis client directly in index.ts.
-        // await this.queue.close();
+        // Signal all active jobs to abort
+        this.abortController.abort();
+
+        // Wait for worker to finish with timeout
+        await Promise.race([
+            this.worker.close(),
+            new Promise(resolve => setTimeout(resolve, WORKER_STOP_GRACEFUL_TIMEOUT_MS))
+        ]);
+
+        // Locks will auto-expire via TTL, no need to manually release them
+        await this.queue.close();
     }
 }
 
