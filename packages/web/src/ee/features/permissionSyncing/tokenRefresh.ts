@@ -83,33 +83,68 @@ export async function refreshLinkedAccountTokens(userId: string): Promise<Linked
     return errors;
 }
 
+async function refreshOAuthToken(
+    provider: string,
+    refreshToken: string,
+): Promise<{ accessToken: string; refreshToken: string | null; expiresAt: number } | null> {
+    try {
+        const config = await loadConfig(env.CONFIG_PATH);
+        const identityProviders = config?.identityProviders ?? [];
+
+        const providerConfigs = identityProviders.filter(idp => idp.provider === provider);
+
+        // If no provider configs in the config file, try deprecated env vars
+        if (providerConfigs.length === 0) {
+            const envCredentials = getDeprecatedEnvCredentials(provider);
+            if (envCredentials) {
+                logger.debug(`Using deprecated env vars for ${provider} token refresh`);
+                const result = await tryRefreshToken(provider, refreshToken, envCredentials);
+                if (result) {
+                    return result;
+                }
+            }
+            logger.error(`Provider config not found or invalid for: ${provider}`);
+            return null;
+        }
+
+        // Loop through all provider configs and return on first successful fetch
+        //
+        // The reason we have to do this is because 1) we might have multiple providers of the same type (ex. we're connecting to multiple gitlab instances) and 2) there isn't
+        // a trivial way to map a provider config to the associated Account object in the DB. The reason the config is involved at all here is because we need the client
+        // id/secret in order to refresh the token, and that info is in the config. We could in theory bypass this by storing the client id/secret for the provider in the
+        // Account table but we decided not to do that since these are secret. Instead, we simply try all of the client/id secrets for the associated provider type. This is safe
+        // to do because only the correct client id/secret will work since we're using a specific refresh token.
+        for (const providerConfig of providerConfigs) {
+            try {
+                // Get client credentials from config
+                const linkedAccountProviderConfig = providerConfig as GitHubIdentityProviderConfig | GitLabIdentityProviderConfig
+                const clientId = await getTokenFromConfig(linkedAccountProviderConfig.clientId);
+                const clientSecret = await getTokenFromConfig(linkedAccountProviderConfig.clientSecret);
+                const baseUrl = linkedAccountProviderConfig.baseUrl;
+
+                const result = await tryRefreshToken(provider, refreshToken, { clientId, clientSecret, baseUrl });
+                if (result) {
+                    return result;
+                }
+            } catch (configError) {
+                logger.debug(`Error trying provider config for ${provider}:`, configError);
+                continue;
+            }
+        }
+
+        logger.error(`All provider configs failed for: ${provider}`);
+        return null;
+    } catch (error) {
+        logger.error(`Error refreshing ${provider} token:`, error);
+        return null;
+    }
+}
+
 type ProviderCredentials = {
     clientId: string;
     clientSecret: string;
     baseUrl?: string;
 };
-
-/**
- * Get credentials from deprecated environment variables.
- * This is for backwards compatibility with deployments using env vars instead of config file.
- */
-function getDeprecatedEnvCredentials(provider: string): ProviderCredentials | null {
-    if (provider === 'github' && env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
-        return {
-            clientId: env.AUTH_EE_GITHUB_CLIENT_ID,
-            clientSecret: env.AUTH_EE_GITHUB_CLIENT_SECRET,
-            baseUrl: env.AUTH_EE_GITHUB_BASE_URL,
-        };
-    }
-    if (provider === 'gitlab' && env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
-        return {
-            clientId: env.AUTH_EE_GITLAB_CLIENT_ID,
-            clientSecret: env.AUTH_EE_GITLAB_CLIENT_SECRET,
-            baseUrl: env.AUTH_EE_GITLAB_BASE_URL,
-        };
-    }
-    return null;
-}
 
 async function tryRefreshToken(
     provider: string,
@@ -170,59 +205,24 @@ async function tryRefreshToken(
     };
 }
 
-export async function refreshOAuthToken(
-    provider: string,
-    refreshToken: string,
-): Promise<{ accessToken: string; refreshToken: string | null; expiresAt: number } | null> {
-    try {
-        const config = await loadConfig(env.CONFIG_PATH);
-        const identityProviders = config?.identityProviders ?? [];
-
-        const providerConfigs = identityProviders.filter(idp => idp.provider === provider);
-
-        // If no provider configs in the config file, try deprecated env vars
-        if (providerConfigs.length === 0) {
-            const envCredentials = getDeprecatedEnvCredentials(provider);
-            if (envCredentials) {
-                logger.debug(`Using deprecated env vars for ${provider} token refresh`);
-                const result = await tryRefreshToken(provider, refreshToken, envCredentials);
-                if (result) {
-                    return result;
-                }
-            }
-            logger.error(`Provider config not found or invalid for: ${provider}`);
-            return null;
-        }
-
-        // Loop through all provider configs and return on first successful fetch
-        //
-        // The reason we have to do this is because 1) we might have multiple providers of the same type (ex. we're connecting to multiple gitlab instances) and 2) there isn't
-        // a trivial way to map a provider config to the associated Account object in the DB. The reason the config is involved at all here is because we need the client
-        // id/secret in order to refresh the token, and that info is in the config. We could in theory bypass this by storing the client id/secret for the provider in the
-        // Account table but we decided not to do that since these are secret. Instead, we simply try all of the client/id secrets for the associated provider type. This is safe
-        // to do because only the correct client id/secret will work since we're using a specific refresh token.
-        for (const providerConfig of providerConfigs) {
-            try {
-                // Get client credentials from config
-                const linkedAccountProviderConfig = providerConfig as GitHubIdentityProviderConfig | GitLabIdentityProviderConfig
-                const clientId = await getTokenFromConfig(linkedAccountProviderConfig.clientId);
-                const clientSecret = await getTokenFromConfig(linkedAccountProviderConfig.clientSecret);
-                const baseUrl = linkedAccountProviderConfig.baseUrl;
-
-                const result = await tryRefreshToken(provider, refreshToken, { clientId, clientSecret, baseUrl });
-                if (result) {
-                    return result;
-                }
-            } catch (configError) {
-                logger.debug(`Error trying provider config for ${provider}:`, configError);
-                continue;
-            }
-        }
-
-        logger.error(`All provider configs failed for: ${provider}`);
-        return null;
-    } catch (error) {
-        logger.error(`Error refreshing ${provider} token:`, error);
-        return null;
+/**
+ * Get credentials from deprecated environment variables.
+ * This is for backwards compatibility with deployments using env vars instead of config file.
+ */
+function getDeprecatedEnvCredentials(provider: string): ProviderCredentials | null {
+    if (provider === 'github' && env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
+        return {
+            clientId: env.AUTH_EE_GITHUB_CLIENT_ID,
+            clientSecret: env.AUTH_EE_GITHUB_CLIENT_SECRET,
+            baseUrl: env.AUTH_EE_GITHUB_BASE_URL,
+        };
     }
+    if (provider === 'gitlab' && env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
+        return {
+            clientId: env.AUTH_EE_GITLAB_CLIENT_ID,
+            clientSecret: env.AUTH_EE_GITLAB_CLIENT_SECRET,
+            baseUrl: env.AUTH_EE_GITLAB_BASE_URL,
+        };
+    }
+    return null;
 }
