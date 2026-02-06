@@ -1,13 +1,13 @@
 import { Logger } from "winston";
 import { RepoAuthCredentials, RepoWithConnections } from "./types.js";
 import path from 'path';
-import { Repo } from "@sourcebot/db";
 import { getTokenFromConfig } from "@sourcebot/shared";
 import * as Sentry from "@sentry/node";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { hasEntitlement } from "@sourcebot/shared";
-import { REPOS_CACHE_DIR } from "./constants.js";
+import { StatusCodes } from "http-status-codes";
+import { isOctokitRequestError } from "./github.js";
 
 export const measure = async <T>(cb: () => Promise<T>) => {
     const start = Date.now();
@@ -72,10 +72,25 @@ export const fetchWithRetry = async <T>(
             Sentry.captureException(e);
 
             attempts++;
-            if ((e.status === 403 || e.status === 429 || e.status === 443) && attempts < maxAttempts) {
-                const computedWaitTime = 3000 * Math.pow(2, attempts - 1);
-                const resetTime = e.response?.headers?.['x-ratelimit-reset'] ? parseInt(e.response.headers['x-ratelimit-reset']) * 1000 : Date.now() + computedWaitTime;
-                const waitTime = resetTime - Date.now();
+            if (
+                (
+                    (e.status >= 500 && e.status < 600) ||
+                    e.status === StatusCodes.FORBIDDEN ||
+                    e.status === StatusCodes.TOO_MANY_REQUESTS
+                ) && attempts < maxAttempts
+            ) {
+                const resetDateMs = (() => {
+                    // First, try to see if we have a reset date specified in the response headers
+                    if (isOctokitRequestError(e) && e.response?.headers['x-ratelimit-reset']) {
+                        return parseInt(e.response.headers['x-ratelimit-reset']) * 1000;
+                    }
+
+                    // Default to a exponential backoff approach
+                    const defaultWaitTime = 3000 * Math.pow(2, attempts - 1);
+                    return Date.now() + defaultWaitTime;
+                })();
+
+                const waitTime = Math.max(0, resetDateMs - Date.now());
                 logger.warn(`Rate limit exceeded for ${identifier}. Waiting ${waitTime}ms before retry ${attempts}/${maxAttempts}...`);
 
                 await new Promise(resolve => setTimeout(resolve, waitTime));
@@ -234,22 +249,6 @@ const createGitCloneUrlWithToken = (cloneUrl: string, credentials: { username?: 
 }
 
 
-/**
- * Wraps groupmq worker lifecycle callbacks with exception handling. This prevents
- * uncaught exceptions (e.g., like a RepoIndexingJob not existing in the DB) from crashing
- * the app. 
- * @see: https://openpanel-dev.github.io/groupmq/api-worker/#events
- */
-export const groupmqLifecycleExceptionWrapper = async (name: string, logger: Logger, fn: () => Promise<void>) => {
-    try {
-        await fn();
-    } catch (error) {
-        Sentry.captureException(error);
-        logger.error(`Exception thrown while executing lifecycle function \`${name}\`.`, error);
-    }
-}
-
-
 // setInterval wrapper that ensures async callbacks are not executed concurrently.
 // @see: https://mottaquikarim.github.io/dev/posts/setinterval-that-blocks-on-await/
 export const setIntervalAsync = (target: () => Promise<void>, pollingIntervalMs: number): NodeJS.Timeout => {
@@ -258,7 +257,7 @@ export const setIntervalAsync = (target: () => Promise<void>, pollingIntervalMs:
     ): (...args: Parameters<T>) => Promise<void> => {
         return async function (...args: Parameters<T>): Promise<void> {
             if ((target as any).isRunning) return;
-    
+
             (target as any).isRunning = true;
             try {
                 await target(...args);

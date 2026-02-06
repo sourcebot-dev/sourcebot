@@ -100,6 +100,19 @@ const initSingleTenancy = async () => {
             }
         }
     }
+
+    // Sync member approval setting from env var (only if explicitly set)
+    if (env.REQUIRE_APPROVAL_NEW_MEMBERS !== undefined) {
+        const requireApprovalNewMembers = env.REQUIRE_APPROVAL_NEW_MEMBERS === 'true';
+        const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+        if (org && org.memberApprovalRequired !== requireApprovalNewMembers) {
+            await prisma.org.update({
+                where: { id: org.id },
+                data: { memberApprovalRequired: requireApprovalNewMembers },
+            });
+            logger.info(`Member approval requirement set to ${requireApprovalNewMembers} via REQUIRE_APPROVAL_NEW_MEMBERS environment variable`);
+        }
+    }
 }
 
 const initMultiTenancy = async () => {

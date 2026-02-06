@@ -1,79 +1,86 @@
-import { loadConfig } from "@sourcebot/shared";
-import { getTokenFromConfig, createLogger, env } from "@sourcebot/shared";
+import { loadConfig, decryptOAuthToken } from "@sourcebot/shared";
+import { getTokenFromConfig, createLogger, env, encryptOAuthToken } from "@sourcebot/shared";
 import { GitHubIdentityProviderConfig, GitLabIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
-import { LinkedAccountTokensMap } from "@/auth"
 const { prisma } = await import('@/prisma');
 
 const logger = createLogger('web-ee-token-refresh');
 
-export async function refreshLinkedAccountTokens(
-    currentTokens: LinkedAccountTokensMap | undefined
-): Promise<LinkedAccountTokensMap> {
-    if (!currentTokens) {
-        return {};
-    }
+// Map of providerAccountId -> error message
+export type LinkedAccountErrors = Record<string, string>;
+
+/**
+ * Refreshes expiring OAuth tokens for all linked accounts of a user.
+ * Loads accounts from database, refreshes tokens as needed, and returns any errors.
+ */
+export async function refreshLinkedAccountTokens(userId: string): Promise<LinkedAccountErrors> {
+    const accounts = await prisma.account.findMany({
+        where: {
+            userId,
+            access_token: { not: null },
+            refresh_token: { not: null },
+            expires_at: { not: null },
+        },
+        select: {
+            provider: true,
+            providerAccountId: true,
+            access_token: true,
+            refresh_token: true,
+            expires_at: true,
+        },
+    });
 
     const now = Math.floor(Date.now() / 1000);
     const bufferTimeS = 5 * 60; // 5 minutes
-
-    const updatedTokens: LinkedAccountTokensMap = { ...currentTokens };
+    const errors: LinkedAccountErrors = {};
 
     await Promise.all(
-        Object.entries(currentTokens).map(async ([providerAccountId, tokenData]) => {
-            const provider = tokenData.provider;
+        accounts.map(async (account) => {
+            const { provider, providerAccountId, expires_at } = account;
+
             if (provider !== 'github' && provider !== 'gitlab') {
                 return;
             }
 
-            if (tokenData.expiresAt && now >= (tokenData.expiresAt - bufferTimeS)) {
+            if (expires_at && now >= (expires_at - bufferTimeS)) {
+                const refreshToken = decryptOAuthToken(account.refresh_token);
+                if (!refreshToken) {
+                    logger.error(`Failed to decrypt refresh token for providerAccountId: ${providerAccountId}`);
+                    errors[providerAccountId] = 'RefreshTokenError';
+                    return;
+                }
+
                 try {
-                    logger.info(`Refreshing token for providerAccountId: ${providerAccountId} (${tokenData.provider})`);
-                    const refreshedTokens = await refreshOAuthToken(
-                        provider,
-                        tokenData.refreshToken
-                    );
+                    logger.info(`Refreshing token for providerAccountId: ${providerAccountId} (${provider})`);
+                    const refreshedTokens = await refreshOAuthToken(provider, refreshToken);
 
                     if (refreshedTokens) {
                         await prisma.account.update({
                             where: {
                                 provider_providerAccountId: {
-                                    provider: provider,
-                                    providerAccountId: providerAccountId
+                                    provider,
+                                    providerAccountId,
                                 }
                             },
                             data: {
-                                access_token: refreshedTokens.accessToken,
-                                refresh_token: refreshedTokens.refreshToken,
+                                access_token: encryptOAuthToken(refreshedTokens.accessToken),
+                                refresh_token: encryptOAuthToken(refreshedTokens.refreshToken),
                                 expires_at: refreshedTokens.expiresAt,
                             },
                         });
-
-                        updatedTokens[providerAccountId] = {
-                            provider: tokenData.provider,
-                            accessToken: refreshedTokens.accessToken,
-                            refreshToken: refreshedTokens.refreshToken ?? tokenData.refreshToken,
-                            expiresAt: refreshedTokens.expiresAt,
-                        };
                         logger.info(`Successfully refreshed token for provider: ${provider}`);
                     } else {
                         logger.error(`Failed to refresh token for provider: ${provider}`);
-                        updatedTokens[providerAccountId] = {
-                            ...tokenData,
-                            error: 'RefreshTokenError',
-                        };
+                        errors[providerAccountId] = 'RefreshTokenError';
                     }
                 } catch (error) {
                     logger.error(`Error refreshing token for provider ${provider}:`, error);
-                    updatedTokens[providerAccountId] = {
-                        ...tokenData,
-                        error: 'RefreshTokenError',
-                    };
+                    errors[providerAccountId] = 'RefreshTokenError';
                 }
             }
         })
     );
 
-    return updatedTokens;
+    return errors;
 }
 
 type ProviderCredentials = {

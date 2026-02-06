@@ -134,6 +134,7 @@ export const env = createEnv({
         
         // Auth
         FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
+        REQUIRE_APPROVAL_NEW_MEMBERS: booleanSchema.optional(),
         AUTH_SECRET: z.string(),
         AUTH_URL: z.string().url(),
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
@@ -281,8 +282,6 @@ export const env = createEnv({
         REDIS_URL: z.string().url().default("redis://localhost:6379"),
         REDIS_REMOVE_ON_COMPLETE: numberSchema.default(0),
         REDIS_REMOVE_ON_FAIL: numberSchema.default(100),
-
-        DEBUG_ENABLE_GROUPMQ_LOGGING: booleanSchema.default('false'),
 
         CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(300000),
         REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),
