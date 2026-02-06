@@ -66,6 +66,7 @@ export class RepoIndexManager {
             defaultJobOptions: {
                 removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
                 removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+                attempts: 2,
             },
         });
 
@@ -85,10 +86,10 @@ export class RepoIndexManager {
         );
 
         this.worker.on('completed', this.onJobCompleted.bind(this));
-        this.worker.on('failed', this.onJobFailed.bind(this));
+        this.worker.on('failed', this.onJobMaybeFailed.bind(this));
         this.worker.on('stalled', (jobId) => {
             // Just log - BullMQ will automatically retry the job (up to maxStalledCount times).
-            // If all retries fail, onJobFailed will handle marking it as failed.
+            // If all retries fail, onJobMaybeFailed will handle marking it as failed.
             logger.warn(`Job ${jobId} stalled - BullMQ will retry`);
         });
         this.worker.on('error', (error) => {
@@ -572,7 +573,7 @@ export class RepoIndexManager {
         }
     }
 
-    private async onJobFailed(job: Job<JobPayload> | undefined, error: Error) {
+    private async onJobMaybeFailed(job: Job<JobPayload> | undefined, error: Error) {
         try {
             if (!job) {
                 logger.error(`Job failed but job object is undefined. Error: ${error.message}`);
@@ -581,6 +582,14 @@ export class RepoIndexManager {
 
             const jobLogger = createJobLogger(job.data.jobId);
             const jobTypeLabel = getJobTypePrometheusLabel(job.data.type);
+
+            // @note: we need to check the job state to determine if the job failed,
+            // or if it is being retried.
+            const jobState = await job.getState();
+            if (jobState !== 'failed') {
+                jobLogger.warn(`Job ${job.id} for repo ${job.data.repoName} (id: ${job.data.repoId}) failed. Retrying...`);
+                return;
+            }
 
             const { repo } = await this.db.repoIndexingJob.update({
                 where: { id: job.data.jobId },
@@ -604,7 +613,7 @@ export class RepoIndexManager {
 
         } catch (err) {
             Sentry.captureException(err);
-            logger.error(`Exception thrown while executing lifecycle function \`onJobFailed\`.`, err);
+            logger.error(`Exception thrown while executing lifecycle function \`onJobMaybeFailed\`.`, err);
         }
     }
 
