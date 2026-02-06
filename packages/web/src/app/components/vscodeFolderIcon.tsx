@@ -13,7 +13,7 @@ interface VscodeFolderIconProps {
 export const VscodeFolderIcon = ({ folderName, className }: VscodeFolderIconProps) => {
     const iconName = useMemo(() => {
         const icon = getIconForFolder(folderName);
-        if (icon) {
+        if (icon && typeof icon === 'string') {
             const iconName = `vscode-icons:${icon.substring(0, icon.indexOf('.')).replaceAll('_', '-')}`;
                 return iconName;
         }
