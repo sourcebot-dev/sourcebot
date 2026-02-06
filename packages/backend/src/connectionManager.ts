@@ -17,6 +17,8 @@ const logger = createLogger(LOG_TAG);
 const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}`);
 const QUEUE_NAME = 'connection-sync-queue';
 
+const CONNECTION_SYNC_TIMEOUT_MS = 1000 * 60 * 60 * 2; // 2 hours
+
 type JobPayload = {
     jobId: string,
     connectionId: number,
@@ -77,7 +79,7 @@ export class ConnectionManager {
         logger.debug('Starting scheduler');
         this.interval = setIntervalAsync(async () => {
             const thresholdDate = new Date(Date.now() - this.settings.resyncConnectionIntervalMs);
-            const timeoutDate = new Date(Date.now() - this.settings.resyncConnectionIntervalMs);
+            const timeoutDate = new Date(Date.now() - CONNECTION_SYNC_TIMEOUT_MS);
 
             const connections = await this.db.connection.findMany({
                 where: {
