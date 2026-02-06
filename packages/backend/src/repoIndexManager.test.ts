@@ -482,6 +482,7 @@ describe('RepoIndexManager', () => {
                     repoName: repo.name,
                 },
                 moveToDelayed: vi.fn(),
+                getState: vi.fn().mockResolvedValue('failed'),
             } as unknown as Job;
 
             // Get the onFailed handler
@@ -529,6 +530,7 @@ describe('RepoIndexManager', () => {
                     repoName: repo.name,
                 },
                 moveToDelayed: vi.fn(),
+                getState: vi.fn().mockResolvedValue('failed'),
             } as unknown as Job;
 
             const onFailedHandler = mockWorkerOn.mock.calls.find((call: unknown[]) => call[0] === 'failed')?.[1];
@@ -775,6 +777,7 @@ describe('RepoIndexManager', () => {
                     repoId: repo.id,
                     repoName: repo.name,
                 },
+                getState: vi.fn().mockResolvedValue('failed'),
             } as unknown as Job;
 
             await onFailedHandler(mockJob, error);
