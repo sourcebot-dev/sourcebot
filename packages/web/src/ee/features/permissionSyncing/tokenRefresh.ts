@@ -88,7 +88,12 @@ const doRefreshLinkedAccountTokens = async (userId: string): Promise<LinkedAccou
                             },
                             data: {
                                 access_token: encryptOAuthToken(refreshTokenResponse.access_token),
-                                refresh_token: encryptOAuthToken(refreshTokenResponse.refresh_token),
+                                // Only update refresh_token if a new one was provided.
+                                // This will preserve an existing refresh token if the provider
+                                // does not return a new one.
+                                ...(refreshTokenResponse.refresh_token !== undefined && {
+                                    refresh_token: encryptOAuthToken(refreshTokenResponse.refresh_token),
+                                }),
                                 expires_at,
                             },
                         });
