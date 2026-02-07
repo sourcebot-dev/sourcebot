@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed issue where certain file and folder names would cause type errors. [#862](https://github.com/sourcebot-dev/sourcebot/pull/862)
+- Fixed token refresh error "Provider config not found or invalid for: x" when a sso is configured using deprecated env vars. [#841](https://github.com/sourcebot-dev/sourcebot/pull/841)
 
 ## [4.10.27] - 2026-02-05
 

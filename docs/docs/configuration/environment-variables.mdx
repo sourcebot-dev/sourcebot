@@ -41,25 +41,7 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `HTTP_PROXY` | - | <p>HTTP proxy URL for routing non-SSL requests through a proxy server (e.g., `http://proxy.company.com:8080`). Requires `NODE_USE_ENV_PROXY=1`.</p> |
 | `HTTPS_PROXY` | - | <p>HTTPS proxy URL for routing SSL requests through a proxy server (e.g., `http://proxy.company.com:8080`). Requires `NODE_USE_ENV_PROXY=1`.</p> |
 | `NO_PROXY` | - | <p>Comma-separated list of hostnames or domains that should bypass the proxy (e.g., `localhost,127.0.0.1,.internal.domain`). Requires `NODE_USE_ENV_PROXY=1`.</p> |
-
-### Enterprise Environment Variables
-| Variable | Default | Description |
-| :------- | :------ | :---------- |
 | `SOURCEBOT_EE_AUDIT_LOGGING_ENABLED` | `true` | <p>Enables/disables audit logging</p> |
-| `AUTH_EE_GITHUB_BASE_URL` | `https://github.com` | <p>The base URL for GitHub Enterprise SSO authentication.</p> |
-| `AUTH_EE_GITHUB_CLIENT_ID` | `-` | <p>The client ID for GitHub Enterprise SSO authentication.</p> |
-| `AUTH_EE_GITHUB_CLIENT_SECRET` | `-` | <p>The client secret for GitHub Enterprise SSO authentication.</p> |
-| `AUTH_EE_GITLAB_BASE_URL` | `https://gitlab.com` | <p>The base URL for GitLab Enterprise SSO authentication.</p> |
-| `AUTH_EE_GITLAB_CLIENT_ID` | `-` | <p>The client ID for GitLab Enterprise SSO authentication.</p> |
-| `AUTH_EE_GITLAB_CLIENT_SECRET` | `-` | <p>The client secret for GitLab Enterprise SSO authentication.</p> |
-| `AUTH_EE_GOOGLE_CLIENT_ID` | `-` | <p>The client ID for Google SSO authentication.</p> |
-| `AUTH_EE_GOOGLE_CLIENT_SECRET` | `-` | <p>The client secret for Google SSO authentication.</p> |
-| `AUTH_EE_KEYCLOAK_CLIENT_ID` | `-` | <p>The client ID for Keycloak SSO authentication.</p> |
-| `AUTH_EE_KEYCLOAK_CLIENT_SECRET` | `-` | <p>The client secret for Keycloak SSO authentication.</p> |
-| `AUTH_EE_KEYCLOAK_ISSUER` | `-` | <p>The issuer URL for Keycloak SSO authentication.</p> |
-| `AUTH_EE_OKTA_CLIENT_ID` | `-` | <p>The client ID for Okta SSO authentication.</p> |
-| `AUTH_EE_OKTA_CLIENT_SECRET` | `-` | <p>The client secret for Okta SSO authentication.</p> |
-| `AUTH_EE_OKTA_ISSUER` | `-` | <p>The issuer URL for Okta SSO authentication.</p> |
 | `AUTH_EE_GCP_IAP_ENABLED` | `false` | <p>When enabled, allows Sourcebot to automatically register/login from a successful GCP IAP redirect</p> |
 | `AUTH_EE_GCP_IAP_AUDIENCE` | - | <p>The GCP IAP audience to use when verifying JWT tokens. Must be set to enable GCP IAP JIT provisioning</p> | 
 | `EXPERIMENT_EE_PERMISSION_SYNC_ENABLED` | `false` | <p>Enables [permission syncing](/docs/features/permission-syncing).</p> |

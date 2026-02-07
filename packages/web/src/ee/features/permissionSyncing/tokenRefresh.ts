@@ -1,18 +1,42 @@
 import { loadConfig, decryptOAuthToken } from "@sourcebot/shared";
 import { getTokenFromConfig, createLogger, env, encryptOAuthToken } from "@sourcebot/shared";
 import { GitHubIdentityProviderConfig, GitLabIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
-const { prisma } = await import('@/prisma');
+import { z } from 'zod';
+import { prisma } from '@/prisma';
 
 const logger = createLogger('web-ee-token-refresh');
 
 // Map of providerAccountId -> error message
 export type LinkedAccountErrors = Record<string, string>;
 
+// In-memory lock to prevent concurrent refresh attempts for the same user
+const refreshLocks = new Map<string, Promise<LinkedAccountErrors>>();
+
 /**
  * Refreshes expiring OAuth tokens for all linked accounts of a user.
  * Loads accounts from database, refreshes tokens as needed, and returns any errors.
+ * Uses an in-memory lock to prevent concurrent refresh attempts for the same user.
  */
-export async function refreshLinkedAccountTokens(userId: string): Promise<LinkedAccountErrors> {
+export const refreshLinkedAccountTokens = async (userId: string): Promise<LinkedAccountErrors> => {
+    // Check if there's already an in-flight refresh for this user
+    const existingRefresh = refreshLocks.get(userId);
+    if (existingRefresh) {
+        return existingRefresh;
+    }
+
+    // Create the refresh promise and store it in the lock map
+    const refreshPromise = doRefreshLinkedAccountTokens(userId);
+    refreshLocks.set(userId, refreshPromise);
+
+    try {
+        return await refreshPromise;
+    } finally {
+        refreshLocks.delete(userId);
+    }
+};
+
+const doRefreshLinkedAccountTokens = async (userId: string): Promise<LinkedAccountErrors> => {
+    // Only grab accounts that can be refreshed (i.e., have an access token, refresh token, and expires_at).
     const accounts = await prisma.account.findMany({
         where: {
             userId,
@@ -41,7 +65,7 @@ export async function refreshLinkedAccountTokens(userId: string): Promise<Linked
                 return;
             }
 
-            if (expires_at && now >= (expires_at - bufferTimeS)) {
+            if (expires_at !== null && expires_at > 0 && now >= (expires_at - bufferTimeS)) {
                 const refreshToken = decryptOAuthToken(account.refresh_token);
                 if (!refreshToken) {
                     logger.error(`Failed to decrypt refresh token for providerAccountId: ${providerAccountId}`);
@@ -51,9 +75,11 @@ export async function refreshLinkedAccountTokens(userId: string): Promise<Linked
 
                 try {
                     logger.info(`Refreshing token for providerAccountId: ${providerAccountId} (${provider})`);
-                    const refreshedTokens = await refreshOAuthToken(provider, refreshToken);
+                    const refreshTokenResponse = await refreshOAuthToken(provider, refreshToken);
 
-                    if (refreshedTokens) {
+                    if (refreshTokenResponse) {
+                        const expires_at = refreshTokenResponse.expires_in ? Math.floor(Date.now() / 1000) + refreshTokenResponse.expires_in : null;
+
                         await prisma.account.update({
                             where: {
                                 provider_providerAccountId: {
@@ -62,9 +88,14 @@ export async function refreshLinkedAccountTokens(userId: string): Promise<Linked
                                 }
                             },
                             data: {
-                                access_token: encryptOAuthToken(refreshedTokens.accessToken),
-                                refresh_token: encryptOAuthToken(refreshedTokens.refreshToken),
-                                expires_at: refreshedTokens.expiresAt,
+                                access_token: encryptOAuthToken(refreshTokenResponse.access_token),
+                                // Only update refresh_token if a new one was provided.
+                                // This will preserve an existing refresh token if the provider
+                                // does not return a new one.
+                                ...(refreshTokenResponse.refresh_token !== undefined ? {
+                                    refresh_token: encryptOAuthToken(refreshTokenResponse.refresh_token),
+                                } : {}),
+                                expires_at,
                             },
                         });
                         logger.info(`Successfully refreshed token for provider: ${provider}`);
@@ -83,16 +114,28 @@ export async function refreshLinkedAccountTokens(userId: string): Promise<Linked
     return errors;
 }
 
-export async function refreshOAuthToken(
+const refreshOAuthToken = async (
     provider: string,
     refreshToken: string,
-): Promise<{ accessToken: string; refreshToken: string | null; expiresAt: number } | null> {
+): Promise<OAuthTokenResponse | null> => {
     try {
         const config = await loadConfig(env.CONFIG_PATH);
         const identityProviders = config?.identityProviders ?? [];
 
         const providerConfigs = identityProviders.filter(idp => idp.provider === provider);
+
+        // If no provider configs in the config file, try deprecated env vars
         if (providerConfigs.length === 0) {
+            const envCredentials = getDeprecatedEnvCredentials(provider);
+            if (envCredentials) {
+                logger.debug(`Using deprecated env vars for ${provider} token refresh`);
+                const result = await tryRefreshToken(provider, refreshToken, envCredentials);
+                if (result) {
+                    return result;
+                }
+                logger.error(`Failed to refresh ${provider} token using deprecated env credentials`);
+                return null;
+            }
             logger.error(`Provider config not found or invalid for: ${provider}`);
             return null;
         }
@@ -110,60 +153,12 @@ export async function refreshOAuthToken(
                 const linkedAccountProviderConfig = providerConfig as GitHubIdentityProviderConfig | GitLabIdentityProviderConfig
                 const clientId = await getTokenFromConfig(linkedAccountProviderConfig.clientId);
                 const clientSecret = await getTokenFromConfig(linkedAccountProviderConfig.clientSecret);
-                const baseUrl = linkedAccountProviderConfig.baseUrl
+                const baseUrl = linkedAccountProviderConfig.baseUrl;
 
-                let url: string;
-                if (baseUrl) {
-                    url = provider === 'github'
-                        ? `${baseUrl}/login/oauth/access_token`
-                        : `${baseUrl}/oauth/token`;
-                } else if (provider === 'github') {
-                    url = 'https://github.com/login/oauth/access_token';
-                } else if (provider === 'gitlab') {
-                    url = 'https://gitlab.com/oauth/token';
-                } else {
-                    logger.error(`Unsupported provider for token refresh: ${provider}`);
-                    continue;
+                const result = await tryRefreshToken(provider, refreshToken, { clientId, clientSecret, baseUrl });
+                if (result) {
+                    return result;
                 }
-
-                // Build request body parameters
-                const bodyParams: Record<string, string> = {
-                    client_id: clientId,
-                    client_secret: clientSecret,
-                    grant_type: 'refresh_token',
-                    refresh_token: refreshToken,
-                };
-
-                // GitLab requires redirect_uri to match the original authorization request
-                // even when refreshing tokens. Use URL constructor to handle trailing slashes.
-                if (provider === 'gitlab') {
-                    bodyParams.redirect_uri = new URL('/api/auth/callback/gitlab', env.AUTH_URL).toString();
-                }
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Accept': 'application/json',
-                    },
-                    body: new URLSearchParams(bodyParams),
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    logger.debug(`Failed to refresh ${provider} token with config: ${response.status} ${errorText}`);
-                    continue;
-                }
-
-                const data = await response.json();
-
-                const result = {
-                    accessToken: data.access_token,
-                    refreshToken: data.refresh_token ?? null,
-                    expiresAt: data.expires_in ? Math.floor(Date.now() / 1000) + data.expires_in : 0,
-                };
-
-                return result;
             } catch (configError) {
                 logger.debug(`Error trying provider config for ${provider}:`, configError);
                 continue;
@@ -176,4 +171,107 @@ export async function refreshOAuthToken(
         logger.error(`Error refreshing ${provider} token:`, error);
         return null;
     }
+}
+
+type ProviderCredentials = {
+    clientId: string;
+    clientSecret: string;
+    baseUrl?: string;
+};
+
+// @see: https://datatracker.ietf.org/doc/html/rfc6749#section-5.1
+const OAuthTokenResponseSchema = z.object({
+    access_token: z.string(),
+    token_type: z.string().optional(),
+    expires_in: z.number().optional(),
+    refresh_token: z.string().optional(),
+    scope: z.string().optional(),
+});
+
+type OAuthTokenResponse = z.infer<typeof OAuthTokenResponseSchema>;
+
+const tryRefreshToken = async (
+    provider: string,
+    refreshToken: string,
+    credentials: ProviderCredentials,
+): Promise<OAuthTokenResponse | null> => {
+    const { clientId, clientSecret, baseUrl } = credentials;
+
+    let url: string;
+    if (baseUrl) {
+        url = provider === 'github'
+            ? new URL('/login/oauth/access_token', baseUrl).toString()
+            : new URL('/oauth/token', baseUrl).toString();
+    } else if (provider === 'github') {
+        url = 'https://github.com/login/oauth/access_token';
+    } else if (provider === 'gitlab') {
+        url = 'https://gitlab.com/oauth/token';
+    } else {
+        logger.error(`Unsupported provider for token refresh: ${provider}`);
+        return null;
+    }
+
+    // Build request body parameters
+    const bodyParams: Record<string, string> = {
+        // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-2.3.1 (client authentication)
+        client_id: clientId,
+        client_secret: clientSecret,
+
+        // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-6 (refresh token grant)
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+    };
+
+    // GitLab requires redirect_uri to match the original authorization request
+    // even when refreshing tokens. Use URL constructor to handle trailing slashes.
+    if (provider === 'gitlab') {
+        bodyParams.redirect_uri = new URL('/api/auth/callback/gitlab', env.AUTH_URL).toString();
+    }
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+        },
+        body: new URLSearchParams(bodyParams),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        logger.error(`Failed to refresh ${provider} token: ${response.status} ${errorText}`);
+        return null;
+    }
+
+    const json = await response.json();
+    const result = OAuthTokenResponseSchema.safeParse(json);
+
+    if (!result.success) {
+        logger.error(`Invalid OAuth token response from ${provider}:\n${result.error.message}`);
+        return null;
+    }
+
+    return result.data;
+}
+
+/**
+ * Get credentials from deprecated environment variables.
+ * This is for backwards compatibility with deployments using env vars instead of config file.
+ */
+const getDeprecatedEnvCredentials = (provider: string): ProviderCredentials | null => {
+    if (provider === 'github' && env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
+        return {
+            clientId: env.AUTH_EE_GITHUB_CLIENT_ID,
+            clientSecret: env.AUTH_EE_GITHUB_CLIENT_SECRET,
+            baseUrl: env.AUTH_EE_GITHUB_BASE_URL,
+        };
+    }
+    if (provider === 'gitlab' && env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
+        return {
+            clientId: env.AUTH_EE_GITLAB_CLIENT_ID,
+            clientSecret: env.AUTH_EE_GITLAB_CLIENT_SECRET,
+            baseUrl: env.AUTH_EE_GITLAB_BASE_URL,
+        };
+    }
+    return null;
 }
