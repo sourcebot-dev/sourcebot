@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added support to set "Require approval for new members" via config with (`REQUIRE_APPROVAL_NEW_MEMBERS`). [#858](https://github.com/sourcebot-dev/sourcebot/pull/858)
+- Added automatic cleanup of tmp shard files on indexing failure. [#805](https://github.com/sourcebot-dev/sourcebot/pull/805)
 
 ### Changed
 - Improved stability for connection and repo indexing workers. [#860](https://github.com/sourcebot-dev/sourcebot/pull/860)
