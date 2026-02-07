@@ -9,7 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added support to set "Require approval for new members" via config with (`REQUIRE_APPROVAL_NEW_MEMBERS`). [#858](https://github.com/sourcebot-dev/sourcebot/pull/858)
-- Added automatic cleanup of tmp shard files on indexing failure. [#805](https://github.com/sourcebot-dev/sourcebot/pull/805)
 
 ### Changed
 - Improved stability for connection and repo indexing workers. [#860](https://github.com/sourcebot-dev/sourcebot/pull/860)
@@ -17,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed issue where certain file and folder names would cause type errors. [#862](https://github.com/sourcebot-dev/sourcebot/pull/862)
 - Fixed token refresh error "Provider config not found or invalid for: x" when a sso is configured using deprecated env vars. [#841](https://github.com/sourcebot-dev/sourcebot/pull/841)
+- Fixed issue where temporary shard files created on index failure were not being cleaned up. [#805](https://github.com/sourcebot-dev/sourcebot/pull/805)
 
 ## [4.10.27] - 2026-02-05
 
