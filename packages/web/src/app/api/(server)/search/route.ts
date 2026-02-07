@@ -1,12 +1,13 @@
 'use server';
 
 import { search, searchRequestSchema } from "@/features/search";
+import { apiHandler } from "@/lib/apiHandler";
+import { captureEvent } from "@/lib/posthog";
+import { requestBodySchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
-import { requestBodySchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
-import { captureEvent } from "@/lib/posthog";
 
-export const POST = async (request: NextRequest) => {
+export const POST = apiHandler(async (request: NextRequest) => {
     const body = await request.json();
     const parsed = await searchRequestSchema.safeParseAsync(body);
     if (!parsed.success) {
@@ -17,15 +18,15 @@ export const POST = async (request: NextRequest) => {
 
     const {
         query,
-        source,
         ...options
     } = parsed.data;
 
+    const source = request.headers.get('X-Sourcebot-Client-Source') ?? 'unknown';
     await captureEvent('api_code_search_request', {
-        source: source ?? 'unknown',
+        source,
         type: 'blocking',
     });
-    
+
     const response = await search({
         queryType: 'string',
         query,
@@ -37,4 +38,4 @@ export const POST = async (request: NextRequest) => {
     }
 
     return Response.json(response);
-}
+});

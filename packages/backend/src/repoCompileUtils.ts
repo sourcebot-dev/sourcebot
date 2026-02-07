@@ -15,7 +15,7 @@ import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfi
 import { ProjectVisibility } from "azure-devops-node-api/interfaces/CoreInterfaces.js";
 import path from 'path';
 import { glob } from 'glob';
-import { getOriginUrl, isPathAValidGitRepoRoot, isUrlAValidGitRepo } from './git.js';
+import { getLocalDefaultBranch, getOriginUrl, isPathAValidGitRepoRoot, isUrlAValidGitRepo } from './git.js';
 import assert from 'assert';
 import GitUrlParse from 'git-url-parse';
 import { RepoMetadata } from '@sourcebot/shared';
@@ -118,6 +118,7 @@ export const createGitHubRepoRecord = ({
         cloneUrl: cloneUrl.toString(),
         webUrl: repo.html_url,
         name: repoName,
+        defaultBranch: repo.default_branch,
         displayName: repoDisplayName,
         imageUrl: repo.owner.avatar_url,
         isFork: repo.fork,
@@ -169,7 +170,13 @@ export const compileGitlabConfig = async (
         const cloneUrl = new URL(project.http_url_to_repo);
         cloneUrl.protocol = new URL(hostUrl).protocol;
         const isFork = project.forked_from_project !== undefined;
-        const isPublic = project.visibility === 'public';
+        // @note: we consider internal repos to be `public` s.t.,
+        // we don't enforce permission filtering for them and they
+        // are visible to all users.
+        // @see: packages/web/src/prisma.ts
+        const isPublic =
+            project.visibility === 'public' ||
+            project.visibility === 'internal';
         const repoDisplayName = project.path_with_namespace;
         const repoName = path.join(repoNameRoot, repoDisplayName);
         // project.avatar_url is not directly accessible with tokens; use the avatar API endpoint if available
@@ -185,6 +192,7 @@ export const compileGitlabConfig = async (
             cloneUrl: cloneUrl.toString(),
             webUrl: projectUrl,
             name: repoName,
+            defaultBranch: project.default_branch,
             displayName: repoDisplayName,
             imageUrl: avatarUrl,
             isFork: isFork,
@@ -257,6 +265,7 @@ export const compileGiteaConfig = async (
             webUrl: repo.html_url,
             name: repoName,
             displayName: repoDisplayName,
+            defaultBranch: repo.default_branch,
             imageUrl: repo.owner?.avatar_url,
             isFork: repo.fork!,
             isPublic: isPublic,
@@ -339,6 +348,10 @@ export const compileGerritConfig = async (
             webUrl: webUrl,
             name: repoName,
             displayName: repoDisplayName,
+            // @note: the gerrit api doesn't return the default branch (without a seperate query).
+            // Instead, the default branch will be set once the repo is cloned.
+            // @see: repoIndexManager.ts
+            defaultBranch: undefined,
             isFork: false,
             isArchived: false,
             org: {
@@ -444,6 +457,7 @@ export const compileBitbucketConfig = async (
         const repoName = path.join(repoNameRoot, displayName);
         const cloneUrl = getCloneUrl(repo);
         const webUrl = getWebUrl(repo);
+        const defaultBranch = isServer ? (repo as BitbucketServerRepository).defaultBranch : (repo as BitbucketCloudRepository).mainbranch?.name;
 
         const record: RepoData = {
             external_id: externalId,
@@ -453,6 +467,7 @@ export const compileBitbucketConfig = async (
             webUrl: webUrl,
             name: repoName,
             displayName: displayName,
+            defaultBranch,
             isFork: isFork,
             isPublic: isPublic,
             isArchived: isArchived,
@@ -557,6 +572,8 @@ export const compileGenericGitHostConfig_file = async (
 
         const remoteUrl = GitUrlParse(origin);
 
+        const defaultBranch = await getLocalDefaultBranch({ path: repoPath });
+
         // @note: matches the naming here:
         // https://github.com/sourcebot-dev/zoekt/blob/main/gitindex/index.go#L293
         // Go's url.URL.Host includes the port if present (even default ports like 443),
@@ -573,6 +590,7 @@ export const compileGenericGitHostConfig_file = async (
             cloneUrl: `file://${repoPath}`,
             name: repoName,
             displayName: repoName,
+            defaultBranch,
             isFork: false,
             isArchived: false,
             org: {
@@ -612,7 +630,6 @@ export const compileGenericGitHostConfig_file = async (
     }
 }
 
-
 export const compileGenericGitHostConfig_url = async (
     config: GenericGitHostConnectionConfig,
     connectionId: number,
@@ -645,6 +662,10 @@ export const compileGenericGitHostConfig_url = async (
         cloneUrl: remoteUrl.toString(),
         name: repoName,
         displayName: repoName,
+        // @note: we can't determine the default branch from the remote url.
+        // Instead, the default branch will be set once the repo is cloned.
+        // @see: repoIndexManager.ts
+        defaultBranch: undefined,
         isFork: false,
         isArchived: false,
         org: {
@@ -719,6 +740,7 @@ export const compileAzureDevOpsConfig = async (
             webUrl: webUrl,
             name: repoName,
             displayName: repoDisplayName,
+            defaultBranch: repo.defaultBranch,
             imageUrl: null,
             isFork: !!repo.isFork,
             isArchived: false,

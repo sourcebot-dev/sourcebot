@@ -1,12 +1,12 @@
 'use server';
 
-import { getFiles } from "@/features/fileTree/api";
-import { getFilesRequestSchema } from "@/features/fileTree/types";
+import { getFiles, getFilesRequestSchema } from "@/features/git/getFilesApi";
+import { apiHandler } from "@/lib/apiHandler";
 import { requestBodySchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 
-export const POST = async (request: NextRequest) => {
+export const POST = apiHandler(async (request: NextRequest) => {
     const body = await request.json();
     const parsed = await getFilesRequestSchema.safeParseAsync(body);
     if (!parsed.success) {
@@ -19,5 +19,5 @@ export const POST = async (request: NextRequest) => {
     }
 
     return Response.json(response);
-}
+});
 

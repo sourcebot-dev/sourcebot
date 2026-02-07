@@ -2,7 +2,6 @@ import 'next-auth/jwt';
 import NextAuth, { DefaultSession, User as AuthJsUser } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/nodemailer";
-import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/prisma";
 import { env } from "@sourcebot/shared";
 import { User } from '@sourcebot/db';
@@ -18,7 +17,8 @@ import { hasEntitlement } from '@sourcebot/shared';
 import { onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
-import { refreshLinkedAccountTokens } from '@/ee/features/permissionSyncing/tokenRefresh';
+import { refreshLinkedAccountTokens, LinkedAccountErrors } from '@/ee/features/permissionSyncing/tokenRefresh';
+import { EncryptedPrismaAdapter, encryptAccountData } from '@/lib/encryptedPrismaAdapter';
 
 const auditService = getAuditService();
 const eeIdentityProviders = hasEntitlement("sso") ? await getEEIdentityProviders() : [];
@@ -31,28 +31,19 @@ export type IdentityProvider = {
     required?: boolean;
 }
 
-export type LinkedAccountToken = {
-    provider: string;
-    accessToken: string;
-    refreshToken: string;
-    expiresAt: number;
-    error?: string;
-};
-export type LinkedAccountTokensMap = Record<string, LinkedAccountToken>;
-
 declare module 'next-auth' {
     interface Session {
         user: {
             id: string;
         } & DefaultSession['user'];
-        linkedAccountProviderErrors?: Record<string, string>;
+        linkedAccountProviderErrors?: LinkedAccountErrors;
     }
 }
 
 declare module 'next-auth/jwt' {
     interface JWT {
         userId: string;
-        linkedAccountTokens?: LinkedAccountTokensMap;
+        linkedAccountErrors?: LinkedAccountErrors;
     }
 }
 
@@ -153,7 +144,7 @@ export const getProviders = () => {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     secret: env.AUTH_SECRET,
-    adapter: PrismaAdapter(prisma),
+    adapter: EncryptedPrismaAdapter(prisma),
     session: {
         strategy: "jwt",
     },
@@ -164,6 +155,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // Explicitly update the Account record with the OAuth token details.
             // This is necessary to update the access token when the user
             // re-authenticates.
+            // NOTE: Tokens are encrypted before storage for security
             if (account && account.provider && account.provider !== 'credentials' && account.providerAccountId) {
                 await prisma.account.update({
                     where: {
@@ -172,14 +164,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                             providerAccountId: account.providerAccountId,
                         },
                     },
-                    data: {
+                    data: encryptAccountData({
                         refresh_token: account.refresh_token,
                         access_token: account.access_token,
                         expires_at: account.expires_at,
                         token_type: account.token_type,
                         scope: account.scope,
                         id_token: account.id_token,
-                    }
+                    })
                 })
             }
 
@@ -217,7 +209,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
     },
     callbacks: {
-        async jwt({ token, user: _user, account }) {
+        async jwt({ token, user: _user }) {
             const user = _user as User | undefined;
             // @note: `user` will be available on signUp or signIn triggers.
             // Cache the userId in the JWT for later use.
@@ -225,20 +217,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 token.userId = user.id;
             }
 
-            if (hasEntitlement('permission-syncing')) {
-                if (account && account.access_token && account.refresh_token && account.expires_at) {
-                    token.linkedAccountTokens = token.linkedAccountTokens || {};
-                    token.linkedAccountTokens[account.providerAccountId] = {
-                        provider: account.provider,
-                        accessToken: account.access_token,
-                        refreshToken: account.refresh_token,
-                        expiresAt: account.expires_at,
-                    };
-                }
-
-                if (token.linkedAccountTokens) {
-                    token.linkedAccountTokens = await refreshLinkedAccountTokens(token.linkedAccountTokens);
-                }
+            // Refresh expiring tokens and capture any errors.
+            if (hasEntitlement('permission-syncing') && token.userId) {
+                const errors = await refreshLinkedAccountTokens(token.userId);
+                token.linkedAccountErrors = Object.keys(errors).length > 0 ? errors : undefined;
             }
 
             return token;
@@ -252,18 +234,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 id: token.userId,
             }
 
-            // Pass only linked account provider errors to the session (not sensitive tokens)
-            if (token.linkedAccountTokens) {
-                const errors: Record<string, string> = {};
-                for (const [providerAccountId, tokenData] of Object.entries(token.linkedAccountTokens)) {
-                    if (tokenData.error) {
-                        errors[providerAccountId] = tokenData.error;
-                    }
-                }
-                if (Object.keys(errors).length > 0) {
-                    session.linkedAccountProviderErrors = errors;
-                }
+            // Pass linked account errors to the session for UI display
+            if (token.linkedAccountErrors) {
+                session.linkedAccountProviderErrors = token.linkedAccountErrors;
             }
+
             return session;
         },
     },

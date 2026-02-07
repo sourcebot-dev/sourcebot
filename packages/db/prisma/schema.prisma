@@ -59,6 +59,7 @@ model Repo {
   webUrl                String?
   connections           RepoToConnection[]
   imageUrl              String?
+  defaultBranch         String?
 
   permittedAccounts  AccountToRepoPermission[]
   permissionSyncJobs RepoPermissionSyncJob[]

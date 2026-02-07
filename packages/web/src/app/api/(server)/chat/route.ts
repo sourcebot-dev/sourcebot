@@ -3,8 +3,9 @@ import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, upd
 import { createAgentStream } from "@/features/chat/agent";
 import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
+import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notFound, requestBodySchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
+import { notFound, requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
@@ -17,23 +18,24 @@ import {
     JSONValue,
     ModelMessage,
     StreamTextResult,
+    UIMessageStreamOnFinishCallback,
     UIMessageStreamOptions,
     UIMessageStreamWriter
 } from "ai";
 import { randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 
 const logger = createLogger('chat-api');
 
 const chatRequestSchema = z.object({
-    // These paramt
     messages: z.array(z.any()),
     id: z.string(),
     ...additionalChatRequestParamsSchema.shape,
 })
 
-export async function POST(req: Request) {
+export const POST = apiHandler(async (req: NextRequest) => {
     const requestBody = await req.json();
     const parsed = await chatRequestSchema.safeParseAsync(requestBody);
     if (!parsed.success) {
@@ -61,11 +63,11 @@ export async function POST(req: Request) {
             }
 
             if (chat.isReadonly) {
-                return serviceErrorResponse({
+                return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
                     message: "Chat is readonly and cannot be edited.",
-                });
+                } satisfies ServiceError;
             }
 
             // From the language model ID, attempt to find the
@@ -75,24 +77,33 @@ export async function POST(req: Request) {
                     .find((model) => getLanguageModelKey(model) === getLanguageModelKey(languageModel));
 
             if (!languageModelConfig) {
-                return serviceErrorResponse({
+                return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
                     message: `Language model ${languageModel.model} is not configured.`,
-                });
+                } satisfies ServiceError;
             }
 
             const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
 
-            return createMessageStreamResponse({
+            const stream = await createMessageStream({
                 messages,
-                id,
                 selectedSearchScopes,
                 model,
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                 modelProviderOptions: providerOptions,
                 orgId: org.id,
                 prisma,
+                onFinish: async ({ messages }) => {
+                    await updateChatMessages({
+                        chatId: id,
+                        messages
+                    });
+                },
+            });
+
+            return createUIMessageStreamResponse({
+                stream,
             });
         })
     )
@@ -102,7 +113,7 @@ export async function POST(req: Request) {
     }
 
     return response;
-}
+});
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMessageStreamWriter<SBChatMessage>, options: UIMessageStreamOptions<SBChatMessage> = {}) => {
@@ -116,24 +127,24 @@ const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMe
 
 interface CreateMessageStreamResponseProps {
     messages: SBChatMessage[];
-    id: string;
     selectedSearchScopes: SearchScope[];
     model: AISDKLanguageModelV2;
     modelName: string;
     modelProviderOptions?: Record<string, Record<string, JSONValue>>;
     orgId: number;
     prisma: PrismaClient;
+    onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;
 }
 
-const createMessageStreamResponse = async ({
+export const createMessageStream = async ({
     messages,
-    id,
     selectedSearchScopes,
     model,
     modelName,
     modelProviderOptions,
     orgId,
     prisma,
+    onFinish,
 }: CreateMessageStreamResponseProps) => {
     const latestMessage = messages[messages.length - 1];
     const sources = latestMessage.parts
@@ -172,7 +183,7 @@ const createMessageStreamResponse = async ({
 
             const startTime = new Date();
 
-            const expandedReposArrays = await Promise.all(selectedSearchScopes.map(async (scope) => {
+            const expandedRepos = (await Promise.all(selectedSearchScopes.map(async (scope) => {
                 if (scope.type === 'repo') {
                     return [scope.value];
                 }
@@ -194,15 +205,14 @@ const createMessageStreamResponse = async ({
                 }
 
                 return [];
-            }));
-            const expandedRepos = expandedReposArrays.flat();
+            }))).flat()
 
             const researchStream = await createAgentStream({
                 model,
                 providerOptions: modelProviderOptions,
                 inputMessages: messageHistory,
                 inputSources: sources,
-                searchScopeRepoNames: expandedRepos,
+                selectedRepos: expandedRepos,
                 onWriteSource: (source) => {
                     writer.write({
                         type: 'data-source',
@@ -239,17 +249,10 @@ const createMessageStreamResponse = async ({
         },
         onError: errorHandler,
         originalMessages: messages,
-        onFinish: async ({ messages }) => {
-            await updateChatMessages({
-                chatId: id,
-                messages
-            });
-        },
+        onFinish,
     });
 
-    return createUIMessageStreamResponse({
-        stream,
-    });
+    return stream;
 };
 
 const errorHandler = (error: unknown) => {

@@ -95,7 +95,6 @@ export type SearchOptions = z.infer<typeof searchOptionsSchema>;
 
 export const searchRequestSchema = z.object({
     query: z.string(),                                // The zoekt query to execute.
-    source: z.string().optional(),                    // The source of the search request.
     ...searchOptionsSchema.shape,
 });
 export type SearchRequest = z.infer<typeof searchRequestSchema>;
@@ -145,22 +144,3 @@ export const streamedSearchResponseSchema = z.discriminatedUnion('type', [
 ]);
 export type StreamedSearchResponse = z.infer<typeof streamedSearchResponseSchema>;
 
-export interface FileSourceRequest {
-    fileName: string;
-    repository: string;
-    branch?: string;
-}
-
-export const fileSourceResponseSchema = z.object({
-    source: z.string(),
-    language: z.string(),
-    path: z.string(),
-    repo: z.string(),
-    repoCodeHostType: z.nativeEnum(CodeHostType),
-    repoDisplayName: z.string().optional(),
-    repoExternalWebUrl: z.string().optional(),
-    branch: z.string().optional(),
-    webUrl: z.string(),
-    externalWebUrl: z.string().optional(),
-});
-export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;

@@ -1,6 +1,7 @@
 'use server';
 
-import { getFileSource } from "@/features/search/fileSourceApi";
+import { getFileSource } from '@/features/git';
+import { apiHandler } from "@/lib/apiHandler";
 import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
@@ -12,7 +13,7 @@ const querySchema = z.object({
     ref: z.string().optional(),
 });
 
-export const GET = async (request: NextRequest) => {
+export const GET = apiHandler(async (request: NextRequest) => {
     const rawParams = Object.fromEntries(
         Object.keys(querySchema.shape).map(key => [
             key,
@@ -29,9 +30,9 @@ export const GET = async (request: NextRequest) => {
 
     const { repo, path, ref } = parsed.data;
     const response = await getFileSource({
-        fileName: path,
-        repository: repo,
-        branch: ref,
+        path,
+        repo,
+        ref,
     });
 
     if (isServiceError(response)) {
@@ -39,4 +40,4 @@ export const GET = async (request: NextRequest) => {
     }
 
     return Response.json(response);
-}
+});

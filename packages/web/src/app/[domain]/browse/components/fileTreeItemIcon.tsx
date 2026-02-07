@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { VscodeFolderIcon } from "@/app/components/vscodeFolderIcon";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
-import { FileTreeItem } from "../types";
+import { FileTreeItem } from "@/features/git";
 
 interface FileTreeItemIconProps {
     item: FileTreeItem;

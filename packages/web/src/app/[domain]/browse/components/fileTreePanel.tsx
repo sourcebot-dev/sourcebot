@@ -20,7 +20,7 @@ import {
     GoSidebarCollapse as ExpandIcon
 } from "react-icons/go";
 import { ImperativePanelHandle } from "react-resizable-panels";
-import { FileTreeNode } from "../types";
+import { FileTreeNode } from "@/features/git";
 import { PureFileTreePanel } from "./pureFileTreePanel";
 
 interface FileTreePanelProps {

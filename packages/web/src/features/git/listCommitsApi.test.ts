@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { listCommits } from './gitApi';
+import { listCommits } from './listCommitsApi';
 import * as dateUtils from './dateUtils';
 
 // Mock dependencies

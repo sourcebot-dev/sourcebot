@@ -15,8 +15,9 @@ type RepoPermissionSyncJob = {
 }
 
 const QUEUE_NAME = 'repoPermissionSyncQueue';
-
+const POLLING_INTERVAL_MS = 1000;
 const LOG_TAG = 'repo-permission-syncer';
+
 const logger = createLogger(LOG_TAG);
 const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}`);
 
@@ -35,7 +36,7 @@ export class RepoPermissionSyncer {
         });
         this.worker = new Worker<RepoPermissionSyncJob>(QUEUE_NAME, this.runJob.bind(this), {
             connection: redis,
-            concurrency: 1,
+            concurrency: this.settings.maxRepoPermissionSyncJobConcurrency,
         });
         this.worker.on('completed', this.onJobCompleted.bind(this));
         this.worker.on('failed', this.onJobFailed.bind(this));
@@ -107,7 +108,7 @@ export class RepoPermissionSyncer {
             });
 
             await this.schedulePermissionSync(repos);
-        }, 1000 * 5);
+        }, POLLING_INTERVAL_MS);
     }
 
     public async dispose() {
@@ -126,6 +127,9 @@ export class RepoPermissionSyncer {
             data: repos.map(repo => ({
                 repoId: repo.id,
             })),
+            include: {
+                repo: true,
+            }
         });
 
         await this.queue.addBulk(jobs.map((job) => ({
@@ -136,6 +140,8 @@ export class RepoPermissionSyncer {
             opts: {
                 removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
                 removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+                // Priority 1 (high) for never-synced, Priority 2 (normal) for re-sync
+                priority: job.repo.permissionSyncedAt === null ? 1 : 2,
             }
         })))
     }

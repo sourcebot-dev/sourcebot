@@ -4,7 +4,7 @@ import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { BottomPanel } from "./components/bottomPanel";
 import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
 import { BrowseStateProvider } from "./browseStateProvider";
-import { FileTreePanel } from "@/features/fileTree/components/fileTreePanel";
+import { FileTreePanel } from "./components/fileTreePanel";
 import { TopBar } from "@/app/[domain]/components/topBar";
 import { useBrowseParams } from "./hooks/useBrowseParams";
 import { FileSearchCommandDialog } from "./components/fileSearchCommandDialog";
