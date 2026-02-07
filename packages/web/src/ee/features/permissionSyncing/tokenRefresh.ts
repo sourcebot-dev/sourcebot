@@ -192,8 +192,8 @@ const tryRefreshToken = async (
     let url: string;
     if (baseUrl) {
         url = provider === 'github'
-            ? `${baseUrl}/login/oauth/access_token`
-            : `${baseUrl}/oauth/token`;
+            ? new URL('/login/oauth/access_token', baseUrl).toString()
+            : new URL('/oauth/token', baseUrl).toString();
     } else if (provider === 'github') {
         url = 'https://github.com/login/oauth/access_token';
     } else if (provider === 'gitlab') {
