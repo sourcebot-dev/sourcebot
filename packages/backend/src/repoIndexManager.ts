@@ -1,20 +1,19 @@
 import * as Sentry from '@sentry/node';
 import { PrismaClient, Repo, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
-import { createLogger, Logger } from "@sourcebot/shared";
-import { env, RepoIndexingJobMetadata, repoIndexingJobMetadataSchema, RepoMetadata, repoMetadataSchema, getRepoPath } from '@sourcebot/shared';
+import { createLogger, env, getRepoPath, Logger, RepoIndexingJobMetadata, repoIndexingJobMetadataSchema, RepoMetadata, repoMetadataSchema } from "@sourcebot/shared";
+import { DelayedError, Job, Queue, Worker } from "bullmq";
 import { existsSync } from 'fs';
 import { readdir, rm } from 'fs/promises';
-import { DelayedError, Job, Queue, Worker } from "bullmq";
 import { Redis } from 'ioredis';
-import Redlock, { ExecutionError } from 'redlock';
 import micromatch from 'micromatch';
-import { WORKER_STOP_GRACEFUL_TIMEOUT_MS, INDEX_CACHE_DIR } from './constants.js';
+import Redlock, { ExecutionError } from 'redlock';
+import { INDEX_CACHE_DIR, WORKER_STOP_GRACEFUL_TIMEOUT_MS } from './constants.js';
 import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLatestCommitTimestamp, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
 import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
 import { RepoWithConnections, Settings } from "./types.js";
 import { getAuthCredentialsForRepo, getShardPrefix, measure, setIntervalAsync } from './utils.js';
-import { indexGitRepository } from './zoekt.js';
+import { cleanupTempShards, indexGitRepository } from './zoekt.js';
 
 const LOG_TAG = 'repo-index-manager';
 const logger = createLogger(LOG_TAG);
@@ -478,9 +477,17 @@ export class RepoIndexManager {
         }
 
         logger.info(`Indexing ${repo.name} (id: ${repo.id})...`);
-        const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, revisions, signal));
-        const indexDuration_s = durationMs / 1000;
-        logger.info(`Indexed ${repo.name} (id: ${repo.id}) in ${indexDuration_s}s`);
+        try {
+            const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, revisions, signal));
+            const indexDuration_s = durationMs / 1000;
+            logger.info(`Indexed ${repo.name} (id: ${repo.id}) in ${indexDuration_s}s`);
+        } catch (error) {
+            // Clean up any temporary shard files left behind by the failed indexing operation.
+            // Zoekt creates .tmp files during indexing which can accumulate if indexing fails repeatedly.
+            logger.warn(`Indexing failed for ${repo.name} (id: ${repo.id}), cleaning up temp shard files...`);
+            await cleanupTempShards(repo);
+            throw error;
+        }
 
         return revisions;
     }
