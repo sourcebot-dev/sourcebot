@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.28] - 2026-02-07
+
 ### Added
 - Added support to set "Require approval for new members" via config with (`REQUIRE_APPROVAL_NEW_MEMBERS`). [#858](https://github.com/sourcebot-dev/sourcebot/pull/858)
 
