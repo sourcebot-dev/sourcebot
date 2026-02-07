@@ -133,6 +133,8 @@ const refreshOAuthToken = async (
                 if (result) {
                     return result;
                 }
+                logger.error(`Failed to refresh ${provider} token using deprecated env credentials`);
+                return null;
             }
             logger.error(`Provider config not found or invalid for: ${provider}`);
             return null;
