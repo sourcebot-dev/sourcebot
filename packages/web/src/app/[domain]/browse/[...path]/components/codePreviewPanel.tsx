@@ -3,7 +3,7 @@ import { PathHeader } from "@/app/[domain]/components/pathHeader";
 import { Separator } from "@/components/ui/separator";
 import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils";
 import Image from "next/image";
-import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
+import { CodePreviewPanelClient } from "./codePreviewPanelClient";
 import { getFileSource } from '@/features/git';
 
 interface CodePreviewPanelProps {
@@ -74,7 +74,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePre
                 )}
             </div>
             <Separator />
-            <PureCodePreviewPanel
+            <CodePreviewPanelClient
                 source={fileSourceResponse.source}
                 language={fileSourceResponse.language}
                 repoName={repoName}
