@@ -36,6 +36,7 @@ export const refreshLinkedAccountTokens = async (userId: string): Promise<Linked
 };
 
 const doRefreshLinkedAccountTokens = async (userId: string): Promise<LinkedAccountErrors> => {
+    // Only grab accounts that can be refreshed (i.e., have an access token, refresh token, and expires_at).
     const accounts = await prisma.account.findMany({
         where: {
             userId,
@@ -91,9 +92,9 @@ const doRefreshLinkedAccountTokens = async (userId: string): Promise<LinkedAccou
                                 // Only update refresh_token if a new one was provided.
                                 // This will preserve an existing refresh token if the provider
                                 // does not return a new one.
-                                ...(refreshTokenResponse.refresh_token !== undefined && {
+                                ...(refreshTokenResponse.refresh_token !== undefined ? {
                                     refresh_token: encryptOAuthToken(refreshTokenResponse.refresh_token),
-                                }),
+                                } : {}),
                                 expires_at,
                             },
                         });
