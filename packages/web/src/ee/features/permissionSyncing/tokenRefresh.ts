@@ -1,18 +1,41 @@
 import { loadConfig, decryptOAuthToken } from "@sourcebot/shared";
 import { getTokenFromConfig, createLogger, env, encryptOAuthToken } from "@sourcebot/shared";
 import { GitHubIdentityProviderConfig, GitLabIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
-const { prisma } = await import('@/prisma');
+import { z } from 'zod';
+import { prisma } from '@/prisma';
 
 const logger = createLogger('web-ee-token-refresh');
 
 // Map of providerAccountId -> error message
 export type LinkedAccountErrors = Record<string, string>;
 
+// In-memory lock to prevent concurrent refresh attempts for the same user
+const refreshLocks = new Map<string, Promise<LinkedAccountErrors>>();
+
 /**
  * Refreshes expiring OAuth tokens for all linked accounts of a user.
  * Loads accounts from database, refreshes tokens as needed, and returns any errors.
+ * Uses an in-memory lock to prevent concurrent refresh attempts for the same user.
  */
-export async function refreshLinkedAccountTokens(userId: string): Promise<LinkedAccountErrors> {
+export const refreshLinkedAccountTokens = async (userId: string): Promise<LinkedAccountErrors> => {
+    // Check if there's already an in-flight refresh for this user
+    const existingRefresh = refreshLocks.get(userId);
+    if (existingRefresh) {
+        return existingRefresh;
+    }
+
+    // Create the refresh promise and store it in the lock map
+    const refreshPromise = doRefreshLinkedAccountTokens(userId);
+    refreshLocks.set(userId, refreshPromise);
+
+    try {
+        return await refreshPromise;
+    } finally {
+        refreshLocks.delete(userId);
+    }
+};
+
+const doRefreshLinkedAccountTokens = async (userId: string): Promise<LinkedAccountErrors> => {
     const accounts = await prisma.account.findMany({
         where: {
             userId,
@@ -41,7 +64,7 @@ export async function refreshLinkedAccountTokens(userId: string): Promise<Linked
                 return;
             }
 
-            if (expires_at && now >= (expires_at - bufferTimeS)) {
+            if (expires_at !== null && expires_at > 0 && now >= (expires_at - bufferTimeS)) {
                 const refreshToken = decryptOAuthToken(account.refresh_token);
                 if (!refreshToken) {
                     logger.error(`Failed to decrypt refresh token for providerAccountId: ${providerAccountId}`);
@@ -51,9 +74,11 @@ export async function refreshLinkedAccountTokens(userId: string): Promise<Linked
 
                 try {
                     logger.info(`Refreshing token for providerAccountId: ${providerAccountId} (${provider})`);
-                    const refreshedTokens = await refreshOAuthToken(provider, refreshToken);
+                    const refreshTokenResponse = await refreshOAuthToken(provider, refreshToken);
 
-                    if (refreshedTokens) {
+                    if (refreshTokenResponse) {
+                        const expires_at = refreshTokenResponse.expires_in ? Math.floor(Date.now() / 1000) + refreshTokenResponse.expires_in : null;
+
                         await prisma.account.update({
                             where: {
                                 provider_providerAccountId: {
@@ -62,9 +87,9 @@ export async function refreshLinkedAccountTokens(userId: string): Promise<Linked
                                 }
                             },
                             data: {
-                                access_token: encryptOAuthToken(refreshedTokens.accessToken),
-                                refresh_token: encryptOAuthToken(refreshedTokens.refreshToken),
-                                expires_at: refreshedTokens.expiresAt,
+                                access_token: encryptOAuthToken(refreshTokenResponse.access_token),
+                                refresh_token: encryptOAuthToken(refreshTokenResponse.refresh_token),
+                                expires_at,
                             },
                         });
                         logger.info(`Successfully refreshed token for provider: ${provider}`);
@@ -83,10 +108,10 @@ export async function refreshLinkedAccountTokens(userId: string): Promise<Linked
     return errors;
 }
 
-async function refreshOAuthToken(
+const refreshOAuthToken = async (
     provider: string,
     refreshToken: string,
-): Promise<{ accessToken: string; refreshToken: string | null; expiresAt: number } | null> {
+): Promise<OAuthTokenResponse | null> => {
     try {
         const config = await loadConfig(env.CONFIG_PATH);
         const identityProviders = config?.identityProviders ?? [];
@@ -146,11 +171,22 @@ type ProviderCredentials = {
     baseUrl?: string;
 };
 
-async function tryRefreshToken(
+// @see: https://datatracker.ietf.org/doc/html/rfc6749#section-5.1
+const OAuthTokenResponseSchema = z.object({
+    access_token: z.string(),
+    token_type: z.string().optional(),
+    expires_in: z.number().optional(),
+    refresh_token: z.string().optional(),
+    scope: z.string().optional(),
+});
+
+type OAuthTokenResponse = z.infer<typeof OAuthTokenResponseSchema>;
+
+const tryRefreshToken = async (
     provider: string,
     refreshToken: string,
-    credentials: ProviderCredentials
-): Promise<{ accessToken: string; refreshToken: string | null; expiresAt: number } | null> {
+    credentials: ProviderCredentials,
+): Promise<OAuthTokenResponse | null> => {
     const { clientId, clientSecret, baseUrl } = credentials;
 
     let url: string;
@@ -169,8 +205,11 @@ async function tryRefreshToken(
 
     // Build request body parameters
     const bodyParams: Record<string, string> = {
+        // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-2.3.1 (client authentication)
         client_id: clientId,
         client_secret: clientSecret,
+
+        // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-6 (refresh token grant)
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
     };
@@ -192,24 +231,26 @@ async function tryRefreshToken(
 
     if (!response.ok) {
         const errorText = await response.text();
-        logger.debug(`Failed to refresh ${provider} token: ${response.status} ${errorText}`);
+        logger.error(`Failed to refresh ${provider} token: ${response.status} ${errorText}`);
         return null;
     }
 
-    const data = await response.json();
+    const json = await response.json();
+    const result = OAuthTokenResponseSchema.safeParse(json);
 
-    return {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token ?? null,
-        expiresAt: data.expires_in ? Math.floor(Date.now() / 1000) + data.expires_in : 0,
-    };
+    if (!result.success) {
+        logger.error(`Invalid OAuth token response from ${provider}:\n${JSON.stringify(json, null, 2)}`);
+        return null;
+    }
+
+    return result.data;
 }
 
 /**
  * Get credentials from deprecated environment variables.
  * This is for backwards compatibility with deployments using env vars instead of config file.
  */
-function getDeprecatedEnvCredentials(provider: string): ProviderCredentials | null {
+const getDeprecatedEnvCredentials = (provider: string): ProviderCredentials | null => {
     if (provider === 'github' && env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
         return {
             clientId: env.AUTH_EE_GITHUB_CLIENT_ID,
