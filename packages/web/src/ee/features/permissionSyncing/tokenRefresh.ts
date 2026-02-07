@@ -244,7 +244,7 @@ const tryRefreshToken = async (
     const result = OAuthTokenResponseSchema.safeParse(json);
 
     if (!result.success) {
-        logger.error(`Invalid OAuth token response from ${provider}:\n${JSON.stringify(json, null, 2)}`);
+        logger.error(`Invalid OAuth token response from ${provider}:\n${result.error.message}`);
         return null;
     }
 
