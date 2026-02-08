@@ -5,7 +5,7 @@ import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
 import { PureMarkDownPreviewPanel } from "./pureMarkDownPreviewPanel";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-interface CodePreviewPanelClientProps {
+interface SourcePreviewPanelClientProps {
     path: string;
     repoName: string;
     revisionName: string;
@@ -13,17 +13,16 @@ interface CodePreviewPanelClientProps {
     language: string;
 }
 
-export const CodePreviewPanelClient = ({
+export const SourcePreviewPanelClient = ({
     source,
     language,
     path,
     repoName,
     revisionName,
-}: CodePreviewPanelClientProps) => {
+}: SourcePreviewPanelClientProps) => {
     const [viewMode, setViewMode] = useState<string>("preview");
-    const isMarkdown = language.toLowerCase() === "gcc machine description" || language.toLowerCase() === "md" || path.toLocaleLowerCase().endsWith(".md") || path.toLocaleLowerCase().endsWith(".markdown");
+    const isMarkdown = language === 'Markdown';
 
-    console.log({language,path,repoName,revisionName});
     return (
         <>
             {isMarkdown && (

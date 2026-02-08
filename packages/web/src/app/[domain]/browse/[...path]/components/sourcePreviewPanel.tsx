@@ -3,16 +3,16 @@ import { PathHeader } from "@/app/[domain]/components/pathHeader";
 import { Separator } from "@/components/ui/separator";
 import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils";
 import Image from "next/image";
-import { CodePreviewPanelClient } from "./codePreviewPanelClient";
+import { SourcePreviewPanelClient } from "./codePreviewPanelClient";
 import { getFileSource } from '@/features/git';
 
-interface CodePreviewPanelProps {
+interface SourcePreviewPanelProps {
     path: string;
     repoName: string;
     revisionName?: string;
 }
 
-export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePreviewPanelProps) => {
+export const SourcePreviewPanel = async ({ path, repoName, revisionName }: SourcePreviewPanelProps) => {
     const [fileSourceResponse, repoInfoResponse] = await Promise.all([
         getFileSource({
             path,
@@ -74,7 +74,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePre
                 )}
             </div>
             <Separator />
-            <CodePreviewPanelClient
+            <SourcePreviewPanelClient
                 source={fileSourceResponse.source}
                 language={fileSourceResponse.language}
                 repoName={repoName}
