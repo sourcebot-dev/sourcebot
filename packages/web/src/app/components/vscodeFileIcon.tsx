@@ -13,12 +13,12 @@ interface VscodeFileIconProps {
 export const VscodeFileIcon = ({ fileName, className }: VscodeFileIconProps) => {
     const iconName = useMemo(() => {
         const icon = getIconForFile(fileName);
-        if (icon) {
+        if (icon && typeof icon === 'string') {
             const iconName = `vscode-icons:${icon.substring(0, icon.indexOf('.')).replaceAll('_', '-')}`;
             return iconName;
         }
 
-        return "vscode-icons:file-type-unknown";
+        return "vscode-icons:default-file";
     }, [fileName]);
 
     return <Icon icon={iconName} className={cn("w-4 h-4 flex-shrink-0", className)} />;

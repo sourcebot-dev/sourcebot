@@ -1,25 +1,25 @@
 'use client';
 
-import { SearchReposToolUIPart } from "@/features/chat/tools";
+import { ListReposToolUIPart } from "@/features/chat/tools";
 import { isServiceError } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { ToolHeader, TreeList } from "./shared";
 import { CodeSnippet } from "@/app/components/codeSnippet";
 import { Separator } from "@/components/ui/separator";
-import { BookMarkedIcon } from "lucide-react";
+import { FolderOpenIcon } from "lucide-react";
 
-export const SearchReposToolComponent = ({ part }: { part: SearchReposToolUIPart }) => {
+export const ListReposToolComponent = ({ part }: { part: ListReposToolUIPart }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     const label = useMemo(() => {
         switch (part.state) {
             case 'input-streaming':
-                return 'Searching repositories...';
+                return 'Listing repositories...';
             case 'output-error':
-                return '"Search repositories" tool call failed';
+                return '"List repositories" tool call failed';
             case 'input-available':
             case 'output-available':
-                return <span>Searched for repositories: <CodeSnippet className="truncate">{part.input.query}</CodeSnippet></span>;
+                return 'Listed repositories';
         }
     }, [part]);
 
@@ -30,7 +30,7 @@ export const SearchReposToolComponent = ({ part }: { part: SearchReposToolUIPart
                 isError={part.state === 'output-error' || (part.state === 'output-available' && isServiceError(part.output))}
                 isExpanded={isExpanded}
                 label={label}
-                Icon={BookMarkedIcon}
+                Icon={FolderOpenIcon}
                 onExpand={setIsExpanded}
             />
             {part.state === 'output-available' && isExpanded && (
@@ -45,9 +45,12 @@ export const SearchReposToolComponent = ({ part }: { part: SearchReposToolUIPart
                                 <span className="text-sm text-muted-foreground ml-[25px]">No repositories found</span>
                             ) : (
                                 <TreeList>
+                                    <div className="text-sm text-muted-foreground mb-2">
+                                        Found {part.output.length} repositories:
+                                    </div>
                                     {part.output.map((repoName, index) => (
                                         <div key={index} className="flex items-center gap-2 text-sm">
-                                            <BookMarkedIcon className="h-4 w-4 text-muted-foreground" />
+                                            <FolderOpenIcon className="h-4 w-4 text-muted-foreground" />
                                             <span className="truncate">{repoName}</span>
                                         </div>
                                     ))}
@@ -60,4 +63,4 @@ export const SearchReposToolComponent = ({ part }: { part: SearchReposToolUIPart
             )}
         </div>
     )
-}
+} 

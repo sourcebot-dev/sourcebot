@@ -139,6 +139,7 @@ const createGitHubProvider = (clientId: string, clientSecret: string, baseUrl?: 
                 ].join(' '),
             },
         },
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
@@ -168,6 +169,7 @@ const createGitLabProvider = (clientId: string, clientSecret: string, baseUrl?: 
         userinfo: {
             url: `${url}/api/v4/user`,
         },
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
@@ -175,6 +177,7 @@ const createGoogleProvider = (clientId: string, clientSecret: string): Provider 
     return Google({
         clientId: clientId,
         clientSecret: clientSecret,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
@@ -183,6 +186,7 @@ const createOktaProvider = (clientId: string, clientSecret: string, issuer: stri
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
@@ -191,6 +195,7 @@ const createKeycloakProvider = (clientId: string, clientSecret: string, issuer: 
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
@@ -199,6 +204,16 @@ const createMicrosoftEntraIDProvider = (clientId: string, clientSecret: string, 
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
+    });
+}
+
+export const createAuthentikProvider = (clientId: string, clientSecret: string, issuer: string): Provider => {
+    return Authentik({
+        clientId: clientId,
+        clientSecret: clientSecret,
+        issuer: issuer,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
@@ -207,7 +222,7 @@ const createGCPIAPProvider = (audience: string): Provider => {
         id: "gcp-iap",
         name: "Google Cloud IAP",
         credentials: {},
-        authorize: async (credentials, req) => {
+        authorize: async (_credentials, req) => {
             try {
                 const iapAssertion = req.headers?.get("x-goog-iap-jwt-assertion");
                 if (!iapAssertion || typeof iapAssertion !== "string") {
@@ -275,13 +290,5 @@ const createGCPIAPProvider = (audience: string): Provider => {
                 return null;
             }
         },
-    });
-}
-
-export const createAuthentikProvider = (clientId: string, clientSecret: string, issuer: string): Provider => {
-    return Authentik({
-        clientId: clientId,
-        clientSecret: clientSecret,
-        issuer: issuer,
     });
 }

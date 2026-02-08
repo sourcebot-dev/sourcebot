@@ -13,7 +13,7 @@ export const REPOS_CACHE_DIR = path.join(env.DATA_CACHE_DIR, 'repos');
 export const INDEX_CACHE_DIR = path.join(env.DATA_CACHE_DIR, 'index');
 
 // Maximum time to wait for current job to finish
-export const GROUPMQ_WORKER_STOP_GRACEFUL_TIMEOUT_MS = 5 * 1000; // 5 seconds
+export const WORKER_STOP_GRACEFUL_TIMEOUT_MS = 5 * 1000; // 5 seconds
 
 // List of shutdown signals
 export const SHUTDOWN_SIGNALS: string[] = [
