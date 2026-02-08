@@ -21,6 +21,7 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `DATABASE_URL` | `postgresql://postgres@ localhost:5432/sourcebot` | <p>Connection string of your Postgres database. By default, a Postgres database is automatically provisioned at startup within the container.</p><p>If you'd like to use a non-default schema, you can provide it as a parameter in the database url.</p><p>You can also use `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_NAME`, and `DATABASE_ARGS` to construct the database url.</p> |
 | `EMAIL_FROM_ADDRESS` | `-` | <p>The email address that transactional emails will be sent from. See [this doc](/docs/configuration/transactional-emails) for more info.</p> | 
 | `FORCE_ENABLE_ANONYMOUS_ACCESS` | `false` | <p>When enabled, [anonymous access](/docs/configuration/auth/access-settings#anonymous-access) to the organization will always be enabled</p>
+| `REQUIRE_APPROVAL_NEW_MEMBERS` | - | <p>When set, controls whether new users require approval before accessing your deployment. If not set, the setting can be configured via the UI. See [member approval](/docs/configuration/auth/access-settings#member-approval) for more info.</p>
 | `REDIS_DATA_DIR` | `$DATA_CACHE_DIR/redis` | <p>The data directory for the default Redis instance.</p> |
 | `REDIS_URL` | `redis://localhost:6379` | <p>Connection string of your Redis instance. By default, a Redis database is automatically provisioned at startup within the container.</p> |
 | `REDIS_REMOVE_ON_COMPLETE` | `0` | <p>Controls how many completed jobs are allowed to remain in Redis queues</p> |
@@ -40,25 +41,7 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `HTTP_PROXY` | - | <p>HTTP proxy URL for routing non-SSL requests through a proxy server (e.g., `http://proxy.company.com:8080`). Requires `NODE_USE_ENV_PROXY=1`.</p> |
 | `HTTPS_PROXY` | - | <p>HTTPS proxy URL for routing SSL requests through a proxy server (e.g., `http://proxy.company.com:8080`). Requires `NODE_USE_ENV_PROXY=1`.</p> |
 | `NO_PROXY` | - | <p>Comma-separated list of hostnames or domains that should bypass the proxy (e.g., `localhost,127.0.0.1,.internal.domain`). Requires `NODE_USE_ENV_PROXY=1`.</p> |
-
-### Enterprise Environment Variables
-| Variable | Default | Description |
-| :------- | :------ | :---------- |
 | `SOURCEBOT_EE_AUDIT_LOGGING_ENABLED` | `true` | <p>Enables/disables audit logging</p> |
-| `AUTH_EE_GITHUB_BASE_URL` | `https://github.com` | <p>The base URL for GitHub Enterprise SSO authentication.</p> |
-| `AUTH_EE_GITHUB_CLIENT_ID` | `-` | <p>The client ID for GitHub Enterprise SSO authentication.</p> |
-| `AUTH_EE_GITHUB_CLIENT_SECRET` | `-` | <p>The client secret for GitHub Enterprise SSO authentication.</p> |
-| `AUTH_EE_GITLAB_BASE_URL` | `https://gitlab.com` | <p>The base URL for GitLab Enterprise SSO authentication.</p> |
-| `AUTH_EE_GITLAB_CLIENT_ID` | `-` | <p>The client ID for GitLab Enterprise SSO authentication.</p> |
-| `AUTH_EE_GITLAB_CLIENT_SECRET` | `-` | <p>The client secret for GitLab Enterprise SSO authentication.</p> |
-| `AUTH_EE_GOOGLE_CLIENT_ID` | `-` | <p>The client ID for Google SSO authentication.</p> |
-| `AUTH_EE_GOOGLE_CLIENT_SECRET` | `-` | <p>The client secret for Google SSO authentication.</p> |
-| `AUTH_EE_KEYCLOAK_CLIENT_ID` | `-` | <p>The client ID for Keycloak SSO authentication.</p> |
-| `AUTH_EE_KEYCLOAK_CLIENT_SECRET` | `-` | <p>The client secret for Keycloak SSO authentication.</p> |
-| `AUTH_EE_KEYCLOAK_ISSUER` | `-` | <p>The issuer URL for Keycloak SSO authentication.</p> |
-| `AUTH_EE_OKTA_CLIENT_ID` | `-` | <p>The client ID for Okta SSO authentication.</p> |
-| `AUTH_EE_OKTA_CLIENT_SECRET` | `-` | <p>The client secret for Okta SSO authentication.</p> |
-| `AUTH_EE_OKTA_ISSUER` | `-` | <p>The issuer URL for Okta SSO authentication.</p> |
 | `AUTH_EE_GCP_IAP_ENABLED` | `false` | <p>When enabled, allows Sourcebot to automatically register/login from a successful GCP IAP redirect</p> |
 | `AUTH_EE_GCP_IAP_AUDIENCE` | - | <p>The GCP IAP audience to use when verifying JWT tokens. Must be set to enable GCP IAP JIT provisioning</p> | 
 | `EXPERIMENT_EE_PERMISSION_SYNC_ENABLED` | `false` | <p>Enables [permission syncing](/docs/features/permission-syncing).</p> |

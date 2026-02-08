@@ -8,12 +8,14 @@ interface OrganizationAccessSettingsWrapperProps {
     memberApprovalRequired: boolean
     inviteLinkEnabled: boolean
     inviteLink: string | null
+    memberApprovalEnvVarSet: boolean
 }
 
 export function OrganizationAccessSettingsWrapper({ 
     memberApprovalRequired, 
     inviteLinkEnabled, 
-    inviteLink
+    inviteLink,
+    memberApprovalEnvVarSet
 }: OrganizationAccessSettingsWrapperProps) {
     const [showInviteLink, setShowInviteLink] = useState(memberApprovalRequired)
     
@@ -27,6 +29,7 @@ export function OrganizationAccessSettingsWrapper({
                 <MemberApprovalRequiredToggle 
                     memberApprovalRequired={memberApprovalRequired}
                     onToggleChange={handleMemberApprovalToggle}
+                    isControlledByEnvVar={memberApprovalEnvVarSet}
                 />
             </div>
             

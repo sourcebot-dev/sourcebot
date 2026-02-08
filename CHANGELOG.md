@@ -7,8 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.28] - 2026-02-07
+
+### Added
+- Added support to set "Require approval for new members" via config with (`REQUIRE_APPROVAL_NEW_MEMBERS`). [#858](https://github.com/sourcebot-dev/sourcebot/pull/858)
+
+### Changed
+- Improved stability for connection and repo indexing workers. [#860](https://github.com/sourcebot-dev/sourcebot/pull/860)
+
+### Fixed
+- Fixed issue where certain file and folder names would cause type errors. [#862](https://github.com/sourcebot-dev/sourcebot/pull/862)
+- Fixed token refresh error "Provider config not found or invalid for: x" when a sso is configured using deprecated env vars. [#841](https://github.com/sourcebot-dev/sourcebot/pull/841)
+- Fixed issue where temporary shard files created on index failure were not being cleaned up. [#805](https://github.com/sourcebot-dev/sourcebot/pull/805)
+
+## [4.10.27] - 2026-02-05
+
+### Fixed
+- [EE] Fixed issue where internal GitLab projects were not visible in Sourcebot when permission syncing is enabled. [#857](https://github.com/sourcebot-dev/sourcebot/pull/857)
+
+## [4.10.26] - 2026-02-05
+
+### Added
+- [EE] Added notification banner when an account's permissions are being synced for the first time. [#852](https://github.com/sourcebot-dev/sourcebot/pull/852)
+
 ### Fixed
 - Fixed issue where the branch filter in the repos detail page would not return any results. [#851](https://github.com/sourcebot-dev/sourcebot/pull/851)
+- Fixed issue where 5xx http errors would not be retried. [#855](https://github.com/sourcebot-dev/sourcebot/pull/855)
+
+### Changed
+- Changed the queuing behaviour for permission syncing to prioritize newly created accounts & repos. [#856](https://github.com/sourcebot-dev/sourcebot/pull/856)
+- Changed auth behaviour to store OAuth tokens, refresh tokens, and id tokens encrypted at rest in the database. [#853](https://github.com/sourcebot-dev/sourcebot/pull/853)
+- Changed refresh token behaviour to source provider tokens from the DB rather than storing them in the JWT token. [#853](https://github.com/sourcebot-dev/sourcebot/pull/853)
 
 ## [4.10.25] - 2026-02-04
 

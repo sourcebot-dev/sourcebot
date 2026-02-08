@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import fs from 'fs';
+import { z } from 'zod';
 import { env } from './env.server.js';
 import { Token } from '@sourcebot/schemas/v3/shared.type';
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
@@ -105,3 +106,102 @@ export const getTokenFromConfig = async (token: Token): Promise<string> => {
         throw new Error('Invalid token configuration');
     }
 }; 
+
+// OAuth Token Encryption using AUTH_SECRET
+// Encrypts OAuth tokens (access_token, refresh_token, id_token) before database storage.
+// Supports automatic migration from plaintext by detecting and handling both encrypted and plaintext tokens.
+
+const oauthAlgorithm = 'aes-256-gcm';
+const oauthIvLength = 16;
+const oauthSaltLength = 64;
+
+/**
+ * Schema for encrypted OAuth token structure.
+ * Stored as base64-encoded JSON in the database.
+ */
+const encryptedOAuthTokenSchema = z.object({
+    v: z.literal(1), // Version for future format changes
+    salt: z.string(), // hex-encoded salt for key derivation
+    iv: z.string(),   // hex-encoded initialization vector
+    tag: z.string(),  // hex-encoded auth tag
+    data: z.string(), // hex-encoded encrypted data
+});
+
+type EncryptedOAuthToken = z.infer<typeof encryptedOAuthTokenSchema>;
+
+function deriveOAuthKey(authSecret: string, salt: Buffer): Buffer {
+    return crypto.pbkdf2Sync(authSecret, salt, 100000, 32, 'sha256');
+}
+
+function isOAuthTokenEncrypted(token: string): boolean {
+    try {
+        const decoded = Buffer.from(token, 'base64').toString('utf8');
+        const parsed = JSON.parse(decoded);
+        return encryptedOAuthTokenSchema.safeParse(parsed).success;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Encrypts OAuth token using AUTH_SECRET. Idempotent - returns token unchanged if already encrypted.
+ */
+export function encryptOAuthToken(text: string | null | undefined): string | undefined {
+    if (!text) {
+        return undefined;
+    }
+
+    if (isOAuthTokenEncrypted(text)) {
+        return text;
+    }
+
+    const iv = crypto.randomBytes(oauthIvLength);
+    const salt = crypto.randomBytes(oauthSaltLength);
+    const key = deriveOAuthKey(env.AUTH_SECRET, salt);
+
+    const cipher = crypto.createCipheriv(oauthAlgorithm, key, iv);
+    const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
+    const tag = cipher.getAuthTag();
+
+    const tokenData: EncryptedOAuthToken = {
+        v: 1,
+        salt: salt.toString('hex'),
+        iv: iv.toString('hex'),
+        tag: tag.toString('hex'),
+        data: encrypted.toString('hex'),
+    };
+
+    return Buffer.from(JSON.stringify(tokenData)).toString('base64');
+}
+
+/**
+ * Decrypts OAuth token using AUTH_SECRET. Returns plaintext tokens unchanged during migration.
+ */
+export function decryptOAuthToken(encryptedText: string | null | undefined): string | undefined {
+    if (!encryptedText) {
+        return undefined;
+    }
+
+    if (!isOAuthTokenEncrypted(encryptedText)) {
+        return encryptedText;
+    }
+
+    try {
+        const decoded = Buffer.from(encryptedText, 'base64').toString('utf8');
+        const tokenData = encryptedOAuthTokenSchema.parse(JSON.parse(decoded));
+
+        const salt = Buffer.from(tokenData.salt, 'hex');
+        const iv = Buffer.from(tokenData.iv, 'hex');
+        const tag = Buffer.from(tokenData.tag, 'hex');
+        const encrypted = Buffer.from(tokenData.data, 'hex');
+
+        const key = deriveOAuthKey(env.AUTH_SECRET, salt);
+        const decipher = crypto.createDecipheriv(oauthAlgorithm, key, iv);
+        decipher.setAuthTag(tag);
+
+        return decipher.update(encrypted, undefined, 'utf8') + decipher.final('utf8');
+    } catch {
+        // Decryption failed - likely a plaintext token, return as-is
+        return encryptedText;
+    }
+}
