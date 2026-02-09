@@ -126,7 +126,7 @@ export default async function Layout(props: LayoutProps) {
         )
     }
 
-    if (hasEntitlement("permission-syncing")) {
+    if (session && hasEntitlement("permission-syncing")) {
         const linkedAccountProviderStates = await getLinkedAccountProviderStates();
         if (isServiceError(linkedAccountProviderStates)) {
             return (
