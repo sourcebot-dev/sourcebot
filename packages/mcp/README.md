@@ -160,6 +160,19 @@ The Sourcebot MCP server gives your LLM agents the ability to fetch code context
 For a more detailed guide, checkout [the docs](https://docs.sourcebot.dev/docs/features/mcp-server).
 
 
+## Transport
+
+The server supports two transports, selected via the `--transport` CLI flag:
+
+- **`stdio`** (default) – Standard input/output. Used when the MCP client spawns the server as a subprocess (e.g. Cursor, Claude Desktop).
+- **`http`** – [Streamable HTTP](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports) over a single `/mcp` endpoint. Use this for remote or containerized deployments.
+
+For HTTP transport:
+
+- Run with `--transport http`.
+- Optionally set the port with `--port <port>` (default: `3000`).
+- Optionally set the host with `--host <address>` (default: `127.0.0.1`; use `0.0.0.0` for containerized deployments).
+
 ## Available Tools
 
 ### search_code
