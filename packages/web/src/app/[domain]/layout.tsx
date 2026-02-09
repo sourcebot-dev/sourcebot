@@ -63,9 +63,15 @@ export default async function Layout(props: LayoutProps) {
         return status;
     })();
 
+    // Hoist membership so it's available for the billing owner check below (#815)
+    let membership: Awaited<ReturnType<typeof prisma.userToOrg.findUnique<{
+        where: { orgId_userId: { orgId: string; userId: string } };
+        include: { user: true };
+    }>>> = null;
+
     // If the user is authenticated, we must check if they're a member of the org
     if (session) {
-        const membership = await prisma.userToOrg.findUnique({
+        membership = await prisma.userToOrg.findUnique({
             where: {
                 orgId_userId: {
                     orgId: org.id,
@@ -171,11 +177,28 @@ export default async function Layout(props: LayoutProps) {
                 (subscription.status !== "active" && subscription.status !== "trialing")
             )
         ) {
-            return (
-                <UpgradeGuard>
-                    {children}
-                </UpgradeGuard>
-            )
+            // Only redirect org owners to the upgrade page.
+            // Non-owners see a message to contact their org owner (#815).
+            if (membership?.role === 'OWNER') {
+                return (
+                    <UpgradeGuard>
+                        {children}
+                    </UpgradeGuard>
+                )
+            } else {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-6">
+                        <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
+                        <div className="text-center max-w-md">
+                            <h2 className="text-xl font-semibold mb-2">Subscription Expired</h2>
+                            <p className="text-muted-foreground">
+                                Your organization&apos;s subscription has expired or is inactive.
+                                Please contact your organization owner to renew the subscription.
+                            </p>
+                        </div>
+                    </div>
+                )
+            }
         }
     }
 
