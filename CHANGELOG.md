@@ -7,8 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Added a link to the commit SHA on which the Sourcebot release was built against to the settings dropdown. [#868](https://github.com/sourcebot-dev/sourcebot/pull/868)
+### Changed
+- Changed the settings dropdown to display the commit SHA on which the deployment was built against. [#868](https://github.com/sourcebot-dev/sourcebot/pull/868)
 
 ### Fixed
 - Fixed issue where anonymous access on a Sourcebot instance with a unlimited seat license and anonymous access enabled would result in a "not authenticated" message being displayed. [#866](https://github.com/sourcebot-dev/sourcebot/pull/866)
