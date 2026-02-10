@@ -33,6 +33,7 @@ function PostHogPageView() {
 interface PostHogProviderProps {
     children: React.ReactNode
     isDisabled: boolean
+    isPiiEnabled: boolean
     posthogApiKey: string
     sourcebotVersion: string
     sourcebotInstallId: string
@@ -41,6 +42,7 @@ interface PostHogProviderProps {
 export function PostHogProvider({
     children,
     isDisabled,
+    isPiiEnabled,
     posthogApiKey,
     sourcebotVersion,
     sourcebotInstallId,
@@ -55,10 +57,10 @@ export function PostHogProvider({
                 person_profiles: 'identified_only',
                 capture_pageview: false,
                 autocapture: false,
-                // In self-hosted mode, we don't want to capture the following
-                // default properties.
+                // If PII is not enabled, we don't want to capture the following
+                // default properties that may contain PII.
                 // @see: https://posthog.com/docs/data/events#default-properties
-                property_denylist: env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === undefined ? [
+                property_denylist: isPiiEnabled === false ? [
                     '$current_url',
                     '$pathname',
                     '$session_entry_url',
@@ -81,7 +83,7 @@ export function PostHogProvider({
         } else {
             console.debug("PostHog telemetry disabled");
         }
-    }, [isDisabled, posthogApiKey, sourcebotInstallId, sourcebotVersion]);
+    }, [isDisabled, isPiiEnabled, posthogApiKey, sourcebotInstallId, sourcebotVersion]);
 
     useEffect(() => {
         if (!session) {
@@ -90,13 +92,12 @@ export function PostHogProvider({
 
         posthog.identify(
             session.user.id,
-            // Only include email & name when running in a cloud environment.
-            env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined ? {
+            isPiiEnabled === true ? {
                 email: session.user.email,
                 name: session.user.name,
             } : undefined
         );
-    }, [session]);
+    }, [isPiiEnabled, session]);
 
     return (
         <PHProvider client={posthog}>

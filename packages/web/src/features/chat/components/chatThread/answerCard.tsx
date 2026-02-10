@@ -26,7 +26,7 @@ interface AnswerCardProps {
     traceId?: string;
 }
 
-const langfuseWeb = (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined && env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY) ? new LangfuseWeb({
+const langfuseWeb = env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY ? new LangfuseWeb({
     publicKey: env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY,
     baseUrl: env.NEXT_PUBLIC_LANGFUSE_BASE_URL,
 }) : null;

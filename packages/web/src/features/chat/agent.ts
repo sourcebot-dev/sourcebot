@@ -3,7 +3,6 @@ import { isServiceError } from "@/lib/utils";
 import { captureEvent } from "@/lib/posthog";
 import { ProviderOptions } from "@ai-sdk/provider-utils";
 import { createLogger, env } from "@sourcebot/shared";
-import { env as clientEnv } from "@sourcebot/shared/client";
 import { LanguageModel, ModelMessage, StopCondition, streamText } from "ai";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, toolNames } from "./constants";
 import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, listReposTool, listCommitsTool, readFilesTool } from "./tools";
@@ -130,7 +129,7 @@ export const createAgentStream = async ({
             });
         },
         experimental_telemetry: {
-            isEnabled: clientEnv.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined,
+            isEnabled: env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true',
             metadata: {
                 langfuseTraceId: traceId,
             },
