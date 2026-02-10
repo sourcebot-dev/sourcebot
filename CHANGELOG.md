@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.29] - 2026-02-10
+
 ### Changed
 - Changed the settings dropdown to display the commit SHA on which the deployment was built against. [#868](https://github.com/sourcebot-dev/sourcebot/pull/868)
 
