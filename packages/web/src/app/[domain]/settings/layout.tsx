@@ -11,7 +11,6 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { getOrgFromDomain } from "@/data/org";
 import { OrgRole } from "@prisma/client";
 import { hasEntitlement } from "@sourcebot/shared";
-import { env } from "@sourcebot/shared/client";
 
 interface LayoutProps {
     children: React.ReactNode;
