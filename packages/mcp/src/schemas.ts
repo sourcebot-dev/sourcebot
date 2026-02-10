@@ -216,6 +216,94 @@ export const fileSourceResponseSchema = z.object({
     externalWebUrl: z.string().optional(),
 });
 
+type TreeNode = {
+    type: string;
+    path: string;
+    name: string;
+    children: TreeNode[];
+};
+
+const treeNodeSchema: z.ZodType<TreeNode> = z.lazy(() => z.object({
+    type: z.string(),
+    path: z.string(),
+    name: z.string(),
+    children: z.array(treeNodeSchema),
+}));
+
+export const listTreeApiRequestSchema = z.object({
+    repoName: z.string(),
+    revisionName: z.string(),
+    paths: z.array(z.string()),
+});
+
+export const listTreeApiResponseSchema = z.object({
+    tree: treeNodeSchema,
+});
+
+export const DEFAULT_TREE_DEPTH = 1;
+export const MAX_TREE_DEPTH = 10;
+export const DEFAULT_MAX_TREE_ENTRIES = 1000;
+export const MAX_MAX_TREE_ENTRIES = 10000;
+
+export const listTreeRequestSchema = z.object({
+    repo: z
+        .string()
+        .describe("The name of the repository to list files from."),
+    path: z
+        .string()
+        .describe("Directory path (relative to repo root). If omitted, the repo root is used.")
+        .optional()
+        .default(''),
+    ref: z
+        .string()
+        .describe("Commit SHA, branch or tag name to list files from. If not provided, uses the default branch.")
+        .optional()
+        .default('HEAD'),
+    depth: z
+        .number()
+        .int()
+        .positive()
+        .max(MAX_TREE_DEPTH)
+        .describe(`How many directory levels to traverse below \`path\` (min 1, max ${MAX_TREE_DEPTH}, default ${DEFAULT_TREE_DEPTH}).`)
+        .optional()
+        .default(DEFAULT_TREE_DEPTH),
+    includeFiles: z
+        .boolean()
+        .describe("Whether to include files in the output (default: true).")
+        .optional()
+        .default(true),
+    includeDirectories: z
+        .boolean()
+        .describe("Whether to include directories in the output (default: true).")
+        .optional()
+        .default(true),
+    maxEntries: z
+        .number()
+        .int()
+        .positive()
+        .max(MAX_MAX_TREE_ENTRIES)
+        .describe(`Maximum number of entries to return (min 1, max ${MAX_MAX_TREE_ENTRIES}, default ${DEFAULT_MAX_TREE_ENTRIES}).`)
+        .optional()
+        .default(DEFAULT_MAX_TREE_ENTRIES),
+});
+
+export const listTreeEntrySchema = z.object({
+    type: z.enum(['tree', 'blob']),
+    path: z.string(),
+    name: z.string(),
+    parentPath: z.string(),
+    depth: z.number().int().positive(),
+});
+
+export const listTreeResponseSchema = z.object({
+    repo: z.string(),
+    ref: z.string(),
+    path: z.string(),
+    entries: z.array(listTreeEntrySchema),
+    totalReturned: z.number().int().nonnegative(),
+    truncated: z.boolean(),
+});
+
 export const serviceErrorSchema = z.object({
     statusCode: z.number(),
     errorCode: z.string(),
