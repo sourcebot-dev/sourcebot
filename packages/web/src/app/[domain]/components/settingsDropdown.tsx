@@ -32,9 +32,10 @@ import { useKeymapType } from "@/hooks/useKeymapType"
 import { useSession } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { signOut } from "next-auth/react"
-import { SOURCEBOT_VERSION } from "@sourcebot/shared/client";
+import { SOURCEBOT_VERSION, env } from "@sourcebot/shared/client";
 import posthog from "posthog-js";
 import { useDomain } from "@/hooks/useDomain";
+import Link from "next/link";
 
 interface SettingsDropdownProps {
     menuButtonClassName?: string;
@@ -167,7 +168,15 @@ export const SettingsDropdown = ({
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <div className="px-2 py-1 text-sm text-muted-foreground">
-                    version: {SOURCEBOT_VERSION}
+                    Version: {SOURCEBOT_VERSION}
+                    {env.NEXT_PUBLIC_BUILD_COMMIT_SHA && (
+                        <Link
+                            className="ml-1 font-mono"
+                            href={`https://github.com/sourcebot-dev/sourcebot/commit/${env.NEXT_PUBLIC_BUILD_COMMIT_SHA}`}
+                        >
+                            (<span className="hover:underline">{env.NEXT_PUBLIC_BUILD_COMMIT_SHA.substring(0, 7)}</span>)
+                        </Link>
+                    )}
                 </div>
             </DropdownMenuContent>
         </DropdownMenu>
