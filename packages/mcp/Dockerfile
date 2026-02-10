@@ -17,11 +17,13 @@ WORKDIR /app
 
 # Install only production dependencies
 COPY package.json ./
-RUN npm install --production
+RUN npm install --omit dev
 
 # Copy built artifacts
 COPY --from=builder /app/dist ./dist
 
-# Expose no specific port since this is stdio MCP server
+# Used for streamable HTTP transport
+EXPOSE 3000
+
 # Default command
-CMD ["node", "dist/index.js"]
+ENTRYPOINT ["node", "dist/index.js"]
