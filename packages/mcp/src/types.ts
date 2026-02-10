@@ -16,6 +16,11 @@ import {
     askCodebaseResponseSchema,
     languageModelInfoSchema,
     listLanguageModelsResponseSchema,
+    listTreeApiRequestSchema,
+    listTreeApiResponseSchema,
+    listTreeRequestSchema,
+    listTreeEntrySchema,
+    listTreeResponseSchema,
 } from "./schemas.js";
 import { z } from "zod";
 
@@ -44,3 +49,11 @@ export type AskCodebaseResponse = z.infer<typeof askCodebaseResponseSchema>;
 
 export type LanguageModelInfo = z.infer<typeof languageModelInfoSchema>;
 export type ListLanguageModelsResponse = z.infer<typeof listLanguageModelsResponseSchema>;
+
+export type ListTreeApiRequest = z.infer<typeof listTreeApiRequestSchema>;
+export type ListTreeApiResponse = z.infer<typeof listTreeApiResponseSchema>;
+export type ListTreeApiNode = ListTreeApiResponse["tree"];
+
+export type ListTreeRequest = z.input<typeof listTreeRequestSchema>;
+export type ListTreeEntry = z.infer<typeof listTreeEntrySchema>;
+export type ListTreeResponse = z.infer<typeof listTreeResponseSchema>;

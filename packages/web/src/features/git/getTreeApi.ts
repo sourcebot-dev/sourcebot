@@ -34,7 +34,7 @@ export const getTree = async ({ repoName, revisionName, paths }: GetTreeRequest)
         });
 
         if (!repo) {
-            return notFound();
+            return notFound(`Repository "${repoName}" not found.`);
         }
 
         const { path: repoPath } = getRepoPath(repo);

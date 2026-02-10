@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `list_tree` tool for listing files/directories in a repository path with depth controls, suitable for both directory listings and repo-tree workflows. [#870](https://github.com/sourcebot-dev/sourcebot/pull/870)
+
 ## [1.0.15] - 2026-02-02
 
 ### Added

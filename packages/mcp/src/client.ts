@@ -1,6 +1,6 @@
 import { env } from './env.js';
-import { listReposResponseSchema, searchResponseSchema, fileSourceResponseSchema, listCommitsResponseSchema, askCodebaseResponseSchema, listLanguageModelsResponseSchema } from './schemas.js';
-import { AskCodebaseRequest, AskCodebaseResponse, FileSourceRequest, ListReposQueryParams, SearchRequest, ListCommitsQueryParamsSchema, ListLanguageModelsResponse } from './types.js';
+import { listReposResponseSchema, searchResponseSchema, fileSourceResponseSchema, listCommitsResponseSchema, askCodebaseResponseSchema, listLanguageModelsResponseSchema, listTreeApiResponseSchema } from './schemas.js';
+import { AskCodebaseRequest, AskCodebaseResponse, FileSourceRequest, ListReposQueryParams, SearchRequest, ListCommitsQueryParamsSchema, ListLanguageModelsResponse, ListTreeApiRequest, ListTreeApiResponse } from './types.js';
 import { isServiceError, ServiceErrorException } from './utils.js';
 import { z } from 'zod';
 
@@ -106,6 +106,26 @@ export const listCommits = async (queryParams: ListCommitsQueryParamsSchema) => 
     const commits = await parseResponse(response, listCommitsResponseSchema);
     const totalCount = parseInt(response.headers.get('X-Total-Count') ?? '0', 10);
     return { commits, totalCount };
+}
+
+/**
+ * Fetches a repository tree (or subtree union) from the Sourcebot tree API.
+ *
+ * @param request - Repository name, revision, and path selectors for the tree query
+ * @returns A tree response rooted at `tree` containing nested `tree`/`blob` nodes
+ */
+export const listTree = async (request: ListTreeApiRequest): Promise<ListTreeApiResponse> => {
+    const response = await fetch(`${env.SOURCEBOT_HOST}/api/tree`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Sourcebot-Client-Source': 'mcp',
+            ...(env.SOURCEBOT_API_KEY ? { 'X-Sourcebot-Api-Key': env.SOURCEBOT_API_KEY } : {})
+        },
+        body: JSON.stringify(request),
+    });
+
+    return parseResponse(response, listTreeApiResponseSchema);
 }
 
 /**
