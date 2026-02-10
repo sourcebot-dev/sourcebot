@@ -100,7 +100,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 data: {
                     orgId: org.id,
                     createdById: user?.id,
-                    visibility: ChatVisibility.PRIVATE,
+                    visibility: user ? ChatVisibility.PRIVATE : ChatVisibility.PUBLIC,
                     messages: [] as unknown as Prisma.InputJsonValue,
                 },
             });
@@ -155,6 +155,18 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 prisma,
                 onFinish: async ({ messages }) => {
                     finalMessages = messages;
+                },
+                onError: (error) => {
+                    if (error instanceof ServiceErrorException) {
+                        throw error;
+                    }
+
+                    const message = error instanceof Error ? error.message : String(error);
+                    throw new ServiceErrorException({
+                        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                        errorCode: ErrorCode.UNEXPECTED_ERROR,
+                        message,
+                    });
                 },
             })
 

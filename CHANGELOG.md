@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed issue where anonymous access on a Sourcebot instance with a unlimited seat license and anonymous access enabled would result in a "not authenticated" message being displayed. [#866](https://github.com/sourcebot-dev/sourcebot/pull/866)
+- Fixed issue where session links generated for a `ask_codebase` mcp call would not be accessible to unauthed users. [#873](https://github.com/sourcebot-dev/sourcebot/pull/873)
 
 ## [4.10.28] - 2026-02-07
 
