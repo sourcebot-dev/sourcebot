@@ -169,7 +169,6 @@ export const env = createEnv({
         // Misc
         CONFIG_MAX_REPOS_NO_TOKEN: numberSchema.default(Number.MAX_SAFE_INTEGER),
         NODE_ENV: z.enum(["development", "test", "production"]),
-        SOURCEBOT_TELEMETRY_DISABLED: booleanSchema.default('false'),
         // @note: this is also declared in the Dockerfile.
         POSTHOG_PAPIK: z.string().default("phc_lLPuFFi5LH6c94eFJcqvYVFwiJffVcV6HD8U4a1OnRW"),
 
@@ -273,6 +272,22 @@ export const env = createEnv({
 
         // A comma separated list of glob patterns that shwould always be indexed regardless of their size.
         ALWAYS_INDEX_FILE_PATTERNS: z.string().optional(),
+
+        /**
+         * Configure whether to send telemetry events.
+         * By default, all events are anonymized and do not contain PII data,
+         * unless SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED is set to true.
+         */
+        SOURCEBOT_TELEMETRY_DISABLED: booleanSchema.default('false'),
+
+        /**
+         * Configure whether to collect PII data in telemetry events.
+         * If SOURCEBOT_TELEMETRY_DISABLED is true, this setting is
+         * ignored.
+         */
+        SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED: booleanSchema.default('false'),
+
+        //// DEPRECATED ////
 
         /**
          * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.

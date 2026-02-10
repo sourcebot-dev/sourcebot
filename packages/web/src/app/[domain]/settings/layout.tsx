@@ -115,12 +115,10 @@ export default async function SettingsLayout(
                 href: `/${domain}/settings/permission-syncing`,
             }
         ] : []),
-        ...(env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === undefined ? [
-            {
-                title: "License",
-                href: `/${domain}/settings/license`,
-            }
-        ] : []),
+        {
+            title: "License",
+            href: `/${domain}/settings/license`,
+        }
     ]
 
     return (

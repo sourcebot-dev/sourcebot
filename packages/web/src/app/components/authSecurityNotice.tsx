@@ -59,11 +59,6 @@ export const AuthSecurityNotice = ({ closable = false }: AuthSecurityNoticeProps
         return null;
     }
 
-    // Only render for self-hosted deployments
-    if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined) {
-        return null;
-    }
-
     return (
         <div className={`p-4 rounded-lg bg-[var(--highlight)]/10 border border-[var(--highlight)]/20 relative ${closable ? 'pr-10' : ''}`}>
             {closable && (

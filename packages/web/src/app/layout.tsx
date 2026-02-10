@@ -38,7 +38,8 @@ export default function RootLayout({
                 <SessionProvider>
                     <PlanProvider entitlements={getEntitlements()}>
                         <PostHogProvider
-                            isDisabled={env.SOURCEBOT_TELEMETRY_DISABLED === "true"}
+                            isDisabled={env.SOURCEBOT_TELEMETRY_DISABLED === 'true'}
+                            isPiiEnabled={env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true'}
                             // @note: the posthog api key doesn't need to be kept secret,
                             // so we are safe to send it to the client.
                             posthogApiKey={env.POSTHOG_PAPIK}
