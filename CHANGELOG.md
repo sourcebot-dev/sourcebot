@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed the me-control to render the user's avatar in the top-bar. [#874](https://github.com/sourcebot-dev/sourcebot/pull/874)
 - Moved the "current version" indicator into the "what's new" dropdown. [#874](https://github.com/sourcebot-dev/sourcebot/pull/874)
 
+### Fixed
+- Fixed issue where "Open in Bitbucket" and commit links for Bitbucket Server repos had an extra `/browse` in the URL. [#877](https://github.com/sourcebot-dev/sourcebot/pull/877)
+
 ### Removed
 - Removed the Discord and GitHub buttons from the top corner. [#874](https://github.com/sourcebot-dev/sourcebot/pull/874)
 
