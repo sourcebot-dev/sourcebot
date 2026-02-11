@@ -443,7 +443,12 @@ export const compileBitbucketConfig = async (
             throw new Error(`No ${isServer ? 'self' : 'html'} link found for ${isServer ? 'server' : 'cloud'} repo ${repoName}`);
         }
 
-        return link.href;
+        // @note: Bitbucket Server's self link includes `/browse` at the end.
+        // Strip it so that we can simply append either `/browse`, `/commits`, etc. to
+        // the base URL. 
+        const href = isServer ? link.href.replace(/\/browse\/?$/, '') : link.href;
+
+        return href;
     }
 
     const repos = bitbucketRepos.map((repo) => {
