@@ -43,3 +43,6 @@ Branch naming convention:
 
 PR description:
 - If a GitHub issue number was provided, include `Fixes #<github_issue_number>` in the PR description
+
+After the PR is created:
+- Update CHANGELOG.md with an entry under `[Unreleased]` linking to the new PR
