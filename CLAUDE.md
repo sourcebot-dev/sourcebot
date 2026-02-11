@@ -29,3 +29,21 @@ className="border-border bg-card text-foreground text-muted-foreground bg-muted 
 // Incorrect
 className="border-[var(--border)] bg-[var(--card)] text-[var(--foreground)]"
 ```
+
+## Branches and Pull Requests
+
+When creating a branch or opening a PR, ask the user for:
+1. The Linear issue ID (if available)
+2. The GitHub issue number (if available)
+
+Branch naming convention:
+- General: `<username>/<branch_name>-<linear_issue_id>`
+- Bug fixes: `<username>/fix-<linear_issue_id>`
+- If no Linear issue ID is available, omit it from the branch name
+
+PR description:
+- If a GitHub issue number was provided, include `Fixes #<github_issue_number>` in the PR description
+
+After the PR is created:
+- Update CHANGELOG.md with an entry under `[Unreleased]` linking to the new PR
+- If the change touches `packages/mcp`, update `packages/mcp/CHANGELOG.md` instead
