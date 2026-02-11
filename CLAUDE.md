@@ -46,3 +46,4 @@ PR description:
 
 After the PR is created:
 - Update CHANGELOG.md with an entry under `[Unreleased]` linking to the new PR
+- If the change touches `packages/mcp`, update `packages/mcp/CHANGELOG.md` instead
