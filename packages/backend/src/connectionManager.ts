@@ -295,7 +295,7 @@ export class ConnectionManager {
             const logger = createJobLogger(job.id!);
             const { connectionId, connectionName, orgId } = job.data;
 
-            await this.db.connectionSyncJob.update({
+            const { connection } = await this.db.connectionSyncJob.update({
                 where: {
                     id: job.id!,
                 },
@@ -307,6 +307,9 @@ export class ConnectionManager {
                             syncedAt: new Date(),
                         }
                     }
+                },
+                select: {
+                    connection: true,
                 }
             });
 
@@ -332,9 +335,11 @@ export class ConnectionManager {
             this.promClient.activeConnectionSyncJobs.dec({ connection: connectionName });
             this.promClient.connectionSyncJobSuccessTotal.inc({ connection: connectionName });
 
+            const config = connection.config as unknown as ConnectionConfig;
             captureEvent('backend_connection_sync_job_completed', {
                 connectionId: connectionId,
                 repoCount: result.repoCount,
+                type: config.type,
             });
         } catch (error) {
             Sentry.captureException(error);
@@ -375,9 +380,10 @@ export class ConnectionManager {
 
             jobLogger.error(`Failed job ${job.id} for connection ${connection.name} (id: ${connection.id}). Failing job.`);
 
+            const config = connection.config as unknown as ConnectionConfig;
             captureEvent('backend_connection_sync_job_failed', {
                 connectionId: job.data.connectionId,
-                error: error.message,
+                type: config.type,
             });
         } catch (err) {
             Sentry.captureException(err);

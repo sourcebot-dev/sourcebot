@@ -574,6 +574,12 @@ export class RepoIndexManager {
             // Track metrics for successful job
             this.promClient.activeRepoIndexJobs.dec({ repo: job.data.repoName, type: jobTypeLabel });
             this.promClient.repoIndexJobSuccessTotal.inc({ repo: job.data.repoName, type: jobTypeLabel });
+
+            captureEvent('backend_repo_index_job_completed', {
+                repoId: job.data.repoId,
+                jobType: job.data.type,
+                type: jobData.repo.external_codeHostType,
+            });
         } catch (error) {
             Sentry.captureException(error);
             logger.error(`Exception thrown while executing lifecycle function \`onJobCompleted\`.`, error);
@@ -618,6 +624,11 @@ export class RepoIndexManager {
 
             jobLogger.error(`Failed job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id}).`);
 
+            captureEvent('backend_repo_index_job_failed', {
+                repoId: job.data.repoId,
+                jobType: job.data.type,
+                type: repo.external_codeHostType,
+            });
         } catch (err) {
             Sentry.captureException(err);
             logger.error(`Exception thrown while executing lifecycle function \`onJobMaybeFailed\`.`, err);
