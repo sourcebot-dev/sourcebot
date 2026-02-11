@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Changed the me-control to render the user's avatar in the top-bar. [#874](https://github.com/sourcebot-dev/sourcebot/pull/874)
+- Moved the "current version" indicator into the "what's new" dropdown. [#874](https://github.com/sourcebot-dev/sourcebot/pull/874)
+
+### Removed
+- Removed the Discord and GitHub buttons from the top corner. [#874](https://github.com/sourcebot-dev/sourcebot/pull/874)
+
 ## [4.10.29] - 2026-02-10
 
 ### Changed

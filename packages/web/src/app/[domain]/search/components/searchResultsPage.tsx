@@ -34,12 +34,14 @@ import { FilterPanel } from "./filterPanel";
 import { useFilteredMatches } from "./filterPanel/useFilterMatches";
 import { SearchResultsPanel, SearchResultsPanelHandle } from "./searchResultsPanel";
 import { ServiceErrorException } from "@/lib/serviceError";
+import { Session } from "next-auth";
 
 interface SearchResultsPageProps {
     searchQuery: string;
     defaultMaxMatchCount: number;
     isRegexEnabled: boolean;
     isCaseSensitivityEnabled: boolean;
+    session: Session | null;
 }
 
 export const SearchResultsPage = ({
@@ -47,6 +49,7 @@ export const SearchResultsPage = ({
     defaultMaxMatchCount,
     isRegexEnabled,
     isCaseSensitivityEnabled,
+    session,
 }: SearchResultsPageProps) => {
     const router = useRouter();
     const { setSearchHistory } = useSearchHistory();
@@ -170,6 +173,7 @@ export const SearchResultsPage = ({
             {/* TopBar */}
             <TopBar
                 domain={domain}
+                session={session}
             >
                 <SearchBar
                     size="sm"

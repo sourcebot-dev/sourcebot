@@ -9,19 +9,17 @@ import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { env } from "@sourcebot/shared";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import { OrgRole, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { OrgSelector } from "../orgSelector";
-import { SettingsDropdown } from "../settingsDropdown";
+import { MeControlDropdownMenu } from "../meControlDropdownMenu";
 import WhatsNewIndicator from "../whatsNewIndicator";
 import { NavigationItems } from "./navigationItems";
 import { ProgressIndicator } from "./progressIndicator";
 import { TrialIndicator } from "./trialIndicator";
+import { redirect } from "next/navigation";
+import { AppearanceDropdownMenu } from "../appearanceDropdownMenu";
 
-const SOURCEBOT_DISCORD_URL = "https://discord.gg/HDScTs3ptP";
-const SOURCEBOT_GITHUB_URL = "https://github.com/sourcebot-dev/sourcebot";
 
 interface NavigationMenuProps {
     domain: string;
@@ -138,35 +136,28 @@ export const NavigationMenu = async ({
                     />
                     <TrialIndicator subscription={subscription} />
                     <WhatsNewIndicator />
-                    <form
-                        action={async () => {
-                            "use server";
-                            redirect(SOURCEBOT_DISCORD_URL);
-                        }}
-                    >
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            type="submit"
-                        >
-                            <DiscordLogoIcon className="w-4 h-4" />
-                        </Button>
-                    </form>
-                    <form
-                        action={async () => {
-                            "use server";
-                            redirect(SOURCEBOT_GITHUB_URL);
-                        }}
-                    >
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            type="submit"
-                        >
-                            <GitHubLogoIcon className="w-4 h-4" />
-                        </Button>
-                    </form>
-                    <SettingsDropdown />
+                    {session ? (
+                        <MeControlDropdownMenu
+                            session={session}
+                        />
+                    ) : (
+                        <>
+                            <form
+                                action={async () => {
+                                    "use server";
+                                    redirect("/login");
+                                }}
+                            >
+                                <Button
+                                    variant="outline"
+                                    type="submit"
+                                >
+                                    Sign in
+                                </Button>
+                            </form>
+                            <AppearanceDropdownMenu />
+                        </>
+                    )}
                 </div>
             </div>
             <Separator />
