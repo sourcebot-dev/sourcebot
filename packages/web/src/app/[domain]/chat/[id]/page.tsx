@@ -57,6 +57,7 @@ export default async function Page(props: PageProps) {
             <TopBar
                 domain={params.domain}
                 homePath={`/${params.domain}/chat`}
+                session={session}
             >
                 <div className="flex flex-row gap-2 items-center">
                     <span className="text-muted mx-2 select-none">/</span>
