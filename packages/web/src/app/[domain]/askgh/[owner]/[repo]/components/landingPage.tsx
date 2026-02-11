@@ -70,18 +70,22 @@ export const LandingPage = ({
             if (stored) {
                 hasRestoredPendingMessage.current = true;
                 sessionStorage.removeItem(PENDING_MESSAGE_KEY);
-                const message = JSON.parse(stored) as Descendant[];
+                try {
+                    const message = JSON.parse(stored) as Descendant[];
 
-                // Restore the message content to the editor by replacing all nodes
-                // Remove all existing nodes
-                while (editor.children.length > 0) {
-                    Transforms.removeNodes(editor, { at: [0] });
+                    // Restore the message content to the editor by replacing all nodes
+                    // Remove all existing nodes
+                    while (editor.children.length > 0) {
+                        Transforms.removeNodes(editor, { at: [0] });
+                    }
+                    // Insert the restored content at the beginning
+                    Transforms.insertNodes(editor, message, { at: [0] });
+
+                    // Allow the UI to render the restored text before auto-submitting
+                    createNewChatThread(message, selectedSearchScopes);
+                } catch (error) {
+                    console.error('Failed to restore pending message:', error);
                 }
-                // Insert the restored content at the beginning
-                Transforms.insertNodes(editor, message, { at: [0] });
-
-                // Allow the UI to render the restored text before auto-submitting
-                createNewChatThread(message, selectedSearchScopes);
             }
         }
     }, [isAuthenticated, editor, createNewChatThread, selectedSearchScopes]);
@@ -130,7 +134,7 @@ export const LandingPage = ({
                                     repos={[]}
                                     searchContexts={[]}
                                     selectedSearchScopes={selectedSearchScopes}
-                                    onSelectedSearchScopesChange={() => {}}
+                                    onSelectedSearchScopesChange={() => { }}
                                     isContextSelectorOpen={isContextSelectorOpen}
                                     onContextSelectorOpenChanged={setIsContextSelectorOpen}
                                 />
