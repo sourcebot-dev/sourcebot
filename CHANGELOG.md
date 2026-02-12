@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Changed the me-control to render the user's avatar in the top-bar. [#874](https://github.com/sourcebot-dev/sourcebot/pull/874)
 - Moved the "current version" indicator into the "what's new" dropdown. [#874](https://github.com/sourcebot-dev/sourcebot/pull/874)
+- Updated `posthog-node` to ^5.24.15 and `posthog-js` to ^1.345.5. [#881](https://github.com/sourcebot-dev/sourcebot/pull/881)
 
 ### Fixed
 - Fixed issue where "Open in Bitbucket" and commit links for Bitbucket Server repos had an extra `/browse` in the URL. [#877](https://github.com/sourcebot-dev/sourcebot/pull/877)
