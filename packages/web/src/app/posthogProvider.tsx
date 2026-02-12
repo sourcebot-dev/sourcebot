@@ -4,7 +4,6 @@ import { usePostHog } from 'posthog-js/react'
 import { PostHogProvider as PHProvider } from 'posthog-js/react'
 import { usePathname, useSearchParams } from "next/navigation"
 import { Suspense, useEffect } from "react"
-import { env } from '@sourcebot/shared/client'
 import { useSession } from 'next-auth/react'
 import { captureEvent } from '@/hooks/useCaptureEvent'
 

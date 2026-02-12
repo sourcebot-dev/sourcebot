@@ -24,6 +24,7 @@ export function captureEvent<E extends PosthogEvent>(event: E, properties: Posth
         properties: {
             ...properties,
             sourcebot_version: SOURCEBOT_VERSION,
+            install_id: env.SOURCEBOT_INSTALL_ID,
         },
     });
 }
