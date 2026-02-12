@@ -9,6 +9,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Badge } from "@/components/ui/badge"
 import { NewsItem } from "@/lib/types"
 import { newsData } from "@/lib/newsData"
+import { env, SOURCEBOT_VERSION } from "@sourcebot/shared/client"
+import Link from "next/link"
+import { Separator } from "@/components/ui/separator"
 
 interface WhatsNewProps {
   newsItems?: NewsItem[]
@@ -19,10 +22,10 @@ const COOKIE_NAME = "whats-new-read-items"
 
 const getReadItems = (): string[] => {
   if (typeof document === "undefined") return []
-  
+
   const cookies = document.cookie.split(';').map(cookie => cookie.trim())
   const targetCookie = cookies.find(cookie => cookie.startsWith(`${COOKIE_NAME}=`))
-  
+
   if (!targetCookie) return []
 
   try {
@@ -36,12 +39,12 @@ const getReadItems = (): string[] => {
 
 const setReadItems = (readItems: string[]) => {
   if (typeof document === "undefined") return
-  
+
   try {
     const expires = new Date()
     expires.setFullYear(expires.getFullYear() + 1)
     const cookieValue = encodeURIComponent(JSON.stringify(readItems))
-    
+
     document.cookie = `${COOKIE_NAME}=${cookieValue}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`
   } catch (error) {
     console.warn('Failed to set whats-new cookie:', error)
@@ -130,6 +133,7 @@ export default function WhatsNewIndicator({ newsItems = newsData, autoMarkAsRead
               </Button>
             )}
           </div>
+
         </div>
         <div className="max-h-[32rem] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
           {newsItemsWithReadState.length === 0 ? (
@@ -139,9 +143,8 @@ export default function WhatsNewIndicator({ newsItems = newsData, autoMarkAsRead
               {newsItemsWithReadState.map((item, index) => (
                 <div
                   key={item.unique_id}
-                  className={`relative rounded-md transition-colors ${item.read ? "opacity-60" : ""} ${
-                    index !== newsItemsWithReadState.length - 1 ? "border-b border-border/50" : ""
-                  }`}
+                  className={`relative rounded-md transition-colors ${item.read ? "opacity-60" : ""} ${index !== newsItemsWithReadState.length - 1 ? "border-b border-border/50" : ""
+                    }`}
                 >
                   {!item.read && <div className="absolute left-2 top-3 h-2 w-2 bg-blue-500 rounded-full"></div>}
                   <button
@@ -151,9 +154,8 @@ export default function WhatsNewIndicator({ newsItems = newsData, autoMarkAsRead
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <h4
-                          className={`font-medium text-sm leading-tight group-hover:text-primary ${
-                            item.read ? "text-muted-foreground" : ""
-                          }`}
+                          className={`font-medium text-sm leading-tight group-hover:text-primary ${item.read ? "text-muted-foreground" : ""
+                            }`}
                         >
                           {item.header}
                         </h4>
@@ -171,6 +173,18 @@ export default function WhatsNewIndicator({ newsItems = newsData, autoMarkAsRead
                 </div>
               ))}
             </div>
+          )}
+        </div>
+        <Separator />
+        <div className="px-2 py-2 text-xs text-muted-foreground">
+          Current version: {SOURCEBOT_VERSION}
+          {env.NEXT_PUBLIC_BUILD_COMMIT_SHA && (
+            <Link
+              className="ml-1 font-mono"
+              href={`https://github.com/sourcebot-dev/sourcebot/commit/${env.NEXT_PUBLIC_BUILD_COMMIT_SHA}`}
+            >
+              (<span className="hover:underline">{env.NEXT_PUBLIC_BUILD_COMMIT_SHA.substring(0, 7)}</span>)
+            </Link>
           )}
         </div>
       </PopoverContent>

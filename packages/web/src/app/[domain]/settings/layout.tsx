@@ -11,7 +11,6 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { getOrgFromDomain } from "@/data/org";
 import { OrgRole } from "@prisma/client";
 import { hasEntitlement } from "@sourcebot/shared";
-import { env } from "@sourcebot/shared/client";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -115,12 +114,10 @@ export default async function SettingsLayout(
                 href: `/${domain}/settings/permission-syncing`,
             }
         ] : []),
-        ...(env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === undefined ? [
-            {
-                title: "License",
-                href: `/${domain}/settings/license`,
-            }
-        ] : []),
+        {
+            title: "License",
+            href: `/${domain}/settings/license`,
+        }
     ]
 
     return (

@@ -8,6 +8,8 @@ import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { RepoIndexedGuard } from "./components/repoIndexedGuard";
 import { LandingPage } from "./components/landingPage";
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/actions";
+import { getIdentityProviderMetadata } from "@/lib/identityProviders";
+import { auth } from "@/auth";
 
 interface PageProps {
     params: Promise<{ owner: string; repo: string }>;
@@ -16,7 +18,8 @@ interface PageProps {
 export default async function GitHubRepoPage(props: PageProps) {
     const params = await props.params;
     const { owner, repo } = params;
-
+    const session = await auth();
+    
     const repoId = await (async () => {
         // 1. Look up repo by owner/repo
         const displayName = `${owner}/${repo}`;
@@ -45,6 +48,7 @@ export default async function GitHubRepoPage(props: PageProps) {
 
     const repoInfo = await unwrapServiceError(getRepoInfo(repoId));
     const languageModels = await unwrapServiceError(getConfiguredLanguageModelsInfo());
+    const providers = getIdentityProviderMetadata();
 
     return (
         <RepoIndexedGuard initialRepoInfo={repoInfo}>
@@ -55,6 +59,8 @@ export default async function GitHubRepoPage(props: PageProps) {
                     repoDisplayName={repoInfo.displayName ?? undefined}
                     imageUrl={repoInfo.imageUrl ?? undefined}
                     repoId={repoInfo.id}
+                    providers={providers}
+                    isAuthenticated={!!session?.user}
                 />
             </CustomSlateEditor>
         </RepoIndexedGuard>

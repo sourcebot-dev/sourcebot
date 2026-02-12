@@ -100,6 +100,24 @@ export const POST = apiHandler(async (req: NextRequest) => {
                         messages
                     });
                 },
+                onError: (error: unknown) => {
+                    logger.error(error);
+                    Sentry.captureException(error);
+
+                    if (error == null) {
+                        return 'unknown error';
+                    }
+
+                    if (typeof error === 'string') {
+                        return error;
+                    }
+
+                    if (error instanceof Error) {
+                        return error.message;
+                    }
+
+                    return JSON.stringify(error);
+                }
             });
 
             return createUIMessageStreamResponse({
@@ -134,6 +152,7 @@ interface CreateMessageStreamResponseProps {
     orgId: number;
     prisma: PrismaClient;
     onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;
+    onError: (error: unknown) => string;
 }
 
 export const createMessageStream = async ({
@@ -145,6 +164,7 @@ export const createMessageStream = async ({
     orgId,
     prisma,
     onFinish,
+    onError,
 }: CreateMessageStreamResponseProps) => {
     const latestMessage = messages[messages.length - 1];
     const sources = latestMessage.parts
@@ -247,30 +267,10 @@ export const createMessageStream = async ({
                 type: 'finish',
             });
         },
-        onError: errorHandler,
+        onError,
         originalMessages: messages,
         onFinish,
     });
 
     return stream;
 };
-
-const errorHandler = (error: unknown) => {
-    logger.error(error);
-    Sentry.captureException(error);
-
-    if (error == null) {
-        return 'unknown error';
-    }
-
-    if (typeof error === 'string') {
-        return error;
-    }
-
-    if (error instanceof Error) {
-        return error.message;
-    }
-
-    return JSON.stringify(error);
-}
-
