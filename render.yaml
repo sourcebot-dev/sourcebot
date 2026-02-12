@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: sourcebot-sjoerd-20260212
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    autoDeploy: true
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AUTH_URL
+        value: https://sourcebot-sjoerd-20260212.onrender.com
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: SOURCEBOT_ENCRYPTION_KEY
+        generateValue: true
+      - key: CONFIG_PATH
+        value: https://raw.githubusercontent.com/sjoerd2025/sourcebot/main/configs/render-starter.json
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sourcebot-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromDatabase:
+          name: sourcebot-redis
+          property: connectionString
+      - key: SOURCEBOT_TELEMETRY_DISABLED
+        value: true
+
+databases:
+  - name: sourcebot-postgres
+    databaseName: sourcebot
+    user: sourcebot
+    plan: free
+    postgresMajorVersion: "16"
+    ipAllowList: []
+
+  - name: sourcebot-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []

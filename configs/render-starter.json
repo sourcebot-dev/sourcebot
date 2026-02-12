@@ -1,0 +1,11 @@
+{
+  "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+  "connections": {
+    "default": {
+      "type": "github",
+      "repos": [
+        "sjoerd2025/sourcebot"
+      ]
+    }
+  }
+}
