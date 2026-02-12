@@ -1,4 +1,4 @@
-Copyright (c) 2025 Taqla Inc.
+Copyright (c) 2026 Taqla Inc.
 
 Portions of this software are licensed as follows:
 
@@ -16,7 +16,7 @@ FSL-1.1-ALv2
 
 ## Notice
 
-Copyright 2025 Taqla Inc.
+Copyright 2026 Taqla Inc.
 
 ## Terms and Conditions
 
