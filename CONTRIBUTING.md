@@ -4,7 +4,7 @@ So you're interested in contributing to Sourcebot. Great! If you have any questi
 
 ## Understanding the Licenses
 
-First thing to know is that Sourcebot is not a side-project - it is a product of a pretty cool company based in San Francisco who build and maintain it professionally. For this reason, Sourcebot follows the [open core](https://en.wikipedia.org/wiki/Open-core_model) business model, which splits the codebase into two parts: **core** and **ee**, which each have their own license:
+First thing to know is that Sourcebot is not a side-project - it is a product of a company based in San Francisco who build and maintain it professionally. For this reason, Sourcebot follows the [open core](https://en.wikipedia.org/wiki/Open-core_model) business model, which splits the codebase into two parts: **core** and **ee**, which each have their own license:
 
 - **core** code is licensed under the [Functional Source License](https://fsl.software/), a
 mostly permissive non-compete license that converts to Apache 2.0 or MIT after two years. Code shipped in core (without ee) forms the [Sourcebot Community Edition (CE)](https://www.sourcebot.dev/pricing).
