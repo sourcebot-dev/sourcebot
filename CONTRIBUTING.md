@@ -15,7 +15,7 @@ You can take a look at the root [LICENSE.md](LICENSE.md) for a breakdown of what
 For contributing, the breakdown is as follows:
 
 - **core** : you're free to contribute, but you can't take this and use it to compete with us. You can, however, otherwise use it however you want. Your changes will convert to Apache 2.0 after two years.
-- **ee** : you can also contribute, but Sourcebot retains all rights to your modifications and patches. Your contributions can only be used in production by those with a valid Enterprise license. You can freely experiment with ee code for non-production evaluation purposes without a license.
+- **ee** : you can also contribute, but Sourcebot retains all rights to your modifications and patches. Your contributions can only be used in production by those with a valid Enterprise license.
 
 ## Contributor Policy
 
