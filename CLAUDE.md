@@ -45,5 +45,5 @@ PR description:
 - If a GitHub issue number was provided, include `Fixes #<github_issue_number>` in the PR description
 
 After the PR is created:
-- Update CHANGELOG.md with an entry under `[Unreleased]` linking to the new PR
+- Update CHANGELOG.md with an entry under `[Unreleased]` linking to the new PR. New entries should be placed at the bottom of their section.
 - If the change touches `packages/mcp`, update `packages/mcp/CHANGELOG.md` instead

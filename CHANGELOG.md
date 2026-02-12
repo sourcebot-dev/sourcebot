@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added PostHog events for repo index job success/failure and code host type to connection sync events. [#878](https://github.com/sourcebot-dev/sourcebot/pull/878)
+- Added `install_id` to PostHog event properties. [#880](https://github.com/sourcebot-dev/sourcebot/pull/880)
 
 ### Changed
 - Changed the me-control to render the user's avatar in the top-bar. [#874](https://github.com/sourcebot-dev/sourcebot/pull/874)
