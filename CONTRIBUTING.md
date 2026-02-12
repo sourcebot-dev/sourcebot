@@ -107,6 +107,7 @@ Want to take on an issue? Leave a comment and a maintainer may assign it to you 
 - Keep pull requests small and focused
 - Explain the issue and why your change fixes it
 - Before adding new functionality, ensure it doesn't already exist elsewhere in the codebase
+- Update `CHANGELOG.md` with an entry under `[Unreleased]` linking to your PR. New entries should be placed at the bottom of their section. If your change touches `packages/mcp`, update `packages/mcp/CHANGELOG.md` instead.
 
 ### UI Changes
 
