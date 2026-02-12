@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed issue where "Open in Bitbucket" and commit links for Bitbucket Server repos had an extra `/browse` in the URL. [#877](https://github.com/sourcebot-dev/sourcebot/pull/877)
+- Fixed slow repo indexing scheduling query by adding database indexes. [#883](https://github.com/sourcebot-dev/sourcebot/pull/883)
 
 ### Removed
 - Removed the Discord and GitHub buttons from the top corner. [#874](https://github.com/sourcebot-dev/sourcebot/pull/874)

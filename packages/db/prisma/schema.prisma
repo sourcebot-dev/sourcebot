@@ -82,6 +82,7 @@ model Repo {
 
   @@unique([external_id, external_codeHostUrl, orgId])
   @@index([orgId])
+  @@index([indexedAt])
 }
 
 enum RepoIndexingJobStatus {
@@ -109,6 +110,8 @@ model RepoIndexingJob {
 
   repo   Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
   repoId Int
+
+  @@index([repoId, type, status])
 }
 
 enum RepoPermissionSyncJobStatus {
