@@ -25,6 +25,7 @@ import { GitHubStarToast } from "./components/githubStarToast";
 import { UpgradeToast } from "./components/upgradeToast";
 import { getLinkedAccountProviderStates } from "@/ee/features/permissionSyncing/actions";
 import { LinkAccounts } from "@/ee/features/permissionSyncing/components/linkAccounts";
+import { PermissionSyncBanner } from "./components/permissionSyncBanner";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -75,7 +76,7 @@ export default async function Layout(props: LayoutProps) {
                 user: true
             }
         });
-        
+
         // There's two reasons why a user might not be a member of an org:
         // 1. The org doesn't require member approval, but the org was at max capacity when the user registered. In this case, we show them
         // the join organization card to allow them to join the org if seat capacity is freed up. This card handles checking if the org has available seats.
@@ -96,7 +97,7 @@ export default async function Layout(props: LayoutProps) {
                         requestedById: session.user.id
                     }
                 });
-                
+
                 if (hasPendingApproval) {
                     return <PendingApprovalCard />
                 } else {
@@ -125,7 +126,7 @@ export default async function Layout(props: LayoutProps) {
         )
     }
 
-    if (hasEntitlement("permission-syncing")) {
+    if (session && hasEntitlement("permission-syncing")) {
         const linkedAccountProviderStates = await getLinkedAccountProviderStates();
         if (isServiceError(linkedAccountProviderStates)) {
             return (
@@ -154,7 +155,7 @@ export default async function Layout(props: LayoutProps) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-6">
                         <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
-                        <LinkAccounts linkedAccountProviderStates={linkedAccountProviderStates} callbackUrl={`/${domain}`}/>
+                        <LinkAccounts linkedAccountProviderStates={linkedAccountProviderStates} callbackUrl={`/${domain}`} />
                     </div>
                 )
             }
@@ -188,8 +189,15 @@ export default async function Layout(props: LayoutProps) {
             <MobileUnsupportedSplashScreen />
         )
     }
+    const isPermissionSyncBannerVisible = session && hasEntitlement("permission-syncing");
+
     return (
         <SyntaxGuideProvider>
+            {
+                isPermissionSyncBannerVisible ? (
+                    <PermissionSyncBanner />
+                ) : null
+            }
             {children}
             <SyntaxReferenceGuide />
             <GitHubStarToast />

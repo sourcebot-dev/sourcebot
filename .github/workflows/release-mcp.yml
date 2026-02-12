@@ -136,16 +136,6 @@ jobs:
           git add packages/mcp/CHANGELOG.md packages/mcp/package.json
           git commit -m "Release @sourcebot/mcp v$VERSION"
 
-      - name: Push to temporary branch
-        id: push_temp_branch
-        env:
-          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
-        run: |
-          TEMP_BRANCH="release-mcp-v$VERSION"
-          git push origin HEAD:refs/heads/$TEMP_BRANCH
-          echo "Pushed commit to temporary branch: $TEMP_BRANCH"
-          echo "temp_branch=$TEMP_BRANCH" >> $GITHUB_OUTPUT
-
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
@@ -153,60 +143,15 @@ jobs:
         run: yarn workspace @sourcebot/mcp build
 
       - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           cd packages/mcp
           npm publish --provenance --access public
-
-      - name: Checkout temporary branch
-        env:
-          TEMP_BRANCH: ${{ steps.push_temp_branch.outputs.temp_branch }}
-        run: |
-          git checkout "$TEMP_BRANCH"
-
-      - name: Fast-forward main to temporary branch
-        env:
-          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
-          TEMP_BRANCH: ${{ steps.push_temp_branch.outputs.temp_branch }}
-        run: |
-          # Fetch main branch
-          git fetch origin main:main
-          git checkout main
-
-          # Check if fast-forward is possible
-          if ! git merge-base --is-ancestor main "$TEMP_BRANCH"; then
-            echo "❌ ERROR: Cannot fast-forward main branch to release commit"
-            echo ""
-            echo "This means new commits were pushed to main after the release process started."
-            echo ""
-            echo "Recent commits on main that caused the conflict:"
-            git log --oneline $TEMP_BRANCH..main | head -5
-            exit 1
-          fi
-
-          # Fast-forward main to release commit
-          git merge --ff-only "$TEMP_BRANCH"
-
-          echo "✓ Successfully fast-forwarded main to release commit"
 
       - name: Push main
         env:
           GH_TOKEN: ${{ steps.generate_token.outputs.token }}
         run: |
           git push origin main
-          echo "Pushed main branch"
-
-      - name: Delete temporary branch
-        if: always()
-        env:
-          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
-          TEMP_BRANCH: ${{ steps.push_temp_branch.outputs.temp_branch }}
-        run: |
-          if [ -n "$TEMP_BRANCH" ]; then
-            # Check if branch exists before attempting to delete
-            if git ls-remote --heads origin "$TEMP_BRANCH" | grep -q "$TEMP_BRANCH"; then
-              git push origin --delete "$TEMP_BRANCH"
-              echo "✓ Deleted temporary branch: $TEMP_BRANCH"
-            else
-              echo "ℹ Temporary branch $TEMP_BRANCH does not exist (may have been already deleted)"
-            fi
-          fi
+          echo "✓ Pushed release commit to main"

@@ -3,8 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Info, Mail } from "lucide-react";
 import { getOrgMembers } from "@/actions";
 import { isServiceError } from "@/lib/utils";
-import { notFound, ServiceErrorException } from "@/lib/serviceError";
-import { env } from "@sourcebot/shared/client";
+import { ServiceErrorException } from "@/lib/serviceError";
 
 interface LicensePageProps {
     params: Promise<{
@@ -18,10 +17,6 @@ export default async function LicensePage(props: LicensePageProps) {
     const {
         domain
     } = params;
-
-    if (env.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT !== undefined) {
-        notFound();
-    }
 
     const licenseKey = getLicenseKey();
     const entitlements = getEntitlements();

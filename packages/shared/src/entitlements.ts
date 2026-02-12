@@ -2,7 +2,6 @@ import { base64Decode } from "./utils.js";
 import { z } from "zod";
 import { createLogger } from "./logger.js";
 import { env } from "./env.server.js";
-import { env as clientEnv } from "./env.client.js";
 import { SOURCEBOT_SUPPORT_EMAIL, SOURCEBOT_UNLIMITED_SEATS } from "./constants.js";
 import { verifySignature } from "./crypto.js";
 
@@ -23,8 +22,6 @@ type LicenseKeyPayload = z.infer<typeof eeLicenseKeyPayloadSchema>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const planLabels = {
     oss: "OSS",
-    "cloud:team": "Team",
-    "cloud:demo": "Demo",
     "self-hosted:enterprise": "Enterprise (Self-Hosted)",
     "self-hosted:enterprise-unlimited": "Enterprise (Self-Hosted) Unlimited",
 } as const;
@@ -46,12 +43,28 @@ const entitlements = [
 export type Entitlement = (typeof entitlements)[number];
 
 const entitlementsByPlan: Record<Plan, Entitlement[]> = {
-    oss: ["anonymous-access"],
-    "cloud:team": ["billing", "multi-tenancy", "sso", "code-nav"],
-    "self-hosted:enterprise": ["search-contexts", "sso", "code-nav", "audit", "analytics", "permission-syncing", "github-app"],
-    "self-hosted:enterprise-unlimited": ["search-contexts", "anonymous-access", "sso", "code-nav", "audit", "analytics", "permission-syncing", "github-app"],
-    // Special entitlement for https://demo.sourcebot.dev
-    "cloud:demo": ["anonymous-access", "code-nav", "search-contexts"],
+    oss: [
+        "anonymous-access"
+    ],
+    "self-hosted:enterprise": [
+        "search-contexts",
+        "sso",
+        "code-nav",
+        "audit",
+        "analytics",
+        "permission-syncing",
+        "github-app"
+    ],
+    "self-hosted:enterprise-unlimited": [
+        "search-contexts",
+        "sso",
+        "code-nav",
+        "audit",
+        "analytics",
+        "permission-syncing",
+        "github-app",
+        "anonymous-access"
+    ],
 } as const;
 
 
@@ -90,14 +103,6 @@ export const getLicenseKey = (): LicenseKeyPayload | null => {
 }
 
 export const getPlan = (): Plan => {
-    if (clientEnv.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT) {
-        if (clientEnv.NEXT_PUBLIC_SOURCEBOT_CLOUD_ENVIRONMENT === "demo") {
-            return "cloud:demo";
-        }
-
-        return "cloud:team";
-    }
-
     const licenseKey = getLicenseKey();
     if (licenseKey) {
         const expiryDate = new Date(licenseKey.expiryDate);

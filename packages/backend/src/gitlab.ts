@@ -303,7 +303,6 @@ export const getProjectMembers = async (projectId: string, api: InstanceType<typ
 export const getProjectsForAuthenticatedUser = async (visibility: 'private' | 'internal' | 'public' | 'all' = 'all', api: InstanceType<typeof Gitlab>) => {
     try {
         const fetchFn = () => api.Projects.all({
-            membership: true,
             ...(visibility !== 'all' ? {
                 visibility,
             } : {}),

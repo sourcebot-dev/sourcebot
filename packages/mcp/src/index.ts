@@ -6,10 +6,11 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import _dedent from "dedent";
 import escapeStringRegexp from 'escape-string-regexp';
 import { z } from 'zod';
-import { askCodebase, getFileSource, listCommits, listLanguageModels, listRepos, search } from './client.js';
+import { askCodebase, getFileSource, listCommits, listLanguageModels, listRepos, listTree, search } from './client.js';
 import { env, numberSchema } from './env.js';
-import { askCodebaseRequestSchema, fileSourceRequestSchema, listCommitsQueryParamsSchema, listReposQueryParamsSchema } from './schemas.js';
-import { AskCodebaseRequest, FileSourceRequest, ListCommitsQueryParamsSchema, ListReposQueryParams, TextContent } from './types.js';
+import { askCodebaseRequestSchema, DEFAULT_MAX_TREE_ENTRIES, DEFAULT_TREE_DEPTH, fileSourceRequestSchema, listCommitsQueryParamsSchema, listReposQueryParamsSchema, listTreeRequestSchema, MAX_MAX_TREE_ENTRIES, MAX_TREE_DEPTH } from './schemas.js';
+import { AskCodebaseRequest, FileSourceRequest, ListCommitsQueryParamsSchema, ListReposQueryParams, ListTreeEntry, ListTreeRequest, TextContent } from './types.js';
+import { buildTreeNodeIndex, joinTreePath, normalizeTreePath, sortTreeEntries } from './utils.js';
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -233,6 +234,155 @@ server.tool(
                     path: response.path,
                     url: response.webUrl,
                 })
+            }]
+        };
+    }
+);
+
+server.tool(
+    "list_tree",
+    dedent`
+    Lists files and directories from a repository path. This can be used as a repo tree tool or directory listing tool.
+    Returns a flat list of entries with path metadata and depth relative to the requested path.
+    `,
+    listTreeRequestSchema.shape,
+    async ({
+        repo,
+        path = '',
+        ref = 'HEAD',
+        depth = DEFAULT_TREE_DEPTH,
+        includeFiles = true,
+        includeDirectories = true,
+        maxEntries = DEFAULT_MAX_TREE_ENTRIES,
+    }: ListTreeRequest) => {
+        const normalizedPath = normalizeTreePath(path);
+        const normalizedDepth = Math.min(depth, MAX_TREE_DEPTH);
+        const normalizedMaxEntries = Math.min(maxEntries, MAX_MAX_TREE_ENTRIES);
+
+        if (!includeFiles && !includeDirectories) {
+            return {
+                content: [{
+                    type: "text",
+                    text: JSON.stringify({
+                        repo,
+                        ref,
+                        path: normalizedPath,
+                        entries: [] as ListTreeEntry[],
+                        totalReturned: 0,
+                        truncated: false,
+                    }),
+                }],
+            };
+        }
+
+        // BFS frontier of directories still to expand. Each item stores a repo-relative
+        // directory path plus the current depth from the requested root `path`.
+        const queue: Array<{ path: string; depth: number }> = [{ path: normalizedPath, depth: 0 }];
+
+        // Tracks directory paths that have already been enqueued.
+        // With the current single-root traversal duplicates are uncommon, but this
+        // prevents duplicate expansion if we later support overlapping multi-root
+        // inputs (e.g. ["src", "src/lib"]) or receive overlapping tree data.
+        const queuedPaths = new Set<string>([normalizedPath]);
+
+        const seenEntries = new Set<string>();
+        const entries: ListTreeEntry[] = [];
+        let truncated = false;
+
+        // Traverse breadth-first by depth, batching all directories at the same
+        // depth into a single /api/tree request per iteration.
+        while (queue.length > 0 && !truncated) {
+            const currentDepth = queue[0]!.depth;
+            const currentLevelPaths: string[] = [];
+
+            // Drain only the current depth level so we can issue one API call
+            // for all sibling directories before moving deeper.
+            while (queue.length > 0 && queue[0]!.depth === currentDepth) {
+                const next = queue.shift()!;
+                currentLevelPaths.push(next.path);
+            }
+
+            // Ask Sourcebot for a tree spanning all requested paths at this level.
+            const treeResponse = await listTree({
+                repoName: repo,
+                revisionName: ref,
+                paths: currentLevelPaths.filter(Boolean),
+            });
+            const treeNodeIndex = buildTreeNodeIndex(treeResponse.tree);
+
+            for (const currentPath of currentLevelPaths) {
+                const currentNode = currentPath === '' ? treeResponse.tree : treeNodeIndex.get(currentPath);
+                if (!currentNode || currentNode.type !== 'tree') {
+                    // Skip paths that are missing from the response or resolve to a
+                    // file node. We only iterate children of directories.
+                    continue;
+                }
+
+                for (const child of currentNode.children) {
+                    if (child.type !== 'tree' && child.type !== 'blob') {
+                        // Skip non-standard git object types (e.g. unexpected entries)
+                        // since this tool only exposes directories and files.
+                        continue;
+                    }
+
+                    const childPath = joinTreePath(currentPath, child.name);
+                    const childDepth = currentDepth + 1;
+
+                    // Queue child directories for the next depth level only if
+                    // they are within the requested depth bound.
+                    if (child.type === 'tree' && childDepth < normalizedDepth && !queuedPaths.has(childPath)) {
+                        queue.push({ path: childPath, depth: childDepth });
+                        queuedPaths.add(childPath);
+                    }
+
+                    if ((child.type === 'blob' && !includeFiles) || (child.type === 'tree' && !includeDirectories)) {
+                        // Skip entries filtered out by caller preferences
+                        // (`includeFiles` / `includeDirectories`).
+                        continue;
+                    }
+
+                    const key = `${child.type}:${childPath}`;
+                    if (seenEntries.has(key)) {
+                        // Skip duplicates when multiple requested paths overlap and
+                        // surface the same child entry.
+                        continue;
+                    }
+                    seenEntries.add(key);
+
+                    // Stop collecting once the entry budget is exhausted.
+                    if (entries.length >= normalizedMaxEntries) {
+                        truncated = true;
+                        break;
+                    }
+
+                    entries.push({
+                        type: child.type,
+                        path: childPath,
+                        name: child.name,
+                        parentPath: currentPath,
+                        depth: childDepth,
+                    });
+                }
+
+                if (truncated) {
+                    break;
+                }
+            }
+        }
+
+        const sortedEntries = sortTreeEntries(entries);
+
+        return {
+            content: [{
+                type: "text",
+                text: JSON.stringify({
+                    repo,
+                    ref,
+                    path: normalizedPath,
+                    entries: sortedEntries,
+                    totalReturned: sortedEntries.length,
+                    truncated,
+                }),
             }]
         };
     }

@@ -10,7 +10,8 @@
     "test": "cross-env SKIP_ENV_VALIDATION=1 vitest",
     "generate:protos": "proto-loader-gen-types --includeComments --longs=Number --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js --keepCase --includeDirs=../../vendor/zoekt/grpc/protos --outDir=src/proto zoekt/webserver/v1/webserver.proto zoekt/webserver/v1/query.proto",
     "dev:emails": "email dev --dir ./src/emails",
-    "stripe:listen": "stripe listen --forward-to http://localhost:3000/api/stripe"
+    "stripe:listen": "stripe listen --forward-to http://localhost:3000/api/stripe",
+    "tool:decrypt-jwe": "tsx tools/decryptJWE.ts"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^3.0.73",
@@ -157,8 +158,8 @@
     "octokit": "^4.1.3",
     "openai": "^4.98.0",
     "parse-diff": "^0.11.1",
-    "posthog-js": "^1.309.1",
-    "posthog-node": "^5.17.4",
+    "posthog-js": "^1.345.5",
+    "posthog-node": "^5.24.15",
     "pretty-bytes": "^6.1.1",
     "psl": "^1.15.0",
     "react": "^19.2.1",

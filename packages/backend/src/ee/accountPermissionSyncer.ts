@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/node";
 import { PrismaClient, AccountPermissionSyncJobStatus, Account} from "@sourcebot/db";
-import { env, hasEntitlement, createLogger, loadConfig } from "@sourcebot/shared";
+import { env, hasEntitlement, createLogger, loadConfig, decryptOAuthToken } from "@sourcebot/shared";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
@@ -22,6 +22,7 @@ const logger = createLogger(LOG_TAG);
 const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}`);
 
 const QUEUE_NAME = 'accountPermissionSyncQueue';
+const POLLING_INTERVAL_MS = 1000;
 
 type AccountPermissionSyncJob = {
     jobId: string;
@@ -103,7 +104,7 @@ export class AccountPermissionSyncer {
             });
 
             await this.schedulePermissionSync(accounts);
-        }, 1000 * 5);
+        }, POLLING_INTERVAL_MS);
     }
 
     public async dispose() {
@@ -122,6 +123,9 @@ export class AccountPermissionSyncer {
             data: accounts.map(account => ({
                 accountId: account.id,
             })),
+            include: {
+                account: true,
+            }
         });
 
         await this.queue.addBulk(jobs.map((job) => ({
@@ -132,6 +136,8 @@ export class AccountPermissionSyncer {
             opts: {
                 removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
                 removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+                // Priority 1 (high) for never-synced, Priority 2 (normal) for re-sync
+                priority: job.account.permissionSyncedAt === null ? 1 : 2,
             }
         })))
     }
@@ -160,12 +166,15 @@ export class AccountPermissionSyncer {
 
         logger.info(`Syncing permissions for ${account.provider} account (id: ${account.id}) for user ${account.user.email}...`);
 
+        // Decrypt tokens (stored encrypted in the database)
+        const accessToken = decryptOAuthToken(account.access_token);
+
         // Get a list of all repos that the user has access to from all connected accounts.
         const repoIds = await (async () => {
             const aggregatedRepoIds: Set<number> = new Set();
 
             if (account.provider === 'github') {
-                if (!account.access_token) {
+                if (!accessToken) {
                     throw new Error(`User '${account.user.email}' does not have an GitHub OAuth access token associated with their GitHub account. Please re-authenticate with GitHub to refresh the token.`);
                 }
 
@@ -175,19 +184,37 @@ export class AccountPermissionSyncer {
                     .find(connection => connection.type === 'github')?.url;
 
                 const { octokit } = await createOctokitFromToken({
-                    token: account.access_token,
+                    token: accessToken,
                     url: baseUrl,
                 });
 
-                const scopes = await getGitHubOAuthScopesForAuthenticatedUser(octokit);
-                if (!scopes.includes('repo')) {
-                    throw new Error(`OAuth token with scopes [${scopes.join(', ')}] is missing the 'repo' scope required for permission syncing.`);
+                const scopes = await getGitHubOAuthScopesForAuthenticatedUser(octokit, accessToken);
+
+                // Token supports scope introspection (classic PAT or OAuth app token)
+                if (scopes !== null) {
+                    if (!scopes.includes('repo')) {
+                        throw new Error(`OAuth token with scopes [${scopes.join(', ')}] is missing the 'repo' scope required for permission syncing. Please re-authorize with GitHub to grant the required scope.`);
+                    }
                 }
 
                 // @note: we only care about the private repos since we don't need to build a mapping
                 // for public repos.
                 // @see: packages/web/src/prisma.ts
-                const githubRepos = await getReposForAuthenticatedUser(/* visibility = */ 'private', octokit);
+                let githubRepos;
+                try {
+                    githubRepos = await getReposForAuthenticatedUser(/* visibility = */ 'private', octokit);
+                } catch (error) {
+                    if (error && typeof error === 'object' && 'status' in error) {
+                        const status = (error as { status: number }).status;
+                        if (status === 401 || status === 403) {
+                            throw new Error(
+                                `GitHub API returned ${status} error. Your token may have expired or lacks the required permissions. ` +
+                                `Please re-authorize with GitHub to grant the necessary access.`
+                            );
+                        }
+                    }
+                    throw error;
+                }
                 const gitHubRepoIds = githubRepos.map(repo => repo.id.toString());
 
                 const repos = await this.db.repo.findMany({
@@ -201,7 +228,7 @@ export class AccountPermissionSyncer {
 
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
             } else if (account.provider === 'gitlab') {
-                if (!account.access_token) {
+                if (!accessToken) {
                     throw new Error(`User '${account.user.email}' does not have a GitLab OAuth access token associated with their GitLab account. Please re-authenticate with GitLab to refresh the token.`);
                 }
 
@@ -211,7 +238,7 @@ export class AccountPermissionSyncer {
                     .find(connection => connection.type === 'gitlab')?.url
 
                 const api = await createGitLabFromOAuthToken({
-                    oauthToken: account.access_token,
+                    oauthToken: accessToken,
                     url: baseUrl,
                 });
 
@@ -220,16 +247,15 @@ export class AccountPermissionSyncer {
                     throw new Error(`OAuth token with scopes [${scopes.join(', ')}] is missing the 'read_api' scope required for permission syncing.`);
                 }
 
-                // @note: we only care about the private and internal repos since we don't need to build a mapping
-                // for public repos.
+                // @note: we only care about the private repos since we don't need to build a
+                // mapping for public or internal repos. Note that internal repos are _not_
+                // enforced by permission syncing and therefore we don't need to fetch them
+                // here.
+                // 
                 // @see: packages/web/src/prisma.ts
-                const privateGitLabProjects = await getProjectsForAuthenticatedUser('private', api);
-                const internalGitLabProjects = await getProjectsForAuthenticatedUser('internal', api);
-
-                const gitLabProjectIds = [
-                    ...privateGitLabProjects,
-                    ...internalGitLabProjects,
-                ].map(project => project.id.toString());
+                const gitLabProjectIds = (
+                    await getProjectsForAuthenticatedUser('private', api)
+                ).map(project => project.id.toString());
 
                 const repos = await this.db.repo.findMany({
                     where: {

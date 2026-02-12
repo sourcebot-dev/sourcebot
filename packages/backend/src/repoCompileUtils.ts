@@ -170,7 +170,13 @@ export const compileGitlabConfig = async (
         const cloneUrl = new URL(project.http_url_to_repo);
         cloneUrl.protocol = new URL(hostUrl).protocol;
         const isFork = project.forked_from_project !== undefined;
-        const isPublic = project.visibility === 'public';
+        // @note: we consider internal repos to be `public` s.t.,
+        // we don't enforce permission filtering for them and they
+        // are visible to all users.
+        // @see: packages/web/src/prisma.ts
+        const isPublic =
+            project.visibility === 'public' ||
+            project.visibility === 'internal';
         const repoDisplayName = project.path_with_namespace;
         const repoName = path.join(repoNameRoot, repoDisplayName);
         // project.avatar_url is not directly accessible with tokens; use the avatar API endpoint if available
@@ -437,7 +443,12 @@ export const compileBitbucketConfig = async (
             throw new Error(`No ${isServer ? 'self' : 'html'} link found for ${isServer ? 'server' : 'cloud'} repo ${repoName}`);
         }
 
-        return link.href;
+        // @note: Bitbucket Server's self link includes `/browse` at the end.
+        // Strip it so that we can simply append either `/browse`, `/commits`, etc. to
+        // the base URL. 
+        const href = isServer ? link.href.replace(/\/browse\/?$/, '') : link.href;
+
+        return href;
     }
 
     const repos = bitbucketRepos.map((repo) => {

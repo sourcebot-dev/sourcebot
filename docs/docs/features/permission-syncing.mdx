@@ -51,7 +51,7 @@ We are actively working on supporting more code hosts. If you'd like to see a sp
 
 Prerequisites:
 - Configure GitHub as an [external identity provider](/docs/configuration/idp).
-- **If you are using a self-hosted GitHub instance**, you must also set `AUTH_EE_GITHUB_BASE_URL` to the base URL of your GitHub instance (e.g. `https://github.example.com`).
+- **If you are using a self-hosted GitHub instance**, you must also set the `baseUrl` property of the `github` identity provider in the [config file](/docs/configuration/config-file) to the base URL of your GitHub instance (e.g. `https://github.example.com`).
 
 Permission syncing works with **GitHub.com**, **GitHub Enterprise Cloud**, and **GitHub Enterprise Server**. For organization-owned repositories, users that have **read-only** access (or above) via the following methods will have their access synced to Sourcebot:
 - Outside collaborators
@@ -68,7 +68,7 @@ Permission syncing works with **GitHub.com**, **GitHub Enterprise Cloud**, and *
 
 Prerequisites:
 - Configure GitLab as an [external identity provider](/docs/configuration/idp).
-- **If you are using a self-hosted GitLab instance**, you must also set `AUTH_EE_GITLAB_BASE_URL` to the base URL of your GitLab instance (e.g. `https://gitlab.example.com`).
+- **If you are using a self-hosted GitLab instance**, you must also set the `baseUrl` property of the `gitlab` identity provider in the [config file](/docs/configuration/config-file) to the base URL of your GitLab instance (e.g. `https://gitlab.example.com`).
 
 Permission syncing works with **GitLab Self-managed** and **GitLab Cloud**. Users with **Guest** role or above with membership to a group or project will have their access synced to Sourcebot. Both direct and indirect membership to a group or project will be synced with Sourcebot. For more details, see the [GitLab docs](https://docs.gitlab.com/user/project/members/#membership-types).
 
@@ -76,6 +76,7 @@ Permission syncing works with **GitLab Self-managed** and **GitLab Cloud**. User
 **Notes:**
 - A GitLab [external identity provider](/docs/configuration/idp) must be configured to (1) correlate a Sourcebot user with a GitLab user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
 - OAuth tokens require the `read_api` scope in order to use the [List projects for the authenticated user API](https://docs.gitlab.com/ee/api/projects.html#list-all-projects) during [User driven syncing](/docs/features/permission-syncing#how-it-works).
+- [Internal GitLab projects](https://docs.gitlab.com/user/public_access/#internal-projects-and-groups) are **not** enforced by permission syncing and therefore are visible to all users. Only [private projects](https://docs.gitlab.com/user/public_access/#private-projects-and-groups) are enforced.
 
 
 # How it works

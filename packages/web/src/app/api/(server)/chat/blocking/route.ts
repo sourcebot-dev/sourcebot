@@ -100,7 +100,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 data: {
                     orgId: org.id,
                     createdById: user?.id,
-                    visibility: ChatVisibility.PRIVATE,
+                    visibility: user ? ChatVisibility.PRIVATE : ChatVisibility.PUBLIC,
                     messages: [] as unknown as Prisma.InputJsonValue,
                 },
             });
@@ -156,6 +156,18 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 onFinish: async ({ messages }) => {
                     finalMessages = messages;
                 },
+                onError: (error) => {
+                    if (error instanceof ServiceErrorException) {
+                        throw error;
+                    }
+
+                    const message = error instanceof Error ? error.message : String(error);
+                    throw new ServiceErrorException({
+                        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+                        errorCode: ErrorCode.UNEXPECTED_ERROR,
+                        message,
+                    });
+                },
             })
 
             await Promise.all([
@@ -182,11 +194,11 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 : undefined;
             const answerText = answerPart?.text ?? '';
 
-            // Convert to portable markdown (replaces @file: references with markdown links)
-            const portableAnswer = convertLLMOutputToPortableMarkdown(answerText);
-
-            // Build the chat URL
+            // Build the base URL and chat URL
             const baseUrl = env.AUTH_URL;
+
+            // Convert to portable markdown (replaces @file: references with markdown links)
+            const portableAnswer = convertLLMOutputToPortableMarkdown(answerText, baseUrl);
             const chatUrl = `${baseUrl}/${org.domain}/chat/${chat.id}`;
 
             logger.debug(`Completed blocking agent for chat ${chat.id}`, {

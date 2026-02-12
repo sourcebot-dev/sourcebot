@@ -7,6 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.30] - 2026-02-12
+
+### Added
+- Added PostHog events for repo index job success/failure and code host type to connection sync events. [#878](https://github.com/sourcebot-dev/sourcebot/pull/878)
+- Added `install_id` to PostHog event properties. [#880](https://github.com/sourcebot-dev/sourcebot/pull/880)
+
+### Changed
+- Changed the me-control to render the user's avatar in the top-bar. [#874](https://github.com/sourcebot-dev/sourcebot/pull/874)
+- Moved the "current version" indicator into the "what's new" dropdown. [#874](https://github.com/sourcebot-dev/sourcebot/pull/874)
+- Updated `posthog-node` to ^5.24.15 and `posthog-js` to ^1.345.5. [#881](https://github.com/sourcebot-dev/sourcebot/pull/881)
+
+### Fixed
+- Fixed issue where "Open in Bitbucket" and commit links for Bitbucket Server repos had an extra `/browse` in the URL. [#877](https://github.com/sourcebot-dev/sourcebot/pull/877)
+- Fixed slow repo indexing scheduling query by adding database indexes. [#883](https://github.com/sourcebot-dev/sourcebot/pull/883)
+
+### Removed
+- Removed the Discord and GitHub buttons from the top corner. [#874](https://github.com/sourcebot-dev/sourcebot/pull/874)
+
+## [4.10.29] - 2026-02-10
+
+### Changed
+- Changed the settings dropdown to display the commit SHA on which the deployment was built against. [#868](https://github.com/sourcebot-dev/sourcebot/pull/868)
+
+### Fixed
+- Fixed issue where anonymous access on a Sourcebot instance with a unlimited seat license and anonymous access enabled would result in a "not authenticated" message being displayed. [#866](https://github.com/sourcebot-dev/sourcebot/pull/866)
+- Fixed issue where session links generated for a `ask_codebase` mcp call would not be accessible to unauthed users. [#873](https://github.com/sourcebot-dev/sourcebot/pull/873)
+
+## [4.10.28] - 2026-02-07
+
+### Added
+- Added support to set "Require approval for new members" via config with (`REQUIRE_APPROVAL_NEW_MEMBERS`). [#858](https://github.com/sourcebot-dev/sourcebot/pull/858)
+
+### Changed
+- Improved stability for connection and repo indexing workers. [#860](https://github.com/sourcebot-dev/sourcebot/pull/860)
+
+### Fixed
+- Fixed issue where certain file and folder names would cause type errors. [#862](https://github.com/sourcebot-dev/sourcebot/pull/862)
+- Fixed token refresh error "Provider config not found or invalid for: x" when a sso is configured using deprecated env vars. [#841](https://github.com/sourcebot-dev/sourcebot/pull/841)
+- Fixed issue where temporary shard files created on index failure were not being cleaned up. [#805](https://github.com/sourcebot-dev/sourcebot/pull/805)
+
+## [4.10.27] - 2026-02-05
+
+### Fixed
+- [EE] Fixed issue where internal GitLab projects were not visible in Sourcebot when permission syncing is enabled. [#857](https://github.com/sourcebot-dev/sourcebot/pull/857)
+
+## [4.10.26] - 2026-02-05
+
+### Added
+- [EE] Added notification banner when an account's permissions are being synced for the first time. [#852](https://github.com/sourcebot-dev/sourcebot/pull/852)
+
+### Fixed
+- Fixed issue where the branch filter in the repos detail page would not return any results. [#851](https://github.com/sourcebot-dev/sourcebot/pull/851)
+- Fixed issue where 5xx http errors would not be retried. [#855](https://github.com/sourcebot-dev/sourcebot/pull/855)
+
+### Changed
+- Changed the queuing behaviour for permission syncing to prioritize newly created accounts & repos. [#856](https://github.com/sourcebot-dev/sourcebot/pull/856)
+- Changed auth behaviour to store OAuth tokens, refresh tokens, and id tokens encrypted at rest in the database. [#853](https://github.com/sourcebot-dev/sourcebot/pull/853)
+- Changed refresh token behaviour to source provider tokens from the DB rather than storing them in the JWT token. [#853](https://github.com/sourcebot-dev/sourcebot/pull/853)
+
+## [4.10.25] - 2026-02-04
+
+### Fixed
+- Fixed issue where opening GitLab file links would result in a 404. [#846](https://github.com/sourcebot-dev/sourcebot/pull/846)
+- Fixed issue where file references in copied chat answers were relative paths instead of full browse URLs. [#847](https://github.com/sourcebot-dev/sourcebot/pull/847)
+- [EE] Fixed issue where account driven permission syncing would fail when attempting to authenticate with a GitHub App user token. [#850](https://github.com/sourcebot-dev/sourcebot/pull/850)
+
+### Added
+- [EE] Added `AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING` env var that, when enabled, will automatically link SSO accounts with the same email address. [#849](https://github.com/sourcebot-dev/sourcebot/pull/849)
+
 ## [4.10.24] - 2026-02-03
 
 ### Fixed

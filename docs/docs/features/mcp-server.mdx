@@ -189,6 +189,22 @@ Parameters:
 | `ref`  | no       | Commit SHA, branch or tag name to fetch the source code for. If not provided, uses the default branch. |
 
 
+### `list_tree`
+
+Lists files and directories from a repository path. Can be used as a directory listing tool (`depth: 1`) or a repo-tree tool (`depth > 1`).
+
+Parameters:
+| Name                 | Required | Description                                                                                                   |
+|:---------------------|:---------|:--------------------------------------------------------------------------------------------------------------|
+| `repo`               | yes      | The name of the repository to list files from.                                                                |
+| `path`               | no       | Directory path (relative to repo root). If omitted, the repo root is used.                                    |
+| `ref`                | no       | Commit SHA, branch or tag name to list files from. If not provided, uses the default branch.                  |
+| `depth`              | no       | Number of directory levels to traverse below `path` (min 1, max 10, default: 1).                              |
+| `includeFiles`       | no       | Whether to include file entries in the output (default: true).                                                |
+| `includeDirectories` | no       | Whether to include directory entries in the output (default: true).                                           |
+| `maxEntries`         | no       | Maximum number of entries to return before truncating (min 1, max 10000, default: 1000).                      |
+
+
 ### `list_commits`
 
 Get a list of commits for a given repository.
