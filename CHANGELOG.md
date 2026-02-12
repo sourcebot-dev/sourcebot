@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added `install_id` to PostHog event properties. [#880](https://github.com/sourcebot-dev/sourcebot/pull/880)
 - Added PostHog events for repo index job success/failure and code host type to connection sync events. [#878](https://github.com/sourcebot-dev/sourcebot/pull/878)
 
 ### Changed
