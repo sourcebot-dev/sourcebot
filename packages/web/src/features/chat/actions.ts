@@ -29,6 +29,8 @@ import { StatusCodes } from "http-status-codes";
 import path from 'path';
 import { LanguageModelInfo, SBChatMessage } from "./types";
 import { withAuthV2, withOptionalAuthV2 } from "@/withAuthV2";
+import { withTracing } from "@posthog/ai";
+import { createPostHogClient, tryGetPostHogDistinctId } from "@/lib/posthog";
 
 const logger = createLogger('chat-actions');
 const auditService = getAuditService();
@@ -200,23 +202,23 @@ export const updateChatName = async ({ chatId, name }: { chatId: string, name: s
 
 export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageModelId, message }: { chatId: string, languageModelId: string, message: string }) => sew(() =>
     withOptionalAuthV2(async () => {
-            // From the language model ID, attempt to find the
-            // corresponding config in `config.json`.
-            const languageModelConfig =
-                (await _getConfiguredLanguageModelsFull())
-                    .find((model) => model.model === languageModelId);
+        // From the language model ID, attempt to find the
+        // corresponding config in `config.json`.
+        const languageModelConfig =
+            (await _getConfiguredLanguageModelsFull())
+                .find((model) => model.model === languageModelId);
 
-            if (!languageModelConfig) {
-                return serviceErrorResponse({
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: `Language model ${languageModelId} is not configured.`,
-                });
-            }
+        if (!languageModelConfig) {
+            return serviceErrorResponse({
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                message: `Language model ${languageModelId} is not configured.`,
+            });
+        }
 
-            const { model } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
+        const { model } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
 
-            const prompt = `Convert this question into a short topic title (max 50 characters). 
+        const prompt = `Convert this question into a short topic title (max 50 characters). 
 
 Rules:
 - Do NOT include question words (what, where, how, why, when, which)
@@ -232,21 +234,21 @@ Examples:
 
 User question: ${message}`;
 
-            const result = await generateText({
-                model,
-                prompt,
-            });
+        const result = await generateText({
+            model,
+            prompt,
+        });
 
-            await updateChatName({
-                chatId,
-                name: result.text,
-            });
+        await updateChatName({
+            chatId,
+            name: result.text,
+        });
 
-            return {
-                success: true,
-            }
-        })
-    )
+        return {
+            success: true,
+        }
+    })
+)
 
 export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
     withAuthV2(async ({ org, user, prisma }) => {
@@ -381,238 +383,256 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel): P
 }> => {
     const { provider, model: modelId } = config;
 
-    switch (provider) {
-        case 'amazon-bedrock': {
-            const aws = createAmazonBedrock({
-                baseURL: config.baseUrl,
-                region: config.region ?? env.AWS_REGION,
-                accessKeyId: config.accessKeyId
-                    ? await getTokenFromConfig(config.accessKeyId)
-                    : env.AWS_ACCESS_KEY_ID,
-                secretAccessKey: config.accessKeySecret
-                    ? await getTokenFromConfig(config.accessKeySecret)
-                    : env.AWS_SECRET_ACCESS_KEY,
-                sessionToken: config.sessionToken
-                    ? await getTokenFromConfig(config.sessionToken)
-                    : env.AWS_SESSION_TOKEN,
-                headers: config.headers
-                    ? await extractLanguageModelKeyValuePairs(config.headers)
-                    : undefined,
-                // Fallback to the default Node.js credential provider chain if no credentials are provided.
-                // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-credential-providers/#fromnodeproviderchain
-                credentialProvider: !config.accessKeyId && !config.accessKeySecret && !config.sessionToken
-                    ? fromNodeProviderChain()
-                    : undefined,
-            });
+    const { model: _model, providerOptions } = await (async (): Promise<{
+        model: AISDKLanguageModelV2,
+        providerOptions?: Record<string, Record<string, JSONValue>>,
+    }> => {
+        switch (provider) {
+            case 'amazon-bedrock': {
+                const aws = createAmazonBedrock({
+                    baseURL: config.baseUrl,
+                    region: config.region ?? env.AWS_REGION,
+                    accessKeyId: config.accessKeyId
+                        ? await getTokenFromConfig(config.accessKeyId)
+                        : env.AWS_ACCESS_KEY_ID,
+                    secretAccessKey: config.accessKeySecret
+                        ? await getTokenFromConfig(config.accessKeySecret)
+                        : env.AWS_SECRET_ACCESS_KEY,
+                    sessionToken: config.sessionToken
+                        ? await getTokenFromConfig(config.sessionToken)
+                        : env.AWS_SESSION_TOKEN,
+                    headers: config.headers
+                        ? await extractLanguageModelKeyValuePairs(config.headers)
+                        : undefined,
+                    // Fallback to the default Node.js credential provider chain if no credentials are provided.
+                    // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-credential-providers/#fromnodeproviderchain
+                    credentialProvider: !config.accessKeyId && !config.accessKeySecret && !config.sessionToken
+                        ? fromNodeProviderChain()
+                        : undefined,
+                });
 
-            return {
-                model: aws(modelId),
-            };
-        }
-        case 'anthropic': {
-            const anthropic = createAnthropic({
-                baseURL: config.baseUrl,
-                apiKey: config.token
-                    ? await getTokenFromConfig(config.token)
-                    : env.ANTHROPIC_API_KEY,
-                headers: config.headers
-                    ? await extractLanguageModelKeyValuePairs(config.headers)
-                    : undefined,
-            });
+                return {
+                    model: aws(modelId),
+                };
+            }
+            case 'anthropic': {
+                const anthropic = createAnthropic({
+                    baseURL: config.baseUrl,
+                    apiKey: config.token
+                        ? await getTokenFromConfig(config.token)
+                        : env.ANTHROPIC_API_KEY,
+                    headers: config.headers
+                        ? await extractLanguageModelKeyValuePairs(config.headers)
+                        : undefined,
+                });
 
-            return {
-                model: anthropic(modelId),
-                providerOptions: {
-                    anthropic: {
-                        thinking: {
-                            type: "enabled",
-                            budgetTokens: env.ANTHROPIC_THINKING_BUDGET_TOKENS,
+                return {
+                    model: anthropic(modelId),
+                    providerOptions: {
+                        anthropic: {
+                            thinking: {
+                                type: "enabled",
+                                budgetTokens: env.ANTHROPIC_THINKING_BUDGET_TOKENS,
+                            }
+                        } satisfies AnthropicProviderOptions,
+                    },
+                };
+            }
+            case 'azure': {
+                const azure = createAzure({
+                    baseURL: config.baseUrl,
+                    apiKey: config.token ? (await getTokenFromConfig(config.token)) : env.AZURE_API_KEY,
+                    apiVersion: config.apiVersion,
+                    resourceName: config.resourceName ?? env.AZURE_RESOURCE_NAME,
+                    headers: config.headers
+                        ? await extractLanguageModelKeyValuePairs(config.headers)
+                        : undefined,
+                });
+
+                return {
+                    model: azure(modelId),
+                };
+            }
+            case 'deepseek': {
+                const deepseek = createDeepSeek({
+                    baseURL: config.baseUrl,
+                    apiKey: config.token ? (await getTokenFromConfig(config.token)) : env.DEEPSEEK_API_KEY,
+                    headers: config.headers
+                        ? await extractLanguageModelKeyValuePairs(config.headers)
+                        : undefined,
+                });
+
+                return {
+                    model: deepseek(modelId),
+                };
+            }
+            case 'google-generative-ai': {
+                const google = createGoogleGenerativeAI({
+                    baseURL: config.baseUrl,
+                    apiKey: config.token
+                        ? await getTokenFromConfig(config.token)
+                        : env.GOOGLE_GENERATIVE_AI_API_KEY,
+                    headers: config.headers
+                        ? await extractLanguageModelKeyValuePairs(config.headers)
+                        : undefined,
+                });
+
+                return {
+                    model: google(modelId),
+                };
+            }
+            case 'google-vertex': {
+                const vertex = createVertex({
+                    project: config.project ?? env.GOOGLE_VERTEX_PROJECT,
+                    location: config.region ?? env.GOOGLE_VERTEX_REGION,
+                    ...(config.credentials ? {
+                        googleAuthOptions: {
+                            keyFilename: await getTokenFromConfig(config.credentials),
                         }
-                    } satisfies AnthropicProviderOptions,
-                },
-            };
-        }
-        case 'azure': {
-            const azure = createAzure({
-                baseURL: config.baseUrl,
-                apiKey: config.token ? (await getTokenFromConfig(config.token)) : env.AZURE_API_KEY,
-                apiVersion: config.apiVersion,
-                resourceName: config.resourceName ?? env.AZURE_RESOURCE_NAME,
-                headers: config.headers
-                    ? await extractLanguageModelKeyValuePairs(config.headers)
-                    : undefined,
-            });
+                    } : {}),
+                    headers: config.headers
+                        ? await extractLanguageModelKeyValuePairs(config.headers)
+                        : undefined,
+                });
 
-            return {
-                model: azure(modelId),
-            };
-        }
-        case 'deepseek': {
-            const deepseek = createDeepSeek({
-                baseURL: config.baseUrl,
-                apiKey: config.token ? (await getTokenFromConfig(config.token)) : env.DEEPSEEK_API_KEY,
-                headers: config.headers
-                    ? await extractLanguageModelKeyValuePairs(config.headers)
-                    : undefined,
-            });
-
-            return {
-                model: deepseek(modelId),
-            };
-        }
-        case 'google-generative-ai': {
-            const google = createGoogleGenerativeAI({
-                baseURL: config.baseUrl,
-                apiKey: config.token
-                    ? await getTokenFromConfig(config.token)
-                    : env.GOOGLE_GENERATIVE_AI_API_KEY,
-                headers: config.headers
-                    ? await extractLanguageModelKeyValuePairs(config.headers)
-                    : undefined,
-            });
-
-            return {
-                model: google(modelId),
-            };
-        }
-        case 'google-vertex': {
-            const vertex = createVertex({
-                project: config.project ?? env.GOOGLE_VERTEX_PROJECT,
-                location: config.region ?? env.GOOGLE_VERTEX_REGION,
-                ...(config.credentials ? {
-                    googleAuthOptions: {
-                        keyFilename: await getTokenFromConfig(config.credentials),
-                    }
-                } : {}),
-                headers: config.headers
-                    ? await extractLanguageModelKeyValuePairs(config.headers)
-                    : undefined,
-            });
-
-            return {
-                model: vertex(modelId),
-                providerOptions: {
-                    google: {
-                        thinkingConfig: {
-                            thinkingBudget: env.GOOGLE_VERTEX_THINKING_BUDGET_TOKENS,
-                            includeThoughts: env.GOOGLE_VERTEX_INCLUDE_THOUGHTS === 'true',
+                return {
+                    model: vertex(modelId),
+                    providerOptions: {
+                        google: {
+                            thinkingConfig: {
+                                thinkingBudget: env.GOOGLE_VERTEX_THINKING_BUDGET_TOKENS,
+                                includeThoughts: env.GOOGLE_VERTEX_INCLUDE_THOUGHTS === 'true',
+                            }
                         }
-                    }
-                },
-            };
-        }
-        case 'google-vertex-anthropic': {
-            const vertexAnthropic = createVertexAnthropic({
-                project: config.project ?? env.GOOGLE_VERTEX_PROJECT,
-                location: config.region ?? env.GOOGLE_VERTEX_REGION,
-                ...(config.credentials ? {
-                    googleAuthOptions: {
-                        keyFilename: await getTokenFromConfig(config.credentials),
-                    }
-                } : {}),
-                headers: config.headers
-                    ? await extractLanguageModelKeyValuePairs(config.headers)
-                    : undefined,
-            });
+                    },
+                };
+            }
+            case 'google-vertex-anthropic': {
+                const vertexAnthropic = createVertexAnthropic({
+                    project: config.project ?? env.GOOGLE_VERTEX_PROJECT,
+                    location: config.region ?? env.GOOGLE_VERTEX_REGION,
+                    ...(config.credentials ? {
+                        googleAuthOptions: {
+                            keyFilename: await getTokenFromConfig(config.credentials),
+                        }
+                    } : {}),
+                    headers: config.headers
+                        ? await extractLanguageModelKeyValuePairs(config.headers)
+                        : undefined,
+                });
 
-            return {
-                model: vertexAnthropic(modelId),
-            };
-        }
-        case 'mistral': {
-            const mistral = createMistral({
-                baseURL: config.baseUrl,
-                apiKey: config.token
-                    ? await getTokenFromConfig(config.token)
-                    : env.MISTRAL_API_KEY,
-                headers: config.headers
-                    ? await extractLanguageModelKeyValuePairs(config.headers)
-                    : undefined,
-            });
+                return {
+                    model: vertexAnthropic(modelId),
+                };
+            }
+            case 'mistral': {
+                const mistral = createMistral({
+                    baseURL: config.baseUrl,
+                    apiKey: config.token
+                        ? await getTokenFromConfig(config.token)
+                        : env.MISTRAL_API_KEY,
+                    headers: config.headers
+                        ? await extractLanguageModelKeyValuePairs(config.headers)
+                        : undefined,
+                });
 
-            return {
-                model: mistral(modelId),
-            };
-        }
-        case 'openai': {
-            const openai = createOpenAI({
-                baseURL: config.baseUrl,
-                apiKey: config.token
-                    ? await getTokenFromConfig(config.token)
-                    : env.OPENAI_API_KEY,
-                headers: config.headers
-                    ? await extractLanguageModelKeyValuePairs(config.headers)
-                    : undefined,
-            });
+                return {
+                    model: mistral(modelId),
+                };
+            }
+            case 'openai': {
+                const openai = createOpenAI({
+                    baseURL: config.baseUrl,
+                    apiKey: config.token
+                        ? await getTokenFromConfig(config.token)
+                        : env.OPENAI_API_KEY,
+                    headers: config.headers
+                        ? await extractLanguageModelKeyValuePairs(config.headers)
+                        : undefined,
+                });
 
-            return {
-                model: openai(modelId),
-                providerOptions: {
-                    openai: {
-                        reasoningEffort: config.reasoningEffort ?? 'medium',
-                    } satisfies OpenAIResponsesProviderOptions,
-                },
-            };
-        }
-        case 'openai-compatible': {
-            const openai = createOpenAICompatible({
-                baseURL: config.baseUrl,
-                name: config.displayName ?? modelId,
-                apiKey: config.token
-                    ? await getTokenFromConfig(config.token)
-                    : undefined,
-                headers: config.headers
-                    ? await extractLanguageModelKeyValuePairs(config.headers)
-                    : undefined,
-                queryParams: config.queryParams
-                    ? await extractLanguageModelKeyValuePairs(config.queryParams)
-                    : undefined,
-            });
+                return {
+                    model: openai(modelId),
+                    providerOptions: {
+                        openai: {
+                            reasoningEffort: config.reasoningEffort ?? 'medium',
+                        } satisfies OpenAIResponsesProviderOptions,
+                    },
+                };
+            }
+            case 'openai-compatible': {
+                const openai = createOpenAICompatible({
+                    baseURL: config.baseUrl,
+                    name: config.displayName ?? modelId,
+                    apiKey: config.token
+                        ? await getTokenFromConfig(config.token)
+                        : undefined,
+                    headers: config.headers
+                        ? await extractLanguageModelKeyValuePairs(config.headers)
+                        : undefined,
+                    queryParams: config.queryParams
+                        ? await extractLanguageModelKeyValuePairs(config.queryParams)
+                        : undefined,
+                });
 
-            const model = wrapLanguageModel({
-                model: openai.chatModel(modelId),
-                middleware: [
-                    extractReasoningMiddleware({
-                        tagName: config.reasoningTag ?? 'think',
-                    }),
-                ]
-            });
+                const model = wrapLanguageModel({
+                    model: openai.chatModel(modelId),
+                    middleware: [
+                        extractReasoningMiddleware({
+                            tagName: config.reasoningTag ?? 'think',
+                        }),
+                    ]
+                });
 
-            return {
-                model,
+                return {
+                    model,
+                }
+            }
+            case 'openrouter': {
+                const openrouter = createOpenRouter({
+                    baseURL: config.baseUrl,
+                    apiKey: config.token
+                        ? await getTokenFromConfig(config.token)
+                        : env.OPENROUTER_API_KEY,
+                    headers: config.headers
+                        ? await extractLanguageModelKeyValuePairs(config.headers)
+                        : undefined,
+                });
+
+                return {
+                    model: openrouter(modelId),
+                };
+            }
+            case 'xai': {
+                const xai = createXai({
+                    baseURL: config.baseUrl,
+                    apiKey: config.token
+                        ? await getTokenFromConfig(config.token)
+                        : env.XAI_API_KEY,
+                    headers: config.headers
+                        ? await extractLanguageModelKeyValuePairs(config.headers)
+                        : undefined,
+                });
+
+                return {
+                    model: xai(modelId),
+                };
             }
         }
-        case 'openrouter': {
-            const openrouter = createOpenRouter({
-                baseURL: config.baseUrl,
-                apiKey: config.token
-                    ? await getTokenFromConfig(config.token)
-                    : env.OPENROUTER_API_KEY,
-                headers: config.headers
-                    ? await extractLanguageModelKeyValuePairs(config.headers)
-                    : undefined,
-            });
+    })();
 
-            return {
-                model: openrouter(modelId),
-            };
-        }
-        case 'xai': {
-            const xai = createXai({
-                baseURL: config.baseUrl,
-                apiKey: config.token
-                    ? await getTokenFromConfig(config.token)
-                    : env.XAI_API_KEY,
-                headers: config.headers
-                    ? await extractLanguageModelKeyValuePairs(config.headers)
-                    : undefined,
-            });
+    const posthog = await createPostHogClient();
+    const distinctId = await tryGetPostHogDistinctId();
+    const model = withTracing(_model, posthog, {
+        posthogDistinctId: distinctId,
+        posthogPrivacyMode: env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED !== 'true',
+    });
 
-            return {
-                model: xai(modelId),
-            };
-        }
-    }
+    return {
+        model,
+        providerOptions,
+    };
+
 }
 
 const extractLanguageModelKeyValuePairs = async (
