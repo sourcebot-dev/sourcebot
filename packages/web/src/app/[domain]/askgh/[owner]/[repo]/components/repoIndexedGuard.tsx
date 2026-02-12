@@ -4,6 +4,9 @@ import { ServiceError } from "@/lib/serviceError";
 import { unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { usePrevious } from "@uidotdev/usehooks";
+import { useEffect } from "react";
+import { useBrowserNotification } from "@/hooks/useBrowserNotification";
 import { RepoInfo } from "../types";
 
 const REINDEX_INTERVAL_MS = 2000;
@@ -14,6 +17,8 @@ interface Props {
 }
 
 export function RepoIndexedGuard({ initialRepoInfo, children }: Props) {
+    const { requestPermission, showNotification } = useBrowserNotification();
+
     const { data: repoInfo, isError } = useQuery({
         queryKey: ['repo-status', initialRepoInfo.id],
         queryFn: () => unwrapServiceError(getRepoStatus(initialRepoInfo.id)),
@@ -28,7 +33,32 @@ export function RepoIndexedGuard({ initialRepoInfo, children }: Props) {
 
             return REINDEX_INTERVAL_MS;
         },
+        refetchIntervalInBackground: true,
     });
+
+    const previousIsIndexed = usePrevious(repoInfo.isIndexed);
+
+    // Request notification permission when we're waiting for indexing
+    useEffect(() => {
+        if (!initialRepoInfo.isIndexed) {
+            requestPermission();
+        }
+    }, [initialRepoInfo.isIndexed, requestPermission]);
+
+    // Show notification when indexing completes
+    useEffect(() => {
+        if (previousIsIndexed === false && repoInfo.isIndexed === true) {
+            const displayName = repoInfo.displayName ?? repoInfo.name;
+            showNotification({
+                title: "Repository Ready",
+                body: `${displayName} is ready to chat with.`,
+                icon: repoInfo.imageUrl ?? undefined,
+                onClick: () => {
+                    window.focus();
+                },
+            });
+        }
+    }, [previousIsIndexed, repoInfo.isIndexed, repoInfo.displayName, repoInfo.name, repoInfo.imageUrl, showNotification]);
 
     if (isError) {
         // todo
