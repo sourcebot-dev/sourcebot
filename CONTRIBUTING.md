@@ -1,6 +1,6 @@
 # Contributing to Sourcebot
 
-So you're interested in contributing to Sourcebot. Great!
+So you're interested in contributing to Sourcebot. Great! If you have any questions, don't hesitate to reach out on our [Discord](https://discord.gg/HDScTs3ptP).
 
 ## Understanding the Licenses
 
