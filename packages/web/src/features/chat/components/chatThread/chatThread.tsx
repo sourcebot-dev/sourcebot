@@ -26,6 +26,7 @@ import { generateAndUpdateChatNameFromMessage } from '../../actions';
 import { isServiceError } from '@/lib/utils';
 import { NotConfiguredErrorBanner } from '../notConfiguredErrorBanner';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
+import { SignInPromptBanner } from './signInPromptBanner';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -41,6 +42,7 @@ interface ChatThreadProps {
     selectedSearchScopes: SearchScope[];
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     isOwner?: boolean;
+    isAuthenticated?: boolean;
 }
 
 export const ChatThread = ({
@@ -53,6 +55,7 @@ export const ChatThread = ({
     selectedSearchScopes,
     onSelectedSearchScopesChange,
     isOwner = true,
+    isAuthenticated = false,
 }: ChatThreadProps) => {
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -364,6 +367,12 @@ export const ChatThread = ({
                 }
             </ScrollArea>
             <div className="w-full max-w-3xl mx-auto mb-8">
+                <SignInPromptBanner
+                    isAuthenticated={isAuthenticated}
+                    isOwner={isOwner}
+                    hasMessages={messages.length > 0}
+                    isStreaming={status === "streaming" || status === "submitted"}
+                />
                 {isOwner ? (
                     <>
                         {languageModels.length === 0 && (

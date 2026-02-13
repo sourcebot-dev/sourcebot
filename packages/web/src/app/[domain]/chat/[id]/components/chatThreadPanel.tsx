@@ -16,6 +16,7 @@ interface ChatThreadPanelProps {
     order: number;
     messages: SBChatMessage[];
     isOwner: boolean;
+    isAuthenticated: boolean;
 }
 
 export const ChatThreadPanel = ({
@@ -25,6 +26,7 @@ export const ChatThreadPanel = ({
     order,
     messages,
     isOwner,
+    isAuthenticated,
 }: ChatThreadPanelProps) => {
     // @note: we are guaranteed to have a chatId because this component will only be
     // mounted when on a /chat/[id] route.
@@ -70,6 +72,7 @@ export const ChatThreadPanel = ({
                     selectedSearchScopes={selectedSearchScopes}
                     onSelectedSearchScopesChange={setSelectedSearchScopes}
                     isOwner={isOwner}
+                    isAuthenticated={isAuthenticated}
                 />
             </div>
         </ResizablePanel>

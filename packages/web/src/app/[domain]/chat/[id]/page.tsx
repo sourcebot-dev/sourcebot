@@ -1,5 +1,5 @@
 import { getRepos, getSearchContexts } from '@/actions';
-import { getUserChatHistory, getConfiguredLanguageModelsInfo, getChatInfo } from '@/features/chat/actions';
+import { getUserChatHistory, getConfiguredLanguageModelsInfo, getChatInfo, claimAnonymousChats } from '@/features/chat/actions';
 import { ServiceErrorException } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
 import { ChatThreadPanel } from './components/chatThreadPanel';
@@ -22,11 +22,18 @@ interface PageProps {
 
 export default async function Page(props: PageProps) {
     const params = await props.params;
+    const session = await auth();
+
+    // Claim any anonymous chats created by this user before they signed in.
+    // This must happen before getChatInfo so the chat ownership is updated.
+    if (session) {
+        await claimAnonymousChats();
+    }
+
     const languageModels = await getConfiguredLanguageModelsInfo();
     const repos = await getRepos();
     const searchContexts = await getSearchContexts(params.domain);
     const chatInfo = await getChatInfo({ chatId: params.id });
-    const session = await auth();
     const chatHistory = session ? await getUserChatHistory() : [];
 
     if (isServiceError(chatHistory)) {
@@ -85,6 +92,7 @@ export default async function Page(props: PageProps) {
                     messages={messages}
                     order={2}
                     isOwner={isOwner}
+                    isAuthenticated={!!session}
                 />
             </ResizablePanelGroup>
         </div>

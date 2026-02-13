@@ -340,6 +340,35 @@ export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
     })
 );
 
+/**
+ * Claims any anonymous chats created by the current user (matched via anonymousCreatorId cookie).
+ * This should be called after a user signs in to transfer ownership of their anonymous chats.
+ * Also changes visibility from PUBLIC to PRIVATE since the chat now belongs to an authenticated user.
+ */
+export const claimAnonymousChats = async () => sew(() =>
+    withAuthV2(async ({ org, user, prisma }) => {
+        const anonymousId = await getAnonymousId();
+
+        if (!anonymousId) {
+            return { claimed: 0 };
+        }
+
+        const result = await prisma.chat.updateMany({
+            where: {
+                orgId: org.id,
+                anonymousCreatorId: anonymousId,
+                createdById: null,
+            },
+            data: {
+                createdById: user.id,
+                visibility: ChatVisibility.PRIVATE,
+            },
+        });
+
+        return { claimed: result.count };
+    })
+);
+
 export const submitFeedback = async ({
     chatId,
     messageId,
