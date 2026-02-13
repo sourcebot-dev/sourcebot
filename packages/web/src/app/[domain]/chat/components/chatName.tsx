@@ -2,13 +2,14 @@
 
 import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { deleteChat, updateChatName } from "@/features/chat/actions";
+import { deleteChat, duplicateChat, updateChatName } from "@/features/chat/actions";
 import { isServiceError } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { ChatActionsDropdown } from "./chatActionsDropdown";
 import { DeleteChatDialog } from "./deleteChatDialog";
+import { DuplicateChatDialog } from "./duplicateChatDialog";
 import { RenameChatDialog } from "./renameChatDialog";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
@@ -20,9 +21,11 @@ interface ChatNameProps {
 
 export const ChatName = ({ name, id, isOwner = false }: ChatNameProps) => {
     const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+    const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const params = useParams<{ domain: string }>();
 
     const onRenameChat = useCallback(async (newName: string): Promise<boolean> => {
         const response = await updateChatName({
@@ -62,6 +65,23 @@ export const ChatName = ({ name, id, isOwner = false }: ChatNameProps) => {
         }
     }, [id, toast, router]);
 
+    const onDuplicateChat = useCallback(async (newName: string): Promise<string | null> => {
+        const response = await duplicateChat({ chatId: id, newName });
+
+        if (isServiceError(response)) {
+            toast({
+                description: `❌ Failed to duplicate chat. Reason: ${response.message}`
+            });
+            return null;
+        } else {
+            toast({
+                description: `✅ Chat duplicated successfully`
+            });
+            router.push(`/${params.domain}/chat/${response.id}`);
+            return response.id;
+        }
+    }, [id, toast, router, params.domain]);
+
     return (
         <>
             <div className="flex flex-row gap-1 items-center">
@@ -71,6 +91,7 @@ export const ChatName = ({ name, id, isOwner = false }: ChatNameProps) => {
                 {isOwner && (
                     <ChatActionsDropdown
                         onRenameClick={() => setIsRenameDialogOpen(true)}
+                        onDuplicateClick={() => setIsDuplicateDialogOpen(true)}
                         onDeleteClick={() => setIsDeleteDialogOpen(true)}
                         align="center"
                     >
@@ -94,6 +115,12 @@ export const ChatName = ({ name, id, isOwner = false }: ChatNameProps) => {
                 isOpen={isDeleteDialogOpen}
                 onOpenChange={setIsDeleteDialogOpen}
                 onDelete={onDeleteChat}
+            />
+            <DuplicateChatDialog
+                isOpen={isDuplicateDialogOpen}
+                onOpenChange={setIsDuplicateDialogOpen}
+                onDuplicate={onDuplicateChat}
+                currentName={name ?? ""}
             />
         </>
     )

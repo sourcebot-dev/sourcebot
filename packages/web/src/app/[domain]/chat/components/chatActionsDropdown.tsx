@@ -1,11 +1,12 @@
 'use client';
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PencilIcon, TrashIcon } from "lucide-react";
+import { CopyIcon, PencilIcon, TrashIcon } from "lucide-react";
 
 interface ChatActionsDropdownProps {
     children: React.ReactNode;
     onRenameClick: () => void;
+    onDuplicateClick: () => void;
     onDeleteClick: () => void;
     align?: "start" | "center" | "end";
 }
@@ -13,6 +14,7 @@ interface ChatActionsDropdownProps {
 export const ChatActionsDropdown = ({
     children,
     onRenameClick,
+    onDuplicateClick,
     onDeleteClick,
     align = "start",
 }: ChatActionsDropdownProps) => {
@@ -34,6 +36,16 @@ export const ChatActionsDropdown = ({
                 >
                     <PencilIcon className="w-4 h-4 mr-2" />
                     Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onDuplicateClick();
+                    }}
+                >
+                    <CopyIcon className="w-4 h-4 mr-2" />
+                    Duplicate
                 </DropdownMenuItem>
                 <DropdownMenuItem
                     className="cursor-pointer text-destructive focus:text-destructive"

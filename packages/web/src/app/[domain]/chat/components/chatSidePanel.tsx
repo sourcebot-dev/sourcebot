@@ -7,7 +7,7 @@ import { ResizablePanel } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { deleteChat, updateChatName } from "@/features/chat/actions";
+import { deleteChat, duplicateChat, updateChatName } from "@/features/chat/actions";
 import { cn, isServiceError } from "@/lib/utils";
 import { CirclePlusIcon, EllipsisIcon } from "lucide-react";
 import { ChatActionsDropdown } from "./chatActionsDropdown";
@@ -21,6 +21,7 @@ import { ImperativePanelHandle } from "react-resizable-panels";
 import { useChatId } from "../useChatId";
 import { RenameChatDialog } from "./renameChatDialog";
 import { DeleteChatDialog } from "./deleteChatDialog";
+import { DuplicateChatDialog } from "./duplicateChatDialog";
 import Link from "next/link";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
@@ -48,6 +49,8 @@ export const ChatSidePanel = ({
     const chatId = useChatId();
     const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
     const [chatIdToRename, setChatIdToRename] = useState<string | null>(null);
+    const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
+    const [chatIdToDuplicate, setChatIdToDuplicate] = useState<string | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [chatIdToDelete, setChatIdToDelete] = useState<string | null>(null);
 
@@ -114,6 +117,27 @@ export const ChatSidePanel = ({
         }
     }, [chatId, router, toast]);
 
+    const onDuplicateChat = useCallback(async (newName: string, chatIdToDuplicate: string): Promise<string | null> => {
+        if (!chatIdToDuplicate) {
+            return null;
+        }
+
+        const response = await duplicateChat({ chatId: chatIdToDuplicate, newName });
+
+        if (isServiceError(response)) {
+            toast({
+                description: `❌ Failed to duplicate chat. Reason: ${response.message}`
+            });
+            return null;
+        } else {
+            toast({
+                description: `✅ Chat duplicated successfully`
+            });
+            router.push(`/${SINGLE_TENANT_ORG_DOMAIN}/chat/${response.id}`);
+            return response.id;
+        }
+    }, [router, toast]);
+
     return (
         <>
             <ResizablePanel
@@ -174,6 +198,10 @@ export const ChatSidePanel = ({
                                         onRenameClick={() => {
                                             setChatIdToRename(chat.id);
                                             setIsRenameDialogOpen(true);
+                                        }}
+                                        onDuplicateClick={() => {
+                                            setChatIdToDuplicate(chat.id);
+                                            setIsDuplicateDialogOpen(true);
                                         }}
                                         onDeleteClick={() => {
                                             setChatIdToDelete(chat.id);
@@ -243,6 +271,17 @@ export const ChatSidePanel = ({
                     }
                     return false;
                 }}
+            />
+            <DuplicateChatDialog
+                isOpen={isDuplicateDialogOpen}
+                onOpenChange={setIsDuplicateDialogOpen}
+                onDuplicate={async (newName) => {
+                    if (chatIdToDuplicate) {
+                        return await onDuplicateChat(newName, chatIdToDuplicate);
+                    }
+                    return null;
+                }}
+                currentName={chatHistory?.find((chat) => chat.id === chatIdToDuplicate)?.name ?? ""}
             />
         </>
     )
