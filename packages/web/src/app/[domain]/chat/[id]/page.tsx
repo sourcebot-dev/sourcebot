@@ -12,12 +12,71 @@ import { auth } from '@/auth';
 import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle';
 import { ChatSidePanel } from '../components/chatSidePanel';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
+import { prisma } from '@/prisma';
+import { getOrgFromDomain } from '@/data/org';
+import { ChatVisibility } from '@sourcebot/db';
+import { Metadata } from 'next';
+import { SBChatMessage } from '@/features/chat/types';
 
 interface PageProps {
     params: Promise<{
         domain: string;
         id: string;
     }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+    const { domain, id } = await params;
+
+    const org = await getOrgFromDomain(domain);
+    if (!org) {
+        return {
+            title: 'Chat | Sourcebot',
+        };
+    }
+
+    const chat = await prisma.chat.findUnique({
+        where: {
+            id,
+            orgId: org.id,
+        },
+    });
+
+    // Only show detailed metadata for public chats
+    if (!chat || chat.visibility !== ChatVisibility.PUBLIC) {
+        return {
+            title: 'Chat | Sourcebot',
+        };
+    }
+
+    const chatName = chat.name ?? 'Untitled chat';
+    const messages = chat.messages as unknown as SBChatMessage[];
+    const firstUserMessage = messages.find(m => m.role === 'user');
+
+    let description = 'A chat on Sourcebot';
+    if (firstUserMessage) {
+        const textPart = firstUserMessage.parts.find(p => p.type === 'text');
+        if (textPart && textPart.type === 'text') {
+            description = textPart.text.length > 160
+                ? textPart.text.substring(0, 160).trim() + '...'
+                : textPart.text;
+        }
+    }
+
+    return {
+        title: `${chatName} | Sourcebot`,
+        description,
+        openGraph: {
+            title: chatName,
+            description,
+            type: 'website',
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: chatName,
+            description,
+        },
+    };
 }
 
 export default async function Page(props: PageProps) {
