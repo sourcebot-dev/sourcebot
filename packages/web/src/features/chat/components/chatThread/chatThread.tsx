@@ -40,7 +40,6 @@ interface ChatThreadProps {
     searchContexts: SearchContextQuery[];
     selectedSearchScopes: SearchScope[];
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
-    isChatReadonly: boolean;
 }
 
 export const ChatThread = ({
@@ -52,7 +51,6 @@ export const ChatThread = ({
     searchContexts,
     selectedSearchScopes,
     onSelectedSearchScopesChange,
-    isChatReadonly,
 }: ChatThreadProps) => {
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -363,41 +361,39 @@ export const ChatThread = ({
                     )
                 }
             </ScrollArea>
-            {!isChatReadonly && (
-                <div className="w-full max-w-3xl mx-auto mb-8">
-                    {languageModels.length === 0 && (
-                        <NotConfiguredErrorBanner className="mb-2" />
-                    )}
+            <div className="w-full max-w-3xl mx-auto mb-8">
+                {languageModels.length === 0 && (
+                    <NotConfiguredErrorBanner className="mb-2" />
+                )}
 
-                    <div className="border rounded-md w-full shadow-sm">
-                        <CustomSlateEditor>
-                            <ChatBox
-                                onSubmit={onSubmit}
-                                className="min-h-[80px]"
-                                preferredSuggestionsBoxPlacement="top-start"
-                                isGenerating={status === "streaming" || status === "submitted"}
-                                onStop={stop}
+                <div className="border rounded-md w-full shadow-sm">
+                    <CustomSlateEditor>
+                        <ChatBox
+                            onSubmit={onSubmit}
+                            className="min-h-[80px]"
+                            preferredSuggestionsBoxPlacement="top-start"
+                            isGenerating={status === "streaming" || status === "submitted"}
+                            onStop={stop}
+                            languageModels={languageModels}
+                            selectedSearchScopes={selectedSearchScopes}
+                            searchContexts={searchContexts}
+                            onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                            isDisabled={languageModels.length === 0}
+                        />
+                        <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
+                            <ChatBoxToolbar
                                 languageModels={languageModels}
-                                selectedSearchScopes={selectedSearchScopes}
+                                repos={repos}
                                 searchContexts={searchContexts}
+                                selectedSearchScopes={selectedSearchScopes}
+                                onSelectedSearchScopesChange={onSelectedSearchScopesChange}
+                                isContextSelectorOpen={isContextSelectorOpen}
                                 onContextSelectorOpenChanged={setIsContextSelectorOpen}
-                                isDisabled={languageModels.length === 0}
                             />
-                            <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
-                                <ChatBoxToolbar
-                                    languageModels={languageModels}
-                                    repos={repos}
-                                    searchContexts={searchContexts}
-                                    selectedSearchScopes={selectedSearchScopes}
-                                    onSelectedSearchScopesChange={onSelectedSearchScopesChange}
-                                    isContextSelectorOpen={isContextSelectorOpen}
-                                    onContextSelectorOpenChanged={setIsContextSelectorOpen}
-                                />
-                            </div>
-                        </CustomSlateEditor>
-                    </div>
+                        </div>
+                    </CustomSlateEditor>
                 </div>
-            )}
+            </div>
         </>
     );
 }

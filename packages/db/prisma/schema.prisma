@@ -454,7 +454,6 @@ model Chat {
   orgId Int
 
   visibility ChatVisibility @default(PRIVATE)
-  isReadonly Boolean        @default(false)
 
   messages Json // This is a JSON array of `Message` types from @ai-sdk/ui-utils.
 }

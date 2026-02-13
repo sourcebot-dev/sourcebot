@@ -15,7 +15,6 @@ interface ChatThreadPanelProps {
     searchContexts: SearchContextQuery[];
     order: number;
     messages: SBChatMessage[];
-    isChatReadonly: boolean;
 }
 
 export const ChatThreadPanel = ({
@@ -24,7 +23,6 @@ export const ChatThreadPanel = ({
     searchContexts,
     order,
     messages,
-    isChatReadonly,
 }: ChatThreadPanelProps) => {
     // @note: we are guaranteed to have a chatId because this component will only be
     // mounted when on a /chat/[id] route.
@@ -69,7 +67,6 @@ export const ChatThreadPanel = ({
                     searchContexts={searchContexts}
                     selectedSearchScopes={selectedSearchScopes}
                     onSelectedSearchScopesChange={setSelectedSearchScopes}
-                    isChatReadonly={isChatReadonly}
                 />
             </div>
         </ResizablePanel>

@@ -3,7 +3,7 @@
 import { sew } from "@/actions";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { ErrorCode } from "@/lib/errorCodes";
-import { chatIsReadonly, notFound, serviceErrorResponse } from "@/lib/serviceError";
+import { notFound, serviceErrorResponse } from "@/lib/serviceError";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { createAzure } from '@ai-sdk/azure';
@@ -89,7 +89,6 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
             messages: chat.messages as unknown as SBChatMessage[],
             visibility: chat.visibility,
             name: chat.name,
-            isReadonly: chat.isReadonly,
             isOwner: chat.createdById === user?.id,
         };
     })
@@ -110,10 +109,6 @@ export const updateChatMessages = async ({ chatId, messages }: { chatId: string,
 
         if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== user?.id) {
             return notFound();
-        }
-
-        if (chat.isReadonly) {
-            return chatIsReadonly();
         }
 
         await prisma.chat.update({
@@ -177,10 +172,6 @@ export const updateChatName = async ({ chatId, name }: { chatId: string, name: s
 
         if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== user?.id) {
             return notFound();
-        }
-
-        if (chat.isReadonly) {
-            return chatIsReadonly();
         }
 
         await prisma.chat.update({

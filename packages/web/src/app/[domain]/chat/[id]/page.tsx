@@ -49,7 +49,7 @@ export default async function Page(props: PageProps) {
         throw new ServiceErrorException(chatInfo);
     }
 
-    const { messages, name, visibility, isReadonly, isOwner } = chatInfo;
+    const { messages, name, visibility, isOwner } = chatInfo;
 
     const indexedRepos = repos.filter((repo) => repo.indexedAt !== undefined);
 
@@ -84,7 +84,6 @@ export default async function Page(props: PageProps) {
                     searchContexts={searchContexts}
                     messages={messages}
                     order={2}
-                    isChatReadonly={isReadonly}
                 />
             </ResizablePanelGroup>
         </div>
