@@ -93,6 +93,7 @@ export default async function Page(props: PageProps) {
                     order={2}
                     isOwner={isOwner}
                     isAuthenticated={!!session}
+                    chatName={name ?? undefined}
                 />
             </ResizablePanelGroup>
         </div>

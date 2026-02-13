@@ -369,6 +369,49 @@ export const claimAnonymousChats = async () => sew(() =>
     })
 );
 
+/**
+ * Duplicates a chat with all its messages.
+ * The new chat will be owned by the current user (authenticated or anonymous).
+ */
+export const duplicateChat = async ({ chatId, newName }: { chatId: string, newName: string }) => sew(() =>
+    withOptionalAuthV2(async ({ org, user, prisma }) => {
+        const originalChat = await prisma.chat.findUnique({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+        });
+
+        if (!originalChat) {
+            return notFound();
+        }
+
+        // Check if user can access the chat (owner or public)
+        const isOwner = await isOwnerOfChat(originalChat, user);
+        if (originalChat.visibility === ChatVisibility.PRIVATE && !isOwner) {
+            return notFound();
+        }
+
+        const isGuestUser = user === undefined;
+        const anonymousCreatorId = isGuestUser ? await getOrCreateAnonymousId() : undefined;
+
+        const newChat = await prisma.chat.create({
+            data: {
+                orgId: org.id,
+                name: newName,
+                messages: originalChat.messages as unknown as Prisma.InputJsonValue,
+                createdById: user?.id,
+                anonymousCreatorId,
+                visibility: isGuestUser ? ChatVisibility.PUBLIC : ChatVisibility.PRIVATE,
+            },
+        });
+
+        return {
+            id: newChat.id,
+        };
+    })
+);
+
 export const submitFeedback = async ({
     chatId,
     messageId,

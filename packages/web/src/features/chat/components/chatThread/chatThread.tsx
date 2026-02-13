@@ -22,11 +22,13 @@ import { ErrorBanner } from './errorBanner';
 import { useRouter } from 'next/navigation';
 import { usePrevious } from '@uidotdev/usehooks';
 import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
-import { generateAndUpdateChatNameFromMessage } from '../../actions';
+import { duplicateChat, generateAndUpdateChatNameFromMessage } from '../../actions';
 import { isServiceError } from '@/lib/utils';
 import { NotConfiguredErrorBanner } from '../notConfiguredErrorBanner';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { SignInPromptBanner } from './signInPromptBanner';
+import { DuplicateChatDialog } from '@/app/[domain]/chat/components/duplicateChatDialog';
+import { useParams } from 'next/navigation';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -43,6 +45,7 @@ interface ChatThreadProps {
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     isOwner?: boolean;
     isAuthenticated?: boolean;
+    chatName?: string;
 }
 
 export const ChatThread = ({
@@ -56,6 +59,7 @@ export const ChatThread = ({
     onSelectedSearchScopesChange,
     isOwner = true,
     isAuthenticated = false,
+    chatName,
 }: ChatThreadProps) => {
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -64,7 +68,9 @@ export const ChatThread = ({
     const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const params = useParams<{ domain: string }>();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
+    const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
     const captureEvent = useCaptureEvent();
 
     // Initial state is from attachments that exist in in the chat history.
@@ -298,6 +304,24 @@ export const ChatThread = ({
         resetEditor(editor);
     }, [sendMessage, selectedSearchScopes]);
 
+    const onDuplicate = useCallback(async (newName: string): Promise<string | null> => {
+        if (!defaultChatId) {
+            return null;
+        }
+
+        const result = await duplicateChat({ chatId: defaultChatId, newName });
+        if (isServiceError(result)) {
+            toast({
+                description: `Failed to duplicate chat: ${result.message}`,
+                variant: "destructive",
+            });
+            return null;
+        }
+
+        router.push(`/${params.domain}/chat/${result.id}`);
+        return result.id;
+    }, [defaultChatId, toast, router, params.domain]);
+
     return (
         <>
             {error && (
@@ -414,10 +438,17 @@ export const ChatThread = ({
                             variant="outline"
                             size="sm"
                             className="gap-2"
+                            onClick={() => setIsDuplicateDialogOpen(true)}
                         >
                             <CopyIcon className="h-4 w-4" />
                             Duplicate
                         </Button>
+                        <DuplicateChatDialog
+                            isOpen={isDuplicateDialogOpen}
+                            onOpenChange={setIsDuplicateDialogOpen}
+                            onDuplicate={onDuplicate}
+                            currentName={chatName ?? 'Untitled chat'}
+                        />
                     </div>
                 )}
             </div>
