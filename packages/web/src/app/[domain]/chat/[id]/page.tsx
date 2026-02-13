@@ -66,7 +66,7 @@ export default async function Page(props: PageProps) {
                         isOwner={isOwner}
                     />
                 }
-                actions={isOwner ? <SharePopover chatId={params.id} visibility={visibility} /> : undefined}
+                actions={(isOwner && session) ? <SharePopover chatId={params.id} visibility={visibility} /> : undefined}
             />
             <ResizablePanelGroup
                 direction="horizontal"
@@ -84,6 +84,7 @@ export default async function Page(props: PageProps) {
                     searchContexts={searchContexts}
                     messages={messages}
                     order={2}
+                    isOwner={isOwner}
                 />
             </ResizablePanelGroup>
         </div>

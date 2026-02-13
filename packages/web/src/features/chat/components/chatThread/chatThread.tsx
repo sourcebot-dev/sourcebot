@@ -9,7 +9,7 @@ import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMes
 import { createUIMessage, getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport } from 'ai';
-import { ArrowDownIcon } from 'lucide-react';
+import { ArrowDownIcon, CopyIcon } from 'lucide-react';
 import { useNavigationGuard } from 'next-navigation-guard';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Descendant } from 'slate';
@@ -40,6 +40,7 @@ interface ChatThreadProps {
     searchContexts: SearchContextQuery[];
     selectedSearchScopes: SearchScope[];
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
+    isOwner?: boolean;
 }
 
 export const ChatThread = ({
@@ -51,6 +52,7 @@ export const ChatThread = ({
     searchContexts,
     selectedSearchScopes,
     onSelectedSearchScopesChange,
+    isOwner = true,
 }: ChatThreadProps) => {
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -362,37 +364,53 @@ export const ChatThread = ({
                 }
             </ScrollArea>
             <div className="w-full max-w-3xl mx-auto mb-8">
-                {languageModels.length === 0 && (
-                    <NotConfiguredErrorBanner className="mb-2" />
-                )}
+                {isOwner ? (
+                    <>
+                        {languageModels.length === 0 && (
+                            <NotConfiguredErrorBanner className="mb-2" />
+                        )}
 
-                <div className="border rounded-md w-full shadow-sm">
-                    <CustomSlateEditor>
-                        <ChatBox
-                            onSubmit={onSubmit}
-                            className="min-h-[80px]"
-                            preferredSuggestionsBoxPlacement="top-start"
-                            isGenerating={status === "streaming" || status === "submitted"}
-                            onStop={stop}
-                            languageModels={languageModels}
-                            selectedSearchScopes={selectedSearchScopes}
-                            searchContexts={searchContexts}
-                            onContextSelectorOpenChanged={setIsContextSelectorOpen}
-                            isDisabled={languageModels.length === 0}
-                        />
-                        <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
-                            <ChatBoxToolbar
-                                languageModels={languageModels}
-                                repos={repos}
-                                searchContexts={searchContexts}
-                                selectedSearchScopes={selectedSearchScopes}
-                                onSelectedSearchScopesChange={onSelectedSearchScopesChange}
-                                isContextSelectorOpen={isContextSelectorOpen}
-                                onContextSelectorOpenChanged={setIsContextSelectorOpen}
-                            />
+                        <div className="border rounded-md w-full shadow-sm">
+                            <CustomSlateEditor>
+                                <ChatBox
+                                    onSubmit={onSubmit}
+                                    className="min-h-[80px]"
+                                    preferredSuggestionsBoxPlacement="top-start"
+                                    isGenerating={status === "streaming" || status === "submitted"}
+                                    onStop={stop}
+                                    languageModels={languageModels}
+                                    selectedSearchScopes={selectedSearchScopes}
+                                    searchContexts={searchContexts}
+                                    onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                                    isDisabled={languageModels.length === 0}
+                                />
+                                <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
+                                    <ChatBoxToolbar
+                                        languageModels={languageModels}
+                                        repos={repos}
+                                        searchContexts={searchContexts}
+                                        selectedSearchScopes={selectedSearchScopes}
+                                        onSelectedSearchScopesChange={onSelectedSearchScopesChange}
+                                        isContextSelectorOpen={isContextSelectorOpen}
+                                        onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                                    />
+                                </div>
+                            </CustomSlateEditor>
                         </div>
-                    </CustomSlateEditor>
-                </div>
+                    </>
+                ) : (
+                    <div className="flex flex-row items-center justify-center gap-3 p-4 border rounded-md bg-muted/50">
+                        <p className="text-sm text-muted-foreground">This chat is read-only.</p>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                        >
+                            <CopyIcon className="h-4 w-4" />
+                            Duplicate
+                        </Button>
+                    </div>
+                )}
             </div>
         </>
     );

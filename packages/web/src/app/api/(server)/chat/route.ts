@@ -1,5 +1,5 @@
 import { sew } from "@/actions";
-import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, updateChatMessages } from "@/features/chat/actions";
+import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, updateChatMessages, isOwnerOfChat } from "@/features/chat/actions";
 import { createAgentStream } from "@/features/chat/agent";
 import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
@@ -49,8 +49,8 @@ export const POST = apiHandler(async (req: NextRequest) => {
     const languageModel = _languageModel as LanguageModelInfo;
 
     const response = await sew(() =>
-        withOptionalAuthV2(async ({ org, prisma }) => {
-            // Validate that the chat exists and is not readonly.
+        withOptionalAuthV2(async ({ org, user, prisma }) => {
+            // Validate that the chat exists.
             const chat = await prisma.chat.findUnique({
                 where: {
                     orgId: org.id,
@@ -60,6 +60,16 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             if (!chat) {
                 return notFound();
+            }
+
+            // Check ownership - only the owner can send messages
+            const isOwner = await isOwnerOfChat(chat, user);
+            if (!isOwner) {
+                return {
+                    statusCode: StatusCodes.FORBIDDEN,
+                    errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+                    message: 'Only the owner of a chat can send messages.',
+                } satisfies ServiceError;
             }
 
             // From the language model ID, attempt to find the

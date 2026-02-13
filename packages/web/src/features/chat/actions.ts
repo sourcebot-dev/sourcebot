@@ -29,19 +29,45 @@ import { StatusCodes } from "http-status-codes";
 import path from 'path';
 import { LanguageModelInfo, SBChatMessage } from "./types";
 import { withAuthV2, withOptionalAuthV2 } from "@/withAuthV2";
+import { getAnonymousId, getOrCreateAnonymousId } from "@/lib/anonymousId";
+import { Chat, User } from "@sourcebot/db";
 
 const logger = createLogger('chat-actions');
 const auditService = getAuditService();
 
+/**
+ * Checks if the current user (authenticated or anonymous) is the owner of a chat.
+ */
+export const isOwnerOfChat = async (chat: Chat, user: User | undefined): Promise<boolean> => {
+    // Authenticated user owns the chat
+    if (user && chat.createdById === user.id) {
+        return true;
+    }
+
+    // Anonymous user owns the chat (check cookie-based anonymous ID)
+    if (!user && chat.anonymousCreatorId) {
+        const anonymousId = await getAnonymousId();
+        if (anonymousId && chat.anonymousCreatorId === anonymousId) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
 export const createChat = async () => sew(() =>
     withOptionalAuthV2(async ({ org, user, prisma }) => {
         const isGuestUser = user === undefined;
+
+        // For anonymous users, get or create an anonymous ID to track ownership
+        const anonymousCreatorId = isGuestUser ? await getOrCreateAnonymousId() : undefined;
 
         const chat = await prisma.chat.create({
             data: {
                 orgId: org.id,
                 messages: [] as unknown as Prisma.InputJsonValue,
                 createdById: user?.id,
+                anonymousCreatorId,
                 visibility: isGuestUser ? ChatVisibility.PUBLIC : ChatVisibility.PRIVATE,
             },
         });
@@ -81,7 +107,10 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
             return notFound();
         }
 
-        if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== user?.id) {
+        const isOwner = await isOwnerOfChat(chat, user);
+
+        // Private chats can only be viewed by the owner
+        if (chat.visibility === ChatVisibility.PRIVATE && !isOwner) {
             return notFound();
         }
 
@@ -89,7 +118,7 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
             messages: chat.messages as unknown as SBChatMessage[],
             visibility: chat.visibility,
             name: chat.name,
-            isOwner: chat.createdById === user?.id,
+            isOwner,
         };
     })
 );
@@ -107,7 +136,10 @@ export const updateChatMessages = async ({ chatId, messages }: { chatId: string,
             return notFound();
         }
 
-        if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== user?.id) {
+        const isOwner = await isOwnerOfChat(chat, user);
+
+        // Only the owner can modify chat messages
+        if (!isOwner) {
             return notFound();
         }
 
@@ -170,7 +202,10 @@ export const updateChatName = async ({ chatId, name }: { chatId: string, name: s
             return notFound();
         }
 
-        if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== user?.id) {
+        const isOwner = await isOwnerOfChat(chat, user);
+
+        // Only the owner can rename chats
+        if (!isOwner) {
             return notFound();
         }
 
