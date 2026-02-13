@@ -7,7 +7,7 @@ import { notFound } from 'next/navigation';
 import { StatusCodes } from 'http-status-codes';
 import { TopBar } from '../../components/topBar';
 import { ChatName } from '../components/chatName';
-import { SharePopover } from '../components/sharePopover';
+import { ShareChatPopover } from '../components/shareChatPopover';
 import { auth } from '@/auth';
 import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle';
 import { ChatSidePanel } from '../components/chatSidePanel';
@@ -73,7 +73,7 @@ export default async function Page(props: PageProps) {
                         isOwner={isOwner}
                     />
                 }
-                actions={(isOwner && session) ? <SharePopover chatId={params.id} visibility={visibility} /> : undefined}
+                actions={isOwner ? <ShareChatPopover chatId={params.id} visibility={visibility} isAuthenticated={!!session} /> : undefined}
             />
             <ResizablePanelGroup
                 direction="horizontal"

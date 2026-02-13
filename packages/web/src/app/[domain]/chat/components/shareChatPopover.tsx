@@ -20,19 +20,21 @@ import { isServiceError } from "@/lib/utils";
 import { ChatVisibility } from "@sourcebot/db";
 import { Info, Link2Icon, Lock, LockIcon } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
-interface SharePopoverProps {
+interface ShareChatPopoverProps {
     chatId: string;
     visibility: ChatVisibility;
+    isAuthenticated?: boolean;
 }
 
-export const SharePopover = ({ chatId, visibility }: SharePopoverProps) => {
+export const ShareChatPopover = ({ chatId, visibility, isAuthenticated = true }: ShareChatPopoverProps) => {
     const [currentVisibility, setCurrentVisibility] = useState(visibility);
     const [isUpdating, setIsUpdating] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const pathname = usePathname();
 
     const handleVisibilityChange = useCallback(async (newVisibility: ChatVisibility) => {
         setIsUpdating(true);
@@ -89,7 +91,7 @@ export const SharePopover = ({ chatId, visibility }: SharePopoverProps) => {
                     <Select
                         value={currentVisibility}
                         onValueChange={(value) => handleVisibilityChange(value as ChatVisibility)}
-                        disabled={isUpdating}
+                        disabled={isUpdating || !isAuthenticated}
                     >
                         <SelectTrigger>
                             <SelectValue />
@@ -109,6 +111,11 @@ export const SharePopover = ({ chatId, visibility }: SharePopoverProps) => {
                             </SelectItem>
                         </SelectContent>
                     </Select>
+                    {!isAuthenticated && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                            <Link href={`/login?callbackUrl=${encodeURIComponent(pathname)}`} className="underline">Sign in</Link> to change chat visibility.
+                        </p>
+                    )}
                     <Separator className="-mx-4 w-auto my-4" />
                     <div className="flex justify-between items-center">
                         {/* @todo: link to docs */}

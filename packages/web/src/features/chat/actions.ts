@@ -343,7 +343,7 @@ export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
 /**
  * Claims any anonymous chats created by the current user (matched via anonymousCreatorId cookie).
  * This should be called after a user signs in to transfer ownership of their anonymous chats.
- * Also changes visibility from PUBLIC to PRIVATE since the chat now belongs to an authenticated user.
+ * Visibility is preserved so shared links continue to work.
  */
 export const claimAnonymousChats = async () => sew(() =>
     withAuthV2(async ({ org, user, prisma }) => {
@@ -361,7 +361,6 @@ export const claimAnonymousChats = async () => sew(() =>
             },
             data: {
                 createdById: user.id,
-                visibility: ChatVisibility.PRIVATE,
             },
         });
 
