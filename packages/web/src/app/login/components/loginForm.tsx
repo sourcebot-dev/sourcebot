@@ -13,9 +13,10 @@ interface LoginFormProps {
     error?: string;
     providers: IdentityProviderMetadata[];
     context: "login" | "signup";
+    isAnonymousAccessEnabled?: boolean;
 }
 
-export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormProps) => {
+export const LoginForm = ({ callbackUrl, error, providers, context, isAnonymousAccessEnabled = false }: LoginFormProps) => {
     const captureEvent = useCaptureEvent();
 
     const errorMessage = useMemo(() => {
@@ -83,14 +84,19 @@ export const LoginForm = ({ callbackUrl, error, providers, context }: LoginFormP
                 <p className="text-sm text-muted-foreground mt-8">
                     {context === "login" ?
                         <>
-                            Don&apos;t have an account? <Link className="underline" href="/signup">Sign up</Link>
+                            Don&apos;t have an account? <Link className="underline" href={callbackUrl ? `/signup?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/signup"}>Sign up</Link>
                         </>
                     :
                         <>
-                            Already have an account? <Link className="underline" href="/login">Sign in</Link>
+                            Already have an account? <Link className="underline" href={callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login"}>Sign in</Link>
                         </>
                     }
                 </p>
+                {isAnonymousAccessEnabled && (
+                    <p className="text-sm text-muted-foreground">
+                        <Link className="underline" href={callbackUrl ?? "/"}>Continue as guest</Link>
+                    </p>
+                )}
             </Card>
         </div>
     )
