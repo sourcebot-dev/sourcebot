@@ -5,7 +5,7 @@ import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, Se
 import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notFound, requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
+import { chatIsReadonly, notFound, requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
@@ -63,11 +63,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
             }
 
             if (chat.isReadonly) {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "Chat is readonly and cannot be edited.",
-                } satisfies ServiceError;
+                return chatIsReadonly();
             }
 
             // From the language model ID, attempt to find the

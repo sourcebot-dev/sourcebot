@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation';
 import { StatusCodes } from 'http-status-codes';
 import { TopBar } from '../../components/topBar';
 import { ChatName } from '../components/chatName';
+import { SharePopover } from '../components/sharePopover';
 import { auth } from '@/auth';
 import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle';
 import { ChatSidePanel } from '../components/chatSidePanel';
@@ -48,7 +49,7 @@ export default async function Page(props: PageProps) {
         throw new ServiceErrorException(chatInfo);
     }
 
-    const { messages, name, visibility, isReadonly } = chatInfo;
+    const { messages, name, visibility, isReadonly, isOwner } = chatInfo;
 
     const indexedRepos = repos.filter((repo) => repo.indexedAt !== undefined);
 
@@ -58,17 +59,15 @@ export default async function Page(props: PageProps) {
                 domain={params.domain}
                 homePath={`/${params.domain}/chat`}
                 session={session}
-            >
-                <div className="flex flex-row gap-2 items-center">
-                    <span className="text-muted mx-2 select-none">/</span>
+                centerContent={
                     <ChatName
                         name={name}
-                        visibility={visibility}
                         id={params.id}
-                        isReadonly={isReadonly}
+                        isOwner={isOwner}
                     />
-                </div>
-            </TopBar>
+                }
+                actions={isOwner ? <SharePopover chatId={params.id} visibility={visibility} /> : undefined}
+            />
             <ResizablePanelGroup
                 direction="horizontal"
             >

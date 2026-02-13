@@ -47,7 +47,7 @@ export const MeControlDropdownMenu = ({
                     <div className="flex flex-row items-center gap-3 px-3 py-3">
                         <Avatar className="h-10 w-10 flex-shrink-0">
                             <AvatarImage
-                                src={session.user.image ?? ""}
+                                src={session.user.image ?? placeholderAvatar.src}
                             />
                             <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                                 {session.user.name && session.user.name.length > 0 ? session.user.name[0].toUpperCase() : 'U'}

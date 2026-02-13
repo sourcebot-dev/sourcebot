@@ -3,14 +3,14 @@
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ResizablePanel } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { deleteChat, updateChatName } from "@/features/chat/actions";
 import { cn, isServiceError } from "@/lib/utils";
-import { CirclePlusIcon, EllipsisIcon, PencilIcon, TrashIcon } from "lucide-react";
+import { CirclePlusIcon, EllipsisIcon } from "lucide-react";
+import { ChatActionsDropdown } from "./chatActionsDropdown";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -63,9 +63,9 @@ export const ChatSidePanel = ({
         description: "Toggle side panel",
     });
 
-    const onRenameChat = useCallback(async (name: string, chatId: string) => {
+    const onRenameChat = useCallback(async (name: string, chatId: string): Promise<boolean> => {
         if (!chatId) {
-            return;
+            return false;
         }
 
         const response = await updateChatName({
@@ -77,17 +77,19 @@ export const ChatSidePanel = ({
             toast({
                 description: `❌ Failed to rename chat. Reason: ${response.message}`
             });
+            return false;
         } else {
             toast({
                 description: `✅ Chat renamed successfully`
             });
             router.refresh();
+            return true;
         }
     }, [router, toast]);
 
-    const onDeleteChat = useCallback(async (chatIdToDelete: string) => {
+    const onDeleteChat = useCallback(async (chatIdToDelete: string): Promise<boolean> => {
         if (!chatIdToDelete) {
-            return;
+            return false;
         }
 
         const response = await deleteChat({ chatId: chatIdToDelete });
@@ -96,6 +98,7 @@ export const ChatSidePanel = ({
             toast({
                 description: `❌ Failed to delete chat. Reason: ${response.message}`
             });
+            return false;
         } else {
             toast({
                 description: `✅ Chat deleted successfully`
@@ -107,6 +110,7 @@ export const ChatSidePanel = ({
             }
 
             router.refresh();
+            return true;
         }
     }, [chatId, router, toast]);
 
@@ -166,47 +170,27 @@ export const ChatSidePanel = ({
                                     }}
                                 >
                                     <span className="text-sm truncate">{chat.name ?? 'Untitled chat'}</span>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-5 w-5 z-10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted-accent"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                }}
-                                            >
-                                                <EllipsisIcon className="w-4 h-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent
-                                            align="start"
-                                            className="z-20"
+                                    <ChatActionsDropdown
+                                        onRenameClick={() => {
+                                            setChatIdToRename(chat.id);
+                                            setIsRenameDialogOpen(true);
+                                        }}
+                                        onDeleteClick={() => {
+                                            setChatIdToDelete(chat.id);
+                                            setIsDeleteDialogOpen(true);
+                                        }}
+                                    >
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-5 w-5 z-10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted-accent"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                            }}
                                         >
-                                            <DropdownMenuItem
-                                                className="cursor-pointer"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setChatIdToRename(chat.id);
-                                                    setIsRenameDialogOpen(true);
-                                                }}
-                                            >
-                                                <PencilIcon className="w-4 h-4 mr-2" />
-                                                Rename
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                className="cursor-pointer"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setChatIdToDelete(chat.id);
-                                                    setIsDeleteDialogOpen(true);
-                                                }}
-                                            >
-                                                <TrashIcon className="w-4 h-4 mr-2" />
-                                                Delete
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                            <EllipsisIcon className="w-4 h-4" />
+                                        </Button>
+                                    </ChatActionsDropdown>
                                 </div>
                             ))}
                         </div>
@@ -242,20 +226,22 @@ export const ChatSidePanel = ({
             <RenameChatDialog
                 isOpen={isRenameDialogOpen}
                 onOpenChange={setIsRenameDialogOpen}
-                onRename={(name) => {
+                onRename={async (name) => {
                     if (chatIdToRename) {
-                        onRenameChat(name, chatIdToRename);
+                        return await onRenameChat(name, chatIdToRename);
                     }
+                    return false;
                 }}
                 currentName={chatHistory?.find((chat) => chat.id === chatIdToRename)?.name ?? ""}
             />
             <DeleteChatDialog
                 isOpen={isDeleteDialogOpen}
                 onOpenChange={setIsDeleteDialogOpen}
-                onDelete={() => {
+                onDelete={async () => {
                     if (chatIdToDelete) {
-                        onDeleteChat(chatIdToDelete);
+                        return await onDeleteChat(chatIdToDelete);
                     }
+                    return false;
                 }}
             />
         </>

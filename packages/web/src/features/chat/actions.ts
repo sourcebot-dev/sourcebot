@@ -3,7 +3,7 @@
 import { sew } from "@/actions";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { ErrorCode } from "@/lib/errorCodes";
-import { chatIsReadonly, notFound, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
+import { chatIsReadonly, notFound, serviceErrorResponse } from "@/lib/serviceError";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { createAzure } from '@ai-sdk/azure';
@@ -90,6 +90,7 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
             visibility: chat.visibility,
             name: chat.name,
             isReadonly: chat.isReadonly,
+            isOwner: chat.createdById === user?.id,
         };
     })
 );
@@ -198,6 +199,40 @@ export const updateChatName = async ({ chatId, name }: { chatId: string, name: s
     })
 );
 
+export const updateChatVisibility = async ({ chatId, visibility }: { chatId: string, visibility: ChatVisibility }) => sew(() =>
+    withAuthV2(async ({ org, user, prisma }) => {
+        const chat = await prisma.chat.findUnique({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+        });
+
+        if (!chat) {
+            return notFound();
+        }
+
+        // Only the creator can change visibility
+        if (chat.createdById !== user.id) {
+            return notFound();
+        }
+
+        await prisma.chat.update({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+            data: {
+                visibility,
+            },
+        });
+
+        return {
+            success: true,
+        }
+    })
+);
+
 export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageModelId, message }: { chatId: string, languageModelId: string, message: string }) => sew(() =>
     withOptionalAuthV2(async () => {
             // From the language model ID, attempt to find the
@@ -259,15 +294,6 @@ export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
 
         if (!chat) {
             return notFound();
-        }
-
-        // Public chats cannot be deleted.
-        if (chat.visibility === ChatVisibility.PUBLIC) {
-            return {
-                statusCode: StatusCodes.FORBIDDEN,
-                errorCode: ErrorCode.UNEXPECTED_ERROR,
-                message: 'You are not allowed to delete this chat.',
-            } satisfies ServiceError;
         }
 
         // Only the creator of a chat can delete it.
