@@ -19,11 +19,14 @@ interface DisplayDateProps {
 }
 
 export const DisplayDate = ({ date, className }: DisplayDateProps) => {
+    // Format date in ISO8601 (UTC) format for the title attribute
+    const iso8601Date = date.toISOString()
+    
     return (
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <span className={className}>
+                    <span className={className} title={iso8601Date}>
                         {getFormattedDate(date)}
                     </span>
                 </TooltipTrigger>
