@@ -1,5 +1,5 @@
 import { getRepos, getSearchContexts } from '@/actions';
-import { getUserChatHistory, getConfiguredLanguageModelsInfo, getChatInfo, claimAnonymousChats } from '@/features/chat/actions';
+import { getUserChatHistory, getConfiguredLanguageModelsInfo, getChatInfo, claimAnonymousChats, getSharedWithUsersForChat } from '@/features/chat/actions';
 import { ServiceErrorException } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
 import { ChatThreadPanel } from './components/chatThreadPanel';
@@ -117,6 +117,13 @@ export default async function Page(props: PageProps) {
 
     const { messages, name, visibility, isOwner } = chatInfo;
 
+    const sharedWithUsers = (session && isOwner) ? await getSharedWithUsersForChat({ chatId: params.id }) : [];
+
+    if (isServiceError(sharedWithUsers)) {
+        throw new ServiceErrorException(sharedWithUsers);
+    }
+    
+
     const indexedRepos = repos.filter((repo) => repo.indexedAt !== undefined);
 
     return (
@@ -132,7 +139,14 @@ export default async function Page(props: PageProps) {
                         isOwner={isOwner}
                     />
                 }
-                actions={isOwner ? <ShareChatPopover chatId={params.id} visibility={visibility} isAuthenticated={!!session} /> : undefined}
+                actions={isOwner ? (
+                    <ShareChatPopover
+                        chatId={params.id}
+                        visibility={visibility}
+                        currentUser={session?.user}
+                        sharedWithUsers={sharedWithUsers}
+                    />
+                ) : undefined}
             />
             <ResizablePanelGroup
                 direction="horizontal"

@@ -1,5 +1,5 @@
 import { sew } from "@/actions";
-import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, updateChatMessages, isOwnerOfChat } from "@/features/chat/actions";
+import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, updateChatMessages, _isOwnerOfChat } from "@/features/chat/actions";
 import { createAgentStream } from "@/features/chat/agent";
 import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
@@ -63,7 +63,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
             }
 
             // Check ownership - only the owner can send messages
-            const isOwner = await isOwnerOfChat(chat, user);
+            const isOwner = await _isOwnerOfChat(chat, user);
             if (!isOwner) {
                 return {
                     statusCode: StatusCodes.FORBIDDEN,
