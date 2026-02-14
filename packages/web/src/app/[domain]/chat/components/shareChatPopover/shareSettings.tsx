@@ -12,6 +12,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import placeholderAvatar from "@/public/placeholder_avatar.png";
 import { ChatVisibility } from "@sourcebot/db";
 import { Info, Link2Icon, Loader2, Lock, X } from "lucide-react";
@@ -26,6 +27,8 @@ interface ShareSettingsProps {
     onOpenInviteView: () => void;
     currentUser?: SessionUser;
     sharedWithUsers: SessionUser[];
+    isChatSharingEnabledInCurrentPlan: boolean;
+    isChatSharingEnabled: boolean;
 }
 
 export const ShareSettings = ({
@@ -35,6 +38,8 @@ export const ShareSettings = ({
     onOpenInviteView,
     currentUser,
     sharedWithUsers,
+    isChatSharingEnabledInCurrentPlan,
+    isChatSharingEnabled,
 }: ShareSettingsProps) => {
     const [isVisibilityUpdating, setIsVisibilityUpdating] = useState(false);
     const [removingUserIds, setRemovingUserIds] = useState<Set<string>>(new Set());
@@ -65,18 +70,26 @@ export const ShareSettings = ({
             <Separator className="-mx-4 w-auto mt-2 mb-4" />
 
             {/* Fake Search Bar - Click to open invite view */}
-            {isAuthenticated && (
+            {(isAuthenticated && isChatSharingEnabled) && (
                 <>
-                    <Button
-                        variant="outline"
-                        className="w-full justify-start text-muted-foreground font-normal"
-                        onClick={onOpenInviteView}
-                    >
-                        Search for a user
-                    </Button>
+                    <span className={cn({ "cursor-not-allowed": !isChatSharingEnabledInCurrentPlan })}>
+                        <Button
+                            variant="outline"
+                            className={cn("w-full justify-start text-muted-foreground font-normal", {
+                                "opacity-50 pointer-events-none": !isChatSharingEnabledInCurrentPlan,
+                            })}
+                            onClick={onOpenInviteView}
+                            disabled={!isChatSharingEnabledInCurrentPlan}
+                        >
+                            Search for a user
+                        </Button>
+                    </span>
 
                     {/* People with access */}
-                    <div className="mt-4">
+                    <div className={cn("mt-4", {
+                        "opacity-50 cursor-not-allowed": !isChatSharingEnabledInCurrentPlan,
+                        "[&_*]:pointer-events-none": !isChatSharingEnabledInCurrentPlan,
+                    })}>
                         <label className="text-sm text-muted-foreground mb-2 block">
                             People with access
                         </label>
@@ -142,6 +155,13 @@ export const ShareSettings = ({
                             ))}
                         </div>
                     </div>
+
+                    {!isChatSharingEnabledInCurrentPlan && (
+                        <p className="text-xs text-muted-foreground mt-2.5">
+                            <Info className="h-3 w-3 inline-block mr-1.5 align-middle" />
+                            <span className="align-middle">Sharing with specific users is not available on your current <Link href={'https://sourcebot.dev/pricing'} target="_blank" rel="noopener noreferrer" className="underline">plan</Link>.</span>
+                        </p>
+                    )}
 
                     <Separator className="-mx-4 w-auto my-4" />
                 </>

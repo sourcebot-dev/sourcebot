@@ -17,6 +17,7 @@ import { getOrgFromDomain } from '@/data/org';
 import { ChatVisibility } from '@sourcebot/db';
 import { Metadata } from 'next';
 import { SBChatMessage } from '@/features/chat/types';
+import { env, hasEntitlement } from '@sourcebot/shared';
 
 interface PageProps {
     params: Promise<{
@@ -126,6 +127,8 @@ export default async function Page(props: PageProps) {
 
     const indexedRepos = repos.filter((repo) => repo.indexedAt !== undefined);
 
+    const hasChatSharingEntitlement = hasEntitlement('chat-sharing');
+
     return (
         <div className="flex flex-col h-screen w-screen">
             <TopBar
@@ -145,6 +148,10 @@ export default async function Page(props: PageProps) {
                         visibility={visibility}
                         currentUser={session?.user}
                         sharedWithUsers={sharedWithUsers}
+                        isChatSharingEnabledInCurrentPlan={hasChatSharingEntitlement}
+                        // Disable chat sharing for the askgh experiment since we
+                        // don't want to allow users to search other members.
+                        isChatSharingEnabled={env.EXPERIMENT_ASK_GH_ENABLED === 'false'}
                     />
                 ) : undefined}
             />

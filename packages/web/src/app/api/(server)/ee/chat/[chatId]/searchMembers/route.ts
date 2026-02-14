@@ -1,8 +1,11 @@
 import { apiHandler } from "@/lib/apiHandler";
 import { SOURCEBOT_GUEST_USER_ID } from "@/lib/constants";
+import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withAuthV2 } from "@/withAuthV2";
+import { env, hasEntitlement } from "@sourcebot/shared";
+import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -28,6 +31,24 @@ export const GET = apiHandler(async (
     request: NextRequest,
     { params }: { params: Promise<{ chatId: string }> }
 ) => {
+    // Disable this API for the askgh experiment since we
+    // don't want to allow users to search other members.
+    if (env.EXPERIMENT_ASK_GH_ENABLED === 'true') {
+        return serviceErrorResponse({
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.NOT_FOUND,
+            message: "This API is not enabled with this experiment.",
+        })
+    }
+
+    if (!hasEntitlement('chat-sharing')) {
+        return serviceErrorResponse({
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.NOT_FOUND,
+            message: "Chat sharing is not enabled for your license",
+        })
+    }
+
     const { chatId } = await params;
 
     const rawParams = Object.fromEntries(
@@ -45,6 +66,7 @@ export const GET = apiHandler(async (
     }
 
     const { query } = parsed.data;
+
 
     const result = await withAuthV2(async ({ org, user, prisma }) => {
         const chat = await prisma.chat.findUnique({

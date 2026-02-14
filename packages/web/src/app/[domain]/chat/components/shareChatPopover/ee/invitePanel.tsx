@@ -1,7 +1,7 @@
 'use client';
 
 import { searchChatShareableMembers } from "@/app/api/(client)/client";
-import { SearchChatShareableMembersResponse } from "@/app/api/(server)/chat/[chatId]/searchMembers/route";
+import { SearchChatShareableMembersResponse } from "@/app/api/(server)/ee/chat/[chatId]/searchMembers/route";
 import { SessionUser } from "@/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";

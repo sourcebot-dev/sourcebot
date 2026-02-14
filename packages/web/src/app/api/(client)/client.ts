@@ -23,7 +23,7 @@ import { PermissionSyncStatusResponse } from "../(server)/ee/permissionSyncStatu
 import {
     SearchChatShareableMembersQueryParams,
     SearchChatShareableMembersResponse,
-} from "../(server)/chat/[chatId]/searchMembers/route";
+} from "../(server)/ee/chat/[chatId]/searchMembers/route";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -144,7 +144,7 @@ export const searchChatShareableMembers = async (
     params: SearchChatShareableMembersQueryParams & { chatId: string },
     signal?: AbortSignal
 ): Promise<SearchChatShareableMembersResponse | ServiceError> => {
-    const url = new URL(`/api/chat/${params.chatId}/searchMembers`, window.location.origin);
+    const url = new URL(`/api/ee/chat/${params.chatId}/searchMembers`, window.location.origin);
     if (params.query) {
         url.searchParams.set('query', params.query);
     }

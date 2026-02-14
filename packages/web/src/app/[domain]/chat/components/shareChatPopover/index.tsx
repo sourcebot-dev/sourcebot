@@ -14,13 +14,15 @@ import { useToast } from "@/components/hooks/use-toast";
 import { isServiceError } from "@/lib/utils";
 import { Link2Icon, LockIcon } from "lucide-react";
 import { SessionUser } from "@/auth";
-import { InvitePanel } from "./invitePanel";
+import { InvitePanel } from "./ee/invitePanel";
 
 interface ShareChatPopoverProps {
     chatId: string;
     visibility: ChatVisibility;
     currentUser?: SessionUser;
     sharedWithUsers: SessionUser[];
+    isChatSharingEnabledInCurrentPlan: boolean;
+    isChatSharingEnabled: boolean;
 }
 
 type View = 'main' | 'invite';
@@ -29,7 +31,9 @@ export const ShareChatPopover = ({
     chatId,
     visibility: _visibility,
     currentUser,
-    sharedWithUsers: _sharedWithUsers
+    sharedWithUsers: _sharedWithUsers,
+    isChatSharingEnabledInCurrentPlan,
+    isChatSharingEnabled,
 }: ShareChatPopoverProps) => {
     const [visibility, setVisibility] = useState(_visibility);
     const [sharedWithUsers, setSharedWithUsers] = useState(_sharedWithUsers);
@@ -131,14 +135,16 @@ export const ShareChatPopover = ({
                         currentUser={currentUser}
                         sharedWithUsers={sharedWithUsers}
                         onOpenInviteView={() => setView('invite')}
+                        isChatSharingEnabledInCurrentPlan={isChatSharingEnabledInCurrentPlan}
+                        isChatSharingEnabled={isChatSharingEnabled}
                     />
-                ) : (
+                ) : (isChatSharingEnabledInCurrentPlan && isChatSharingEnabled)? (
                     <InvitePanel
                         chatId={chatId}
                         onBack={() => setView('main')}
                         onShareChatWithUsers={onShareChatWithUsers}
                     />
-                )}
+                ) : null}
             </PopoverContent>
         </Popover>
     );
