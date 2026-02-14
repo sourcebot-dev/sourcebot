@@ -38,13 +38,14 @@ const entitlements = [
     "audit",
     "analytics",
     "permission-syncing",
-    "github-app"
+    "github-app",
+    "chat-sharing"
 ] as const;
 export type Entitlement = (typeof entitlements)[number];
 
 const entitlementsByPlan: Record<Plan, Entitlement[]> = {
     oss: [
-        "anonymous-access"
+        "anonymous-access",
     ],
     "self-hosted:enterprise": [
         "search-contexts",
@@ -53,9 +54,11 @@ const entitlementsByPlan: Record<Plan, Entitlement[]> = {
         "audit",
         "analytics",
         "permission-syncing",
-        "github-app"
+        "github-app",
+        "chat-sharing",
     ],
     "self-hosted:enterprise-unlimited": [
+        "anonymous-access",
         "search-contexts",
         "sso",
         "code-nav",
@@ -63,7 +66,7 @@ const entitlementsByPlan: Record<Plan, Entitlement[]> = {
         "analytics",
         "permission-syncing",
         "github-app",
-        "anonymous-access"
+        "chat-sharing",
     ],
 } as const;
 

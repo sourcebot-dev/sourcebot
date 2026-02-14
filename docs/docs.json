@@ -46,6 +46,7 @@
                                 "group": "Ask Sourcebot",
                                 "pages": [
                                     "docs/features/ask/overview",
+                                    "docs/features/ask/chat-sharing",
                                     "docs/features/ask/add-model-providers"
                                 ]
                             },

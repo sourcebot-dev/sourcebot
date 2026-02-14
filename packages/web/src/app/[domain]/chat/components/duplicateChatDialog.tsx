@@ -10,14 +10,14 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-interface RenameChatDialogProps {
+interface DuplicateChatDialogProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
-    onRename: (name: string) => Promise<boolean>;
+    onDuplicate: (name: string) => Promise<string | null>;
     currentName: string;
 }
 
-export const RenameChatDialog = ({ isOpen, onOpenChange, onRename, currentName }: RenameChatDialogProps) => {
+export const DuplicateChatDialog = ({ isOpen, onOpenChange, onDuplicate, currentName }: DuplicateChatDialogProps) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const formSchema = z.object({
@@ -33,16 +33,16 @@ export const RenameChatDialog = ({ isOpen, onOpenChange, onRename, currentName }
 
     useEffect(() => {
         form.reset({
-            name: currentName,
+            name: `${currentName} (copy)`,
         });
     }, [currentName, form]);
 
     const onSubmit = async (data: z.infer<typeof formSchema>) => {
         setIsLoading(true);
-        const success = await onRename(data.name);
+        const newChatId = await onDuplicate(data.name);
         setIsLoading(false);
 
-        if (success) {
+        if (newChatId) {
             form.reset();
             onOpenChange(false);
         }
@@ -59,9 +59,9 @@ export const RenameChatDialog = ({ isOpen, onOpenChange, onRename, currentName }
         >
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Rename Chat</DialogTitle>
-                    <DialogDescription className="sr-only">
-                        {`Rename "${currentName ?? 'untitled chat'}" to a new name.`}
+                    <DialogTitle>Duplicate Chat</DialogTitle>
+                    <DialogDescription>
+                        Create a copy of this chat to edit in a new session.
                     </DialogDescription>
                 </DialogHeader>
                 <Form
@@ -81,7 +81,7 @@ export const RenameChatDialog = ({ isOpen, onOpenChange, onRename, currentName }
                                 <FormItem
                                     className="flex flex-col gap-2"
                                 >
-                                    <FormLabel className="font-normal">New chat title</FormLabel>
+                                    <FormLabel className="font-normal">New chat name</FormLabel>
                                     <FormControl>
                                         <Input
                                             {...field}
@@ -112,7 +112,7 @@ export const RenameChatDialog = ({ isOpen, onOpenChange, onRename, currentName }
                             form.handleSubmit(onSubmit)();
                         }}
                     >
-                        Rename
+                        Duplicate
                     </LoadingButton>
                 </DialogFooter>
             </DialogContent>
