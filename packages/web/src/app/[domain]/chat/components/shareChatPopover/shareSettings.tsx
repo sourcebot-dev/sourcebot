@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import placeholderAvatar from "@/public/placeholder_avatar.png";
 import { ChatVisibility } from "@sourcebot/db";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info, Link2Icon, Loader2, Lock, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -130,27 +131,32 @@ export const ShareSettings = ({
                                             )}
                                         </div>
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                        disabled={removingUserIds.has(user.id)}
-                                        onClick={async () => {
-                                            setRemovingUserIds(prev => new Set(prev).add(user.id));
-                                            await onRemoveSharedWithUser(user.id);
-                                            setRemovingUserIds(prev => {
-                                                const next = new Set(prev);
-                                                next.delete(user.id);
-                                                return next;
-                                            });
-                                        }}
-                                    >
-                                        {removingUserIds.has(user.id) ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <X className="h-4 w-4" />
-                                        )}
-                                    </Button>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                                disabled={removingUserIds.has(user.id)}
+                                                onClick={async () => {
+                                                    setRemovingUserIds(prev => new Set(prev).add(user.id));
+                                                    await onRemoveSharedWithUser(user.id);
+                                                    setRemovingUserIds(prev => {
+                                                        const next = new Set(prev);
+                                                        next.delete(user.id);
+                                                        return next;
+                                                    });
+                                                }}
+                                            >
+                                                {removingUserIds.has(user.id) ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : (
+                                                    <X className="h-4 w-4" />
+                                                )}
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom">Remove user</TooltipContent>
+                                    </Tooltip>
                                 </div>
                             ))}
                         </div>
@@ -204,9 +210,10 @@ export const ShareSettings = ({
             )}
             <Separator className="-mx-4 w-auto my-4" />
             <div className="flex justify-between items-center">
-                {/* @todo: link to docs */}
                 <Link
-                    href="#"
+                    href="https://docs.sourcebot.dev/docs/features/ask/chat-sharing"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                     <Info className="h-4 w-4" />
