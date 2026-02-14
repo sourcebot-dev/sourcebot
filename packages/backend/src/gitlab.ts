@@ -11,6 +11,19 @@ import { fetchWithRetry, measure } from "./utils.js";
 const logger = createLogger('gitlab');
 export const GITLAB_CLOUD_HOSTNAME = "gitlab.com";
 
+export enum AccessLevel {
+    NO_ACCESS = 0,
+    MINIMAL_ACCESS = 5,
+    GUEST = 10,
+    REPORTER = 20,
+    DEVELOPER = 30,
+    MAINTAINER = 40,
+    OWNER = 50,
+    ADMIN = 60,
+}
+
+type ProjectsAccessLevel = Exclude<AccessLevel, AccessLevel.ADMIN>;
+
 export const createGitLabFromPersonalAccessToken = async ({ token, url }: { token?: string, url?: string }) => {
     const isGitLabCloud = url ? new URL(url).hostname === GITLAB_CLOUD_HOSTNAME : true;
     return new Gitlab({
@@ -48,6 +61,16 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
         token,
         url: config.url,
     });
+    const minAccessLevel: ProjectsAccessLevel | undefined = config.minAccessLevel;
+    const projectListOptions = {
+        perPage: 100,
+        ...(minAccessLevel !== undefined ? {
+            minAccessLevel,
+        } : {}),
+        ...(config.exclude?.size ? {
+            statistics: true,
+        } : {}),
+    };
 
     let allRepos: ProjectSchema[] = [];
     let allWarnings: string[] = [];
@@ -58,7 +81,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 logger.debug(`Fetching all projects visible in ${config.url}...`);
                 const { durationMs, data: _projects } = await measure(async () => {
                     const fetchFn = () => api.Projects.all({
-                        perPage: 100,
+                        ...projectListOptions,
                     });
                     return fetchWithRetry(fetchFn, `all projects in ${config.url}`, logger);
                 });
@@ -82,8 +105,8 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 logger.debug(`Fetching project info for group ${group}...`);
                 const { durationMs, data } = await measure(async () => {
                     const fetchFn = () => api.Groups.allProjects(group, {
-                        perPage: 100,
-                        includeSubgroups: true
+                        ...projectListOptions,
+                        includeSubgroups: true,
                     });
                     return fetchWithRetry(fetchFn, `group ${group}`, logger);
                 });
@@ -123,7 +146,7 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 logger.debug(`Fetching project info for user ${user}...`);
                 const { durationMs, data } = await measure(async () => {
                     const fetchFn = () => api.Users.allProjects(user, {
-                        perPage: 100,
+                        ...projectListOptions,
                     });
                     return fetchWithRetry(fetchFn, `user ${user}`, logger);
                 });
@@ -253,6 +276,21 @@ export const shouldExcludeProject = ({
             }
         }
 
+        if (exclude?.size) {
+            const projectSizeBytes = getProjectSizeBytes(project);
+            if (projectSizeBytes !== undefined) {
+                if (exclude.size.min !== undefined && projectSizeBytes < exclude.size.min) {
+                    reason = `project size (${projectSizeBytes}) is less than \`exclude.size.min\` (${exclude.size.min})`;
+                    return true;
+                }
+
+                if (exclude.size.max !== undefined && projectSizeBytes > exclude.size.max) {
+                    reason = `project size (${projectSizeBytes}) is greater than \`exclude.size.max\` (${exclude.size.max})`;
+                    return true;
+                }
+            }
+        }
+
         if (include?.topics) {
             const configTopics = include.topics.map(topic => topic.toLowerCase());
             const projectTopics = project.topics ?? [];
@@ -282,6 +320,39 @@ export const shouldExcludeProject = ({
     }
 
     return false;
+}
+
+const getProjectSizeBytes = (project: ProjectSchema): number | undefined => {
+    // GitLab's API returns size data in the statistics object when `statistics=true`.
+    // We support both snake_case and camelCase keys to be resilient to response typing differences.
+    const projectWithStats = project as ProjectSchema & {
+        statistics?: {
+            storage_size?: number;
+            repository_size?: number;
+            storageSize?: number;
+            repositorySize?: number;
+        };
+    };
+
+    const statistics = projectWithStats.statistics;
+    if (!statistics) {
+        return;
+    }
+
+    if (typeof statistics.storage_size === "number") {
+        return statistics.storage_size;
+    }
+    if (typeof statistics.repository_size === "number") {
+        return statistics.repository_size;
+    }
+    if (typeof statistics.storageSize === "number") {
+        return statistics.storageSize;
+    }
+    if (typeof statistics.repositorySize === "number") {
+        return statistics.repositorySize;
+    }
+
+    return;
 }
 
 export const getProjectMembers = async (projectId: string, api: InstanceType<typeof Gitlab>) => {

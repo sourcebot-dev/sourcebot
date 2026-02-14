@@ -68,3 +68,73 @@ test('shouldExcludeProject returns false when exclude.userOwnedProjects is true 
         exclude: { userOwnedProjects: true },
     })).toBe(false);
 });
+
+test('shouldExcludeProject returns true when project size is less than exclude.size.min.', () => {
+    const project = {
+        path_with_namespace: 'test/project',
+        statistics: {
+            storage_size: 99,
+        },
+    } as unknown as ProjectSchema;
+
+    expect(shouldExcludeProject({
+        project,
+        exclude: {
+            size: {
+                min: 100,
+            },
+        },
+    })).toBe(true);
+});
+
+test('shouldExcludeProject returns true when project size is greater than exclude.size.max.', () => {
+    const project = {
+        path_with_namespace: 'test/project',
+        statistics: {
+            storage_size: 101,
+        },
+    } as unknown as ProjectSchema;
+
+    expect(shouldExcludeProject({
+        project,
+        exclude: {
+            size: {
+                max: 100,
+            },
+        },
+    })).toBe(true);
+});
+
+test('shouldExcludeProject returns false when project size is within exclude.size bounds.', () => {
+    const project = {
+        path_with_namespace: 'test/project',
+        statistics: {
+            storage_size: 100,
+        },
+    } as unknown as ProjectSchema;
+
+    expect(shouldExcludeProject({
+        project,
+        exclude: {
+            size: {
+                min: 100,
+                max: 100,
+            },
+        },
+    })).toBe(false);
+});
+
+test('shouldExcludeProject returns false when exclude.size is set but project statistics are unavailable.', () => {
+    const project = {
+        path_with_namespace: 'test/project',
+    } as ProjectSchema;
+
+    expect(shouldExcludeProject({
+        project,
+        exclude: {
+            size: {
+                min: 100,
+            },
+        },
+    })).toBe(false);
+});

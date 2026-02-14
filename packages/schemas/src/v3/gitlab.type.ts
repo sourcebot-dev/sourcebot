@@ -38,6 +38,10 @@ export interface GitlabConnectionConfig {
    */
   groups?: string[];
   /**
+   * Minimum GitLab access level required for projects to be returned. Uses GitLab role levels where 20=Reporter, 30=Developer, 40=Maintainer, and 50=Owner. Note: GitLab project listing APIs do not accept 60 (Admin) for this field.
+   */
+  minAccessLevel?: 0 | 5 | 10 | 20 | 30 | 40 | 50;
+  /**
    * List of individual projects to sync with. The project's namespace must be specified. See: https://docs.gitlab.com/ee/user/namespace/
    */
   projects?: string[];
@@ -68,6 +72,19 @@ export interface GitlabConnectionConfig {
      * List of project topics to exclude when syncing. Projects that match one of the provided `topics` will be excluded from syncing. Glob patterns are supported.
      */
     topics?: string[];
+    /**
+     * Exclude projects based on GitLab statistics size fields (in bytes).
+     */
+    size?: {
+      /**
+       * Minimum project size (in bytes) to sync (inclusive). Projects smaller than this will be excluded.
+       */
+      min?: number;
+      /**
+       * Maximum project size (in bytes) to sync (inclusive). Projects larger than this will be excluded.
+       */
+      max?: number;
+    };
   };
   revisions?: GitRevisions;
 }

@@ -290,6 +290,19 @@ const schema = {
           ],
           "description": "List of groups to sync with. All projects in the group (and recursive subgroups) visible to the provided `token` (if any) will be synced, unless explicitly defined in the `exclude` property. Subgroups can be specified by providing the path to the subgroup (e.g. `my-group/sub-group-a`)."
         },
+        "minAccessLevel": {
+          "type": "integer",
+          "enum": [
+            0,
+            5,
+            10,
+            20,
+            30,
+            40,
+            50
+          ],
+          "description": "Minimum GitLab access level required for projects to be returned. Uses GitLab role levels where 20=Reporter, 30=Developer, 40=Maintainer, and 50=Owner. Note: GitLab project listing APIs do not accept 60 (Admin) for this field."
+        },
         "projects": {
           "type": "array",
           "items": {
@@ -362,6 +375,21 @@ const schema = {
                   "ci"
                 ]
               ]
+            },
+            "size": {
+              "type": "object",
+              "description": "Exclude projects based on GitLab statistics size fields (in bytes).",
+              "properties": {
+                "min": {
+                  "type": "integer",
+                  "description": "Minimum project size (in bytes) to sync (inclusive). Projects smaller than this will be excluded."
+                },
+                "max": {
+                  "type": "integer",
+                  "description": "Maximum project size (in bytes) to sync (inclusive). Projects larger than this will be excluded."
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
