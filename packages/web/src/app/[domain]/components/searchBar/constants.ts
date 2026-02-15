@@ -9,6 +9,8 @@ export enum SearchPrefix {
     r = "r:",
     lang = "lang:",
     file = "file:",
+    author = "author:",
+    a = "a:",
     rev = "rev:",
     revision = "revision:",
     b = "b:",

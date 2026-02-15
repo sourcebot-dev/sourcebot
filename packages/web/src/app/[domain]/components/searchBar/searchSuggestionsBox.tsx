@@ -37,6 +37,7 @@ export type SuggestionMode =
     "symbol" |
     "content" |
     "repo" |
+    "author" |
     "searchHistory" |
     "context";
 
@@ -59,6 +60,7 @@ interface SearchSuggestionsBoxProps {
     languageSuggestions: Suggestion[];
     searchHistorySuggestions: Suggestion[];
     searchContextSuggestions: Suggestion[];
+    authorSuggestions: Suggestion[];
 }
 
 const SearchSuggestionsBox = forwardRef(({
@@ -74,6 +76,7 @@ const SearchSuggestionsBox = forwardRef(({
     onReturnFocus,
     isLoadingSuggestions,
     repoSuggestions,
+    authorSuggestions,
     fileSuggestions,
     symbolSuggestions,
     languageSuggestions,
@@ -155,6 +158,13 @@ const SearchSuggestionsBox = forwardRef(({
                         list: repoSuggestions,
                         DefaultIcon: VscRepo,
                         onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: true }),
+                        isClientSideSearchEnabled: false,
+                    }
+                case "author":
+                    return {
+                        list: authorSuggestions,
+                        DefaultIcon: VscRepo,
+                        onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: false }),
                         isClientSideSearchEnabled: false,
                     }
                 case "language": {
@@ -265,6 +275,7 @@ const SearchSuggestionsBox = forwardRef(({
         onCompletion,
         repoSuggestions,
         fileSuggestions,
+        authorSuggestions,
         symbolSuggestions,
         searchHistorySuggestions,
         languageSuggestions,

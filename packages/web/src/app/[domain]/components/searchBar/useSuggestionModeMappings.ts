@@ -44,6 +44,13 @@ export const useSuggestionModeMappings = () => {
                 ]
             },
             {
+                suggestionMode: "author",
+                prefixes: [
+                    SearchPrefix.author, negate(SearchPrefix.author),
+                    SearchPrefix.a, negate(SearchPrefix.a),
+                ]
+            },
+            {
                 suggestionMode: "content",
                 prefixes: [
                     SearchPrefix.content, negate(SearchPrefix.content),

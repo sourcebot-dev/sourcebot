@@ -13,6 +13,7 @@ import {
     PrefixExpr,
     Program,
     RepoExpr,
+    AuthorExpr,
     RepoSetExpr,
     RevisionExpr,
     SymExpr,
@@ -256,6 +257,14 @@ const transformTreeToIR = async ({
                 return {
                     repo: {
                         regexp: value
+                    },
+                    query: "repo"
+                };
+
+            case AuthorExpr:
+                return {
+                    repo: {
+                        regexp: `^[^/]+/${value}/`
                     },
                     query: "repo"
                 };
