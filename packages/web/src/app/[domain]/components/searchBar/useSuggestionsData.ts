@@ -85,9 +85,6 @@ export const useSuggestionsData = ({
             perPage: 15,
         })),
         select: (data): Suggestion[] => {
-            if (isServiceError(data)) {
-                return [];
-            }
             const authors = [
                 ...new Set(
                     data.map(repo =>

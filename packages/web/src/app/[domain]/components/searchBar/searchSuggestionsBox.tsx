@@ -164,7 +164,7 @@ const SearchSuggestionsBox = forwardRef(({
                     return {
                         list: authorSuggestions,
                         DefaultIcon: VscRepo,
-                        onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: true }),
+                        onSuggestionClicked: createOnSuggestionClickedHandler({ regexEscaped: false }),
                         isClientSideSearchEnabled: false,
                     }
                 case "language": {
