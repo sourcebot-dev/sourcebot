@@ -35,6 +35,11 @@ export const useRefineModeSuggestions = () => {
                 spotlight: true,
             },
             {
+                value: SearchPrefix.author,
+                description: "Include only results from the given author.",
+                spotlight: true,
+            },
+            {
                 value: negate(SearchPrefix.repo),
                 description: "Exclude results from the given repository."
             },

@@ -22,6 +22,7 @@ const PREFIXES = [
     "fork:",
     "visibility:",
     "repo:", "r:",
+    "author:", "a:",
     "lang:",
     "sym:",
     "reposet:",

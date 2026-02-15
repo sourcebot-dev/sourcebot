@@ -75,6 +75,34 @@ export const useSuggestionsData = ({
     });
     const isLoadingFiles = useMemo(() => suggestionMode === "file" && _isLoadingFiles, [_isLoadingFiles, suggestionMode]);
 
+    const { data: authorSuggestions, isLoading: _isLoadingAuthors } = useQuery({
+        queryKey: ["authorSuggestions", suggestionQuery, domain],
+        queryFn: () => unwrapServiceError(listRepos({
+            query: `${suggestionQuery}`,
+            page: 1,
+            direction: "asc",
+            sort: "name",
+            perPage: 15,
+        })),
+        select: (data): Suggestion[] => {
+            if (isServiceError(data)) {
+                return [];
+            }
+            const authors = [
+                ...new Set(
+                    data.map(repo =>
+                        repo.repoDisplayName
+                            ? repo.repoDisplayName.split("/")[0]
+                            : repo.repoName.split("/")[1]
+                    )
+                )
+            ].map(a => ({ value: a }));
+            return authors;
+        },
+        enabled: suggestionMode === "author"
+    });
+    const isLoadingAuthors = useMemo(() => suggestionMode === "author" && _isLoadingAuthors, [_isLoadingAuthors, suggestionMode]);
+
     const { data: symbolSuggestions, isLoading: _isLoadingSymbols } = useQuery({
         queryKey: ["symbolSuggestions", suggestionQuery, domain],
         queryFn: () => search({
@@ -150,12 +178,13 @@ export const useSuggestionsData = ({
     }, [searchHistory]);
 
     const isLoadingSuggestions = useMemo(() => {
-        return isLoadingSymbols || isLoadingFiles || isLoadingRepos || isLoadingSearchContexts;
-    }, [isLoadingFiles, isLoadingRepos, isLoadingSymbols, isLoadingSearchContexts]);
+        return isLoadingSymbols || isLoadingFiles || isLoadingRepos || isLoadingSearchContexts || isLoadingAuthors;
+    }, [isLoadingFiles, isLoadingRepos, isLoadingSymbols, isLoadingSearchContexts, isLoadingAuthors]);
 
     return {
         repoSuggestions: repoSuggestions ?? [],
         fileSuggestions: fileSuggestions ?? [],
+        authorSuggestions: authorSuggestions ?? [],
         symbolSuggestions: symbolSuggestions ?? [],
         searchContextSuggestions: searchContextSuggestions ?? [],
         languageSuggestions,
