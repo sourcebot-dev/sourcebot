@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { getBrowseParamsFromPathParam } from "../hooks/utils";
-import { CodePreviewPanel } from "./components/codePreviewPanel";
+import { SourcePreviewPanel } from "./components/sourcePreviewPanel";
 import { Loader2 } from "lucide-react";
 import { TreePreviewPanel } from "./components/treePreviewPanel";
 import { Metadata } from "next";
@@ -90,7 +90,7 @@ export default async function BrowsePage(props: BrowsePageProps) {
                 </div>
             }>
                 {pathType === 'blob' ? (
-                    <CodePreviewPanel
+                    <SourcePreviewPanel
                         path={path}
                         repoName={repoName}
                         revisionName={revisionName}
