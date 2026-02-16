@@ -11,6 +11,9 @@ interface SourcePreviewPanelClientProps {
     revisionName: string;
     source: string;
     language: string;
+    codeHostType: string;
+    externalWebUrl?: string;
+    domain: string;
 }
 
 export const SourcePreviewPanelClient = ({
@@ -19,6 +22,9 @@ export const SourcePreviewPanelClient = ({
     path,
     repoName,
     revisionName,
+    codeHostType,
+    externalWebUrl,
+    domain,
 }: SourcePreviewPanelClientProps) => {
     const [viewMode, setViewMode] = useState<string>("preview");
     const isMarkdown = language === 'Markdown';
@@ -53,7 +59,15 @@ export const SourcePreviewPanelClient = ({
                 </>
             )}
             {isMarkdown && viewMode === "preview" ? (
-                <PureMarkDownPreviewPanel source={source} repoName={repoName} revisionName={revisionName} />
+                <PureMarkDownPreviewPanel
+                    source={source}
+                    repoName={repoName}
+                    revisionName={revisionName}
+                    codeHostType={codeHostType}
+                    externalWebUrl={externalWebUrl}
+                    domain={domain}
+                    path={path}
+                />
             ) : (
                 <PureCodePreviewPanel
                     source={source}

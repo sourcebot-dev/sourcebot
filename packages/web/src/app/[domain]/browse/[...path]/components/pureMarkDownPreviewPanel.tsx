@@ -14,12 +14,20 @@ interface PureMarkDownPreviewPanelProps {
     source: string;
     repoName: string;
     revisionName: string;
+    codeHostType?: string;
+    externalWebUrl?: string;
+    domain: string;
+    path: string;
 }
 
 export const PureMarkDownPreviewPanel = ({
     source,
     repoName,
     revisionName,
+    codeHostType: _codeHostType,
+    externalWebUrl: _externalWebUrl,
+    domain,
+    path,
 }: PureMarkDownPreviewPanelProps) => {
     const { theme, resolvedTheme } = useTheme();
     const currentTheme = theme === "system" ? resolvedTheme : theme;
@@ -57,16 +65,35 @@ export const PureMarkDownPreviewPanel = ({
     }, [currentTheme]);
 
     /* ------------------ helpers ------------------ */
-    const IMAGE_BASE_URL =
-        "https://raw.githubusercontent.com/" +
-        repoName.split("/").slice(1).join("/") +
-        "/" +
-        revisionName +
-        "/";
-
     const resolveUrl = (url: string) => {
-        if (url.startsWith("http://") || url.startsWith("https://")) return url;
-        return IMAGE_BASE_URL + url.replace(/^\.\//, "");
+        if (
+            url.startsWith("http://") ||
+            url.startsWith("https://") ||
+            url.startsWith("#") ||
+            url.startsWith("mailto:")
+        )
+            return url;
+
+        let targetPath = url;
+
+        if (url.startsWith("/")) {
+            // Absolute path from repo root
+            targetPath = url.slice(1);
+        } else {
+            // Relative path
+            const currentDir = path.split("/").slice(0, -1).join("/");
+            const cleanRelative = url.replace(/^\.\//, "");
+
+            if (currentDir) {
+                targetPath = `${currentDir}/${cleanRelative}`;
+            } else {
+                targetPath = cleanRelative;
+            }
+        }
+
+        // Use internal API proxy for consistent access
+        // /api/[domain]/raw/[owner]/[repo]/-/[...path]?ref=[revision]
+        return `/api/${domain}/raw/${repoName}/-/${targetPath}?ref=${encodeURIComponent(revisionName)}`;
     };
 
     const isVideoUrl = (url?: string | Blob | null): url is string =>
