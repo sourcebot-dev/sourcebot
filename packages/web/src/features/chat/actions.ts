@@ -141,6 +141,7 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
             visibility: chat.visibility,
             name: chat.name,
             isOwner,
+            isSharedWithUser,
         };
     })
 );

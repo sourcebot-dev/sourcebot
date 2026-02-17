@@ -158,6 +158,33 @@ export type PosthogEventMap = {
         toolName: string,
         success: boolean,
     },
+    // Chat Sharing Funnel
+    wa_chat_share_dialog_opened: {
+        chatId: string,
+        currentVisibility: 'PUBLIC' | 'PRIVATE',
+    },
+    wa_chat_visibility_changed: {
+        chatId: string,
+        fromVisibility: 'PUBLIC' | 'PRIVATE',
+        toVisibility: 'PUBLIC' | 'PRIVATE',
+    },
+    wa_chat_link_copied: {
+        chatId: string,
+        visibility: 'PUBLIC' | 'PRIVATE',
+    },
+    wa_chat_users_invited: {
+        chatId: string,
+        numUsersInvited: number,
+    },
+    wa_chat_user_removed: {
+        chatId: string,
+    },
+    wa_shared_chat_viewed: {
+        chatId: string,
+        visibility: 'PUBLIC' | 'PRIVATE',
+        viewerType: 'authenticated' | 'anonymous',
+        accessType: 'public_link' | 'direct_invite',
+    },
     //////////////////////////////////////////////////////////////////
     wa_demo_docs_link_pressed: {},
     wa_demo_search_example_card_pressed: {

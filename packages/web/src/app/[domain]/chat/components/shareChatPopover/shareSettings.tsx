@@ -20,8 +20,10 @@ import { Info, Link2Icon, Loader2, Lock, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useState } from "react";
+import { captureEvent } from "@/hooks/useCaptureEvent";
 
 interface ShareSettingsProps {
+    chatId: string;
     visibility: ChatVisibility;
     onVisibilityChange: (visibility: ChatVisibility) => Promise<boolean>;
     onRemoveSharedWithUser: (userId: string) => Promise<boolean>;
@@ -33,6 +35,7 @@ interface ShareSettingsProps {
 }
 
 export const ShareSettings = ({
+    chatId,
     visibility,
     onVisibilityChange,
     onRemoveSharedWithUser,
@@ -50,10 +53,14 @@ export const ShareSettings = ({
 
     const handleCopyLink = useCallback(() => {
         navigator.clipboard.writeText(window.location.href);
+        captureEvent('wa_chat_link_copied', {
+            chatId,
+            visibility,
+        });
         toast({
             description: "✅ Link copied to clipboard",
         });
-    }, [toast]);
+    }, [chatId, visibility, toast]);
 
     const getInitials = (name?: string | null, email?: string | null) => {
         if (name) {

@@ -18,6 +18,7 @@ import { ChatVisibility } from '@sourcebot/db';
 import { Metadata } from 'next';
 import { SBChatMessage } from '@/features/chat/types';
 import { env, hasEntitlement } from '@sourcebot/shared';
+import { captureEvent } from '@/lib/posthog';
 
 interface PageProps {
     params: Promise<{
@@ -123,7 +124,17 @@ export default async function Page(props: PageProps) {
         throw new ServiceErrorException(chatInfo);
     }
 
-    const { messages, name, visibility, isOwner } = chatInfo;
+    const { messages, name, visibility, isOwner, isSharedWithUser } = chatInfo;
+
+    // Track when a non-owner views a shared chat
+    if (!isOwner) {
+        captureEvent('wa_shared_chat_viewed', {
+            chatId: params.id,
+            visibility,
+            viewerType: session ? 'authenticated' : 'anonymous',
+            accessType: isSharedWithUser ? 'direct_invite' : 'public_link',
+        });
+    }
 
     const sharedWithUsers = (session && isOwner) ? await getSharedWithUsersForChat({ chatId: params.id }) : [];
 
