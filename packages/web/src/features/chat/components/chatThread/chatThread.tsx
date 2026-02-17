@@ -392,6 +392,7 @@ export const ChatThread = ({
             </ScrollArea>
             <div className="w-full max-w-3xl mx-auto mb-8">
                 <SignInPromptBanner
+                    chatId={chatId}
                     isAuthenticated={isAuthenticated}
                     isOwner={isOwner}
                     hasMessages={messages.length > 0}

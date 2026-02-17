@@ -158,7 +158,6 @@ export type PosthogEventMap = {
         toolName: string,
         success: boolean,
     },
-    // Chat Sharing Funnel
     wa_chat_share_dialog_opened: {
         chatId: string,
         currentVisibility: 'PUBLIC' | 'PRIVATE',
@@ -184,6 +183,18 @@ export type PosthogEventMap = {
         visibility: 'PUBLIC' | 'PRIVATE',
         viewerType: 'authenticated' | 'anonymous',
         accessType: 'public_link' | 'direct_invite',
+    },
+    wa_chat_sign_in_banner_displayed: {
+        chatId: string,
+    },
+    wa_chat_sign_in_banner_dismissed: {
+        chatId: string,
+    },
+    wa_chat_sign_in_banner_clicked: {
+        chatId: string,
+    },
+    wa_anonymous_chats_claimed: {
+        claimedCount: number,
     },
     //////////////////////////////////////////////////////////////////
     wa_demo_docs_link_pressed: {},

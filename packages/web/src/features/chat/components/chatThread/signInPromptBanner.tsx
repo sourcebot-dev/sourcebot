@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { captureEvent } from '@/hooks/useCaptureEvent';
 import { X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -9,6 +10,7 @@ import { useState, useEffect } from 'react';
 const DISMISSED_KEY = 'sb.chat-sign-in-prompt-dismissed';
 
 interface SignInPromptBannerProps {
+    chatId: string;
     isAuthenticated: boolean;
     isOwner: boolean;
     hasMessages: boolean;
@@ -16,6 +18,7 @@ interface SignInPromptBannerProps {
 }
 
 export const SignInPromptBanner = ({
+    chatId,
     isAuthenticated,
     isOwner,
     hasMessages,
@@ -23,7 +26,7 @@ export const SignInPromptBanner = ({
 }: SignInPromptBannerProps) => {
     const pathname = usePathname();
     const [isDismissed, setIsDismissed] = useState(true); // Start as true to avoid flash
-    const [hasShownOnce, setHasShownOnce] = useState(false);
+    const [hasDisplayedEventFired, setHasDisplayedEventFired] = useState(false);
 
     // Check sessionStorage on mount
     useEffect(() => {
@@ -31,26 +34,33 @@ export const SignInPromptBanner = ({
         setIsDismissed(dismissed);
     }, []);
 
-    // Show the banner after first response completes
+    const isBannerVisible =
+        !isDismissed &&
+        !isAuthenticated &&
+        isOwner &&
+        hasMessages &&
+        !isStreaming;
+
+    // Show the banner after first response completes and track display
     useEffect(() => {
-        if (!isAuthenticated && isOwner && hasMessages && !isStreaming && !hasShownOnce) {
-            setHasShownOnce(true);
+        if (isBannerVisible && !hasDisplayedEventFired) {
+            setHasDisplayedEventFired(true);
+            captureEvent('wa_chat_sign_in_banner_displayed', { chatId });
         }
-    }, [isAuthenticated, isOwner, hasMessages, isStreaming, hasShownOnce]);
+    }, [isBannerVisible, chatId, hasDisplayedEventFired]);
+
 
     const handleDismiss = () => {
+        captureEvent('wa_chat_sign_in_banner_dismissed', { chatId });
         setIsDismissed(true);
         sessionStorage.setItem(DISMISSED_KEY, 'true');
     };
 
-    // Don't show if:
-    // - User is authenticated
-    // - User doesn't own this chat
-    // - Banner was dismissed
-    // - No messages yet (haven't had first interaction)
-    // - Still streaming (wait for response to complete)
-    // - Haven't triggered the "show" condition yet
-    if (isAuthenticated || !isOwner || isDismissed || !hasMessages || isStreaming || !hasShownOnce) {
+    const handleSignInClick = () => {
+        captureEvent('wa_chat_sign_in_banner_clicked', { chatId });
+    };
+
+    if (!isBannerVisible) {
         return null;
     }
 
@@ -64,6 +74,7 @@ export const SignInPromptBanner = ({
                     variant="default"
                     size="sm"
                     asChild
+                    onClick={handleSignInClick}
                 >
                     <Link href={`/login?callbackUrl=${encodeURIComponent(pathname)}`}>
                         Sign in

@@ -31,6 +31,7 @@ import { LanguageModelInfo, SBChatMessage } from "./types";
 import { withAuthV2, withOptionalAuthV2 } from "@/withAuthV2";
 import { getAnonymousId, getOrCreateAnonymousId } from "@/lib/anonymousId";
 import { Chat, PrismaClient, User } from "@sourcebot/db";
+import { captureEvent } from "@/lib/posthog";
 
 const logger = createLogger('chat-actions');
 const auditService = getAuditService();
@@ -386,6 +387,12 @@ export const claimAnonymousChats = async () => sew(() =>
                 createdById: user.id,
             },
         });
+
+        if (result.count > 0) {
+            captureEvent('wa_anonymous_chats_claimed', {
+                claimedCount: result.count,
+            });
+        }
 
         return { claimed: result.count };
     })
