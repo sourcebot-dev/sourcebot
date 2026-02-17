@@ -19,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed issue where local repos with URL-encoded spaces in remote URLs would fail to load tree preview and index correctly. [#899](https://github.com/sourcebot-dev/sourcebot/pull/899)
 
-
 ## [4.10.30] - 2026-02-12
 
 ### Added
