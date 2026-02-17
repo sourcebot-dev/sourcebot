@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed chat permissions model from read-only flag to ownership-based access control. [#888](https://github.com/sourcebot-dev/sourcebot/pull/888)
 - Improved anonymous chat experience: anonymous users can now create chats and claim them upon signing in. [#888](https://github.com/sourcebot-dev/sourcebot/pull/888)
 
+### Fixed
+- Fixed issue where local repos with URL-encoded spaces in remote URLs would fail to load tree preview and index correctly. [#899](https://github.com/sourcebot-dev/sourcebot/pull/899)
+
+
 ## [4.10.30] - 2026-02-12
 
 ### Added
