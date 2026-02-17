@@ -112,6 +112,7 @@ export const createChat = async () => sew(() =>
 
         return {
             id: chat.id,
+            isAnonymous: isGuestUser,
         }
     })
 );
