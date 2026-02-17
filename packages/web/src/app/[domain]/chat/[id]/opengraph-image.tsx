@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og';
+import { notFound } from 'next/navigation';
 import { prisma } from '@/prisma';
 import { getOrgFromDomain } from '@/data/org';
 import { ChatVisibility } from '@sourcebot/db';
@@ -23,7 +24,7 @@ export default async function Image({ params }: ImageProps) {
 
     const org = await getOrgFromDomain(domain);
     if (!org) {
-        return generateDefaultImage();
+        notFound();
     }
 
     const chat = await prisma.chat.findUnique({
@@ -43,7 +44,7 @@ export default async function Image({ params }: ImageProps) {
 
     // Only generate custom OG images for public chats
     if (!chat || chat.visibility !== ChatVisibility.PUBLIC) {
-        return generateDefaultImage();
+        notFound();
     }
 
     const MAX_CHAT_NAME_LENGTH = 40;
@@ -171,48 +172,6 @@ export default async function Image({ params }: ImageProps) {
                             height={80}
                         />
                     </div>
-                </div>
-            </div>
-        ),
-        {
-            ...size,
-        }
-    );
-}
-
-function generateDefaultImage() {
-    return new ImageResponse(
-        (
-            <div
-                style={{
-                    height: '100%',
-                    width: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: '#09090b',
-                    fontFamily: 'system-ui, sans-serif',
-                }}
-            >
-                <div
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        backgroundColor: '#18181b',
-                        borderRadius: '16px',
-                        padding: '24px 40px',
-                    }}
-                >
-                    <span
-                        style={{
-                            fontSize: '48px',
-                            fontWeight: 600,
-                            color: '#fafafa',
-                        }}
-                    >
-                        sourcebot.dev
-                    </span>
                 </div>
             </div>
         ),

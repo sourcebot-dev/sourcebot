@@ -43,10 +43,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         },
     });
 
-    // Only show detailed metadata for public chats
-    if (!chat || chat.visibility !== ChatVisibility.PUBLIC) {
+    if (!chat) {
         return {
             title: 'Chat | Sourcebot',
+        };
+    }
+
+    // Only show detailed metadata for public chats
+    if (chat.visibility !== ChatVisibility.PUBLIC) {
+        return {
+            title: 'Private Chat | Sourcebot',
+            description: 'Login to view',
         };
     }
 
