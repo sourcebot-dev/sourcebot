@@ -586,7 +586,9 @@ export const compileGenericGitHostConfig_file = async (
         // the host:port directly from the raw URL to match zoekt's behavior.
         // For non-HTTP URLs, remoteUrl.host preserves non-default ports (e.g., ssh://host:22/).
         const hostWithPort = extractHostWithPort(origin) ?? remoteUrl.host;
-        const repoName = path.join(hostWithPort, remoteUrl.pathname.replace(/\.git$/, ''));
+        // Decode URL-encoded characters (e.g., %20 -> space) to ensure consistent repo names
+        const decodedPathname = decodeURIComponent(remoteUrl.pathname);
+        const repoName = path.join(hostWithPort, decodedPathname.replace(/\.git$/, ''));
 
         const repo: RepoData = {
             external_codeHostType: 'genericGitHost',

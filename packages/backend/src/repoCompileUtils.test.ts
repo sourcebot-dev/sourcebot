@@ -143,6 +143,26 @@ describe('compileGenericGitHostConfig_file', () => {
         expect(result.warnings[0]).toContain('/path/to/invalid/repo');
         expect(result.warnings[0]).toContain('not a git repository');
     });
+
+    test('should decode URL-encoded characters in origin url pathname', async () => {
+        mockedGlob.mockResolvedValue(['/path/to/repo-with-spaces']);
+        mockedIsPathAValidGitRepoRoot.mockResolvedValue(true);
+        // URL with %20 (encoded space) in the pathname
+        mockedGetOriginUrl.mockResolvedValue('https://github.com/test/Project%20Name%20With%20Spaces.git');
+
+        const config = {
+            type: 'git' as const,
+            url: 'file:///path/to/repo-with-spaces',
+        };
+
+        const result = await compileGenericGitHostConfig_file(config, 1);
+
+        expect(result.repoData).toHaveLength(1);
+        expect(result.warnings).toHaveLength(0);
+        // The repo name should have decoded spaces, not %20
+        expect(result.repoData[0].name).toBe('github.com/test/Project Name With Spaces');
+        expect(result.repoData[0].displayName).toBe('github.com/test/Project Name With Spaces');
+    });
 });
 
 describe('compileGenericGitHostConfig_url', () => {
