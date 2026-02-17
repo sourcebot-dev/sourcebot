@@ -39,12 +39,16 @@ export const DuplicateChatDialog = ({ isOpen, onOpenChange, onDuplicate, current
 
     const onSubmit = async (data: z.infer<typeof formSchema>) => {
         setIsLoading(true);
-        const newChatId = await onDuplicate(data.name);
-        setIsLoading(false);
-
-        if (newChatId) {
-            form.reset();
-            onOpenChange(false);
+        try {
+            const newChatId = await onDuplicate(data.name);
+            if (newChatId) {
+                form.reset();
+                onOpenChange(false);
+            }
+        } catch (e) {
+            console.error('Failed to duplicate chat', e);
+        } finally {
+            setIsLoading(false);
         }
     }
 

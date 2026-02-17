@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/prisma';
 import { getOrgFromDomain } from '@/data/org';
 import { ChatVisibility } from '@sourcebot/db';
+import { env } from "@sourcebot/shared";
 
 export const runtime = 'nodejs';
 export const alt = 'Sourcebot Chat';
@@ -119,7 +120,7 @@ export default async function Image({ params }: ImageProps) {
                         {/* Avatar */}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                            src={creatorImage ?? `${process.env.NEXT_PUBLIC_DOMAIN_URL ?? 'http://localhost:3000'}/placeholder_avatar.png`}
+                            src={creatorImage ?? `${env.AUTH_URL}/placeholder_avatar.png`}
                             alt="Avatar"
                             width={80}
                             height={80}
@@ -166,7 +167,7 @@ export default async function Image({ params }: ImageProps) {
                         </span>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                            src={`${process.env.NEXT_PUBLIC_DOMAIN_URL ?? 'http://localhost:3000'}/sb_logo_dark_small.png`}
+                            src={`${env.AUTH_URL}/sb_logo_dark_small.png`}
                             alt="Sourcebot"
                             width={80}
                             height={80}

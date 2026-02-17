@@ -16,11 +16,15 @@ export const DeleteChatDialog = ({ isOpen, onOpenChange, onDelete }: DeleteChatD
 
     const handleDelete = useCallback(async () => {
         setIsLoading(true);
-        const success = await onDelete();
-        setIsLoading(false);
-
-        if (success) {
-            onOpenChange(false);
+        try {
+            const success = await onDelete();
+            if (success) {
+                onOpenChange(false);
+            }
+        } catch (e) {
+            console.error('Failed to delete chat', e);
+        } finally {
+            setIsLoading(false);
         }
     }, [onDelete, onOpenChange]);
 

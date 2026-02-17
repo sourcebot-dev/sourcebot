@@ -39,12 +39,16 @@ export const RenameChatDialog = ({ isOpen, onOpenChange, onRename, currentName }
 
     const onSubmit = async (data: z.infer<typeof formSchema>) => {
         setIsLoading(true);
-        const success = await onRename(data.name);
-        setIsLoading(false);
-
-        if (success) {
-            form.reset();
-            onOpenChange(false);
+        try {
+            const success = await onRename(data.name);
+            if (success) {
+                form.reset();
+                onOpenChange(false);
+            }
+        } catch (e) {
+            console.error('Failed to rename chat', e);
+        } finally {
+            setIsLoading(false);
         }
     }
 
