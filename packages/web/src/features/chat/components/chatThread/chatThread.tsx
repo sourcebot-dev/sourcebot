@@ -318,9 +318,10 @@ export const ChatThread = ({
             return null;
         }
 
+        captureEvent('wa_chat_duplicated', { chatId: defaultChatId });
         router.push(`/${params.domain}/chat/${result.id}`);
         return result.id;
-    }, [defaultChatId, toast, router, params.domain]);
+    }, [defaultChatId, toast, router, params.domain, captureEvent]);
 
     return (
         <>

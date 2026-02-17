@@ -196,6 +196,15 @@ export type PosthogEventMap = {
     wa_anonymous_chats_claimed: {
         claimedCount: number,
     },
+    wa_chat_duplicated: {
+        chatId: string,
+    },
+    wa_chat_renamed: {
+        chatId: string,
+    },
+    wa_chat_deleted: {
+        chatId: string,
+    },
     //////////////////////////////////////////////////////////////////
     wa_demo_docs_link_pressed: {},
     wa_demo_search_example_card_pressed: {
