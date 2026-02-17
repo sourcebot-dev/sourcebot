@@ -25,7 +25,7 @@ We want to make it easy to contribute to Sourcebot. Here are the most common typ
 - Additional LLM providers
 - Documentation improvements
 
-However, any UI or core proudct feature must go through a design review with the core team before implementation. If you're unsure if your PR would be accepted, ask a maintainer.
+However, any UI or core product feature must go through a design review with the core team before implementation. If you're unsure if your PR would be accepted, ask a maintainer.
 
 > [!NOTE]
 > PRs that ignore these guardrails will likely be closed.
