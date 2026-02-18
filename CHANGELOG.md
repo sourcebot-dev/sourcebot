@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.11.2] - 2026-02-18
+
 ### Fixed
 - Fixed Bitbucket Server and Cloud repo identifiers to include the project key, preventing collisions across projects. **Note:** Bitbucket Cloud users with `exclude.repos` patterns must update them from `workspace/repo` to `workspace/PROJECT_KEY/repo` format. [#904](https://github.com/sourcebot-dev/sourcebot/pull/904)
 
