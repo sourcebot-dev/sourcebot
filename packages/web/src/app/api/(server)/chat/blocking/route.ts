@@ -33,6 +33,10 @@ const blockingChatRequestSchema = z.object({
     languageModel: languageModelInfoSchema
         .optional()
         .describe("The language model to use for the chat. If not provided, the first configured model is used."),
+    visibility: z
+        .nativeEnum(ChatVisibility)
+        .optional()
+        .describe("The visibility of the chat session. If not provided, defaults to PRIVATE for authenticated users and PUBLIC for anonymous users. Set to PUBLIC to make the chat viewable by anyone with the link. Note: Anonymous users cannot create PRIVATE chats; any PRIVATE request from an unauthenticated user will be ignored and set to PUBLIC."),
 });
 
 /**
@@ -62,7 +66,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
         return serviceErrorResponse(requestBodySchemaValidationError(parsed.error));
     }
 
-    const { query, repos = [], languageModel: requestedLanguageModel } = parsed.data;
+    const { query, repos = [], languageModel: requestedLanguageModel, visibility: requestedVisibility } = parsed.data;
 
     const response: BlockingChatResponse | ServiceError = await sew(() =>
         withOptionalAuthV2(async ({ org, user, prisma }) => {
@@ -95,12 +99,18 @@ export const POST = apiHandler(async (request: NextRequest) => {
             const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
             const modelName = languageModelConfig.displayName ?? languageModelConfig.model;
 
+            // Determine visibility: anonymous users cannot create private chats (they would be inaccessible)
+            // Only use requested visibility if user is authenticated, otherwise always use PUBLIC
+            const chatVisibility = (requestedVisibility && user)
+                ? requestedVisibility
+                : (user ? ChatVisibility.PRIVATE : ChatVisibility.PUBLIC);
+
             // Create a new chat session
             const chat = await prisma.chat.create({
                 data: {
                     orgId: org.id,
                     createdById: user?.id,
-                    visibility: user ? ChatVisibility.PRIVATE : ChatVisibility.PUBLIC,
+                    visibility: chatVisibility,
                     messages: [] as unknown as Prisma.InputJsonValue,
                 },
             });
