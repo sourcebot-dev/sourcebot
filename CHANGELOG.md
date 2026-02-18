@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed Bitbucket Server and Cloud repo identifiers to include the project key, preventing collisions across projects. [#904](https://github.com/sourcebot-dev/sourcebot/pull/904)
+
 ## [4.11.1] - 2026-02-18
 
 ### Changed
