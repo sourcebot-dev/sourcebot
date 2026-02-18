@@ -454,7 +454,11 @@ export const compileBitbucketConfig = async (
     const repos = bitbucketRepos.map((repo) => {
         const isServer = config.deploymentType === 'server';
         const codeHostType: CodeHostType = isServer ? 'bitbucketServer' : 'bitbucketCloud';
-        const displayName = isServer ? (repo as BitbucketServerRepository).name! : (repo as BitbucketCloudRepository).full_name!;
+        const displayName = isServer ?
+            // Server repos are of the format `project/repo`
+            `${(repo as BitbucketServerRepository).project!.key}/${(repo as BitbucketServerRepository).slug!}` :
+            // Cloud repos are of the format `workspace/project/repo`
+            `${(repo as BitbucketCloudRepository).full_name!.split('/')[0]}/${(repo as BitbucketCloudRepository).project?.key}/${(repo as BitbucketCloudRepository).full_name!.split('/')[1]}`;
         const externalId = isServer ? (repo as BitbucketServerRepository).id!.toString() : (repo as BitbucketCloudRepository).uuid!;
         const isPublic = isServer ? (repo as BitbucketServerRepository).public : (repo as BitbucketCloudRepository).is_private === false;
         const isArchived = isServer ? (repo as BitbucketServerRepository).archived === true : false;
