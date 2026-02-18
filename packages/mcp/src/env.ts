@@ -3,11 +3,11 @@ import { z } from "zod";
 
 export const numberSchema = z.coerce.number();
 
-const SOURCEBOT_DEMO_HOST = "https://demo.sourcebot.dev";
+const SOURCEBOT_DEFAULT_HOST = "http://localhost:3000";
 
 export const env = createEnv({
     server: {
-        SOURCEBOT_HOST: z.string().url().default(SOURCEBOT_DEMO_HOST),
+        SOURCEBOT_HOST: z.string().url().default(SOURCEBOT_DEFAULT_HOST),
 
         SOURCEBOT_API_KEY: z.string().optional(),
 

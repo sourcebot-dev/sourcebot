@@ -276,6 +276,7 @@ Ask a natural language question about the codebase. This tool uses an AI agent t
 | `query`         | yes      | The query to ask about the codebase.                                                                                                           |
 | `repos`         | no       | The repositories that are accessible to the agent during the chat. If not provided, all repositories are accessible.                           |
 | `languageModel` | no       | The language model to use for answering the question. Object with `provider` and `model`. If not provided, defaults to the first model in the config. Use `list_language_models` to see available options. |
+| `visibility`    | no       | The visibility of the chat session (`'PRIVATE'` or `'PUBLIC'`). Defaults to `PRIVATE` for authenticated users and `PUBLIC` for anonymous users. Set to `PUBLIC` to make the chat viewable by anyone with the link (useful in shared environments like Slack). |
 
 </details>
 
