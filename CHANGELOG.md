@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Fixed Bitbucket Server and Cloud repo identifiers to include the project key, preventing collisions across projects. [#904](https://github.com/sourcebot-dev/sourcebot/pull/904)
+- Fixed Bitbucket Server and Cloud repo identifiers to include the project key, preventing collisions across projects. **Note:** Bitbucket Cloud users with `exclude.repos` patterns must update them from `workspace/repo` to `workspace/PROJECT_KEY/repo` format. [#904](https://github.com/sourcebot-dev/sourcebot/pull/904)
 
 ### Added
 - Added optional `visibility` parameter to `/api/chat/blocking` endpoint and MCP `ask_codebase` tool to allow controlling chat session visibility in shared environments. [#903](https://github.com/sourcebot-dev/sourcebot/pull/903)
