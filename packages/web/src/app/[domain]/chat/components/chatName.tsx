@@ -111,7 +111,7 @@ export const ChatName = ({ name, id, isOwner = false, isAuthenticated = false }:
                 isOpen={isRenameDialogOpen}
                 onOpenChange={setIsRenameDialogOpen}
                 onRename={onRenameChat}
-                currentName={name ?? ""}
+                currentName={name ?? "Untitled chat"}
             />
             <DeleteChatDialog
                 isOpen={isDeleteDialogOpen}
@@ -122,7 +122,7 @@ export const ChatName = ({ name, id, isOwner = false, isAuthenticated = false }:
                 isOpen={isDuplicateDialogOpen}
                 onOpenChange={setIsDuplicateDialogOpen}
                 onDuplicate={onDuplicateChat}
-                currentName={name ?? ""}
+                currentName={name ?? "Untitled chat"}
             />
         </>
     )

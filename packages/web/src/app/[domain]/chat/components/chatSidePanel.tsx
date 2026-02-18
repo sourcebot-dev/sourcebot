@@ -264,7 +264,7 @@ export const ChatSidePanel = ({
                     }
                     return false;
                 }}
-                currentName={chatHistory?.find((chat) => chat.id === chatIdToRename)?.name ?? ""}
+                currentName={chatHistory?.find((chat) => chat.id === chatIdToRename)?.name ?? "Untitled chat"}
             />
             <DeleteChatDialog
                 isOpen={isDeleteDialogOpen}
@@ -285,7 +285,7 @@ export const ChatSidePanel = ({
                     }
                     return null;
                 }}
-                currentName={chatHistory?.find((chat) => chat.id === chatIdToDuplicate)?.name ?? ""}
+                currentName={chatHistory?.find((chat) => chat.id === chatIdToDuplicate)?.name ?? "Untitled chat"}
             />
         </>
     )
