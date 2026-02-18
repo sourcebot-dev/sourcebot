@@ -363,6 +363,7 @@ model User {
   apiKeys ApiKey[]
 
   chats Chat[]
+  sharedChats ChatAccess[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -444,8 +445,9 @@ model Chat {
 
   name String?
 
-  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  createdById String?
+  createdBy            User?   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdById          String?
+  anonymousCreatorId   String? // For anonymous users, stores a session ID from a cookie
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -454,7 +456,24 @@ model Chat {
   orgId Int
 
   visibility ChatVisibility @default(PRIVATE)
-  isReadonly Boolean        @default(false)
 
   messages Json // This is a JSON array of `Message` types from @ai-sdk/ui-utils.
+
+  sharedWith ChatAccess[]
+}
+
+/// Represents a user's access to a chat that has been shared with them.
+/// Unlike Invite, this is not temporary or redeemable - it grants ongoing access.
+model ChatAccess {
+  id String @id @default(cuid())
+
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([chatId, userId])
 }

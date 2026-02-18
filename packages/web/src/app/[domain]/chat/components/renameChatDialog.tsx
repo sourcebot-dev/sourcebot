@@ -2,21 +2,24 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 interface RenameChatDialogProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
-    onRename: (name: string) => void;
+    onRename: (name: string) => Promise<boolean>;
     currentName: string;
 }
 
 export const RenameChatDialog = ({ isOpen, onOpenChange, onRename, currentName }: RenameChatDialogProps) => {
+    const [isLoading, setIsLoading] = useState(false);
+
     const formSchema = z.object({
         name: z.string().min(1),
     });
@@ -34,16 +37,29 @@ export const RenameChatDialog = ({ isOpen, onOpenChange, onRename, currentName }
         });
     }, [currentName, form]);
 
-    const onSubmit = (data: z.infer<typeof formSchema>) => {
-        onRename(data.name);
-        form.reset();
-        onOpenChange(false);
+    const onSubmit = async (data: z.infer<typeof formSchema>) => {
+        setIsLoading(true);
+        try {
+            const success = await onRename(data.name);
+            if (success) {
+                form.reset();
+                onOpenChange(false);
+            }
+        } catch (e) {
+            console.error('Failed to rename chat', e);
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     return (
         <Dialog
             open={isOpen}
-            onOpenChange={onOpenChange}
+            onOpenChange={(open) => {
+                if (!isLoading) {
+                    onOpenChange(open);
+                }
+            }}
         >
             <DialogContent>
                 <DialogHeader>
@@ -56,7 +72,7 @@ export const RenameChatDialog = ({ isOpen, onOpenChange, onRename, currentName }
                     {...form}
                 >
                     <form
-                        className="space-y-4 flex flex-col w-full"
+                        className="space-y-4 flex flex-col w-full py-2"
                         onSubmit={(event) => {
                             event.stopPropagation();
                             form.handleSubmit(onSubmit)(event);
@@ -69,11 +85,12 @@ export const RenameChatDialog = ({ isOpen, onOpenChange, onRename, currentName }
                                 <FormItem
                                     className="flex flex-col gap-2"
                                 >
-                                    <FormControl
-                                    >
+                                    <FormLabel className="font-normal">New chat title</FormLabel>
+                                    <FormControl>
                                         <Input
                                             {...field}
                                             placeholder="Enter chat name"
+                                            disabled={isLoading}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -85,6 +102,7 @@ export const RenameChatDialog = ({ isOpen, onOpenChange, onRename, currentName }
                 <DialogFooter>
                     <Button
                         variant="outline"
+                        disabled={isLoading}
                         onClick={(e) => {
                             e.stopPropagation();
                             onOpenChange(false);
@@ -92,13 +110,14 @@ export const RenameChatDialog = ({ isOpen, onOpenChange, onRename, currentName }
                     >
                         Cancel
                     </Button>
-                    <Button
+                    <LoadingButton
+                        loading={isLoading}
                         onClick={() => {
                             form.handleSubmit(onSubmit)();
                         }}
                     >
                         Rename
-                    </Button>
+                    </LoadingButton>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

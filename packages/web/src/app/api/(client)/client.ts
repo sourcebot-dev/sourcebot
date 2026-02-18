@@ -20,6 +20,10 @@ import {
     FileSourceResponse,
 } from "@/features/git";
 import { PermissionSyncStatusResponse } from "../(server)/ee/permissionSyncStatus/route";
+import {
+    SearchChatShareableMembersQueryParams,
+    SearchChatShareableMembersResponse,
+} from "../(server)/ee/chat/[chatId]/searchMembers/route";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -134,4 +138,24 @@ export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusRes
         },
     }).then(response => response.json());
     return result as PermissionSyncStatusResponse | ServiceError;
+}
+
+export const searchChatShareableMembers = async (
+    params: SearchChatShareableMembersQueryParams & { chatId: string },
+    signal?: AbortSignal
+): Promise<SearchChatShareableMembersResponse | ServiceError> => {
+    const url = new URL(`/api/ee/chat/${params.chatId}/searchMembers`, window.location.origin);
+    if (params.query) {
+        url.searchParams.set('query', params.query);
+    }
+
+    const result = await fetch(url, {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+        signal,
+    }).then(response => response.json());
+
+    return result as SearchChatShareableMembersResponse | ServiceError;
 }

@@ -9,7 +9,7 @@ export type AuditActor = z.infer<typeof auditActorSchema>;
 
 export const auditTargetSchema = z.object({
   id: z.string(),
-  type: z.enum(["user", "org", "file", "api_key", "account_join_request", "invite"]),
+  type: z.enum(["user", "org", "file", "api_key", "account_join_request", "invite", "chat"]),
 })
 export type AuditTarget = z.infer<typeof auditTargetSchema>;
 

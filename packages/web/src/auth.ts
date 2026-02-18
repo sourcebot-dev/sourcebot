@@ -31,11 +31,13 @@ export type IdentityProvider = {
     required?: boolean;
 }
 
+export type SessionUser = {
+    id: string;
+} & DefaultSession['user'];
+
 declare module 'next-auth' {
     interface Session {
-        user: {
-            id: string;
-        } & DefaultSession['user'];
+        user: SessionUser;
         linkedAccountProviderErrors?: LinkedAccountErrors;
     }
 }

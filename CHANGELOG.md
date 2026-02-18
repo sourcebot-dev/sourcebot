@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Replaced `backend_repo_index_job_completed` PostHog event with `backend_repo_first_indexed`, which fires only on the first successful index of a repo. [#900](https://github.com/sourcebot-dev/sourcebot/pull/900)
+
+## [4.11.0] - 2026-02-18
+
+### Added
+- Added chat duplication to create copies of existing chats. [#888](https://github.com/sourcebot-dev/sourcebot/pull/888)
+- Added Open Graph metadata and image generation for shared chat links. [#888](https://github.com/sourcebot-dev/sourcebot/pull/888)
+- [EE] Added chat sharing with specific users, allowing chat owners to invite org members to view private chats. [#888](https://github.com/sourcebot-dev/sourcebot/pull/888)
+
+### Changed
+- Changed chat permissions model from read-only flag to ownership-based access control. [#888](https://github.com/sourcebot-dev/sourcebot/pull/888)
+- Improved anonymous chat experience: anonymous users can now create chats and claim them upon signing in. [#888](https://github.com/sourcebot-dev/sourcebot/pull/888)
+
+### Fixed
+- Fixed issue where local repos with URL-encoded spaces in remote URLs would fail to load tree preview and index correctly. [#899](https://github.com/sourcebot-dev/sourcebot/pull/899)
+
 ## [4.10.30] - 2026-02-12
 
 ### Added

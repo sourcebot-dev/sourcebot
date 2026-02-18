@@ -3,7 +3,7 @@
 import { sew } from "@/actions";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { ErrorCode } from "@/lib/errorCodes";
-import { chatIsReadonly, notFound, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
+import { notFound, serviceErrorResponse } from "@/lib/serviceError";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { createAzure } from '@ai-sdk/azure';
@@ -29,19 +29,69 @@ import { StatusCodes } from "http-status-codes";
 import path from 'path';
 import { LanguageModelInfo, SBChatMessage } from "./types";
 import { withAuthV2, withOptionalAuthV2 } from "@/withAuthV2";
+import { getAnonymousId, getOrCreateAnonymousId } from "@/lib/anonymousId";
+import { Chat, PrismaClient, User } from "@sourcebot/db";
+import { captureEvent } from "@/lib/posthog";
 
 const logger = createLogger('chat-actions');
 const auditService = getAuditService();
 
+/**
+ * Checks if the current user (authenticated or anonymous) is the owner of a chat.
+ */
+export const _isOwnerOfChat = async (chat: Chat, user: User | undefined): Promise<boolean> => {
+    // Authenticated user owns the chat
+    if (user && chat.createdById === user.id) {
+        return true;
+    }
+
+    // Only check the anonymous cookie for unclaimed chats (createdById === null).
+    // Once a chat has been claimed by an authenticated user, the anonymous path
+    // must not grant access — even if the same browser still holds the original cookie.
+    if (!chat.createdById && chat.anonymousCreatorId) {
+        const anonymousId = await getAnonymousId();
+        if (anonymousId && chat.anonymousCreatorId === anonymousId) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
+
+/**
+ * Checks if a user has been explicitly shared access to a chat.
+ */
+export const _hasSharedAccess = async ({prisma, chatId, userId}: {prisma: PrismaClient, chatId: string, userId: string | undefined}): Promise<boolean> => {
+    if (!userId) {
+        return false;
+    }
+
+    const share = await prisma.chatAccess.findUnique({
+        where: {
+            chatId_userId: {
+                chatId,
+                userId,
+            },
+        },
+    });
+
+    return share !== null;
+};
+
 export const createChat = async () => sew(() =>
     withOptionalAuthV2(async ({ org, user, prisma }) => {
         const isGuestUser = user === undefined;
+
+        // For anonymous users, get or create an anonymous ID to track ownership
+        const anonymousCreatorId = isGuestUser ? await getOrCreateAnonymousId() : undefined;
 
         const chat = await prisma.chat.create({
             data: {
                 orgId: org.id,
                 messages: [] as unknown as Prisma.InputJsonValue,
                 createdById: user?.id,
+                anonymousCreatorId,
                 visibility: isGuestUser ? ChatVisibility.PUBLIC : ChatVisibility.PRIVATE,
             },
         });
@@ -64,6 +114,7 @@ export const createChat = async () => sew(() =>
 
         return {
             id: chat.id,
+            isAnonymous: isGuestUser,
         }
     })
 );
@@ -81,7 +132,11 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
             return notFound();
         }
 
-        if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== user?.id) {
+        const isOwner = await _isOwnerOfChat(chat, user);
+        const isSharedWithUser = await _hasSharedAccess({prisma, chatId, userId: user?.id});
+
+        // Private chats can only be viewed by the owner or users it's been shared with
+        if (chat.visibility === ChatVisibility.PRIVATE && !isOwner && !isSharedWithUser) {
             return notFound();
         }
 
@@ -89,7 +144,8 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
             messages: chat.messages as unknown as SBChatMessage[],
             visibility: chat.visibility,
             name: chat.name,
-            isReadonly: chat.isReadonly,
+            isOwner,
+            isSharedWithUser,
         };
     })
 );
@@ -107,12 +163,11 @@ export const updateChatMessages = async ({ chatId, messages }: { chatId: string,
             return notFound();
         }
 
-        if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== user?.id) {
-            return notFound();
-        }
+        const isOwner = await _isOwnerOfChat(chat, user);
 
-        if (chat.isReadonly) {
-            return chatIsReadonly();
+        // Only the owner can modify chat messages
+        if (!isOwner) {
+            return notFound();
         }
 
         await prisma.chat.update({
@@ -174,12 +229,11 @@ export const updateChatName = async ({ chatId, name }: { chatId: string, name: s
             return notFound();
         }
 
-        if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== user?.id) {
-            return notFound();
-        }
+        const isOwner = await _isOwnerOfChat(chat, user);
 
-        if (chat.isReadonly) {
-            return chatIsReadonly();
+        // Only the owner can rename chats
+        if (!isOwner) {
+            return notFound();
         }
 
         await prisma.chat.update({
@@ -190,6 +244,48 @@ export const updateChatName = async ({ chatId, name }: { chatId: string, name: s
             data: {
                 name,
             },
+        });
+
+        return {
+            success: true,
+        }
+    })
+);
+
+export const updateChatVisibility = async ({ chatId, visibility }: { chatId: string, visibility: ChatVisibility }) => sew(() =>
+    withAuthV2(async ({ org, user, prisma }) => {
+        const chat = await prisma.chat.findUnique({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+        });
+
+        if (!chat) {
+            return notFound();
+        }
+
+        // Only the creator can change visibility
+        if (chat.createdById !== user.id) {
+            return notFound();
+        }
+
+        await prisma.chat.update({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+            data: {
+                visibility,
+            },
+        });
+
+        await auditService.createAudit({
+            action: "chat.visibility_updated",
+            actor: { id: user.id, type: "user" },
+            target: { id: chatId, type: "chat" },
+            orgId: org.id,
+            metadata: { message: `Visibility changed to ${visibility}` },
         });
 
         return {
@@ -261,15 +357,6 @@ export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
             return notFound();
         }
 
-        // Public chats cannot be deleted.
-        if (chat.visibility === ChatVisibility.PUBLIC) {
-            return {
-                statusCode: StatusCodes.FORBIDDEN,
-                errorCode: ErrorCode.UNEXPECTED_ERROR,
-                message: 'You are not allowed to delete this chat.',
-            } satisfies ServiceError;
-        }
-
         // Only the creator of a chat can delete it.
         if (chat.createdById !== user.id) {
             return notFound();
@@ -282,9 +369,229 @@ export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
             },
         });
 
+        await auditService.createAudit({
+            action: "chat.deleted",
+            actor: { id: user.id, type: "user" },
+            target: { id: chatId, type: "chat" },
+            orgId: org.id,
+        });
+
         return {
             success: true,
         }
+    })
+);
+
+/**
+ * Claims any anonymous chats created by the current user (matched via anonymousCreatorId cookie).
+ * This should be called after a user signs in to transfer ownership of their anonymous chats.
+ * Visibility is preserved so shared links continue to work.
+ */
+export const claimAnonymousChats = async () => sew(() =>
+    withAuthV2(async ({ org, user, prisma }) => {
+        const anonymousId = await getAnonymousId();
+
+        if (!anonymousId) {
+            return { claimed: 0 };
+        }
+
+        const result = await prisma.chat.updateMany({
+            where: {
+                orgId: org.id,
+                anonymousCreatorId: anonymousId,
+                createdById: null,
+            },
+            data: {
+                createdById: user.id,
+                anonymousCreatorId: null,
+            },
+        });
+
+        if (result.count > 0) {
+            captureEvent('wa_anonymous_chats_claimed', {
+                claimedCount: result.count,
+            });
+        }
+
+        return { claimed: result.count };
+    })
+);
+
+/**
+ * Duplicates a chat with all its messages.
+ * The new chat will be owned by the current user (authenticated or anonymous).
+ */
+export const duplicateChat = async ({ chatId, newName }: { chatId: string, newName: string }) => sew(() =>
+    withOptionalAuthV2(async ({ org, user, prisma }) => {
+        const originalChat = await prisma.chat.findUnique({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+        });
+
+        if (!originalChat) {
+            return notFound();
+        }
+
+        // Check if user can access the chat (owner, shared, or public)
+        const isOwner = await _isOwnerOfChat(originalChat, user);
+        const isSharedWithUser = await _hasSharedAccess({prisma, chatId, userId: user?.id});
+        if (originalChat.visibility === ChatVisibility.PRIVATE && !isOwner && !isSharedWithUser) {
+            return notFound();
+        }
+
+        const isGuestUser = user === undefined;
+        const anonymousCreatorId = isGuestUser ? await getOrCreateAnonymousId() : undefined;
+
+        const newChat = await prisma.chat.create({
+            data: {
+                orgId: org.id,
+                name: newName,
+                messages: originalChat.messages as unknown as Prisma.InputJsonValue,
+                createdById: user?.id,
+                anonymousCreatorId,
+                visibility: isGuestUser ? ChatVisibility.PUBLIC : ChatVisibility.PRIVATE,
+            },
+        });
+
+        return {
+            id: newChat.id,
+        };
+    })
+);
+
+/**
+ * Returns the users that have been explicitly shared access to a chat.
+ */
+export const getSharedWithUsersForChat = async ({ chatId }: { chatId: string }) => sew(() =>
+    withAuthV2(async ({ org, user, prisma }) => {
+        const chat = await prisma.chat.findUnique({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+        });
+
+        if (!chat) {
+            return notFound();
+        }
+
+        // Only the creator can view shares
+        if (chat.createdById !== user.id) {
+            return notFound();
+        }
+
+        const sharedWithUsers = await prisma.chatAccess.findMany({
+            where: {
+                chatId,
+            },
+            select: {
+                user: true,
+            },
+        });
+
+        return sharedWithUsers.map(({ user }) => ({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+        }));
+    })
+);
+
+/**
+ * Shares the chat with a list of users.
+ */
+export const shareChatWithUsers = async ({ chatId, userIds }: { chatId: string, userIds: string[] }) => sew(() =>
+    withAuthV2(async ({ org, user, prisma }) => {
+        const chat = await prisma.chat.findUnique({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+        });
+
+        if (!chat) {
+            return notFound();
+        }
+
+        // Only the creator can share
+        if (chat.createdById !== user.id) {
+            return notFound();
+        }
+
+
+        const memberships = await prisma.userToOrg.findMany({
+            where: {
+                orgId: org.id,
+                userId: {
+                    in: userIds,
+                },
+            },
+        });
+
+        if (memberships.length !== userIds.length) {
+            return notFound();
+        }
+
+        await prisma.chatAccess.createMany({
+            data: userIds.map((userId) => ({
+                chatId,
+                userId,
+            })),
+            skipDuplicates: true,
+        });
+
+        await auditService.createAudit({
+            action: "chat.shared_with_users",
+            actor: { id: user.id, type: "user" },
+            target: { id: chatId, type: "chat" },
+            orgId: org.id,
+            metadata: { message: userIds.join(", ") },
+        });
+
+        return { success: true };
+    })
+);
+
+/**
+ * Revokes access to a chat for a particular user.
+ */
+export const unshareChatWithUser = async ({ chatId, userId }: { chatId: string, userId: string }) => sew(() =>
+    withAuthV2(async ({ org, user, prisma }) => {
+        const chat = await prisma.chat.findUnique({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+        });
+
+        if (!chat) {
+            return notFound();
+        }
+
+        // Only the creator can remove shares
+        if (chat.createdById !== user.id) {
+            return notFound();
+        }
+
+        await prisma.chatAccess.deleteMany({
+            where: {
+                chatId,
+                userId,
+            },
+        });
+
+        await auditService.createAudit({
+            action: "chat.unshared_with_user",
+            actor: { id: user.id, type: "user" },
+            target: { id: chatId, type: "chat" },
+            orgId: org.id,
+            metadata: { message: userId },
+        });
+
+        return { success: true };
     })
 );
 
@@ -309,8 +616,9 @@ export const submitFeedback = async ({
             return notFound();
         }
 
-        // When a chat is private, only the creator can submit feedback.
-        if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== user?.id) {
+        // When a chat is private, only the creator or shared users can submit feedback.
+        const isSharedWithUser = await _hasSharedAccess({prisma, chatId, userId: user?.id});
+        if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== user?.id && !isSharedWithUser) {
             return notFound();
         }
 

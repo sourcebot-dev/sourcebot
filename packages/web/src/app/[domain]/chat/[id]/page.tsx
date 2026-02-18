@@ -1,5 +1,5 @@
 import { getRepos, getSearchContexts } from '@/actions';
-import { getUserChatHistory, getConfiguredLanguageModelsInfo, getChatInfo } from '@/features/chat/actions';
+import { getUserChatHistory, getConfiguredLanguageModelsInfo, getChatInfo, claimAnonymousChats, getSharedWithUsersForChat } from '@/features/chat/actions';
 import { ServiceErrorException } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
 import { ChatThreadPanel } from './components/chatThreadPanel';
@@ -7,10 +7,19 @@ import { notFound } from 'next/navigation';
 import { StatusCodes } from 'http-status-codes';
 import { TopBar } from '../../components/topBar';
 import { ChatName } from '../components/chatName';
+import { ShareChatPopover } from '../components/shareChatPopover';
 import { auth } from '@/auth';
 import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle';
 import { ChatSidePanel } from '../components/chatSidePanel';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
+import { prisma } from '@/prisma';
+import { getOrgFromDomain } from '@/data/org';
+import { ChatVisibility } from '@sourcebot/db';
+import { Metadata } from 'next';
+import { SBChatMessage } from '@/features/chat/types';
+import { env, hasEntitlement } from '@sourcebot/shared';
+
+import { captureEvent } from '@/lib/posthog';
 
 interface PageProps {
     params: Promise<{
@@ -19,13 +28,84 @@ interface PageProps {
     }>;
 }
 
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+    const { domain, id } = await params;
+
+    const org = await getOrgFromDomain(domain);
+    if (!org) {
+        return {
+            title: 'Chat | Sourcebot',
+        };
+    }
+
+    const chat = await prisma.chat.findUnique({
+        where: {
+            id,
+            orgId: org.id,
+        },
+    });
+
+    if (!chat) {
+        return {
+            title: 'Chat | Sourcebot',
+        };
+    }
+
+    // Only show detailed metadata for public chats
+    if (chat.visibility !== ChatVisibility.PUBLIC) {
+        return {
+            title: 'Private Chat | Sourcebot',
+            description: 'Login to view',
+        };
+    }
+
+    const chatName = chat.name ?? 'Untitled chat';
+    const messages = chat.messages as unknown as SBChatMessage[];
+    const firstUserMessage = messages.find(m => m.role === 'user');
+
+    let description = 'A chat on Sourcebot';
+    if (firstUserMessage) {
+        const textPart = firstUserMessage.parts.find(p => p.type === 'text');
+        if (textPart && textPart.type === 'text') {
+            description = textPart.text.length > 160
+                ? textPart.text.substring(0, 160).trim() + '...'
+                : textPart.text;
+        }
+    }
+
+    return {
+        title: `${chatName} | Sourcebot`,
+        description,
+        openGraph: {
+            title: chatName,
+            description,
+            type: 'website',
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: chatName,
+            description,
+        },
+    };
+}
+
 export default async function Page(props: PageProps) {
     const params = await props.params;
+    const session = await auth();
+
+    // Claim any anonymous chats created by this user before they signed in.
+    // This must happen before getChatInfo so the chat ownership is updated.
+    if (session) {
+        const claimResult = await claimAnonymousChats();
+        if (isServiceError(claimResult)) {
+            throw new ServiceErrorException(claimResult);
+        }
+    }
+
     const languageModels = await getConfiguredLanguageModelsInfo();
     const repos = await getRepos();
     const searchContexts = await getSearchContexts(params.domain);
     const chatInfo = await getChatInfo({ chatId: params.id });
-    const session = await auth();
     const chatHistory = session ? await getUserChatHistory() : [];
 
     if (isServiceError(chatHistory)) {
@@ -48,9 +128,28 @@ export default async function Page(props: PageProps) {
         throw new ServiceErrorException(chatInfo);
     }
 
-    const { messages, name, visibility, isReadonly } = chatInfo;
+    const { messages, name, visibility, isOwner, isSharedWithUser } = chatInfo;
+
+    // Track when a non-owner views a shared chat
+    if (!isOwner) {
+        captureEvent('wa_shared_chat_viewed', {
+            chatId: params.id,
+            visibility,
+            viewerType: session ? 'authenticated' : 'anonymous',
+            accessType: isSharedWithUser ? 'direct_invite' : 'public_link',
+        });
+    }
+
+    const sharedWithUsers = (session && isOwner) ? await getSharedWithUsersForChat({ chatId: params.id }) : [];
+
+    if (isServiceError(sharedWithUsers)) {
+        throw new ServiceErrorException(sharedWithUsers);
+    }
+    
 
     const indexedRepos = repos.filter((repo) => repo.indexedAt !== undefined);
+
+    const hasChatSharingEntitlement = hasEntitlement('chat-sharing');
 
     return (
         <div className="flex flex-col h-screen w-screen">
@@ -58,17 +157,27 @@ export default async function Page(props: PageProps) {
                 domain={params.domain}
                 homePath={`/${params.domain}/chat`}
                 session={session}
-            >
-                <div className="flex flex-row gap-2 items-center">
-                    <span className="text-muted mx-2 select-none">/</span>
+                centerContent={
                     <ChatName
                         name={name}
-                        visibility={visibility}
                         id={params.id}
-                        isReadonly={isReadonly}
+                        isOwner={isOwner}
+                        isAuthenticated={!!session}
                     />
-                </div>
-            </TopBar>
+                }
+                actions={isOwner ? (
+                    <ShareChatPopover
+                        chatId={params.id}
+                        visibility={visibility}
+                        currentUser={session?.user}
+                        sharedWithUsers={sharedWithUsers}
+                        isChatSharingEnabledInCurrentPlan={hasChatSharingEntitlement}
+                        // Disable chat sharing for the askgh experiment since we
+                        // don't want to allow users to search other members.
+                        isChatSharingEnabled={env.EXPERIMENT_ASK_GH_ENABLED === 'false'}
+                    />
+                ) : undefined}
+            />
             <ResizablePanelGroup
                 direction="horizontal"
             >
@@ -85,7 +194,9 @@ export default async function Page(props: PageProps) {
                     searchContexts={searchContexts}
                     messages={messages}
                     order={2}
-                    isChatReadonly={isReadonly}
+                    isOwner={isOwner}
+                    isAuthenticated={!!session}
+                    chatName={name ?? undefined}
                 />
             </ResizablePanelGroup>
         </div>
