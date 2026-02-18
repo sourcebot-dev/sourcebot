@@ -1,91 +1,128 @@
 'use client';
 
 import { useToast } from "@/components/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { updateChatName } from "@/features/chat/actions";
+import { Button } from "@/components/ui/button";
+import { deleteChat, duplicateChat, updateChatName } from "@/features/chat/actions";
 import { isServiceError } from "@/lib/utils";
-import { GlobeIcon } from "@radix-ui/react-icons";
-import { ChatVisibility } from "@sourcebot/db";
-import { LockIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { ChevronDown } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
+import { ChatActionsDropdown } from "./chatActionsDropdown";
+import { DeleteChatDialog } from "./deleteChatDialog";
+import { DuplicateChatDialog } from "./duplicateChatDialog";
 import { RenameChatDialog } from "./renameChatDialog";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
 interface ChatNameProps {
     name: string | null;
-    visibility: ChatVisibility;
     id: string;
-    isReadonly: boolean;
+    isOwner?: boolean;
+    isAuthenticated?: boolean;
 }
 
-export const ChatName = ({ name, visibility, id, isReadonly }: ChatNameProps) => {
+export const ChatName = ({ name, id, isOwner = false, isAuthenticated = false }: ChatNameProps) => {
     const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+    const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const params = useParams<{ domain: string }>();
 
-    const onRenameChat = useCallback(async (name: string) => {
-
+    const onRenameChat = useCallback(async (newName: string): Promise<boolean> => {
         const response = await updateChatName({
             chatId: id,
-            name: name,
+            name: newName,
         });
 
         if (isServiceError(response)) {
             toast({
                 description: `❌ Failed to rename chat. Reason: ${response.message}`
             });
+            return false;
         } else {
             toast({
                 description: `✅ Chat renamed successfully`
             });
             router.refresh();
+            return true;
         }
     }, [id, toast, router]);
 
+    const onDeleteChat = useCallback(async (): Promise<boolean> => {
+        const response = await deleteChat({ chatId: id });
+
+        if (isServiceError(response)) {
+            toast({
+                description: `❌ Failed to delete chat. Reason: ${response.message}`
+            });
+            return false;
+        } else {
+            toast({
+                description: `✅ Chat deleted successfully`
+            });
+            router.push(`/${SINGLE_TENANT_ORG_DOMAIN}/chat`);
+            router.refresh();
+            return true;
+        }
+    }, [id, toast, router]);
+
+    const onDuplicateChat = useCallback(async (newName: string): Promise<string | null> => {
+        const response = await duplicateChat({ chatId: id, newName });
+
+        if (isServiceError(response)) {
+            toast({
+                description: `❌ Failed to duplicate chat. Reason: ${response.message}`
+            });
+            return null;
+        } else {
+            toast({
+                description: `✅ Chat duplicated successfully`
+            });
+            router.push(`/${params.domain}/chat/${response.id}`);
+            return response.id;
+        }
+    }, [id, toast, router, params.domain]);
+
     return (
         <>
-            <div className="flex flex-row gap-2 items-center">
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <p
-                            className="text-sm font-medium hover:underline cursor-pointer"
-                            onClick={() => {
-                                setIsRenameDialogOpen(true);
-                            }}
+            <div className="flex flex-row gap-1 items-center">
+                <p className="text-sm font-medium">
+                    {name ?? 'Untitled chat'}
+                </p>
+                {isOwner && (
+                    <ChatActionsDropdown
+                        onRenameClick={() => setIsRenameDialogOpen(true)}
+                        onDuplicateClick={() => setIsDuplicateDialogOpen(true)}
+                        onDeleteClick={() => setIsDeleteDialogOpen(true)}
+                        showDelete={isAuthenticated}
+                        align="center"
+                    >
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
                         >
-                            {name ?? 'Untitled chat'}
-                        </p>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        Rename chat
-                    </TooltipContent>
-                </Tooltip>
-                {visibility && (
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div>
-                                <Badge variant="outline" className="cursor-default">
-                                    {visibility === ChatVisibility.PUBLIC ? (
-                                        <GlobeIcon className="w-3 h-3 mr-1" />
-                                    ) : (
-                                        <LockIcon className="w-3 h-3 mr-1" />
-                                    )}
-                                    {visibility === ChatVisibility.PUBLIC ? (isReadonly ? 'Public (Read-only)' : 'Public') : 'Private'}
-                                </Badge>
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            {visibility === ChatVisibility.PUBLIC ? `Anyone with the link can view this chat${!isReadonly ? ' and ask follow-up questions' : ''}.` : 'Only you can view and edit this chat.'}
-                        </TooltipContent>
-                    </Tooltip>
+                            <ChevronDown className="h-4 w-4" />
+                        </Button>
+                    </ChatActionsDropdown>
                 )}
             </div>
             <RenameChatDialog
                 isOpen={isRenameDialogOpen}
                 onOpenChange={setIsRenameDialogOpen}
                 onRename={onRenameChat}
-                currentName={name ?? ""}
+                currentName={name ?? "Untitled chat"}
+            />
+            <DeleteChatDialog
+                isOpen={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                onDelete={onDeleteChat}
+            />
+            <DuplicateChatDialog
+                isOpen={isDuplicateDialogOpen}
+                onOpenChange={setIsDuplicateDialogOpen}
+                onDuplicate={onDuplicateChat}
+                currentName={name ?? "Untitled chat"}
             />
         </>
     )

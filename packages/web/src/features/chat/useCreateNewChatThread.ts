@@ -39,7 +39,7 @@ export const useCreateNewChatThread = () => {
             return;
         }
 
-        captureEvent('wa_chat_thread_created', {});
+        captureEvent('wa_chat_thread_created', { isAnonymous: response.isAnonymous });
 
         setChatState({
             inputMessage,

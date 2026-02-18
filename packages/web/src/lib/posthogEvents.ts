@@ -150,13 +150,62 @@ export type PosthogEventMap = {
         chatId: string,
         messageId: string,
     },
-    wa_chat_thread_created: {},
+    wa_chat_thread_created: {
+        isAnonymous: boolean,
+    },
     wa_chat_message_sent: {
         messageCount: number,
     },
     wa_chat_tool_used: {
         toolName: string,
         success: boolean,
+    },
+    wa_chat_share_dialog_opened: {
+        chatId: string,
+        currentVisibility: 'PUBLIC' | 'PRIVATE',
+    },
+    wa_chat_visibility_changed: {
+        chatId: string,
+        fromVisibility: 'PUBLIC' | 'PRIVATE',
+        toVisibility: 'PUBLIC' | 'PRIVATE',
+    },
+    wa_chat_link_copied: {
+        chatId: string,
+        visibility: 'PUBLIC' | 'PRIVATE',
+    },
+    wa_chat_users_invited: {
+        chatId: string,
+        numUsersInvited: number,
+    },
+    wa_chat_user_removed: {
+        chatId: string,
+    },
+    wa_shared_chat_viewed: {
+        chatId: string,
+        visibility: 'PUBLIC' | 'PRIVATE',
+        viewerType: 'authenticated' | 'anonymous',
+        accessType: 'public_link' | 'direct_invite',
+    },
+    wa_chat_sign_in_banner_displayed: {
+        chatId: string,
+    },
+    wa_chat_sign_in_banner_dismissed: {
+        chatId: string,
+    },
+    wa_chat_sign_in_banner_clicked: {
+        chatId: string,
+    },
+    wa_anonymous_chats_claimed: {
+        claimedCount: number,
+    },
+    wa_chat_duplicated: {
+        chatId: string,
+    },
+    wa_chat_renamed: {
+        chatId: string,
+    },
+    wa_chat_deleted: {
+        chatId: string,
     },
     //////////////////////////////////////////////////////////////////
     wa_demo_docs_link_pressed: {},

@@ -2,24 +2,40 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useCallback } from "react";
+import { LoadingButton } from "@/components/ui/loading-button";
+import { useCallback, useState } from "react";
 
 interface DeleteChatDialogProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
-    onDelete: () => void;
+    onDelete: () => Promise<boolean>;
 }
 
 export const DeleteChatDialog = ({ isOpen, onOpenChange, onDelete }: DeleteChatDialogProps) => {
-    const handleDelete = useCallback(() => {
-        onDelete();
-        onOpenChange(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleDelete = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const success = await onDelete();
+            if (success) {
+                onOpenChange(false);
+            }
+        } catch (e) {
+            console.error('Failed to delete chat', e);
+        } finally {
+            setIsLoading(false);
+        }
     }, [onDelete, onOpenChange]);
 
     return (
         <Dialog
             open={isOpen}
-            onOpenChange={onOpenChange}
+            onOpenChange={(open) => {
+                if (!isLoading) {
+                    onOpenChange(open);
+                }
+            }}
         >
             <DialogContent>
                 <DialogHeader>
@@ -31,6 +47,7 @@ export const DeleteChatDialog = ({ isOpen, onOpenChange, onDelete }: DeleteChatD
                 <DialogFooter>
                     <Button
                         variant="outline"
+                        disabled={isLoading}
                         onClick={(e) => {
                             e.stopPropagation();
                             onOpenChange(false);
@@ -38,15 +55,15 @@ export const DeleteChatDialog = ({ isOpen, onOpenChange, onDelete }: DeleteChatD
                     >
                         Cancel
                     </Button>
-                    <Button
+                    <LoadingButton
                         variant="destructive"
+                        loading={isLoading}
                         onClick={handleDelete}
                     >
                         Delete
-                    </Button>
+                    </LoadingButton>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
     );
 };
-
