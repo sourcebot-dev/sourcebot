@@ -19,6 +19,15 @@ interface LoginFormProps {
 export const LoginForm = ({ callbackUrl, error, providers, context, isAnonymousAccessEnabled = false }: LoginFormProps) => {
     const captureEvent = useCaptureEvent();
 
+    const safeCallbackUrl = useMemo(() => {
+        if (!callbackUrl) return "/";
+        // Allow only relative paths that start with "/" but not "//" (protocol-relative URLs)
+        if (callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")) {
+            return callbackUrl;
+        }
+        return "/";
+    }, [callbackUrl]);
+
     const errorMessage = useMemo(() => {
         if (!error) {
             return "";
@@ -94,7 +103,7 @@ export const LoginForm = ({ callbackUrl, error, providers, context, isAnonymousA
                 </p>
                 {isAnonymousAccessEnabled && (
                     <p className="text-sm text-muted-foreground">
-                        <Link className="underline" href={callbackUrl ?? "/"}>Continue as guest</Link>
+                        <Link className="underline" href={safeCallbackUrl}>Continue as guest</Link>
                     </p>
                 )}
             </Card>

@@ -45,8 +45,10 @@ export const _isOwnerOfChat = async (chat: Chat, user: User | undefined): Promis
         return true;
     }
 
-    // Anonymous user owns the chat (check cookie-based anonymous ID)
-    if (!user && chat.anonymousCreatorId) {
+    // Only check the anonymous cookie for unclaimed chats (createdById === null).
+    // Once a chat has been claimed by an authenticated user, the anonymous path
+    // must not grant access — even if the same browser still holds the original cookie.
+    if (!chat.createdById && chat.anonymousCreatorId) {
         const anonymousId = await getAnonymousId();
         if (anonymousId && chat.anonymousCreatorId === anonymousId) {
             return true;
@@ -386,6 +388,7 @@ export const claimAnonymousChats = async () => sew(() =>
             },
             data: {
                 createdById: user.id,
+                anonymousCreatorId: null,
             },
         });
 
@@ -550,12 +553,10 @@ export const unshareChatWithUser = async ({ chatId, userId }: { chatId: string, 
             return notFound();
         }
 
-        await prisma.chatAccess.delete({
+        await prisma.chatAccess.deleteMany({
             where: {
-                chatId_userId: {
-                    chatId,
-                    userId,
-                },
+                chatId,
+                userId,
             },
         });
 

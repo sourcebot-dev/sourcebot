@@ -51,15 +51,22 @@ export const ShareSettings = ({
     const pathname = usePathname();
     const isAuthenticated = !!currentUser;
 
-    const handleCopyLink = useCallback(() => {
-        navigator.clipboard.writeText(window.location.href);
-        captureEvent('wa_chat_link_copied', {
-            chatId,
-            visibility,
-        });
-        toast({
-            description: "✅ Link copied to clipboard",
-        });
+    const handleCopyLink = useCallback(async () => {
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            captureEvent('wa_chat_link_copied', {
+                chatId,
+                visibility,
+            });
+            toast({
+                description: "✅ Link copied to clipboard",
+            });
+        } catch (e) {
+            toast({
+                description: `Failed to copy link: ${e instanceof Error ? e.message : "Unknown error"}`,
+                variant: "destructive",
+            });
+        }
     }, [chatId, visibility, toast]);
 
     const getInitials = (name?: string | null, email?: string | null) => {
@@ -147,12 +154,16 @@ export const ShareSettings = ({
                                                 disabled={removingUserIds.has(user.id)}
                                                 onClick={async () => {
                                                     setRemovingUserIds(prev => new Set(prev).add(user.id));
-                                                    await onRemoveSharedWithUser(user.id);
-                                                    setRemovingUserIds(prev => {
-                                                        const next = new Set(prev);
-                                                        next.delete(user.id);
-                                                        return next;
-                                                    });
+                                                    try {
+
+                                                        await onRemoveSharedWithUser(user.id);
+                                                    } finally {
+                                                        setRemovingUserIds(prev => {
+                                                            const next = new Set(prev);
+                                                            next.delete(user.id);
+                                                            return next;
+                                                        });
+                                                    }
                                                 }}
                                             >
                                                 {removingUserIds.has(user.id) ? (
@@ -187,8 +198,11 @@ export const ShareSettings = ({
                 value={visibility}
                 onValueChange={async (value) => {
                     setIsVisibilityUpdating(true);
-                    await onVisibilityChange(value as ChatVisibility);
-                    setIsVisibilityUpdating(false);
+                    try {
+                        await onVisibilityChange(value as ChatVisibility);
+                    } finally {
+                        setIsVisibilityUpdating(false);
+                    }
                 }}
                 disabled={isVisibilityUpdating || !isAuthenticated}
             >

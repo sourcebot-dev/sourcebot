@@ -182,8 +182,11 @@ export const InvitePanel = ({
                 <LoadingButton
                     onClick={async () => {
                         setIsInviting(true);
-                        await onShareChatWithUsers(selectedUsers);
-                        setIsInviting(false);
+                        try {
+                            await onShareChatWithUsers(selectedUsers);
+                        } finally {
+                            setIsInviting(false);
+                        }
                     }}
                     disabled={selectedUsers.length === 0 || isInviting}
                     loading={isInviting}

@@ -36,7 +36,7 @@ export const GET = apiHandler(async (
     if (env.EXPERIMENT_ASK_GH_ENABLED === 'true') {
         return serviceErrorResponse({
             statusCode: StatusCodes.FORBIDDEN,
-            errorCode: ErrorCode.NOT_FOUND,
+            errorCode: ErrorCode.UNEXPECTED_ERROR,
             message: "This API is not enabled with this experiment.",
         })
     }
@@ -44,7 +44,7 @@ export const GET = apiHandler(async (
     if (!hasEntitlement('chat-sharing')) {
         return serviceErrorResponse({
             statusCode: StatusCodes.FORBIDDEN,
-            errorCode: ErrorCode.NOT_FOUND,
+            errorCode: ErrorCode.UNEXPECTED_ERROR,
             message: "Chat sharing is not enabled for your license",
         })
     }

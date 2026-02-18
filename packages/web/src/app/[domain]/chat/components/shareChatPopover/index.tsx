@@ -75,14 +75,14 @@ export const ShareChatPopover = ({
             });
             return false;
         } else {
-            setSharedWithUsers(sharedWithUsers.filter(user => user.id !== userId));
+            setSharedWithUsers(prev => prev.filter(u => u.id !== userId));
             captureEvent('wa_chat_user_removed', { chatId });
             toast({
                 description: "✅ Access removed"
             });
             return true;
         }
-    }, [chatId, toast, sharedWithUsers]);
+    }, [chatId, toast]);
 
 
     const onShareChatWithUsers = useCallback(async (users: SessionUser[]) => {
@@ -98,7 +98,7 @@ export const ShareChatPopover = ({
             });
             return false;
         } else {
-            setSharedWithUsers([...sharedWithUsers, ...users]);
+            setSharedWithUsers(prev => [...prev, ...users]);
             captureEvent('wa_chat_users_invited', {
                 chatId,
                 numUsersInvited: users.length,
@@ -109,7 +109,7 @@ export const ShareChatPopover = ({
             setView('main');
             return true;
         }
-    }, [chatId, toast, sharedWithUsers]);
+    }, [chatId, toast]);
 
     const onOpenChange = useCallback((open: boolean) => {
         _setIsOpen(open);

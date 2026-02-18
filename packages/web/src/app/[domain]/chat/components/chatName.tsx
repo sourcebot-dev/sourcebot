@@ -17,9 +17,10 @@ interface ChatNameProps {
     name: string | null;
     id: string;
     isOwner?: boolean;
+    isAuthenticated?: boolean;
 }
 
-export const ChatName = ({ name, id, isOwner = false }: ChatNameProps) => {
+export const ChatName = ({ name, id, isOwner = false, isAuthenticated = false }: ChatNameProps) => {
     const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
     const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -93,6 +94,7 @@ export const ChatName = ({ name, id, isOwner = false }: ChatNameProps) => {
                         onRenameClick={() => setIsRenameDialogOpen(true)}
                         onDuplicateClick={() => setIsDuplicateDialogOpen(true)}
                         onDeleteClick={() => setIsDeleteDialogOpen(true)}
+                        showDelete={isAuthenticated}
                         align="center"
                     >
                         <Button

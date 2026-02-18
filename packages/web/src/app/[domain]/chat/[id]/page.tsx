@@ -18,6 +18,7 @@ import { ChatVisibility } from '@sourcebot/db';
 import { Metadata } from 'next';
 import { SBChatMessage } from '@/features/chat/types';
 import { env, hasEntitlement } from '@sourcebot/shared';
+
 import { captureEvent } from '@/lib/posthog';
 
 interface PageProps {
@@ -95,7 +96,10 @@ export default async function Page(props: PageProps) {
     // Claim any anonymous chats created by this user before they signed in.
     // This must happen before getChatInfo so the chat ownership is updated.
     if (session) {
-        await claimAnonymousChats();
+        const claimResult = await claimAnonymousChats();
+        if (isServiceError(claimResult)) {
+            throw new ServiceErrorException(claimResult);
+        }
     }
 
     const languageModels = await getConfiguredLanguageModelsInfo();
@@ -158,6 +162,7 @@ export default async function Page(props: PageProps) {
                         name={name}
                         id={params.id}
                         isOwner={isOwner}
+                        isAuthenticated={!!session}
                     />
                 }
                 actions={isOwner ? (

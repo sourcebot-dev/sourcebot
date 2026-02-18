@@ -8,6 +8,7 @@ interface ChatActionsDropdownProps {
     onRenameClick: () => void;
     onDuplicateClick: () => void;
     onDeleteClick: () => void;
+    showDelete?: boolean;
     align?: "start" | "center" | "end";
 }
 
@@ -16,6 +17,7 @@ export const ChatActionsDropdown = ({
     onRenameClick,
     onDuplicateClick,
     onDeleteClick,
+    showDelete = true,
     align = "start",
 }: ChatActionsDropdownProps) => {
     return (
@@ -47,16 +49,18 @@ export const ChatActionsDropdown = ({
                     <CopyIcon className="w-4 h-4 mr-2" />
                     Duplicate
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                    className="cursor-pointer text-destructive focus:text-destructive"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteClick();
-                    }}
-                >
-                    <TrashIcon className="w-4 h-4 mr-2" />
-                    Delete
-                </DropdownMenuItem>
+                {showDelete && (
+                    <DropdownMenuItem
+                        className="cursor-pointer text-destructive focus:text-destructive"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteClick();
+                        }}
+                    >
+                        <TrashIcon className="w-4 h-4 mr-2" />
+                        Delete
+                    </DropdownMenuItem>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );
