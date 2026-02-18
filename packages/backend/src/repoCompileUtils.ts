@@ -454,11 +454,25 @@ export const compileBitbucketConfig = async (
     const repos = bitbucketRepos.map((repo) => {
         const isServer = config.deploymentType === 'server';
         const codeHostType: CodeHostType = isServer ? 'bitbucketServer' : 'bitbucketCloud';
-        const displayName = isServer ?
-            // Server repos are of the format `project/repo`
-            `${(repo as BitbucketServerRepository).project!.key}/${(repo as BitbucketServerRepository).slug!}` :
-            // Cloud repos are of the format `workspace/project/repo`
-            `${(repo as BitbucketCloudRepository).full_name!.split('/')[0]}/${(repo as BitbucketCloudRepository).project?.key}/${(repo as BitbucketCloudRepository).full_name!.split('/')[1]}`;
+        const displayName = (() => {
+            if (isServer) {
+                const serverRepo = repo as BitbucketServerRepository;
+                if (!serverRepo.project?.key) {
+                    throw new Error(`No project key found for server repo ${serverRepo.slug}`);
+                }
+                // Server repos are of the format `project/repo`
+                return `${serverRepo.project.key}/${serverRepo.slug!}`;
+            } else {
+                const cloudRepo = repo as BitbucketCloudRepository;
+                const projectKey = cloudRepo.project?.key;
+                if (!projectKey) {
+                    throw new Error(`No project key found for cloud repo ${cloudRepo.full_name}`);
+                }
+                // Cloud repos are of the format `workspace/project/repo`
+                const [workspace, repoSlug] = cloudRepo.full_name!.split('/');
+                return `${workspace}/${projectKey}/${repoSlug}`;
+            }
+        })();
         const externalId = isServer ? (repo as BitbucketServerRepository).id!.toString() : (repo as BitbucketCloudRepository).uuid!;
         const isPublic = isServer ? (repo as BitbucketServerRepository).public : (repo as BitbucketCloudRepository).is_private === false;
         const isArchived = isServer ? (repo as BitbucketServerRepository).archived === true : false;
