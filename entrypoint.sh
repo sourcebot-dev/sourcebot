@@ -25,7 +25,7 @@ if [ -n "$CONFIG_PATH" ]; then
     echo -e "\e[34m[Info] Resolving environment overrides from $CONFIG_PATH...\e[0m"
 
     set +e # Disable exist on error so we can capture EXIT_CODE
-    OVERRIDES_OUTPUT=$(SKIP_ENV_VALIDATION=1 yarn tool:resolve-env-overrides 2>&1)
+    OVERRIDES_OUTPUT=$(SKIP_ENV_VALIDATION=1 yarn tool:resolve-env-overrides)
     EXIT_CODE=$?
     set -e # Re-enable exit on error
 
