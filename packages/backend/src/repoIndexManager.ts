@@ -575,11 +575,12 @@ export class RepoIndexManager {
             this.promClient.activeRepoIndexJobs.dec({ repo: job.data.repoName, type: jobTypeLabel });
             this.promClient.repoIndexJobSuccessTotal.inc({ repo: job.data.repoName, type: jobTypeLabel });
 
-            captureEvent('backend_repo_index_job_completed', {
-                repoId: job.data.repoId,
-                jobType: job.data.type,
-                type: jobData.repo.external_codeHostType,
-            });
+            if (jobData.type === RepoIndexingJobType.INDEX && jobData.repo.indexedAt === null) {
+                captureEvent('backend_repo_first_indexed', {
+                    repoId: job.data.repoId,
+                    type: jobData.repo.external_codeHostType,
+                });
+            }
         } catch (error) {
             Sentry.captureException(error);
             logger.error(`Exception thrown while executing lifecycle function \`onJobCompleted\`.`, error);

@@ -19,9 +19,8 @@ export type PosthogEventMap = {
         jobType: 'INDEX' | 'CLEANUP',
         type: string,
     },
-    backend_repo_index_job_completed: {
+    backend_repo_first_indexed: {
         repoId: number,
-        jobType: 'INDEX' | 'CLEANUP',
         type: string,
     },
 }
