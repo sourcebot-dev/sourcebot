@@ -211,6 +211,9 @@ server.tool(
                         name: repo.repoName,
                         url: repo.webUrl,
                         pushedAt: repo.pushedAt,
+                        defaultBranch: repo.defaultBranch,
+                        isFork: repo.isFork,
+                        isArchived: repo.isArchived,
                     })),
                     totalCount: result.totalCount,
                 })

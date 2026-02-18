@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added optional `visibility` parameter to `ask_codebase` tool to allow controlling chat session visibility in shared environments. [#903](https://github.com/sourcebot-dev/sourcebot/pull/903)
+- Added `defaultBranch`, `isFork`, and `isArchived` fields to the `list_repos` tool response. [#905](https://github.com/sourcebot-dev/sourcebot/pull/905)
 
 ## [1.0.16] - 2026-02-10
 

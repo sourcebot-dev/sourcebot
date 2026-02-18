@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added optional `visibility` parameter to `/api/chat/blocking` endpoint and MCP `ask_codebase` tool to allow controlling chat session visibility in shared environments. [#903](https://github.com/sourcebot-dev/sourcebot/pull/903)
+- Added `defaultBranch`, `isFork`, and `isArchived` fields to the `/api/repos` endpoint response and MCP `list_repos` tool. [#905](https://github.com/sourcebot-dev/sourcebot/pull/905)
 
 ## [4.11.1] - 2026-02-18
 
