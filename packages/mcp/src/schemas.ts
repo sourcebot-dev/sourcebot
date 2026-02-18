@@ -384,7 +384,7 @@ export const askCodebaseRequestSchema = z.object({
     visibility: z
         .enum(['PRIVATE', 'PUBLIC'])
         .optional()
-        .describe("The visibility of the chat session. If not provided, defaults to PRIVATE for authenticated users and PUBLIC for anonymous users. Set to PUBLIC to make the chat viewable by anyone with the link."),
+        .describe("The visibility of the chat session. If not provided, defaults to PRIVATE for authenticated users and PUBLIC for anonymous users. Set to PUBLIC to make the chat viewable by anyone with the link. Note: Anonymous users cannot create PRIVATE chats; any PRIVATE request from an unauthenticated user will be ignored and set to PUBLIC."),
 });
 
 export const sourceSchema = z.object({

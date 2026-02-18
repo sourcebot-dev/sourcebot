@@ -99,8 +99,11 @@ export const POST = apiHandler(async (request: NextRequest) => {
             const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
             const modelName = languageModelConfig.displayName ?? languageModelConfig.model;
 
-            // Determine visibility: use requested visibility if provided, otherwise default based on auth status
-            const chatVisibility = requestedVisibility ?? (user ? ChatVisibility.PRIVATE : ChatVisibility.PUBLIC);
+            // Determine visibility: anonymous users cannot create private chats (they would be inaccessible)
+            // Only use requested visibility if user is authenticated, otherwise always use PUBLIC
+            const chatVisibility = (requestedVisibility && user)
+                ? requestedVisibility
+                : (user ? ChatVisibility.PRIVATE : ChatVisibility.PUBLIC);
 
             // Create a new chat session
             const chat = await prisma.chat.create({
