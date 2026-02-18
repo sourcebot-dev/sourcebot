@@ -416,7 +416,7 @@ server.tool(
 
     Returns a detailed answer in markdown format with code references, plus a link to view the full research session (including all tool calls and reasoning) in the Sourcebot web UI.
 
-    When using this in shared environments (e.g., Slack), you can set the visibility parameter to 'PUBLIC' to ensure everyone can access the chat link. Note: The visibility parameter is only respected for authenticated users. Anonymous users will always create PUBLIC chats regardless of the visibility setting.
+    When using this in shared environments (e.g., Slack), you can set the visibility parameter to 'PUBLIC' to ensure everyone can access the chat link.
 
     This is a blocking operation that may take 30-60+ seconds for complex questions as the agent researches the codebase.
     `,
