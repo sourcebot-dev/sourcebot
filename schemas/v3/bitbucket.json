@@ -72,8 +72,8 @@
                     },
                     "examples": [
                         [
-                            "cloud_workspace/repo1", 
-                            "server_project/repo2" 
+                            "cloud_workspace/PROJECT_KEY/repo1",
+                            "SERVER_PROJECT_KEY/repo2"
                         ]
                     ],
                     "description": "List of specific repos to exclude from syncing."
