@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Replaced `backend_repo_index_job_completed` PostHog event with `backend_repo_first_indexed`, which fires only on the first successful index of a repo. [#900](https://github.com/sourcebot-dev/sourcebot/pull/900)
 
+### Fixed
+- Fixed startup env override parsing to ignore STDERR output, preventing Node warnings from breaking eval processing. [#902](https://github.com/sourcebot-dev/sourcebot/pull/902)
+
 ## [4.11.0] - 2026-02-18
 
 ### Added
