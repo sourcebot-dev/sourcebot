@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.11.0] - 2026-02-18
+
 ### Added
 - Added chat duplication to create copies of existing chats. [#888](https://github.com/sourcebot-dev/sourcebot/pull/888)
 - Added Open Graph metadata and image generation for shared chat links. [#888](https://github.com/sourcebot-dev/sourcebot/pull/888)
