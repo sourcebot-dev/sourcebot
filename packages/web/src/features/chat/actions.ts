@@ -280,6 +280,14 @@ export const updateChatVisibility = async ({ chatId, visibility }: { chatId: str
             },
         });
 
+        await auditService.createAudit({
+            action: "chat.visibility_updated",
+            actor: { id: user.id, type: "user" },
+            target: { id: chatId, type: "chat" },
+            orgId: org.id,
+            metadata: { message: `Visibility changed to ${visibility}` },
+        });
+
         return {
             success: true,
         }
@@ -359,6 +367,13 @@ export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
                 id: chatId,
                 orgId: org.id,
             },
+        });
+
+        await auditService.createAudit({
+            action: "chat.deleted",
+            actor: { id: user.id, type: "user" },
+            target: { id: chatId, type: "chat" },
+            orgId: org.id,
         });
 
         return {
@@ -528,6 +543,14 @@ export const shareChatWithUsers = async ({ chatId, userIds }: { chatId: string, 
             skipDuplicates: true,
         });
 
+        await auditService.createAudit({
+            action: "chat.shared_with_users",
+            actor: { id: user.id, type: "user" },
+            target: { id: chatId, type: "chat" },
+            orgId: org.id,
+            metadata: { message: userIds.join(", ") },
+        });
+
         return { success: true };
     })
 );
@@ -558,6 +581,14 @@ export const unshareChatWithUser = async ({ chatId, userId }: { chatId: string, 
                 chatId,
                 userId,
             },
+        });
+
+        await auditService.createAudit({
+            action: "chat.unshared_with_user",
+            actor: { id: user.id, type: "user" },
+            target: { id: chatId, type: "chat" },
+            orgId: org.id,
+            metadata: { message: userId },
         });
 
         return { success: true };
