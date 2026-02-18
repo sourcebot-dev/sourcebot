@@ -345,7 +345,7 @@ async function cloudGetRepos(client: BitbucketClient, repoList: string[]): Promi
     };
 }
 
-function cloudShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {
+export function cloudShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {
     const cloudRepo = repo as CloudRepository;
     let reason = '';
     const [workspace, repoSlug] = cloudRepo.full_name!.split('/');
@@ -553,7 +553,7 @@ async function serverGetRepos(client: BitbucketClient, repoList: string[]): Prom
     };
 }
 
-function serverShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {
+export function serverShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {
     const serverRepo = repo as ServerRepository;
 
     const projectName = serverRepo.project!.key;
