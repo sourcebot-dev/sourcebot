@@ -2,6 +2,12 @@ import { NewsItem } from "./types";
 
 export const newsData: NewsItem[] = [
     {
+        unique_id: "chat-sharing",
+        header: "Chat Sharing",
+        sub_header: "Share Ask Sourcebot chats via link or with specific team members.",
+        url: "https://docs.sourcebot.dev/docs/features/ask/chat-sharing"
+    },
+    {
         unique_id: "ask-sourcebot",
         header: "Ask Sourcebot",
         sub_header: "Ask Sourcebot to search, summarize, and explain code. Bring your own LLM.",
