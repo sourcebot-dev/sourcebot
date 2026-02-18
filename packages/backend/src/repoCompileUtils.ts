@@ -457,20 +457,13 @@ export const compileBitbucketConfig = async (
         const displayName = (() => {
             if (isServer) {
                 const serverRepo = repo as BitbucketServerRepository;
-                if (!serverRepo.project?.key) {
-                    throw new Error(`No project key found for server repo ${serverRepo.slug}`);
-                }
                 // Server repos are of the format `project/repo`
-                return `${serverRepo.project.key}/${serverRepo.slug!}`;
+                return `${serverRepo.project!.key}/${serverRepo.slug!}`;
             } else {
                 const cloudRepo = repo as BitbucketCloudRepository;
-                const projectKey = cloudRepo.project?.key;
-                if (!projectKey) {
-                    throw new Error(`No project key found for cloud repo ${cloudRepo.full_name}`);
-                }
                 // Cloud repos are of the format `workspace/project/repo`
                 const [workspace, repoSlug] = cloudRepo.full_name!.split('/');
-                return `${workspace}/${projectKey}/${repoSlug}`;
+                return `${workspace}/${cloudRepo.project?.key!}/${repoSlug}`;
             }
         })();
         const externalId = isServer ? (repo as BitbucketServerRepository).id!.toString() : (repo as BitbucketCloudRepository).uuid!;
