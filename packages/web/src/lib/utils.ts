@@ -239,7 +239,7 @@ export const getCodeHostInfoForRepo = (repo: {
             return {
                 type: "bitbucketServer",
                 displayName: displayName ?? name,
-                codeHostName: "Bitbucket",
+                codeHostName: "Bitbucket Server",
                 externalWebUrl,
                 icon: src,
                 iconClassName: className,
@@ -250,7 +250,7 @@ export const getCodeHostInfoForRepo = (repo: {
             return {
                 type: "bitbucketCloud",
                 displayName: displayName ?? name,
-                codeHostName: "Bitbucket",
+                codeHostName: "Bitbucket Cloud",
                 externalWebUrl,
                 icon: src,
                 iconClassName: className,
