@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed `og:image` URL resolving to `localhost` instead of the public domain when the app is deployed behind a reverse proxy. [#908](https://github.com/sourcebot-dev/sourcebot/pull/908)
+
 ## [4.11.3] - 2026-02-19
 
 ### Fixed
