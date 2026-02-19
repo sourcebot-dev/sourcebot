@@ -3,7 +3,7 @@
 import { sew } from "@/actions";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notFound, serviceErrorResponse } from "@/lib/serviceError";
+import { notFound, ServiceError } from "@/lib/serviceError";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { createAzure } from '@ai-sdk/azure';
@@ -336,6 +336,7 @@ export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageMod
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,
+                orgId: org.id,
             },
         });
 
@@ -353,11 +354,11 @@ export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageMod
                 .find((model) => model.model === languageModelId);
 
         if (!languageModelConfig) {
-            return serviceErrorResponse({
+            return {
                 statusCode: StatusCodes.BAD_REQUEST,
                 errorCode: ErrorCode.INVALID_REQUEST_BODY,
                 message: `Language model ${languageModelId} is not configured.`,
-            });
+            } satisfies ServiceError;
         }
 
         const name = await _generateChatNameFromMessage({ message, languageModelConfig });
