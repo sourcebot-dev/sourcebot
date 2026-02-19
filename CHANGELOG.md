@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Changed the "Open in" button copy to distinguish between Bitbucket serve & cloud. [#910](https://github.com/sourcebot-dev/sourcebot/pull/910)
+- `Alt+Enter` (Option+Enter on Mac) now inserts a newline in the chat input instead of submitting. [#912](https://github.com/sourcebot-dev/sourcebot/pull/912)
 
 ## [4.11.3] - 2026-02-19
 
