@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed `og:image` URL resolving to `localhost` instead of the public domain when the app is deployed behind a reverse proxy. [#908](https://github.com/sourcebot-dev/sourcebot/pull/908)
 - Fixed search bar not taking the full width on the search results and browse pages. [#909](https://github.com/sourcebot-dev/sourcebot/pull/909)
+- Added max height to the chat input box so it scrolls instead of expanding unboundedly when a large blob of text is pasted. [#913](https://github.com/sourcebot-dev/sourcebot/pull/913)
 
 ### Changed
 - Changed the "Open in" button copy to distinguish between Bitbucket serve & cloud. [#910](https://github.com/sourcebot-dev/sourcebot/pull/910)
