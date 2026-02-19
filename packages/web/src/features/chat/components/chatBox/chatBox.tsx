@@ -215,6 +215,12 @@ const ChatBoxComponent = ({
                         break;
                     }
 
+                    if (event.altKey) {
+                        event.preventDefault();
+                        editor.insertBreak();
+                        break;
+                    }
+
                     event.preventDefault();
                     onSubmit();
                     break;
