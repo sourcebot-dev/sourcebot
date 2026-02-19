@@ -254,7 +254,7 @@ const ChatBoxComponent = ({
                 }
             }
         }
-    }, [suggestionMode, suggestions, onSubmit, index, onInsertSuggestion]);
+    }, [suggestionMode, suggestions, onSubmit, editor, index, onInsertSuggestion]);
 
     useEffect(() => {
         if (!range || !suggestionsBoxRef.current) {
