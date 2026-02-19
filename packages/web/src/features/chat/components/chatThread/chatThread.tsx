@@ -129,10 +129,6 @@ export const ChatThread = ({
             } satisfies AdditionalChatRequestParams,
         });
 
-        captureEvent('wa_chat_message_sent', {
-            messageCount: messages.length + 1,
-        });
-
         if (
             messages.length === 0 &&
             message.parts.length > 0 &&
@@ -163,7 +159,6 @@ export const ChatThread = ({
         toast,
         chatId,
         router,
-        captureEvent,
     ]);
 
 

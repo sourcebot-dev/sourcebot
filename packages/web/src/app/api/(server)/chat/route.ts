@@ -1,5 +1,5 @@
 import { sew } from "@/actions";
-import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, updateChatMessages, _isOwnerOfChat } from "@/features/chat/actions";
+import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, _updateChatMessages, _isOwnerOfChat } from "@/features/chat/actions";
 import { createAgentStream } from "@/features/chat/agent";
 import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
@@ -12,6 +12,7 @@ import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
 import * as Sentry from "@sentry/nextjs";
 import { PrismaClient } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/shared";
+import { captureEvent } from "@/lib/posthog";
 import {
     createUIMessageStream,
     createUIMessageStreamResponse,
@@ -88,7 +89,13 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
 
+            await captureEvent('wa_chat_message_sent', {
+                chatId: id,
+                messageCount: messages.length,
+            });
+
             const stream = await createMessageStream({
+                chatId: id,
                 messages,
                 selectedSearchScopes,
                 model,
@@ -97,10 +104,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 orgId: org.id,
                 prisma,
                 onFinish: async ({ messages }) => {
-                    await updateChatMessages({
-                        chatId: id,
-                        messages
-                    });
+                    await _updateChatMessages({ chatId: id, messages, prisma });
                 },
                 onError: (error: unknown) => {
                     logger.error(error);
@@ -146,6 +150,7 @@ const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMe
 }
 
 interface CreateMessageStreamResponseProps {
+    chatId: string;
     messages: SBChatMessage[];
     selectedSearchScopes: SearchScope[];
     model: AISDKLanguageModelV2;
@@ -158,6 +163,7 @@ interface CreateMessageStreamResponseProps {
 }
 
 export const createMessageStream = async ({
+    chatId,
     messages,
     selectedSearchScopes,
     model,
@@ -242,6 +248,7 @@ export const createMessageStream = async ({
                     });
                 },
                 traceId,
+                chatId,
             });
 
             await mergeStreamAsync(researchStream, writer, {
