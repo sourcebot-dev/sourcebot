@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.11.3] - 2026-02-19
+
 ### Fixed
 - Fixed issue where chat threads created via the `/api/chat/blocking` endpoint would not have any messages when called without authentication. [#907](https://github.com/sourcebot-dev/sourcebot/pull/907)
 
