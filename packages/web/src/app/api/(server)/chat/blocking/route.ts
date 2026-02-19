@@ -1,5 +1,5 @@
 import { sew } from "@/actions";
-import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, updateChatMessages, generateAndUpdateChatNameFromMessage } from "@/features/chat/actions";
+import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, _updateChatMessages, generateAndUpdateChatNameFromMessage, _generateChatNameFromMessage } from "@/features/chat/actions";
 import { LanguageModelInfo, languageModelInfoSchema, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -15,6 +15,7 @@ import { z } from "zod";
 import { createMessageStream } from "../route";
 import { InferUIMessageChunk, UITools, UIDataTypes, UIMessage } from "ai";
 import { apiHandler } from "@/lib/apiHandler";
+import { captureEvent } from "@/lib/posthog";
 
 const logger = createLogger('chat-blocking-api');
 
@@ -115,6 +116,11 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 },
             });
 
+            await captureEvent('wa_chat_thread_created', {
+                chatId: chat.id,
+                isAnonymous: !user,
+            });
+
             // Run the agent to completion
             logger.debug(`Starting blocking agent for chat ${chat.id}`, {
                 chatId: chat.id,
@@ -155,7 +161,13 @@ export const POST = apiHandler(async (request: NextRequest) => {
             // We'll capture the final messages and usage from the stream
             let finalMessages: SBChatMessage[] = [];
 
+            await captureEvent('wa_chat_message_sent', {
+                chatId: chat.id,
+                messageCount: 1,
+            });
+
             const stream = await createMessageStream({
+                chatId: chat.id,
                 messages: [userMessage],
                 selectedSearchScopes,
                 model,
@@ -180,21 +192,28 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 },
             })
 
-            await Promise.all([
+            const [_, name] = await Promise.all([
                 // Consume the stream fully to trigger onFinish
                 blockStreamUntilFinish(stream),
                 // Generate and update the chat name
-                generateAndUpdateChatNameFromMessage({
-                    chatId: chat.id,
-                    languageModelId: languageModelConfig.model,
+                _generateChatNameFromMessage({
                     message: query,
+                    languageModelConfig,
                 })
             ]);
 
             // Persist the messages to the chat
-            await updateChatMessages({
-                chatId: chat.id,
-                messages: finalMessages,
+            await _updateChatMessages({ chatId: chat.id, messages: finalMessages, prisma });
+
+            // Update the chat name
+            await prisma.chat.update({
+                where: {
+                    id: chat.id,
+                    orgId: org.id,
+                },
+                data: {
+                    name: name,
+                },
             });
 
             // Extract the answer text from the assistant message

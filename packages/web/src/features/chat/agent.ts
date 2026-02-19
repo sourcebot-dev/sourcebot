@@ -22,6 +22,7 @@ interface AgentOptions {
     inputSources: Source[];
     onWriteSource: (source: Source) => void;
     traceId: string;
+    chatId: string;
 }
 
 export const createAgentStream = async ({
@@ -32,6 +33,7 @@ export const createAgentStream = async ({
     selectedRepos,
     onWriteSource,
     traceId,
+    chatId,
 }: AgentOptions) => {
     // For every file source, resolve the source code so that we can include it in the system prompt.
     const fileSources = inputSources.filter((source) => source.type === 'file');
@@ -84,6 +86,7 @@ export const createAgentStream = async ({
         onStepFinish: ({ toolResults }) => {
             toolResults.forEach(({ toolName, output, dynamic }) => {
                 captureEvent('wa_chat_tool_used', {
+                    chatId,
                     toolName,
                     success: !isServiceError(output),
                 });

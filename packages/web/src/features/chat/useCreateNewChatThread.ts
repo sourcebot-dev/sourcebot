@@ -11,17 +11,13 @@ import { isServiceError } from "@/lib/utils";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { SearchScope, SET_CHAT_STATE_SESSION_STORAGE_KEY, SetChatStatePayload } from "./types";
 import { useSessionStorage } from "usehooks-ts";
-import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
 export const useCreateNewChatThread = () => {
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
-    const captureEvent = useCaptureEvent();
-
     const [, setChatState] = useSessionStorage<SetChatStatePayload | null>(SET_CHAT_STATE_SESSION_STORAGE_KEY, null);
-
 
     const createNewChatThread = useCallback(async (children: Descendant[], selectedSearchScopes: SearchScope[]) => {
         const text = slateContentToString(children);
@@ -39,8 +35,6 @@ export const useCreateNewChatThread = () => {
             return;
         }
 
-        captureEvent('wa_chat_thread_created', { isAnonymous: response.isAnonymous });
-
         setChatState({
             inputMessage,
             selectedSearchScopes,
@@ -50,7 +44,7 @@ export const useCreateNewChatThread = () => {
 
         router.push(url);
         router.refresh();
-    }, [router, toast, setChatState, captureEvent]);
+    }, [router, toast, setChatState]);
 
     return {
         createNewChatThread,
