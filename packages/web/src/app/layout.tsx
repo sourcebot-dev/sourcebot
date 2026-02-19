@@ -11,7 +11,7 @@ import { PlanProvider } from "@/features/entitlements/planProvider";
 import { getEntitlements } from "@sourcebot/shared";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(env.AUTH_URL),
+  metadataBase: env.AUTH_URL ? new URL(env.AUTH_URL) : undefined,
   // Using the title.template will allow child pages to set the title
   // while keeping a consistent suffix.
   title: {
