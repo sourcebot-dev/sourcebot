@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.11.4] - 2026-02-20
+
 ### Fixed
 - Fixed `og:image` URL resolving to `localhost` instead of the public domain when the app is deployed behind a reverse proxy. [#908](https://github.com/sourcebot-dev/sourcebot/pull/908)
 - Fixed search bar not taking the full width on the search results and browse pages. [#909](https://github.com/sourcebot-dev/sourcebot/pull/909)
