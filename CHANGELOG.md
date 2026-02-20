@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Skip calling `getCommitHashForRefName` for empty repositories to avoid noisy debug log output. [#914](https://github.com/sourcebot-dev/sourcebot/pull/914)
+
 ## [4.11.4] - 2026-02-20
 
 ### Fixed
