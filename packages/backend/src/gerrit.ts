@@ -36,7 +36,7 @@ export const getGerritReposFromConfig = async (config: GerritConnectionConfig): 
    const url = config.url.endsWith('/') ? config.url : `${config.url}/`;
 
    let { durationMs, data: projects } = await measure(async () => {
-      const fetchFn = () => fetchAllProjects(url);
+      const fetchFn = () => fetchAllProjects(url, config.username, config.password);
       return fetchWithRetry(fetchFn, `projects from ${url}`, logger);
    });
 
@@ -61,7 +61,7 @@ export const getGerritReposFromConfig = async (config: GerritConnectionConfig): 
    return projects;
 };
 
-const fetchAllProjects = async (url: string): Promise<GerritProject[]> => {
+const fetchAllProjects = async (url: string, username?: string, password?: string): Promise<GerritProject[]> => {
    const projectsEndpoint = `${url}projects/`;
    let allProjects: GerritProject[] = [];
    let start = 0; // Start offset for pagination
@@ -71,8 +71,14 @@ const fetchAllProjects = async (url: string): Promise<GerritProject[]> => {
       const endpointWithParams = `${projectsEndpoint}?S=${start}`;
       logger.debug(`Fetching projects from Gerrit at ${endpointWithParams}`);
 
+      const headers: Record<string, string> = {};
+      if (username && password) {
+         const token = Buffer.from(`${username}:${password}`).toString('base64');
+         headers['Authorization'] = `Basic ${token}`;
+      }
+
       let response: Response;
-      response = await fetch(endpointWithParams);
+      response = await fetch(endpointWithParams, { headers });
       if (!response.ok) {
          throw new Error(`Failed to fetch projects from Gerrit at ${endpointWithParams} with status ${response.status}`);
       }
