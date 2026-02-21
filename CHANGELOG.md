@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added GitHub workflow to automatically tag Linear issues with the release version when a new release is published. [#917](https://github.com/sourcebot-dev/sourcebot/pull/917)
+
 ## [4.11.5] - 2026-02-21
 
 ### Fixed
