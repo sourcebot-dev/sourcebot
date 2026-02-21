@@ -61,7 +61,7 @@ export const compileGithubConfig = async (
     const gitHubRepos = gitHubReposResult.repos;
     const warnings = gitHubReposResult.warnings;
 
-    const hostUrl = config.url ?? 'https://github.com';
+    const hostUrl = (config.url ?? 'https://github.com').replace(/\/+$/, '');
 
     const repos = gitHubRepos.map((repo) => {
         const record = createGitHubRepoRecord({
@@ -242,7 +242,7 @@ export const compileGiteaConfig = async (
     const giteaRepos = giteaReposResult.repos;
     const warnings = giteaReposResult.warnings;
 
-    const hostUrl = config.url ?? 'https://gitea.com';
+    const hostUrl = (config.url ?? 'https://gitea.com').replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
         .toString()
         .replace(/^https?:\/\//, '');
@@ -309,7 +309,7 @@ export const compileGerritConfig = async (
     connectionId: number): Promise<CompileResult> => {
 
     const gerritRepos = await getGerritReposFromConfig(config);
-    const hostUrl = config.url;
+    const hostUrl = config.url.replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
         .toString()
         .replace(/^https?:\/\//, '');
@@ -396,7 +396,7 @@ export const compileBitbucketConfig = async (
     const bitbucketRepos = bitbucketReposResult.repos;
     const warnings = bitbucketReposResult.warnings;
 
-    const hostUrl = config.url ?? 'https://bitbucket.org';
+    const hostUrl = (config.url ?? 'https://bitbucket.org').replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
         .toString()
         .replace(/^https?:\/\//, '');
