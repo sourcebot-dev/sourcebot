@@ -160,7 +160,7 @@ export const compileGitlabConfig = async (
     const gitlabRepos = gitlabReposResult.repos;
     const warnings = gitlabReposResult.warnings;
 
-    const hostUrl = (config.url ?? 'https://gitlab.com').replace(/\/$/, '');
+    const hostUrl = (config.url ?? 'https://gitlab.com').replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
         .toString()
         .replace(/^https?:\/\//, '');
@@ -724,7 +724,7 @@ export const compileAzureDevOpsConfig = async (
     const azureDevOpsRepos = azureDevOpsReposResult.repos;
     const warnings = azureDevOpsReposResult.warnings;
 
-    const hostUrl = (config.url ?? 'https://dev.azure.com').replace(/\/$/, '');
+    const hostUrl = (config.url ?? 'https://dev.azure.com').replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
         .toString()
         .replace(/^https?:\/\//, '');
