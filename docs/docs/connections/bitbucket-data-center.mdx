@@ -4,8 +4,6 @@ sidebarTitle: Bitbucket Data Center
 icon: Bitbucket
 ---
 
-import BitbucketToken from '/snippets/bitbucket-token.mdx';
-import BitbucketAppPassword from '/snippets/bitbucket-app-password.mdx';
 import BitbucketSchema from '/snippets/schemas/v3/bitbucket.schema.mdx'
 
 <Note>
@@ -75,9 +73,30 @@ In order to index private repositories, you'll need to provide an access token t
 Create an access token for the desired scope (repo, project, or workspace). Visit the official [Bitbucket Data Center docs](https://confluence.atlassian.com/bitbucketserver/http-access-tokens-939515499.html)
 for more info.
 
-Next, provide the access token to Sourcebot:
+1. Add the `token` property to your connection config:
 
-<BitbucketToken />
+```json
+{
+    "type": "bitbucket",
+    "deploymentType": "server",
+    "url": "https://mybitbucketdeployment.com",
+    "token": {
+        // note: this env var can be named anything. It
+        // doesn't need to be `BITBUCKET_TOKEN`.
+        "env": "BITBUCKET_TOKEN"
+    }
+    // .. rest of config ..
+}
+```
+
+2. Pass this environment variable each time you run Sourcebot:
+
+```bash
+docker run \
+    -e BITBUCKET_TOKEN=<ACCESS_TOKEN> \
+    /* additional args */ \
+    ghcr.io/sourcebot-dev/sourcebot:latest
+```
 
 ## Troubleshooting
 If you're seeing errors like `TypeError: fetch failed` when fetching repo info, it may be that Sourcebot is refusing to connect to your self-hosted Bitbucket instance due to unrecognized SSL certs. Try setting the `NODE_TLS_REJECT_UNAUTHORIZED=0` environment variable or providing Sourcebot your certs through the `NODE_EXTRA_CA_CERTS` environment variable.

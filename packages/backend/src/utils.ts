@@ -182,7 +182,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
             const config = connection.config as unknown as BitbucketConnectionConfig;
             if (config.token) {
                 const token = await getTokenFromConfig(config.token);
-                const username = config.user ?? 'x-token-auth';
+                const username = config.gitUser ?? config.user ?? 'x-token-auth';
                 return {
                     hostUrl: config.url,
                     token,
