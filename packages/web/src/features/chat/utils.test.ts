@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import { fileReferenceToString, getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences } from './utils'
+import { fileReferenceToString, getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences, truncateFileContent, isContextWindowError, CONTEXT_WINDOW_USER_MESSAGE } from './utils'
 import { FILE_REFERENCE_REGEX, ANSWER_TAG } from './constants';
 import { SBChatMessage, SBChatMessagePart } from './types';
 
@@ -350,4 +350,74 @@ test('repairReferences handles malformed inline code blocks', () => {
     const input = 'See `@file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts`} for details.';
     const expected = 'See @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts} for details.';
     expect(repairReferences(input)).toBe(expected);
+});
+
+// truncateFileContent tests
+
+test('truncateFileContent returns content unchanged when under limit', () => {
+    const source = 'line 1\nline 2\nline 3';
+    const result = truncateFileContent(source, 100);
+    expect(result.content).toBe(source);
+    expect(result.wasTruncated).toBe(false);
+});
+
+test('truncateFileContent returns content unchanged when exactly at limit', () => {
+    const source = 'abcde';
+    const result = truncateFileContent(source, 5);
+    expect(result.content).toBe(source);
+    expect(result.wasTruncated).toBe(false);
+});
+
+test('truncateFileContent truncates at line boundary when over limit', () => {
+    const source = 'line 1\nline 2\nline 3\nline 4\nline 5';
+    // Limit of 20 characters: "line 1\nline 2\nline 3" is 20 chars
+    const result = truncateFileContent(source, 15);
+    expect(result.wasTruncated).toBe(true);
+    expect(result.content).toContain('line 1\nline 2');
+    expect(result.content).toContain('... [truncated:');
+    expect(result.content).not.toContain('line 4');
+});
+
+test('truncateFileContent includes line count information', () => {
+    const source = 'a\nb\nc\nd\ne';
+    const result = truncateFileContent(source, 3);
+    expect(result.wasTruncated).toBe(true);
+    expect(result.content).toMatch(/showing \d+ of 5 lines/);
+});
+
+// isContextWindowError tests
+
+test('isContextWindowError detects OpenAI context length error', () => {
+    expect(isContextWindowError('This model\'s maximum context length is 128000 tokens')).toBe(true);
+});
+
+test('isContextWindowError detects Anthropic prompt too long error', () => {
+    expect(isContextWindowError('prompt is too long: 150000 tokens > 100000 maximum')).toBe(true);
+});
+
+test('isContextWindowError detects context_length_exceeded error', () => {
+    expect(isContextWindowError('context_length_exceeded')).toBe(true);
+});
+
+test('isContextWindowError detects token limit error', () => {
+    expect(isContextWindowError('Request exceeds the maximum number of tokens')).toBe(true);
+});
+
+test('isContextWindowError detects reduce the length error', () => {
+    expect(isContextWindowError('Please reduce the length of the messages')).toBe(true);
+});
+
+test('isContextWindowError detects request too large error', () => {
+    expect(isContextWindowError('request too large')).toBe(true);
+});
+
+test('isContextWindowError returns false for unrelated errors', () => {
+    expect(isContextWindowError('Internal server error')).toBe(false);
+    expect(isContextWindowError('Rate limit exceeded')).toBe(false);
+    expect(isContextWindowError('Invalid API key')).toBe(false);
+});
+
+test('CONTEXT_WINDOW_USER_MESSAGE is a non-empty string', () => {
+    expect(typeof CONTEXT_WINDOW_USER_MESSAGE).toBe('string');
+    expect(CONTEXT_WINDOW_USER_MESSAGE.length).toBeGreaterThan(0);
 });

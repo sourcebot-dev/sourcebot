@@ -4,7 +4,8 @@ import { InferToolInput, InferToolOutput, InferUITool, tool, ToolUIPart } from "
 import { isServiceError } from "@/lib/utils";
 import { FileSourceResponse, getFileSource, listCommits } from '@/features/git';
 import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "../codeNav/api";
-import { addLineNumbers } from "./utils";
+import { addLineNumbers, truncateFileContent } from "./utils";
+import { env } from "@sourcebot/shared";
 import { toolNames } from "./constants";
 import { listReposQueryParamsSchema } from "@/lib/schemas";
 import { ListReposQueryParams } from "@/lib/types";
@@ -123,13 +124,16 @@ export const readFilesTool = tool({
             return firstError!;
         }
 
-        return (responses as FileSourceResponse[]).map((response) => ({
-            path: response.path,
-            repository: response.repo,
-            language: response.language,
-            source: addLineNumbers(response.source),
-            revision,
-        }));
+        return (responses as FileSourceResponse[]).map((response) => {
+            const { content } = truncateFileContent(response.source, env.SOURCEBOT_CHAT_FILE_MAX_CHARACTERS);
+            return {
+                path: response.path,
+                repository: response.repo,
+                language: response.language,
+                source: addLineNumbers(content),
+                revision,
+            };
+        });
     }
 });
 

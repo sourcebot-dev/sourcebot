@@ -2,7 +2,7 @@ import { sew } from "@/actions";
 import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, _updateChatMessages, _isOwnerOfChat } from "@/features/chat/actions";
 import { createAgentStream } from "@/features/chat/agent";
 import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
-import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
+import { getAnswerPartFromAssistantMessage, getLanguageModelKey, isContextWindowError, CONTEXT_WINDOW_USER_MESSAGE } from "@/features/chat/utils";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
@@ -11,7 +11,7 @@ import { withOptionalAuthV2 } from "@/withAuthV2";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
 import * as Sentry from "@sentry/nextjs";
 import { PrismaClient } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/shared";
+import { createLogger, env } from "@sourcebot/shared";
 import { captureEvent } from "@/lib/posthog";
 import {
     createUIMessageStream,
@@ -114,15 +114,17 @@ export const POST = apiHandler(async (req: NextRequest) => {
                         return 'unknown error';
                     }
 
-                    if (typeof error === 'string') {
-                        return error;
+                    const errorMessage = (() => {
+                        if (typeof error === 'string') return error;
+                        if (error instanceof Error) return error.message;
+                        return JSON.stringify(error);
+                    })();
+
+                    if (isContextWindowError(errorMessage)) {
+                        return CONTEXT_WINDOW_USER_MESSAGE;
                     }
 
-                    if (error instanceof Error) {
-                        return error.message;
-                    }
-
-                    return JSON.stringify(error);
+                    return errorMessage;
                 }
             });
 
@@ -203,6 +205,11 @@ export const createMessageStream = async ({
             }
         }).filter(message => message !== undefined);
 
+    const maxMessages = env.SOURCEBOT_CHAT_MAX_MESSAGE_HISTORY;
+    const trimmedMessageHistory = messageHistory.length > maxMessages
+        ? messageHistory.slice(-maxMessages)
+        : messageHistory;
+
     const stream = createUIMessageStream<SBChatMessage>({
         execute: async ({ writer }) => {
             writer.write({
@@ -238,7 +245,7 @@ export const createMessageStream = async ({
             const researchStream = await createAgentStream({
                 model,
                 providerOptions: modelProviderOptions,
-                inputMessages: messageHistory,
+                inputMessages: trimmedMessageHistory,
                 inputSources: sources,
                 selectedRepos: expandedRepos,
                 onWriteSource: (source) => {

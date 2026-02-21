@@ -176,6 +176,48 @@ export const addLineNumbers = (source: string, lineOffset = 1) => {
     return source.split('\n').map((line, index) => `${index + lineOffset}:${line}`).join('\n');
 }
 
+export const truncateFileContent = (
+    source: string,
+    maxCharacters: number,
+): { content: string; wasTruncated: boolean } => {
+    if (source.length <= maxCharacters) {
+        return { content: source, wasTruncated: false };
+    }
+
+    const cutoff = source.lastIndexOf('\n', maxCharacters);
+    const effectiveCutoff = cutoff > 0 ? cutoff : maxCharacters;
+    const truncated = source.substring(0, effectiveCutoff);
+
+    const totalLines = source.split('\n').length;
+    const includedLines = truncated.split('\n').length;
+
+    return {
+        content: truncated + `\n\n... [truncated: showing ${includedLines} of ${totalLines} lines]`,
+        wasTruncated: true,
+    };
+};
+
+const CONTEXT_WINDOW_ERROR_PATTERNS = [
+    /maximum context length/i,
+    /prompt is too long/i,
+    /context.?length.?exceeded/i,
+    /exceeds? the maximum.*tokens?/i,
+    /token.?limit/i,
+    /request.?too.?large/i,
+    /input.?too.?long/i,
+    /request payload size exceeds/i,
+    /max_tokens/i,
+    /reduce the length/i,
+];
+
+export const isContextWindowError = (errorMessage: string): boolean => {
+    return CONTEXT_WINDOW_ERROR_PATTERNS.some((pattern) => pattern.test(errorMessage));
+};
+
+export const CONTEXT_WINDOW_USER_MESSAGE =
+    'The conversation exceeded the model\'s context window limit. ' +
+    'Try removing some attached files, starting a new conversation, or switching to a model with a larger context window.';
+
 export const createUIMessage = (text: string, mentions: MentionData[], selectedSearchScopes: SearchScope[]): CreateUIMessage<SBChatMessage> => {
     // Converts applicable mentions into sources.
     const sources: Source[] = mentions
