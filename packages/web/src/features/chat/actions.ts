@@ -3,7 +3,7 @@
 import { sew } from "@/actions";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notFound, serviceErrorResponse } from "@/lib/serviceError";
+import { notFound, ServiceError } from "@/lib/serviceError";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { createAzure } from '@ai-sdk/azure';
@@ -62,7 +62,7 @@ export const _isOwnerOfChat = async (chat: Chat, user: User | undefined): Promis
 /**
  * Checks if a user has been explicitly shared access to a chat.
  */
-export const _hasSharedAccess = async ({prisma, chatId, userId}: {prisma: PrismaClient, chatId: string, userId: string | undefined}): Promise<boolean> => {
+export const _hasSharedAccess = async ({ prisma, chatId, userId }: { prisma: PrismaClient, chatId: string, userId: string | undefined }): Promise<boolean> => {
     if (!userId) {
         return false;
     }
@@ -78,6 +78,55 @@ export const _hasSharedAccess = async ({prisma, chatId, userId}: {prisma: Prisma
 
     return share !== null;
 };
+
+export const _updateChatMessages = async ({ chatId, messages, prisma }: { chatId: string, messages: SBChatMessage[], prisma: PrismaClient }) => {
+    await prisma.chat.update({
+        where: {
+            id: chatId,
+        },
+        data: {
+            messages: messages as unknown as Prisma.InputJsonValue,
+        },
+    });
+
+    if (env.DEBUG_WRITE_CHAT_MESSAGES_TO_FILE) {
+        const chatDir = path.join(env.DATA_CACHE_DIR, 'chats');
+        if (!fs.existsSync(chatDir)) {
+            fs.mkdirSync(chatDir, { recursive: true });
+        }
+
+        const chatFile = path.join(chatDir, `${chatId}.json`);
+        fs.writeFileSync(chatFile, JSON.stringify(messages, null, 2));
+    }
+};
+
+
+export const _generateChatNameFromMessage = async ({ message, languageModelConfig }: { message: string, languageModelConfig: LanguageModel }) => {
+    const { model } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
+
+    const prompt = `Convert this question into a short topic title (max 50 characters). 
+
+Rules:
+- Do NOT include question words (what, where, how, why, when, which)
+- Do NOT end with a question mark
+- Capitalize the first letter of the title
+- Focus on the subject/topic being discussed
+- Make it sound like a file name or category
+
+Examples:
+"Where is the authentication code?" → "Authentication Code"
+"How to setup the database?" → "Database Setup"
+"What are the API endpoints?" → "API Endpoints"
+
+User question: ${message}`;
+
+    const result = await generateText({
+        model,
+        prompt,
+    });
+
+    return result.text;
+}
 
 export const createChat = async () => sew(() =>
     withOptionalAuthV2(async ({ org, user, prisma }) => {
@@ -112,6 +161,11 @@ export const createChat = async () => sew(() =>
             });
         }
 
+        await captureEvent('wa_chat_thread_created', {
+            chatId: chat.id,
+            isAnonymous: isGuestUser,
+        });
+
         return {
             id: chat.id,
             isAnonymous: isGuestUser,
@@ -133,7 +187,7 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
         }
 
         const isOwner = await _isOwnerOfChat(chat, user);
-        const isSharedWithUser = await _hasSharedAccess({prisma, chatId, userId: user?.id});
+        const isSharedWithUser = await _hasSharedAccess({ prisma, chatId, userId: user?.id });
 
         // Private chats can only be viewed by the owner or users it's been shared with
         if (chat.visibility === ChatVisibility.PRIVATE && !isOwner && !isSharedWithUser) {
@@ -170,24 +224,7 @@ export const updateChatMessages = async ({ chatId, messages }: { chatId: string,
             return notFound();
         }
 
-        await prisma.chat.update({
-            where: {
-                id: chatId,
-            },
-            data: {
-                messages: messages as unknown as Prisma.InputJsonValue,
-            },
-        });
-
-        if (env.DEBUG_WRITE_CHAT_MESSAGES_TO_FILE) {
-            const chatDir = path.join(env.DATA_CACHE_DIR, 'chats');
-            if (!fs.existsSync(chatDir)) {
-                fs.mkdirSync(chatDir, { recursive: true });
-            }
-
-            const chatFile = path.join(chatDir, `${chatId}.json`);
-            fs.writeFileSync(chatFile, JSON.stringify(messages, null, 2));
-        }
+        await _updateChatMessages({ chatId, messages, prisma });
 
         return {
             success: true,
@@ -295,54 +332,52 @@ export const updateChatVisibility = async ({ chatId, visibility }: { chatId: str
 );
 
 export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageModelId, message }: { chatId: string, languageModelId: string, message: string }) => sew(() =>
-    withOptionalAuthV2(async () => {
-            // From the language model ID, attempt to find the
-            // corresponding config in `config.json`.
-            const languageModelConfig =
-                (await _getConfiguredLanguageModelsFull())
-                    .find((model) => model.model === languageModelId);
+    withOptionalAuthV2(async ({ prisma, user, org }) => {
+        const chat = await prisma.chat.findUnique({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+        });
 
-            if (!languageModelConfig) {
-                return serviceErrorResponse({
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: `Language model ${languageModelId} is not configured.`,
-                });
-            }
+        if (!chat) {
+            return notFound();
+        }
 
-            const { model } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
+        const isOwner = await _isOwnerOfChat(chat, user);
+        if (!isOwner) {
+            return notFound();
+        }
 
-            const prompt = `Convert this question into a short topic title (max 50 characters). 
+        const languageModelConfig =
+            (await _getConfiguredLanguageModelsFull())
+                .find((model) => model.model === languageModelId);
 
-Rules:
-- Do NOT include question words (what, where, how, why, when, which)
-- Do NOT end with a question mark
-- Capitalize the first letter of the title
-- Focus on the subject/topic being discussed
-- Make it sound like a file name or category
-
-Examples:
-"Where is the authentication code?" → "Authentication Code"
-"How to setup the database?" → "Database Setup"
-"What are the API endpoints?" → "API Endpoints"
-
-User question: ${message}`;
-
-            const result = await generateText({
-                model,
-                prompt,
-            });
-
-            await updateChatName({
-                chatId,
-                name: result.text,
-            });
-
+        if (!languageModelConfig) {
             return {
-                success: true,
-            }
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                message: `Language model ${languageModelId} is not configured.`,
+            } satisfies ServiceError;
+        }
+
+        const name = await _generateChatNameFromMessage({ message, languageModelConfig });
+
+        await prisma.chat.update({
+            where: {
+                id: chatId,
+                orgId: org.id,
+            },
+            data: {
+                name: name,
+            },
         })
-    )
+
+        return {
+            success: true,
+        }
+    })
+)
 
 export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
     withAuthV2(async ({ org, user, prisma }) => {
@@ -436,7 +471,7 @@ export const duplicateChat = async ({ chatId, newName }: { chatId: string, newNa
 
         // Check if user can access the chat (owner, shared, or public)
         const isOwner = await _isOwnerOfChat(originalChat, user);
-        const isSharedWithUser = await _hasSharedAccess({prisma, chatId, userId: user?.id});
+        const isSharedWithUser = await _hasSharedAccess({ prisma, chatId, userId: user?.id });
         if (originalChat.visibility === ChatVisibility.PRIVATE && !isOwner && !isSharedWithUser) {
             return notFound();
         }
@@ -617,7 +652,7 @@ export const submitFeedback = async ({
         }
 
         // When a chat is private, only the creator or shared users can submit feedback.
-        const isSharedWithUser = await _hasSharedAccess({prisma, chatId, userId: user?.id});
+        const isSharedWithUser = await _hasSharedAccess({ prisma, chatId, userId: user?.id });
         if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== user?.id && !isSharedWithUser) {
             return notFound();
         }

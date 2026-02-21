@@ -345,10 +345,11 @@ async function cloudGetRepos(client: BitbucketClient, repoList: string[]): Promi
     };
 }
 
-function cloudShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {
+export function cloudShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {
     const cloudRepo = repo as CloudRepository;
     let reason = '';
-    const repoName = cloudRepo.full_name!;
+    const [workspace, repoSlug] = cloudRepo.full_name!.split('/');
+    const repoName = `${workspace}/${cloudRepo.project?.key}/${repoSlug}`;
     
     const shouldExclude = (() => {
         if (config.exclude?.repos) {
@@ -552,7 +553,7 @@ async function serverGetRepos(client: BitbucketClient, repoList: string[]): Prom
     };
 }
 
-function serverShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {
+export function serverShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {
     const serverRepo = repo as ServerRepository;
 
     const projectName = serverRepo.project!.key;

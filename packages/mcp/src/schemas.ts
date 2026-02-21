@@ -155,6 +155,9 @@ export const repositoryQuerySchema = z.object({
     imageUrl: z.string().optional(),
     indexedAt: z.coerce.date().optional(),
     pushedAt: z.coerce.date().optional(),
+    defaultBranch: z.string().optional(),
+    isFork: z.boolean(),
+    isArchived: z.boolean(),
 });
 
 export const listReposResponseSchema = repositoryQuerySchema.array();
@@ -381,6 +384,10 @@ export const askCodebaseRequestSchema = z.object({
         .omit({ displayName: true })
         .optional()
         .describe("The language model to use for answering the question. If not provided, defaults to the first model in the config. Use list_language_models to see available options."),
+    visibility: z
+        .enum(['PRIVATE', 'PUBLIC'])
+        .optional()
+        .describe("The visibility of the chat session. If not provided, defaults to PRIVATE for authenticated users and PUBLIC for anonymous users. Set to PUBLIC to make the chat viewable by anyone with the link."),
 });
 
 export const sourceSchema = z.object({

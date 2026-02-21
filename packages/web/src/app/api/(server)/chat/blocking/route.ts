@@ -1,5 +1,5 @@
 import { sew } from "@/actions";
-import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, updateChatMessages, generateAndUpdateChatNameFromMessage } from "@/features/chat/actions";
+import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, _updateChatMessages, generateAndUpdateChatNameFromMessage, _generateChatNameFromMessage } from "@/features/chat/actions";
 import { LanguageModelInfo, languageModelInfoSchema, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -15,6 +15,7 @@ import { z } from "zod";
 import { createMessageStream } from "../route";
 import { InferUIMessageChunk, UITools, UIDataTypes, UIMessage } from "ai";
 import { apiHandler } from "@/lib/apiHandler";
+import { captureEvent } from "@/lib/posthog";
 
 const logger = createLogger('chat-blocking-api');
 
@@ -33,6 +34,10 @@ const blockingChatRequestSchema = z.object({
     languageModel: languageModelInfoSchema
         .optional()
         .describe("The language model to use for the chat. If not provided, the first configured model is used."),
+    visibility: z
+        .nativeEnum(ChatVisibility)
+        .optional()
+        .describe("The visibility of the chat session. If not provided, defaults to PRIVATE for authenticated users and PUBLIC for anonymous users. Set to PUBLIC to make the chat viewable by anyone with the link. Note: Anonymous users cannot create PRIVATE chats; any PRIVATE request from an unauthenticated user will be ignored and set to PUBLIC."),
 });
 
 /**
@@ -62,7 +67,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
         return serviceErrorResponse(requestBodySchemaValidationError(parsed.error));
     }
 
-    const { query, repos = [], languageModel: requestedLanguageModel } = parsed.data;
+    const { query, repos = [], languageModel: requestedLanguageModel, visibility: requestedVisibility } = parsed.data;
 
     const response: BlockingChatResponse | ServiceError = await sew(() =>
         withOptionalAuthV2(async ({ org, user, prisma }) => {
@@ -95,14 +100,25 @@ export const POST = apiHandler(async (request: NextRequest) => {
             const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
             const modelName = languageModelConfig.displayName ?? languageModelConfig.model;
 
+            // Determine visibility: anonymous users cannot create private chats (they would be inaccessible)
+            // Only use requested visibility if user is authenticated, otherwise always use PUBLIC
+            const chatVisibility = (requestedVisibility && user)
+                ? requestedVisibility
+                : (user ? ChatVisibility.PRIVATE : ChatVisibility.PUBLIC);
+
             // Create a new chat session
             const chat = await prisma.chat.create({
                 data: {
                     orgId: org.id,
                     createdById: user?.id,
-                    visibility: user ? ChatVisibility.PRIVATE : ChatVisibility.PUBLIC,
+                    visibility: chatVisibility,
                     messages: [] as unknown as Prisma.InputJsonValue,
                 },
+            });
+
+            await captureEvent('wa_chat_thread_created', {
+                chatId: chat.id,
+                isAnonymous: !user,
             });
 
             // Run the agent to completion
@@ -145,7 +161,13 @@ export const POST = apiHandler(async (request: NextRequest) => {
             // We'll capture the final messages and usage from the stream
             let finalMessages: SBChatMessage[] = [];
 
+            await captureEvent('wa_chat_message_sent', {
+                chatId: chat.id,
+                messageCount: 1,
+            });
+
             const stream = await createMessageStream({
+                chatId: chat.id,
                 messages: [userMessage],
                 selectedSearchScopes,
                 model,
@@ -170,21 +192,28 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 },
             })
 
-            await Promise.all([
+            const [_, name] = await Promise.all([
                 // Consume the stream fully to trigger onFinish
                 blockStreamUntilFinish(stream),
                 // Generate and update the chat name
-                generateAndUpdateChatNameFromMessage({
-                    chatId: chat.id,
-                    languageModelId: languageModelConfig.model,
+                _generateChatNameFromMessage({
                     message: query,
+                    languageModelConfig,
                 })
             ]);
 
             // Persist the messages to the chat
-            await updateChatMessages({
-                chatId: chat.id,
-                messages: finalMessages,
+            await _updateChatMessages({ chatId: chat.id, messages: finalMessages, prisma });
+
+            // Update the chat name
+            await prisma.chat.update({
+                where: {
+                    id: chat.id,
+                    orgId: org.id,
+                },
+                data: {
+                    name: name,
+                },
             });
 
             // Extract the answer text from the assistant message

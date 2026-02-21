@@ -7,8 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added GitHub workflow to automatically tag Linear issues with the release version when a new release is published. [#917](https://github.com/sourcebot-dev/sourcebot/pull/917)
+
+## [4.11.5] - 2026-02-21
+
+### Fixed
+- Skip calling `getCommitHashForRefName` for empty repositories to avoid noisy debug log output. [#914](https://github.com/sourcebot-dev/sourcebot/pull/914)
+- Fixed "Open in GitLab" links having a double slash when the GitLab host URL is configured with a trailing slash. [#915](https://github.com/sourcebot-dev/sourcebot/pull/915)
+
+## [4.11.4] - 2026-02-20
+
+### Fixed
+- Fixed `og:image` URL resolving to `localhost` instead of the public domain when the app is deployed behind a reverse proxy. [#908](https://github.com/sourcebot-dev/sourcebot/pull/908)
+- Fixed search bar not taking the full width on the search results and browse pages. [#909](https://github.com/sourcebot-dev/sourcebot/pull/909)
+- Added max height to the chat input box so it scrolls instead of expanding unboundedly when a large blob of text is pasted. [#913](https://github.com/sourcebot-dev/sourcebot/pull/913)
+
+### Changed
+- Changed the "Open in" button copy to distinguish between Bitbucket serve & cloud. [#910](https://github.com/sourcebot-dev/sourcebot/pull/910)
+- `Alt+Enter` (Option+Enter on Mac) now inserts a newline in the chat input instead of submitting. [#912](https://github.com/sourcebot-dev/sourcebot/pull/912)
+
+## [4.11.3] - 2026-02-19
+
+### Fixed
+- Fixed issue where chat threads created via the `/api/chat/blocking` endpoint would not have any messages when called without authentication. [#907](https://github.com/sourcebot-dev/sourcebot/pull/907)
+
+### Changed
+- Added `chatId` to all chat related posthog events. [#907](https://github.com/sourcebot-dev/sourcebot/pull/907)
+
+## [4.11.2] - 2026-02-18
+
+### Fixed
+- Fixed Bitbucket Server and Cloud repo identifiers to include the project key, preventing collisions across projects. **Note:** Bitbucket Cloud users with `exclude.repos` patterns must update them from `workspace/repo` to `workspace/PROJECT_KEY/repo` format. [#904](https://github.com/sourcebot-dev/sourcebot/pull/904)
+
+### Added
+- Added optional `visibility` parameter to `/api/chat/blocking` endpoint and MCP `ask_codebase` tool to allow controlling chat session visibility in shared environments. [#903](https://github.com/sourcebot-dev/sourcebot/pull/903)
+- Added `defaultBranch`, `isFork`, and `isArchived` fields to the `/api/repos` endpoint response and MCP `list_repos` tool. [#905](https://github.com/sourcebot-dev/sourcebot/pull/905)
+
+## [4.11.1] - 2026-02-18
+
 ### Changed
 - Replaced `backend_repo_index_job_completed` PostHog event with `backend_repo_first_indexed`, which fires only on the first successful index of a repo. [#900](https://github.com/sourcebot-dev/sourcebot/pull/900)
+
+### Fixed
+- Fixed startup env override parsing to ignore STDERR output, preventing Node warnings from breaking eval processing. [#902](https://github.com/sourcebot-dev/sourcebot/pull/902)
 
 ## [4.11.0] - 2026-02-18
 

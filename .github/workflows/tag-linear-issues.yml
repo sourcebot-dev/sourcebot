@@ -1,0 +1,47 @@
+name: Tag Linear Issues with Release
+
+on:
+    workflow_run:
+        workflows: ["Release Sourcebot (Production)"]
+        types:
+            - completed
+
+permissions:
+    contents: read
+
+jobs:
+    tag-linear-issues:
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  ref: main
+                  fetch-depth: 0
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "24"
+
+            - name: Extract version from release
+              id: extract_version
+              run: |
+                  # Get the latest version from CHANGELOG.md (first non-Unreleased version)
+                  VERSION=$(grep -oP '## \[\K[0-9]+\.[0-9]+\.[0-9]+' CHANGELOG.md | head -n 1)
+                  
+                  if [ -z "$VERSION" ]; then
+                      echo "Error: Could not extract version from CHANGELOG.md"
+                      exit 1
+                  fi
+                  
+                  echo "Detected version: $VERSION"
+                  echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+            - name: Tag Linear issues
+              env:
+                  LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+                  LINEAR_TEAM_ID: ${{ secrets.LINEAR_TEAM_ID }}
+              run: |
+                  node scripts/tagLinearIssuesWithRelease.mjs "${{ steps.extract_version.outputs.version }}"

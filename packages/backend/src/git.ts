@@ -416,6 +416,23 @@ export const getLatestCommitTimestamp = async ({
 }
 
 /**
+ * Returns true if the git repository at the given path has no commits.
+ */
+export const isRepoEmpty = async ({
+    path,
+}: {
+    path: string,
+}): Promise<boolean> => {
+    const git = createGitClientForPath(path);
+    try {
+        const result = await git.raw(['log', '--all', '-1', '--format=%H']);
+        return result.trim() === '';
+    } catch {
+        return true;
+    }
+}
+
+/**
  * Writes or updates the commit-graph file for the repository.
  * This pre-computes commit metadata to speed up operations like
  * rev-list --count, log, and merge-base.

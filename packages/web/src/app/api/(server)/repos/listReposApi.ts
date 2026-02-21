@@ -1,6 +1,5 @@
 import { sew } from "@/actions";
-import { repositoryQuerySchema } from "@/lib/schemas";
-import { ListReposQueryParams } from "@/lib/types";
+import { ListReposQueryParams, RepositoryQuery } from "@/lib/types";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { env } from "@sourcebot/shared";
@@ -34,7 +33,7 @@ export const listRepos = async ({ query, page, perPage, sort, direction }: ListR
         ]);
 
         return {
-            data: repos.map((repo) => repositoryQuerySchema.parse({
+            data: repos.map((repo) => ({
                 codeHostType: repo.external_codeHostType,
                 repoId: repo.id,
                 repoName: repo.name,
@@ -49,7 +48,10 @@ export const listRepos = async ({ query, page, perPage, sort, direction }: ListR
                 imageUrl: repo.imageUrl ?? undefined,
                 indexedAt: repo.indexedAt ?? undefined,
                 pushedAt: repo.pushedAt ?? undefined,
-            })),
+                defaultBranch: repo.defaultBranch ?? undefined,
+                isFork: repo.isFork,
+                isArchived: repo.isArchived,
+            } satisfies RepositoryQuery)),
             totalCount,
         };
     })

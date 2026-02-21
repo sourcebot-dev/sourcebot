@@ -61,7 +61,7 @@ export const compileGithubConfig = async (
     const gitHubRepos = gitHubReposResult.repos;
     const warnings = gitHubReposResult.warnings;
 
-    const hostUrl = config.url ?? 'https://github.com';
+    const hostUrl = (config.url ?? 'https://github.com').replace(/\/+$/, '');
 
     const repos = gitHubRepos.map((repo) => {
         const record = createGitHubRepoRecord({
@@ -160,7 +160,7 @@ export const compileGitlabConfig = async (
     const gitlabRepos = gitlabReposResult.repos;
     const warnings = gitlabReposResult.warnings;
 
-    const hostUrl = config.url ?? 'https://gitlab.com';
+    const hostUrl = (config.url ?? 'https://gitlab.com').replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
         .toString()
         .replace(/^https?:\/\//, '');
@@ -242,7 +242,7 @@ export const compileGiteaConfig = async (
     const giteaRepos = giteaReposResult.repos;
     const warnings = giteaReposResult.warnings;
 
-    const hostUrl = config.url ?? 'https://gitea.com';
+    const hostUrl = (config.url ?? 'https://gitea.com').replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
         .toString()
         .replace(/^https?:\/\//, '');
@@ -309,7 +309,7 @@ export const compileGerritConfig = async (
     connectionId: number): Promise<CompileResult> => {
 
     const gerritRepos = await getGerritReposFromConfig(config);
-    const hostUrl = config.url;
+    const hostUrl = config.url.replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
         .toString()
         .replace(/^https?:\/\//, '');
@@ -396,7 +396,7 @@ export const compileBitbucketConfig = async (
     const bitbucketRepos = bitbucketReposResult.repos;
     const warnings = bitbucketReposResult.warnings;
 
-    const hostUrl = config.url ?? 'https://bitbucket.org';
+    const hostUrl = (config.url ?? 'https://bitbucket.org').replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
         .toString()
         .replace(/^https?:\/\//, '');
@@ -454,7 +454,18 @@ export const compileBitbucketConfig = async (
     const repos = bitbucketRepos.map((repo) => {
         const isServer = config.deploymentType === 'server';
         const codeHostType: CodeHostType = isServer ? 'bitbucketServer' : 'bitbucketCloud';
-        const displayName = isServer ? (repo as BitbucketServerRepository).name! : (repo as BitbucketCloudRepository).full_name!;
+        const displayName = (() => {
+            if (isServer) {
+                const serverRepo = repo as BitbucketServerRepository;
+                // Server repos are of the format `project/repo`
+                return `${serverRepo.project!.key}/${serverRepo.slug!}`;
+            } else {
+                const cloudRepo = repo as BitbucketCloudRepository;
+                // Cloud repos are of the format `workspace/project/repo`
+                const [workspace, repoSlug] = cloudRepo.full_name!.split('/');
+                return `${workspace}/${cloudRepo.project?.key!}/${repoSlug}`;
+            }
+        })();
         const externalId = isServer ? (repo as BitbucketServerRepository).id!.toString() : (repo as BitbucketCloudRepository).uuid!;
         const isPublic = isServer ? (repo as BitbucketServerRepository).public : (repo as BitbucketCloudRepository).is_private === false;
         const isArchived = isServer ? (repo as BitbucketServerRepository).archived === true : false;
@@ -713,7 +724,7 @@ export const compileAzureDevOpsConfig = async (
     const azureDevOpsRepos = azureDevOpsReposResult.repos;
     const warnings = azureDevOpsReposResult.warnings;
 
-    const hostUrl = config.url ?? 'https://dev.azure.com';
+    const hostUrl = (config.url ?? 'https://dev.azure.com').replace(/\/+$/, '');
     const repoNameRoot = new URL(hostUrl)
         .toString()
         .replace(/^https?:\/\//, '');

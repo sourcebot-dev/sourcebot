@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.17] - 2026-02-19
+
+### Added
+- Added optional `visibility` parameter to `ask_codebase` tool to allow controlling chat session visibility in shared environments. [#903](https://github.com/sourcebot-dev/sourcebot/pull/903)
+- Added `defaultBranch`, `isFork`, and `isArchived` fields to the `list_repos` tool response. [#905](https://github.com/sourcebot-dev/sourcebot/pull/905)
+
+### Changed
+- Changed `SOURCEBOT_HOST` to default to `http://localhost:3000` instead of `https://demo.sourcebot.dev`, which is now deprecated. [#906](https://github.com/sourcebot-dev/sourcebot/pull/906)
+
 ## [1.0.16] - 2026-02-10
 
 ### Added

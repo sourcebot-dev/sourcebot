@@ -12,6 +12,7 @@ import { LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AppearanceDropdownMenu } from "./appearanceDropdownMenu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 interface TopBarProps {
     domain: string;
@@ -58,7 +59,7 @@ export const TopBar = ({
                         {centerContent}
                     </div>
                 )}
-                <div className="flex-1 flex flex-row justify-end items-center gap-2">
+                <div className={cn("flex flex-row justify-end items-center gap-2", centerContent ? "flex-1" : "shrink-0")}>
                     {actions}
                     {session ? (
                         <MeControlDropdownMenu
