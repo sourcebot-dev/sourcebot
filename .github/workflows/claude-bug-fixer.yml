@@ -1,0 +1,50 @@
+name: Claude Bug Fixer
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  claude-fix-bug:
+    if: github.event.label.name == 'bug'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude Bug Fixer
+        id: claude-bug-fixer
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          allowed_tools: 'Bash,Read,Write,Edit,Glob,Grep'
+          prompt: |
+            A bug has been reported in issue #${{ github.event.issue.number }}.
+
+            Issue title: ${{ github.event.issue.title }}
+            Issue body:
+            ${{ github.event.issue.body }}
+
+            Please do the following:
+            1. Analyze the issue carefully to understand the bug being reported.
+            2. Explore the codebase to find the relevant code that is likely causing the bug.
+            3. Implement a fix for the bug.
+            4. Create a new branch named `fix/issue-${{ github.event.issue.number }}` from main.
+            5. Commit your changes to that branch with a descriptive commit message.
+            6. Open a **draft** pull request targeting the main branch with:
+               - A clear title summarizing the fix
+               - A description explaining what the bug was and how you fixed it
+               - `Fixes #${{ github.event.issue.number }}` in the PR body
+
+            Important guidelines:
+            - Only change code that is directly related to fixing the reported bug. Do not refactor or make unrelated improvements.
+            - If you cannot determine the root cause or the fix is too risky/complex, leave a comment on the issue explaining what you found and why an automated fix isn't appropriate.
+            - Make sure the fix is complete and the code compiles/passes linting before opening the PR.
