@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.11.6] - 2026-02-21
+
 ### Added
 - Added GitHub workflow to automatically tag Linear issues with the release version when a new release is published. [#917](https://github.com/sourcebot-dev/sourcebot/pull/917)
 - Added optional `gitUser` field to the Bitbucket connection config to support Bitbucket Cloud API tokens, which require an email address for the REST API but an Atlassian username for git clone. [#918](https://github.com/sourcebot-dev/sourcebot/pull/918)
