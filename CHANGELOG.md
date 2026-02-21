@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Skip calling `getCommitHashForRefName` for empty repositories to avoid noisy debug log output. [#914](https://github.com/sourcebot-dev/sourcebot/pull/914)
 
+### Added
+- Added optional `gitUser` field to the Bitbucket connection config to support Bitbucket Cloud API tokens, which require an email address for the REST API but an Atlassian username for git clone. [#918](https://github.com/sourcebot-dev/sourcebot/pull/918)
+
 ## [4.11.4] - 2026-02-20
 
 ### Fixed
