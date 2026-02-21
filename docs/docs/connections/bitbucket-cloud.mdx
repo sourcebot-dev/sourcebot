@@ -4,8 +4,6 @@ sidebarTitle: Bitbucket Cloud
 icon: Bitbucket
 ---
 
-import BitbucketToken from '/snippets/bitbucket-token.mdx';
-import BitbucketAppPassword from '/snippets/bitbucket-app-password.mdx';
 import BitbucketSchema from '/snippets/schemas/v3/bitbucket.schema.mdx'
 
 <Note>
@@ -78,25 +76,107 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
 
 ## Authenticating with Bitbucket Cloud
 
-In order to index private repositories, you'll need to provide authentication credentials via a [token](/docs/configuration/config-file#tokens). You can do this using an `App Password` or an `Access Token`
+In order to index private repositories, you'll need to provide authentication credentials via a [token](/docs/configuration/config-file#tokens). You can do this using an `API Token`, `Access Token`, or `App Password`.
 
 <Tabs>
-    <Tab title="App Password">
-      Navigate to the [app password creation page](https://bitbucket.org/account/settings/app-passwords/) and create an app password. Ensure that it has the proper permissions for the scope
-      of info you want to fetch (i.e. workspace, project, and/or repo level) 
-      ![Bitbucket App Password Permissions](/images/bitbucket_app_password_perms.png)
+    <Tab title="API Token">
+      1. Navigate to [Personal Settings → API tokens](https://id.atlassian.com/manage-profile/security/api-tokens) and click **Create API token with scopes**. Give the token a name and set an expiry date.
 
-      Next, provide your username + app password pair to Sourcebot:
+      2. Select **Bitbucket** as the app.
 
-      <BitbucketAppPassword />
+      3. Select the following scopes:
+         - `read:repository:bitbucket` — View your repositories
+         - `read:workspace:bitbucket` — View your workspaces
+
+      4. Click **Create token** and copy the token value.
+
+      5. Add the `user` (your account email), `gitUser` (your Bitbucket username), and `token` to your connection config. [Learn why both are needed](https://support.atlassian.com/bitbucket-cloud/docs/using-api-tokens/)
+
+      ```json
+      {
+          "type": "bitbucket",
+          "deploymentType": "cloud",
+          "user": "you@example.com",
+          "gitUser": "myusername",
+          "token": {
+              // note: this env var can be named anything. It
+              // doesn't need to be `BITBUCKET_TOKEN`.
+              "env": "BITBUCKET_TOKEN"
+          }
+          // .. rest of config ..
+      }
+      ```
+
+      6. Pass this environment variable each time you run Sourcebot:
+
+      ```bash
+      docker run \
+          -e BITBUCKET_TOKEN=<API_TOKEN> \
+          /* additional args */ \
+          ghcr.io/sourcebot-dev/sourcebot:latest
+      ```
     </Tab>
     <Tab title="Access Token">
       Create an access token for the desired scope (repo, project, or workspace). Visit the official [Bitbucket Cloud docs](https://support.atlassian.com/bitbucket-cloud/docs/access-tokens/)
       for more info.
 
-      Next, provide the access token to Sourcebot:
+      1. Add the `token` property to your connection config:
 
-      <BitbucketToken />
+      ```json
+      {
+          "type": "bitbucket",
+          "deploymentType": "cloud",
+          "token": {
+              // note: this env var can be named anything. It
+              // doesn't need to be `BITBUCKET_TOKEN`.
+              "env": "BITBUCKET_TOKEN"
+          }
+          // .. rest of config ..
+      }
+      ```
+
+      2. Pass this environment variable each time you run Sourcebot:
+
+      ```bash
+      docker run \
+          -e BITBUCKET_TOKEN=<ACCESS_TOKEN> \
+          /* additional args */ \
+          ghcr.io/sourcebot-dev/sourcebot:latest
+      ```
+    </Tab>
+    <Tab title="App Password">
+      <Warning>
+        App Passwords are deprecated. Atlassian recommends migrating to API tokens. [Learn more](https://www.atlassian.com/blog/bitbucket/bitbucket-cloud-transitions-to-api-tokens-enhancing-security-with-app-password-deprecation)
+      </Warning>
+
+      Navigate to the [app password creation page](https://bitbucket.org/account/settings/app-passwords/) and create an app password. Ensure that it has the proper permissions for the scope
+      of info you want to fetch (i.e. workspace, project, and/or repo level)
+      ![Bitbucket App Password Permissions](/images/bitbucket_app_password_perms.png)
+
+      1. Add the `user` (your Bitbucket username) and `token` properties to your connection config:
+
+      ```json
+      {
+          "type": "bitbucket",
+          "deploymentType": "cloud",
+          "user": "myusername",
+          "token": {
+              // note: this env var can be named anything. It
+              // doesn't need to be `BITBUCKET_TOKEN`.
+              "env": "BITBUCKET_TOKEN"
+          }
+          // .. rest of config ..
+      }
+      ```
+
+      2. Pass this environment variable each time you run Sourcebot:
+
+      ```bash
+      docker run \
+          -e BITBUCKET_TOKEN=<APP_PASSWORD> \
+          /* additional args */ \
+          ghcr.io/sourcebot-dev/sourcebot:latest
+      ```
     </Tab>
 </Tabs>
 
