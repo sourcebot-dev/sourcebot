@@ -7,7 +7,7 @@ import { LanguageModel, ModelMessage, StopCondition, streamText } from "ai";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, toolNames } from "./constants";
 import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, listReposTool, listCommitsTool, readFilesTool } from "./tools";
 import { Source } from "./types";
-import { addLineNumbers, fileReferenceToString } from "./utils";
+import { addLineNumbers, fileReferenceToString, truncateFileContent } from "./utils";
 import _dedent from "dedent";
 
 const dedent = _dedent.withOptions({ alignValues: true });
@@ -60,9 +60,20 @@ export const createAgentStream = async ({
         }))
     ).filter((source) => source !== undefined);
 
+    const maxChars = env.SOURCEBOT_CHAT_FILE_MAX_CHARACTERS;
+    let anyFileTruncated = false;
+    const truncatedFileSources = resolvedFileSources.map((file) => {
+        const { content, wasTruncated } = truncateFileContent(file.source, maxChars);
+        if (wasTruncated) {
+            anyFileTruncated = true;
+        }
+        return { ...file, source: content };
+    });
+
     const systemPrompt = createPrompt({
         repos: selectedRepos,
-        files: resolvedFileSources,
+        files: truncatedFileSources,
+        filesWereTruncated: anyFileTruncated,
     });
 
     const stream = streamText({
@@ -148,6 +159,7 @@ export const createAgentStream = async ({
 const createPrompt = ({
     files,
     repos,
+    filesWereTruncated,
 }: {
     files?: {
         path: string;
@@ -157,6 +169,7 @@ const createPrompt = ({
         revision: string;
     }[],
     repos: string[],
+    filesWereTruncated?: boolean,
 }) => {
     return dedent`
     You are a powerful agentic AI code assistant built into Sourcebot, the world's best code-intelligence platform. Your job is to help developers understand and navigate their large codebases.
@@ -189,6 +202,7 @@ const createPrompt = ({
 
     ${(files && files.length > 0) ? dedent`
         <files>
+        ${filesWereTruncated ? `**Note:** Some files were truncated because they exceeded the character limit. Use the readFiles tool to retrieve specific sections if needed.` : ''}
         The user has mentioned the following files, which are automatically included for analysis.
 
         ${files?.map(file => `<file path="${file.path}" repository="${file.repo}" language="${file.language}" revision="${file.revision}">

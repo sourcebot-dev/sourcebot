@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { serviceErrorSchema } from '@/lib/serviceError';
+import { CONTEXT_WINDOW_USER_MESSAGE } from '@/features/chat/utils';
 import { AlertCircle, X } from "lucide-react";
 import { useMemo } from 'react';
 
@@ -33,7 +34,7 @@ export const ErrorBanner = ({ error, isVisible, onClose }: ErrorBannerProps) => 
                     <div className="flex items-center gap-2">
                         <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                         <span className="text-sm font-medium text-red-800 dark:text-red-200">
-                            Error occurred
+                            {errorMessage === CONTEXT_WINDOW_USER_MESSAGE ? 'Context limit exceeded' : 'Error occurred'}
                         </span>
                         <span className="text-sm text-red-600 dark:text-red-400">
                             {errorMessage}
