@@ -135,7 +135,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 parts: [{ type: 'text', text: query }],
             };
 
-            const selectedSearchScopes = await Promise.all(repos.map(async (repo) => {
+            const selectedRepos = (await Promise.all(repos.map(async (repo) => {
                 const repoDB = await prisma.repo.findFirst({
                     where: {
                         name: repo,
@@ -156,24 +156,26 @@ export const POST = apiHandler(async (request: NextRequest) => {
                     name: repoDB.displayName ?? repoDB.name.split('/').pop() ?? repoDB.name,
                     codeHostType: repoDB.external_codeHostType,
                 } satisfies SearchScope;
-            }));
+            })));
 
             // We'll capture the final messages and usage from the stream
             let finalMessages: SBChatMessage[] = [];
 
-            const expandedRepos = selectedSearchScopes.map(s => s.value);
-
             await captureEvent('wa_chat_message_sent', {
                 chatId: chat.id,
                 messageCount: 1,
-                ...(env.EXPERIMENT_ASK_GH_ENABLED === 'true' ? { selectedRepos: expandedRepos } : {}),
+                ...(env.EXPERIMENT_ASK_GH_ENABLED === 'true' ? {
+                    selectedRepos: selectedRepos.map(r => r.value)
+                } : {}),
             });
 
             const stream = await createMessageStream({
                 chatId: chat.id,
                 messages: [userMessage],
-                selectedSearchScopes,
-                selectedRepos: expandedRepos,
+                metadata: {
+                    selectedSearchScopes: selectedRepos,
+                },
+                selectedRepos: selectedRepos.map(r => r.value),
                 model,
                 modelName,
                 modelProviderOptions: providerOptions,

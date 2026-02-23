@@ -1,7 +1,7 @@
 import { sew } from "@/actions";
 import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, _updateChatMessages, _isOwnerOfChat } from "@/features/chat/actions";
 import { createAgentStream } from "@/features/chat/agent";
-import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
+import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SBChatMessageMetadata, SearchScope } from "@/features/chat/types";
 import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -109,7 +109,9 @@ export const POST = apiHandler(async (req: NextRequest) => {
             const stream = await createMessageStream({
                 chatId: id,
                 messages,
-                selectedSearchScopes,
+                metadata: {
+                    selectedSearchScopes,
+                },
                 selectedRepos: expandedRepos,
                 model,
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
@@ -163,19 +165,19 @@ const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMe
 interface CreateMessageStreamResponseProps {
     chatId: string;
     messages: SBChatMessage[];
-    selectedSearchScopes: SearchScope[];
     selectedRepos: string[];
     model: AISDKLanguageModelV2;
     modelName: string;
-    modelProviderOptions?: Record<string, Record<string, JSONValue>>;
     onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;
     onError: (error: unknown) => string;
+    modelProviderOptions?: Record<string, Record<string, JSONValue>>;
+    metadata?: Partial<SBChatMessageMetadata>;
 }
 
 export const createMessageStream = async ({
     chatId,
     messages,
-    selectedSearchScopes,
+    metadata,
     selectedRepos,
     model,
     modelName,
@@ -252,8 +254,8 @@ export const createMessageStream = async ({
                     totalOutputTokens: totalUsage.outputTokens,
                     totalResponseTimeMs: new Date().getTime() - startTime.getTime(),
                     modelName,
-                    selectedSearchScopes,
                     traceId,
+                    ...metadata,
                 }
             });
 
