@@ -6,7 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Changed
 - Skip redundant dev build when production release commits are pushed to main. [#919](https://github.com/sourcebot-dev/sourcebot/pull/919)
+- Bumped zoekt version. [#921](https://github.com/sourcebot-dev/sourcebot/pull/921)
 
 ## [4.11.6] - 2026-02-21
 
