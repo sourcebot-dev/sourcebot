@@ -161,20 +161,22 @@ export const POST = apiHandler(async (request: NextRequest) => {
             // We'll capture the final messages and usage from the stream
             let finalMessages: SBChatMessage[] = [];
 
+            const expandedRepos = selectedSearchScopes.map(s => s.value);
+
             await captureEvent('wa_chat_message_sent', {
                 chatId: chat.id,
                 messageCount: 1,
+                ...(env.EXPERIMENT_ASK_GH_ENABLED === 'true' ? { selectedRepos: expandedRepos } : {}),
             });
 
             const stream = await createMessageStream({
                 chatId: chat.id,
                 messages: [userMessage],
                 selectedSearchScopes,
+                selectedRepos: expandedRepos,
                 model,
                 modelName,
                 modelProviderOptions: providerOptions,
-                orgId: org.id,
-                prisma,
                 onFinish: async ({ messages }) => {
                     finalMessages = messages;
                 },

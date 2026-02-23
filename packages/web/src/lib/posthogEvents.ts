@@ -157,6 +157,12 @@ export type PosthogEventMap = {
     wa_chat_message_sent: {
         chatId: string,
         messageCount: number,
+        /**
+         * @note this field will only be populated when
+         * the EXPERIMENT_ASK_GH_ENABLED environment variable
+         * is set to true.
+         */
+        selectedRepos?: string[],
     },
     wa_chat_tool_used: {
         chatId: string,
@@ -209,6 +215,17 @@ export type PosthogEventMap = {
     },
     wa_chat_deleted: {
         chatId: string,
+    },
+    wa_chat_details_card_toggled: {
+        chatId: string,
+        isExpanded: boolean,
+    },
+    wa_chat_copy_answer_pressed: {
+        chatId: string,
+    },
+    wa_chat_toc_toggled: {
+        chatId: string,
+        isExpanded: boolean,
     },
     //////////////////////////////////////////////////////////////////
     wa_demo_docs_link_pressed: {},
