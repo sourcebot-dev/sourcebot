@@ -16,8 +16,6 @@ These recommendations are based on real-world deployments. Your results may vary
 | **CPU** | 2 cores | 4 cores | 8 cores | 16+ cores |
 | **Memory** | 4 GB | 8 GB | 32 GB | 64+ GB |
 | **Disk** | 50 GB | 100 GB | 250 GB | 500+ GB |
-| **Database** | Embedded | Embedded | External recommended | External recommended |
-| **Redis** | Embedded | Embedded | External recommended | External recommended |
 
 We recommend using external managed Postgres and Redis instances rather than the ones embedded in the Sourcebot container, as this adds stability to your deployment. You can configure these with the `DATABASE_URL` and `REDIS_URL` [environment variables](/docs/configuration/environment-variables).
 
