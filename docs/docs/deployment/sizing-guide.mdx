@@ -1,0 +1,55 @@
+---
+title: "Sizing Guide"
+---
+
+Sourcebot runs as a single container (vertical scaling). This guide helps you choose the right CPU, memory, and disk allocation based on the number of repositories you plan to index.
+
+<Info>
+These recommendations are based on real-world deployments. Your results may vary depending on repository sizes, search patterns, and whether you use features like [multi-branch indexing](/docs/features/search/multi-branch-indexing) or [Ask Sourcebot](/docs/features/ask/overview).
+</Info>
+
+## Recommendations
+
+| | Small | Medium | Large | Extra Large |
+|---|---|---|---|---|
+| **Repos** | Up to 100 | 100 – 500 | 500 – 2,000 | 2,000+ |
+| **CPU** | 2 cores | 4 cores | 8 cores | 16+ cores |
+| **Memory** | 4 GB | 8 GB | 32 GB | 64+ GB |
+| **Disk** | 50 GB | 100 GB | 250 GB | 500+ GB |
+
+We recommend using external managed Postgres and Redis instances rather than the ones embedded in the Sourcebot container, as this adds stability to your deployment. You can configure these with the `DATABASE_URL` and `REDIS_URL` [environment variables](/docs/configuration/environment-variables).
+
+Of all resources, **memory has the most direct impact on search performance**. Sourcebot uses [Zoekt](https://github.com/sourcegraph/zoekt) for search indexing, and the OS page cache keeps frequently accessed index data in memory. More memory means more of the index stays cached, which translates directly to faster searches and less disk I/O.
+
+## Disk usage
+
+Disk is consumed by two things:
+
+1. **Cloned repositories** stored in the `.sourcebot/` cache directory
+2. **Zoekt search indexes** built from those repositories
+
+As a rule of thumb, plan for **2 – 3x the total size of the source code** you intend to index. For example, if your repositories total 50 GB, allocate at least 100 – 150 GB of disk.
+
+<Warning>
+[Multi-branch indexing](/docs/features/search/multi-branch-indexing) significantly increases disk usage since each indexed branch produces its own search index. In testing, enabling branch indexing across all branches can **triple** storage requirements. Start with a subset of branches (e.g., release branches) and monitor disk usage before expanding.
+</Warning>
+
+## Tuning concurrency
+
+If your instance is resource-constrained, you can reduce the concurrency of background jobs to lower CPU and memory pressure during indexing. These are configured in your [config file](/docs/configuration/config-file#settings):
+
+| Setting | Default | Description |
+|---|---|---|
+| `maxRepoIndexingJobConcurrency` | 8 | Number of repos indexed in parallel |
+| `maxConnectionSyncJobConcurrency` | 8 | Number of connections synced in parallel |
+
+Lowering these values reduces peak resource usage at the cost of slower initial indexing.
+
+## Monitoring
+
+We recommend monitoring the following metrics after deployment to validate your sizing:
+
+- **Memory utilization**: sustained usage near the limit suggests you should scale up memory. High memory usage is expected and healthy since the OS page cache will use available memory.
+- **CPU utilization**: sustained high CPU during searches (not just during indexing) indicates you may need more cores.
+- **Disk usage**: monitor disk consumption as you add repositories. Running out of disk will cause indexing failures.
+- **Search response times**: if searches are consistently slow, try increasing memory first, then CPU.
