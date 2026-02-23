@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added PostHog events for chat UI interactions (details card expand/collapse, copy answer, table of contents toggle) and repo tracking in `wa_chat_message_sent`. [#922](https://github.com/sourcebot-dev/sourcebot/pull/922)
+
 ## [4.11.7] - 2026-02-23
 
 ### Changed

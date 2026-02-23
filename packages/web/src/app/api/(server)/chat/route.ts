@@ -1,7 +1,7 @@
 import { sew } from "@/actions";
 import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, _updateChatMessages, _isOwnerOfChat } from "@/features/chat/actions";
 import { createAgentStream } from "@/features/chat/agent";
-import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
+import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SBChatMessageMetadata, SearchScope } from "@/features/chat/types";
 import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -10,8 +10,7 @@ import { isServiceError } from "@/lib/utils";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
 import * as Sentry from "@sentry/nextjs";
-import { PrismaClient } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/shared";
+import { createLogger, env } from "@sourcebot/shared";
 import { captureEvent } from "@/lib/posthog";
 import {
     createUIMessageStream,
@@ -89,20 +88,34 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
 
+            const expandedRepos = (await Promise.all(selectedSearchScopes.map(async (scope) => {
+                if (scope.type === 'repo') return [scope.value];
+                if (scope.type === 'reposet') {
+                    const reposet = await prisma.searchContext.findFirst({
+                        where: { orgId: org.id, name: scope.value },
+                        include: { repos: true }
+                    });
+                    return reposet ? reposet.repos.map(r => r.name) : [];
+                }
+                return [];
+            }))).flat();
+
             await captureEvent('wa_chat_message_sent', {
                 chatId: id,
                 messageCount: messages.length,
-            });
+                ...(env.EXPERIMENT_ASK_GH_ENABLED === 'true' ? { selectedRepos: expandedRepos } : {}),
+            } );
 
             const stream = await createMessageStream({
                 chatId: id,
                 messages,
-                selectedSearchScopes,
+                metadata: {
+                    selectedSearchScopes,
+                },
+                selectedRepos: expandedRepos,
                 model,
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                 modelProviderOptions: providerOptions,
-                orgId: org.id,
-                prisma,
                 onFinish: async ({ messages }) => {
                     await _updateChatMessages({ chatId: id, messages, prisma });
                 },
@@ -152,25 +165,23 @@ const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMe
 interface CreateMessageStreamResponseProps {
     chatId: string;
     messages: SBChatMessage[];
-    selectedSearchScopes: SearchScope[];
+    selectedRepos: string[];
     model: AISDKLanguageModelV2;
     modelName: string;
-    modelProviderOptions?: Record<string, Record<string, JSONValue>>;
-    orgId: number;
-    prisma: PrismaClient;
     onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;
     onError: (error: unknown) => string;
+    modelProviderOptions?: Record<string, Record<string, JSONValue>>;
+    metadata?: Partial<SBChatMessageMetadata>;
 }
 
 export const createMessageStream = async ({
     chatId,
     messages,
-    selectedSearchScopes,
+    metadata,
+    selectedRepos,
     model,
     modelName,
     modelProviderOptions,
-    orgId,
-    prisma,
     onFinish,
     onError,
 }: CreateMessageStreamResponseProps) => {
@@ -211,36 +222,12 @@ export const createMessageStream = async ({
 
             const startTime = new Date();
 
-            const expandedRepos = (await Promise.all(selectedSearchScopes.map(async (scope) => {
-                if (scope.type === 'repo') {
-                    return [scope.value];
-                }
-
-                if (scope.type === 'reposet') {
-                    const reposet = await prisma.searchContext.findFirst({
-                        where: {
-                            orgId,
-                            name: scope.value
-                        },
-                        include: {
-                            repos: true
-                        }
-                    });
-
-                    if (reposet) {
-                        return reposet.repos.map(repo => repo.name);
-                    }
-                }
-
-                return [];
-            }))).flat()
-
             const researchStream = await createAgentStream({
                 model,
                 providerOptions: modelProviderOptions,
                 inputMessages: messageHistory,
                 inputSources: sources,
-                selectedRepos: expandedRepos,
+                selectedRepos,
                 onWriteSource: (source) => {
                     writer.write({
                         type: 'data-source',
@@ -267,8 +254,8 @@ export const createMessageStream = async ({
                     totalOutputTokens: totalUsage.outputTokens,
                     totalResponseTimeMs: new Date().getTime() - startTime.getTime(),
                     modelName,
-                    selectedSearchScopes,
                     traceId,
+                    ...metadata,
                 }
             });
 

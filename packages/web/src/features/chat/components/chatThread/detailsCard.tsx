@@ -7,7 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Brain, ChevronDown, ChevronRight, Clock, InfoIcon, Loader2, List, ScanSearchIcon, Zap } from 'lucide-react';
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
+import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { MarkdownRenderer } from './markdownRenderer';
 import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
@@ -21,6 +22,7 @@ import isEqual from "fast-deep-equal/react";
 
 
 interface DetailsCardProps {
+    chatId: string;
     isExpanded: boolean;
     onExpandedChanged: (isExpanded: boolean) => void;
     isThinking: boolean;
@@ -30,6 +32,7 @@ interface DetailsCardProps {
 }
 
 const DetailsCardComponent = ({
+    chatId,
     isExpanded,
     onExpandedChanged,
     isThinking,
@@ -37,9 +40,16 @@ const DetailsCardComponent = ({
     metadata,
     thinkingSteps,
 }: DetailsCardProps) => {
+    const captureEvent = useCaptureEvent();
+
+    const handleExpandedChanged = useCallback((next: boolean) => {
+        captureEvent('wa_chat_details_card_toggled', { chatId, isExpanded: next });
+        onExpandedChanged(next);
+    }, [chatId, captureEvent, onExpandedChanged]);
+
     return (
         <Card className="mb-4">
-            <Collapsible open={isExpanded} onOpenChange={onExpandedChanged}>
+            <Collapsible open={isExpanded} onOpenChange={handleExpandedChanged}>
                 <CollapsibleTrigger asChild>
                     <CardContent
                         className={cn("p-3 cursor-pointer hover:bg-muted", {
