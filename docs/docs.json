@@ -25,7 +25,8 @@
                                 "group": "Deployment",
                                 "pages": [
                                     "docs/deployment/docker-compose",
-                                    "docs/deployment/k8s"
+                                    "docs/deployment/k8s",
+                                    "docs/deployment/sizing-guide"
                                 ]
                             }
                         ]
