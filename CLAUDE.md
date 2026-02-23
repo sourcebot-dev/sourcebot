@@ -193,6 +193,18 @@ Branch naming convention:
 - Bug fixes: `<username>/fix-<linear_issue_id>`
 - If no Linear issue ID is available, omit it from the branch name
 
+PR title should follow conventional commit standards:
+- `feat:` new feature or functionality
+- `fix:` bug fix
+- `docs:` documentation or README changes
+- `chore:` maintenance tasks, dependency updates, etc.
+- `refactor:` code refactoring without changing behavior
+- `test:` adding or updating tests
+
+You can optionally include a scope to indicate which package is affected:
+- `feat(web):` feature in the web package
+- `fix(worker):` bug fix in the worker package (`backend/`)
+
 PR description:
 - If a GitHub issue number was provided, include `Fixes #<github_issue_number>` in the PR description
 
