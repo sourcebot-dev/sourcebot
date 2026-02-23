@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.11.7] - 2026-02-23
+
 ### Changed
 - Skip redundant dev build when production release commits are pushed to main. [#919](https://github.com/sourcebot-dev/sourcebot/pull/919)
 - Bumped zoekt version. [#921](https://github.com/sourcebot-dev/sourcebot/pull/921)
