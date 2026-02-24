@@ -390,6 +390,11 @@ model AccountPermissionSyncJob {
   accountId String
 }
 
+enum PermissionSyncSource {
+  ACCOUNT_DRIVEN
+  REPO_DRIVEN
+}
+
 model AccountToRepoPermission {
   createdAt DateTime @default(now())
 
@@ -398,6 +403,8 @@ model AccountToRepoPermission {
 
   account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
   accountId String
+
+  source PermissionSyncSource @default(ACCOUNT_DRIVEN)
 
   @@id([repoId, accountId])
 }

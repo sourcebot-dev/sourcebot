@@ -39,7 +39,7 @@ We are actively working on supporting more code hosts. If you'd like to see a sp
 |:----------|------------------------------|
 | [GitHub (GHEC & GHEC Server)](/docs/features/permission-syncing#github) | ✅ |
 | [GitLab (Self-managed & Cloud)](/docs/features/permission-syncing#gitlab) | ✅ |
-| Bitbucket Cloud | 🛑 |
+| [Bitbucket Cloud](/docs/features/permission-syncing#bitbucket-cloud) | 🟠 Partial |
 | Bitbucket Data Center | 🛑 |
 | Gitea | 🛑 |
 | Gerrit | 🛑 |
@@ -78,6 +78,28 @@ Permission syncing works with **GitLab Self-managed** and **GitLab Cloud**. User
 - OAuth tokens require the `read_api` scope in order to use the [List projects for the authenticated user API](https://docs.gitlab.com/ee/api/projects.html#list-all-projects) during [User driven syncing](/docs/features/permission-syncing#how-it-works).
 - [Internal GitLab projects](https://docs.gitlab.com/user/public_access/#internal-projects-and-groups) are **not** enforced by permission syncing and therefore are visible to all users. Only [private projects](https://docs.gitlab.com/user/public_access/#private-projects-and-groups) are enforced.
 
+## Bitbucket Cloud
+
+Prerequisites:
+- Configure Bitbucket Cloud as an [external identity provider](/docs/configuration/idp).
+
+Permission syncing works with **Bitbucket Cloud**. OAuth tokens must assume the `account` and `repository` scopes.
+
+<Warning>
+**Partial coverage for repo-driven syncing.** Bitbucket Cloud's [repository user permissions API](https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-repo-slug-permissions-config-users-get) only returns users who have been **directly and explicitly** granted access to a repository. Users who have access via any of the following are **not** captured by repo-driven syncing:
+
+- Membership in a [group that is added to the repository](https://support.atlassian.com/bitbucket-cloud/docs/grant-repository-access-to-users-and-groups/)
+- Membership in the [project that contains the repository](https://support.atlassian.com/bitbucket-cloud/docs/configure-project-permissions-for-users-and-groups/)
+- Membership in a group that is part of a project containing the repository
+
+These users **will** still gain access via [user-driven syncing](/docs/features/permission-syncing#how-it-works), which fetches all private repositories accessible to each authenticated user. However, there may be a delay between when a repository is added and when affected users gain access in Sourcebot (up to the `experiment_userDrivenPermissionSyncIntervalMs` interval, which defaults to 24 hours).
+
+If your workspace relies heavily on group or project-level permissions rather than direct user grants, we recommend reducing the `experiment_userDrivenPermissionSyncIntervalMs` interval to limit the window of delay.
+</Warning>
+
+**Notes:**
+- A Bitbucket Cloud [external identity provider](/docs/configuration/idp) must be configured to (1) correlate a Sourcebot user with a Bitbucket Cloud user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
+- OAuth tokens require the `account` and `repository` scopes. The `repository` scope is required to list private repositories during [User driven syncing](/docs/features/permission-syncing#how-it-works).
 
 # How it works
 
