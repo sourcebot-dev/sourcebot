@@ -257,7 +257,10 @@ export class RepoPermissionSyncer {
                 const client = createBitbucketCloudClient(config.user, credentials.token);
 
                 const parsedMetadata = repoMetadataSchema.safeParse(repo.metadata);
-                const bitbucketCloudMetadata = parsedMetadata.success ? parsedMetadata.data.codeHostMetadata?.bitbucketCloud : undefined;
+                if (!parsedMetadata.success) {
+                    throw new Error(`Repo ${id} has invalid metadata: ${JSON.stringify(parsedMetadata.error.errors)}`);
+                }
+                const bitbucketCloudMetadata = parsedMetadata.data.codeHostMetadata?.bitbucketCloud;
                 if (!bitbucketCloudMetadata) {
                     throw new Error(`Repo ${id} is missing required Bitbucket Cloud metadata (workspace/repoSlug)`);
                 }
@@ -285,7 +288,7 @@ export class RepoPermissionSyncer {
 
                 return {
                     accountIds: accounts.map(account => account.id),
-                    // Since we only fetch users who have been explicitly granted accesss to the repo,
+                    // Since we only fetch users who have been explicitly granted access to the repo,
                     // this is a partial sync.
                     isPartialSync: true,
                 }
