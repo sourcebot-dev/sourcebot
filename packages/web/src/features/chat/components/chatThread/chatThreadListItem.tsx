@@ -334,7 +334,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                             <MarkdownRenderer
                                 content={userQuestion.trim()}
                                 className="prose-p:m-0"
-                                disableRawHtml={true}
+                                escapeHtml={true}
                             />
                         </div>
 

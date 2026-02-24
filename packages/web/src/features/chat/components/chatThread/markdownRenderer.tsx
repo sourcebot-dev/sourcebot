@@ -80,6 +80,27 @@ function remarkReferencesPlugin() {
     }
 }
 
+/**
+ * A remark plugin that converts `html` MDAST nodes into `text` nodes,
+ * preserving angle-bracketed content like `<id>` as visible text. Without this,
+ * `<id>` is parsed as an HTML tag and then stripped by sanitization.
+ *
+ * This plugin must run BEFORE remarkReferencesPlugin so that the file-reference
+ * HTML nodes created by that plugin are left intact for rehypeRaw to process.
+ */
+function remarkPreserveHtml() {
+    return function (tree: Nodes) {
+        visit(tree, 'html', (node, index, parent) => {
+            if (index !== undefined && parent && 'children' in parent) {
+                (parent.children as Nodes[])[index] = {
+                    type: 'text',
+                    value: (node as { value: string }).value,
+                };
+            }
+        });
+    };
+}
+
 const remarkTocExtractor = () => {
     return function (tree: Nodes) {
         visit(tree, 'heading', (node: Heading) => {
@@ -102,32 +123,27 @@ interface MarkdownRendererProps {
     content: string;
     className?: string;
     /**
-     * When true, disables raw HTML parsing. This prevents text like `<id>` from
-     * being interpreted as HTML tags. Use this for user-provided content that
-     * shouldn't contain embedded HTML.
+     * When true, angle-bracketed text like `<id>` is preserved as visible text
+     * instead of being parsed as HTML. File references (@file:{...}) are unaffected.
      */
-    disableRawHtml?: boolean;
+    escapeHtml?: boolean;
 }
 
-const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, className, disableRawHtml = false }, ref) => {
+const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, className, escapeHtml = false }, ref) => {
     const router = useRouter();
 
     const remarkPlugins = useMemo((): PluggableList => {
         return [
             remarkGfm,
+            ...(escapeHtml ? [remarkPreserveHtml] : []),
             remarkReferencesPlugin,
             remarkTocExtractor,
         ];
-    }, []);
+    }, [escapeHtml]);
 
     const rehypePlugins = useMemo((): PluggableList => {
-        const plugins: PluggableList = [];
-
-        if (!disableRawHtml) {
-            plugins.push(rehypeRaw);
-        }
-
-        plugins.push(
+        return [
+            rehypeRaw,
             [
                 rehypeSanitize,
                 {
@@ -140,10 +156,8 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
                 } satisfies SanitizeSchema,
             ],
             annotateCodeBlocks,
-        );
-
-        return plugins;
-    }, [disableRawHtml]);
+        ];
+    }, []);
 
     const renderPre = useCallback(({ children, node, ...rest }: React.JSX.IntrinsicElements['pre'] & { node?: Element }) => {
         if (node?.properties && node.properties.isBlock === true) {
