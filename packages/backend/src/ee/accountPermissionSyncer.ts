@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/node";
-import { PrismaClient, AccountPermissionSyncJobStatus, Account} from "@sourcebot/db";
+import { PrismaClient, AccountPermissionSyncJobStatus, Account, PermissionSyncSource} from "@sourcebot/db";
 import { env, hasEntitlement, createLogger, loadConfig, decryptOAuthToken } from "@sourcebot/shared";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
@@ -309,6 +309,7 @@ export class AccountPermissionSyncer {
                 data: repoIds.map(repoId => ({
                     accountId: account.id,
                     repoId,
+                    source: PermissionSyncSource.ACCOUNT_DRIVEN,
                 })),
                 skipDuplicates: true,
             })

@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/node";
-import { PrismaClient, Repo, RepoPermissionSyncJobStatus } from "@sourcebot/db";
+import { PermissionSyncSource, PrismaClient, Repo, RepoPermissionSyncJobStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/shared";
 import { env, hasEntitlement } from "@sourcebot/shared";
 import { Job, Queue, Worker } from 'bullmq';
@@ -184,7 +184,13 @@ export class RepoPermissionSyncer {
             throw new Error(`No credentials found for repo ${id}`);
         }
 
-        const accountIds = await (async () => {
+        const {
+            accountIds,
+            isPartialSync = false,
+        } = await (async (): Promise<{
+            accountIds: string[],
+            isPartialSync?: boolean
+        }> => {
             if (repo.external_codeHostType === 'github') {
                 const isGitHubCloud = credentials.hostUrl ? new URL(credentials.hostUrl).hostname === GITHUB_CLOUD_HOSTNAME : true;
                 const { octokit } = await createOctokitFromToken({
@@ -213,7 +219,9 @@ export class RepoPermissionSyncer {
                     },
                 });
 
-                return accounts.map(account => account.id);
+                return {
+                    accountIds: accounts.map(account => account.id),
+                }
             } else if (repo.external_codeHostType === 'gitlab') {
                 const api = await createGitLabFromPersonalAccessToken({
                     token: credentials.token,
@@ -237,7 +245,9 @@ export class RepoPermissionSyncer {
                     },
                 });
 
-                return accounts.map(account => account.id);
+                return {
+                    accountIds: accounts.map(account => account.id),
+                }
             } else if (repo.external_codeHostType === 'bitbucketCloud') {
                 const config = credentials.connectionConfig as BitbucketConnectionConfig | undefined;
                 if (!config) {
@@ -273,10 +283,17 @@ export class RepoPermissionSyncer {
                     },
                 });
 
-                return accounts.map(account => account.id);
+                return {
+                    accountIds: accounts.map(account => account.id),
+                    // Since we only fetch users who have been explicitly granted accesss to the repo,
+                    // this is a partial sync.
+                    isPartialSync: true,
+                }
             }
 
-            return [];
+            return {
+                accountIds: [],
+            }
         })();
 
         await this.db.$transaction([
@@ -286,7 +303,11 @@ export class RepoPermissionSyncer {
                 },
                 data: {
                     permittedAccounts: {
-                        deleteMany: {},
+                        // @note: if this is a partial sync, we only want to delete the repo-driven permissions
+                        // since we don't want to overwrite the account-driven permissions.
+                        deleteMany: isPartialSync ? {
+                            source: PermissionSyncSource.REPO_DRIVEN,
+                        } : {},
                     }
                 }
             }),
@@ -294,7 +315,9 @@ export class RepoPermissionSyncer {
                 data: accountIds.map(accountId => ({
                     accountId,
                     repoId: repo.id,
+                    source: PermissionSyncSource.REPO_DRIVEN,
                 })),
+                skipDuplicates: true,
             })
         ]);
     }
