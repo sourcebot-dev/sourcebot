@@ -101,15 +101,9 @@ const remarkTocExtractor = () => {
 interface MarkdownRendererProps {
     content: string;
     className?: string;
-    /**
-     * When true, disables raw HTML parsing. This prevents text like `<id>` from
-     * being interpreted as HTML tags. Use this for user-provided content that
-     * shouldn't contain embedded HTML.
-     */
-    disableRawHtml?: boolean;
 }
 
-const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, className, disableRawHtml = false }, ref) => {
+const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, className }, ref) => {
     const router = useRouter();
 
     const remarkPlugins = useMemo((): PluggableList => {
@@ -121,13 +115,8 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
     }, []);
 
     const rehypePlugins = useMemo((): PluggableList => {
-        const plugins: PluggableList = [];
-
-        if (!disableRawHtml) {
-            plugins.push(rehypeRaw);
-        }
-
-        plugins.push(
+        return [
+            rehypeRaw,
             [
                 rehypeSanitize,
                 {
@@ -140,10 +129,8 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
                 } satisfies SanitizeSchema,
             ],
             annotateCodeBlocks,
-        );
-
-        return plugins;
-    }, [disableRawHtml]);
+        ];
+    }, []);
 
     const renderPre = useCallback(({ children, node, ...rest }: React.JSX.IntrinsicElements['pre'] & { node?: Element }) => {
         if (node?.properties && node.properties.isBlock === true) {

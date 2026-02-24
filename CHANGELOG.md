@@ -11,9 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added PostHog events for chat UI interactions (details card expand/collapse, copy answer, table of contents toggle) and repo tracking in `wa_chat_message_sent`. [#922](https://github.com/sourcebot-dev/sourcebot/pull/922)
 - Added Bitbucket Cloud OAuth identity provider support (`provider: "bitbucket-cloud"`) for SSO and account-linked permission syncing. [#924](https://github.com/sourcebot-dev/sourcebot/pull/924)
 
-### Fixed
-- Fixed text inside angle brackets (e.g., `<id>`) being hidden in chat prompt display due to HTML parsing. [#929](https://github.com/sourcebot-dev/sourcebot/pull/929)
-
 ## [4.11.7] - 2026-02-23
 
 ### Changed
