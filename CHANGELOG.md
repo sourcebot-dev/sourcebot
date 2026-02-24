@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Hide version upgrade toast for askgithub deployment (`EXPERIMENT_ASK_GH_ENABLED`).
 
+### Fixed
+- Fixed text inside angle brackets (e.g., `<id>`) being hidden in chat prompt display due to HTML parsing. [#929](https://github.com/sourcebot-dev/sourcebot/pull/929)
+
 ## [4.11.7] - 2026-02-23
 
 ### Changed
