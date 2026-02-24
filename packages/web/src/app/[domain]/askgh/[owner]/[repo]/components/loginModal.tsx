@@ -37,7 +37,7 @@ export const LoginModal = ({
                         providers={providers}
                         callbackUrl={callbackUrl}
                         context="login"
-                        securityNoticeClosable={true}
+                        hideSecurityNotice={true}
                     />
                 </div>
             </DialogContent>
