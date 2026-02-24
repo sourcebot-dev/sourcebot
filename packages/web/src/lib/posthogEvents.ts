@@ -227,6 +227,11 @@ export type PosthogEventMap = {
         chatId: string,
         isExpanded: boolean,
     },
+    wa_user_created: {
+        userId: string,
+    },
+    //////////////////////////////////////////////////////////////////
+    wa_askgh_login_wall_prompted: {},
     //////////////////////////////////////////////////////////////////
     wa_demo_docs_link_pressed: {},
     wa_demo_search_example_card_pressed: {
