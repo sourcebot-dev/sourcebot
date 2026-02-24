@@ -7,10 +7,11 @@ import { Redis } from 'ioredis';
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import { createOctokitFromToken, getRepoCollaborators, GITHUB_CLOUD_HOSTNAME } from "../github.js";
 import { createGitLabFromPersonalAccessToken, getProjectMembers } from "../gitlab.js";
-import { getExplicitUserPermissionsForCloudRepo } from "../bitbucket.js";
+import { createBitbucketCloudClient, getExplicitUserPermissionsForCloudRepo } from "../bitbucket.js";
 import { repoMetadataSchema } from "@sourcebot/shared";
 import { Settings } from "../types.js";
 import { getAuthCredentialsForRepo, setIntervalAsync } from "../utils.js";
+import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/index.type";
 
 type RepoPermissionSyncJob = {
     jobId: string;
@@ -238,6 +239,13 @@ export class RepoPermissionSyncer {
 
                 return accounts.map(account => account.id);
             } else if (repo.external_codeHostType === 'bitbucketCloud') {
+                const config = credentials.connectionConfig as BitbucketConnectionConfig | undefined;
+                if (!config) {
+                    throw new Error(`No connection config found for repo ${id}`);
+                }
+
+                const client = createBitbucketCloudClient(config.user, credentials.token);
+
                 const parsedMetadata = repoMetadataSchema.safeParse(repo.metadata);
                 const bitbucketCloudMetadata = parsedMetadata.success ? parsedMetadata.data.codeHostMetadata?.bitbucketCloud : undefined;
                 if (!bitbucketCloudMetadata) {
@@ -253,7 +261,7 @@ export class RepoPermissionSyncer {
                 // but there may be a delay of up to `experiment_userDrivenPermissionSyncIntervalMs` before
                 // they see the repository in Sourcebot.
                 // @see: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-repo-slug-permissions-config-users-get
-                const users = await getExplicitUserPermissionsForCloudRepo(workspace, repoSlug, credentials.token);
+                const users = await getExplicitUserPermissionsForCloudRepo(client, workspace, repoSlug);
                 const userAccountIds = users.map(u => u.accountId);
 
                 const accounts = await this.db.account.findMany({

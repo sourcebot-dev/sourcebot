@@ -14,7 +14,7 @@ import {
     getOAuthScopesForAuthenticatedUser as getGitLabOAuthScopesForAuthenticatedUser,
     getProjectsForAuthenticatedUser,
 } from "../gitlab.js";
-import { getReposForAuthenticatedBitbucketCloudUser } from "../bitbucket.js";
+import { createBitbucketCloudClient, getReposForAuthenticatedBitbucketCloudUser } from "../bitbucket.js";
 import { Settings } from "../types.js";
 import { setIntervalAsync } from "../utils.js";
 
@@ -273,7 +273,10 @@ export class AccountPermissionSyncer {
                     throw new Error(`User '${account.user.email}' does not have a Bitbucket Cloud OAuth access token associated with their account. Please re-authenticate with Bitbucket Cloud to refresh the token.`);
                 }
 
-                const bitbucketRepos = await getReposForAuthenticatedBitbucketCloudUser(accessToken);
+                // @note: we don't pass a user here since we want to use a bearer token
+                // for authentication.
+                const client = createBitbucketCloudClient(/* user = */ undefined, accessToken)
+                const bitbucketRepos = await getReposForAuthenticatedBitbucketCloudUser(client);
                 const bitbucketRepoUuids = bitbucketRepos.map(repo => repo.uuid);
 
                 const repos = await this.db.repo.findMany({

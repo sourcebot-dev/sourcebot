@@ -145,6 +145,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                             password: token,
                         }
                     ),
+                    connectionConfig: config,
                 }
             }
         } else if (connection.connectionType === 'gitlab') {
@@ -161,6 +162,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                             password: token
                         }
                     ),
+                    connectionConfig: config,
                 }
             }
         } else if (connection.connectionType === 'gitea') {
@@ -176,6 +178,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                             password: token
                         }
                     ),
+                    connectionConfig: config,
                 }
             }
         } else if (connection.connectionType === 'bitbucket') {
@@ -193,6 +196,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                             password: token
                         }
                     ),
+                    connectionConfig: config,
                 }
             }
         } else if (connection.connectionType === 'azuredevops') {
@@ -223,6 +227,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                                 password: token
                             }
                         ),
+                        connectionConfig: config,
                     }
                 }
             }

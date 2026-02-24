@@ -1,5 +1,5 @@
-import { createBitbucketCloudClient } from "@coderabbitai/bitbucket/cloud";
-import { createBitbucketServerClient } from "@coderabbitai/bitbucket/server";
+import { createBitbucketCloudClient as createBitbucketCloudClientBase } from "@coderabbitai/bitbucket/cloud";
+import { createBitbucketServerClient as createBitbucketServerClientBase } from "@coderabbitai/bitbucket/server";
 import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/bitbucket.type";
 import type { ClientOptions, ClientPathsWithMethod } from "openapi-fetch";
 import { createLogger } from "@sourcebot/shared";
@@ -36,10 +36,10 @@ interface BitbucketClient {
     shouldExcludeRepo: (repo: BitbucketRepository, config: BitbucketConnectionConfig) => boolean;
 }
 
-type CloudAPI = ReturnType<typeof createBitbucketCloudClient>;
+type CloudAPI = ReturnType<typeof createBitbucketCloudClientBase>;
 type CloudGetRequestPath = ClientPathsWithMethod<CloudAPI, "get">;
 
-type ServerAPI = ReturnType<typeof createBitbucketServerClient>;
+type ServerAPI = ReturnType<typeof createBitbucketServerClientBase>;
 type ServerGetRequestPath = ClientPathsWithMethod<ServerAPI, "get">;
 
 type CloudPaginatedResponse<T> = {
@@ -70,8 +70,8 @@ export const getBitbucketReposFromConfig = async (config: BitbucketConnectionCon
     }
 
     const client = config.deploymentType === 'server' ? 
-        serverClient(config.url!, config.user, token) : 
-        cloudClient(config.user, token);
+        createBitbucketServerClient(config.url!, config.user, token) : 
+        createBitbucketCloudClient(config.user, token);
 
     let allRepos: BitbucketRepository[] = [];
     let allWarnings: string[] = [];
@@ -104,11 +104,10 @@ export const getBitbucketReposFromConfig = async (config: BitbucketConnectionCon
     };
 }
 
-function cloudClient(user: string | undefined, token: string | undefined): BitbucketClient {
-
+export function createBitbucketCloudClient(user: string | undefined, token: string | undefined): BitbucketClient {
     const authorizationString = 
         token
-        ? !user || user == "x-token-auth"
+        ? (!user || user === "x-token-auth")
             ? `Bearer ${token}`
             : `Basic ${Buffer.from(`${user}:${token}`).toString('base64')}`
         : undefined;
@@ -121,7 +120,7 @@ function cloudClient(user: string | undefined, token: string | undefined): Bitbu
         },
     };
 
-    const apiClient = createBitbucketCloudClient(clientOptions);
+    const apiClient = createBitbucketCloudClientBase(clientOptions);
     var client: BitbucketClient = {
         deploymentType: BITBUCKET_CLOUD,
         token: token,
@@ -380,7 +379,7 @@ export function cloudShouldExcludeRepo(repo: BitbucketRepository, config: Bitbuc
     return false;
 }
 
-function serverClient(url: string, user: string | undefined, token: string | undefined): BitbucketClient {
+function createBitbucketServerClient(url: string, user: string | undefined, token: string | undefined): BitbucketClient {
     const authorizationString = (() => {
         // If we're not given any credentials we return an empty auth string. This will only work if the project/repos are public
         if(!user && !token) {
@@ -402,7 +401,7 @@ function serverClient(url: string, user: string | undefined, token: string | und
         },
     };
 
-    const apiClient = createBitbucketServerClient(clientOptions);
+    const apiClient = createBitbucketServerClientBase(clientOptions);
     var client: BitbucketClient = {
         deploymentType: BITBUCKET_SERVER,
         token: token,
@@ -604,22 +603,14 @@ export function serverShouldExcludeRepo(repo: BitbucketRepository, config: Bitbu
  * @see https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-repo-slug-permissions-config-users-get
  */
 export const getExplicitUserPermissionsForCloudRepo = async (
+    client: BitbucketClient,
     workspace: string,
     repoSlug: string,
-    token: string | undefined,
 ): Promise<Array<{ accountId: string }>> => {
-    const apiClient = createBitbucketCloudClient({
-        baseUrl: BITBUCKET_CLOUD_API,
-        headers: {
-            Accept: "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-    });
-
     const path = `/repositories/${workspace}/${repoSlug}/permissions-config/users` as CloudGetRequestPath;
 
     const users = await getPaginatedCloud<CloudRepositoryUserPermission>(path, async (p, query) => {
-        const response = await apiClient.GET(p, {
+        const response = await client.apiClient.GET(p, {
             params: {
                 path: { workspace, repo_slug: repoSlug },
                 query,
@@ -644,20 +635,12 @@ export const getExplicitUserPermissionsForCloudRepo = async (
  * @see https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-user-permissions-repositories-get
  */
 export const getReposForAuthenticatedBitbucketCloudUser = async (
-    accessToken: string,
+    client: BitbucketClient,
 ): Promise<Array<{ uuid: string }>> => {
-    const apiClient = createBitbucketCloudClient({
-        baseUrl: BITBUCKET_CLOUD_API,
-        headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${accessToken}`,
-        },
-    });
-
     const path = `/user/permissions/repositories` as CloudGetRequestPath;
 
     const permissions = await getPaginatedCloud<CloudRepositoryPermission>(path, async (p, query) => {
-        const response = await apiClient.GET(p, {
+        const response = await client.apiClient.GET(p, {
             params: { query },
         });
         const { data, error } = response;
