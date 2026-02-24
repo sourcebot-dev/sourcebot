@@ -233,6 +233,7 @@ const createBitbucketCloudProvider = (clientId: string, clientSecret: string): P
             params: {
                 scope: [
                     "account",
+                    "email",
                     ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
                         ['repository'] :
                         []
