@@ -1,13 +1,11 @@
 import { PostHog } from 'posthog-node'
-import { createLogger, env, SOURCEBOT_VERSION } from '@sourcebot/shared'
+import { env, SOURCEBOT_VERSION } from '@sourcebot/shared'
 import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies';
 import * as Sentry from "@sentry/nextjs";
 import { PosthogEvent, PosthogEventMap } from './posthogEvents';
 import { cookies, headers } from 'next/headers';
 import { auth } from '@/auth';
 import { getVerifiedApiObject } from '@/withAuthV2';
-
-const logger = createLogger('posthog');
 
 /**
  * @note: This is a subset of the properties stored in the
@@ -94,8 +92,6 @@ export async function captureEvent<E extends PosthogEvent>(event: E, properties:
         flushAt: 1,
         flushInterval: 0
     })
-
-    logger.debug(`Capturing event: ${event}`, { distinctId, host, ...properties });
 
     posthog.capture({
         event,
