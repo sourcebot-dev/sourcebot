@@ -7,6 +7,8 @@ import { Redis } from 'ioredis';
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import { createOctokitFromToken, getRepoCollaborators, GITHUB_CLOUD_HOSTNAME } from "../github.js";
 import { createGitLabFromPersonalAccessToken, getProjectMembers } from "../gitlab.js";
+import { getExplicitUserPermissionsForCloudRepo } from "../bitbucket.js";
+import { repoMetadataSchema } from "@sourcebot/shared";
 import { Settings } from "../types.js";
 import { getAuthCredentialsForRepo, setIntervalAsync } from "../utils.js";
 
@@ -230,6 +232,35 @@ export class RepoPermissionSyncer {
                         provider: 'gitlab',
                         providerAccountId: {
                             in: gitlabUserIds,
+                        }
+                    },
+                });
+
+                return accounts.map(account => account.id);
+            } else if (repo.external_codeHostType === 'bitbucketCloud') {
+                const parsedMetadata = repoMetadataSchema.safeParse(repo.metadata);
+                const bitbucketCloudMetadata = parsedMetadata.success ? parsedMetadata.data.codeHostMetadata?.bitbucketCloud : undefined;
+                if (!bitbucketCloudMetadata) {
+                    throw new Error(`Repo ${id} is missing required Bitbucket Cloud metadata (workspace/repoSlug)`);
+                }
+
+                const { workspace, repoSlug } = bitbucketCloudMetadata;
+
+                // @note: The Bitbucket Cloud permissions API only returns users who have been *directly*
+                // granted access to this repository. Users who have access via a group added to the repo,
+                // via project-level membership, or via a group in a project are NOT captured here.
+                // These users will still gain access through user-driven syncing (accountPermissionSyncer),
+                // but there may be a delay of up to `experiment_userDrivenPermissionSyncIntervalMs` before
+                // they see the repository in Sourcebot.
+                // @see: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-repo-slug-permissions-config-users-get
+                const users = await getExplicitUserPermissionsForCloudRepo(workspace, repoSlug, credentials.token);
+                const userAccountIds = users.map(u => u.accountId);
+
+                const accounts = await this.db.account.findMany({
+                    where: {
+                        provider: 'bitbucket-cloud',
+                        providerAccountId: {
+                            in: userAccountIds,
                         }
                     },
                 });

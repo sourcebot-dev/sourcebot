@@ -31,6 +31,16 @@ export const repoMetadataSchema = z.object({
      * A list of revisions that were indexed for the repo.
      */
     indexedRevisions: z.array(z.string()).optional(),
+
+    /**
+     * Code host specific metadata, keyed by code host type.
+     */
+    codeHostMetadata: z.object({
+        bitbucketCloud: z.object({
+            workspace: z.string(),
+            repoSlug: z.string(),
+        }).optional(),
+    }).optional(),
 });
 
 export type RepoMetadata = z.infer<typeof repoMetadataSchema>;

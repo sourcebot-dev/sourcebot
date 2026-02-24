@@ -14,6 +14,7 @@ import {
     getOAuthScopesForAuthenticatedUser as getGitLabOAuthScopesForAuthenticatedUser,
     getProjectsForAuthenticatedUser,
 } from "../gitlab.js";
+import { getReposForAuthenticatedBitbucketCloudUser } from "../bitbucket.js";
 import { Settings } from "../types.js";
 import { setIntervalAsync } from "../utils.js";
 
@@ -262,6 +263,24 @@ export class AccountPermissionSyncer {
                         external_codeHostType: 'gitlab',
                         external_id: {
                             in: gitLabProjectIds,
+                        }
+                    }
+                });
+
+                repos.forEach(repo => aggregatedRepoIds.add(repo.id));
+            } else if (account.provider === 'bitbucket-cloud') {
+                if (!accessToken) {
+                    throw new Error(`User '${account.user.email}' does not have a Bitbucket Cloud OAuth access token associated with their account. Please re-authenticate with Bitbucket Cloud to refresh the token.`);
+                }
+
+                const bitbucketRepos = await getReposForAuthenticatedBitbucketCloudUser(accessToken);
+                const bitbucketRepoUuids = bitbucketRepos.map(repo => repo.uuid);
+
+                const repos = await this.db.repo.findMany({
+                    where: {
+                        external_codeHostType: 'bitbucketCloud',
+                        external_id: {
+                            in: bitbucketRepoUuids,
                         }
                     }
                 });

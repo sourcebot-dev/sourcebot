@@ -510,6 +510,14 @@ export const compileBitbucketConfig = async (
                 },
                 branches: config.revisions?.branches ?? undefined,
                 tags: config.revisions?.tags ?? undefined,
+                ...(codeHostType === 'bitbucketCloud' ? {
+                    codeHostMetadata: {
+                        bitbucketCloud: {
+                            workspace: (repo as BitbucketCloudRepository).full_name!.split('/')[0]!,
+                            repoSlug: (repo as BitbucketCloudRepository).full_name!.split('/')[1]!,
+                        }
+                    }
+                } : {}),
             } satisfies RepoMetadata,
         };
 

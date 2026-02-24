@@ -8,6 +8,8 @@ import * as Sentry from "@sentry/node";
 import micromatch from "micromatch";
 import {
     SchemaRepository as CloudRepository,
+    SchemaRepositoryUserPermission as CloudRepositoryUserPermission,
+    SchemaRepositoryPermission as CloudRepositoryPermission,
 } from "@coderabbitai/bitbucket/cloud/openapi";
 import { SchemaRestRepository as ServerRepository } from "@coderabbitai/bitbucket/server/openapi";
 import { processPromiseResults } from "./connectionUtils.js";
@@ -560,7 +562,7 @@ export function serverShouldExcludeRepo(repo: BitbucketRepository, config: Bitbu
     const repoSlug = serverRepo.slug!;
     const repoName = `${projectName}/${repoSlug}`;
     let reason = '';
-    
+
     const shouldExclude = (() => {
         if (config.exclude?.repos) {
             if (micromatch.isMatch(repoName, config.exclude.repos)) {
@@ -588,3 +590,84 @@ export function serverShouldExcludeRepo(repo: BitbucketRepository, config: Bitbu
     }
     return false;
 }
+
+/**
+ * Returns the account IDs of users who have been *explicitly* granted permission on a Bitbucket Cloud repository.
+ *
+ * @note This only covers direct user-to-repo grants. It does NOT include users who have access via:
+ *   - A group that is explicitly added to the repo
+ *   - Membership in the project that contains the repo
+ *   - A group that is part of a project that contains the repo
+ * As a result, permission syncing may under-grant access for workspaces that rely on group or
+ * project-level permissions rather than direct user grants.
+ *
+ * @see https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-repo-slug-permissions-config-users-get
+ */
+export const getExplicitUserPermissionsForCloudRepo = async (
+    workspace: string,
+    repoSlug: string,
+    token: string | undefined,
+): Promise<Array<{ accountId: string }>> => {
+    const apiClient = createBitbucketCloudClient({
+        baseUrl: BITBUCKET_CLOUD_API,
+        headers: {
+            Accept: "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+    });
+
+    const path = `/repositories/${workspace}/${repoSlug}/permissions-config/users` as CloudGetRequestPath;
+
+    const users = await getPaginatedCloud<CloudRepositoryUserPermission>(path, async (p, query) => {
+        const response = await apiClient.GET(p, {
+            params: {
+                path: { workspace, repo_slug: repoSlug },
+                query,
+            },
+        });
+        const { data, error } = response;
+        if (error) {
+            throw new Error(`Failed to get explicit user permissions for ${workspace}/${repoSlug}: ${JSON.stringify(error)}`);
+        }
+        return data;
+    });
+
+    return users
+        .filter(u => u.user?.account_id != null)
+        .map(u => ({ accountId: u.user!.account_id as string }));
+};
+
+/**
+ * Returns the UUIDs of all private repositories accessible to the authenticated Bitbucket Cloud user.
+ * Used for account-driven permission syncing.
+ * 
+ * @see https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-user-permissions-repositories-get
+ */
+export const getReposForAuthenticatedBitbucketCloudUser = async (
+    accessToken: string,
+): Promise<Array<{ uuid: string }>> => {
+    const apiClient = createBitbucketCloudClient({
+        baseUrl: BITBUCKET_CLOUD_API,
+        headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${accessToken}`,
+        },
+    });
+
+    const path = `/user/permissions/repositories` as CloudGetRequestPath;
+
+    const permissions = await getPaginatedCloud<CloudRepositoryPermission>(path, async (p, query) => {
+        const response = await apiClient.GET(p, {
+            params: { query },
+        });
+        const { data, error } = response;
+        if (error) {
+            throw new Error(`Failed to get user repository permissions: ${JSON.stringify(error)}`);
+        }
+        return data;
+    });
+
+    return permissions
+        .filter(p => p.repository?.uuid != null)
+        .map(p => ({ uuid: p.repository!.uuid as string }));
+};
