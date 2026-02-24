@@ -20,4 +20,4 @@ jobs:
 
     steps:
       - name: Deploy image to Railway
-        run: railway redeploy --service=sourcebot
+        run: railway redeploy --service=sourcebot --yes
