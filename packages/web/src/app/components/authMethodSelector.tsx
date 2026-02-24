@@ -17,6 +17,7 @@ interface AuthMethodSelectorProps {
     context: "login" | "signup";
     onProviderClick?: (providerId: string) => void;
     securityNoticeClosable?: boolean;
+    hideSecurityNotice?: boolean;
 }
 
 export const AuthMethodSelector = ({
@@ -24,7 +25,8 @@ export const AuthMethodSelector = ({
     callbackUrl,
     context,
     onProviderClick,
-    securityNoticeClosable = false
+    securityNoticeClosable = false,
+    hideSecurityNotice = false
 }: AuthMethodSelectorProps) => {
     const onSignInWithOauth = useCallback((provider: string) => {
         // Call the optional analytics callback first
@@ -56,7 +58,7 @@ export const AuthMethodSelector = ({
 
     return (
         <>
-            <AuthSecurityNotice closable={securityNoticeClosable} />
+            {!hideSecurityNotice && <AuthSecurityNotice closable={securityNoticeClosable} />}
             <DividerSet
                 elements={[
                     ...(oauthProviders.length > 0 ? [
