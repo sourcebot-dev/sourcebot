@@ -201,7 +201,7 @@ export default async function Layout(props: LayoutProps) {
             {children}
             <SyntaxReferenceGuide />
             <GitHubStarToast />
-            <UpgradeToast />
+            {env.EXPERIMENT_ASK_GH_ENABLED !== 'true' && <UpgradeToast />}
         </SyntaxGuideProvider>
     )
 }
