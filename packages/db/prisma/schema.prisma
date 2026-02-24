@@ -406,6 +406,7 @@ model AccountToRepoPermission {
 model Account {
   id                String  @id @default(cuid())
   userId            String
+  /// @note: this field matches the `provider` field of the `IdentityProviderConfig` schema
   type              String
   provider          String
   providerAccountId String
