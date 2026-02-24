@@ -171,6 +171,29 @@
             },
             "required": ["provider", "purpose", "audience"]
         },
+        "BitbucketCloudIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "provider": {
+                    "const": "bitbucket-cloud"
+                },
+                "purpose": {
+                    "enum": ["sso", "account_linking"]
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "accountLinkingRequired": {
+                    "type": "boolean",
+                    "default": false
+                }
+            },
+            "required": ["provider", "purpose", "clientId", "clientSecret"]
+        },
         "AuthentikIdentityProviderConfig": {
             "type": "object",
             "additionalProperties": false,
@@ -218,6 +241,9 @@
         },
         {
             "$ref": "#/definitions/AuthentikIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/BitbucketCloudIdentityProviderConfig"
         }
     ]
 }

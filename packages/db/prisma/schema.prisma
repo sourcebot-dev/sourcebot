@@ -390,6 +390,11 @@ model AccountPermissionSyncJob {
   accountId String
 }
 
+enum PermissionSyncSource {
+  ACCOUNT_DRIVEN
+  REPO_DRIVEN
+}
+
 model AccountToRepoPermission {
   createdAt DateTime @default(now())
 
@@ -399,6 +404,8 @@ model AccountToRepoPermission {
   account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
   accountId String
 
+  source PermissionSyncSource @default(ACCOUNT_DRIVEN)
+
   @@id([repoId, accountId])
 }
 
@@ -407,6 +414,7 @@ model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
+  /// @note: this field generally matches the `provider` field of the `IdentityProviderConfig` schema
   provider          String
   providerAccountId String
   refresh_token     String?

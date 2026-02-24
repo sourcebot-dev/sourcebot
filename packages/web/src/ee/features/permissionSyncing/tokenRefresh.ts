@@ -1,10 +1,23 @@
 import { loadConfig, decryptOAuthToken } from "@sourcebot/shared";
 import { getTokenFromConfig, createLogger, env, encryptOAuthToken } from "@sourcebot/shared";
-import { GitHubIdentityProviderConfig, GitLabIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
+import { BitbucketCloudIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
+import { IdentityProviderType } from "@sourcebot/shared";
 import { z } from 'zod';
 import { prisma } from '@/prisma';
 
 const logger = createLogger('web-ee-token-refresh');
+
+const SUPPORTED_PROVIDERS = [
+    'github',
+    'gitlab',
+    'bitbucket-cloud'
+] as const satisfies IdentityProviderType[];
+
+type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
+
+const isSupportedProvider = (provider: string): provider is SupportedProvider => {
+    return SUPPORTED_PROVIDERS.includes(provider as SupportedProvider);
+}
 
 // Map of providerAccountId -> error message
 export type LinkedAccountErrors = Record<string, string>;
@@ -61,7 +74,7 @@ const doRefreshLinkedAccountTokens = async (userId: string): Promise<LinkedAccou
         accounts.map(async (account) => {
             const { provider, providerAccountId, expires_at } = account;
 
-            if (provider !== 'github' && provider !== 'gitlab') {
+            if (!isSupportedProvider(provider)) {
                 return;
             }
 
@@ -115,7 +128,7 @@ const doRefreshLinkedAccountTokens = async (userId: string): Promise<LinkedAccou
 }
 
 const refreshOAuthToken = async (
-    provider: string,
+    provider: SupportedProvider,
     refreshToken: string,
 ): Promise<OAuthTokenResponse | null> => {
     try {
@@ -149,11 +162,15 @@ const refreshOAuthToken = async (
         // to do because only the correct client id/secret will work since we're using a specific refresh token.
         for (const providerConfig of providerConfigs) {
             try {
+                const linkedAccountProviderConfig = providerConfig as
+                    GitHubIdentityProviderConfig |
+                    GitLabIdentityProviderConfig |
+                    BitbucketCloudIdentityProviderConfig;
+
                 // Get client credentials from config
-                const linkedAccountProviderConfig = providerConfig as GitHubIdentityProviderConfig | GitLabIdentityProviderConfig
                 const clientId = await getTokenFromConfig(linkedAccountProviderConfig.clientId);
                 const clientSecret = await getTokenFromConfig(linkedAccountProviderConfig.clientSecret);
-                const baseUrl = linkedAccountProviderConfig.baseUrl;
+                const baseUrl = 'baseUrl' in linkedAccountProviderConfig ? linkedAccountProviderConfig.baseUrl : undefined;
 
                 const result = await tryRefreshToken(provider, refreshToken, { clientId, clientSecret, baseUrl });
                 if (result) {
@@ -191,7 +208,7 @@ const OAuthTokenResponseSchema = z.object({
 type OAuthTokenResponse = z.infer<typeof OAuthTokenResponseSchema>;
 
 const tryRefreshToken = async (
-    provider: string,
+    provider: SupportedProvider,
     refreshToken: string,
     credentials: ProviderCredentials,
 ): Promise<OAuthTokenResponse | null> => {
@@ -206,21 +223,29 @@ const tryRefreshToken = async (
         url = 'https://github.com/login/oauth/access_token';
     } else if (provider === 'gitlab') {
         url = 'https://gitlab.com/oauth/token';
+    } else if (provider === 'bitbucket-cloud') {
+        url = 'https://bitbucket.org/site/oauth2/access_token';
     } else {
         logger.error(`Unsupported provider for token refresh: ${provider}`);
         return null;
     }
 
+    // Bitbucket requires client credentials via HTTP Basic Auth rather than request body params.
+    // @see: https://support.atlassian.com/bitbucket-cloud/docs/use-oauth-on-bitbucket-cloud/
+    const useBasicAuth = provider === 'bitbucket-cloud';
+
     // Build request body parameters
     const bodyParams: Record<string, string> = {
-        // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-2.3.1 (client authentication)
-        client_id: clientId,
-        client_secret: clientSecret,
-
         // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-6 (refresh token grant)
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
     };
+
+    if (!useBasicAuth) {
+        // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-2.3.1 (client authentication)
+        bodyParams.client_id = clientId;
+        bodyParams.client_secret = clientSecret;
+    }
 
     // GitLab requires redirect_uri to match the original authorization request
     // even when refreshing tokens. Use URL constructor to handle trailing slashes.
@@ -233,6 +258,9 @@ const tryRefreshToken = async (
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Accept': 'application/json',
+            ...(useBasicAuth ? {
+                Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+            } : {}),
         },
         body: new URLSearchParams(bodyParams),
     });
