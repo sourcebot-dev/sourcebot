@@ -14,6 +14,7 @@ import type { IdentityProviderMetadata } from "@/lib/identityProviders";
 import { Descendant, Transforms } from "slate";
 import { useSlate } from "slate-react";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { captureEvent } from "@/hooks/useCaptureEvent";
 
 const PENDING_MESSAGE_KEY = "askgh_pending_message";
 
@@ -55,6 +56,7 @@ export const LandingPage = ({
     // Intercept submit to check auth status
     const handleSubmit = useCallback((children: Descendant[]) => {
         if (!isAuthenticated) {
+            captureEvent('wa_askgh_login_wall_prompted', {});
             // Store message in sessionStorage to survive OAuth redirect
             sessionStorage.setItem(PENDING_MESSAGE_KEY, JSON.stringify(children));
             setIsLoginModalOpen(true);
