@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { usePrevious } from "@uidotdev/usehooks";
 import { useEffect } from "react";
 import { useBrowserNotification } from "@/hooks/useBrowserNotification";
+import { captureEvent } from "@/hooks/useCaptureEvent";
 import { RepoInfo } from "../types";
 
 const REINDEX_INTERVAL_MS = 2000;
@@ -45,9 +46,10 @@ export function RepoIndexedGuard({ initialRepoInfo, children }: Props) {
         }
     }, [initialRepoInfo.isIndexed, requestPermission]);
 
-    // Show notification when indexing completes
+    // Show notification and fire event when indexing completes
     useEffect(() => {
         if (previousIsIndexed === false && repoInfo.isIndexed === true) {
+            captureEvent('wa_askgh_repo_indexed', { repoName: repoInfo.name });
             const displayName = repoInfo.displayName ?? repoInfo.name;
             showNotification({
                 title: "Repository Ready",
