@@ -165,6 +165,59 @@ in the GitLab identity provider config.
 </Steps>
 </Accordion>
 
+### Bitbucket Cloud
+
+[Auth.js Bitbucket Provider Docs](https://authjs.dev/getting-started/providers/bitbucket)
+
+A Bitbucket Cloud connection can be used for [authentication](/docs/configuration/auth) and/or [permission syncing](/docs/features/permission-syncing). This is controlled using the `purpose` field
+in the Bitbucket Cloud identity provider config.
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Register an OAuth Consumer">
+        To begin, you must register an OAuth consumer in Bitbucket to facilitate the identity provider connection.
+
+        Navigate to your Bitbucket workspace settings at `https://bitbucket.org/<your-workspace>/workspace/settings/api` and create a new **OAuth consumer** under the **OAuth consumers** section.
+
+        When configuring your consumer:
+        - Set the callback URL to `<sourcebot_url>/api/auth/callback/bitbucket-cloud` (ex. https://sourcebot.coolcorp.com/api/auth/callback/bitbucket-cloud)
+        - Enable **Account: Read**
+        - If using for permission syncing, also enable **Repositories: Read**
+
+        The result of creating an OAuth consumer is a `Key` (`CLIENT_ID`) and `Secret` (`CLIENT_SECRET`) which you'll provide to Sourcebot.
+    </Step>
+    <Step title="Define environment variables">
+        To provide Sourcebot the client id and secret for your OAuth consumer you must set them as environment variables. These can be named whatever you like
+        (ex. `BITBUCKET_CLOUD_IDENTITY_PROVIDER_CLIENT_ID` and `BITBUCKET_CLOUD_IDENTITY_PROVIDER_CLIENT_SECRET`)
+    </Step>
+    <Step title="Define the identity provider config">
+        Finally, pass the client id and secret to Sourcebot by defining a `identityProvider` object in the [config file](/docs/configuration/config-file):
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "bitbucket-cloud",
+                    // "sso" for auth + perm sync, "account_linking" for only perm sync
+                    "purpose": "account_linking",
+                    // if purpose == "account_linking" this controls if a user must connect to the IdP
+                    "accountLinkingRequired": true,
+                    "clientId": {
+                        "env": "YOUR_CLIENT_ID_ENV_VAR"
+                    },
+                    "clientSecret": {
+                        "env": "YOUR_CLIENT_SECRET_ENV_VAR"
+                    }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+
 ### Google
 
 [Auth.js Google Provider Docs](https://authjs.dev/getting-started/providers/google)

@@ -1,0 +1,23 @@
+name: Deploy to Railway
+
+on:
+  workflow_run:
+    workflows: ["Release Sourcebot (Development)"]
+    types: [completed]
+
+concurrency:
+  group: deploy-railway
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+    steps:
+      - name: Deploy image to Railway
+        run: railway redeploy --service=sourcebot --yes

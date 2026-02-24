@@ -1,4 +1,5 @@
 import { Connection, Repo, RepoToConnection } from "@sourcebot/db";
+import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { Settings as SettingsSchema } from "@sourcebot/schemas/v3/index.type";
 
 export type Settings = Required<SettingsSchema>;
@@ -19,4 +20,8 @@ export type RepoAuthCredentials = {
     token: string;
     cloneUrlWithToken?: string;
     authHeader?: string;
+    /** The connection that configured the
+     * credentials for this repo.
+     */
+    connectionConfig?: ConnectionConfig;
 }

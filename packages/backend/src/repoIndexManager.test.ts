@@ -48,6 +48,7 @@ vi.mock('./git.js', () => ({
     getCommitHashForRefName: vi.fn().mockResolvedValue('abc123'),
     getLatestCommitTimestamp: vi.fn().mockResolvedValue(new Date()),
     isPathAValidGitRepoRoot: vi.fn().mockResolvedValue(true),
+    isRepoEmpty: vi.fn().mockResolvedValue(false),
     unsetGitConfig: vi.fn(),
     upsertGitConfig: vi.fn(),
 }));

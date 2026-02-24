@@ -1,12 +1,14 @@
 import type { IdentityProvider } from "@/auth";
 import { onCreateUser } from "@/lib/authUtils";
 import { prisma } from "@/prisma";
-import { AuthentikIdentityProviderConfig, GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
+import { AuthentikIdentityProviderConfig, BitbucketCloudIdentityProviderConfig, GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
+import type { IdentityProviderType } from "@sourcebot/shared";
 import { createLogger, env, getTokenFromConfig, hasEntitlement, loadConfig } from "@sourcebot/shared";
 import { OAuth2Client } from "google-auth-library";
 import type { User as AuthJsUser } from "next-auth";
 import type { Provider } from "next-auth/providers";
 import Authentik from "next-auth/providers/authentik";
+import Bitbucket from "next-auth/providers/bitbucket";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import Gitlab from "next-auth/providers/gitlab";
@@ -72,6 +74,12 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
             const audience = await getTokenFromConfig(providerConfig.audience);
             providers.push({ provider: createGCPIAPProvider(audience), purpose: providerConfig.purpose });
         }
+        if (identityProvider.provider === "bitbucket-cloud") {
+            const providerConfig = identityProvider as BitbucketCloudIdentityProviderConfig;
+            const clientId = await getTokenFromConfig(providerConfig.clientId);
+            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
+            providers.push({ provider: createBitbucketCloudProvider(clientId, clientSecret), purpose: providerConfig.purpose, required: providerConfig.accountLinkingRequired ?? false });
+        }
         if (identityProvider.provider === "authentik") {
             const providerConfig = identityProvider as AuthentikIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
@@ -121,6 +129,7 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
 const createGitHubProvider = (clientId: string, clientSecret: string, baseUrl?: string): Provider => {
     const hostname = baseUrl ? new URL(baseUrl).hostname : GITHUB_CLOUD_HOSTNAME
     return GitHub({
+        id: 'github' satisfies IdentityProviderType,
         clientId: clientId,
         clientSecret: clientSecret,
         ...(hostname === GITHUB_CLOUD_HOSTNAME ? { enterprise: { baseUrl: baseUrl } } : {}), // if this is set the provider expects GHE so we need this check
@@ -146,6 +155,7 @@ const createGitHubProvider = (clientId: string, clientSecret: string, baseUrl?: 
 const createGitLabProvider = (clientId: string, clientSecret: string, baseUrl?: string): Provider => {
     const url = baseUrl ?? 'https://gitlab.com';
     return Gitlab({
+        id: 'gitlab' satisfies IdentityProviderType,
         clientId: clientId,
         clientSecret: clientSecret,
         authorization: {
@@ -175,6 +185,7 @@ const createGitLabProvider = (clientId: string, clientSecret: string, baseUrl?: 
 
 const createGoogleProvider = (clientId: string, clientSecret: string): Provider => {
     return Google({
+        id: 'google' satisfies IdentityProviderType,
         clientId: clientId,
         clientSecret: clientSecret,
         allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
@@ -183,6 +194,7 @@ const createGoogleProvider = (clientId: string, clientSecret: string): Provider 
 
 const createOktaProvider = (clientId: string, clientSecret: string, issuer: string): Provider => {
     return Okta({
+        id: 'okta' satisfies IdentityProviderType,
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
@@ -192,6 +204,7 @@ const createOktaProvider = (clientId: string, clientSecret: string, issuer: stri
 
 const createKeycloakProvider = (clientId: string, clientSecret: string, issuer: string): Provider => {
     return Keycloak({
+        id: 'keycloak' satisfies IdentityProviderType,
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
@@ -201,6 +214,7 @@ const createKeycloakProvider = (clientId: string, clientSecret: string, issuer: 
 
 const createMicrosoftEntraIDProvider = (clientId: string, clientSecret: string, issuer: string): Provider => {
     return MicrosoftEntraID({
+        id: 'microsoft-entra-id' satisfies IdentityProviderType,
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
@@ -208,8 +222,32 @@ const createMicrosoftEntraIDProvider = (clientId: string, clientSecret: string, 
     });
 }
 
+const createBitbucketCloudProvider = (clientId: string, clientSecret: string): Provider => {
+    return Bitbucket({
+        id: 'bitbucket-cloud' satisfies IdentityProviderType,
+        name: "Bitbucket Cloud",
+        clientId,
+        clientSecret,
+        authorization: {
+            url: "https://bitbucket.org/site/oauth2/authorize",
+            params: {
+                scope: [
+                    "account",
+                    "email",
+                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
+                        ['repository'] :
+                        []
+                    ),
+                ].join(' '),
+            },
+        },
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
+    });
+}
+
 export const createAuthentikProvider = (clientId: string, clientSecret: string, issuer: string): Provider => {
     return Authentik({
+        id: 'authentik' satisfies IdentityProviderType,
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
@@ -219,7 +257,7 @@ export const createAuthentikProvider = (clientId: string, clientSecret: string, 
 
 const createGCPIAPProvider = (audience: string): Provider => {
     return Credentials({
-        id: "gcp-iap",
+        id: 'gcp-iap' satisfies IdentityProviderType,
         name: "Google Cloud IAP",
         credentials: {},
         authorize: async (_credentials, req) => {

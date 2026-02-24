@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/node";
-import { PrismaClient, Repo, RepoPermissionSyncJobStatus } from "@sourcebot/db";
+import { PermissionSyncSource, PrismaClient, Repo, RepoPermissionSyncJobStatus } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/shared";
 import { env, hasEntitlement } from "@sourcebot/shared";
 import { Job, Queue, Worker } from 'bullmq';
@@ -7,8 +7,11 @@ import { Redis } from 'ioredis';
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import { createOctokitFromToken, getRepoCollaborators, GITHUB_CLOUD_HOSTNAME } from "../github.js";
 import { createGitLabFromPersonalAccessToken, getProjectMembers } from "../gitlab.js";
+import { createBitbucketCloudClient, getExplicitUserPermissionsForCloudRepo } from "../bitbucket.js";
+import { repoMetadataSchema } from "@sourcebot/shared";
 import { Settings } from "../types.js";
 import { getAuthCredentialsForRepo, setIntervalAsync } from "../utils.js";
+import { BitbucketConnectionConfig } from "@sourcebot/schemas/v3/index.type";
 
 type RepoPermissionSyncJob = {
     jobId: string;
@@ -181,7 +184,13 @@ export class RepoPermissionSyncer {
             throw new Error(`No credentials found for repo ${id}`);
         }
 
-        const accountIds = await (async () => {
+        const {
+            accountIds,
+            isPartialSync = false,
+        } = await (async (): Promise<{
+            accountIds: string[],
+            isPartialSync?: boolean
+        }> => {
             if (repo.external_codeHostType === 'github') {
                 const isGitHubCloud = credentials.hostUrl ? new URL(credentials.hostUrl).hostname === GITHUB_CLOUD_HOSTNAME : true;
                 const { octokit } = await createOctokitFromToken({
@@ -210,7 +219,9 @@ export class RepoPermissionSyncer {
                     },
                 });
 
-                return accounts.map(account => account.id);
+                return {
+                    accountIds: accounts.map(account => account.id),
+                }
             } else if (repo.external_codeHostType === 'gitlab') {
                 const api = await createGitLabFromPersonalAccessToken({
                     token: credentials.token,
@@ -234,10 +245,58 @@ export class RepoPermissionSyncer {
                     },
                 });
 
-                return accounts.map(account => account.id);
+                return {
+                    accountIds: accounts.map(account => account.id),
+                }
+            } else if (repo.external_codeHostType === 'bitbucketCloud') {
+                const config = credentials.connectionConfig as BitbucketConnectionConfig | undefined;
+                if (!config) {
+                    throw new Error(`No connection config found for repo ${id}`);
+                }
+
+                const client = createBitbucketCloudClient(config.user, credentials.token);
+
+                const parsedMetadata = repoMetadataSchema.safeParse(repo.metadata);
+                if (!parsedMetadata.success) {
+                    throw new Error(`Repo ${id} has invalid metadata: ${JSON.stringify(parsedMetadata.error.errors)}`);
+                }
+                const bitbucketCloudMetadata = parsedMetadata.data.codeHostMetadata?.bitbucketCloud;
+                if (!bitbucketCloudMetadata) {
+                    throw new Error(`Repo ${id} is missing required Bitbucket Cloud metadata (workspace/repoSlug)`);
+                }
+
+                const { workspace, repoSlug } = bitbucketCloudMetadata;
+
+                // @note: The Bitbucket Cloud permissions API only returns users who have been *directly*
+                // granted access to this repository. Users who have access via a group added to the repo,
+                // via project-level membership, or via a group in a project are NOT captured here.
+                // These users will still gain access through user-driven syncing (accountPermissionSyncer),
+                // but there may be a delay of up to `experiment_userDrivenPermissionSyncIntervalMs` before
+                // they see the repository in Sourcebot.
+                // @see: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-repo-slug-permissions-config-users-get
+                const users = await getExplicitUserPermissionsForCloudRepo(client, workspace, repoSlug);
+                const userAccountIds = users.map(u => u.accountId);
+
+                const accounts = await this.db.account.findMany({
+                    where: {
+                        provider: 'bitbucket-cloud',
+                        providerAccountId: {
+                            in: userAccountIds,
+                        }
+                    },
+                });
+
+                return {
+                    accountIds: accounts.map(account => account.id),
+                    // Since we only fetch users who have been explicitly granted access to the repo,
+                    // this is a partial sync.
+                    isPartialSync: true,
+                }
             }
 
-            return [];
+            return {
+                accountIds: [],
+            }
         })();
 
         await this.db.$transaction([
@@ -247,7 +306,11 @@ export class RepoPermissionSyncer {
                 },
                 data: {
                     permittedAccounts: {
-                        deleteMany: {},
+                        // @note: if this is a partial sync, we only want to delete the repo-driven permissions
+                        // since we don't want to overwrite the account-driven permissions.
+                        deleteMany: isPartialSync ? {
+                            source: PermissionSyncSource.REPO_DRIVEN,
+                        } : {},
                     }
                 }
             }),
@@ -255,7 +318,9 @@ export class RepoPermissionSyncer {
                 data: accountIds.map(accountId => ({
                     accountId,
                     repoId: repo.id,
+                    source: PermissionSyncSource.REPO_DRIVEN,
                 })),
+                skipDuplicates: true,
             })
         ]);
     }

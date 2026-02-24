@@ -134,7 +134,7 @@ jobs:
       - name: Commit changes
         run: |
           git add CHANGELOG.md packages/shared/src/version.ts
-          git commit -m "Release v$VERSION"
+          git commit -m "[skip ci] Release v$VERSION"
 
       - name: Push to temporary branch
         id: push_temp_branch

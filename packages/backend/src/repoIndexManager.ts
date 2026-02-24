@@ -8,7 +8,7 @@ import { Redis } from 'ioredis';
 import micromatch from 'micromatch';
 import Redlock, { ExecutionError } from 'redlock';
 import { INDEX_CACHE_DIR, WORKER_STOP_GRACEFUL_TIMEOUT_MS } from './constants.js';
-import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLatestCommitTimestamp, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
+import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLatestCommitTimestamp, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, isRepoEmpty, unsetGitConfig, upsertGitConfig } from './git.js';
 import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
 import { RepoWithConnections, Settings } from "./types.js";
@@ -531,7 +531,8 @@ export class RepoIndexManager {
 
             if (jobData.type === RepoIndexingJobType.INDEX) {
                 const { path: repoPath } = getRepoPath(jobData.repo);
-                const commitHash = await getCommitHashForRefName({
+                const isEmpty = await isRepoEmpty({ path: repoPath });
+                const commitHash = isEmpty ? undefined : await getCommitHashForRefName({
                     path: repoPath,
                     refName: 'HEAD',
                 });

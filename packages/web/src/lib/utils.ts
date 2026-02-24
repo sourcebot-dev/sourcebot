@@ -151,6 +151,15 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
                 displayName: "Email Code",
                 icon: null, // No icon needed for email
             };
+        case "bitbucket-cloud":
+            return {
+                id: "bitbucket-cloud",
+                name: "Bitbucket Cloud",
+                displayName: "Bitbucket Cloud",
+                icon: {
+                    src: bitbucketLogo,
+                },
+            };
         default:
             return {
                 id: providerId,

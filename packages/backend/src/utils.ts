@@ -145,6 +145,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                             password: token,
                         }
                     ),
+                    connectionConfig: config,
                 }
             }
         } else if (connection.connectionType === 'gitlab') {
@@ -161,6 +162,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                             password: token
                         }
                     ),
+                    connectionConfig: config,
                 }
             }
         } else if (connection.connectionType === 'gitea') {
@@ -176,13 +178,14 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                             password: token
                         }
                     ),
+                    connectionConfig: config,
                 }
             }
         } else if (connection.connectionType === 'bitbucket') {
             const config = connection.config as unknown as BitbucketConnectionConfig;
             if (config.token) {
                 const token = await getTokenFromConfig(config.token);
-                const username = config.user ?? 'x-token-auth';
+                const username = config.gitUser ?? config.user ?? 'x-token-auth';
                 return {
                     hostUrl: config.url,
                     token,
@@ -193,6 +196,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                             password: token
                         }
                     ),
+                    connectionConfig: config,
                 }
             }
         } else if (connection.connectionType === 'azuredevops') {
@@ -223,6 +227,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                                 password: token
                             }
                         ),
+                        connectionConfig: config,
                     }
                 }
             }

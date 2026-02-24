@@ -8,7 +8,8 @@ export type IdentityProviderConfig =
   | KeycloakIdentityProviderConfig
   | MicrosoftEntraIDIdentityProviderConfig
   | GCPIAPIdentityProviderConfig
-  | AuthentikIdentityProviderConfig;
+  | AuthentikIdentityProviderConfig
+  | BitbucketCloudIdentityProviderConfig;
 
 export interface GitHubIdentityProviderConfig {
   provider: "github";
@@ -298,4 +299,35 @@ export interface AuthentikIdentityProviderConfig {
          */
         googleCloudSecret: string;
       };
+}
+export interface BitbucketCloudIdentityProviderConfig {
+  provider: "bitbucket-cloud";
+  purpose: "sso" | "account_linking";
+  clientId:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  clientSecret:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  accountLinkingRequired?: boolean;
 }

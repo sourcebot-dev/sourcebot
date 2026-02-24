@@ -34,7 +34,8 @@ export type IdentityProviderConfig =
   | KeycloakIdentityProviderConfig
   | MicrosoftEntraIDIdentityProviderConfig
   | GCPIAPIdentityProviderConfig
-  | AuthentikIdentityProviderConfig;
+  | AuthentikIdentityProviderConfig
+  | BitbucketCloudIdentityProviderConfig;
 
 export interface SourcebotConfig {
   $schema?: string;
@@ -455,9 +456,13 @@ export interface BitbucketConnectionConfig {
    */
   type: "bitbucket";
   /**
-   * The username to use for authentication. Only needed if token is an app password.
+   * The username to use for API authentication. For app passwords, this is your Bitbucket username. For API tokens, this is your Bitbucket account email address.
    */
   user?: string;
+  /**
+   * The username to use for git clone authentication over HTTPS. If not set, falls back to 'user'. For API tokens, this is your Bitbucket username
+   */
+  gitUser?: string;
   /**
    * An authentication token.
    */
@@ -1456,4 +1461,35 @@ export interface AuthentikIdentityProviderConfig {
          */
         googleCloudSecret: string;
       };
+}
+export interface BitbucketCloudIdentityProviderConfig {
+  provider: "bitbucket-cloud";
+  purpose: "sso" | "account_linking";
+  clientId:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  clientSecret:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  accountLinkingRequired?: boolean;
 }

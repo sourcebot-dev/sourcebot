@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added PostHog events for chat UI interactions (details card expand/collapse, copy answer, table of contents toggle) and repo tracking in `wa_chat_message_sent`. [#922](https://github.com/sourcebot-dev/sourcebot/pull/922)
+- Added Bitbucket Cloud OAuth identity provider support (`provider: "bitbucket-cloud"`) for SSO and account-linked permission syncing. [#924](https://github.com/sourcebot-dev/sourcebot/pull/924)
+- Added permission syncing support for Bitbucket Cloud. [#925](https://github.com/sourcebot-dev/sourcebot/pull/925)
+
+### Changed
+- Hide version upgrade toast for askgithub deployment (`EXPERIMENT_ASK_GH_ENABLED`). [#931](https://github.com/sourcebot-dev/sourcebot/pull/931)
+
+### Fixed
+- Fixed text inside angle brackets (e.g., `<id>`) being hidden in chat prompt display due to HTML parsing. [#929](https://github.com/sourcebot-dev/sourcebot/pull/929) [#932](https://github.com/sourcebot-dev/sourcebot/pull/932)
+
+## [4.11.7] - 2026-02-23
+
+### Changed
+- Skip redundant dev build when production release commits are pushed to main. [#919](https://github.com/sourcebot-dev/sourcebot/pull/919)
+- Bumped zoekt version. [#921](https://github.com/sourcebot-dev/sourcebot/pull/921)
+
+## [4.11.6] - 2026-02-21
+
+### Added
+- Added GitHub workflow to automatically tag Linear issues with the release version when a new release is published. [#917](https://github.com/sourcebot-dev/sourcebot/pull/917)
+- Added optional `gitUser` field to the Bitbucket connection config to support Bitbucket Cloud API tokens, which require an email address for the REST API but an Atlassian username for git clone. [#918](https://github.com/sourcebot-dev/sourcebot/pull/918)
+
+## [4.11.5] - 2026-02-21
+
+### Fixed
+- Skip calling `getCommitHashForRefName` for empty repositories to avoid noisy debug log output. [#914](https://github.com/sourcebot-dev/sourcebot/pull/914)
+- Fixed "Open in GitLab" links having a double slash when the GitLab host URL is configured with a trailing slash. [#915](https://github.com/sourcebot-dev/sourcebot/pull/915)
+
 ## [4.11.4] - 2026-02-20
 
 ### Fixed
