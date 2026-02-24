@@ -9,7 +9,8 @@ export type IdentityProviderConfig =
   | MicrosoftEntraIDIdentityProviderConfig
   | GCPIAPIdentityProviderConfig
   | AuthentikIdentityProviderConfig
-  | BitbucketCloudIdentityProviderConfig;
+  | BitbucketCloudIdentityProviderConfig
+  | BitbucketServerIdentityProviderConfig;
 
 export interface GitHubIdentityProviderConfig {
   provider: "github";
@@ -330,4 +331,38 @@ export interface BitbucketCloudIdentityProviderConfig {
         googleCloudSecret: string;
       };
   accountLinkingRequired?: boolean;
+}
+export interface BitbucketServerIdentityProviderConfig {
+  provider: "bitbucket-server";
+  purpose: "sso";
+  clientId:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  clientSecret:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  /**
+   * The URL of the Bitbucket Server/Data Center host.
+   */
+  baseUrl: string;
 }

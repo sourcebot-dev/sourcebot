@@ -160,6 +160,15 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
                     src: bitbucketLogo,
                 },
             };
+        case "bitbucket-server":
+            return {
+                id: "bitbucket-server",
+                name: "Bitbucket Server",
+                displayName: "Bitbucket Server",
+                icon: {
+                    src: bitbucketLogo,
+                },
+            };
         default:
             return {
                 id: providerId,
