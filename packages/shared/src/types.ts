@@ -1,4 +1,4 @@
-import { Settings as SettingsSchema } from "@sourcebot/schemas/v3/index.type";
+import { IdentityProviderConfig, Settings as SettingsSchema } from "@sourcebot/schemas/v3/index.type";
 import { z } from "zod";
 
 export type ConfigSettings = Required<SettingsSchema>;
@@ -45,3 +45,5 @@ export const repoIndexingJobMetadataSchema = z.object({
 export type RepoIndexingJobMetadata = z.infer<typeof repoIndexingJobMetadataSchema>;
 
 export const tenancyModeSchema = z.enum(["multi", "single"]);
+
+export type IdentityProviderType = IdentityProviderConfig['provider'];

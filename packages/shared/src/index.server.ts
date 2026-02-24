@@ -12,6 +12,7 @@ export type {
 export type {
     RepoMetadata,
     RepoIndexingJobMetadata,
+    IdentityProviderType,
 } from "./types.js";
 export {
     repoMetadataSchema,

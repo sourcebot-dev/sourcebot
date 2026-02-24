@@ -1,10 +1,15 @@
 import { CodeHostType } from "@sourcebot/db";
-import { env } from "@sourcebot/shared";
+import { env, IdentityProviderType } from "@sourcebot/shared";
 import path from "path";
 
 export const SINGLE_TENANT_ORG_ID = 1;
 
 export const PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES: CodeHostType[] = [
+    'github',
+    'gitlab',
+];
+
+export const PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS: IdentityProviderType[] = [
     'github',
     'gitlab',
 ];

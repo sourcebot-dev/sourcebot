@@ -3,7 +3,7 @@ import { PrismaClient, AccountPermissionSyncJobStatus, Account} from "@sourcebot
 import { env, hasEntitlement, createLogger, loadConfig, decryptOAuthToken } from "@sourcebot/shared";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
-import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
+import { PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "../constants.js";
 import {
     createOctokitFromToken,
     getOAuthScopesForAuthenticatedUser as getGitHubOAuthScopesForAuthenticatedUser,
@@ -64,7 +64,7 @@ export class AccountPermissionSyncer {
                     AND: [
                         {
                             provider: {
-                                in: PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES
+                                in: PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS
                             }
                         },
                         {
