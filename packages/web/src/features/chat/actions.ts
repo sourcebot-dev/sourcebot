@@ -966,10 +966,13 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel): P
 
     const posthog = await createPostHogClient();
     const distinctId = await tryGetPostHogDistinctId();
-    const model = withTracing(_model, posthog, {
-        posthogDistinctId: distinctId,
-        posthogPrivacyMode: env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED !== 'true',
-    });
+
+    // Only enable posthog LLM analytics for the ask GH experiment.
+    const model = env.EXPERIMENT_ASK_GH_ENABLED === 'true' ?
+        withTracing(_model, posthog, {
+            posthogDistinctId: distinctId,
+        }) :
+        _model;
 
     return {
         model,
