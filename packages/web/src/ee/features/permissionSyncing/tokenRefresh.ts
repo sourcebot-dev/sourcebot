@@ -1,6 +1,6 @@
 import { loadConfig, decryptOAuthToken } from "@sourcebot/shared";
 import { getTokenFromConfig, createLogger, env, encryptOAuthToken } from "@sourcebot/shared";
-import { BitbucketCloudIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
+import { BitbucketCloudIdentityProviderConfig, BitbucketServerIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
 import { IdentityProviderType } from "@sourcebot/shared";
 import { z } from 'zod';
 import { prisma } from '@/prisma';
@@ -10,7 +10,8 @@ const logger = createLogger('web-ee-token-refresh');
 const SUPPORTED_PROVIDERS = [
     'github',
     'gitlab',
-    'bitbucket-cloud'
+    'bitbucket-cloud',
+    'bitbucket-server',
 ] as const satisfies IdentityProviderType[];
 
 type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
@@ -165,7 +166,8 @@ const refreshOAuthToken = async (
                 const linkedAccountProviderConfig = providerConfig as
                     GitHubIdentityProviderConfig |
                     GitLabIdentityProviderConfig |
-                    BitbucketCloudIdentityProviderConfig;
+                    BitbucketCloudIdentityProviderConfig |
+                    BitbucketServerIdentityProviderConfig;
 
                 // Get client credentials from config
                 const clientId = await getTokenFromConfig(linkedAccountProviderConfig.clientId);
@@ -216,9 +218,16 @@ const tryRefreshToken = async (
 
     let url: string;
     if (baseUrl) {
-        url = provider === 'github'
-            ? new URL('/login/oauth/access_token', baseUrl).toString()
-            : new URL('/oauth/token', baseUrl).toString();
+        // Use a trailing-slash-normalized base so relative paths append correctly,
+        // preserving any context path (e.g. https://example.com/bitbucket/).
+        const base = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+        if (provider === 'github') {
+            url = new URL('login/oauth/access_token', base).toString();
+        } else if (provider === 'bitbucket-server') {
+            url = new URL('rest/oauth2/latest/token', base).toString();
+        } else {
+            url = new URL('oauth/token', base).toString();
+        }
     } else if (provider === 'github') {
         url = 'https://github.com/login/oauth/access_token';
     } else if (provider === 'gitlab') {

@@ -224,7 +224,7 @@
                     "const": "bitbucket-server"
                 },
                 "purpose": {
-                    "const": "sso"
+                    "enum": ["sso", "account_linking"]
                 },
                 "clientId": {
                     "$ref": "./shared.json#/definitions/Token"
@@ -237,6 +237,10 @@
                     "description": "The URL of the Bitbucket Server/Data Center host.",
                     "examples": ["https://bitbucket.example.com"],
                     "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+                },
+                "accountLinkingRequired": {
+                    "type": "boolean",
+                    "default": false
                 }
             },
             "required": ["provider", "purpose", "clientId", "clientSecret", "baseUrl"]

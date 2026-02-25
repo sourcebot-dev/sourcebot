@@ -8,12 +8,14 @@ export const PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES: CodeHostType[] = [
     'github',
     'gitlab',
     'bitbucketCloud',
+    'bitbucketServer',
 ];
 
 export const PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS: IdentityProviderType[] = [
     'github',
     'gitlab',
     'bitbucket-cloud',
+    'bitbucket-server',
 ];
 
 export const REPOS_CACHE_DIR = path.join(env.DATA_CACHE_DIR, 'repos');
