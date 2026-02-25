@@ -22,7 +22,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
         return serviceErrorResponse(missingQueryParam('userId'));
     }
 
-    const result = await withAuthV2(async ({ org, role, prisma }) => {
+    const result = await withAuthV2(async ({ org, role, user, prisma }) => {
         return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             try {
                 const userData = await prisma.user.findUnique({
@@ -48,7 +48,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
                         type: "user"
                     },
                     target: {
-                        id: user.id,
+                        id: userId,
                         type: "user"
                     },
                     orgId: org.id,
