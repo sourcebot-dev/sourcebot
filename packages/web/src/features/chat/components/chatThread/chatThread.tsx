@@ -30,6 +30,7 @@ import { SignInPromptBanner } from './signInPromptBanner';
 import { DuplicateChatDialog } from '@/app/[domain]/chat/components/duplicateChatDialog';
 import { LoginModal } from '@/app/components/loginModal';
 import type { IdentityProviderMetadata } from '@/lib/identityProviders';
+import { getAskGhLoginWallData } from '../../actions';
 import { useParams } from 'next/navigation';
 
 type ChatHistoryState = {
@@ -50,8 +51,6 @@ interface ChatThreadProps {
     isOwner?: boolean;
     isAuthenticated?: boolean;
     chatName?: string;
-    providers?: IdentityProviderMetadata[];
-    isAskGhEnabled?: boolean;
 }
 
 export const ChatThread = ({
@@ -66,8 +65,6 @@ export const ChatThread = ({
     isOwner = true,
     isAuthenticated = false,
     chatName,
-    providers = [],
-    isAskGhEnabled = false,
 }: ChatThreadProps) => {
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -80,6 +77,7 @@ export const ChatThread = ({
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
     const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+    const [loginWallProviders, setLoginWallProviders] = useState<IdentityProviderMetadata[]>([]);
     const hasRestoredPendingMessage = useRef(false);
     const captureEvent = useCaptureEvent();
 
@@ -212,7 +210,7 @@ export const ChatThread = ({
 
     // Restore pending message after OAuth redirect (askgh login wall)
     useEffect(() => {
-        if (!isAskGhEnabled || !isAuthenticated || !isOwner || hasRestoredPendingMessage.current) {
+        if (!isAuthenticated || !isOwner || hasRestoredPendingMessage.current) {
             return;
         }
 
@@ -240,7 +238,7 @@ export const ChatThread = ({
         } catch (error) {
             console.error('Failed to restore pending message:', error);
         }
-    }, [isAskGhEnabled, isAuthenticated, isOwner, chatId, sendMessage, selectedSearchScopes]);
+    }, [isAuthenticated, isOwner, chatId, sendMessage, selectedSearchScopes]);
 
     // Track scroll position changes.
     useEffect(() => {
@@ -329,12 +327,16 @@ export const ChatThread = ({
         }
     }, [error]);
 
-    const onSubmit = useCallback((children: Descendant[], editor: CustomEditor) => {
-        if (isAskGhEnabled && !isAuthenticated) {
-            captureEvent('wa_askgh_login_wall_prompted', {});
-            sessionStorage.setItem(PENDING_MESSAGE_STORAGE_KEY, JSON.stringify({ chatId, children }));
-            setIsLoginModalOpen(true);
-            return;
+    const onSubmit = useCallback(async (children: Descendant[], editor: CustomEditor) => {
+        if (!isAuthenticated) {
+            const result = await getAskGhLoginWallData();
+            if (!isServiceError(result) && result.isEnabled) {
+                captureEvent('wa_askgh_login_wall_prompted', {});
+                sessionStorage.setItem(PENDING_MESSAGE_STORAGE_KEY, JSON.stringify({ chatId, children }));
+                setLoginWallProviders(result.providers);
+                setIsLoginModalOpen(true);
+                return;
+            }
         }
 
         const text = slateContentToString(children);
@@ -346,7 +348,7 @@ export const ChatThread = ({
         setIsAutoScrollEnabled(true);
 
         resetEditor(editor);
-    }, [sendMessage, selectedSearchScopes, isAskGhEnabled, isAuthenticated, captureEvent, chatId]);
+    }, [sendMessage, selectedSearchScopes, isAuthenticated, captureEvent, chatId]);
 
     const onDuplicate = useCallback(async (newName: string): Promise<string | null> => {
         if (!defaultChatId) {
@@ -499,14 +501,12 @@ export const ChatThread = ({
                 )}
             </div>
 
-            {isAskGhEnabled && (
-                <LoginModal
-                    isOpen={isLoginModalOpen}
-                    onOpenChange={setIsLoginModalOpen}
-                    providers={providers}
-                    callbackUrl={typeof window !== 'undefined' ? window.location.href : ''}
-                />
-            )}
+            <LoginModal
+                isOpen={isLoginModalOpen}
+                onOpenChange={setIsLoginModalOpen}
+                providers={loginWallProviders}
+                callbackUrl={typeof window !== 'undefined' ? window.location.href : ''}
+            />
         </>
     );
 }

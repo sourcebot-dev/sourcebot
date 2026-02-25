@@ -18,8 +18,6 @@ import { ChatVisibility } from '@sourcebot/db';
 import { Metadata } from 'next';
 import { SBChatMessage } from '@/features/chat/types';
 import { env, hasEntitlement } from '@sourcebot/shared';
-import { getIdentityProviderMetadata } from '@/lib/identityProviders';
-
 import { captureEvent } from '@/lib/posthog';
 
 interface PageProps {
@@ -152,9 +150,6 @@ export default async function Page(props: PageProps) {
 
     const hasChatSharingEntitlement = hasEntitlement('chat-sharing');
 
-    const isAskGhEnabled = env.EXPERIMENT_ASK_GH_ENABLED === 'true';
-    const providers = isAskGhEnabled ? getIdentityProviderMetadata() : [];
-
     return (
         <div className="flex flex-col h-screen w-screen">
             <TopBar
@@ -201,8 +196,6 @@ export default async function Page(props: PageProps) {
                     isOwner={isOwner}
                     isAuthenticated={!!session}
                     chatName={name ?? undefined}
-                    providers={providers}
-                    isAskGhEnabled={isAskGhEnabled}
                 />
             </ResizablePanelGroup>
         </div>

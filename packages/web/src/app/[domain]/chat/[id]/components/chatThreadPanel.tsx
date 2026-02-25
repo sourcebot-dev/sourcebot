@@ -4,7 +4,6 @@ import { ResizablePanel } from '@/components/ui/resizable';
 import { ChatThread } from '@/features/chat/components/chatThread';
 import { LanguageModelInfo, SBChatMessage, SearchScope, SET_CHAT_STATE_SESSION_STORAGE_KEY, SetChatStatePayload } from '@/features/chat/types';
 import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
-import type { IdentityProviderMetadata } from '@/lib/identityProviders';
 import { CreateUIMessage } from 'ai';
 import { useEffect, useState } from 'react';
 import { useChatId } from '../../useChatId';
@@ -19,8 +18,6 @@ interface ChatThreadPanelProps {
     isOwner: boolean;
     isAuthenticated: boolean;
     chatName?: string;
-    providers: IdentityProviderMetadata[];
-    isAskGhEnabled: boolean;
 }
 
 export const ChatThreadPanel = ({
@@ -32,8 +29,6 @@ export const ChatThreadPanel = ({
     isOwner,
     isAuthenticated,
     chatName,
-    providers,
-    isAskGhEnabled,
 }: ChatThreadPanelProps) => {
     // @note: we are guaranteed to have a chatId because this component will only be
     // mounted when on a /chat/[id] route.
@@ -81,8 +76,6 @@ export const ChatThreadPanel = ({
                     isOwner={isOwner}
                     isAuthenticated={isAuthenticated}
                     chatName={chatName}
-                    providers={providers}
-                    isAskGhEnabled={isAskGhEnabled}
                 />
             </div>
         </ResizablePanel>
