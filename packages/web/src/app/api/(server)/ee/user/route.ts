@@ -14,13 +14,20 @@ import { NextRequest } from "next/server";
 const logger = createLogger('ee-user-api');
 const auditService = getAuditService();
 
-export const GET = apiHandler(async () => {
-    const result = await withAuthV2(async ({ org, role, user, prisma }) => {
+export const GET = apiHandler(async (request: NextRequest) => {
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('userId');
+
+    if (!userId) {
+        return serviceErrorResponse(missingQueryParam('userId'));
+    }
+
+    const result = await withAuthV2(async ({ org, role, prisma }) => {
         return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             try {
                 const userData = await prisma.user.findUnique({
                     where: {
-                        id: user.id,
+                        id: userId,
                     },
                     select: {
                         name: true,
@@ -49,7 +56,7 @@ export const GET = apiHandler(async () => {
 
                 return userData;
             } catch (error) {
-                logger.error('Error fetching user info', { error, userId: user.id });
+                logger.error('Error fetching user info', { error, userId });
                 throw error;
             }
         });
