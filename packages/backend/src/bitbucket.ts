@@ -697,24 +697,20 @@ export const getReposForAuthenticatedBitbucketServerUser = async (
 };
 
 /**
- * Returns the user IDs of users who have been explicitly granted permission on a Bitbucket Server repository
- * at the repo level (direct grants) or project level (inherited by all repos in the project).
+ * Returns the user IDs of users who have been explicitly granted direct access to a Bitbucket Server repository.
  *
- * @note This does NOT include users who have access via groups. As a result, permission syncing
- * may under-grant access for instances that rely heavily on group-level permissions. Those users
- * will still gain access through account-driven syncing (accountPermissionSyncer).
+ * @note This only covers direct user-to-repo grants. It does NOT include users who have access via:
+ *   - Project-level permissions (inherited by all repos in the project)
+ *   - Group membership
+ * These users will still gain access through account-driven syncing (accountPermissionSyncer).
  *
  * @see https://developer.atlassian.com/server/bitbucket/rest/v906/api-group-repository/#api-rest-api-latest-projects-projectkey-repos-reposlug-permissions-users-get
- * @see https://developer.atlassian.com/server/bitbucket/rest/v906/api-group-project/#api-rest-api-latest-projects-projectkey-permissions-users-get
  */
 export const getUserPermissionsForServerRepo = async (
     client: BitbucketClient,
     projectKey: string,
     repoSlug: string,
 ): Promise<Array<{ userId: string }>> => {
-    const userIdSet = new Set<string>();
-
-    // Fetch repo-level permissions
     const repoUsers = await fetchWithRetry(() => getPaginatedServer<{ user: { id: number } }>(
         `/rest/api/1.0/projects/${projectKey}/repos/${repoSlug}/permissions/users` as ServerGetRequestPath,
         async (url, start) => {
@@ -728,31 +724,8 @@ export const getUserPermissionsForServerRepo = async (
             return data;
         }
     ), `repo-level permissions for ${projectKey}/${repoSlug}`, logger);
-    for (const entry of repoUsers) {
-        if (entry.user?.id != null) {
-            userIdSet.add(String(entry.user.id));
-        }
-    }
 
-    // Fetch project-level permissions (inherited by all repos in the project)
-    const projectUsers = await fetchWithRetry(() => getPaginatedServer<{ user: { id: number } }>(
-        `/rest/api/1.0/projects/${projectKey}/permissions/users` as ServerGetRequestPath,
-        async (url, start) => {
-            const response = await client.apiClient.GET(url, {
-                params: { query: { limit: 100, start } },
-            });
-            const { data, error } = response;
-            if (error) {
-                throw new Error(`Failed to fetch project-level permissions for ${projectKey}: ${JSON.stringify(error)}`);
-            }
-            return data;
-        }
-    ), `project-level permissions for ${projectKey}`, logger);
-    for (const entry of projectUsers) {
-        if (entry.user?.id != null) {
-            userIdSet.add(String(entry.user.id));
-        }
-    }
-
-    return Array.from(userIdSet).map(userId => ({ userId }));
+    return repoUsers
+        .filter(entry => entry.user?.id != null)
+        .map(entry => ({ userId: String(entry.user.id) }));
 };
