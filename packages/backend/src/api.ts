@@ -1,15 +1,16 @@
 import { PrismaClient, RepoIndexingJobType } from '@sourcebot/db';
-import { createLogger } from '@sourcebot/shared';
+import { createLogger, env, hasEntitlement } from '@sourcebot/shared';
 import express, { Request, Response } from 'express';
 import 'express-async-errors';
 import * as http from "http";
 import z from 'zod';
 import { ConnectionManager } from './connectionManager.js';
+import { AccountPermissionSyncer } from './ee/accountPermissionSyncer.js';
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from './repoIndexManager.js';
 import { createGitHubRepoRecord } from './repoCompileUtils.js';
 import { Octokit } from '@octokit/rest';
-import { SINGLE_TENANT_ORG_ID } from './constants.js';
+import { PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS, SINGLE_TENANT_ORG_ID } from './constants.js';
 
 const logger = createLogger('api');
 const PORT = 3060;
@@ -22,6 +23,7 @@ export class Api {
         private prisma: PrismaClient,
         private connectionManager: ConnectionManager,
         private repoIndexManager: RepoIndexManager,
+        private accountPermissionSyncer: AccountPermissionSyncer,
     ) {
         const app = express();
         app.use(express.json());
@@ -36,6 +38,7 @@ export class Api {
 
         app.post('/api/sync-connection', this.syncConnection.bind(this));
         app.post('/api/index-repo', this.indexRepo.bind(this));
+        app.post('/api/trigger-account-permission-sync', this.triggerAccountPermissionSync.bind(this));
         app.post(`/api/experimental/add-github-repo`, this.experimental_addGithubRepo.bind(this));
 
         this.server = app.listen(PORT, () => {
@@ -93,6 +96,41 @@ export class Api {
         }
 
         const [jobId] = await this.repoIndexManager.createJobs([repo], RepoIndexingJobType.INDEX);
+        res.status(200).json({ jobId });
+    }
+
+    private async triggerAccountPermissionSync(req: Request, res: Response) {
+        if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED !== 'true' || !hasEntitlement('permission-syncing')) {
+            res.status(403).json({ error: 'Permission syncing is not enabled.' });
+            return;
+        }
+
+        const schema = z.object({
+            accountId: z.string(),
+        }).strict();
+
+        const parsed = schema.safeParse(req.body);
+        if (!parsed.success) {
+            res.status(400).json({ error: parsed.error.message });
+            return;
+        }
+
+        const { accountId } = parsed.data;
+        const account = await this.prisma.account.findUnique({
+            where: { id: accountId },
+        });
+
+        if (!account) {
+            res.status(404).json({ error: 'Account not found' });
+            return;
+        }
+
+        if (!PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS.includes(account.provider as typeof PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS[number])) {
+            res.status(400).json({ error: `Provider '${account.provider}' does not support permission syncing.` });
+            return;
+        }
+
+        const jobId = await this.accountPermissionSyncer.schedulePermissionSyncForAccount(account);
         res.status(200).json({ jobId });
     }
 

@@ -116,6 +116,22 @@ export class AccountPermissionSyncer {
         await this.queue.close();
     }
 
+    public async schedulePermissionSyncForAccount(account: Account) {
+        const [job] = await this.db.accountPermissionSyncJob.createManyAndReturn({
+            data: [{ accountId: account.id }],
+        });
+
+        await this.queue.add('accountPermissionSyncJob', {
+            jobId: job.id,
+        }, {
+            removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+            removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+            priority: 1,
+        });
+
+        return job.id;
+    }
+
     private async schedulePermissionSync(accounts: Account[]) {
         // @note: we don't perform this in a transaction because
         // we want to avoid the situation where a job is created and run

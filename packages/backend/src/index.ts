@@ -82,6 +82,7 @@ const api = new Api(
     prisma,
     connectionManager,
     repoIndexManager,
+    accountPermissionSyncer,
 );
 
 logger.info('Worker started.');
