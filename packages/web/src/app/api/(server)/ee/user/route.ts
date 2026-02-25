@@ -7,12 +7,75 @@ import { serviceErrorResponse, missingQueryParam, notFound } from "@/lib/service
 import { isServiceError } from "@/lib/utils";
 import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
 import { OrgRole } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/shared";
+import { createLogger, hasEntitlement } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
 
 const logger = createLogger('ee-user-api');
 const auditService = getAuditService();
+
+export const GET = apiHandler(async (request: NextRequest) => {
+    if (!hasEntitlement('org-management')) {
+        return serviceErrorResponse({
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+            message: "Organization management is not enabled for your license",
+        });
+    }
+
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('userId');
+
+    if (!userId) {
+        return serviceErrorResponse(missingQueryParam('userId'));
+    }
+
+    const result = await withAuthV2(async ({ org, role, user, prisma }) => {
+        return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            try {
+                const userData = await prisma.user.findUnique({
+                    where: {
+                        id: userId,
+                    },
+                    select: {
+                        name: true,
+                        email: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                });
+
+                if (!userData) {
+                    return notFound('User not found');
+                }
+
+                await auditService.createAudit({
+                    action: "user.read",
+                    actor: {
+                        id: user.id,
+                        type: "user"
+                    },
+                    target: {
+                        id: userId,
+                        type: "user"
+                    },
+                    orgId: org.id,
+                });
+
+                return userData;
+            } catch (error) {
+                logger.error('Error fetching user info', { error, userId });
+                throw error;
+            }
+        });
+    });
+
+    if (isServiceError(result)) {
+        return serviceErrorResponse(result);
+    }
+
+    return Response.json(result, { status: StatusCodes.OK });
+});
 
 export const DELETE = apiHandler(async (request: NextRequest) => {
     const url = new URL(request.url);
