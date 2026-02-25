@@ -218,6 +218,51 @@ in the Bitbucket Cloud identity provider config.
 </Accordion>
 
 
+### Bitbucket Server
+
+A Bitbucket Server (Data Center) connection can be used for [authentication](/docs/configuration/auth).
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Register an OAuth 2.0 Application">
+        To begin, you must register an OAuth 2.0 application in your Bitbucket Server instance to facilitate the identity provider connection.
+
+        In your Bitbucket Server admin panel, navigate to **Administration → Application Links** and create a new incoming external application link.
+
+        When configuring your application:
+        - Set the redirect URL to `<sourcebot_url>/api/auth/callback/bitbucket-server` (ex. https://sourcebot.coolcorp.com/api/auth/callback/bitbucket-server)
+
+        The result of creating the application is a `CLIENT_ID` and `CLIENT_SECRET` which you'll provide to Sourcebot.
+    </Step>
+    <Step title="Define environment variables">
+        To provide Sourcebot the client id and secret for your OAuth application you must set them as environment variables. These can be named whatever you like
+        (ex. `BITBUCKET_SERVER_IDENTITY_PROVIDER_CLIENT_ID` and `BITBUCKET_SERVER_IDENTITY_PROVIDER_CLIENT_SECRET`)
+    </Step>
+    <Step title="Define the identity provider config">
+        Finally, pass the client id, client secret, and your Bitbucket Server base URL to Sourcebot by defining a `identityProvider` object in the [config file](/docs/configuration/config-file):
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "bitbucket-server",
+                    "purpose": "sso",
+                    "baseUrl": "https://bitbucket.example.com",
+                    "clientId": {
+                        "env": "YOUR_CLIENT_ID_ENV_VAR"
+                    },
+                    "clientSecret": {
+                        "env": "YOUR_CLIENT_SECRET_ENV_VAR"
+                    }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
 ### Google
 
 [Auth.js Google Provider Docs](https://authjs.dev/getting-started/providers/google)
