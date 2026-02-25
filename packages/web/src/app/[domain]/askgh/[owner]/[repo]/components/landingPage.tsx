@@ -5,7 +5,7 @@ import { SearchModeSelector } from "@/app/[domain]/components/searchModeSelector
 import { Separator } from "@/components/ui/separator";
 import { ChatBox } from "@/features/chat/components/chatBox";
 import { ChatBoxToolbar } from "@/features/chat/components/chatBox/chatBoxToolbar";
-import { LoginModal } from "./loginModal";
+import { LoginModal } from "@/app/components/loginModal";
 import { NotConfiguredErrorBanner } from "@/features/chat/components/notConfiguredErrorBanner";
 import { LanguageModelInfo, RepoSearchScope } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
