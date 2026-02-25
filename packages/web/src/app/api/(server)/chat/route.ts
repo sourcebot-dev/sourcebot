@@ -103,6 +103,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
             await captureEvent('wa_chat_message_sent', {
                 chatId: id,
                 messageCount: messages.length,
+                selectedReposCount: expandedRepos.length,
                 ...(env.EXPERIMENT_ASK_GH_ENABLED === 'true' ? { selectedRepos: expandedRepos } : {}),
             } );
 
