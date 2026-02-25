@@ -215,6 +215,31 @@
                 }
             },
             "required": ["provider", "purpose", "clientId", "clientSecret", "issuer"]
+        },
+        "BitbucketServerIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "provider": {
+                    "const": "bitbucket-server"
+                },
+                "purpose": {
+                    "const": "sso"
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "baseUrl": {
+                    "type": "string",
+                    "description": "The URL of the Bitbucket Server/Data Center host.",
+                    "examples": ["https://bitbucket.example.com"],
+                    "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+                }
+            },
+            "required": ["provider", "purpose", "clientId", "clientSecret", "baseUrl"]
         }
     },
     "oneOf": [
@@ -244,6 +269,9 @@
         },
         {
             "$ref": "#/definitions/BitbucketCloudIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/BitbucketServerIdentityProviderConfig"
         }
     ]
 }
