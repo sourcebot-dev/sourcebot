@@ -517,6 +517,13 @@ export const compileBitbucketConfig = async (
                             repoSlug: (repo as BitbucketCloudRepository).full_name!.split('/')[1]!,
                         }
                     }
+                } : codeHostType === 'bitbucketServer' ? {
+                    codeHostMetadata: {
+                        bitbucketServer: {
+                            projectKey: (repo as BitbucketServerRepository).project!.key!,
+                            repoSlug: (repo as BitbucketServerRepository).slug!,
+                        }
+                    }
                 } : {}),
             } satisfies RepoMetadata,
         };

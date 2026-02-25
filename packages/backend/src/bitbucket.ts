@@ -260,26 +260,29 @@ async function cloudGetReposForProjects(client: BitbucketClient, projects: strin
 
         logger.debug(`Fetching all repos for project ${project} for workspace ${workspace}...`);
         try {
-            const repos = await getPaginatedCloud<CloudRepository>(`/repositories/${workspace}` as CloudGetRequestPath, async (path, query) => {
-                const response = await client.apiClient.GET(path, {
-                    params: {
-                        path: {
-                            workspace,
-                        },
-                        query: {
-                            ...query,
-                            q: `project.key="${project_name}"`
+            const { durationMs, data: repos } = await measure(async () => {
+                const fetchFn = () => getPaginatedCloud<CloudRepository>(`/repositories/${workspace}` as CloudGetRequestPath, async (path, query) => {
+                    const response = await client.apiClient.GET(path, {
+                        params: {
+                            path: {
+                                workspace,
+                            },
+                            query: {
+                                ...query,
+                                q: `project.key="${project_name}"`
+                            }
                         }
+                    });
+                    const { data, error } = response;
+                    if (error) {
+                        throw new Error(`Failed to fetch projects for workspace ${workspace}: ${JSON.stringify(error)}`);
                     }
+                    return data;
                 });
-                const { data, error } = response;
-                if (error) {
-                    throw new Error (`Failed to fetch projects for workspace ${workspace}: ${error.type}`);
-                }
-                return data;
+                return fetchWithRetry(fetchFn, `project ${project_name} in workspace ${workspace}`, logger);
             });
 
-            logger.debug(`Found ${repos.length} repos for project ${project_name} for workspace ${workspace}.`);
+            logger.debug(`Found ${repos.length} repos for project ${project_name} for workspace ${workspace} in ${durationMs}ms.`);
             return {
                 type: 'valid' as const,
                 data: repos
@@ -324,11 +327,14 @@ async function cloudGetRepos(client: BitbucketClient, repoList: string[]): Promi
         logger.debug(`Fetching repo ${repo_slug} for workspace ${workspace}...`);
         try {
             const path = `/repositories/${workspace}/${repo_slug}` as CloudGetRequestPath;
-            const response = await client.apiClient.GET(path);
-            const { data, error } = response;
-            if (error) {
-                throw new Error(`Failed to fetch repo ${repo}: ${error.type}`);
-            }
+            const data = await fetchWithRetry(async () => {
+                const response = await client.apiClient.GET(path);
+                const { data, error } = response;
+                if (error) {
+                    throw new Error(`Failed to fetch repo ${repo}: ${JSON.stringify(error)}`);
+                }
+                return data;
+            }, `repo ${repo}`, logger);
             return {
                 type: 'valid' as const,
                 data: [data]
@@ -391,7 +397,7 @@ export function cloudShouldExcludeRepo(repo: BitbucketRepository, config: Bitbuc
     return false;
 }
 
-function createBitbucketServerClient(url: string, user: string | undefined, token: string | undefined): BitbucketClient {
+export function createBitbucketServerClient(url: string, user: string | undefined, token: string | undefined): BitbucketClient {
     const authorizationString = (() => {
         // If we're not given any credentials we return an empty auth string. This will only work if the project/repos are public
         if(!user && !token) {
@@ -532,11 +538,14 @@ async function serverGetRepos(client: BitbucketClient, repoList: string[]): Prom
         logger.debug(`Fetching repo ${repo_slug} for project ${project}...`);
         try {
             const path = `/rest/api/1.0/projects/${project}/repos/${repo_slug}` as ServerGetRequestPath;
-            const response = await client.apiClient.GET(path);
-            const { data, error } = response;
-            if (error) {
-                throw new Error(`Failed to fetch repo ${repo}: ${error.type}`);
-            }
+            const data = await fetchWithRetry(async () => {
+                const response = await client.apiClient.GET(path);
+                const { data, error } = response;
+                if (error) {
+                    throw new Error(`Failed to fetch repo ${repo}: ${JSON.stringify(error)}`);
+                }
+                return data;
+            }, `repo ${repo}`, logger);
             return {
                 type: 'valid' as const,
                 data: [data]
@@ -641,7 +650,7 @@ export const getExplicitUserPermissionsForCloudRepo = async (
 ): Promise<Array<{ accountId: string }>> => {
     const path = `/repositories/${workspace}/${repoSlug}/permissions-config/users` as CloudGetRequestPath;
 
-    const users = await getPaginatedCloud<CloudRepositoryUserPermission>(path, async (p, query) => {
+    const users = await fetchWithRetry(() => getPaginatedCloud<CloudRepositoryUserPermission>(path, async (p, query) => {
         const response = await client.apiClient.GET(p, {
             params: {
                 path: { workspace, repo_slug: repoSlug },
@@ -653,7 +662,7 @@ export const getExplicitUserPermissionsForCloudRepo = async (
             throw new Error(`Failed to get explicit user permissions for ${workspace}/${repoSlug}: ${JSON.stringify(error)}`);
         }
         return data;
-    });
+    }), `permissions for ${workspace}/${repoSlug}`, logger);
 
     return users
         .filter(u => u.user?.account_id != null)
@@ -671,7 +680,7 @@ export const getReposForAuthenticatedBitbucketCloudUser = async (
 ): Promise<Array<{ uuid: string }>> => {
     const path = `/user/permissions/repositories` as CloudGetRequestPath;
 
-    const permissions = await getPaginatedCloud<CloudRepositoryPermission>(path, async (p, query) => {
+    const permissions = await fetchWithRetry(() => getPaginatedCloud<CloudRepositoryPermission>(path, async (p, query) => {
         const response = await client.apiClient.GET(p, {
             params: { query },
         });
@@ -680,9 +689,75 @@ export const getReposForAuthenticatedBitbucketCloudUser = async (
             throw new Error(`Failed to get user repository permissions: ${JSON.stringify(error)}`);
         }
         return data;
-    });
+    }), 'user repository permissions', logger);
 
     return permissions
         .filter(p => p.repository?.uuid != null)
         .map(p => ({ uuid: p.repository!.uuid as string }));
+};
+
+/**
+ * Returns the IDs of all repositories accessible to the authenticated Bitbucket Server user.
+ * Used for account-driven permission syncing.
+ *
+ * @see https://developer.atlassian.com/server/bitbucket/rest/v906/api-group-repository/#api-rest-api-latest-repos-get
+ */
+export const getReposForAuthenticatedBitbucketServerUser = async (
+    client: BitbucketClient,
+): Promise<Array<{ id: string }>> => {
+    const repos = await fetchWithRetry(() => getPaginatedServer<{ id: number }>(
+        `/rest/api/1.0/repos` as ServerGetRequestPath,
+        async (url, start) => {
+            const response = await client.apiClient.GET(url, {
+                params: {
+                    query: {
+                        permission: 'REPO_READ',
+                        limit: 100,
+                        start,
+                    },
+                },
+            });
+            const { data, error } = response;
+            if (error) {
+                throw new Error(`Failed to fetch Bitbucket Server repos for authenticated user: ${JSON.stringify(error)}`);
+            }
+            return data;
+        }
+    ), 'repos for authenticated Bitbucket Server user', logger);
+
+    return repos.map(r => ({ id: String(r.id) }));
+};
+
+/**
+ * Returns the user IDs of users who have been explicitly granted direct access to a Bitbucket Server repository.
+ *
+ * @note This only covers direct user-to-repo grants. It does NOT include users who have access via:
+ *   - Project-level permissions (inherited by all repos in the project)
+ *   - Group membership
+ * These users will still gain access through account-driven syncing (accountPermissionSyncer).
+ *
+ * @see https://developer.atlassian.com/server/bitbucket/rest/v906/api-group-repository/#api-rest-api-latest-projects-projectkey-repos-reposlug-permissions-users-get
+ */
+export const getUserPermissionsForServerRepo = async (
+    client: BitbucketClient,
+    projectKey: string,
+    repoSlug: string,
+): Promise<Array<{ userId: string }>> => {
+    const repoUsers = await fetchWithRetry(() => getPaginatedServer<{ user: { id: number } }>(
+        `/rest/api/1.0/projects/${projectKey}/repos/${repoSlug}/permissions/users` as ServerGetRequestPath,
+        async (url, start) => {
+            const response = await client.apiClient.GET(url, {
+                params: { query: { limit: 100, start } },
+            });
+            const { data, error } = response;
+            if (error) {
+                throw new Error(`Failed to fetch repo-level permissions for ${projectKey}/${repoSlug}: ${JSON.stringify(error)}`);
+            }
+            return data;
+        }
+    ), `repo-level permissions for ${projectKey}/${repoSlug}`, logger);
+
+    return repoUsers
+        .filter(entry => entry.user?.id != null)
+        .map(entry => ({ userId: String(entry.user.id) }));
 };

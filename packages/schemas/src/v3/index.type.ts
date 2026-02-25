@@ -1496,7 +1496,7 @@ export interface BitbucketCloudIdentityProviderConfig {
 }
 export interface BitbucketServerIdentityProviderConfig {
   provider: "bitbucket-server";
-  purpose: "sso";
+  purpose: "sso" | "account_linking";
   clientId:
     | {
         /**
@@ -1527,4 +1527,5 @@ export interface BitbucketServerIdentityProviderConfig {
    * The URL of the Bitbucket Server/Data Center host.
    */
   baseUrl: string;
+  accountLinkingRequired?: boolean;
 }

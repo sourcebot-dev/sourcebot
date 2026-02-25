@@ -40,6 +40,10 @@ export const repoMetadataSchema = z.object({
             workspace: z.string(),
             repoSlug: z.string(),
         }).optional(),
+        bitbucketServer: z.object({
+            projectKey: z.string(),
+            repoSlug: z.string(),
+        }).optional(),
     }).optional(),
 });
 

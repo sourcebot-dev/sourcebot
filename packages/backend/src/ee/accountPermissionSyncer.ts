@@ -14,7 +14,7 @@ import {
     getOAuthScopesForAuthenticatedUser as getGitLabOAuthScopesForAuthenticatedUser,
     getProjectsForAuthenticatedUser,
 } from "../gitlab.js";
-import { createBitbucketCloudClient, getReposForAuthenticatedBitbucketCloudUser } from "../bitbucket.js";
+import { createBitbucketCloudClient, createBitbucketServerClient, getReposForAuthenticatedBitbucketCloudUser, getReposForAuthenticatedBitbucketServerUser } from "../bitbucket.js";
 import { Settings } from "../types.js";
 import { setIntervalAsync } from "../utils.js";
 
@@ -285,6 +285,32 @@ export class AccountPermissionSyncer {
                         external_id: {
                             in: bitbucketRepoUuids,
                         }
+                    }
+                });
+
+                repos.forEach(repo => aggregatedRepoIds.add(repo.id));
+            } else if (account.provider === 'bitbucket-server') {
+                if (!accessToken) {
+                    throw new Error(`User '${account.user.email}' does not have a Bitbucket Server OAuth access token associated with their account. Please re-authenticate with Bitbucket Server to refresh the token.`);
+                }
+
+                // @hack: we don't have a way of identifying specific identity providers in the config file.
+                // Instead, we'll use the first Bitbucket Server connection's URL as the base URL.
+                const baseUrl = Array.from(Object.values(config.connections ?? {}))
+                    .find(connection => connection.type === 'bitbucket' && connection.deploymentType === 'server')?.url;
+
+                if (!baseUrl) {
+                    throw new Error(`No Bitbucket Server connection URL found in config for account ${account.id}`);
+                }
+
+                const client = createBitbucketServerClient(baseUrl, /* user = */ undefined, accessToken);
+                const serverRepos = await getReposForAuthenticatedBitbucketServerUser(client);
+                const serverRepoIds = serverRepos.map(r => r.id);
+
+                const repos = await this.db.repo.findMany({
+                    where: {
+                        external_codeHostType: 'bitbucketServer',
+                        external_id: { in: serverRepoIds },
                     }
                 });
 
