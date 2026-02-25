@@ -14,6 +14,41 @@ import { NextRequest } from "next/server";
 const logger = createLogger('ee-user-api');
 const auditService = getAuditService();
 
+export const GET = apiHandler(async () => {
+    const result = await withAuthV2(async ({ org, role, user, prisma }) => {
+        return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            try {
+                const userData = await prisma.user.findUnique({
+                    where: {
+                        id: user.id,
+                    },
+                    select: {
+                        name: true,
+                        email: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                });
+
+                if (!userData) {
+                    return notFound('User not found');
+                }
+
+                return userData;
+            } catch (error) {
+                logger.error('Error fetching user info', { error, userId: user.id });
+                throw error;
+            }
+        });
+    });
+
+    if (isServiceError(result)) {
+        return serviceErrorResponse(result);
+    }
+
+    return Response.json(result, { status: StatusCodes.OK });
+});
+
 export const DELETE = apiHandler(async (request: NextRequest) => {
     const url = new URL(request.url);
     const userId = url.searchParams.get('userId');
