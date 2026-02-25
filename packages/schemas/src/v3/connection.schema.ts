@@ -743,6 +743,11 @@ const schema = {
           "default": "cloud",
           "description": "The type of Bitbucket deployment"
         },
+        "all": {
+          "type": "boolean",
+          "default": false,
+          "description": "Sync all repositories visible to the provided `token` (if any) in the Bitbucket Server instance. This option is ignored if `deploymentType` is `cloud`."
+        },
         "workspaces": {
           "type": "array",
           "items": {
