@@ -7,7 +7,7 @@ import { serviceErrorResponse, missingQueryParam, notFound } from "@/lib/service
 import { isServiceError } from "@/lib/utils";
 import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
 import { OrgRole } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/shared";
+import { createLogger, hasEntitlement } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
 
@@ -15,6 +15,14 @@ const logger = createLogger('ee-user-api');
 const auditService = getAuditService();
 
 export const GET = apiHandler(async (request: NextRequest) => {
+    if (!hasEntitlement('org-management')) {
+        return serviceErrorResponse({
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+            message: "Organization management is not enabled for your license",
+        });
+    }
+
     const url = new URL(request.url);
     const userId = url.searchParams.get('userId');
 

@@ -6,12 +6,22 @@ import { serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
 import { OrgRole } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/shared";
+import { createLogger, hasEntitlement } from "@sourcebot/shared";
+import { StatusCodes } from "http-status-codes";
+import { ErrorCode } from "@/lib/errorCodes";
 
 const logger = createLogger('ee-users-api');
 const auditService = getAuditService();
 
 export const GET = apiHandler(async () => {
+    if (!hasEntitlement('org-management')) {
+        return serviceErrorResponse({
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+            message: "Organization management is not enabled for your license",
+        });
+    }
+
     const result = await withAuthV2(async ({ prisma, org, role, user }) => {
         return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             try {
