@@ -233,7 +233,6 @@ export type PosthogEventMap = {
     //////////////////////////////////////////////////////////////////
     wa_askgh_login_wall_prompted: {},
     wa_askgh_repo_index_triggered: {
-        owner: string,
         repo: string,
         repoId: number,
     },

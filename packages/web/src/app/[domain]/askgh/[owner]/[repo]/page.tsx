@@ -51,7 +51,7 @@ export default async function GitHubRepoPage(props: PageProps) {
     const providers = getIdentityProviderMetadata();
 
     return (
-        <RepoIndexedGuard initialRepoInfo={repoInfo} isNewlyTriggered={isNewlyTriggered} owner={owner} repo={repo}>
+        <RepoIndexedGuard initialRepoInfo={repoInfo} isNewlyTriggered={isNewlyTriggered} repoFullName={`${owner}/${repo}`}>
             <CustomSlateEditor>
                 <LandingPage
                     languageModels={languageModels}

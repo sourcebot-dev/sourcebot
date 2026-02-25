@@ -15,12 +15,11 @@ const REINDEX_INTERVAL_MS = 2000;
 interface Props {
     initialRepoInfo: RepoInfo;
     isNewlyTriggered: boolean;
-    owner: string;
-    repo: string;
+    repoFullName: string;
     children: React.ReactNode;
 }
 
-export function RepoIndexedGuard({ initialRepoInfo, isNewlyTriggered, owner, repo, children }: Props) {
+export function RepoIndexedGuard({ initialRepoInfo, isNewlyTriggered, repoFullName, children }: Props) {
     const { requestPermission, showNotification } = useBrowserNotification();
     const hasFiredEvent = useRef(false);
 
@@ -29,12 +28,11 @@ export function RepoIndexedGuard({ initialRepoInfo, isNewlyTriggered, owner, rep
         if (isNewlyTriggered && !hasFiredEvent.current) {
             hasFiredEvent.current = true;
             captureEvent('wa_askgh_repo_index_triggered', {
-                owner,
-                repo,
+                repo: repoFullName,
                 repoId: initialRepoInfo.id,
             });
         }
-    }, [isNewlyTriggered, owner, repo, initialRepoInfo.id]);
+    }, [isNewlyTriggered, repoFullName, initialRepoInfo.id]);
 
     const { data: repoInfo, isError } = useQuery({
         queryKey: ['repo-status', initialRepoInfo.id],
