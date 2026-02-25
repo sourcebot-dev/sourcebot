@@ -1,11 +1,12 @@
 'use client';
 
+import { captureEvent } from "@/hooks/useCaptureEvent";
 import { ServiceError } from "@/lib/serviceError";
 import { unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { usePrevious } from "@uidotdev/usehooks";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useBrowserNotification } from "@/hooks/useBrowserNotification";
 import { RepoInfo } from "../types";
 
@@ -13,11 +14,25 @@ const REINDEX_INTERVAL_MS = 2000;
 
 interface Props {
     initialRepoInfo: RepoInfo;
+    isNewlyTriggered: boolean;
+    repoFullName: string;
     children: React.ReactNode;
 }
 
-export function RepoIndexedGuard({ initialRepoInfo, children }: Props) {
+export function RepoIndexedGuard({ initialRepoInfo, isNewlyTriggered, repoFullName, children }: Props) {
     const { requestPermission, showNotification } = useBrowserNotification();
+    const hasFiredEvent = useRef(false);
+
+    // Fire event when a new repo index is triggered
+    useEffect(() => {
+        if (isNewlyTriggered && !hasFiredEvent.current) {
+            hasFiredEvent.current = true;
+            captureEvent('wa_askgh_repo_index_triggered', {
+                repo: repoFullName,
+                repoId: initialRepoInfo.id,
+            });
+        }
+    }, [isNewlyTriggered, repoFullName, initialRepoInfo.id]);
 
     const { data: repoInfo, isError } = useQuery({
         queryKey: ['repo-status', initialRepoInfo.id],

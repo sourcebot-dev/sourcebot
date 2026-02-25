@@ -20,7 +20,7 @@ export default async function GitHubRepoPage(props: PageProps) {
     const { owner, repo } = params;
     const session = await auth();
     
-    const repoId = await (async () => {
+    const { repoId, isNewlyTriggered } = await (async () => {
         // 1. Look up repo by owner/repo
         const displayName = `${owner}/${repo}`;
         const existingRepo = await prisma.repo.findFirst({
@@ -33,7 +33,7 @@ export default async function GitHubRepoPage(props: PageProps) {
         });
 
         if (existingRepo) {
-            return existingRepo.id;
+            return { repoId: existingRepo.id, isNewlyTriggered: false };
         }
 
         // 2. If it doesn't exist, attempt to create it
@@ -43,7 +43,7 @@ export default async function GitHubRepoPage(props: PageProps) {
             throw new ServiceErrorException(response);
         }
 
-        return response.repoId;
+        return { repoId: response.repoId, isNewlyTriggered: true };
     })();
 
     const repoInfo = await unwrapServiceError(getRepoInfo(repoId));
@@ -51,7 +51,7 @@ export default async function GitHubRepoPage(props: PageProps) {
     const providers = getIdentityProviderMetadata();
 
     return (
-        <RepoIndexedGuard initialRepoInfo={repoInfo}>
+        <RepoIndexedGuard initialRepoInfo={repoInfo} isNewlyTriggered={isNewlyTriggered} repoFullName={`${owner}/${repo}`}>
             <CustomSlateEditor>
                 <LandingPage
                     languageModels={languageModels}
