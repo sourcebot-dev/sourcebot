@@ -76,6 +76,18 @@ export const getBitbucketReposFromConfig = async (config: BitbucketConnectionCon
     let allRepos: BitbucketRepository[] = [];
     let allWarnings: string[] = [];
 
+    if (config.all === true) {
+        if (client.deploymentType === BITBUCKET_SERVER) {
+            const { repos, warnings } = await serverGetAllRepos(client);
+            allRepos = allRepos.concat(repos);
+            allWarnings = allWarnings.concat(warnings);
+        } else {
+            const warning = `Ignoring option all:true in config: not supported for Bitbucket Cloud`;
+            logger.warn(warning);
+            allWarnings = allWarnings.concat(warning);
+        }
+    }
+
     if (config.workspaces) {
         const { repos, warnings } = await client.getReposForWorkspace(client, config.workspaces);
         allRepos = allRepos.concat(repos);
@@ -552,6 +564,26 @@ async function serverGetRepos(client: BitbucketClient, repoList: string[]): Prom
         repos,
         warnings
     };
+}
+
+async function serverGetAllRepos(client: BitbucketClient): Promise<{repos: ServerRepository[], warnings: string[]}> {
+    logger.debug(`Fetching all repos from Bitbucket Server...`);
+    const path = `/rest/api/1.0/repos` as ServerGetRequestPath;
+    const { durationMs, data } = await measure(async () => {
+        const fetchFn = () => getPaginatedServer<ServerRepository>(path, async (url, start) => {
+            const response = await client.apiClient.GET(url, {
+                params: { query: { start } }
+            });
+            const { data, error } = response;
+            if (error) {
+                throw new Error(`Failed to fetch all repos: ${JSON.stringify(error)}`);
+            }
+            return data;
+        });
+        return fetchWithRetry(fetchFn, `all repos`, logger);
+    });
+    logger.debug(`Found ${data.length} total repos in ${durationMs}ms.`);
+    return { repos: data, warnings: [] };
 }
 
 export function serverShouldExcludeRepo(repo: BitbucketRepository, config: BitbucketConnectionConfig): boolean {

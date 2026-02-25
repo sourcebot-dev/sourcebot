@@ -39,6 +39,18 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
         }
         ```
     </Accordion>
+    <Accordion title="Sync all repos">
+        <Note>Requires a `token` to be set in order to access private repositories.</Note>
+        ```json
+        {
+            "type": "bitbucket",
+            "deploymentType": "server",
+            "url": "https://mybitbucketdeployment.com",
+            // Index all repos visible to the provided token
+            "all": true
+        }
+        ```
+    </Accordion>
     <Accordion title="Exclude repos from syncing">
         ```json
         {
