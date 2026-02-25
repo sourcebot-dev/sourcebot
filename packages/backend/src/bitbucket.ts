@@ -275,7 +275,7 @@ async function cloudGetReposForProjects(client: BitbucketClient, projects: strin
                     });
                     const { data, error } = response;
                     if (error) {
-                        throw new Error (`Failed to fetch projects for workspace ${workspace}: ${error.type}`);
+                        throw new Error(`Failed to fetch projects for workspace ${workspace}: ${JSON.stringify(error)}`);
                     }
                     return data;
                 });
@@ -331,7 +331,7 @@ async function cloudGetRepos(client: BitbucketClient, repoList: string[]): Promi
                 const response = await client.apiClient.GET(path);
                 const { data, error } = response;
                 if (error) {
-                    throw new Error(`Failed to fetch repo ${repo}: ${error.type}`);
+                    throw new Error(`Failed to fetch repo ${repo}: ${JSON.stringify(error)}`);
                 }
                 return data;
             }, `repo ${repo}`, logger);
@@ -542,7 +542,7 @@ async function serverGetRepos(client: BitbucketClient, repoList: string[]): Prom
                 const response = await client.apiClient.GET(path);
                 const { data, error } = response;
                 if (error) {
-                    throw new Error(`Failed to fetch repo ${repo}: ${error.type}`);
+                    throw new Error(`Failed to fetch repo ${repo}: ${JSON.stringify(error)}`);
                 }
                 return data;
             }, `repo ${repo}`, logger);
