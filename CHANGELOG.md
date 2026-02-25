@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `wa_user_created` PostHog event fired on successful user sign-up. [#933](https://github.com/sourcebot-dev/sourcebot/pull/933)
 - Added `wa_askgh_login_wall_prompted` PostHog event fired when an unauthenticated user attempts to ask a question on Ask GitHub. [#933](https://github.com/sourcebot-dev/sourcebot/pull/933)
 - Added Bitbucket Server (Data Center) OAuth 2.0 SSO identity provider support (`provider: "bitbucket-server"`). [#934](https://github.com/sourcebot-dev/sourcebot/pull/934)
+- Added permission syncing support for Bitbucket Server (Data Center), including account-driven and repo-driven sync. [#938](https://github.com/sourcebot-dev/sourcebot/pull/938)
 
 ### Changed
 - Hide version upgrade toast for askgithub deployment (`EXPERIMENT_ASK_GH_ENABLED`). [#931](https://github.com/sourcebot-dev/sourcebot/pull/931)
