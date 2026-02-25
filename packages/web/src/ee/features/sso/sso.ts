@@ -305,7 +305,6 @@ const createBitbucketServerProvider = (clientId: string, clientSecret: string, b
 
                 return await profileRes.json();
             }
-            },
         },
         profile(profile) {
             return {
