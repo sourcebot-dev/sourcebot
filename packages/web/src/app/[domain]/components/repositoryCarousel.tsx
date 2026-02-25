@@ -5,7 +5,6 @@ import {
     CarouselContent,
     CarouselItem,
 } from "@/components/ui/carousel";
-import { captureEvent } from "@/hooks/useCaptureEvent";
 import { RepositoryQuery } from "@/lib/types";
 import { getCodeHostInfoForRepo } from "@/lib/utils";
 import clsx from "clsx";

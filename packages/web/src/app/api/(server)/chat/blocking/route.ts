@@ -1,5 +1,5 @@
 import { sew } from "@/actions";
-import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, _updateChatMessages, generateAndUpdateChatNameFromMessage, _generateChatNameFromMessage } from "@/features/chat/actions";
+import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, _updateChatMessages, _generateChatNameFromMessage } from "@/features/chat/actions";
 import { LanguageModelInfo, languageModelInfoSchema, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";

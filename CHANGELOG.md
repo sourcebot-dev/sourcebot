@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed text inside angle brackets (e.g., `<id>`) being hidden in chat prompt display due to HTML parsing. [#929](https://github.com/sourcebot-dev/sourcebot/pull/929) [#932](https://github.com/sourcebot-dev/sourcebot/pull/932)
+- Fixed 6 unused import/variable build warnings in the web package. [#935](https://github.com/sourcebot-dev/sourcebot/pull/935)
 
 ## [4.11.7] - 2026-02-23
 
