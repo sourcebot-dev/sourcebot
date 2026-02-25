@@ -38,6 +38,10 @@ export interface BitbucketConnectionConfig {
    */
   deploymentType?: "cloud" | "server";
   /**
+   * Sync all repositories visible to the provided `token` (if any) in the Bitbucket Server instance. This option is ignored if `deploymentType` is `cloud`.
+   */
+  all?: boolean;
+  /**
    * List of workspaces to sync. Ignored if deploymentType is server.
    */
   workspaces?: string[];

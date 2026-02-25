@@ -8,20 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Added PostHog events for chat UI interactions (details card expand/collapse, copy answer, table of contents toggle) and repo tracking in `wa_chat_message_sent`. [#922](https://github.com/sourcebot-dev/sourcebot/pull/922)
+- Added PostHog events for chat UI interactions (details card expand/collapse, copy answer, table of contents toggle). [#922](https://github.com/sourcebot-dev/sourcebot/pull/922)
 - Added Bitbucket Cloud OAuth identity provider support (`provider: "bitbucket-cloud"`) for SSO and account-linked permission syncing. [#924](https://github.com/sourcebot-dev/sourcebot/pull/924)
 - Added permission syncing support for Bitbucket Cloud. [#925](https://github.com/sourcebot-dev/sourcebot/pull/925)
 - Added `wa_user_created` PostHog event fired on successful user sign-up. [#933](https://github.com/sourcebot-dev/sourcebot/pull/933)
 - Added `wa_askgh_login_wall_prompted` PostHog event fired when an unauthenticated user attempts to ask a question on Ask GitHub. [#933](https://github.com/sourcebot-dev/sourcebot/pull/933)
 - Added Bitbucket Server (Data Center) OAuth 2.0 SSO identity provider support (`provider: "bitbucket-server"`). [#934](https://github.com/sourcebot-dev/sourcebot/pull/934)
 - Added `GET /api/ee/user` endpoint that returns the authenticated owner's user info (name, email, createdAt, updatedAt). [#940](https://github.com/sourcebot-dev/sourcebot/pull/940)
+- Added `selectedReposCount` to the `wa_chat_message_sent` PostHog event to track the number of selected repositories when users ask questions. [#941](https://github.com/sourcebot-dev/sourcebot/pull/941)
 
 ### Changed
 - Hide version upgrade toast for askgithub deployment (`EXPERIMENT_ASK_GH_ENABLED`). [#931](https://github.com/sourcebot-dev/sourcebot/pull/931)
 
 ### Fixed
 - Fixed text inside angle brackets (e.g., `<id>`) being hidden in chat prompt display due to HTML parsing. [#929](https://github.com/sourcebot-dev/sourcebot/pull/929) [#932](https://github.com/sourcebot-dev/sourcebot/pull/932)
-- Fixed 6 unused import/variable build warnings in the web package. [#935](https://github.com/sourcebot-dev/sourcebot/pull/935)
 
 ## [4.11.7] - 2026-02-23
 

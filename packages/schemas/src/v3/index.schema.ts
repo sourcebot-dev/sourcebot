@@ -1158,6 +1158,11 @@ const schema = {
                   "default": "cloud",
                   "description": "The type of Bitbucket deployment"
                 },
+                "all": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Sync all repositories visible to the provided `token` (if any) in the Bitbucket Server instance. This option is ignored if `deploymentType` is `cloud`."
+                },
                 "workspaces": {
                   "type": "array",
                   "items": {
@@ -5389,7 +5394,10 @@ const schema = {
                 "const": "bitbucket-server"
               },
               "purpose": {
-                "const": "sso"
+                "enum": [
+                  "sso",
+                  "account_linking"
+                ]
               },
               "clientId": {
                 "anyOf": [
@@ -5458,6 +5466,10 @@ const schema = {
                   "https://bitbucket.example.com"
                 ],
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+              },
+              "accountLinkingRequired": {
+                "type": "boolean",
+                "default": false
               }
             },
             "required": [
@@ -6316,7 +6328,10 @@ const schema = {
                 "const": "bitbucket-server"
               },
               "purpose": {
-                "const": "sso"
+                "enum": [
+                  "sso",
+                  "account_linking"
+                ]
               },
               "clientId": {
                 "anyOf": [
@@ -6385,6 +6400,10 @@ const schema = {
                   "https://bitbucket.example.com"
                 ],
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+              },
+              "accountLinkingRequired": {
+                "type": "boolean",
+                "default": false
               }
             },
             "required": [
