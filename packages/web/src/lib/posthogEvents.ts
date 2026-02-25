@@ -232,6 +232,11 @@ export type PosthogEventMap = {
     },
     //////////////////////////////////////////////////////////////////
     wa_askgh_login_wall_prompted: {},
+    wa_askgh_repo_index_triggered: {
+        owner: string,
+        repo: string,
+        repoId: number,
+    },
     //////////////////////////////////////////////////////////////////
     wa_demo_docs_link_pressed: {},
     wa_demo_search_example_card_pressed: {
