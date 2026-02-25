@@ -231,7 +231,7 @@ export const ChatSidePanel = ({
 
             </ResizablePanel >
             {isCollapsed && (
-                <div className="flex flex-col items-center h-full p-2">
+                <div className="flex flex-col items-center h-full p-2 gap-1">
                     <Tooltip
                         delayDuration={100}
                     >
@@ -251,6 +251,25 @@ export const ChatSidePanel = ({
                             <KeyboardShortcutHint shortcut="mod+b" />
                             <Separator orientation="vertical" className="h-4" />
                             <span>Open side panel</span>
+                        </TooltipContent>
+                    </Tooltip>
+                    <Tooltip
+                        delayDuration={100}
+                    >
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => {
+                                    router.push(`/${SINGLE_TENANT_ORG_DOMAIN}/chat`);
+                                }}
+                            >
+                                <CirclePlusIcon className="w-4 h-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                            <span>New Chat</span>
                         </TooltipContent>
                     </Tooltip>
                 </div>
