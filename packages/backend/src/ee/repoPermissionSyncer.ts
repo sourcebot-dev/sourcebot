@@ -293,11 +293,16 @@ export class RepoPermissionSyncer {
                     isPartialSync: true,
                 }
             } else if (repo.external_codeHostType === 'bitbucketServer') {
-                if (!repo.displayName) {
-                    throw new Error(`Repo ${id} does not have a displayName`);
+                const parsedMetadata = repoMetadataSchema.safeParse(repo.metadata);
+                if (!parsedMetadata.success) {
+                    throw new Error(`Repo ${id} has invalid metadata: ${JSON.stringify(parsedMetadata.error.errors)}`);
+                }
+                const bitbucketServerMetadata = parsedMetadata.data.codeHostMetadata?.bitbucketServer;
+                if (!bitbucketServerMetadata) {
+                    throw new Error(`Repo ${id} is missing required Bitbucket Server metadata (projectKey/repoSlug)`);
                 }
 
-                const [projectKey, repoSlug] = repo.displayName.split('/');
+                const { projectKey, repoSlug } = bitbucketServerMetadata;
                 const hostUrl = credentials.hostUrl;
 
                 if (!hostUrl) {
