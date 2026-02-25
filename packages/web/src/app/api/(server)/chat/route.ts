@@ -1,7 +1,7 @@
 import { sew } from "@/actions";
 import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, _updateChatMessages, _isOwnerOfChat } from "@/features/chat/actions";
 import { createAgentStream } from "@/features/chat/agent";
-import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SBChatMessageMetadata, SearchScope } from "@/features/chat/types";
+import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SBChatMessageMetadata } from "@/features/chat/types";
 import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
