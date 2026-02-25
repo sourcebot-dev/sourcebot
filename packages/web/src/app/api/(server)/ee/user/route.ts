@@ -34,6 +34,19 @@ export const GET = apiHandler(async () => {
                     return notFound('User not found');
                 }
 
+                await auditService.createAudit({
+                    action: "user.read",
+                    actor: {
+                        id: user.id,
+                        type: "user"
+                    },
+                    target: {
+                        id: user.id,
+                        type: "user"
+                    },
+                    orgId: org.id,
+                });
+
                 return userData;
             } catch (error) {
                 logger.error('Error fetching user info', { error, userId: user.id });
