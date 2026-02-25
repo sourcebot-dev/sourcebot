@@ -218,12 +218,15 @@ const tryRefreshToken = async (
 
     let url: string;
     if (baseUrl) {
+        // Use a trailing-slash-normalized base so relative paths append correctly,
+        // preserving any context path (e.g. https://example.com/bitbucket/).
+        const base = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
         if (provider === 'github') {
-            url = new URL('/login/oauth/access_token', baseUrl).toString();
+            url = new URL('login/oauth/access_token', base).toString();
         } else if (provider === 'bitbucket-server') {
-            url = new URL('/rest/oauth2/latest/token', baseUrl).toString();
+            url = new URL('rest/oauth2/latest/token', base).toString();
         } else {
-            url = new URL('/oauth/token', baseUrl).toString();
+            url = new URL('oauth/token', base).toString();
         }
     } else if (provider === 'github') {
         url = 'https://github.com/login/oauth/access_token';
