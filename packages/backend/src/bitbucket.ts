@@ -379,7 +379,7 @@ export function cloudShouldExcludeRepo(repo: BitbucketRepository, config: Bitbuc
     return false;
 }
 
-function createBitbucketServerClient(url: string, user: string | undefined, token: string | undefined): BitbucketClient {
+export function createBitbucketServerClient(url: string, user: string | undefined, token: string | undefined): BitbucketClient {
     const authorizationString = (() => {
         // If we're not given any credentials we return an empty auth string. This will only work if the project/repos are public
         if(!user && !token) {
@@ -653,4 +653,97 @@ export const getReposForAuthenticatedBitbucketCloudUser = async (
     return permissions
         .filter(p => p.repository?.uuid != null)
         .map(p => ({ uuid: p.repository!.uuid as string }));
+};
+
+/**
+ * Returns the IDs of all repositories accessible to the authenticated Bitbucket Server user.
+ * Used for account-driven permission syncing.
+ *
+ * @see https://developer.atlassian.com/server/bitbucket/rest/v906/api-group-repository/#api-rest-api-latest-repos-get
+ */
+export const getReposForAuthenticatedBitbucketServerUser = async (
+    client: BitbucketClient,
+): Promise<Array<{ id: string }>> => {
+    const repos = await getPaginatedServer<{ id: number }>(
+        `/rest/api/1.0/repos` as ServerGetRequestPath,
+        async (url, start) => {
+            const response = await client.apiClient.GET(url, {
+                params: {
+                    query: {
+                        permission: 'REPO_READ',
+                        limit: 100,
+                        start,
+                    },
+                },
+            });
+            const { data, error } = response;
+            if (error) {
+                throw new Error(`Failed to fetch Bitbucket Server repos for authenticated user: ${JSON.stringify(error)}`);
+            }
+            return data;
+        }
+    );
+
+    return repos.map(r => ({ id: String(r.id) }));
+};
+
+/**
+ * Returns the user IDs of users who have been explicitly granted permission on a Bitbucket Server repository
+ * at the repo level (direct grants) or project level (inherited by all repos in the project).
+ *
+ * @note This does NOT include users who have access via groups. As a result, permission syncing
+ * may under-grant access for instances that rely heavily on group-level permissions. Those users
+ * will still gain access through account-driven syncing (accountPermissionSyncer).
+ *
+ * @see https://developer.atlassian.com/server/bitbucket/rest/v906/api-group-repository/#api-rest-api-latest-projects-projectkey-repos-reposlug-permissions-users-get
+ * @see https://developer.atlassian.com/server/bitbucket/rest/v906/api-group-project/#api-rest-api-latest-projects-projectkey-permissions-users-get
+ */
+export const getUserPermissionsForServerRepo = async (
+    client: BitbucketClient,
+    projectKey: string,
+    repoSlug: string,
+): Promise<Array<{ userId: string }>> => {
+    const userIdSet = new Set<string>();
+
+    // Fetch repo-level permissions
+    const repoUsers = await getPaginatedServer<{ user: { id: number } }>(
+        `/rest/api/1.0/projects/${projectKey}/repos/${repoSlug}/permissions/users` as ServerGetRequestPath,
+        async (url, start) => {
+            const response = await client.apiClient.GET(url, {
+                params: { query: { limit: 100, start } },
+            });
+            const { data, error } = response;
+            if (error) {
+                throw new Error(`Failed to fetch repo-level permissions for ${projectKey}/${repoSlug}: ${JSON.stringify(error)}`);
+            }
+            return data;
+        }
+    );
+    for (const entry of repoUsers) {
+        if (entry.user?.id != null) {
+            userIdSet.add(String(entry.user.id));
+        }
+    }
+
+    // Fetch project-level permissions (inherited by all repos in the project)
+    const projectUsers = await getPaginatedServer<{ user: { id: number } }>(
+        `/rest/api/1.0/projects/${projectKey}/permissions/users` as ServerGetRequestPath,
+        async (url, start) => {
+            const response = await client.apiClient.GET(url, {
+                params: { query: { limit: 100, start } },
+            });
+            const { data, error } = response;
+            if (error) {
+                throw new Error(`Failed to fetch project-level permissions for ${projectKey}: ${JSON.stringify(error)}`);
+            }
+            return data;
+        }
+    );
+    for (const entry of projectUsers) {
+        if (entry.user?.id != null) {
+            userIdSet.add(String(entry.user.id));
+        }
+    }
+
+    return Array.from(userIdSet).map(userId => ({ userId }));
 };

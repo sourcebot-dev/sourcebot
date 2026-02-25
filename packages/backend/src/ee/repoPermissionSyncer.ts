@@ -7,7 +7,7 @@ import { Redis } from 'ioredis';
 import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import { createOctokitFromToken, getRepoCollaborators, GITHUB_CLOUD_HOSTNAME } from "../github.js";
 import { createGitLabFromPersonalAccessToken, getProjectMembers } from "../gitlab.js";
-import { createBitbucketCloudClient, getExplicitUserPermissionsForCloudRepo } from "../bitbucket.js";
+import { createBitbucketCloudClient, createBitbucketServerClient, getExplicitUserPermissionsForCloudRepo, getUserPermissionsForServerRepo } from "../bitbucket.js";
 import { repoMetadataSchema } from "@sourcebot/shared";
 import { Settings } from "../types.js";
 import { getAuthCredentialsForRepo, setIntervalAsync } from "../utils.js";
@@ -290,6 +290,36 @@ export class RepoPermissionSyncer {
                     accountIds: accounts.map(account => account.id),
                     // Since we only fetch users who have been explicitly granted access to the repo,
                     // this is a partial sync.
+                    isPartialSync: true,
+                }
+            } else if (repo.external_codeHostType === 'bitbucketServer') {
+                if (!repo.displayName) {
+                    throw new Error(`Repo ${id} does not have a displayName`);
+                }
+
+                const [projectKey, repoSlug] = repo.displayName.split('/');
+                const hostUrl = credentials.hostUrl;
+
+                if (!hostUrl) {
+                    throw new Error(`No host URL found for Bitbucket Server repo ${id}`);
+                }
+
+                // @note: This covers users with direct repo-level and project-level permissions.
+                // Users with access only via groups are NOT captured here. Those users will
+                // still gain access through account-driven syncing (accountPermissionSyncer).
+                const client = createBitbucketServerClient(hostUrl, /* user = */ undefined, credentials.token);
+                const users = await getUserPermissionsForServerRepo(client, projectKey, repoSlug);
+                const userIds = users.map(u => u.userId);
+
+                const accounts = await this.db.account.findMany({
+                    where: {
+                        provider: 'bitbucket-server',
+                        providerAccountId: { in: userIds },
+                    }
+                });
+
+                return {
+                    accountIds: accounts.map(account => account.id),
                     isPartialSync: true,
                 }
             }

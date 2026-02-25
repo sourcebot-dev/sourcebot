@@ -849,7 +849,10 @@ const schema = {
           "const": "bitbucket-server"
         },
         "purpose": {
-          "const": "sso"
+          "enum": [
+            "sso",
+            "account_linking"
+          ]
         },
         "clientId": {
           "anyOf": [
@@ -918,6 +921,10 @@ const schema = {
             "https://bitbucket.example.com"
           ],
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+        },
+        "accountLinkingRequired": {
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -1776,7 +1783,10 @@ const schema = {
           "const": "bitbucket-server"
         },
         "purpose": {
-          "const": "sso"
+          "enum": [
+            "sso",
+            "account_linking"
+          ]
         },
         "clientId": {
           "anyOf": [
@@ -1845,6 +1855,10 @@ const schema = {
             "https://bitbucket.example.com"
           ],
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+        },
+        "accountLinkingRequired": {
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
