@@ -277,14 +277,34 @@ const createBitbucketServerProvider = (clientId: string, clientSecret: string, b
             // url is required by Auth.js endpoint validation; the request function overrides the actual fetch
             url: `${baseUrl}/plugins/servlet/applinks/whoami`,
             async request({ tokens }: { tokens: TokenSet }) {
+                const accessToken = tokens.access_token;
+                if (!accessToken) {
+                    throw new Error("Missing access token for Bitbucket Server userinfo request");
+                }
+
                 const whoamiRes = await fetch(`${baseUrl}/plugins/servlet/applinks/whoami`, {
-                    headers: { Authorization: `Bearer ${tokens.access_token}` },
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                    signal: AbortSignal.timeout(10_000),
                 });
+                if (!whoamiRes.ok) {
+                    throw new Error(`Bitbucket whoami failed (${whoamiRes.status})`);
+                }
+
                 const username = (await whoamiRes.text()).trim();
-                const profileRes = await fetch(`${baseUrl}/rest/api/1.0/users/${username}`, {
-                    headers: { Authorization: `Bearer ${tokens.access_token}` },
+                if (!username) {
+                    throw new Error("Bitbucket whoami returned an empty username");
+                }
+
+                const profileRes = await fetch(`${baseUrl}/rest/api/1.0/users/${encodeURIComponent(username)}`, {
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                    signal: AbortSignal.timeout(10_000),
                 });
-                return profileRes.json();
+                if (!profileRes.ok) {
+                    throw new Error(`Bitbucket profile lookup failed (${profileRes.status})`);
+                }
+
+                return await profileRes.json();
+            }
             },
         },
         profile(profile) {
