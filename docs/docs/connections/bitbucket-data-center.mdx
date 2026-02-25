@@ -68,7 +68,11 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
 
 ## Authenticating with Bitbucket Data Center
 
-In order to index private repositories, you'll need to provide a [HTTP Access Token](https://confluence.atlassian.com/bitbucketserver/http-access-tokens-939515499.html). Tokens can be scoped to a user account, a project, or an individual repository.
+In order to index private repositories, you'll need to provide a [HTTP Access Token](https://confluence.atlassian.com/bitbucketserver/http-access-tokens-939515499.html). Tokens can be scoped to a user account, a project, or an individual repository. Only repositories visible to the token will be able to be indexed by Sourcebot.
+
+<Note>
+  If [permission syncing](/docs/features/permission-syncing#bitbucket-data-center) is enabled, the token must have **Repository Admin** and **Project Admin** permissions so Sourcebot can read repository and project-level user permissions.
+</Note>
 
 <Tabs>
     <Tab title="User account token">

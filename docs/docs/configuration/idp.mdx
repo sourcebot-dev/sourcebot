@@ -74,9 +74,11 @@ in the GitHub identity provider config.
                 - `"Metadata" repository permissions (read)` (only needed if using permission syncing)
         </Tab>
         <Tab title="GitHub OAuth App">
-            Follow [this guide](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) by GitHub to create an OAuth App. 
-            
+            Follow [this guide](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) by GitHub to create an OAuth App.
+
             When asked to provide a callback url, provide `<sourcebot_url>/api/auth/callback/github` (ex. https://sourcebot.coolcorp.com/api/auth/callback/github)
+
+            If [permission syncing](/docs/features/permission-syncing#github) is enabled, also enable the `repo` scope.
         </Tab>
         </Tabs>
     </Step>
@@ -128,7 +130,7 @@ in the GitLab identity provider config.
         When configuring your application:
         - Set the callback URL to `<sourcebot_url>/api/auth/callback/gitlab` (ex. https://sourcebot.coolcorp.com/api/auth/callback/gitlab)
         - Enable the `read_user` scope
-        - If using for permission syncing, also enable the `read_api` scope
+        - If [permission syncing](/docs/features/permission-syncing#gitlab) is enabled, also enable the `read_api` scope
 
         The result of registering an OAuth application is an `APPLICATION_ID` (`CLIENT_ID`) and `SECRET` (`CLIENT_SECRET`) which you'll provide to Sourcebot.
     </Step>
@@ -182,7 +184,7 @@ in the Bitbucket Cloud identity provider config.
         When configuring your consumer:
         - Set the callback URL to `<sourcebot_url>/api/auth/callback/bitbucket-cloud` (ex. https://sourcebot.coolcorp.com/api/auth/callback/bitbucket-cloud)
         - Enable **Account: Read**
-        - If using for permission syncing, also enable **Repositories: Read**
+        - If [permission syncing](/docs/features/permission-syncing#bitbucket-cloud) is enabled, also enable **Repositories: Read**
 
         The result of creating an OAuth consumer is a `Key` (`CLIENT_ID`) and `Secret` (`CLIENT_SECRET`) which you'll provide to Sourcebot.
     </Step>
@@ -232,7 +234,7 @@ in the Bitbucket Server identity provider config.
 
         When configuring your application:
         - Set the redirect URL to `<sourcebot_url>/api/auth/callback/bitbucket-server` (ex. https://sourcebot.coolcorp.com/api/auth/callback/bitbucket-server)
-        - If using for permission syncing, ensure the OAuth application requests the `REPO_READ` scope
+        - If [permission syncing](/docs/features/permission-syncing#bitbucket-data-center) is enabled, also enable the `REPO_READ` scope
 
         The result of creating the application is a `CLIENT_ID` and `CLIENT_SECRET` which you'll provide to Sourcebot.
     </Step>

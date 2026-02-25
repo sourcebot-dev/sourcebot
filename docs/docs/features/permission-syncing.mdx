@@ -40,7 +40,7 @@ We are actively working on supporting more code hosts. If you'd like to see a sp
 | [GitHub (GHEC & GHEC Server)](/docs/features/permission-syncing#github) | ✅ |
 | [GitLab (Self-managed & Cloud)](/docs/features/permission-syncing#gitlab) | ✅ |
 | [Bitbucket Cloud](/docs/features/permission-syncing#bitbucket-cloud) | 🟠 Partial |
-| Bitbucket Data Center | 🛑 |
+| [Bitbucket Data Center](/docs/features/permission-syncing#bitbucket-data-center) | 🟠 Partial |
 | Gitea | 🛑 |
 | Gerrit | 🛑 |
 | Generic git host | 🛑 |
@@ -50,7 +50,8 @@ We are actively working on supporting more code hosts. If you'd like to see a sp
 ## GitHub
 
 Prerequisites:
-- Configure GitHub as an [external identity provider](/docs/configuration/idp).
+- Configure a [GitHub connection](/docs/connections/github).
+- Configure GitHub as an [external identity provider](/docs/configuration/idp#github).
 - **If you are using a self-hosted GitHub instance**, you must also set the `baseUrl` property of the `github` identity provider in the [config file](/docs/configuration/config-file) to the base URL of your GitHub instance (e.g. `https://github.example.com`).
 
 Permission syncing works with **GitHub.com**, **GitHub Enterprise Cloud**, and **GitHub Enterprise Server**. For organization-owned repositories, users that have **read-only** access (or above) via the following methods will have their access synced to Sourcebot:
@@ -61,27 +62,29 @@ Permission syncing works with **GitHub.com**, **GitHub Enterprise Cloud**, and *
 - Organization owners.
 
 **Notes:**
-- A GitHub [external identity provider](/docs/configuration/idp) must be configured to (1) correlate a Sourcebot user with a GitHub user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
+- A GitHub [external identity provider](/docs/configuration/idp#github) must be configured to (1) correlate a Sourcebot user with a GitHub user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
 - OAuth tokens must assume the `repo` scope in order to use the [List repositories for the authenticated user API](https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-the-authenticated-user) during [User driven syncing](/docs/features/permission-syncing#how-it-works). Sourcebot **will only** use this token for **reads**.
 
 ## GitLab
 
 Prerequisites:
-- Configure GitLab as an [external identity provider](/docs/configuration/idp).
+- Configure a [GitLab connection](/docs/connections/gitlab).
+- Configure GitLab as an [external identity provider](/docs/configuration/idp#gitlab).
 - **If you are using a self-hosted GitLab instance**, you must also set the `baseUrl` property of the `gitlab` identity provider in the [config file](/docs/configuration/config-file) to the base URL of your GitLab instance (e.g. `https://gitlab.example.com`).
 
 Permission syncing works with **GitLab Self-managed** and **GitLab Cloud**. Users with **Guest** role or above with membership to a group or project will have their access synced to Sourcebot. Both direct and indirect membership to a group or project will be synced with Sourcebot. For more details, see the [GitLab docs](https://docs.gitlab.com/user/project/members/#membership-types).
 
 
 **Notes:**
-- A GitLab [external identity provider](/docs/configuration/idp) must be configured to (1) correlate a Sourcebot user with a GitLab user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
+- A GitLab [external identity provider](/docs/configuration/idp#gitlab) must be configured to (1) correlate a Sourcebot user with a GitLab user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
 - OAuth tokens require the `read_api` scope in order to use the [List projects for the authenticated user API](https://docs.gitlab.com/ee/api/projects.html#list-all-projects) during [User driven syncing](/docs/features/permission-syncing#how-it-works).
 - [Internal GitLab projects](https://docs.gitlab.com/user/public_access/#internal-projects-and-groups) are **not** enforced by permission syncing and therefore are visible to all users. Only [private projects](https://docs.gitlab.com/user/public_access/#private-projects-and-groups) are enforced.
 
 ## Bitbucket Cloud
 
 Prerequisites:
-- Configure Bitbucket Cloud as an [external identity provider](/docs/configuration/idp).
+- Configure a [Bitbucket Cloud connection](/docs/connections/bitbucket-cloud).
+- Configure Bitbucket Cloud as an [external identity provider](/docs/configuration/idp#bitbucket-cloud).
 
 Permission syncing works with **Bitbucket Cloud**. OAuth tokens must assume the `account` and `repository` scopes.
 
@@ -98,8 +101,29 @@ If your workspace relies heavily on group or project-level permissions rather th
 </Warning>
 
 **Notes:**
-- A Bitbucket Cloud [external identity provider](/docs/configuration/idp) must be configured to (1) correlate a Sourcebot user with a Bitbucket Cloud user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
+- A Bitbucket Cloud [external identity provider](/docs/configuration/idp#bitbucket-cloud) must be configured to (1) correlate a Sourcebot user with a Bitbucket Cloud user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
 - OAuth tokens require the `account` and `repository` scopes. The `repository` scope is required to list private repositories during [User driven syncing](/docs/features/permission-syncing#how-it-works).
+
+## Bitbucket Data Center
+
+Prerequisites:
+- Configure a [Bitbucket Data Center connection](/docs/connections/bitbucket-data-center).
+- Configure Bitbucket Data Center as an [external identity provider](/docs/configuration/idp#bitbucket-server).
+
+Permission syncing works with **Bitbucket Data Center**. OAuth tokens must assume the `PUBLIC_REPOS` and `REPO_READ` scopes.
+
+<Warning>
+**Partial coverage for repo-driven syncing.** Bitbucket Data Center's permissions APIs only return users who have been **directly and explicitly** granted access at the repository or project level. Users who have access via group membership are **not** captured by repo-driven syncing.
+
+These users **will** still gain access via [user-driven syncing](/docs/features/permission-syncing#how-it-works), which fetches all repositories accessible to each authenticated user using the `REPO_READ` scope. However, there may be a delay between when access is granted and when affected users see the repository in Sourcebot (up to the `experiment_userDrivenPermissionSyncIntervalMs` interval, which defaults to 24 hours).
+
+If your instance relies heavily on group-level permissions, we recommend reducing the `experiment_userDrivenPermissionSyncIntervalMs` interval to limit the window of delay.
+</Warning>
+
+**Notes:**
+- A Bitbucket Data Center [external identity provider](/docs/configuration/idp#bitbucket-server) must be configured to (1) correlate a Sourcebot user with a Bitbucket Data Center user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
+- The connection token must have **Repository Admin** and **Project Admin** permissions so Sourcebot can read repository and project-level user permissions for [Repo driven syncing](/docs/features/permission-syncing#how-it-works).
+- OAuth tokens require the `REPO_READ` scope to list accessible repositories during [User driven syncing](/docs/features/permission-syncing#how-it-works).
 
 # How it works
 
