@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Added PostHog events for chat UI interactions (details card expand/collapse, copy answer, table of contents toggle) and repo tracking in `wa_chat_message_sent`. [#922](https://github.com/sourcebot-dev/sourcebot/pull/922)
+- Added PostHog events for chat UI interactions (details card expand/collapse, copy answer, table of contents toggle). [#922](https://github.com/sourcebot-dev/sourcebot/pull/922)
 - Added Bitbucket Cloud OAuth identity provider support (`provider: "bitbucket-cloud"`) for SSO and account-linked permission syncing. [#924](https://github.com/sourcebot-dev/sourcebot/pull/924)
 - Added permission syncing support for Bitbucket Cloud. [#925](https://github.com/sourcebot-dev/sourcebot/pull/925)
 - Added `wa_user_created` PostHog event fired on successful user sign-up. [#933](https://github.com/sourcebot-dev/sourcebot/pull/933)
