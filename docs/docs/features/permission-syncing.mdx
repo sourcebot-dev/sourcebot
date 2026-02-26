@@ -47,7 +47,7 @@ We are actively working on supporting more code hosts. If you'd like to see a sp
 
 # Getting started
 
-## GitHub
+### GitHub
 
 Prerequisites:
 - Configure a [GitHub connection](/docs/connections/github).
@@ -65,7 +65,7 @@ Permission syncing works with **GitHub.com**, **GitHub Enterprise Cloud**, and *
 - A GitHub [external identity provider](/docs/configuration/idp#github) must be configured to (1) correlate a Sourcebot user with a GitHub user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
 - OAuth tokens must assume the `repo` scope in order to use the [List repositories for the authenticated user API](https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-the-authenticated-user) during [User driven syncing](/docs/features/permission-syncing#how-it-works). Sourcebot **will only** use this token for **reads**.
 
-## GitLab
+### GitLab
 
 Prerequisites:
 - Configure a [GitLab connection](/docs/connections/gitlab).
@@ -80,7 +80,7 @@ Permission syncing works with **GitLab Self-managed** and **GitLab Cloud**. User
 - OAuth tokens require the `read_api` scope in order to use the [List projects for the authenticated user API](https://docs.gitlab.com/ee/api/projects.html#list-all-projects) during [User driven syncing](/docs/features/permission-syncing#how-it-works).
 - [Internal GitLab projects](https://docs.gitlab.com/user/public_access/#internal-projects-and-groups) are **not** enforced by permission syncing and therefore are visible to all users. Only [private projects](https://docs.gitlab.com/user/public_access/#private-projects-and-groups) are enforced.
 
-## Bitbucket Cloud
+### Bitbucket Cloud
 
 Prerequisites:
 - Configure a [Bitbucket Cloud connection](/docs/connections/bitbucket-cloud).
@@ -104,7 +104,7 @@ If your workspace relies heavily on group or project-level permissions rather th
 - A Bitbucket Cloud [external identity provider](/docs/configuration/idp#bitbucket-cloud) must be configured to (1) correlate a Sourcebot user with a Bitbucket Cloud user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
 - OAuth tokens require the `account` and `repository` scopes. The `repository` scope is required to list private repositories during [User driven syncing](/docs/features/permission-syncing#how-it-works).
 
-## Bitbucket Data Center
+### Bitbucket Data Center
 
 Prerequisites:
 - Configure a [Bitbucket Data Center connection](/docs/connections/bitbucket-data-center).
@@ -139,3 +139,17 @@ User driven and repo driven syncing occurs every 24 hours by default. These inte
 |-------------------------------------------------|---------|------------|---------|
 | `experiment_repoDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
 | `experiment_userDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
+
+## Manually refreshing permissions
+
+If a user's permissions have changed and they need access updated immediately (without waiting for the next scheduled sync), they can trigger a manual refresh from the **Linked Accounts** page:
+
+1. Navigate to **Settings → Linked Accounts**.
+2. Click the **Connected** button next to the relevant code host account.
+3. Select **Refresh Permissions** from the dropdown.
+
+<Frame>
+  <img src="/images/linked_accounts_refresh_permissions.png" alt="Linked Accounts - Refresh Permissions" />
+</Frame>
+
+The button will show a spinner while the sync is in progress and display a confirmation once it completes.

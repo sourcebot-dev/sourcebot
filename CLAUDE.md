@@ -182,6 +182,16 @@ export const GET = apiHandler(async (request: NextRequest) => {
 });
 ```
 
+## Docs Images
+
+Images added to `.mdx` files in `docs/` should be wrapped in a `<Frame>` component:
+
+```mdx
+<Frame>
+  <img src="/images/my_image.png" alt="Description" />
+</Frame>
+```
+
 ## Branches and Pull Requests
 
 When creating a branch or opening a PR, ask the user for:
