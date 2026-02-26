@@ -19,9 +19,9 @@ import {
     FileSourceRequest,
     FileSourceResponse,
 } from "@/features/git";
-import { PermissionSyncStatusResponse } from "../(server)/ee/permissionSyncStatus/api";
-import { AccountSyncStatusResponse } from "../(server)/ee/accountPermissionSyncJobStatus/api";
-import {
+import type { PermissionSyncStatusResponse } from "../(server)/ee/permissionSyncStatus/api";
+import type { AccountSyncStatusResponse } from "../(server)/ee/accountPermissionSyncJobStatus/api";
+import type {
     SearchChatShareableMembersQueryParams,
     SearchChatShareableMembersResponse,
 } from "../(server)/ee/chat/[chatId]/searchMembers/route";
