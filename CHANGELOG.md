@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed text inside angle brackets (e.g., `<id>`) being hidden in chat prompt display due to HTML parsing. [#929](https://github.com/sourcebot-dev/sourcebot/pull/929) [#932](https://github.com/sourcebot-dev/sourcebot/pull/932)
 - Fixed permission sync banner flashing on initial page load. [#942](https://github.com/sourcebot-dev/sourcebot/pull/942)
 - Fixed issue where the permission sync banner would sometimes not appear until the page was refreshed. [#942](https://github.com/sourcebot-dev/sourcebot/pull/942)
+- Fixed search query parser rejecting parenthesized regex alternation in filter values (e.g. `file:(test|spec)`, `-file:(test|spec)`). [#946](https://github.com/sourcebot-dev/sourcebot/pull/946)
 
 ## [4.11.7] - 2026-02-23
 
