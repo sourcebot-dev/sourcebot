@@ -10,19 +10,22 @@ import { useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { SearchModeSelector } from "../../components/searchModeSelector";
 import { NotConfiguredErrorBanner } from "@/features/chat/components/notConfiguredErrorBanner";
+import { LoginModal } from "@/app/components/loginModal";
 
 interface LandingPageChatBox {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
+    isAuthenticated: boolean;
 }
 
 export const LandingPageChatBox = ({
     languageModels,
     repos,
     searchContexts,
+    isAuthenticated,
 }: LandingPageChatBox) => {
-    const { createNewChatThread, isLoading } = useCreateNewChatThread();
+    const { createNewChatThread, isLoading, loginWall } = useCreateNewChatThread({ isAuthenticated });
     const [selectedSearchScopes, setSelectedSearchScopes] = useLocalStorage<SearchScope[]>("selectedSearchScopes", [], { initializeWithValue: false });
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
     const isChatBoxDisabled = languageModels.length === 0;
@@ -65,6 +68,13 @@ export const LandingPageChatBox = ({
             {isChatBoxDisabled && (
                 <NotConfiguredErrorBanner className="mt-4" />
             )}
+
+            <LoginModal
+                isOpen={loginWall.isOpen}
+                onOpenChange={loginWall.onOpenChange}
+                providers={loginWall.providers}
+                callbackUrl={typeof window !== 'undefined' ? window.location.href : ''}
+            />
         </div >
     )
 }

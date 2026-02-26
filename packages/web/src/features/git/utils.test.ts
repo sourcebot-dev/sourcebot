@@ -1,4 +1,14 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
+
+vi.mock('@sourcebot/shared', () => ({
+    createLogger: () => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    }),
+}));
+
 import { buildFileTree, isPathValid, normalizePath } from './utils';
 
 test('normalizePath adds a trailing slash and strips leading slashes', () => {
