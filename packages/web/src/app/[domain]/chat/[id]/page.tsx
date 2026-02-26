@@ -18,7 +18,6 @@ import { ChatVisibility } from '@sourcebot/db';
 import { Metadata } from 'next';
 import { SBChatMessage } from '@/features/chat/types';
 import { env, hasEntitlement } from '@sourcebot/shared';
-
 import { captureEvent } from '@/lib/posthog';
 
 interface PageProps {

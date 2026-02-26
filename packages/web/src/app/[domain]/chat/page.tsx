@@ -103,6 +103,7 @@ export default async function Page(props: PageProps) {
                             languageModels={languageModels}
                             repos={allRepos}
                             searchContexts={searchContexts}
+                            isAuthenticated={!!session}
                         />
                     </CustomSlateEditor>
 

@@ -981,6 +981,16 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel): P
 
 }
 
+export const getAskGhLoginWallData = async () => sew(async () => {
+    const isEnabled = env.EXPERIMENT_ASK_GH_ENABLED === 'true';
+    if (!isEnabled) {
+        return { isEnabled: false as const, providers: [] };
+    }
+
+    const { getIdentityProviderMetadata } = await import('@/lib/identityProviders');
+    return { isEnabled: true as const, providers: getIdentityProviderMetadata() };
+});
+
 const extractLanguageModelKeyValuePairs = async (
     pairs: {
         [k: string]: string | Token;
