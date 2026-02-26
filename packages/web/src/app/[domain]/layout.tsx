@@ -26,7 +26,7 @@ import { UpgradeToast } from "./components/upgradeToast";
 import { getLinkedAccountProviderStates } from "@/ee/features/permissionSyncing/actions";
 import { LinkAccounts } from "@/ee/features/permissionSyncing/components/linkAccounts";
 import { PermissionSyncBanner } from "./components/permissionSyncBanner";
-import { getPermissionSyncStatus } from "../api/(server)/ee/permissionSyncStatus/route";
+import { getPermissionSyncStatus } from "../api/(server)/ee/permissionSyncStatus/api";
 
 interface LayoutProps {
     children: React.ReactNode,
