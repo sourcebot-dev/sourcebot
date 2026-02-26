@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed search query parser rejecting parenthesized regex alternation in filter values (e.g. `file:(test|spec)`, `-file:(test|spec)`). [#946](https://github.com/sourcebot-dev/sourcebot/pull/946)
+- Fixed `content:` filter ignoring the regex toggle. [#947](https://github.com/sourcebot-dev/sourcebot/pull/947)
 
 ## [4.12.0] - 2026-02-26
 
