@@ -8,12 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added Bitbucket Cloud SSO & Permission syncing support. [#924](https://github.com/sourcebot-dev/sourcebot/pull/924) [#925](https://github.com/sourcebot-dev/sourcebot/pull/925)
+- Added Bitbucket Data Center SSO & Permission syncing support. [#934](https://github.com/sourcebot-dev/sourcebot/pull/934) [#938](https://github.com/sourcebot-dev/sourcebot/pull/938)
 - Added PostHog events for chat UI interactions (details card expand/collapse, copy answer, table of contents toggle). [#922](https://github.com/sourcebot-dev/sourcebot/pull/922)
-- Added Bitbucket Cloud OAuth identity provider support (`provider: "bitbucket-cloud"`) for SSO and account-linked permission syncing. [#924](https://github.com/sourcebot-dev/sourcebot/pull/924)
-- Added permission syncing support for Bitbucket Cloud. [#925](https://github.com/sourcebot-dev/sourcebot/pull/925)
 - Added `wa_user_created` PostHog event fired on successful user sign-up. [#933](https://github.com/sourcebot-dev/sourcebot/pull/933)
 - Added `wa_askgh_login_wall_prompted` PostHog event fired when an unauthenticated user attempts to ask a question on Ask GitHub. [#933](https://github.com/sourcebot-dev/sourcebot/pull/933)
-- Added Bitbucket Server (Data Center) OAuth 2.0 SSO identity provider support (`provider: "bitbucket-server"`). [#934](https://github.com/sourcebot-dev/sourcebot/pull/934)
 - Added login wall when anonymous users try to send messages on duplicated chats (askgh experiment). [#939](https://github.com/sourcebot-dev/sourcebot/pull/939)
 - Added `GET /api/ee/user` endpoint that returns the authenticated owner's user info (name, email, createdAt, updatedAt). [#940](https://github.com/sourcebot-dev/sourcebot/pull/940)
 - Added `selectedReposCount` to the `wa_chat_message_sent` PostHog event to track the number of selected repositories when users ask questions. [#941](https://github.com/sourcebot-dev/sourcebot/pull/941)
