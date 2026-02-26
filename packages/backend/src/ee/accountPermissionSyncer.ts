@@ -1,9 +1,8 @@
 import * as Sentry from "@sentry/node";
 import { PrismaClient, AccountPermissionSyncJobStatus, Account, PermissionSyncSource} from "@sourcebot/db";
-import { env, hasEntitlement, createLogger, loadConfig, decryptOAuthToken } from "@sourcebot/shared";
+import { env, hasEntitlement, createLogger, loadConfig, decryptOAuthToken, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
-import { PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "../constants.js";
 import {
     createOctokitFromToken,
     getOAuthScopesForAuthenticatedUser as getGitHubOAuthScopesForAuthenticatedUser,

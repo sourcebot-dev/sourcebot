@@ -1,5 +1,5 @@
 import { PrismaClient, RepoIndexingJobType } from '@sourcebot/db';
-import { createLogger, env, hasEntitlement } from '@sourcebot/shared';
+import { createLogger, env, hasEntitlement, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from '@sourcebot/shared';
 import express, { Request, Response } from 'express';
 import 'express-async-errors';
 import * as http from "http";
@@ -10,7 +10,7 @@ import { PromClient } from './promClient.js';
 import { RepoIndexManager } from './repoIndexManager.js';
 import { createGitHubRepoRecord } from './repoCompileUtils.js';
 import { Octokit } from '@octokit/rest';
-import { PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS, SINGLE_TENANT_ORG_ID } from './constants.js';
+import { SINGLE_TENANT_ORG_ID } from './constants.js';
 
 const logger = createLogger('api');
 const PORT = 3060;

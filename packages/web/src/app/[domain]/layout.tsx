@@ -23,10 +23,11 @@ import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { GitHubStarToast } from "./components/githubStarToast";
 import { UpgradeToast } from "./components/upgradeToast";
-import { getLinkedAccountProviderStates } from "@/ee/features/permissionSyncing/actions";
-import { LinkAccounts } from "@/ee/features/permissionSyncing/components/linkAccounts";
+import { getLinkedAccounts } from "@/ee/features/sso/actions";
 import { PermissionSyncBanner } from "./components/permissionSyncBanner";
 import { getPermissionSyncStatus } from "../api/(server)/ee/permissionSyncStatus/api";
+import { ServiceErrorException } from "@/lib/serviceError";
+import { ConnectAccountsCard } from "@/ee/features/sso/components/connectAccountsCard";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -127,36 +128,24 @@ export default async function Layout(props: LayoutProps) {
         )
     }
 
-    if (session && hasEntitlement("permission-syncing")) {
-        const linkedAccountProviderStates = await getLinkedAccountProviderStates();
-        if (isServiceError(linkedAccountProviderStates)) {
-            return (
-                <div className="min-h-screen flex flex-col items-center justify-center p-6">
-                    <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
-                    <div className="bg-red-50 border border-red-200 rounded-md p-6 max-w-md w-full text-center">
-                        <h2 className="text-lg font-semibold text-red-800 mb-2">An error occurred</h2>
-                        <p className="text-red-700 mb-1">
-                            {typeof linkedAccountProviderStates.message === 'string'
-                                ? linkedAccountProviderStates.message
-                                : "A server error occurred while checking your account status. Please try again or contact support."}
-                        </p>
-                    </div>
-                </div>
-            )
+    if (session && hasEntitlement("sso")) {
+        const linkedAccounts = await getLinkedAccounts();
+        if (isServiceError(linkedAccounts)) {
+            throw new ServiceErrorException(linkedAccounts);
         }
 
-        const hasUnlinkedProviders = linkedAccountProviderStates.some(state => state.isLinked === false);
-        if (hasUnlinkedProviders) {
+        // First, grab a list of all unlinked providers.
+        const unlinkedProviders = linkedAccounts.filter(a => !a.isLinked && a.isAccountLinkingProvider);
+        if (unlinkedProviders.length > 0) {
             const cookieStore = await cookies();
             const hasSkippedOptional = cookieStore.has(OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME);
 
-            const hasUnlinkedRequiredProviders = linkedAccountProviderStates.some(state => state.required && !state.isLinked)
-            const shouldShowLinkAccounts = hasUnlinkedRequiredProviders || !hasSkippedOptional;
-            if (shouldShowLinkAccounts) {
+            const hasRequiredUnlinkedProviders = unlinkedProviders.some(a => a.required);
+            if (hasRequiredUnlinkedProviders || !hasSkippedOptional) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-6">
                         <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
-                        <LinkAccounts linkedAccountProviderStates={linkedAccountProviderStates} callbackUrl={`/${domain}`} />
+                        <ConnectAccountsCard linkedAccounts={linkedAccounts} callbackUrl={`/${domain}`} />
                     </div>
                 )
             }

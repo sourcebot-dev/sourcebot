@@ -1,4 +1,5 @@
-import { ConfigSettings } from "./types.js";
+import { CodeHostType } from "@sourcebot/db";
+import { ConfigSettings, IdentityProviderType } from "./types.js";
 
 export const SOURCEBOT_SUPPORT_EMAIL = 'team@sourcebot.dev';
 
@@ -25,3 +26,17 @@ export const DEFAULT_CONFIG_SETTINGS: ConfigSettings = {
     maxAccountPermissionSyncJobConcurrency: 8,
     maxRepoPermissionSyncJobConcurrency: 8,
 }
+
+export const PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES: CodeHostType[] = [
+    'github',
+    'gitlab',
+    'bitbucketCloud',
+    'bitbucketServer',
+];
+
+export const PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS: IdentityProviderType[] = [
+    'github',
+    'gitlab',
+    'bitbucket-cloud',
+    'bitbucket-server',
+];

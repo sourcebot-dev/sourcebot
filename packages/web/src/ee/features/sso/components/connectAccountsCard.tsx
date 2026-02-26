@@ -2,18 +2,18 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { skipOptionalProvidersLink } from "@/ee/features/permissionSyncing/actions";
+import { skipOptionalProvidersLink } from "@/ee/features/sso/actions";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LinkedAccountProviderCard } from "./linkedAccountProviderCard";
-import { LinkedAccountProviderState } from "@/ee/features/permissionSyncing/types";
+import { LinkedAccount } from "@/ee/features/sso/actions";
 
-interface LinkAccountsProps {
-    linkedAccountProviderStates: LinkedAccountProviderState[]
+interface ConnectAccountsCardProps {
+    linkedAccounts: LinkedAccount[]
     callbackUrl?: string;
 }
 
-export const LinkAccounts = ({ linkedAccountProviderStates, callbackUrl }: LinkAccountsProps) => {
+export const ConnectAccountsCard = ({ linkedAccounts, callbackUrl }: ConnectAccountsCardProps) => {
     const router = useRouter();
     const [isSkipping, setIsSkipping] = useState(false);
 
@@ -29,7 +29,10 @@ export const LinkAccounts = ({ linkedAccountProviderStates, callbackUrl }: LinkA
         }
     };
 
-    const canSkip = !linkedAccountProviderStates.some(state => state.required && !state.isLinked);
+    // Only show account_linking providers in this flow
+    const accountLinkingProviders = linkedAccounts.filter(a => a.isAccountLinkingProvider);
+    const canSkip = !accountLinkingProviders.some(a => a.required && !a.isLinked);
+
     return (
         <Card>
             <CardHeader>
@@ -42,12 +45,12 @@ export const LinkAccounts = ({ linkedAccountProviderStates, callbackUrl }: LinkA
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="space-y-2">
-                    {linkedAccountProviderStates
+                    {accountLinkingProviders
                         .sort((a, b) => (b.required ? 1 : 0) - (a.required ? 1 : 0))
-                        .map(state => (
+                        .map(account => (
                         <LinkedAccountProviderCard
-                            key={state.id}
-                            linkedAccountProviderState={state}
+                            key={account.provider}
+                            linkedAccount={account}
                             callbackUrl={callbackUrl}
                         />
                     ))}
