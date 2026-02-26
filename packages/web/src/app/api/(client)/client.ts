@@ -19,7 +19,7 @@ import {
     FileSourceRequest,
     FileSourceResponse,
 } from "@/features/git";
-import { PermissionSyncStatusResponse } from "../(server)/ee/permissionSyncStatus/route";
+import { PermissionSyncStatusResponse } from "../(server)/ee/permissionSyncStatus/api";
 import {
     SearchChatShareableMembersQueryParams,
     SearchChatShareableMembersResponse,
