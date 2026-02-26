@@ -47,7 +47,7 @@ COPY ./packages/web/package.json ./packages/web/package.json
 COPY ./packages/backend/package.json ./packages/backend/package.json
 COPY ./packages/mcp/package.json ./packages/mcp/package.json
 
-RUN yarn install --mode=skip-build
+RUN yarn install --immutable --mode=skip-build
 
 # Step 2: Copy source files and build explicitly in topological order.
 COPY ./packages/db ./packages/db
@@ -107,7 +107,7 @@ COPY ./packages/queryLanguage/package.json ./packages/queryLanguage/package.json
 COPY ./packages/backend/package.json ./packages/backend/package.json
 COPY ./packages/mcp/package.json ./packages/mcp/package.json
 
-RUN yarn install --mode=skip-build && \
+RUN yarn install --immutable --mode=skip-build && \
     yarn workspace @sourcebot/db prisma:generate
 
 # Step 2: Copy pre-built shared libraries.
@@ -158,7 +158,7 @@ COPY ./packages/queryLanguage/package.json ./packages/queryLanguage/package.json
 COPY ./packages/web/package.json ./packages/web/package.json
 COPY ./packages/mcp/package.json ./packages/mcp/package.json
 
-RUN yarn install --mode=skip-build && \
+RUN yarn install --immutable --mode=skip-build && \
     yarn workspace @sourcebot/db prisma:generate
 
 # Step 2: Copy pre-built shared libraries and backend source.
@@ -243,8 +243,8 @@ COPY .yarn ./.yarn
 
 # Configure zoekt
 COPY vendor/zoekt/install-ctags-alpine.sh .
-RUN ./install-ctags-alpine.sh && rm install-ctags-alpine.sh
-RUN mkdir -p ${DATA_CACHE_DIR}
+RUN ./install-ctags-alpine.sh && rm install-ctags-alpine.sh && \
+    mkdir -p ${DATA_CACHE_DIR}
 COPY --from=zoekt-builder \
 /cmd/zoekt-git-index \
 /cmd/zoekt-indexserver \
@@ -276,19 +276,14 @@ COPY --chown=sourcebot:sourcebot --from=shared-libs-builder /app/packages/shared
 COPY --chown=sourcebot:sourcebot --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLanguage
 
 # Fixes git "dubious ownership" issues when the volume is mounted with different permissions to the container.
-RUN git config --global safe.directory "*"
-
-# Configure the database
-RUN mkdir -p /run/postgresql && \
+RUN git config --global safe.directory "*" && \
+    mkdir -p /run/postgresql && \
     chown -R postgres:postgres /run/postgresql && \
-    chmod 775 /run/postgresql
-
-# Make app directory accessible to both root and sourcebot user
-RUN chown -R sourcebot /app \
-	&& chgrp -R 0  /app \
-	&& chmod -R g=u /app
-# Make data directory accessible to both root and sourcebot user
-RUN chown -R sourcebot /data
+    chmod 775 /run/postgresql && \
+    chown -R sourcebot /app && \
+    chgrp -R 0 /app && \
+    chmod -R g=u /app && \
+    chown -R sourcebot /data
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY prefix-output.sh ./prefix-output.sh
