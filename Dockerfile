@@ -107,7 +107,8 @@ COPY ./packages/queryLanguage/package.json ./packages/queryLanguage/package.json
 COPY ./packages/backend/package.json ./packages/backend/package.json
 COPY ./packages/mcp/package.json ./packages/mcp/package.json
 
-RUN yarn install --mode=skip-build
+RUN yarn install --mode=skip-build && \
+    yarn workspace @sourcebot/db prisma:generate
 
 # Step 2: Copy pre-built shared libraries.
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
@@ -157,7 +158,8 @@ COPY ./packages/queryLanguage/package.json ./packages/queryLanguage/package.json
 COPY ./packages/web/package.json ./packages/web/package.json
 COPY ./packages/mcp/package.json ./packages/mcp/package.json
 
-RUN yarn install --mode=skip-build
+RUN yarn install --mode=skip-build && \
+    yarn workspace @sourcebot/db prisma:generate
 
 # Step 2: Copy pre-built shared libraries and backend source.
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
