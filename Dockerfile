@@ -33,17 +33,33 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /cmd/ ./cmd/...
 FROM node-alpine AS shared-libs-builder
 WORKDIR /app
 
+# Step 1: Copy only package manifests for dependency installation.
+# This layer is cached as long as no package.json or lock file changes.
 COPY package.json yarn.lock* .yarnrc.yml ./
 COPY .yarn ./.yarn
-COPY ./packages/db ./packages/db
-COPY ./packages/schemas ./packages/schemas
-COPY ./packages/shared ./packages/shared
-COPY ./packages/queryLanguage ./packages/queryLanguage
+COPY ./packages/db/package.json ./packages/db/package.json
+COPY ./packages/db/prisma ./packages/db/prisma
+COPY ./packages/schemas/package.json ./packages/schemas/package.json
+COPY ./packages/shared/package.json ./packages/shared/package.json
+COPY ./packages/queryLanguage/package.json ./packages/queryLanguage/package.json
+# All workspace package.json files are needed for Yarn resolution
+COPY ./packages/web/package.json ./packages/web/package.json
+COPY ./packages/backend/package.json ./packages/backend/package.json
+COPY ./packages/mcp/package.json ./packages/mcp/package.json
 
-RUN yarn workspace @sourcebot/db install
-RUN yarn workspace @sourcebot/schemas install
-RUN yarn workspace @sourcebot/shared install
-RUN yarn workspace @sourcebot/query-language install
+RUN yarn install --mode=skip-build
+
+# Step 2: Copy source files and build explicitly in topological order.
+COPY ./packages/db ./packages/db
+COPY ./schemas ./schemas
+COPY ./packages/schemas ./packages/schemas
+COPY ./packages/queryLanguage ./packages/queryLanguage
+COPY ./packages/shared ./packages/shared
+
+RUN yarn workspace @sourcebot/db build && \
+    yarn workspace @sourcebot/schemas build && \
+    yarn workspace @sourcebot/query-language build && \
+    yarn workspace @sourcebot/shared build
 # ------------------------------------
 
 # ------ Build Web ------
@@ -79,20 +95,32 @@ ENV SENTRY_SMUAT=$SENTRY_SMUAT
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
+# Step 1: Install dependencies (cached unless package.json/lock changes).
 COPY package.json yarn.lock* .yarnrc.yml ./
 COPY .yarn ./.yarn
-COPY ./packages/web ./packages/web
-COPY --from=shared-libs-builder /app/node_modules ./node_modules
+COPY ./packages/web/package.json ./packages/web/package.json
+COPY ./packages/db/package.json ./packages/db/package.json
+COPY ./packages/db/prisma ./packages/db/prisma
+COPY ./packages/schemas/package.json ./packages/schemas/package.json
+COPY ./packages/shared/package.json ./packages/shared/package.json
+COPY ./packages/queryLanguage/package.json ./packages/queryLanguage/package.json
+COPY ./packages/backend/package.json ./packages/backend/package.json
+COPY ./packages/mcp/package.json ./packages/mcp/package.json
+
+RUN yarn install --mode=skip-build
+
+# Step 2: Copy pre-built shared libraries.
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 COPY --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLanguage
 
-# Fixes arm64 timeouts
-RUN yarn workspace @sourcebot/web install
+# Step 3: Copy web source and build.
+COPY ./packages/web ./packages/web
 
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN yarn workspace @sourcebot/web build
+RUN --mount=type=cache,target=/app/packages/web/.next/cache \
+    yarn workspace @sourcebot/web build
 ENV SKIP_ENV_VALIDATION=0
 # ------------------------------
 
@@ -117,16 +145,28 @@ ENV SENTRY_RELEASE=$SENTRY_RELEASE
 
 WORKDIR /app
 
+# Step 1: Install dependencies (cached unless package.json/lock changes).
 COPY package.json yarn.lock* .yarnrc.yml ./
 COPY .yarn ./.yarn
-COPY ./schemas ./schemas
-COPY ./packages/backend ./packages/backend
-COPY --from=shared-libs-builder /app/node_modules ./node_modules
+COPY ./packages/backend/package.json ./packages/backend/package.json
+COPY ./packages/db/package.json ./packages/db/package.json
+COPY ./packages/db/prisma ./packages/db/prisma
+COPY ./packages/schemas/package.json ./packages/schemas/package.json
+COPY ./packages/shared/package.json ./packages/shared/package.json
+COPY ./packages/queryLanguage/package.json ./packages/queryLanguage/package.json
+COPY ./packages/web/package.json ./packages/web/package.json
+COPY ./packages/mcp/package.json ./packages/mcp/package.json
+
+RUN yarn install --mode=skip-build
+
+# Step 2: Copy pre-built shared libraries and backend source.
 COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 COPY --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLanguage
-RUN yarn workspace @sourcebot/backend install
+COPY ./schemas ./schemas
+COPY ./packages/backend ./packages/backend
+
 RUN yarn workspace @sourcebot/backend build
 
 # Upload source maps to Sentry if we have the necessary build-time args.

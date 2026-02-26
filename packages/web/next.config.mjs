@@ -1,5 +1,6 @@
 import { withSentryConfig } from "@sentry/nextjs";
 
+const hasSentryConfig = !!(process.env.SENTRY_ORG && process.env.SENTRY_SMUAT);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -40,16 +41,36 @@ const nextConfig = {
 
     turbopack: {},
 
-    // @see: https://github.com/vercel/next.js/issues/58019#issuecomment-1910531929
-    ...(process.env.NODE_ENV === 'development' ? {
-        experimental: {
+    experimental: {
+        optimizePackageImports: [
+            "lucide-react",
+            "@radix-ui/react-icons",
+            "react-icons",
+            "recharts",
+            "date-fns",
+            "@ai-sdk/react",
+            "@ai-sdk/openai",
+            "@ai-sdk/anthropic",
+            "@ai-sdk/google",
+            "@ai-sdk/amazon-bedrock",
+            "@ai-sdk/azure",
+            "@ai-sdk/deepseek",
+            "@ai-sdk/google-vertex",
+            "@ai-sdk/mistral",
+            "@ai-sdk/xai",
+            "@ai-sdk/openai-compatible",
+            "@codemirror/language-data",
+            "posthog-js",
+        ],
+        // @see: https://github.com/vercel/next.js/issues/58019#issuecomment-1910531929
+        ...(process.env.NODE_ENV === 'development' ? {
             serverActions: {
                 allowedOrigins: [
                     'localhost:3000'
                 ]
             }
-        }
-    } : {}),
+        } : {}),
+    },
 };
 
 export default withSentryConfig(nextConfig, {
@@ -68,11 +89,11 @@ export default withSentryConfig(nextConfig, {
     // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
 
     // Upload a larger set of source maps for prettier stack traces (increases build time)
-    widenClientFileUpload: true,
+    widenClientFileUpload: hasSentryConfig,
 
     // Automatically annotate React components to show their full name in breadcrumbs and session replay
     reactComponentAnnotation: {
-        enabled: true,
+        enabled: hasSentryConfig,
     },
 
     // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
