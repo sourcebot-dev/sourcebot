@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added support a MCP streamable http transport hosted at `/api/mcp`. [#976](https://github.com/sourcebot-dev/sourcebot/pull/976)
+- Added MCP and API key usage tracking to analytics dashboard. Move audit events from client-side to service functions to capture all API calls (web UI, MCP, and non-MCP). Display MCP requests and API requests on separate charts. [#948](https://github.com/sourcebot-dev/sourcebot/pull/948)
 
 ## [4.13.2] - 2026-03-02
 
