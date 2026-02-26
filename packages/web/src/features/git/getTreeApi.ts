@@ -1,7 +1,9 @@
 import { sew } from '@/actions';
+import { getAuditService } from '@/ee/features/audit/factory';
 import { notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { getRepoPath } from '@sourcebot/shared';
+import { headers } from 'next/headers';
 import simpleGit from 'simple-git';
 import z from 'zod';
 import { fileTreeNodeSchema } from './types';
@@ -25,7 +27,18 @@ export type GetTreeResponse = z.infer<typeof getTreeResponseSchema>;
  * into a single tree.
  */
 export const getTree = async ({ repoName, revisionName, paths }: GetTreeRequest): Promise<GetTreeResponse | ServiceError> => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma }) => {
+    withOptionalAuthV2(async ({ org, prisma, user }) => {
+        if (user) {
+            const source = (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
+            getAuditService().createAudit({
+                action: 'user.fetched_file_tree',
+                actor: { id: user.id, type: 'user' },
+                target: { id: org.id.toString(), type: 'org' },
+                orgId: org.id,
+                metadata: { source },
+            }).catch(() => {});
+        }
+
         const repo = await prisma.repo.findFirst({
             where: {
                 name: repoName,

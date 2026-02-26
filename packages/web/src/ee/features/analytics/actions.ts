@@ -27,21 +27,25 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
           date_trunc('week',  "timestamp") AS week,
           date_trunc('month', "timestamp") AS month,
           action,
-          "actorId"
+          "actorId",
+          metadata
         FROM "Audit"
         WHERE "orgId" = ${org.id}
           AND action IN (
             'user.performed_code_search',
             'user.performed_find_references',
             'user.performed_goto_definition',
-            'user.created_ask_chat'
+            'user.created_ask_chat',
+            'user.listed_repos',
+            'user.fetched_file_source',
+            'user.fetched_file_tree'
           )
       ),
-    
+
       periods AS (
         SELECT unnest(array['day', 'week', 'month']) AS period
       ),
-    
+
       buckets AS (
         SELECT
           generate_series(
@@ -67,7 +71,7 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
           ),
           'month'
       ),
-    
+
       aggregated AS (
         SELECT
           b.period,
@@ -79,6 +83,8 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
           COUNT(*) FILTER (WHERE c.action = 'user.performed_code_search') AS code_searches,
           COUNT(*) FILTER (WHERE c.action IN ('user.performed_find_references', 'user.performed_goto_definition')) AS navigations,
           COUNT(*) FILTER (WHERE c.action = 'user.created_ask_chat') AS ask_chats,
+          COUNT(*) FILTER (WHERE c.metadata->>'source' = 'mcp') AS mcp_requests,
+          COUNT(*) FILTER (WHERE c.metadata->>'source' IS NOT NULL AND c.metadata->>'source' != 'mcp') AS api_requests,
           COUNT(DISTINCT c."actorId") AS active_users
         FROM core c
         JOIN LATERAL (
@@ -86,13 +92,15 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
         ) b ON true
         GROUP BY b.period, bucket
       )
-    
+
       SELECT
         b.period,
         b.bucket,
         COALESCE(a.code_searches, 0)::int AS code_searches,
         COALESCE(a.navigations, 0)::int AS navigations,
         COALESCE(a.ask_chats, 0)::int AS ask_chats,
+        COALESCE(a.mcp_requests, 0)::int AS mcp_requests,
+        COALESCE(a.api_requests, 0)::int AS api_requests,
         COALESCE(a.active_users, 0)::int AS active_users
       FROM buckets b
       LEFT JOIN aggregated a
