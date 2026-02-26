@@ -26,6 +26,7 @@ import { UpgradeToast } from "./components/upgradeToast";
 import { getLinkedAccountProviderStates } from "@/ee/features/permissionSyncing/actions";
 import { LinkAccounts } from "@/ee/features/permissionSyncing/components/linkAccounts";
 import { PermissionSyncBanner } from "./components/permissionSyncBanner";
+import { getPermissionSyncStatus } from "../api/(server)/ee/permissionSyncStatus/route";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -190,12 +191,18 @@ export default async function Layout(props: LayoutProps) {
         )
     }
     const isPermissionSyncBannerVisible = session && hasEntitlement("permission-syncing");
+    const hasPendingFirstSync = isPermissionSyncBannerVisible ? (await getPermissionSyncStatus()) : null;
 
     return (
         <SyntaxGuideProvider>
             {
                 isPermissionSyncBannerVisible ? (
-                    <PermissionSyncBanner />
+                    <PermissionSyncBanner
+                        initialHasPendingFirstSync={(isServiceError(hasPendingFirstSync) || hasPendingFirstSync === null) ?
+                            false :
+                            hasPendingFirstSync.hasPendingFirstSync
+                        }
+                    />
                 ) : null
             }
             {children}
