@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added login wall when anonymous users try to send messages on duplicated chats (askgh experiment). [#939](https://github.com/sourcebot-dev/sourcebot/pull/939)
 - Added `GET /api/ee/user` endpoint that returns the authenticated owner's user info (name, email, createdAt, updatedAt). [#940](https://github.com/sourcebot-dev/sourcebot/pull/940)
 - Added `selectedReposCount` to the `wa_chat_message_sent` PostHog event to track the number of selected repositories when users ask questions. [#941](https://github.com/sourcebot-dev/sourcebot/pull/941)
+- Added ability to re-sync repo permissions from the "linked accounts" settings page. [#945](https://github.com/sourcebot-dev/sourcebot/pull/945)
 
 ### Changed
 - Hide version upgrade toast for askgithub deployment (`EXPERIMENT_ASK_GH_ENABLED`). [#931](https://github.com/sourcebot-dev/sourcebot/pull/931)

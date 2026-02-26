@@ -143,7 +143,7 @@ export const env = createEnv({
         // Enterprise Auth
         AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING:
             booleanSchema
-            .default('false')
+            .default('true')
             .describe('When enabled, different SSO accounts with the same email address will automatically be linked.'),
 
         AUTH_EE_GCP_IAP_ENABLED: booleanSchema.default('false'),

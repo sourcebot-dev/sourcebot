@@ -1,9 +1,8 @@
 import * as Sentry from "@sentry/node";
 import { PrismaClient, AccountPermissionSyncJobStatus, Account, PermissionSyncSource} from "@sourcebot/db";
-import { env, hasEntitlement, createLogger, loadConfig, decryptOAuthToken } from "@sourcebot/shared";
+import { env, hasEntitlement, createLogger, loadConfig, decryptOAuthToken, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
-import { PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "../constants.js";
 import {
     createOctokitFromToken,
     getOAuthScopesForAuthenticatedUser as getGitHubOAuthScopesForAuthenticatedUser,
@@ -114,6 +113,22 @@ export class AccountPermissionSyncer {
         }
         await this.worker.close(/* force = */ true);
         await this.queue.close();
+    }
+
+    public async schedulePermissionSyncForAccount(account: Account) {
+        const [job] = await this.db.accountPermissionSyncJob.createManyAndReturn({
+            data: [{ accountId: account.id }],
+        });
+
+        await this.queue.add('accountPermissionSyncJob', {
+            jobId: job.id,
+        }, {
+            removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+            removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+            priority: 1,
+        });
+
+        return job.id;
     }
 
     private async schedulePermissionSync(accounts: Account[]) {

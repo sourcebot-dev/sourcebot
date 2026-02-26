@@ -17,7 +17,7 @@ import { hasEntitlement } from '@sourcebot/shared';
 import { onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
-import { refreshLinkedAccountTokens, LinkedAccountErrors } from '@/ee/features/permissionSyncing/tokenRefresh';
+import { refreshLinkedAccountTokens, LinkedAccountErrors } from '@/ee/features/sso/tokenRefresh';
 import { EncryptedPrismaAdapter, encryptAccountData } from '@/lib/encryptedPrismaAdapter';
 
 const auditService = getAuditService();
@@ -220,7 +220,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
 
             // Refresh expiring tokens and capture any errors.
-            if (hasEntitlement('permission-syncing') && token.userId) {
+            if (hasEntitlement('sso') && token.userId) {
                 const errors = await refreshLinkedAccountTokens(token.userId);
                 token.linkedAccountErrors = Object.keys(errors).length > 0 ? errors : undefined;
             }
