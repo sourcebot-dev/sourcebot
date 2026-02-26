@@ -3,7 +3,7 @@ import { LoginForm } from "../login/components/loginForm";
 import { redirect } from "next/navigation";
 import { Footer } from "@/app/components/footer";
 import { getIdentityProviderMetadata } from "@/lib/identityProviders";
-import { createLogger } from "@sourcebot/shared";
+import { createLogger, env } from "@sourcebot/shared";
 import { getOrgFromDomain } from "@/data/org";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { getAnonymousAccessStatus } from "@/actions";
@@ -44,6 +44,7 @@ export default async function Signup(props: LoginProps) {
                     providers={providers}
                     context="signup"
                     isAnonymousAccessEnabled={isAnonymousAccessEnabled}
+                    hideSecurityNotice={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
                 />
             </div>
             <Footer />

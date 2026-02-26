@@ -7,6 +7,7 @@ import { getOrgFromDomain } from "@/data/org";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { getAnonymousAccessStatus } from "@/actions";
 import { isServiceError } from "@/lib/utils";
+import { env } from "@sourcebot/shared";
 
 interface LoginProps {
     searchParams: Promise<{
@@ -40,6 +41,7 @@ export default async function Login(props: LoginProps) {
                     providers={providers}
                     context="login"
                     isAnonymousAccessEnabled={isAnonymousAccessEnabled}
+                    hideSecurityNotice={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
                 />
             </div>
             <Footer />
