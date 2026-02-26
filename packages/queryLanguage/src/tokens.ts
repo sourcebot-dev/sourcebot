@@ -313,14 +313,44 @@ export const wordToken = new ExternalTokenizer((input, stack) => {
         return;
     }
     
-    // If starts with '(' and has balanced parens, don't consume as word
-    // (let parenToken handle it)
+    // If starts with '(' and has balanced parens, determine whether this is a
+    // regex alternation value (e.g. file:(test|spec)) or a ParenExpr grouping.
+    // We're in a value context when the immediately preceding non-whitespace char
+    // is ':', meaning we're right after a prefix keyword. In that case consume the
+    // entire '(...)' as a word using depth-tracking so the consuming loop doesn't
+    // stop early at ')'. Otherwise defer to parenToken for grouping.
+    let inValueParenContext = false;
     if (input.next === OPEN_PAREN && hasBalancedParensAt(input, 0)) {
-        return;
+        let backOffset = -1;
+        while (isWhitespace(input.peek(backOffset))) {
+            backOffset--;
+        }
+        if (input.peek(backOffset) === COLON) {
+            inValueParenContext = true;
+        } else {
+            return; // Not a value context — defer to parenToken for grouping
+        }
     }
-    
+
     const startPos = input.pos;
 
+    if (inValueParenContext) {
+        // Consume the parenthesized pattern with depth tracking so we consume
+        // the matching ')' without stopping early. A ')' at depth 0 means we've
+        // hit an outer ParenExpr closing paren — stop without consuming it.
+        let depth = 0;
+        while (input.next !== EOF) {
+            const ch = input.next;
+            if (isWhitespace(ch)) break;
+            if (ch === OPEN_PAREN) {
+                depth++;
+            } else if (ch === CLOSE_PAREN) {
+                if (depth === 0) break; // outer ParenExpr closing — don't consume
+                depth--;
+            }
+            input.advance();
+        }
+    } else {
     // Consume characters
     while (input.next !== EOF) {
         const ch = input.next;
@@ -339,7 +369,8 @@ export const wordToken = new ExternalTokenizer((input, stack) => {
 
         input.advance();
     }
-    
+    }
+
     if (input.pos > startPos) {
         input.acceptToken(word);
     }
