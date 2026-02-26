@@ -156,7 +156,7 @@ const createGitHubProvider = (clientId: string, clientSecret: string, baseUrl?: 
                 ].join(' '),
             },
         },
-        allowDangerousEmailAccountLinking: true,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
@@ -187,7 +187,7 @@ const createGitLabProvider = (clientId: string, clientSecret: string, baseUrl?: 
         userinfo: {
             url: `${url}/api/v4/user`,
         },
-        allowDangerousEmailAccountLinking: true,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
@@ -196,7 +196,7 @@ const createGoogleProvider = (clientId: string, clientSecret: string): Provider 
         id: 'google' satisfies IdentityProviderType,
         clientId: clientId,
         clientSecret: clientSecret,
-        allowDangerousEmailAccountLinking: true,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
@@ -206,7 +206,7 @@ const createOktaProvider = (clientId: string, clientSecret: string, issuer: stri
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
-        allowDangerousEmailAccountLinking: true,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
@@ -216,7 +216,7 @@ const createKeycloakProvider = (clientId: string, clientSecret: string, issuer: 
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
-        allowDangerousEmailAccountLinking: true,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
@@ -226,7 +226,7 @@ const createMicrosoftEntraIDProvider = (clientId: string, clientSecret: string, 
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
-        allowDangerousEmailAccountLinking: true,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
@@ -249,7 +249,7 @@ const createBitbucketCloudProvider = (clientId: string, clientSecret: string): P
                 ].join(' '),
             },
         },
-        allowDangerousEmailAccountLinking: true,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
@@ -317,7 +317,7 @@ const createBitbucketServerProvider = (clientId: string, clientSecret: string, b
                 image: null,
             };
         },
-        allowDangerousEmailAccountLinking: true,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     } as Provider;
 }
 
@@ -327,7 +327,7 @@ export const createAuthentikProvider = (clientId: string, clientSecret: string, 
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
-        allowDangerousEmailAccountLinking: true,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
