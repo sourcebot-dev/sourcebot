@@ -1,5 +1,5 @@
 import { apiHandler } from "@/lib/apiHandler";
-import { ServiceError, serviceErrorResponse } from "@/lib/serviceError";
+import { serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { StatusCodes } from "http-status-codes";
 import { getPermissionSyncStatus } from "./api";

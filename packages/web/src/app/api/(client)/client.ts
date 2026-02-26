@@ -20,6 +20,7 @@ import {
     FileSourceResponse,
 } from "@/features/git";
 import { PermissionSyncStatusResponse } from "../(server)/ee/permissionSyncStatus/api";
+import { AccountSyncStatusResponse } from "../(server)/ee/accountPermissionSyncJobStatus/api";
 import {
     SearchChatShareableMembersQueryParams,
     SearchChatShareableMembersResponse,
@@ -138,6 +139,15 @@ export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusRes
         },
     }).then(response => response.json());
     return result as PermissionSyncStatusResponse | ServiceError;
+}
+
+export const getAccountSyncStatus = async (jobId: string): Promise<AccountSyncStatusResponse | ServiceError> => {
+    const url = new URL("/api/ee/accountPermissionSyncJobStatus", window.location.origin);
+    url.searchParams.set("jobId", jobId);
+    const result = await fetch(url, {
+        headers: { "X-Sourcebot-Client-Source": "sourcebot-web-client" },
+    }).then(r => r.json());
+    return result as AccountSyncStatusResponse | ServiceError;
 }
 
 export const searchChatShareableMembers = async (
