@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.12.0] - 2026-02-26
+
 ### Added
 - Added Bitbucket Cloud SSO & Permission syncing support. [#924](https://github.com/sourcebot-dev/sourcebot/pull/924) [#925](https://github.com/sourcebot-dev/sourcebot/pull/925)
 - Added Bitbucket Data Center SSO & Permission syncing support. [#934](https://github.com/sourcebot-dev/sourcebot/pull/934) [#938](https://github.com/sourcebot-dev/sourcebot/pull/938)
