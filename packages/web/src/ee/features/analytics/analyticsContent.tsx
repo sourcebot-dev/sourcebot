@@ -2,7 +2,7 @@
 
 import { ChartTooltip } from "@/components/ui/chart"
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
-import { Users, LucideIcon, Search, ArrowRight, Activity, Calendar, MessageCircle } from "lucide-react"
+import { Users, LucideIcon, Search, ArrowRight, Activity, Calendar, MessageCircle, Wrench, Key } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer } from "@/components/ui/chart"
 import { useQuery } from "@tanstack/react-query"
@@ -28,7 +28,7 @@ interface AnalyticsChartProps {
     title: string
     icon: LucideIcon
     period: "day" | "week" | "month"
-    dataKey: "code_searches" | "navigations" | "ask_chats" | "active_users"
+    dataKey: "code_searches" | "navigations" | "ask_chats" | "mcp_requests" | "api_requests" | "active_users"
     color: string
     gradientId: string
 }
@@ -175,7 +175,7 @@ function LoadingSkeleton() {
             </div>
 
             {/* Chart skeletons */}
-            {[1, 2, 3, 4].map((chartIndex) => (
+            {[1, 2, 3, 4, 5, 6].map((chartIndex) => (
                 <Card key={chartIndex} className="bg-card border-border shadow-lg">
                     <CardHeader className="pb-4">
                         <div className="flex items-center space-x-3">
@@ -217,7 +217,7 @@ export function AnalyticsContent() {
             dark: "#60a5fa",
         },
         searches: {
-            light: "#f59e0b", 
+            light: "#f59e0b",
             dark: "#fbbf24",
         },
         navigations: {
@@ -227,6 +227,14 @@ export function AnalyticsContent() {
         askChats: {
             light: "#8b5cf6",
             dark: "#a78bfa",
+        },
+        mcpRequests: {
+            light: "#10b981",
+            dark: "#34d399",
+        },
+        apiRequests: {
+            light: "#14b8a6",
+            dark: "#2dd4bf",
         },
     }), [])
 
@@ -288,6 +296,20 @@ export function AnalyticsContent() {
             color: getColor("askChats"),
             dataKey: "ask_chats" as const,
             gradientId: "askChats",
+        },
+        {
+            title: `${periodLabels[selectedPeriod]} MCP Requests`,
+            icon: Wrench,
+            color: getColor("mcpRequests"),
+            dataKey: "mcp_requests" as const,
+            gradientId: "mcpRequests",
+        },
+        {
+            title: `${periodLabels[selectedPeriod]} API Requests`,
+            icon: Key,
+            color: getColor("apiRequests"),
+            dataKey: "api_requests" as const,
+            gradientId: "apiRequests",
         },
     ]
 

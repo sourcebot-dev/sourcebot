@@ -1,11 +1,24 @@
 import { sew } from "@/actions";
+import { getAuditService } from "@/ee/features/audit/factory";
 import { ListReposQueryParams, RepositoryQuery } from "@/lib/types";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { env } from "@sourcebot/shared";
+import { headers } from "next/headers";
 
 export const listRepos = async ({ query, page, perPage, sort, direction }: ListReposQueryParams) => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma }) => {
+    withOptionalAuthV2(async ({ org, prisma, user }) => {
+        if (user) {
+            const source = (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
+            getAuditService().createAudit({
+                action: 'user.listed_repos',
+                actor: { id: user.id, type: 'user' },
+                target: { id: org.id.toString(), type: 'org' },
+                orgId: org.id,
+                metadata: { source },
+            }).catch(() => {});
+        }
+
         const skip = (page - 1) * perPage;
         const orderByField = sort === 'pushed' ? 'pushedAt' : 'name';
         const baseUrl = env.AUTH_URL;

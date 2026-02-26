@@ -1,11 +1,13 @@
 import { sew } from '@/actions';
 import { getBrowsePath } from '@/app/[domain]/browse/hooks/utils';
+import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
 import { detectLanguageFromFilename } from '@/lib/languageDetection';
 import { ServiceError, notFound, fileNotFound, invalidGitRef, unexpectedError } from '@/lib/serviceError';
 import { getCodeHostBrowseFileAtBranchUrl } from '@/lib/utils';
 import { withOptionalAuthV2 } from '@/withAuthV2';
 import { getRepoPath } from '@sourcebot/shared';
+import { headers } from 'next/headers';
 import simpleGit from 'simple-git';
 import z from 'zod';
 import { isGitRefValid, isPathValid } from './utils';
@@ -31,7 +33,18 @@ export const fileSourceResponseSchema = z.object({
 });
 export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
 
-export const getFileSource = async ({ path: filePath, repo: repoName, ref }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => sew(() => withOptionalAuthV2(async ({ org, prisma }) => {
+export const getFileSource = async ({ path: filePath, repo: repoName, ref }: FileSourceRequest): Promise<FileSourceResponse | ServiceError> => sew(() => withOptionalAuthV2(async ({ org, prisma, user }) => {
+    if (user) {
+        const source = (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
+        getAuditService().createAudit({
+            action: 'user.fetched_file_source',
+            actor: { id: user.id, type: 'user' },
+            target: { id: org.id.toString(), type: 'org' },
+            orgId: org.id,
+            metadata: { source },
+        }).catch(() => {});
+    }
+
     const repo = await prisma.repo.findFirst({
         where: { name: repoName, orgId: org.id },
     });

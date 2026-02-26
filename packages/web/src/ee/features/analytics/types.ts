@@ -6,6 +6,8 @@ export const analyticsResponseSchema = z.array(z.object({
   code_searches: z.number(),
   navigations: z.number(),
   ask_chats: z.number(),
+  mcp_requests: z.number(),
+  api_requests: z.number(),
   active_users: z.number(),
 }))
 export type AnalyticsResponse = z.infer<typeof analyticsResponseSchema>;
