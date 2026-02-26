@@ -48,7 +48,7 @@ export const ListCommitsToolComponent = ({ part }: { part: ListCommitsToolUIPart
                                     <div className="text-sm text-muted-foreground mb-2">
                                         Found {part.output.commits.length} of {part.output.totalCount} total commits:
                                     </div>
-                                    {part.output.commits.map((commit, index) => (
+                                    {part.output.commits.map((commit) => (
                                         <div key={commit.hash} className="mb-3 last:mb-0">
                                             <div className="flex items-start gap-2 text-sm">
                                                 <GitCommitVerticalIcon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />

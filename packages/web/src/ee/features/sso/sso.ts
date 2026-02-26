@@ -93,7 +93,7 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
             const baseUrl = providerConfig.baseUrl;
-            providers.push({ provider: createBitbucketServerProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose });
+            providers.push({ provider: createBitbucketServerProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose, required: providerConfig.accountLinkingRequired ?? false });
         }
     }
 
@@ -266,7 +266,10 @@ const createBitbucketServerProvider = (clientId: string, clientSecret: string, b
                 response_type: "code",
                 // @see: https://confluence.atlassian.com/bitbucketserver/bitbucket-oauth-2-0-provider-api-1108483661.html
                 scope: [
-                    "PUBLIC_REPOS"
+                    "PUBLIC_REPOS",
+                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')
+                        ? ['REPO_READ']
+                        : []),
                 ].join(' ')
             },
         },

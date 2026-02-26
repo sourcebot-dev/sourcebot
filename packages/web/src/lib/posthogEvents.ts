@@ -157,6 +157,7 @@ export type PosthogEventMap = {
     wa_chat_message_sent: {
         chatId: string,
         messageCount: number,
+        selectedReposCount: number,
         /**
          * @note this field will only be populated when
          * the EXPERIMENT_ASK_GH_ENABLED environment variable

@@ -31,7 +31,7 @@ export const GET = apiHandler(async () => {
         const accounts = await prisma.account.findMany({
             where: {
                 userId: user.id,
-                provider: { in: ['github', 'gitlab', 'bitbucket-cloud'] }
+                provider: { in: ['github', 'gitlab', 'bitbucket-cloud', 'bitbucket-server'] }
             },
             include: {
                 permissionSyncJobs: {

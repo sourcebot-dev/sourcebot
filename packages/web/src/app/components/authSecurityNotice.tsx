@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
-import { env } from "@sourcebot/shared/client";
 
 interface AuthSecurityNoticeProps {
     closable?: boolean;
