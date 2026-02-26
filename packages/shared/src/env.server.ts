@@ -140,11 +140,6 @@ export const env = createEnv({
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
         AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.default('false'),
 
-        // Enterprise Auth
-        AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING:
-            booleanSchema
-            .default('false')
-            .describe('When enabled, different SSO accounts with the same email address will automatically be linked.'),
 
         AUTH_EE_GCP_IAP_ENABLED: booleanSchema.default('false'),
         AUTH_EE_GCP_IAP_AUDIENCE: z.string().optional(),
@@ -288,6 +283,15 @@ export const env = createEnv({
         SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED: booleanSchema.default('false'),
 
         //// DEPRECATED ////
+
+
+        /**
+         * @deprecated This setting is deprecated. Email account linking is now always enabled.
+         */
+        AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING:
+            booleanSchema
+            .default('false')
+            .describe('This setting is deprecated. Email account linking is now always enabled.'),
 
         /**
          * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
