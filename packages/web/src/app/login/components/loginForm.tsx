@@ -14,9 +14,10 @@ interface LoginFormProps {
     providers: IdentityProviderMetadata[];
     context: "login" | "signup";
     isAnonymousAccessEnabled?: boolean;
+    hideSecurityNotice?: boolean;
 }
 
-export const LoginForm = ({ callbackUrl, error, providers, context, isAnonymousAccessEnabled = false }: LoginFormProps) => {
+export const LoginForm = ({ callbackUrl, error, providers, context, isAnonymousAccessEnabled = false, hideSecurityNotice = false }: LoginFormProps) => {
     const captureEvent = useCaptureEvent();
 
     const safeCallbackUrl = useMemo(() => {
@@ -89,6 +90,7 @@ export const LoginForm = ({ callbackUrl, error, providers, context, isAnonymousA
                     context={context}
                     onProviderClick={handleProviderClick}
                     securityNoticeClosable={true}
+                    hideSecurityNotice={hideSecurityNotice}
                 />
                 <p className="text-sm text-muted-foreground mt-8">
                     {context === "login" ?
