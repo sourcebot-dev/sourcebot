@@ -11,7 +11,11 @@ import { usePrevious } from "@uidotdev/usehooks";
 
 const POLL_INTERVAL_MS = 5000;
 
-export function PermissionSyncBanner() {
+interface PermissionSyncBannerProps {
+    initialHasPendingFirstSync: boolean;
+}
+
+export function PermissionSyncBanner({ initialHasPendingFirstSync }: PermissionSyncBannerProps) {
     const router = useRouter();
 
     const { data: hasPendingFirstSync, isError, isPending } = useQuery({
@@ -25,6 +29,9 @@ export function PermissionSyncBanner() {
             // Keep polling while sync is in progress, stop when done
             return hasPendingFirstSync ? POLL_INTERVAL_MS : false;
         },
+        initialData: {
+            hasPendingFirstSync: initialHasPendingFirstSync,
+        }
     });
 
     const previousHasPendingFirstSync = usePrevious(hasPendingFirstSync);
