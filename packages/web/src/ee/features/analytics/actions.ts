@@ -4,8 +4,8 @@ import { sew, withAuth, withOrgMembership } from "@/actions";
 import { OrgRole } from "@sourcebot/db";
 import { prisma } from "@/prisma";
 import { ServiceError } from "@/lib/serviceError";
-import { AnalyticsResponse } from "./types";
-import { hasEntitlement } from "@sourcebot/shared";
+import { AnalyticsResponse, AnalyticsRow } from "./types";
+import { env, hasEntitlement } from "@sourcebot/shared";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 
@@ -20,7 +20,7 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
         } satisfies ServiceError;
       }
 
-      const rows = await prisma.$queryRaw<AnalyticsResponse>`
+      const rows = await prisma.$queryRaw<AnalyticsRow[]>`
       WITH core AS (
         SELECT
           date_trunc('day',   "timestamp") AS day,
@@ -109,6 +109,16 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
     `;
     
 
-      return rows;
+      const oldestRecord = await prisma.audit.findFirst({
+        where: { orgId: org.id },
+        orderBy: { timestamp: 'asc' },
+        select: { timestamp: true },
+      });
+
+      return {
+        rows,
+        retentionDays: env.SOURCEBOT_EE_AUDIT_RETENTION_DAYS,
+        oldestRecordDate: oldestRecord?.timestamp ?? null,
+      };
     }, /* minRequiredRole = */ OrgRole.MEMBER), /* allowAnonymousAccess = */ true, apiKey ? { apiKey, domain } : undefined)
 ); 

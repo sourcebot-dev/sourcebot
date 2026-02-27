@@ -42,6 +42,7 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `HTTPS_PROXY` | - | <p>HTTPS proxy URL for routing SSL requests through a proxy server (e.g., `http://proxy.company.com:8080`). Requires `NODE_USE_ENV_PROXY=1`.</p> |
 | `NO_PROXY` | - | <p>Comma-separated list of hostnames or domains that should bypass the proxy (e.g., `localhost,127.0.0.1,.internal.domain`). Requires `NODE_USE_ENV_PROXY=1`.</p> |
 | `SOURCEBOT_EE_AUDIT_LOGGING_ENABLED` | `true` | <p>Enables/disables audit logging</p> |
+| `SOURCEBOT_EE_AUDIT_RETENTION_DAYS` | `180` | <p>The number of days to retain audit logs. Audit log records older than this will be automatically pruned daily. Set to `0` to disable pruning and retain logs indefinitely.</p> |
 | `AUTH_EE_GCP_IAP_ENABLED` | `false` | <p>When enabled, allows Sourcebot to automatically register/login from a successful GCP IAP redirect</p> |
 | `AUTH_EE_GCP_IAP_AUDIENCE` | - | <p>The GCP IAP audience to use when verifying JWT tokens. Must be set to enable GCP IAP JIT provisioning</p> | 
 | `EXPERIMENT_EE_PERMISSION_SYNC_ENABLED` | `false` | <p>Enables [permission syncing](/docs/features/permission-syncing).</p> |
