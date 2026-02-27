@@ -4,7 +4,7 @@ export const newsData: NewsItem[] = [
     {
         unique_id: "ai-search-assist",
         header: "AI Search Assist",
-        sub_header: "Describe what you're looking for in plain English and AI will generate a search query for you.",
+        sub_header: "Describe what you're looking for in natural language and AI will generate a code search query for you.",
         url: "https://docs.sourcebot.dev/docs/features/search/ai-search-assist"
     },
     {
