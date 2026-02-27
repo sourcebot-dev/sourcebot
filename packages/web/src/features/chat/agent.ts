@@ -171,7 +171,7 @@ const createAgentStream = async ({
                 path: source.path,
                 repo: source.repo,
                 ref: source.revision,
-            });
+            }, { sourceOverride: 'sourcebot-ask-agent' });
 
             if (isServiceError(fileSource)) {
                 logger.error("Error fetching file source:", fileSource);
