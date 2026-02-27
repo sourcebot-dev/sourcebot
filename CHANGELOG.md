@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped `rollup` transitive dependency to `^4.59.0` via yarn resolutions. [#956](https://github.com/sourcebot-dev/sourcebot/pull/956)
 - Bumped `minimatch` transitive dependency to `^3.1.3` via yarn resolutions. [#957](https://github.com/sourcebot-dev/sourcebot/pull/957)
 - Bumped `next` to `15.5.10`. [#960](https://github.com/sourcebot-dev/sourcebot/pull/960)
+- Bumped `nodemailer` to `7.0.11`. [#959](https://github.com/sourcebot-dev/sourcebot/pull/959)
 
 ## [4.13.0] - 2026-02-27
 
