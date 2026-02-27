@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Bumped `qs` transitive dependency to `^6.14.2` via yarn resolutions. [#954](https://github.com/sourcebot-dev/sourcebot/pull/954)
+
 ## [4.13.0] - 2026-02-27
 
 ### Added
