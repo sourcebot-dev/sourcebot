@@ -235,6 +235,13 @@ export type PosthogEventMap = {
     wa_askgh_login_wall_prompted: {},
     //////////////////////////////////////////////////////////////////
     wa_demo_docs_link_pressed: {},
+    wa_search_assist_opened: {},
+    wa_search_assist_query_generated: {},
+    wa_search_assist_generate_failed: {},
+    wa_search_assist_example_clicked: {
+        example: string,
+    },
+    //////////////////////////////////////////////////////////////////
     wa_demo_search_example_card_pressed: {
         exampleTitle: string,
         exampleUrl: string,
