@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Bumped `qs` transitive dependency to `^6.14.2` via yarn resolutions. [#954](https://github.com/sourcebot-dev/sourcebot/pull/954)
+- Bumped `@aws-sdk/credential-providers` to `^3.1000.0`. [#955](https://github.com/sourcebot-dev/sourcebot/pull/955)
 
 ## [4.13.0] - 2026-02-27
 
