@@ -15,9 +15,9 @@ import Link from "next/link";
 const SEARCH_ASSIST_DOCS_URL = "https://docs.sourcebot.dev/docs/features/search/ai-search-assist";
 
 const EXAMPLES = [
-    "Find next versions less than 15",
-    "Find log4j versions 2.3.x or lower",
-    "Find all todo comments",
+    "Find console.log statements",
+    "Find todo comments",
+    "Find hardcoded API keys or secrets",
 ];
 
 interface SearchAssistBoxProps {
