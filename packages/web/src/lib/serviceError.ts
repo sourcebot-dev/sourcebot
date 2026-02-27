@@ -144,6 +144,14 @@ export const secretAlreadyExists = (): ServiceError => {
     }
 }
 
+export const invalidGitRef = (ref: string): ServiceError => {
+    return {
+        statusCode: StatusCodes.BAD_REQUEST,
+        errorCode: ErrorCode.INVALID_GIT_REF,
+        message: `Invalid git reference: "${ref}". Git refs cannot start with '-'.`,
+    };
+}
+
 export const stripeClientNotInitialized = (): ServiceError => {
     return {
         statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
