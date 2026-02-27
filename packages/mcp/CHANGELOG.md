@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Bumped `@modelcontextprotocol/sdk` from 1.10.2 to 1.26.0. [#958](https://github.com/sourcebot-dev/sourcebot/pull/958)
-- Upgraded `zod` from `^3.24.3` to `^4.3.6` to fix out-of-memory crashes during TypeScript compilation. [#964](https://github.com/sourcebot-dev/sourcebot/pull/964)
+- Bumped `zod` from `^3.24.3` to `^4.3.6`. [#964](https://github.com/sourcebot-dev/sourcebot/pull/964)
 
 ## [1.0.17] - 2026-02-19
 
