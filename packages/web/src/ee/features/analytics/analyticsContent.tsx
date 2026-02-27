@@ -2,7 +2,7 @@
 
 import { ChartTooltip } from "@/components/ui/chart"
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
-import { Users, LucideIcon, Search, ArrowRight, Activity, Calendar, MessageCircle, Wrench, Key } from "lucide-react"
+import { Users, LucideIcon, Search, ArrowRight, Activity, Calendar, MessageCircle, Wrench, Key, Info } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer } from "@/components/ui/chart"
 import { useQuery } from "@tanstack/react-query"
@@ -14,6 +14,7 @@ import { getAnalytics } from "./actions"
 import { useTheme } from "next-themes"
 import { useMemo, useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 type TimePeriod = "day" | "week" | "month"
 
@@ -23,17 +24,27 @@ const periodLabels: Record<TimePeriod, string> = {
     month: "Monthly",
 }
 
+interface ChartDefinition {
+    title: string
+    icon: LucideIcon
+    color: string
+    dataKey: keyof Omit<AnalyticsRow, 'period' | 'bucket'>
+    gradientId: string
+    description: string
+}
+
 interface AnalyticsChartProps {
     data: AnalyticsRow[]
     title: string
     icon: LucideIcon
     period: "day" | "week" | "month"
-    dataKey: "code_searches" | "navigations" | "ask_chats" | "mcp_requests" | "api_requests" | "active_users"
+    dataKey: keyof Omit<AnalyticsRow, 'period' | 'bucket'>
     color: string
     gradientId: string
+    description: string
 }
 
-function AnalyticsChart({ data, title, icon: Icon, period, dataKey, color, gradientId }: AnalyticsChartProps) {
+function AnalyticsChart({ data, title, icon: Icon, period, dataKey, color, gradientId, description }: AnalyticsChartProps) {
     const { theme } = useTheme()
     const isDark = theme === "dark"
 
@@ -57,8 +68,16 @@ function AnalyticsChart({ data, title, icon: Icon, period, dataKey, color, gradi
                         >
                             <Icon className="h-5 w-5" style={{ color }} />
                         </div>
-                        <div>
+                        <div className="flex items-center gap-2">
                             <CardTitle className="text-lg font-semibold text-card-foreground">{title}</CardTitle>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs">
+                                    {description}
+                                </TooltipContent>
+                            </Tooltip>
                         </div>
                     </div>
                 </div>
@@ -159,6 +178,26 @@ function AnalyticsChart({ data, title, icon: Icon, period, dataKey, color, gradi
     )
 }
 
+function ChartSkeletonGroup({ count }: { count: number }) {
+    return (
+        <>
+            {Array.from({ length: count }, (_, i) => (
+                <Card key={i} className="bg-card border-border shadow-lg">
+                    <CardHeader className="pb-4">
+                        <div className="flex items-center space-x-3">
+                            <Skeleton className="h-9 w-9 rounded-lg bg-muted" />
+                            <Skeleton className="h-5 w-32 bg-muted" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <Skeleton className="h-[240px] w-full bg-muted rounded-lg" />
+                    </CardContent>
+                </Card>
+            ))}
+        </>
+    )
+}
+
 function LoadingSkeleton() {
     return (
         <div className="space-y-6">
@@ -174,22 +213,16 @@ function LoadingSkeleton() {
                 </div>
             </div>
 
-            {/* Chart skeletons */}
-            {[1, 2, 3, 4, 5, 6].map((chartIndex) => (
-                <Card key={chartIndex} className="bg-card border-border shadow-lg">
-                    <CardHeader className="pb-4">
-                        <div className="flex items-center space-x-3">
-                            <Skeleton className="h-9 w-9 rounded-lg bg-muted" />
-                            <div className="space-y-2">
-                                <Skeleton className="h-5 w-32 bg-muted" />
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                        <Skeleton className="h-[240px] w-full bg-muted rounded-lg" />
-                    </CardContent>
-                </Card>
-            ))}
+            {/* Global chart skeleton */}
+            <ChartSkeletonGroup count={1} />
+
+            {/* Web App section skeleton */}
+            <Skeleton className="h-5 w-24 bg-muted" />
+            <ChartSkeletonGroup count={4} />
+
+            {/* API section skeleton */}
+            <Skeleton className="h-5 w-16 bg-muted" />
+            <ChartSkeletonGroup count={4} />
         </div>
     )
 }
@@ -197,7 +230,7 @@ function LoadingSkeleton() {
 export function AnalyticsContent() {
     const domain = useDomain()
     const { theme } = useTheme()
-    
+
     // Time period selector state
     const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("day")
 
@@ -212,19 +245,23 @@ export function AnalyticsContent() {
     })
 
     const chartColors = useMemo(() => ({
-        users: {
+        globalUsers: {
+            light: "#6366f1",
+            dark: "#818cf8",
+        },
+        webUsers: {
             light: "#3b82f6",
             dark: "#60a5fa",
         },
-        searches: {
+        webSearches: {
             light: "#f59e0b",
             dark: "#fbbf24",
         },
-        navigations: {
+        webNavigations: {
             light: "#ef4444",
             dark: "#f87171",
         },
-        askChats: {
+        webAskChats: {
             light: "#8b5cf6",
             dark: "#a78bfa",
         },
@@ -232,9 +269,17 @@ export function AnalyticsContent() {
             light: "#10b981",
             dark: "#34d399",
         },
+        mcpUsers: {
+            light: "#06b6d4",
+            dark: "#22d3ee",
+        },
         apiRequests: {
             light: "#14b8a6",
             dark: "#2dd4bf",
+        },
+        apiUsers: {
+            light: "#f97316",
+            dark: "#fb923c",
         },
     }), [])
 
@@ -268,41 +313,66 @@ export function AnalyticsContent() {
 
     const periodData = analyticsResponse.rows.filter((row) => row.period === selectedPeriod)
 
-    const charts = [
+    const globalChart: ChartDefinition = {
+        title: `${periodLabels[selectedPeriod]} Active Users`,
+        icon: Users,
+        color: getColor("globalUsers"),
+        dataKey: "active_users" as const,
+        gradientId: "activeUsers",
+        description: "Unique users who performed any tracked action across all interfaces (web app, MCP, and API).",
+    }
+
+    const webCharts: ChartDefinition[] = [
         {
-            title: `${periodLabels[selectedPeriod]} Active Users`,
+            title: `${periodLabels[selectedPeriod]} Web Active Users`,
             icon: Users,
-            color: getColor("users"),
-            dataKey: "active_users" as const,
-            gradientId: "activeUsers",
+            color: getColor("webUsers"),
+            dataKey: "web_active_users" as const,
+            gradientId: "webActiveUsers",
+            description: "Unique users who performed any action through the Sourcebot web interface, including searches, navigations, chats, and file views.",
         },
         {
-            title: `${periodLabels[selectedPeriod]} Code Searches`,
+            title: `${periodLabels[selectedPeriod]} Web Code Searches`,
             icon: Search,
-            color: getColor("searches"),
-            dataKey: "code_searches" as const,
-            gradientId: "codeSearches",
+            color: getColor("webSearches"),
+            dataKey: "web_code_searches" as const,
+            gradientId: "webCodeSearches",
+            description: "Number of code searches performed through the Sourcebot web interface.",
         },
         {
-            title: `${periodLabels[selectedPeriod]} Navigations`,
-            icon: ArrowRight,
-            color: getColor("navigations"),
-            dataKey: "navigations" as const,
-            gradientId: "navigations",
-        },
-        {
-            title: `${periodLabels[selectedPeriod]} Ask Chats`,
+            title: `${periodLabels[selectedPeriod]} Web Ask Chats`,
             icon: MessageCircle,
-            color: getColor("askChats"),
-            dataKey: "ask_chats" as const,
-            gradientId: "askChats",
+            color: getColor("webAskChats"),
+            dataKey: "web_ask_chats" as const,
+            gradientId: "webAskChats",
+            description: "Number of Ask chat conversations created through the Sourcebot web interface.",
         },
+        {
+            title: `${periodLabels[selectedPeriod]} Web Navigations`,
+            icon: ArrowRight,
+            color: getColor("webNavigations"),
+            dataKey: "web_navigations" as const,
+            gradientId: "webNavigations",
+            description: "Number of go-to-definition and find-references actions performed in the web interface.",
+        },
+    ]
+
+    const apiCharts: ChartDefinition[] = [
         {
             title: `${periodLabels[selectedPeriod]} MCP Requests`,
             icon: Wrench,
             color: getColor("mcpRequests"),
             dataKey: "mcp_requests" as const,
             gradientId: "mcpRequests",
+            description: "Total number of requests made through MCP (Model Context Protocol) integrations.",
+        },
+        {
+            title: `${periodLabels[selectedPeriod]} MCP Active Users`,
+            icon: Users,
+            color: getColor("mcpUsers"),
+            dataKey: "mcp_active_users" as const,
+            gradientId: "mcpActiveUsers",
+            description: "Unique users who made requests through MCP integrations.",
         },
         {
             title: `${periodLabels[selectedPeriod]} API Requests`,
@@ -310,6 +380,15 @@ export function AnalyticsContent() {
             color: getColor("apiRequests"),
             dataKey: "api_requests" as const,
             gradientId: "apiRequests",
+            description: "Total number of requests made through direct API access, excluding web app and MCP traffic.",
+        },
+        {
+            title: `${periodLabels[selectedPeriod]} API Active Users`,
+            icon: Users,
+            color: getColor("apiUsers"),
+            dataKey: "api_active_users" as const,
+            gradientId: "apiActiveUsers",
+            description: "Unique users who made requests through direct API access, excluding web app and MCP traffic.",
         },
     ]
 
@@ -350,19 +429,63 @@ export function AnalyticsContent() {
                 </div>
             </div>
 
-            {/* Analytics Charts */}
-            {charts.map((chart) => (
-                <AnalyticsChart
-                    key={chart.dataKey}
-                    data={periodData}
-                    title={chart.title}
-                    icon={chart.icon}
-                    period={selectedPeriod}
-                    dataKey={chart.dataKey}
-                    color={chart.color}
-                    gradientId={chart.gradientId}
-                />
-            ))}
+            {/* Global Active Users */}
+            <AnalyticsChart
+                data={periodData}
+                title={globalChart.title}
+                icon={globalChart.icon}
+                period={selectedPeriod}
+                dataKey={globalChart.dataKey}
+                color={globalChart.color}
+                gradientId={globalChart.gradientId}
+                description={globalChart.description}
+            />
+
+            {/* Web App Section */}
+            <div className="space-y-6">
+                <div>
+                    <h3 className="text-xl font-semibold">Web App</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Usage from the Sourcebot web interface.
+                    </p>
+                </div>
+                {webCharts.map((chart) => (
+                    <AnalyticsChart
+                        key={chart.dataKey}
+                        data={periodData}
+                        title={chart.title}
+                        icon={chart.icon}
+                        period={selectedPeriod}
+                        dataKey={chart.dataKey}
+                        color={chart.color}
+                        gradientId={chart.gradientId}
+                        description={chart.description}
+                    />
+                ))}
+            </div>
+
+            {/* API Section */}
+            <div className="space-y-6">
+                <div>
+                    <h3 className="text-xl font-semibold">API</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Usage from MCP integrations and direct API access.
+                    </p>
+                </div>
+                {apiCharts.map((chart) => (
+                    <AnalyticsChart
+                        key={chart.dataKey}
+                        data={periodData}
+                        title={chart.title}
+                        icon={chart.icon}
+                        period={selectedPeriod}
+                        dataKey={chart.dataKey}
+                        color={chart.color}
+                        gradientId={chart.gradientId}
+                        description={chart.description}
+                    />
+                ))}
+            </div>
         </div>
     )
 }

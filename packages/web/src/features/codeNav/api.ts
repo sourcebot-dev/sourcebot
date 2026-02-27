@@ -57,7 +57,8 @@ export const findSearchBasedSymbolReferences = async (props: FindRelatedSymbolsR
             options: {
                 matches: MAX_REFERENCE_COUNT,
                 contextLines: 0,
-            }
+            },
+            sourceOverride: 'sourcebot-ui-codenav',
         });
 
         if (isServiceError(searchResult)) {
@@ -116,7 +117,8 @@ export const findSearchBasedSymbolDefinitions = async (props: FindRelatedSymbols
             options: {
                 matches: MAX_REFERENCE_COUNT,
                 contextLines: 0,
-            }
+            },
+            sourceOverride: 'sourcebot-ui-codenav',
         });
 
         if (isServiceError(searchResult)) {

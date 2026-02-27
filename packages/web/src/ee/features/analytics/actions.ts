@@ -80,12 +80,45 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
             WHEN 'week'  THEN c.week
             ELSE              c.month
           END AS bucket,
-          COUNT(*) FILTER (WHERE c.action = 'user.performed_code_search') AS code_searches,
-          COUNT(*) FILTER (WHERE c.action IN ('user.performed_find_references', 'user.performed_goto_definition')) AS navigations,
-          COUNT(*) FILTER (WHERE c.action = 'user.created_ask_chat') AS ask_chats,
-          COUNT(*) FILTER (WHERE c.metadata->>'source' = 'mcp') AS mcp_requests,
-          COUNT(*) FILTER (WHERE c.metadata->>'source' IS NOT NULL AND c.metadata->>'source' != 'mcp') AS api_requests,
-          COUNT(DISTINCT c."actorId") AS active_users
+
+          -- Global active users (any action, any source)
+          COUNT(DISTINCT c."actorId") AS active_users,
+
+          -- Web App metrics (source LIKE 'sourcebot-%')
+          COUNT(*) FILTER (
+            WHERE c.action = 'user.performed_code_search'
+              AND c.metadata->>'source' LIKE 'sourcebot-%'
+          ) AS web_code_searches,
+          COUNT(*) FILTER (
+            WHERE c.action IN ('user.performed_find_references', 'user.performed_goto_definition')
+              AND c.metadata->>'source' LIKE 'sourcebot-%'
+          ) AS web_navigations,
+          COUNT(*) FILTER (
+            WHERE c.action = 'user.created_ask_chat'
+              AND c.metadata->>'source' LIKE 'sourcebot-%'
+          ) AS web_ask_chats,
+          COUNT(DISTINCT c."actorId") FILTER (
+            WHERE c.metadata->>'source' LIKE 'sourcebot-%'
+          ) AS web_active_users,
+
+          -- MCP metrics (source = 'mcp')
+          COUNT(*) FILTER (
+            WHERE c.metadata->>'source' = 'mcp'
+          ) AS mcp_requests,
+          COUNT(DISTINCT c."actorId") FILTER (
+            WHERE c.metadata->>'source' = 'mcp'
+          ) AS mcp_active_users,
+
+          -- API metrics (source IS NULL or not sourcebot-*/mcp)
+          COUNT(*) FILTER (
+            WHERE c.metadata->>'source' IS NULL
+              OR (c.metadata->>'source' NOT LIKE 'sourcebot-%' AND c.metadata->>'source' != 'mcp')
+          ) AS api_requests,
+          COUNT(DISTINCT c."actorId") FILTER (
+            WHERE c.metadata->>'source' IS NULL
+              OR (c.metadata->>'source' NOT LIKE 'sourcebot-%' AND c.metadata->>'source' != 'mcp')
+          ) AS api_active_users
+
         FROM core c
         JOIN LATERAL (
           SELECT unnest(array['day', 'week', 'month']) AS period
@@ -96,12 +129,15 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
       SELECT
         b.period,
         b.bucket,
-        COALESCE(a.code_searches, 0)::int AS code_searches,
-        COALESCE(a.navigations, 0)::int AS navigations,
-        COALESCE(a.ask_chats, 0)::int AS ask_chats,
+        COALESCE(a.active_users, 0)::int AS active_users,
+        COALESCE(a.web_code_searches, 0)::int AS web_code_searches,
+        COALESCE(a.web_navigations, 0)::int AS web_navigations,
+        COALESCE(a.web_ask_chats, 0)::int AS web_ask_chats,
+        COALESCE(a.web_active_users, 0)::int AS web_active_users,
         COALESCE(a.mcp_requests, 0)::int AS mcp_requests,
+        COALESCE(a.mcp_active_users, 0)::int AS mcp_active_users,
         COALESCE(a.api_requests, 0)::int AS api_requests,
-        COALESCE(a.active_users, 0)::int AS active_users
+        COALESCE(a.api_active_users, 0)::int AS api_active_users
       FROM buckets b
       LEFT JOIN aggregated a
         ON a.period = b.period AND a.bucket = b.bucket

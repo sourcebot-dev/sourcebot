@@ -6,10 +6,10 @@ import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { env } from "@sourcebot/shared";
 import { headers } from "next/headers";
 
-export const listRepos = async ({ query, page, perPage, sort, direction }: ListReposQueryParams) => sew(() =>
+export const listRepos = async ({ query, page, perPage, sort, direction, sourceOverride }: ListReposQueryParams & { sourceOverride?: string }) => sew(() =>
     withOptionalAuthV2(async ({ org, prisma, user }) => {
         if (user) {
-            const source = (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
+            const source = sourceOverride ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
             getAuditService().createAudit({
                 action: 'user.listed_repos',
                 actor: { id: user.id, type: 'user' },

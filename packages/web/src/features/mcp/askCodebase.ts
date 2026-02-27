@@ -11,6 +11,7 @@ import { randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
 import { InferUIMessageChunk, UIDataTypes, UIMessage, UITools } from "ai";
 import { captureEvent } from "@/lib/posthog";
+import { getAuditService } from "@/ee/features/audit/factory";
 import { createMessageStream } from "../chat/agent";
 
 const logger = createLogger('ask-codebase-api');
@@ -88,6 +89,16 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 chatId: chat.id,
                 isAnonymous: !user,
             });
+
+            if (user) {
+                getAuditService().createAudit({
+                    action: 'user.created_ask_chat',
+                    actor: { id: user.id, type: 'user' },
+                    target: { id: org.id.toString(), type: 'org' },
+                    orgId: org.id,
+                    metadata: {},
+                }).catch(() => {});
+            }
 
             logger.debug(`Starting blocking agent for chat ${chat.id}`, {
                 chatId: chat.id,

@@ -180,34 +180,37 @@ export const injectAuditData: Script = {
                 const activityChance = isWeekend ? user.weekendActivity : user.weekdayActivity;
                 if (Math.random() >= activityChance) continue;
 
-                // --- Web UI activity (no source metadata) ---
+                // --- Web UI activity (source='sourcebot-web-client' or 'sourcebot-ui-codenav') ---
                 if (user.webWeight > 0) {
+                    const webMeta: Prisma.InputJsonValue = { source: 'sourcebot-web-client' };
+                    const codenavMeta: Prisma.InputJsonValue = { source: 'sourcebot-ui-codenav' };
+
                     // Code searches (2-5 base)
                     await createAudits(user.id, 'user.performed_code_search',
-                        scaledCount(2, 5, user.webWeight, isWeekend), currentDate, isWeekend, 'search');
+                        scaledCount(2, 5, user.webWeight, isWeekend), currentDate, isWeekend, 'search', webMeta);
 
                     // Navigations: find references + goto definition (5-10 base)
                     const navCount = scaledCount(5, 10, user.webWeight, isWeekend);
                     for (let i = 0; i < navCount; i++) {
                         const action = Math.random() < 0.6 ? 'user.performed_find_references' : 'user.performed_goto_definition';
-                        await createAudits(user.id, action, 1, currentDate, isWeekend, 'symbol');
+                        await createAudits(user.id, action, 1, currentDate, isWeekend, 'symbol', codenavMeta);
                     }
 
                     // Ask chats (0-2 base) - web only
                     await createAudits(user.id, 'user.created_ask_chat',
-                        scaledCount(0, 2, user.webWeight, isWeekend), currentDate, isWeekend, 'org');
+                        scaledCount(0, 2, user.webWeight, isWeekend), currentDate, isWeekend, 'org', webMeta);
 
                     // File source views (3-8 base)
                     await createAudits(user.id, 'user.fetched_file_source',
-                        scaledCount(3, 8, user.webWeight, isWeekend), currentDate, isWeekend, 'file');
+                        scaledCount(3, 8, user.webWeight, isWeekend), currentDate, isWeekend, 'file', webMeta);
 
                     // File tree browsing (2-5 base)
                     await createAudits(user.id, 'user.fetched_file_tree',
-                        scaledCount(2, 5, user.webWeight, isWeekend), currentDate, isWeekend, 'repo');
+                        scaledCount(2, 5, user.webWeight, isWeekend), currentDate, isWeekend, 'repo', webMeta);
 
                     // List repos (1-3 base)
                     await createAudits(user.id, 'user.listed_repos',
-                        scaledCount(1, 3, user.webWeight, isWeekend), currentDate, isWeekend, 'org');
+                        scaledCount(1, 3, user.webWeight, isWeekend), currentDate, isWeekend, 'org', webMeta);
                 }
 
                 // --- MCP activity (source='mcp') ---
@@ -279,17 +282,18 @@ export const injectAuditData: Script = {
         let webCount = 0, mcpCount = 0, apiCount = 0;
         for (const audit of allAudits) {
             const meta = audit.metadata as Record<string, unknown> | null;
-            if (!meta || !meta.source) {
+            const source = meta?.source as string | undefined;
+            if (source && typeof source === 'string' && source.startsWith('sourcebot-')) {
                 webCount++;
-            } else if (meta.source === 'mcp') {
+            } else if (source === 'mcp') {
                 mcpCount++;
             } else {
                 apiCount++;
             }
         }
         console.log('\nSource breakdown:');
-        console.log(`  Web UI (no source): ${webCount}`);
+        console.log(`  Web UI (source=sourcebot-*): ${webCount}`);
         console.log(`  MCP (source=mcp): ${mcpCount}`);
-        console.log(`  API (source=other): ${apiCount}`);
+        console.log(`  API (source=other/null): ${apiCount}`);
     },
 };
