@@ -2,6 +2,12 @@ import { NewsItem } from "./types";
 
 export const newsData: NewsItem[] = [
     {
+        unique_id: "ai-search-assist",
+        header: "AI Search Assist",
+        sub_header: "Describe what you're looking for in plain English and AI will generate a search query for you.",
+        url: "https://docs.sourcebot.dev/docs/features/search/ai-search-assist"
+    },
+    {
         unique_id: "chat-sharing",
         header: "Chat Sharing",
         sub_header: "Share Ask Sourcebot chats via link or with specific team members.",
