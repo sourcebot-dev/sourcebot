@@ -11,12 +11,17 @@ import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 
-const auditQueryParamsSchema = z.object({
+const auditQueryParamsBaseSchema = z.object({
     since: z.string().datetime().optional(),
     until: z.string().datetime().optional(),
     page: z.coerce.number().int().positive().default(1),
     perPage: z.coerce.number().int().positive().max(100).default(50),
 });
+
+const auditQueryParamsSchema = auditQueryParamsBaseSchema.refine(
+    (data) => !(data.since && data.until && new Date(data.since) >= new Date(data.until)),
+    { message: "'since' must be before 'until'", path: ["since"] }
+);
 
 export const GET = apiHandler(async (request: NextRequest) => {
     const entitlements = getEntitlements();
@@ -29,7 +34,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
     }
 
     const rawParams = Object.fromEntries(
-        Object.keys(auditQueryParamsSchema.shape).map(key => [
+        Object.keys(auditQueryParamsBaseSchema.shape).map(key => [
             key,
             request.nextUrl.searchParams.get(key) ?? undefined
         ])

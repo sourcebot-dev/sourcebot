@@ -49,9 +49,10 @@ export const fetchAuditRecords = async (params: FetchAuditRecordsParams) => sew(
                 const [auditRecords, totalCount] = await Promise.all([
                     prisma.audit.findMany({
                         where,
-                        orderBy: {
-                            timestamp: 'desc'
-                        },
+                        orderBy: [
+                            { timestamp: 'desc' },
+                            { id: 'desc' },
+                        ],
                         skip: params.skip,
                         take: params.take,
                     }),
