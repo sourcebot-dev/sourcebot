@@ -45,6 +45,34 @@ If your instance is resource-constrained, you can reduce the concurrency of back
 
 Lowering these values reduces peak resource usage at the cost of slower initial indexing.
 
+## Audit log storage
+
+<Info>
+Audit logging is an enterprise feature and is only available with an [enterprise license](/docs/overview#license-key). If you are not on an enterprise plan, audit logs are not stored and this section does not apply.
+</Info>
+
+[Audit logs](/docs/configuration/audit-logs) are stored in the Postgres database connected to your Sourcebot deployment. Each audit record captures the action performed, the actor, the target, a timestamp, and optional metadata (e.g., request source). There are three database indexes on the audit table to support analytics and lookup queries.
+
+**Estimated storage per audit event: ~350 bytes** (including row data and indexes).
+
+<Info>
+The table below assumes 50 events per user per day. The actual number depends on usage patterns — each user action (code search, file view, navigation, Ask chat, etc.) creates one audit event. Users who interact via [MCP](/docs/features/mcp-server) or the [API](/docs/api-reference/search) tend to generate significantly more events than web-only users, so your real usage may vary.
+</Info>
+
+| Team size | Avg events / user / day | Daily events | Monthly storage | 6-month storage |
+|---|---|---|---|---|
+| 10 users | 50 | 500 | ~5 MB | ~30 MB |
+| 50 users | 50 | 2,500 | ~25 MB | ~150 MB |
+| 100 users | 50 | 5,000 | ~50 MB | ~300 MB |
+| 500 users | 50 | 25,000 | ~250 MB | ~1.5 GB |
+| 1,000 users | 50 | 50,000 | ~500 MB | ~3 GB |
+
+### Retention policy
+
+By default, audit logs older than **180 days** are automatically pruned daily by a background job. You can adjust this with the `SOURCEBOT_EE_AUDIT_RETENTION_DAYS` [environment variable](/docs/configuration/environment-variables). Set it to `0` to disable pruning and retain logs indefinitely.
+
+For most deployments, the default 180-day retention keeps database size manageable. If you have a large team with heavy MCP/API usage and need longer retention, plan your Postgres disk allocation accordingly using the estimates above.
+
 ## Monitoring
 
 We recommend monitoring the following metrics after deployment to validate your sizing:

@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useDomain } from "@/hooks/useDomain"
 import { unwrapServiceError } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AnalyticsResponse } from "./types"
+import { AnalyticsRow } from "./types"
 import { getAnalytics } from "./actions"
 import { useTheme } from "next-themes"
 import { useMemo, useState } from "react"
@@ -24,7 +24,7 @@ const periodLabels: Record<TimePeriod, string> = {
 }
 
 interface AnalyticsChartProps {
-    data: AnalyticsResponse
+    data: AnalyticsRow[]
     title: string
     icon: LucideIcon
     period: "day" | "week" | "month"
@@ -266,7 +266,7 @@ export function AnalyticsContent() {
         )
     }
 
-    const periodData = analyticsResponse.filter((row) => row.period === selectedPeriod)
+    const periodData = analyticsResponse.rows.filter((row) => row.period === selectedPeriod)
 
     const charts = [
         {
@@ -322,6 +322,16 @@ export function AnalyticsContent() {
                     <p className="text-sm text-muted-foreground">
                         View usage metrics across your organization.
                     </p>
+                    <div className="flex gap-4 mt-1">
+                        <p className="text-xs text-muted-foreground/70">
+                            Retention period: {analyticsResponse.retentionDays > 0 ? `${analyticsResponse.retentionDays} days` : "Indefinite"}
+                        </p>
+                        {analyticsResponse.oldestRecordDate && (
+                            <p className="text-xs text-muted-foreground/70">
+                                Data since: {new Date(analyticsResponse.oldestRecordDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            </p>
+                        )}
+                    </div>
                 </div>
 
                 {/* Time Period Selector */}
