@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added pagination and time range filtering to the audit GET endpoint. Query parameters include `page`, `perPage` (default 50, max 100), `since`, and `until` (ISO 8601 datetimes). Response includes `X-Total-Count` header and RFC 5988 `Link` header for pagination. [#949](https://github.com/sourcebot-dev/sourcebot/pull/949)
+
 ### Fixed
 - Fixed search query parser rejecting parenthesized regex alternation in filter values (e.g. `file:(test|spec)`, `-file:(test|spec)`). [#946](https://github.com/sourcebot-dev/sourcebot/pull/946)
 - Fixed `content:` filter ignoring the regex toggle. [#947](https://github.com/sourcebot-dev/sourcebot/pull/947)
