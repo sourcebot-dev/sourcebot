@@ -1,187 +1,99 @@
 /**
- * Human-readable description of the Sourcebot search query syntax.
+ * LLM-readable description of the Sourcebot search query syntax.
  * Keep this in sync with query.grammar and tokens.ts when the syntax changes.
  */
-export const SEARCH_SYNTAX_DESCRIPTION = `
+export const SEARCH_SYNTAX_DESCRIPTION = String.raw`
 # Sourcebot Search Query Syntax
 
-Sourcebot uses a structured query language for searching code across repositories.
+## Search terms
 
-## Full-text search
+Bare words search across file content and are interpreted as case-sensitive regular expressions:
+  useState                 — matches files containing "useState"
+  useS?tate                — matches files containing "useState" or "usetate"
+  ^import                  — matches lines beginning with "import"
+  error.*handler           — matches "error" followed by "handler" on the same line
 
-Bare words and quoted strings search across file content:
-  authentication           — matches files containing "authentication"
-  "password reset"         — exact phrase match
+Wrap terms in double quotes to match a phrase with spaces:
+  "password reset"         — matches files containing the phrase "password reset"
 
-Words can contain almost any character including slashes, dots, @-signs, and dashes.
-For example, @aws-sdk/credential-providers and v1.2.3 are each treated as single terms.
-A dash within a word (e.g. hello-world) is part of the word, not negation.
+## Filters
 
-## Prefix filters
+Narrow searches with prefix:value syntax:
 
-Narrow the search using prefix:value syntax. Values can be plain words or quoted strings.
+  file:<value>      — filter by file path
+  lang:<value>      — filter by language. Uses linguist language definitions (e.g. TypeScript, Python, Go, Rust, Java)
+  repo:<value>      — filter by repository name
+  sym:<value>       — filter by symbol name
+  rev:<value>       — filter by git branch or tag
 
-  content:<value>   (alias: c:)       Match within file content
-  file:<value>      (alias: f:)       Match file path
-  lang:<value>                        Match programming language (see language names below)
-  repo:<value>      (alias: r:)       Match repository name
-  sym:<value>                         Match symbol or identifier name
-  rev:<value>                         Match git revision or branch name
-  context:<value>                     Match context
-  reposet:<value>                     Match a named repository set
-  archived:yes|no|only                Filter by archived status
-  fork:yes|no|only                    Filter by fork status
-  visibility:public|private|any       Filter by repository visibility
-
-## Language names
-
-Language names for lang: come from GitHub Linguist and are case-sensitive.
-Common values:
-
-  TypeScript   — .ts files
-  TSX          — .tsx files (TypeScript + React/JSX)
-  JavaScript   — .js and .jsx files
-  Python
-  Go
-  Rust
-  Java
-  C
-  C++
-  Ruby
-  Swift
-  Kotlin
-  CSS
-  HTML
-  JSON
-  YAML
-  Markdown
-  Shell
-  Scala
-  Haskell
-  Elixir
-  Elm
-  PHP
-  Dart
-  R
-  Vue
-  Svelte
-
-When unsure of the exact language name, prefer using file: with a regex to match
-file extensions instead (e.g. file:\\.tsx$ instead of lang:TSX).
-
-## Quoting and spaces
-
-Any term or filter value that contains spaces must be wrapped in double quotes.
-Any double-quote characters within the quoted value must be escaped with a backslash (\").
-This applies to bare search terms AND to filter values like content:, file:, repo:, etc.
-
-  "password reset"           — bare term: phrase with a space
-  content:"error handler"    — filter value with a space, no internal quotes
-
-When the pattern itself contains double quotes (e.g. matching JSON or source code), escape
-each internal quote with a backslash. Build it up in steps:
-
-  Step 1 — raw pattern you want to match:   "next": "15.
-  Step 2 — escape the internal quotes:       \"next\": \"15.
-  Step 3 — wrap in outer double quotes:      "\"next\": \"15."
-  Step 4 — full filter:                      content:"\"next\": \"15\\.\\d"
-
-WRONG: content:""next": "15\.\d    ← unescaped internal quotes break the value boundary
-RIGHT: content:"\"next\": \"15\\.\\d"
-
-Every " inside a quoted value MUST become \". Missing even one will produce incorrect results.
-
-## Filter value matching
-
-file:, repo:, sym:, and rev: always treat their value as a regular expression.
-A simple word matches as a case-sensitive substring; a full regex pattern can use
-anchors, alternation, etc. No forward slashes are used:
-  file:chat               — matches any path containing "chat"
-  file:test               — matches any path containing "test"
-  file:\\.tsx$            — matches paths ending in .tsx
-  file:(test|spec)        — matches paths containing "test" or "spec"
-  repo:myorg              — matches any repo name containing "myorg"
-  sym:useState            — matches symbols containing "useState"
-
-content: also treats its value as a regular expression:
-  content:useState                       — matches files containing "useState"
-  content:error.*handler                 — matches files where "error" appears before "handler"
-  content:"\"next\": \"15\\.\\d"        — matches the literal text: "next": "15.<digit>
-
-IMPORTANT: Regex flags (such as /i for case-insensitive) are NOT supported.
-All matching is case-sensitive. Do not wrap values in forward slashes for
-file:, repo:, sym:, or rev: — the value itself is the pattern.
+All filter values are interpreted as case-sensitive regular expressions.
+A plain word matches as a substring. No forward slashes around values.
 
 ## Boolean logic
 
-Space (AND):    Terms separated by spaces are ANDed — all must match.
+Space = AND. All space-separated terms must match.
+  useState lang:TypeScript         — TypeScript files containing useState
 
-or keyword:     Use or between terms or filter expressions (must be lowercase).
-                NOTE: or must not appear at the start or end of a query, and must
-                be followed by at least one more term.
-                Correct:   auth or login
-                Incorrect: auth OR login  /  or login  /  auth or
+or = OR (must be lowercase, not at start/end of query).
+  auth or login                    — files containing "auth" or "login"
 
-Negation (-):   Prefix a filter or parenthesized group with - to exclude it.
-                NOTE: - only negates a prefix filter (e.g. -file:test) or a
-                parenthesized group (-(...)). A dash inside a word like hello-world
-                is NOT negation.
-                Correct:   -file:test  -(file:test or file:spec)
-                Incorrect: -hello      -"some phrase"
+- = negation. Only valid before a filter or a parenthesized group.
+  -file:test                       — exclude paths matching /test/
+  -(file:test or file:spec)        — exclude test and spec files
 
 ## Grouping
 
-Use parentheses to group expressions:
+Parentheses group expressions:
   (auth or login) lang:TypeScript
   -(file:test or file:spec)
 
-NOTE: Parentheses must be balanced to be treated as grouping. An unbalanced (
-is treated as part of the adjacent word.
+## Quoting
+
+Wrap a value in double quotes when it contains spaces:
+  "password reset"
+  "error handler"
+
+When the quoted value itself contains double-quote characters, escape each one as \":
+  "\"key\": \"value\""     — matches the literal text: "key": "value"
+
+For unquoted values, escape regex metacharacters with a single backslash:
+  file:package\.json               — matches literal "package.json"
 
 ## Examples
 
-  authentication lang:TypeScript
-    → .ts files containing "authentication"
+Input: find all TODO comments
+Output: //\s*TODO
 
-  content:useState lang:TSX
-    → .tsx (React) files using useState
+Input: find TypeScript files that use useState
+Output: lang:TypeScript useState
 
-  content:"password reset" -file:test
-    → Files with the phrase "password reset", excluding test files
+Input: find files that import from react
+Output: lang:TypeScript "from \"react\""
 
-  sym:useState lang:TypeScript
-    → TypeScript files using the useState symbol
+Input: find all test files
+Output: file:(test|spec)
 
-  repo:myorg/frontend file:package.json content:@aws-sdk
-    → package.json files in the myorg/frontend repo mentioning @aws-sdk
+Input: find all API route handlers
+Output: file:route\.(ts|js)$
 
-  (content:authenticate or content:login) -lang:Markdown
-    → Non-markdown files with authentication or login code
+Input: find package.json files that depend on react
+Output: file:package\.json "\"react\": \""
 
-  content:@aws-sdk/credential-providers file:package.json content:["']3\\.\\d
-    → package.json files referencing @aws-sdk/credential-providers at a 3.x version
+Input: find package.json files with beta or alpha dependencies
+Output: file:package\.json "\"[^\"]+\": \"[^\"]*-(beta|alpha)"
 
-  file:package\\.json content:"\"next\": \"15\\.\\d"
-    → package.json files with next pinned to a 15.x version (note escaped inner quotes)
+Input: find package.json files where next is pinned to version 15
+Output: file:package\.json "\"next\": \"\\^?15\\."
 
-  file:package\\.json content:"\"next-auth\": \"\\^?5\\."
-    → package.json files with next-auth at a 5.x version
+Input: find next versions less than 15
+Output: file:package\.json "\"next\": \"\^?(1[0-4]|[1-9])\."
 
-  file:package\\.json content:"\"react\": \""
-    → package.json files that have a react dependency (any version)
+Input: find log4j versions 2.3.x or lower
+Output: file:package\.json "\"log4j\": \"\^?2\.([0-2]|3)\."
 
-  file:package\\.json content:"\"(stripe|openai)\": \""
-    → package.json files with stripe or openai as a dependency
+Input: find TypeScript files that import from react or react-dom
+Output: lang:TypeScript "from \"(react|react-dom)\""
 
-  file:package\\.json content:"\"[a-z-]+\": \"\\^?(0\\.|[1-9]\\d*\\.)"
-    → package.json files with any dependency at a semver version
-
-  file:package\\.json content:"\"next\": \"\\^?(1[0-5]|[1-9])\\."
-    → package.json files with next at version 15 or lower
-
-  lang:TypeScript content:"from \"react\""
-    → TypeScript files that import from react
-
-  lang:TypeScript content:"from \"(react|react-dom)\""
-    → TypeScript files that import from react or react-dom
+Input: find files with password reset logic, excluding tests
+Output: "password reset" -file:test
 `.trim();

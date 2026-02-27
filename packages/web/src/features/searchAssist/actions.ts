@@ -6,7 +6,8 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError } from "@/lib/serviceError";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { SEARCH_SYNTAX_DESCRIPTION } from "@sourcebot/query-language";
-import { generateText } from "ai";
+import { generateObject } from "ai";
+import { z } from "zod";
 import { StatusCodes } from "http-status-codes";
 
 const SYSTEM_PROMPT = `You are a search query translator for Sourcebot, a code search engine.
@@ -37,12 +38,15 @@ export const translateSearchQuery = async ({ prompt }: { prompt: string }) => se
 
         const { model } = await _getAISDKLanguageModelAndOptions(models[0]);
 
-        const { text } = await generateText({
+        const { object } = await generateObject({
             model,
             system: SYSTEM_PROMPT,
             prompt,
+            schema: z.object({
+                query: z.string().describe("The Sourcebot search query."),
+            }),
         });
 
-        return { query: text.trim() };
+        return { query: object.query };
     })
 );
