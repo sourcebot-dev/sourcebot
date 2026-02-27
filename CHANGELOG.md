@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Bumped `tar` to `7.5.9`. [#953](https://github.com/sourcebot-dev/sourcebot/pull/953)
+- Bumped `@isaacs/brace-expansion` to `5.0.1`. [#952](https://github.com/sourcebot-dev/sourcebot/pull/952)
 - Bumped `qs` transitive dependency to `^6.14.2` via yarn resolutions. [#954](https://github.com/sourcebot-dev/sourcebot/pull/954)
 - Bumped `@aws-sdk/credential-providers` to `^3.1000.0`. [#955](https://github.com/sourcebot-dev/sourcebot/pull/955)
 - Bumped `rollup` transitive dependency to `^4.59.0` via yarn resolutions. [#956](https://github.com/sourcebot-dev/sourcebot/pull/956)
