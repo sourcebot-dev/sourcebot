@@ -3,12 +3,22 @@
 import { fetchAuditRecords } from "@/ee/features/audit/actions";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
-import { serviceErrorResponse } from "@/lib/serviceError";
+import { buildLinkHeader } from "@/lib/pagination";
+import { serviceErrorResponse, queryParamsSchemaValidationError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { getEntitlements } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
+import { NextRequest } from "next/server";
+import { z } from "zod";
 
-export const GET = apiHandler(async () => {
+const auditQueryParamsSchema = z.object({
+    since: z.string().datetime().optional(),
+    until: z.string().datetime().optional(),
+    page: z.coerce.number().int().positive().default(1),
+    perPage: z.coerce.number().int().positive().max(100).default(50),
+});
+
+export const GET = apiHandler(async (request: NextRequest) => {
     const entitlements = getEntitlements();
     if (!entitlements.includes('audit')) {
         return serviceErrorResponse({
@@ -18,9 +28,49 @@ export const GET = apiHandler(async () => {
         });
     }
 
-    const result = await fetchAuditRecords();
+    const rawParams = Object.fromEntries(
+        Object.keys(auditQueryParamsSchema.shape).map(key => [
+            key,
+            request.nextUrl.searchParams.get(key) ?? undefined
+        ])
+    );
+    const parsed = auditQueryParamsSchema.safeParse(rawParams);
+
+    if (!parsed.success) {
+        return serviceErrorResponse(
+            queryParamsSchemaValidationError(parsed.error)
+        );
+    }
+
+    const { page, perPage, since, until } = parsed.data;
+    const skip = (page - 1) * perPage;
+
+    const result = await fetchAuditRecords({
+        skip,
+        take: perPage,
+        since: since ? new Date(since) : undefined,
+        until: until ? new Date(until) : undefined,
+    });
+
     if (isServiceError(result)) {
         return serviceErrorResponse(result);
     }
-    return Response.json(result);
-}); 
+
+    const { auditRecords, totalCount } = result;
+
+    const headers = new Headers({ 'Content-Type': 'application/json' });
+    headers.set('X-Total-Count', totalCount.toString());
+
+    const linkHeader = buildLinkHeader(request, {
+        page,
+        perPage,
+        totalCount,
+        extraParams: {
+            ...(since ? { since } : {}),
+            ...(until ? { until } : {}),
+        },
+    });
+    if (linkHeader) headers.set('Link', linkHeader);
+
+    return new Response(JSON.stringify(auditRecords), { status: 200, headers });
+});

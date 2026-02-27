@@ -25,18 +25,38 @@ export const createAuditAction = async (event: Omit<AuditEvent, 'sourcebotVersio
     })
 );
 
-export const fetchAuditRecords = async () => sew(() =>
+export interface FetchAuditRecordsParams {
+    skip: number;
+    take: number;
+    since?: Date;
+    until?: Date;
+}
+
+export const fetchAuditRecords = async (params: FetchAuditRecordsParams) => sew(() =>
     withAuthV2(async ({ user, org, role }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             try {
-                const auditRecords = await prisma.audit.findMany({
-                    where: {
-                        orgId: org.id,
-                    },
-                    orderBy: {
-                        timestamp: 'desc'
-                    }
-                });
+                const where = {
+                    orgId: org.id,
+                    ...(params.since || params.until ? {
+                        timestamp: {
+                            ...(params.since ? { gte: params.since } : {}),
+                            ...(params.until ? { lte: params.until } : {}),
+                        }
+                    } : {}),
+                };
+
+                const [auditRecords, totalCount] = await Promise.all([
+                    prisma.audit.findMany({
+                        where,
+                        orderBy: {
+                            timestamp: 'desc'
+                        },
+                        skip: params.skip,
+                        take: params.take,
+                    }),
+                    prisma.audit.count({ where }),
+                ]);
 
                 await auditService.createAudit({
                     action: "audit.fetch",
@@ -51,7 +71,7 @@ export const fetchAuditRecords = async () => sew(() =>
                     orgId: org.id
                 })
 
-                return auditRecords;
+                return { auditRecords, totalCount };
             } catch (error) {
                 logger.error('Error fetching audit logs', { error });
                 return {
