@@ -17,7 +17,7 @@
         "typescript": "^5.0.0"
     },
     "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.10.2",
+        "@modelcontextprotocol/sdk": "^1.26.0",
         "@t3-oss/env-core": "^0.13.4",
         "dedent": "^1.7.1",
         "escape-string-regexp": "^5.0.0",
