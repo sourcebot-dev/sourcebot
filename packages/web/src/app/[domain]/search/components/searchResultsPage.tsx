@@ -42,6 +42,7 @@ interface SearchResultsPageProps {
     isRegexEnabled: boolean;
     isCaseSensitivityEnabled: boolean;
     session: Session | null;
+    isSearchAssistSupported: boolean;
 }
 
 export const SearchResultsPage = ({
@@ -50,6 +51,7 @@ export const SearchResultsPage = ({
     isRegexEnabled,
     isCaseSensitivityEnabled,
     session,
+    isSearchAssistSupported,
 }: SearchResultsPageProps) => {
     const router = useRouter();
     const { setSearchHistory } = useSearchHistory();
@@ -183,6 +185,7 @@ export const SearchResultsPage = ({
                         query: searchQuery,
                     }}
                     className="w-full"
+                    isSearchAssistSupported={isSearchAssistSupported}
                 />
             </TopBar>
 

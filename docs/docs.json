@@ -39,6 +39,7 @@
                                 "pages": [
                                     "docs/features/search/overview",
                                     "docs/features/search/syntax-reference",
+                                    "docs/features/search/ai-search-assist",
                                     "docs/features/search/multi-branch-indexing",
                                     "docs/features/search/search-contexts"
                                 ]

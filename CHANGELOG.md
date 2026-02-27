@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added pagination and UTC time range filtering to the audit GET endpoint. [#949](https://github.com/sourcebot-dev/sourcebot/pull/949)
+- Added AI Search Assist — describe what you're looking for in natural language and AI will generate a code search query for you. [#951](https://github.com/sourcebot-dev/sourcebot/pull/951)
 
 ### Fixed
 - Fixed search query parser rejecting parenthesized regex alternation in filter values (e.g. `file:(test|spec)`, `-file:(test|spec)`). [#946](https://github.com/sourcebot-dev/sourcebot/pull/946)
