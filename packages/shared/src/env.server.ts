@@ -202,6 +202,7 @@ export const env = createEnv({
         REVIEW_AGENT_REVIEW_COMMAND: z.string().default('review'),
 
         ANTHROPIC_API_KEY: z.string().optional(),
+        ANTHROPIC_AUTH_TOKEN: z.string().optional(),
         ANTHROPIC_THINKING_BUDGET_TOKENS: numberSchema.default(12000),
 
         AZURE_API_KEY: z.string().optional(),

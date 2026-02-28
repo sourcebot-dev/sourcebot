@@ -764,6 +764,9 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel): P
                     apiKey: config.token
                         ? await getTokenFromConfig(config.token)
                         : env.ANTHROPIC_API_KEY,
+                    authToken: config.authToken
+                        ? await getTokenFromConfig(config.authToken)
+                        : env.ANTHROPIC_AUTH_TOKEN,
                     headers: config.headers
                         ? await extractLanguageModelKeyValuePairs(config.headers)
                         : undefined,

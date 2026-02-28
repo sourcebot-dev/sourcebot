@@ -1768,7 +1768,38 @@ const schema = {
                     "additionalProperties": false
                   }
                 ],
-                "description": "Optional API key to use with the model. Defaults to the `ANTHROPIC_API_KEY` environment variable."
+                "description": "Optional API key to use with the model, sent as the `x-api-key` header. Defaults to the `ANTHROPIC_API_KEY` environment variable."
+              },
+              "authToken": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "Optional auth token to use with the model, sent as the `Authorization: Bearer` header. Defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable."
               },
               "baseUrl": {
                 "type": "string",
@@ -3197,7 +3228,38 @@ const schema = {
                     "additionalProperties": false
                   }
                 ],
-                "description": "Optional API key to use with the model. Defaults to the `ANTHROPIC_API_KEY` environment variable."
+                "description": "Optional API key to use with the model, sent as the `x-api-key` header. Defaults to the `ANTHROPIC_API_KEY` environment variable."
+              },
+              "authToken": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "Optional auth token to use with the model, sent as the `Authorization: Bearer` header. Defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable."
               },
               "baseUrl": {
                 "type": "string",
