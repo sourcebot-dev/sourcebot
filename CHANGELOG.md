@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Upgraded Vercel AI SDK from v5 to v6. [#969](https://github.com/sourcebot-dev/sourcebot/pull/969)
 - Added support for using bearer tokens with anthropic. [#967](https://github.com/sourcebot-dev/sourcebot/pull/967)
+- Upgraded `@ai-sdk/anthropic` to `^3.0.22` to support `ANTHROPIC_AUTH_TOKEN` environment variable. [#968](https://github.com/sourcebot-dev/sourcebot/pull/968)
 
 ## [4.13.1] - 2026-02-28
 
