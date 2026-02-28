@@ -10,6 +10,12 @@ vi.mock('@sourcebot/shared', () => ({
     getRepoPath: (repo: { id: number }) => ({
         path: `/mock/cache/dir/${repo.id}`,
     }),
+    createLogger: () => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    }),
 }));
 vi.mock('@/lib/serviceError', () => ({
     unexpectedError: (message: string) => ({
@@ -19,6 +25,10 @@ vi.mock('@/lib/serviceError', () => ({
     notFound: (message: string) => ({
         errorCode: 'NOT_FOUND',
         message,
+    }),
+    invalidGitRef: (ref: string) => ({
+        errorCode: 'INVALID_GIT_REF',
+        message: `Invalid git reference: "${ref}". Git refs cannot start with '-'.`,
     }),
 }));
 vi.mock('@/actions', () => ({

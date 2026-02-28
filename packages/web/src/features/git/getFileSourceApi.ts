@@ -2,12 +2,13 @@ import { sew } from '@/actions';
 import { getBrowsePath } from '@/app/[domain]/browse/hooks/utils';
 import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
 import { detectLanguageFromFilename } from '@/lib/languageDetection';
-import { ServiceError, notFound, fileNotFound, unexpectedError } from '@/lib/serviceError';
+import { ServiceError, notFound, fileNotFound, invalidGitRef, unexpectedError } from '@/lib/serviceError';
 import { getCodeHostBrowseFileAtBranchUrl } from '@/lib/utils';
 import { withOptionalAuthV2 } from '@/withAuthV2';
 import { getRepoPath } from '@sourcebot/shared';
 import simpleGit from 'simple-git';
 import z from 'zod';
+import { isGitRefValid, isPathValid } from './utils';
 import { CodeHostType } from '@sourcebot/db';
 
 export const fileSourceRequestSchema = z.object({
@@ -36,6 +37,14 @@ export const getFileSource = async ({ path: filePath, repo: repoName, ref }: Fil
     });
     if (!repo) {
         return notFound(`Repository "${repoName}" not found.`);
+    }
+
+    if (!isPathValid(filePath)) {
+        return fileNotFound(filePath, repoName);
+    }
+
+    if (ref !== undefined && !isGitRefValid(ref)) {
+        return invalidGitRef(ref);
     }
 
     const { path: repoPath } = getRepoPath(repo);

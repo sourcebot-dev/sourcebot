@@ -1,11 +1,11 @@
 import { sew } from '@/actions';
-import { notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
+import { invalidGitRef, notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { getRepoPath } from '@sourcebot/shared';
 import simpleGit from 'simple-git';
 import z from 'zod';
 import { fileTreeNodeSchema } from './types';
-import { buildFileTree, isPathValid, logger, normalizePath } from './utils';
+import { buildFileTree, isGitRefValid, isPathValid, logger, normalizePath } from './utils';
 
 export const getTreeRequestSchema = z.object({
     repoName: z.string(),
@@ -35,6 +35,10 @@ export const getTree = async ({ repoName, revisionName, paths }: GetTreeRequest)
 
         if (!repo) {
             return notFound(`Repository "${repoName}" not found.`);
+        }
+
+        if (!isGitRefValid(revisionName)) {
+            return invalidGitRef(revisionName);
         }
 
         const { path: repoPath } = getRepoPath(repo);

@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped `glob` transitive dependency to `^10.5.0` via scoped yarn resolutions. [#962](https://github.com/sourcebot-dev/sourcebot/pull/962)
 - Bumped `@react-email/preview-server` to `5.2.8`. [#961](https://github.com/sourcebot-dev/sourcebot/pull/961)
 
+### Fixed
+- Validate `ref` and `path` inputs in git API routes to reject values that could affect git command behavior. [#965](https://github.com/sourcebot-dev/sourcebot/pull/965)
+
 ## [4.13.0] - 2026-02-27
 
 ### Added
