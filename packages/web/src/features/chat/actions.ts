@@ -14,7 +14,7 @@ import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { createMistral } from '@ai-sdk/mistral';
 import { createOpenAI, OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
+import { LanguageModelV3 as AISDKLanguageModelV3 } from "@ai-sdk/provider";
 import { createXai } from '@ai-sdk/xai';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
@@ -721,13 +721,13 @@ export const _getConfiguredLanguageModelsFull = async (): Promise<LanguageModel[
 }
 
 export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel): Promise<{
-    model: AISDKLanguageModelV2,
+    model: AISDKLanguageModelV3,
     providerOptions?: Record<string, Record<string, JSONValue>>,
 }> => {
     const { provider, model: modelId } = config;
 
     const { model: _model, providerOptions } = await (async (): Promise<{
-        model: AISDKLanguageModelV2,
+        model: AISDKLanguageModelV3,
         providerOptions?: Record<string, Record<string, JSONValue>>,
     }> => {
         switch (provider) {
@@ -841,7 +841,7 @@ export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel): P
                 return {
                     model: vertex(modelId),
                     providerOptions: {
-                        google: {
+                        vertex: {
                             thinkingConfig: {
                                 thinkingBudget: env.GOOGLE_VERTEX_THINKING_BUDGET_TOKENS,
                                 includeThoughts: env.GOOGLE_VERTEX_INCLUDE_THOUGHTS === 'true',
