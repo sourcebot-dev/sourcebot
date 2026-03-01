@@ -8,7 +8,7 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuthV2 } from "@/withAuthV2";
-import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
+import { LanguageModelV3 as AISDKLanguageModelV3 } from "@ai-sdk/provider";
 import * as Sentry from "@sentry/nextjs";
 import { createLogger, env } from "@sourcebot/shared";
 import { captureEvent } from "@/lib/posthog";
@@ -167,7 +167,7 @@ interface CreateMessageStreamResponseProps {
     chatId: string;
     messages: SBChatMessage[];
     selectedRepos: string[];
-    model: AISDKLanguageModelV2;
+    model: AISDKLanguageModelV3;
     modelName: string;
     onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;
     onError: (error: unknown) => string;
