@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Upgraded Vercel AI SDK from v5 to v6 (`ai`, all `@ai-sdk/*` packages, `@openrouter/ai-sdk-provider`). [#969](https://github.com/sourcebot-dev/sourcebot/pull/969)
+- Upgraded Vercel AI SDK from v5 to v6. [#969](https://github.com/sourcebot-dev/sourcebot/pull/969)
 
 ## [4.13.1] - 2026-02-28
 
