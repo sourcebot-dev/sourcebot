@@ -118,7 +118,6 @@ export default async function Image({ params }: ImageProps) {
                         }}
                     >
                         {/* Avatar */}
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src={creatorImage ?? `${env.AUTH_URL}/placeholder_avatar.png`}
                             alt="Avatar"
@@ -165,7 +164,6 @@ export default async function Image({ params }: ImageProps) {
                         >
                             sourcebot.dev
                         </span>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src={`${env.AUTH_URL}/sb_logo_dark_small.png`}
                             alt="Sourcebot"

@@ -38,6 +38,7 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
     traceId,
 }, forwardedRef) => {
     const markdownRendererRef = useRef<HTMLDivElement>(null);
+    // eslint-disable-next-line react-hooks/refs -- ref.current is passed to a custom hook, not used directly in render output
     const { tocItems, activeId } = useExtractTOCItems({ target: markdownRendererRef.current });
     const [isTOCButtonToggled, setIsTOCButtonToggled] = useState(false);
     const { toast } = useToast();
