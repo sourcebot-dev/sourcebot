@@ -26,9 +26,9 @@ export async function register() {
         await import('../sentry.edge.config');
     }
 
-    // if (process.env.NEXT_RUNTIME === 'nodejs') {
-    //     await import('./initialize');
-    // }
+    if (process.env.NEXT_RUNTIME === 'nodejs') {
+        await import('./initialize');
+    }
 }
 
 export const onRequestError = Sentry.captureRequestError;
