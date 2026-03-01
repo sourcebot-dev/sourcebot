@@ -89,8 +89,13 @@ For a detailed description of all the providers, please refer to the [schema](ht
             "provider": "anthropic",
             "model": "YOUR_MODEL_HERE",
             "displayName": "OPTIONAL_DISPLAY_NAME",
+            // Auth can be provided via a API key that is sent using the `x-api-key` header...
             "token": {
                 "env": "ANTHROPIC_API_KEY"
+            },
+            // ...or via a auth token sent using the `Authorization: Bearer` header.
+            "authToken": {
+                "env": "ANTHROPIC_AUTH_TOKEN"
             },
             "baseUrl": "OPTIONAL_BASE_URL"
         }
