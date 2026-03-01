@@ -33,6 +33,7 @@ export const TrialIndicator = ({ subscription }: Props) => {
             <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full text-blue-700 dark:text-blue-400 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors cursor-pointer">
                 <span className="inline-block w-2 h-2 bg-blue-400 dark:bg-blue-500 rounded-full"></span>
                 <span>
+                    {/* eslint-disable-next-line react-hooks/purity -- Date.now() during render is intentional for displaying remaining trial days */}
                     {Math.ceil((subscription.nextBillingDate * 1000 - Date.now()) / (1000 * 60 * 60 * 24))} days left in trial
                 </span>
             </div>
