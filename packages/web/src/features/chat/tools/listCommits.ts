@@ -4,9 +4,10 @@ import { isServiceError } from "@/lib/utils";
 import { listCommits } from "@/features/git";
 import { toolNames } from "../constants";
 import { logger } from "../logger";
+import description from './listCommits.txt';
 
 export const listCommitsTool = tool({
-    description: 'Lists commits in a repository with optional filtering by date range, author, and commit message.',
+    description,
     inputSchema: z.object({
         repository: z.string().describe("The repository to list commits from"),
         query: z.string().describe("Search query to filter commits by message (case-insensitive)").optional(),

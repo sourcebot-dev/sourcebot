@@ -8,9 +8,9 @@
 //
 // - bk, 2025-07-25
 
-export * from "./findSymbolReferencesTool";
-export * from "./findSymbolDefinitionsTool";
-export * from "./readFilesTool";
-export * from "./searchCodeTool";
-export * from "./listReposTool";
-export * from "./listCommitsTool";
+export * from "./findSymbolReferences";
+export * from "./findSymbolDefinitions";
+export * from "./readFiles";
+export * from "./searchCode";
+export * from "./listRepos";
+export * from "./listCommits";

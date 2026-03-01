@@ -5,9 +5,10 @@ import { findSearchBasedSymbolDefinitions } from "../../codeNav/api";
 import { addLineNumbers } from "../utils";
 import { toolNames } from "../constants";
 import { logger } from "../logger";
+import description from './findSymbolDefinitions.txt';
 
 export const findSymbolDefinitionsTool = tool({
-    description: `Finds definitions of a symbol in the codebase.`,
+    description,
     inputSchema: z.object({
         symbol: z.string().describe("The symbol to find definitions of"),
         language: z.string().describe("The programming language of the symbol"),

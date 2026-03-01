@@ -6,11 +6,12 @@ import { addLineNumbers } from "../utils";
 import { toolNames } from "../constants";
 import { logger } from "../logger";
 import escapeStringRegexp from "escape-string-regexp";
+import description from './searchCode.txt';
 
 const DEFAULT_SEARCH_LIMIT = 100;
 
 export const createCodeSearchTool = (selectedRepos: string[]) => tool({
-    description: `Searches for code that matches the provided search query as a substring by default, or as a regular expression if useRegex is true. Useful for exploring remote repositories by searching for exact symbols, functions, variables, or specific code patterns. To determine if a repository is indexed, use the \`listRepos\` tool. By default, searches are global and will search the default branch of all repositories. Searches can be scoped to specific repositories, languages, and branches.`,
+    description,
     inputSchema: z.object({
         query: z
             .string()

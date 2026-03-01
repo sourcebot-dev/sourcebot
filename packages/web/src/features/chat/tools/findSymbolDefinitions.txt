@@ -1,0 +1,1 @@
+Finds definitions of a symbol in the codebase.

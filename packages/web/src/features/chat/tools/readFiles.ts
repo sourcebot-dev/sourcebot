@@ -6,10 +6,13 @@ import { getFileSource } from "@/features/git";
 import { addLineNumbers } from "../utils";
 import { toolNames } from "../constants";
 import { logger } from "../logger";
+import description from './readFiles.txt';
+
+// NOTE: if you change this value, update readFiles.txt to match.
 const READ_FILES_MAX_LINES = 500;
 
 export const readFilesTool = tool({
-    description: `Reads the contents of one or more files. Use offset/limit to read a specific portion, which is strongly preferred for large files when only a specific section is needed. Maximum ${READ_FILES_MAX_LINES} lines per file.`,
+    description,
     inputSchema: z.object({
         files: z.array(z.object({
             path: z.string().describe("The path to the file"),

@@ -5,9 +5,10 @@ import { ListReposQueryParams } from "@/lib/types";
 import { listRepos } from "@/app/api/(server)/repos/listReposApi";
 import { toolNames } from "../constants";
 import { logger } from "../logger";
+import description from './listRepos.txt';
 
 export const listReposTool = tool({
-    description: 'Lists repositories in the organization with optional filtering and pagination.',
+    description,
     inputSchema: listReposQueryParamsSchema,
     execute: async (request: ListReposQueryParams) => {
         logger.debug('listRepos', request);
