@@ -16,7 +16,7 @@ export const ReadFilesToolComponent = ({ part }: { part: ReadFilesToolUIPart }) 
             case 'input-streaming':
                 return 'Reading...';
             case 'input-available':
-                return `Reading ${part.input.paths.length} file${part.input.paths.length === 1 ? '' : 's'}...`;
+                return `Reading ${part.input.files.length} file${part.input.files.length === 1 ? '' : 's'}...`;
             case 'output-error':
                 return 'Tool call failed';
             case 'output-available':

@@ -2,17 +2,16 @@ import { getFileSource } from '@/features/git';
 import { isServiceError } from "@/lib/utils";
 import { captureEvent } from "@/lib/posthog";
 import { ProviderOptions } from "@ai-sdk/provider-utils";
-import { createLogger, env } from "@sourcebot/shared";
+import { env } from "@sourcebot/shared";
 import { LanguageModel, ModelMessage, StopCondition, streamText } from "ai";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, toolNames } from "./constants";
 import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, listReposTool, listCommitsTool, readFilesTool } from "./tools";
 import { Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
 import _dedent from "dedent";
+import { logger } from "./logger";
 
 const dedent = _dedent.withOptions({ alignValues: true });
-
-const logger = createLogger('chat-agent');
 
 interface AgentOptions {
     model: LanguageModel;
