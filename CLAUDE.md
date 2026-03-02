@@ -182,6 +182,21 @@ export const GET = apiHandler(async (request: NextRequest) => {
 });
 ```
 
+## Next.js Router Navigation
+
+Do NOT call `router.refresh()` immediately after `router.push()`. In Next.js 16, the prefetch cache and navigation system was completely rewritten, and calling `router.refresh()` right after `router.push()` creates a race condition — the refresh invalidates the cache and can interrupt the in-flight navigation, leaving the page stuck or not loading.
+
+```ts
+// Bad - router.refresh() races with router.push() in Next.js 16
+router.push(url);
+router.refresh(); // ❌ can cancel the navigation
+
+// Good - if navigating to a new route, the page will fetch fresh data on load
+router.push(url); // ✅
+```
+
+If you need to refresh server component data after a mutation, use the server-side `refresh()` from `next/cache` in a Server Action instead of `router.refresh()` on the client.
+
 ## Docs Images
 
 Images added to `.mdx` files in `docs/` should be wrapped in a `<Frame>` component:

@@ -115,7 +115,6 @@ export const ChatSidePanel = ({
                 router.push(`/${SINGLE_TENANT_ORG_DOMAIN}/chat`);
             }
 
-            router.refresh();
             return true;
         }
     }, [chatId, router, toast]);
