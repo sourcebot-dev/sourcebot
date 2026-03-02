@@ -96,8 +96,10 @@ export class RepoIndexManager {
         });
     }
 
-    public startScheduler() {
+    public async startScheduler() {
         logger.debug('Starting scheduler');
+        // Cleanup any orphaned disk resources on startup
+        await this.cleanupOrphanedDiskResources();
         this.interval = setIntervalAsync(async () => {
             await this.scheduleIndexJobs();
             await this.scheduleCleanupJobs();
@@ -170,8 +172,6 @@ export class RepoIndexManager {
     }
 
     private async scheduleCleanupJobs() {
-        await this.cleanupOrphanedDiskResources();
-
         const gcGracePeriodMs = new Date(Date.now() - this.settings.repoGarbageCollectionGracePeriodMs);
         const timeoutDate = new Date(Date.now() - this.settings.repoIndexTimeoutMs);
 
@@ -647,17 +647,26 @@ export class RepoIndexManager {
         // Dirs are named by repoId: DATA_CACHE_DIR/repos/<repoId>/
         if (existsSync(REPOS_CACHE_DIR)) {
             const entries = await readdir(REPOS_CACHE_DIR);
+            const repoIdToPath = new Map<number, string>();
             for (const entry of entries) {
                 const repoPath = `${REPOS_CACHE_DIR}/${entry}`;
                 const repoId = getRepoIdFromPath(repoPath);
-                if (repoId === undefined) {
-                    continue;
+                if (repoId !== undefined) {
+                    repoIdToPath.set(repoId, repoPath);
                 }
+            }
 
-                const repo = await this.db.repo.findUnique({ where: { id: repoId } });
-                if (!repo) {
-                    logger.info(`Removing orphaned repo directory with no DB record: ${repoPath}`);
-                    await rm(repoPath, { recursive: true, force: true });
+            if (repoIdToPath.size > 0) {
+                const existingRepos = await this.db.repo.findMany({
+                    where: { id: { in: [...repoIdToPath.keys()] } },
+                    select: { id: true },
+                });
+                const existingIds = new Set(existingRepos.map(r => r.id));
+                for (const [repoId, repoPath] of repoIdToPath) {
+                    if (!existingIds.has(repoId)) {
+                        logger.info(`Removing orphaned repo directory with no DB record: ${repoPath}`);
+                        await rm(repoPath, { recursive: true, force: true });
+                    }
                 }
             }
         }
@@ -666,16 +675,30 @@ export class RepoIndexManager {
         // Shard files are prefixed with <orgId>_<repoId>: DATA_CACHE_DIR/index/<orgId>_<repoId>_*.zoekt
         if (existsSync(INDEX_CACHE_DIR)) {
             const entries = await readdir(INDEX_CACHE_DIR);
+            const repoIdToShards = new Map<number, string[]>();
             for (const entry of entries) {
                 const repoId = getRepoIdFromShardFileName(entry);
-                if (repoId === undefined) {
-                    continue;
+                if (repoId !== undefined) {
+                    const shards = repoIdToShards.get(repoId) ?? [];
+                    shards.push(entry);
+                    repoIdToShards.set(repoId, shards);
                 }
-                const repo = await this.db.repo.findUnique({ where: { id: repoId } });
-                if (!repo) {
-                    const shardPath = `${INDEX_CACHE_DIR}/${entry}`;
-                    logger.info(`Removing orphaned index shard with no DB record: ${shardPath}`);
-                    await rm(shardPath, { force: true });
+            }
+
+            if (repoIdToShards.size > 0) {
+                const existingRepos = await this.db.repo.findMany({
+                    where: { id: { in: [...repoIdToShards.keys()] } },
+                    select: { id: true },
+                });
+                const existingIds = new Set(existingRepos.map(r => r.id));
+                for (const [repoId, shards] of repoIdToShards) {
+                    if (!existingIds.has(repoId)) {
+                        for (const entry of shards) {
+                            const shardPath = `${INDEX_CACHE_DIR}/${entry}`;
+                            logger.info(`Removing orphaned index shard with no DB record: ${shardPath}`);
+                            await rm(shardPath, { force: true });
+                        }
+                    }
                 }
             }
         }

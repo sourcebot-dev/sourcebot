@@ -66,7 +66,7 @@ const repoIndexManager = new RepoIndexManager(prisma, settings, redis, promClien
 const configManager = new ConfigManager(prisma, connectionManager, env.CONFIG_PATH);
 
 connectionManager.startScheduler();
-repoIndexManager.startScheduler();
+await repoIndexManager.startScheduler();
 
 if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && !hasEntitlement('permission-syncing')) {
     logger.error('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
