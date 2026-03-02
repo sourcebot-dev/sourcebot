@@ -165,9 +165,11 @@ export const SearchResultsPage = ({
         const url = createPathWithQueryParams(`/${domain}/search`,
             [SearchQueryParams.query, searchQuery],
             [SearchQueryParams.matches, `${maxMatchCount * 2}`],
+            [SearchQueryParams.isRegexEnabled, isRegexEnabled ? "true" : null],
+            [SearchQueryParams.isCaseSensitivityEnabled, isCaseSensitivityEnabled ? "true" : null],
         )
         router.push(url);
-    }, [maxMatchCount, router, searchQuery, domain]);
+    }, [maxMatchCount, router, searchQuery, domain, isRegexEnabled, isCaseSensitivityEnabled]);
 
     
     return (
