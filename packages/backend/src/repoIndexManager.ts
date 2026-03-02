@@ -1,18 +1,18 @@
 import * as Sentry from '@sentry/node';
 import { PrismaClient, Repo, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
-import { createLogger, env, getRepoPath, Logger, RepoIndexingJobMetadata, repoIndexingJobMetadataSchema, RepoMetadata, repoMetadataSchema } from "@sourcebot/shared";
+import { createLogger, env, getRepoPath, Logger, getRepoIdFromPath, RepoIndexingJobMetadata, repoIndexingJobMetadataSchema, RepoMetadata, repoMetadataSchema } from "@sourcebot/shared";
 import { DelayedError, Job, Queue, Worker } from "bullmq";
 import { existsSync } from 'fs';
 import { readdir, rm } from 'fs/promises';
 import { Redis } from 'ioredis';
 import micromatch from 'micromatch';
 import Redlock, { ExecutionError } from 'redlock';
-import { INDEX_CACHE_DIR, WORKER_STOP_GRACEFUL_TIMEOUT_MS } from './constants.js';
+import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, WORKER_STOP_GRACEFUL_TIMEOUT_MS } from './constants.js';
 import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLatestCommitTimestamp, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, isRepoEmpty, unsetGitConfig, upsertGitConfig } from './git.js';
 import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
 import { RepoWithConnections, Settings } from "./types.js";
-import { getAuthCredentialsForRepo, getShardPrefix, measure, setIntervalAsync } from './utils.js';
+import { getAuthCredentialsForRepo, getRepoIdFromShardFileName, getShardPrefix, measure, setIntervalAsync } from './utils.js';
 import { cleanupTempShards, indexGitRepository } from './zoekt.js';
 
 const LOG_TAG = 'repo-index-manager';
@@ -170,6 +170,8 @@ export class RepoIndexManager {
     }
 
     private async scheduleCleanupJobs() {
+        await this.cleanupOrphanedDiskResources();
+
         const gcGracePeriodMs = new Date(Date.now() - this.settings.repoGarbageCollectionGracePeriodMs);
         const timeoutDate = new Date(Date.now() - this.settings.repoIndexTimeoutMs);
 
@@ -634,6 +636,48 @@ export class RepoIndexManager {
         } catch (err) {
             Sentry.captureException(err);
             logger.error(`Exception thrown while executing lifecycle function \`onJobMaybeFailed\`.`, err);
+        }
+    }
+
+    // Scans the repos and index directories on disk and removes any entries
+    // that have no corresponding Repo record in the database. This handles
+    // edge cases where the DB and disk resources are out of sync.
+    private async cleanupOrphanedDiskResources() {
+        // --- Repo directories ---
+        // Dirs are named by repoId: DATA_CACHE_DIR/repos/<repoId>/
+        if (existsSync(REPOS_CACHE_DIR)) {
+            const entries = await readdir(REPOS_CACHE_DIR);
+            for (const entry of entries) {
+                const repoPath = `${REPOS_CACHE_DIR}/${entry}`;
+                const repoId = getRepoIdFromPath(repoPath);
+                if (repoId === undefined) {
+                    continue;
+                }
+
+                const repo = await this.db.repo.findUnique({ where: { id: repoId } });
+                if (!repo) {
+                    logger.info(`Removing orphaned repo directory with no DB record: ${repoPath}`);
+                    await rm(repoPath, { recursive: true, force: true });
+                }
+            }
+        }
+
+        // --- Index shards ---
+        // Shard files are prefixed with <orgId>_<repoId>: DATA_CACHE_DIR/index/<orgId>_<repoId>_*.zoekt
+        if (existsSync(INDEX_CACHE_DIR)) {
+            const entries = await readdir(INDEX_CACHE_DIR);
+            for (const entry of entries) {
+                const repoId = getRepoIdFromShardFileName(entry);
+                if (repoId === undefined) {
+                    continue;
+                }
+                const repo = await this.db.repo.findUnique({ where: { id: repoId } });
+                if (!repo) {
+                    const shardPath = `${INDEX_CACHE_DIR}/${entry}`;
+                    logger.info(`Removing orphaned index shard with no DB record: ${shardPath}`);
+                    await rm(shardPath, { force: true });
+                }
+            }
         }
     }
 

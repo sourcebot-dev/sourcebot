@@ -87,6 +87,11 @@ export const getConfigSettings = async (configPath?: string): Promise<ConfigSett
     }
 }
 
+export const getRepoIdFromPath = (repoPath: string): number | undefined => {
+    const id = parseInt(path.basename(repoPath), 10);
+    return isNaN(id) ? undefined : id;
+}
+
 export const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } => {
     // If we are dealing with a local repository, then use that as the path.
     // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.

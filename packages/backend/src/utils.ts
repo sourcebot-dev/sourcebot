@@ -57,6 +57,14 @@ export const getShardPrefix = (orgId: number, repoId: number) => {
     return `${orgId}_${repoId}`;
 }
 
+export const getRepoIdFromShardFileName = (fileName: string): number | undefined => {
+    const match = fileName.match(/^(\d+)_(\d+)_/);
+    if (!match) {
+        return undefined;
+    }
+    return parseInt(match[2], 10);
+}
+
 export const fetchWithRetry = async <T>(
     fetchFn: () => Promise<T>,
     identifier: string,
