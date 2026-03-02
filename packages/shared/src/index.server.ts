@@ -24,6 +24,7 @@ export {
     loadJsonFile,
     getConfigSettings,
     getRepoPath,
+    getRepoIdFromPath,
 } from "./utils.js";
 export * from "./constants.js";
 export {

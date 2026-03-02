@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Preserve regex and case sensitivity query parameters when loading more search results. [#972](https://github.com/sourcebot-dev/sourcebot/pull/972)
 - Fixed page navigation failing after Next.js 16 upgrade by removing `router.refresh()` calls immediately following `router.push()`. [#974](https://github.com/sourcebot-dev/sourcebot/pull/974)
+- Add filesystem-first GC scan to remove orphaned repo directories and index shards that have no corresponding database record. [#973](https://github.com/sourcebot-dev/sourcebot/pull/973)
+
 
 ## [4.13.1] - 2026-02-28
 
