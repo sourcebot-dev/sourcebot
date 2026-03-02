@@ -68,7 +68,6 @@ export const InviteMemberCard = ({ currentUserRole, isBillingEnabled, seatsAvail
                 } else {
                     form.reset();
                     router.push(`?tab=invites`);
-                    router.refresh();
                     toast({
                         description: `✅ Successfully invited ${data.emails.length} members`
                     });

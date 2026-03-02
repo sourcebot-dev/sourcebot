@@ -61,7 +61,6 @@ export const ChatName = ({ name, id, isOwner = false, isAuthenticated = false }:
                 description: `✅ Chat deleted successfully`
             });
             router.push(`/${SINGLE_TENANT_ORG_DOMAIN}/chat`);
-            router.refresh();
             return true;
         }
     }, [id, toast, router]);

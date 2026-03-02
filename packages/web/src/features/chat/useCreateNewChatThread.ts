@@ -54,7 +54,6 @@ export const useCreateNewChatThread = ({ isAuthenticated = false }: UseCreateNew
         const url = createPathWithQueryParams(`/${SINGLE_TENANT_ORG_DOMAIN}/chat/${response.id}`);
 
         router.push(url);
-        router.refresh();
     }, [router, toast, setChatState]);
 
     const createNewChatThread = useCallback(async (children: Descendant[], selectedSearchScopes: SearchScope[]) => {
