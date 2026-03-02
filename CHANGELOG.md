@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for using bearer tokens with anthropic. [#967](https://github.com/sourcebot-dev/sourcebot/pull/967)
 - Updated to Next.JS 16. [#970](https://github.com/sourcebot-dev/sourcebot/pull/970)
 
+### Fixed
+- Preserve regex and case sensitivity query parameters when loading more search results. [#972](https://github.com/sourcebot-dev/sourcebot/pull/972)
+
 ## [4.13.1] - 2026-02-28
 
 ### Changed
