@@ -95,15 +95,13 @@ export const createAgentStream = async ({
                 }
 
                 if (toolName === toolNames.readFile) {
-                    output.forEach((file) => {
-                        onWriteSource({
-                            type: 'file',
-                            language: file.language,
-                            repo: file.repository,
-                            path: file.path,
-                            revision: file.revision,
-                            name: file.path.split('/').pop() ?? file.path,
-                        });
+                    onWriteSource({
+                        type: 'file',
+                        language: output.language,
+                        repo: output.repository,
+                        path: output.path,
+                        revision: output.revision,
+                        name: output.path.split('/').pop() ?? output.path,
                     });
                 } else if (toolName === toolNames.searchCode) {
                     output.files.forEach((file) => {

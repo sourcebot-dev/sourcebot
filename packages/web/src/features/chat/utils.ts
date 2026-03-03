@@ -173,7 +173,7 @@ export const resetEditor = (editor: CustomEditor) => {
 }
 
 export const addLineNumbers = (source: string, lineOffset = 1) => {
-    return source.split('\n').map((line, index) => `${index + lineOffset}:${line}`).join('\n');
+    return source.split('\n').map((line, index) => `${index + lineOffset}: ${line}`).join('\n');
 }
 
 export const createUIMessage = (text: string, mentions: MentionData[], selectedSearchScopes: SearchScope[]): CreateUIMessage<SBChatMessage> => {

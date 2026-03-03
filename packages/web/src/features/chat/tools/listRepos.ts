@@ -15,7 +15,7 @@ export const listReposTool = tool({
         const reposResponse = await listRepos(request);
 
         if (isServiceError(reposResponse)) {
-            return reposResponse;
+            throw new Error(reposResponse.message);
         }
 
         return reposResponse.data.map((repo) => repo.repoName);

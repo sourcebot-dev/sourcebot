@@ -27,7 +27,7 @@ export const findSymbolDefinitionsTool = tool({
         });
 
         if (isServiceError(response)) {
-            return response;
+            throw new Error(response.message);
         }
 
         return response.files.map((file) => ({

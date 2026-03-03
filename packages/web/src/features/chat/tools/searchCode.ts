@@ -96,7 +96,7 @@ export const createCodeSearchTool = (selectedRepos: string[]) => tool({
         });
 
         if (isServiceError(response)) {
-            return response;
+            throw new Error(response.message);
         }
 
         return {
