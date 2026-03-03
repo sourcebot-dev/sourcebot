@@ -2,13 +2,13 @@
 
 import { CodeSnippet } from "@/app/components/codeSnippet";
 import { Separator } from "@/components/ui/separator";
-import { ReadFilesToolUIPart } from "@/features/chat/tools";
+import { ReadFileToolUIPart } from "@/features/chat/tools";
 import { isServiceError } from "@/lib/utils";
 import { EyeIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { FileListItem, ToolHeader, TreeList } from "./shared";
 
-export const ReadFilesToolComponent = ({ part }: { part: ReadFilesToolUIPart }) => {
+export const ReadFileToolComponent = ({ part }: { part: ReadFileToolUIPart }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     const label = useMemo(() => {
@@ -16,14 +16,14 @@ export const ReadFilesToolComponent = ({ part }: { part: ReadFilesToolUIPart }) 
             case 'input-streaming':
                 return 'Reading...';
             case 'input-available':
-                return `Reading ${part.input.files.length} file${part.input.files.length === 1 ? '' : 's'}...`;
+                return `Reading ${part.input.path}...`;
             case 'output-error':
                 return 'Tool call failed';
             case 'output-available':
                 if (isServiceError(part.output)) {
-                    return 'Failed to read files';
+                    return 'Failed to read file';
                 }
-                return `Read ${part.output.length} file${part.output.length === 1 ? '' : 's'}`;
+                return `Read ${part.output.path}`;
         }
     }, [part]);
 
@@ -42,15 +42,12 @@ export const ReadFilesToolComponent = ({ part }: { part: ReadFilesToolUIPart }) 
                     <TreeList>
                         {isServiceError(part.output) ? (
                             <span>Failed with the following error: <CodeSnippet className="text-sm text-destructive">{part.output.message}</CodeSnippet></span>
-                        ) : part.output.map((file) => {
-                            return (
-                                <FileListItem
-                                    key={file.path}
-                                    path={file.path}
-                                    repoName={file.repository}
-                                />
-                            )
-                        })}
+                        ) : (
+                            <FileListItem
+                                path={part.output.path}
+                                repoName={part.output.repository}
+                            />
+                        )}
                     </TreeList>
                     <Separator className='ml-[7px] my-2' />
                 </>

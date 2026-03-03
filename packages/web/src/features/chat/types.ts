@@ -3,7 +3,7 @@ import { BaseEditor, Descendant } from "slate";
 import { HistoryEditor } from "slate-history";
 import { ReactEditor, RenderElementProps } from "slate-react";
 import { z } from "zod";
-import { FindSymbolDefinitionsTool, FindSymbolReferencesTool, ReadFilesTool, SearchCodeTool, ListReposTool, ListCommitsTool } from "./tools";
+import { FindSymbolDefinitionsTool, FindSymbolReferencesTool, ReadFileTool, SearchCodeTool, ListReposTool, ListCommitsTool } from "./tools";
 import { toolNames } from "./constants";
 import { LanguageModel } from "@sourcebot/schemas/v3/index.type";
 
@@ -80,7 +80,7 @@ export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;
 
 export type SBChatMessageToolTypes = {
     [toolNames.searchCode]: SearchCodeTool,
-    [toolNames.readFiles]: ReadFilesTool,
+    [toolNames.readFile]: ReadFileTool,
     [toolNames.findSymbolReferences]: FindSymbolReferencesTool,
     [toolNames.findSymbolDefinitions]: FindSymbolDefinitionsTool,
     [toolNames.listRepos]: ListReposTool,

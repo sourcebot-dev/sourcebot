@@ -12,7 +12,7 @@ import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { MarkdownRenderer } from './markdownRenderer';
 import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
-import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
+import { ReadFileToolComponent } from './tools/readFileToolComponent';
 import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
 import { ListReposToolComponent } from './tools/listReposToolComponent';
 import { ListCommitsToolComponent } from './tools/listCommitsToolComponent';
@@ -166,9 +166,9 @@ const DetailsCardComponent = ({
                                                         className="text-sm"
                                                     />
                                                 )
-                                            case 'tool-readFiles':
+                                            case 'tool-readFile':
                                                 return (
-                                                    <ReadFilesToolComponent
+                                                    <ReadFileToolComponent
                                                         key={index}
                                                         part={part}
                                                     />

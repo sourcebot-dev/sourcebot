@@ -1,1 +1,0 @@
-Reads the contents of one or more files. Use offset/limit to read a specific portion, which is strongly preferred for large files when only a specific section is needed. Maximum 500 lines per file.

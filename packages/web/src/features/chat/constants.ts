@@ -11,7 +11,7 @@ export const ANSWER_TAG = '<!--answer-->';
 
 export const toolNames = {
     searchCode: 'searchCode',
-    readFiles: 'readFiles',
+    readFile: 'readFile',
     findSymbolReferences: 'findSymbolReferences',
     findSymbolDefinitions: 'findSymbolDefinitions',
     listRepos: 'listRepos',
@@ -23,7 +23,7 @@ export const uiVisiblePartTypes: SBChatMessagePart['type'][] = [
     'reasoning',
     'text',
     'tool-searchCode',
-    'tool-readFiles',
+    'tool-readFile',
     'tool-findSymbolDefinitions',
     'tool-findSymbolReferences',
     'tool-listRepos',

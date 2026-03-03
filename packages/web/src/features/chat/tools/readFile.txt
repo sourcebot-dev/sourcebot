@@ -1,0 +1,1 @@
+Reads the contents of a file. Use offset/limit to read a specific portion, which is strongly preferred for large files when only a specific section is needed. Maximum 500 lines per call. To read multiple files, call this tool in parallel.
