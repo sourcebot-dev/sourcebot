@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { LayoutClient } from "./layoutClient";
-import { getConfiguredLanguageModelsInfo } from "@/features/chat/actions";
+import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 
 interface LayoutProps {
     children: React.ReactNode;

@@ -1,6 +1,6 @@
 import { sew } from "@/actions";
+import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { apiHandler } from "@/lib/apiHandler";
-import { getConfiguredLanguageModelsInfo } from "@/features/chat/actions";
 import { serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuthV2 } from "@/withAuthV2";
