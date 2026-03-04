@@ -2,7 +2,7 @@ import { env } from "@sourcebot/shared";
 import { SearchLandingPage } from "./components/searchLandingPage";
 import { SearchResultsPage } from "./components/searchResultsPage";
 import { auth } from "@/auth";
-import { getConfiguredLanguageModelsInfo } from "@/features/chat/actions";
+import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 
 interface SearchPageProps {
     params: Promise<{ domain: string }>;

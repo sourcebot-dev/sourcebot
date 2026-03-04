@@ -3818,7 +3818,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/sdk@npm:^1.26.0":
+"@modelcontextprotocol/sdk@npm:^1.26.0, @modelcontextprotocol/sdk@npm:^1.27.1":
   version: 1.27.1
   resolution: "@modelcontextprotocol/sdk@npm:1.27.1"
   dependencies:
@@ -8828,6 +8828,7 @@ __metadata:
     "@hookform/resolvers": "npm:^3.9.0"
     "@iconify/react": "npm:^5.1.0"
     "@iizukak/codemirror-lang-wgsl": "npm:^0.3.0"
+    "@modelcontextprotocol/sdk": "npm:^1.27.1"
     "@openrouter/ai-sdk-provider": "npm:^2.2.3"
     "@opentelemetry/api-logs": "npm:^0.203.0"
     "@opentelemetry/instrumentation": "npm:^0.203.0"

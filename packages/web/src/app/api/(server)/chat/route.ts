@@ -1,28 +1,19 @@
 import { sew } from "@/actions";
-import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, _updateChatMessages, _isOwnerOfChat } from "@/features/chat/actions";
-import { createAgentStream } from "@/features/chat/agent";
-import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SBChatMessageMetadata } from "@/features/chat/types";
-import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
+import { createMessageStream } from "@/features/chat/agent";
+import { additionalChatRequestParamsSchema } from "@/features/chat/types";
+import { getLanguageModelKey } from "@/features/chat/utils";
+import { getAISDKLanguageModelAndOptions, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
+import { captureEvent } from "@/lib/posthog";
 import { notFound, requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuthV2 } from "@/withAuthV2";
-import { LanguageModelV3 as AISDKLanguageModelV3 } from "@ai-sdk/provider";
 import * as Sentry from "@sentry/nextjs";
 import { createLogger, env } from "@sourcebot/shared";
-import { captureEvent } from "@/lib/posthog";
 import {
-    createUIMessageStream,
-    createUIMessageStreamResponse,
-    JSONValue,
-    ModelMessage,
-    StreamTextResult,
-    UIMessageStreamOnFinishCallback,
-    UIMessageStreamOptions,
-    UIMessageStreamWriter
+    createUIMessageStreamResponse
 } from "ai";
-import { randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
 import { z } from "zod";
@@ -46,7 +37,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
     // @note: a bit of type massaging is required here since the
     // zod schema does not enum on `model` or `provider`.
     // @see: chat/types.ts
-    const languageModel = _languageModel as LanguageModelInfo;
+    const languageModel = _languageModel;
 
     const response = await sew(() =>
         withOptionalAuthV2(async ({ org, user, prisma }) => {
@@ -63,7 +54,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
             }
 
             // Check ownership - only the owner can send messages
-            const isOwner = await _isOwnerOfChat(chat, user);
+            const isOwner = await isOwnerOfChat(chat, user);
             if (!isOwner) {
                 return {
                     statusCode: StatusCodes.FORBIDDEN,
@@ -75,7 +66,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
             // From the language model ID, attempt to find the
             // corresponding config in `config.json`.
             const languageModelConfig =
-                (await _getConfiguredLanguageModelsFull())
+                (await getConfiguredLanguageModels())
                     .find((model) => getLanguageModelKey(model) === getLanguageModelKey(languageModel));
 
             if (!languageModelConfig) {
@@ -86,7 +77,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 } satisfies ServiceError;
             }
 
-            const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
+            const { model, providerOptions } = await getAISDKLanguageModelAndOptions(languageModelConfig);
 
             const expandedRepos = (await Promise.all(selectedSearchScopes.map(async (scope) => {
                 if (scope.type === 'repo') return [scope.value];
@@ -118,7 +109,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                 modelProviderOptions: providerOptions,
                 onFinish: async ({ messages }) => {
-                    await _updateChatMessages({ chatId: id, messages, prisma });
+                    await updateChatMessages({ chatId: id, messages, prisma });
                 },
                 onError: (error: unknown) => {
                     logger.error(error);
@@ -152,122 +143,3 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
     return response;
 });
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMessageStreamWriter<SBChatMessage>, options: UIMessageStreamOptions<SBChatMessage> = {}) => {
-    await new Promise<void>((resolve) => writer.merge(stream.toUIMessageStream({
-        ...options,
-        onFinish: async () => {
-            resolve();
-        }
-    })));
-}
-
-interface CreateMessageStreamResponseProps {
-    chatId: string;
-    messages: SBChatMessage[];
-    selectedRepos: string[];
-    model: AISDKLanguageModelV3;
-    modelName: string;
-    onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;
-    onError: (error: unknown) => string;
-    modelProviderOptions?: Record<string, Record<string, JSONValue>>;
-    metadata?: Partial<SBChatMessageMetadata>;
-}
-
-export const createMessageStream = async ({
-    chatId,
-    messages,
-    metadata,
-    selectedRepos,
-    model,
-    modelName,
-    modelProviderOptions,
-    onFinish,
-    onError,
-}: CreateMessageStreamResponseProps) => {
-    const latestMessage = messages[messages.length - 1];
-    const sources = latestMessage.parts
-        .filter((part) => part.type === 'data-source')
-        .map((part) => part.data);
-
-    const traceId = randomUUID();
-
-    // Extract user messages and assistant answers.
-    // We will use this as the context we carry between messages.
-    const messageHistory =
-        messages.map((message): ModelMessage | undefined => {
-            if (message.role === 'user') {
-                return {
-                    role: 'user',
-                    content: message.parts[0].type === 'text' ? message.parts[0].text : '',
-                };
-            }
-
-            if (message.role === 'assistant') {
-                const answerPart = getAnswerPartFromAssistantMessage(message, false);
-                if (answerPart) {
-                    return {
-                        role: 'assistant',
-                        content: [answerPart]
-                    }
-                }
-            }
-        }).filter(message => message !== undefined);
-
-    const stream = createUIMessageStream<SBChatMessage>({
-        execute: async ({ writer }) => {
-            writer.write({
-                type: 'start',
-            });
-
-            const startTime = new Date();
-
-            const researchStream = await createAgentStream({
-                model,
-                providerOptions: modelProviderOptions,
-                inputMessages: messageHistory,
-                inputSources: sources,
-                selectedRepos,
-                onWriteSource: (source) => {
-                    writer.write({
-                        type: 'data-source',
-                        data: source,
-                    });
-                },
-                traceId,
-                chatId,
-            });
-
-            await mergeStreamAsync(researchStream, writer, {
-                sendReasoning: true,
-                sendStart: false,
-                sendFinish: false,
-            });
-
-            const totalUsage = await researchStream.totalUsage;
-
-            writer.write({
-                type: 'message-metadata',
-                messageMetadata: {
-                    totalTokens: totalUsage.totalTokens,
-                    totalInputTokens: totalUsage.inputTokens,
-                    totalOutputTokens: totalUsage.outputTokens,
-                    totalResponseTimeMs: new Date().getTime() - startTime.getTime(),
-                    modelName,
-                    traceId,
-                    ...metadata,
-                }
-            });
-
-            writer.write({
-                type: 'finish',
-            });
-        },
-        onError,
-        originalMessages: messages,
-        onFinish,
-    });
-
-    return stream;
-};

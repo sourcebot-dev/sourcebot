@@ -1,7 +1,7 @@
 'use server';
 
 import { sew } from "@/actions";
-import { _getAISDKLanguageModelAndOptions, _getConfiguredLanguageModelsFull } from "@/features/chat/actions";
+import { getConfiguredLanguageModels, getAISDKLanguageModelAndOptions } from "../chat/utils.server";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError } from "@/lib/serviceError";
 import { withOptionalAuthV2 } from "@/withAuthV2";
@@ -26,7 +26,7 @@ ${SEARCH_SYNTAX_DESCRIPTION}
 
 export const translateSearchQuery = async ({ prompt }: { prompt: string }) => sew(() =>
     withOptionalAuthV2(async () => {
-        const models = await _getConfiguredLanguageModelsFull();
+        const models = await getConfiguredLanguageModels();
 
         if (models.length === 0) {
             return {
@@ -36,7 +36,7 @@ export const translateSearchQuery = async ({ prompt }: { prompt: string }) => se
             } satisfies ServiceError;
         }
 
-        const { model } = await _getAISDKLanguageModelAndOptions(models[0]);
+        const { model } = await getAISDKLanguageModelAndOptions(models[0]);
 
         const { object } = await generateObject({
             model,

@@ -284,6 +284,7 @@ export type PosthogEventMap = {
     api_request: {
         path: string;
         source: string;
+        method: string;
     },
 } 
 export type PosthogEvent = keyof PosthogEventMap;

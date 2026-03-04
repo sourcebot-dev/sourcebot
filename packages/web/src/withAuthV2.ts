@@ -115,6 +115,26 @@ export const getAuthenticatedUser = async () => {
         return user ?? undefined;
     }
 
+    // If not, check for a Bearer token in the Authorization header.
+    const authorizationHeader = (await headers()).get("Authorization") ?? undefined;
+    if (authorizationHeader?.startsWith("Bearer ")) {
+        const bearerToken = authorizationHeader.slice(7);
+        const apiKey = await getVerifiedApiObject(bearerToken);
+        if (apiKey) {
+            const user = await __unsafePrisma.user.findUnique({
+                where: { id: apiKey.createdById },
+                include: { accounts: true },
+            });
+            if (user) {
+                await __unsafePrisma.apiKey.update({
+                    where: { hash: apiKey.hash },
+                    data: { lastUsedAt: new Date() },
+                });
+                return user;
+            }
+        }
+    }
+
     // If not, check if we have a valid API key.
     const apiKeyString = (await headers()).get("X-Sourcebot-Api-Key") ?? undefined;
     if (apiKeyString) {

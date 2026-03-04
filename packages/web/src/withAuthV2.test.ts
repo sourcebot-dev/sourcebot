@@ -108,6 +108,51 @@ describe('getAuthenticatedUser', () => {
         });
     });
 
+    test('should return a user object if a valid Bearer token is present', async () => {
+        const userId = 'test-user-id';
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.apiKey.findUnique.mockResolvedValue({
+            ...MOCK_API_KEY,
+            hash: 'apikey',
+            createdById: userId,
+        });
+
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-apikey' }));
+        const user = await getAuthenticatedUser();
+        expect(user).not.toBeUndefined();
+        expect(user?.id).toBe(userId);
+        expect(prisma.apiKey.update).toHaveBeenCalledWith({
+            where: {
+                hash: 'apikey',
+            },
+            data: {
+                lastUsedAt: expect.any(Date),
+            },
+        });
+    });
+
+    test('should return undefined if a Bearer token is present but the API key does not exist', async () => {
+        prisma.apiKey.findUnique.mockResolvedValue(null);
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-apikey' }));
+        const user = await getAuthenticatedUser();
+        expect(user).toBeUndefined();
+    });
+
+    test('should return undefined if a Bearer token is present but the user is not found', async () => {
+        prisma.user.findUnique.mockResolvedValue(null);
+        prisma.apiKey.findUnique.mockResolvedValue({
+            ...MOCK_API_KEY,
+            hash: 'apikey',
+            createdById: 'test-user-id',
+        });
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-apikey' }));
+        const user = await getAuthenticatedUser();
+        expect(user).toBeUndefined();
+    });
+
     test('should return undefined if no session or api key is present', async () => {
         const user = await getAuthenticatedUser();
         expect(user).toBeUndefined();
@@ -385,6 +430,76 @@ describe('withAuthV2', () => {
         expect(result).toEqual(undefined);
     });
 
+    test('should call the callback with the auth context object if a valid Bearer token is present and the user is a member of the organization', async () => {
+        const userId = 'test-user-id';
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.org.findUnique.mockResolvedValue({
+            ...MOCK_ORG,
+        });
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId: userId,
+            orgId: MOCK_ORG.id,
+            role: OrgRole.MEMBER,
+        });
+        prisma.apiKey.findUnique.mockResolvedValue({
+            ...MOCK_API_KEY,
+            hash: 'apikey',
+            createdById: userId,
+        });
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-apikey' }));
+
+        const cb = vi.fn();
+        const result = await withAuthV2(cb);
+        expect(cb).toHaveBeenCalledWith({
+            user: {
+                ...MOCK_USER_WITH_ACCOUNTS,
+                id: userId,
+            },
+            org: MOCK_ORG,
+            role: OrgRole.MEMBER
+        });
+        expect(result).toEqual(undefined);
+    });
+
+    test('should call the callback with the auth context object if a valid Bearer token is present and the user is a member of the organization with OWNER role', async () => {
+        const userId = 'test-user-id';
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.org.findUnique.mockResolvedValue({
+            ...MOCK_ORG,
+        });
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId: userId,
+            orgId: MOCK_ORG.id,
+            role: OrgRole.OWNER,
+        });
+        prisma.apiKey.findUnique.mockResolvedValue({
+            ...MOCK_API_KEY,
+            hash: 'apikey',
+            createdById: userId,
+        });
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-apikey' }));
+
+        const cb = vi.fn();
+        const result = await withAuthV2(cb);
+        expect(cb).toHaveBeenCalledWith({
+            user: {
+                ...MOCK_USER_WITH_ACCOUNTS,
+                id: userId,
+            },
+            org: MOCK_ORG,
+            role: OrgRole.OWNER
+        });
+        expect(result).toEqual(undefined);
+    });
+
     test('should return a service error if the user is a member of the organization but does not have a valid session', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
@@ -568,6 +683,76 @@ describe('withOptionalAuthV2', () => {
             createdById: userId,
         });
         setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));
+
+        const cb = vi.fn();
+        const result = await withOptionalAuthV2(cb);
+        expect(cb).toHaveBeenCalledWith({
+            user: {
+                ...MOCK_USER_WITH_ACCOUNTS,
+                id: userId,
+            },
+            org: MOCK_ORG,
+            role: OrgRole.OWNER
+        });
+        expect(result).toEqual(undefined);
+    });
+
+    test('should call the callback with the auth context object if a valid Bearer token is present and the user is a member of the organization', async () => {
+        const userId = 'test-user-id';
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.org.findUnique.mockResolvedValue({
+            ...MOCK_ORG,
+        });
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId: userId,
+            orgId: MOCK_ORG.id,
+            role: OrgRole.MEMBER,
+        });
+        prisma.apiKey.findUnique.mockResolvedValue({
+            ...MOCK_API_KEY,
+            hash: 'apikey',
+            createdById: userId,
+        });
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-apikey' }));
+
+        const cb = vi.fn();
+        const result = await withOptionalAuthV2(cb);
+        expect(cb).toHaveBeenCalledWith({
+            user: {
+                ...MOCK_USER_WITH_ACCOUNTS,
+                id: userId,
+            },
+            org: MOCK_ORG,
+            role: OrgRole.MEMBER
+        });
+        expect(result).toEqual(undefined);
+    });
+
+    test('should call the callback with the auth context object if a valid Bearer token is present and the user is a member of the organization with OWNER role', async () => {
+        const userId = 'test-user-id';
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.org.findUnique.mockResolvedValue({
+            ...MOCK_ORG,
+        });
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId: userId,
+            orgId: MOCK_ORG.id,
+            role: OrgRole.OWNER,
+        });
+        prisma.apiKey.findUnique.mockResolvedValue({
+            ...MOCK_API_KEY,
+            hash: 'apikey',
+            createdById: userId,
+        });
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-apikey' }));
 
         const cb = vi.fn();
         const result = await withOptionalAuthV2(cb);
