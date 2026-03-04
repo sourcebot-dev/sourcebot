@@ -85,8 +85,16 @@ export async function verifyAndExchangeCode({
         return { error: 'invalid_grant', errorDescription: 'PKCE code verifier is invalid.' };
     }
 
-    // Single-use: delete the auth code before issuing token
+    // Single-use: delete the auth code before issuing token.
+    // Handle concurrent consume attempts gracefully.
+    try {
     await prisma.oAuthAuthorizationCode.delete({ where: { codeHash } });
+    } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+            return { error: 'invalid_grant', errorDescription: 'Authorization code has already been used.' };
+        }
+        throw error;
+    }
 
     const { token, hash } = generateOAuthToken();
 
