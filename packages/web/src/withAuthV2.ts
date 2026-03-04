@@ -119,6 +119,25 @@ export const getAuthenticatedUser = async () => {
     const authorizationHeader = (await headers()).get("Authorization") ?? undefined;
     if (authorizationHeader?.startsWith("Bearer ")) {
         const bearerToken = authorizationHeader.slice(7);
+
+        // OAuth access token (sourcebot-oauth-<hex>)
+        if (bearerToken.startsWith("sourcebot-oauth-")) {
+            const secret = bearerToken.slice("sourcebot-oauth-".length);
+            const hash = hashSecret(secret);
+            const oauthToken = await __unsafePrisma.oAuthToken.findUnique({
+                where: { hash },
+                include: { user: { include: { accounts: true } } },
+            });
+            if (oauthToken && oauthToken.expiresAt > new Date()) {
+                await __unsafePrisma.oAuthToken.update({
+                    where: { hash },
+                    data: { lastUsedAt: new Date() },
+                });
+                return oauthToken.user;
+            }
+        }
+
+        // API key Bearer token (sourcebot-<hex>)
         const apiKey = await getVerifiedApiObject(bearerToken);
         if (apiKey) {
             const user = await __unsafePrisma.user.findUnique({

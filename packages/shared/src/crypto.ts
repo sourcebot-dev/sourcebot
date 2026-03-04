@@ -40,6 +40,16 @@ export function generateApiKey(): { key: string; hash: string } {
     };
 }
 
+export function generateOAuthToken(): { token: string; hash: string } {
+    const secret = crypto.randomBytes(32).toString('hex');
+    const hash = hashSecret(secret);
+
+    return {
+        token: `sourcebot-oauth-${secret}`,
+        hash,
+    };
+}
+
 export function decrypt(iv: string, encryptedText: string): string {
     const encryptionKey = Buffer.from(env.SOURCEBOT_ENCRYPTION_KEY, 'ascii');
 

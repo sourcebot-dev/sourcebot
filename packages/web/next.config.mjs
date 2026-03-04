@@ -24,6 +24,16 @@ const nextConfig = {
                 source: "/ingest/decide",
                 destination: `https://us.i.posthog.com/decide`,
             },
+            // Expose OAuth discovery documents at canonical RFC paths (without /api prefix)
+            // so MCP clients and OAuth tools can find them via standard discovery.
+            {
+                source: "/.well-known/oauth-authorization-server",
+                destination: "/api/.well-known/oauth-authorization-server",
+            },
+            {
+                source: "/.well-known/oauth-protected-resource",
+                destination: "/api/.well-known/oauth-protected-resource",
+            },
         ];
     },
     // This is required to support PostHog trailing slash API requests

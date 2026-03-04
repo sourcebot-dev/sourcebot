@@ -9,6 +9,23 @@ import { StatusCodes } from 'http-status-codes';
 import { NextRequest } from 'next/server';
 import { sew } from '@/actions';
 import { apiHandler } from '@/lib/apiHandler';
+import { env } from '@sourcebot/shared';
+
+// On 401, tell MCP clients where to find the OAuth protected resource metadata (RFC 9728)
+// so they can discover the authorization server and initiate the authorization code flow.
+// @see: https://modelcontextprotocol.io/specification/2025-03-26/basic/authentication
+// @see: https://datatracker.ietf.org/doc/html/rfc9728
+function mcpErrorResponse(error: ServiceError): Response {
+    const response = serviceErrorResponse(error);
+    if (error.statusCode === StatusCodes.UNAUTHORIZED) {
+        const issuer = env.AUTH_URL.replace(/\/$/, '');
+        response.headers.set(
+            'WWW-Authenticate',
+            `Bearer realm="Sourcebot", resource_metadata_uri="${issuer}/.well-known/oauth-protected-resource"`
+        );
+    }
+    return response;
+}
 
 // @see: https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#session-management
 interface McpSession {
@@ -66,7 +83,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
     );
 
     if (isServiceError(response)) {
-        return serviceErrorResponse(response);
+        return mcpErrorResponse(response);
     }
 
     return response;
@@ -99,7 +116,7 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
     );
 
     if (isServiceError(result)) {
-        return serviceErrorResponse(result);
+        return mcpErrorResponse(result);
     }
 
     return result;
@@ -132,7 +149,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
     );
 
     if (isServiceError(result)) {
-        return serviceErrorResponse(result);
+        return mcpErrorResponse(result);
     }
 
     return result;
