@@ -2,7 +2,7 @@ import { expect, test, vi, beforeEach, describe } from 'vitest';
 import { Session } from 'next-auth';
 import { notAuthenticated } from './lib/serviceError';
 import { getAuthContext, getAuthenticatedUser, withAuthV2, withOptionalAuthV2 } from './withAuthV2';
-import { MOCK_API_KEY, MOCK_ORG, MOCK_USER_WITH_ACCOUNTS, prisma } from './__mocks__/prisma';
+import { MOCK_API_KEY, MOCK_OAUTH_TOKEN, MOCK_ORG, MOCK_USER_WITH_ACCOUNTS, prisma } from './__mocks__/prisma';
 import { OrgRole } from '@sourcebot/db';
 
 const mocks = vi.hoisted(() => {
@@ -139,6 +139,48 @@ describe('getAuthenticatedUser', () => {
         setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-apikey' }));
         const user = await getAuthenticatedUser();
         expect(user).toBeUndefined();
+    });
+
+    test('should return a user object if a valid OAuth Bearer token is present', async () => {
+        prisma.oAuthToken.findUnique.mockResolvedValue(MOCK_OAUTH_TOKEN);
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-oauth-oauthtoken' }));
+        const user = await getAuthenticatedUser();
+        expect(user).not.toBeUndefined();
+        expect(user?.id).toBe(MOCK_USER_WITH_ACCOUNTS.id);
+    });
+
+    test('should update lastUsedAt when an OAuth Bearer token is used', async () => {
+        prisma.oAuthToken.findUnique.mockResolvedValue(MOCK_OAUTH_TOKEN);
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-oauth-oauthtoken' }));
+        await getAuthenticatedUser();
+        expect(prisma.oAuthToken.update).toHaveBeenCalledWith({
+            where: { hash: 'oauthtoken' },
+            data: { lastUsedAt: expect.any(Date) },
+        });
+    });
+
+    test('should return undefined if an OAuth Bearer token is present but the token does not exist', async () => {
+        prisma.oAuthToken.findUnique.mockResolvedValue(null);
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-oauth-oauthtoken' }));
+        const user = await getAuthenticatedUser();
+        expect(user).toBeUndefined();
+    });
+
+    test('should return undefined if an OAuth Bearer token is present but the token is expired', async () => {
+        prisma.oAuthToken.findUnique.mockResolvedValue({
+            ...MOCK_OAUTH_TOKEN,
+            expiresAt: new Date(Date.now() - 1000), // expired 1 second ago
+        });
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-oauth-oauthtoken' }));
+        const user = await getAuthenticatedUser();
+        expect(user).toBeUndefined();
+    });
+
+    test('should not check API key when a sourcebot-oauth- Bearer token is present', async () => {
+        prisma.oAuthToken.findUnique.mockResolvedValue(MOCK_OAUTH_TOKEN);
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-oauth-oauthtoken' }));
+        await getAuthenticatedUser();
+        expect(prisma.apiKey.findUnique).not.toHaveBeenCalled();
     });
 
     test('should return undefined if a Bearer token is present but the user is not found', async () => {
