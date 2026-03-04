@@ -1,5 +1,3 @@
-'use server';
-
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createMcpServer } from '@/features/mcp/server';
@@ -10,6 +8,7 @@ import { ErrorCode } from '@/lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
 import { NextRequest } from 'next/server';
 import { sew } from '@/actions';
+import { apiHandler } from '@/lib/apiHandler';
 
 // @see: https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#session-management
 interface McpSession {
@@ -24,7 +23,7 @@ const MCP_SESSION_ID_HEADER = 'MCP-Session-Id';
 // Suitable for containerized/single-instance deployments.
 const sessions = new Map<string, McpSession>();
 
-export async function POST(request: NextRequest) {
+export const POST = apiHandler(async (request: NextRequest) => {
     const response = await sew(() =>
         withOptionalAuthV2(async ({ user }) => {
             const ownerId = user?.id ?? null;
@@ -66,9 +65,9 @@ export async function POST(request: NextRequest) {
     }
 
     return response;
-}
+});
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = apiHandler(async (request: NextRequest) => {
     const result = await sew(() =>
         withOptionalAuthV2(async ({ user }) => {
             const ownerId = user?.id ?? null;
@@ -99,9 +98,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     return result;
-}
+});
 
-export async function GET(request: NextRequest) {
+export const GET = apiHandler(async (request: NextRequest) => {
     const result = await sew(() =>
         withOptionalAuthV2(async ({ user }) => {
             const ownerId = user?.id ?? null;
@@ -132,4 +131,4 @@ export async function GET(request: NextRequest) {
     }
 
     return result;
-}
+});
