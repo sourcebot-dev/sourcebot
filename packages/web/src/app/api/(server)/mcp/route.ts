@@ -48,7 +48,12 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 onsessioninitialized: (newSessionId) => {
                     sessions.set(newSessionId, { server: mcpServer, transport, ownerId });
                 },
-                onsessionclosed: (closedSessionId) => {
+                onsessionclosed: async (closedSessionId) => {
+                    const session = sessions.get(closedSessionId);
+                    if (session) {
+                        await session.server.close();
+                        await session.transport.close();
+                    }
                     sessions.delete(closedSessionId);
                 },
             });
