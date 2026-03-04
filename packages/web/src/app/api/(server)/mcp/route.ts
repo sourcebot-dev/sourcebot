@@ -13,6 +13,7 @@ import { env } from '@sourcebot/shared';
 
 // On 401, tell MCP clients where to find the OAuth protected resource metadata (RFC 9728)
 // so they can discover the authorization server and initiate the authorization code flow.
+// Only advertised when the oauth entitlement is active.
 // @see: https://modelcontextprotocol.io/specification/2025-03-26/basic/authentication
 // @see: https://datatracker.ietf.org/doc/html/rfc9728
 function mcpErrorResponse(error: ServiceError): Response {
@@ -21,7 +22,7 @@ function mcpErrorResponse(error: ServiceError): Response {
         const issuer = env.AUTH_URL.replace(/\/$/, '');
         response.headers.set(
             'WWW-Authenticate',
-            `Bearer realm="Sourcebot", resource_metadata_uri="${issuer}/.well-known/oauth-protected-resource"`
+            `Bearer realm="Sourcebot", resource_metadata_uri="${issuer}/.well-known/oauth-protected-resource/api/mcp"`
         );
     }
     return response;

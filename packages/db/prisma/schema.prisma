@@ -497,6 +497,7 @@ model ChatAccess {
 model OAuthClient {
   id           String   @id @default(cuid())
   name         String
+  logoUri      String?
   redirectUris String[]
   createdAt    DateTime @default(now())
 

@@ -1,11 +1,19 @@
 import { verifyAndExchangeCode, ACCESS_TOKEN_TTL_SECONDS } from '@/features/oauth/server';
 import { apiHandler } from '@/lib/apiHandler';
+import { hasEntitlement } from '@sourcebot/shared';
 import { NextRequest } from 'next/server';
 
 // OAuth 2.0 Token Endpoint
 // Supports grant_type=authorization_code with PKCE (RFC 7636).
 // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-3.2
 export const POST = apiHandler(async (request: NextRequest) => {
+    if (!hasEntitlement('oauth')) {
+        return Response.json(
+            { error: 'access_denied', error_description: 'OAuth is not available on this plan.' },
+            { status: 403 }
+        );
+    }
+
     const formData = await request.formData();
 
     const grantType = formData.get('grant_type');
