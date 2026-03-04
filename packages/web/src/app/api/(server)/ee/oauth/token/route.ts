@@ -9,7 +9,7 @@ import { NextRequest } from 'next/server';
 export const POST = apiHandler(async (request: NextRequest) => {
     if (!hasEntitlement('oauth')) {
         return Response.json(
-            { error: 'access_denied', error_description: 'OAuth is not available on this plan.' },
+            { error: 'access_denied', error_description: 'OAuth is not available on this plan. Please see https://sourcebot.dev/pricing' },
             { status: 403 }
         );
     }
@@ -28,6 +28,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
     const clientId = formData.get('client_id');
     const redirectUri = formData.get('redirect_uri');
     const codeVerifier = formData.get('code_verifier');
+    const resource = formData.get('resource');
 
     if (!code || !clientId || !redirectUri || !codeVerifier) {
         return Response.json(
@@ -41,6 +42,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
         clientId: clientId.toString(),
         redirectUri: redirectUri.toString(),
         codeVerifier: codeVerifier.toString(),
+        resource: resource ? resource.toString() : null,
     });
 
     if ('error' in result) {

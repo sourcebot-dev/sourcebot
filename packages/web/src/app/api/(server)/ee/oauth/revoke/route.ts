@@ -9,7 +9,7 @@ import { NextRequest } from 'next/server';
 export const POST = apiHandler(async (request: NextRequest) => {
     if (!hasEntitlement('oauth')) {
         return Response.json(
-            { error: 'access_denied', error_description: 'OAuth is not available on this plan.' },
+            { error: 'access_denied', error_description: 'OAuth is not available on this plan. Please see https://sourcebot.dev/pricing' },
             { status: 403 }
         );
     }
