@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added support a MCP streamable http transport hosted at `/api/mcp`. [#976](https://github.com/sourcebot-dev/sourcebot/pull/976)
-- Added OAuth2 authorization server with PKCE support (enterprise), including dynamic client registration, consent UI, token exchange/revocation, and OAuth discovery endpoints (RFC 8414/9728). [#977](https://github.com/sourcebot-dev/sourcebot/pull/977)
+- [EE] Added support for Oauth 2.1 to the remote MCP server hosted at `/api/mcp`. [#977](https://github.com/sourcebot-dev/sourcebot/pull/977)
 
 ## [4.13.2] - 2026-03-02
 
