@@ -103,7 +103,10 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
 
             const selectedRepos = (await Promise.all(repos.map(async (repo) => {
                 const repoDB = await prisma.repo.findFirst({
-                    where: { name: repo },
+                    where: {
+                        name: repo,
+                        orgId: org.id,
+                    },
                 });
                 if (!repoDB) {
                     throw new ServiceErrorException({
