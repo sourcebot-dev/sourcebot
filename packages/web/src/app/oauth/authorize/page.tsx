@@ -17,6 +17,7 @@ interface AuthorizePageProps {
         code_challenge_method?: string;
         response_type?: string;
         state?: string;
+        resource?: string;
     }>;
 }
 
@@ -26,7 +27,7 @@ export default async function AuthorizePage({ searchParams }: AuthorizePageProps
     }
 
     const params = await searchParams;
-    const { client_id, redirect_uri, code_challenge, code_challenge_method, response_type, state } = params;
+    const { client_id, redirect_uri, code_challenge, code_challenge_method, response_type, state, resource } = params;
 
     // Validate required parameters. Per spec, do NOT redirect on client errors —
     // show an error page instead to avoid open redirect vulnerabilities.
@@ -67,6 +68,7 @@ export default async function AuthorizePage({ searchParams }: AuthorizePageProps
             userId: session!.user.id,
             redirectUri: redirect_uri!,
             codeChallenge: code_challenge!,
+            resource: resource ?? null,
         });
 
         const callbackUrl = new URL(redirect_uri!);

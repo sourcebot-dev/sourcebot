@@ -122,6 +122,10 @@ export const getAuthenticatedUser = async () => {
 
         // OAuth access token (sourcebot-oauth-<hex>)
         if (bearerToken.startsWith("sourcebot-oauth-")) {
+            if (!hasEntitlement('oauth')) {
+                return undefined;
+            }
+
             const secret = bearerToken.slice("sourcebot-oauth-".length);
             const hash = hashSecret(secret);
             const oauthToken = await __unsafePrisma.oAuthToken.findUnique({
