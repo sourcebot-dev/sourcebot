@@ -104,8 +104,11 @@ In order to index private repositories, you'll need to provide a [HTTP Access To
                 // note: this env var can be named anything. It
                 // doesn't need to be `BITBUCKET_TOKEN`.
                 "env": "BITBUCKET_TOKEN"
-            }
-            // .. rest of config ..
+            },
+            // At least one of the following is required to specify which repos to sync:
+            "repos": ["myProject/myRepo"],
+            // "projects": ["myProject"],
+            // "all": true
         }
         ```
 
@@ -134,8 +137,11 @@ In order to index private repositories, you'll need to provide a [HTTP Access To
                 // note: this env var can be named anything. It
                 // doesn't need to be `BITBUCKET_TOKEN`.
                 "env": "BITBUCKET_TOKEN"
-            }
-            // .. rest of config ..
+            },
+            // At least one of the following is required to specify which repos to sync:
+            "repos": ["myProject/myRepo"],
+            // "projects": ["myProject"],
+            // "all": true
         }
         ```
 
