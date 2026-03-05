@@ -172,8 +172,11 @@ In order to index private repositories, you'll need to authenticate with GitHub.
                             // note: this env var can be named anything. It
                             // doesn't need to be `GITHUB_TOKEN`.
                             "env": "GITHUB_TOKEN"
-                        }
-                        // .. rest of config ..
+                        },
+                        // At least one of the following is required to specify which repos to sync:
+                        "repos": ["my-org/myRepo"],
+                        // "orgs": ["my-org"],
+                        // "users": ["my-user"]
                     }
                     ```
             </Step>
@@ -203,8 +206,11 @@ In order to index private repositories, you'll need to authenticate with GitHub.
                             // note: this env var can be named anything. It
                             // doesn't need to be `GITHUB_TOKEN`.
                             "env": "GITHUB_TOKEN"
-                        }
-                        // .. rest of config ..
+                        },
+                        // At least one of the following is required to specify which repos to sync:
+                        "repos": ["my-org/myRepo"],
+                        // "orgs": ["my-org"],
+                        // "users": ["my-user"]
                     }
                     ```
             </Step>
@@ -222,8 +228,11 @@ To connect to a GitHub host other than `github.com`, provide the `url` property 
 ```json
 {
     "type": "github",
-    "url": "https://github.example.com"
-    // .. rest of config ..
+    "url": "https://github.example.com",
+    // At least one of the following is required to specify which repos to sync:
+    "repos": ["my-org/myRepo"],
+    // "orgs": ["my-org"],
+    // "users": ["my-user"]
 }
 ```
 

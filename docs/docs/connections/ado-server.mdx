@@ -114,8 +114,11 @@ Next, provide the access [token](/docs/configuration/config-file#tokens) via an 
                 // note: this env var can be named anything. It
                 // doesn't need to be `ADO_TOKEN`.
                 "env": "ADO_TOKEN"
-            }
-            // .. rest of config ..
+            },
+            // At least one of the following is required to specify which repos to sync:
+            "repos": ["collectionName/projectName/repoName"],
+            // "orgs": ["collectionName"],
+            // "projects": ["collectionName/projectName"]
         }
         ```
 
