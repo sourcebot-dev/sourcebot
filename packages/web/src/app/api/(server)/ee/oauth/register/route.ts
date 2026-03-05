@@ -10,7 +10,7 @@ import { z } from 'zod';
 const registerRequestSchema = z.object({
     client_name: z.string().min(1),
     redirect_uris: z.array(z.string().url()).min(1),
-    logo_uri: z.string().nullish(),
+    logo_uri: z.string().url().nullish(),
 });
 
 export const POST = apiHandler(async (request: NextRequest) => {

@@ -286,5 +286,18 @@ export type PosthogEventMap = {
         source: string;
         method: string;
     },
+    //////////////////////////////////////////////////////////////////
+    wa_oauth_consent_viewed: {
+        clientId: string,
+        clientName: string,
+    },
+    wa_oauth_authorization_approved: {
+        clientId: string,
+        clientName: string,
+    },
+    wa_oauth_authorization_denied: {
+        clientId: string,
+        clientName: string,
+    },
 } 
 export type PosthogEvent = keyof PosthogEventMap;
