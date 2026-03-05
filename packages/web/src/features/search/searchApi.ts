@@ -38,7 +38,7 @@ export const search = (request: SearchRequest) => sew(() =>
                 target: { id: org.id.toString(), type: 'org' },
                 orgId: org.id,
                 metadata: { source },
-            }).catch(() => {});
+            });
         }
 
         const repoSearchScope = await getAccessibleRepoNamesForUser({ user, prisma });
@@ -69,7 +69,7 @@ export const streamSearch = (request: SearchRequest) => sew(() =>
                 target: { id: org.id.toString(), type: 'org' },
                 orgId: org.id,
                 metadata: { source },
-            }).catch(() => {});
+            });
         }
 
         const repoSearchScope = await getAccessibleRepoNamesForUser({ user, prisma });

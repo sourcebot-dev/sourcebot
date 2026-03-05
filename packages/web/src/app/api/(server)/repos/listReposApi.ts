@@ -16,7 +16,7 @@ export const listRepos = async ({ query, page, perPage, sort, direction, sourceO
                 target: { id: org.id.toString(), type: 'org' },
                 orgId: org.id,
                 metadata: { source },
-            }).catch(() => {});
+            });
         }
 
         const skip = (page - 1) * perPage;

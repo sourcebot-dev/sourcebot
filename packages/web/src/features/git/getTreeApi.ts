@@ -36,7 +36,7 @@ export const getTree = async ({ repoName, revisionName, paths }: GetTreeRequest,
                 target: { id: org.id.toString(), type: 'org' },
                 orgId: org.id,
                 metadata: { source },
-            }).catch(() => {});
+            });
         }
 
         const repo = await prisma.repo.findFirst({
