@@ -98,7 +98,15 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                     target: { id: org.id.toString(), type: 'org' },
                     orgId: org.id,
                     metadata: { source },
-                }).catch(() => {});
+                }).catch((error) => {
+                    logger.error('Failed to create audit log', {
+                        error,
+                        action: 'user.created_ask_chat',
+                        actorId: user.id,
+                        orgId: org.id,
+                        source,
+                    });
+                });
             }
 
             logger.debug(`Starting blocking agent for chat ${chat.id}`, {
