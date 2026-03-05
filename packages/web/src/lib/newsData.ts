@@ -7,6 +7,11 @@ export const newsData: NewsItem[] = [
         sub_header: "We've extended analytics to include data on MCP/API usage",
         url: "https://docs.sourcebot.dev/docs/features/analytics"
     },
+        unique_id: "mcp-server",
+        header: "Remote MCP Server",
+        sub_header: "Sourcebot now exposes a built-in MCP server over Streamable HTTP with OAuth.",
+        url: "https://docs.sourcebot.dev/docs/features/mcp-server"
+    },
     {
         unique_id: "ai-search-assist",
         header: "AI Search Assist",
