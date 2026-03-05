@@ -570,7 +570,7 @@ export function AnalyticsContent() {
                         </p>
                         {analyticsResponse.oldestRecordDate && (
                             <p className="text-xs text-muted-foreground/70">
-                                Data since: {new Date(analyticsResponse.oldestRecordDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                Data since: {new Date(analyticsResponse.oldestRecordDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}
                             </p>
                         )}
                     </div>
