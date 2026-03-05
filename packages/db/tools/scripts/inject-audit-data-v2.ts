@@ -1,5 +1,5 @@
-import { Script } from "../scriptRunner";
-import { PrismaClient, Prisma } from "../../dist";
+import type { Script } from "../scriptRunner";
+import type { PrismaClient, Prisma } from "@sourcebot/db";
 import { confirmAction } from "../utils";
 
 // User profile: defines how a user interacts with Sourcebot
