@@ -18,7 +18,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePre
             path,
             repo: repoName,
             ref: revisionName,
-        }),
+        }, { sourceOverride: 'sourcebot-web-client' }),
         getRepoInfoByName(repoName),
     ]);
 

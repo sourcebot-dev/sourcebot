@@ -21,6 +21,7 @@ export type AskCodebaseParams = {
     repos?: string[];
     languageModel?: LanguageModelInfo;
     visibility?: ChatVisibility;
+    source?: string;
 };
 
 export type AskCodebaseResult = {
@@ -43,7 +44,7 @@ const blockStreamUntilFinish = async <T extends UIMessage<unknown, UIDataTypes, 
 export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResult | ServiceError> =>
     sew(() =>
         withOptionalAuthV2(async ({ org, user, prisma }) => {
-            const { query, repos = [], languageModel: requestedLanguageModel, visibility: requestedVisibility } = params;
+            const { query, repos = [], languageModel: requestedLanguageModel, visibility: requestedVisibility, source } = params;
 
             const configuredModels = await getConfiguredLanguageModels();
             if (configuredModels.length === 0) {
@@ -96,7 +97,7 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                     actor: { id: user.id, type: 'user' },
                     target: { id: org.id.toString(), type: 'org' },
                     orgId: org.id,
-                    metadata: {},
+                    metadata: { source },
                 }).catch(() => {});
             }
 

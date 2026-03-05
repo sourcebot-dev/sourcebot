@@ -178,6 +178,161 @@ function AnalyticsChart({ data, title, icon: Icon, period, dataKey, color, gradi
     )
 }
 
+interface MultiLineSeriesDefinition {
+    dataKey: keyof Omit<AnalyticsRow, 'period' | 'bucket'>
+    label: string
+    color: string
+    gradientId: string
+}
+
+interface MultiLineChartProps {
+    data: AnalyticsRow[]
+    title: string
+    icon: LucideIcon
+    period: "day" | "week" | "month"
+    series: MultiLineSeriesDefinition[]
+    description: string
+}
+
+function MultiLineAnalyticsChart({ data, title, icon: Icon, period, series, description }: MultiLineChartProps) {
+    const { theme } = useTheme()
+    const isDark = theme === "dark"
+
+    const chartConfig = Object.fromEntries(
+        series.map((s) => [s.dataKey, { label: s.label, theme: { light: s.color, dark: s.color } }])
+    )
+
+    return (
+        <Card className="bg-card border-border shadow-lg hover:shadow-xl transition-all duration-300 hover:border-border/80">
+            <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-lg bg-muted/50">
+                            <Icon className="h-5 w-5" style={{ color: series[0]?.color }} />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="text-lg font-semibold text-card-foreground">{title}</CardTitle>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs">
+                                    {description}
+                                </TooltipContent>
+                            </Tooltip>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        {series.map((s) => (
+                            <div key={s.dataKey} className="flex items-center gap-1.5">
+                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                                <span className="text-xs text-muted-foreground">{s.label}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+                <ChartContainer config={chartConfig} className="h-[240px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                            <defs>
+                                {series.map((s) => (
+                                    <linearGradient key={s.gradientId} id={s.gradientId} x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor={s.color} stopOpacity={0.4} />
+                                        <stop offset="50%" stopColor={s.color} stopOpacity={0.2} />
+                                        <stop offset="95%" stopColor={s.color} stopOpacity={0.05} />
+                                    </linearGradient>
+                                ))}
+                            </defs>
+                            <XAxis
+                                dataKey="bucket"
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: isDark ? "#94a3b8" : "#64748b", fontSize: 11 }}
+                                tickFormatter={(value) => {
+                                    const utcDate = new Date(value)
+                                    const displayDate = new Date(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate())
+                                    const opts: Intl.DateTimeFormatOptions =
+                                        period === "day" || period === "week"
+                                            ? { month: "short", day: "numeric" }
+                                            : { month: "short", year: "numeric" }
+                                    return displayDate.toLocaleDateString("en-US", opts)
+                                }}
+                            />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: isDark ? "#94a3b8" : "#64748b", fontSize: 11 }}
+                                tickFormatter={(value) => {
+                                    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
+                                    if (value >= 1000) return `${(value / 1000).toFixed(1)}K`
+                                    return value.toString()
+                                }}
+                            />
+                            <ChartTooltip
+                                content={({ active, payload, label }) => {
+                                    if (active && payload && payload.length) {
+                                        return (
+                                            <div className="bg-popover/95 backdrop-blur-sm border border-border rounded-xl p-4 shadow-2xl">
+                                                <p className="text-muted-foreground text-sm mb-2 font-medium">
+                                                    {(() => {
+                                                        const utcDate = new Date(label)
+                                                        const displayDate = new Date(
+                                                            utcDate.getUTCFullYear(),
+                                                            utcDate.getUTCMonth(),
+                                                            utcDate.getUTCDate(),
+                                                        )
+                                                        const opts: Intl.DateTimeFormatOptions =
+                                                            period === "day" || period === "week"
+                                                                ? { weekday: "short", month: "long", day: "numeric" }
+                                                                : { month: "long", year: "numeric" }
+                                                        return displayDate.toLocaleDateString("en-US", opts)
+                                                    })()}
+                                                </p>
+                                                {payload.map((entry, index) => (
+                                                    <div key={index} className="flex items-center justify-between space-x-4">
+                                                        <div className="flex items-center space-x-2">
+                                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
+                                                            <span className="text-popover-foreground text-sm">
+                                                                {series.find((s) => s.dataKey === entry.dataKey)?.label ?? entry.dataKey}
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-popover-foreground font-semibold">{entry.value?.toLocaleString()}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )
+                                    }
+                                    return null
+                                }}
+                            />
+                            {series.map((s) => (
+                                <Area
+                                    key={s.dataKey}
+                                    type="monotone"
+                                    dataKey={s.dataKey}
+                                    stroke={s.color}
+                                    fillOpacity={1}
+                                    fill={`url(#${s.gradientId})`}
+                                    strokeWidth={2.5}
+                                    dot={false}
+                                    activeDot={{
+                                        r: 4,
+                                        fill: s.color,
+                                        stroke: isDark ? "#1e293b" : "#f8fafc",
+                                        strokeWidth: 2,
+                                    }}
+                                />
+                            ))}
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+            </CardContent>
+        </Card>
+    )
+}
+
 function ChartSkeletonGroup({ count }: { count: number }) {
     return (
         <>
@@ -319,76 +474,84 @@ export function AnalyticsContent() {
         color: getColor("globalUsers"),
         dataKey: "active_users" as const,
         gradientId: "activeUsers",
-        description: "Unique users who performed any tracked action across all interfaces (web app, MCP, and API).",
+        description: "Unique users who performed any tracked action across all sources (web app, MCP, and API). Includes code searches, navigations, Ask chats, file views, and tree browsing. Excludes web repo listings to reduce noise.",
     }
 
-    const webCharts: ChartDefinition[] = [
+    const webActiveUsersSeries: MultiLineSeriesDefinition[] = [
         {
-            title: `${periodLabels[selectedPeriod]} Web Active Users`,
-            icon: Users,
+            dataKey: "web_active_users",
+            label: "All",
             color: getColor("webUsers"),
-            dataKey: "web_active_users" as const,
             gradientId: "webActiveUsers",
-            description: "Unique users who performed any action through the Sourcebot web interface, including searches, navigations, chats, and file views.",
         },
         {
-            title: `${periodLabels[selectedPeriod]} Web Code Searches`,
-            icon: Search,
+            dataKey: "web_search_active_users",
+            label: "Search",
             color: getColor("webSearches"),
-            dataKey: "web_code_searches" as const,
-            gradientId: "webCodeSearches",
-            description: "Number of code searches performed through the Sourcebot web interface.",
+            gradientId: "webSearchActiveUsers",
         },
         {
-            title: `${periodLabels[selectedPeriod]} Web Ask Chats`,
-            icon: MessageCircle,
+            dataKey: "web_ask_active_users",
+            label: "Ask",
             color: getColor("webAskChats"),
-            dataKey: "web_ask_chats" as const,
-            gradientId: "webAskChats",
-            description: "Number of Ask chat conversations created through the Sourcebot web interface.",
-        },
-        {
-            title: `${periodLabels[selectedPeriod]} Web Navigations`,
-            icon: ArrowRight,
-            color: getColor("webNavigations"),
-            dataKey: "web_navigations" as const,
-            gradientId: "webNavigations",
-            description: "Number of go-to-definition and find-references actions performed in the web interface.",
+            gradientId: "webAskActiveUsers",
         },
     ]
 
-    const apiCharts: ChartDefinition[] = [
+    const webActivitySeries: MultiLineSeriesDefinition[] = [
         {
-            title: `${periodLabels[selectedPeriod]} MCP Requests`,
-            icon: Wrench,
-            color: getColor("mcpRequests"),
-            dataKey: "mcp_requests" as const,
-            gradientId: "mcpRequests",
-            description: "Total number of requests made through MCP (Model Context Protocol) integrations.",
+            dataKey: "web_code_searches",
+            label: "Code Searches",
+            color: getColor("webSearches"),
+            gradientId: "webCodeSearches",
         },
         {
-            title: `${periodLabels[selectedPeriod]} MCP Active Users`,
-            icon: Users,
+            dataKey: "web_ask_chats",
+            label: "Ask Chats",
+            color: getColor("webAskChats"),
+            gradientId: "webAskChats",
+        },
+        {
+            dataKey: "web_navigations",
+            label: "Navigations",
+            color: getColor("webNavigations"),
+            gradientId: "webNavigations",
+        },
+    ]
+
+    const apiActiveUsersSeries: MultiLineSeriesDefinition[] = [
+        {
+            dataKey: "non_web_active_users",
+            label: "Any",
+            color: getColor("globalUsers"),
+            gradientId: "nonWebActiveUsers",
+        },
+        {
+            dataKey: "mcp_active_users",
+            label: "MCP",
             color: getColor("mcpUsers"),
-            dataKey: "mcp_active_users" as const,
             gradientId: "mcpActiveUsers",
-            description: "Unique users who made requests through MCP integrations.",
         },
         {
-            title: `${periodLabels[selectedPeriod]} API Requests`,
-            icon: Key,
-            color: getColor("apiRequests"),
-            dataKey: "api_requests" as const,
-            gradientId: "apiRequests",
-            description: "Total number of requests made through direct API access, excluding web app and MCP traffic.",
-        },
-        {
-            title: `${periodLabels[selectedPeriod]} API Active Users`,
-            icon: Users,
+            dataKey: "api_active_users",
+            label: "API",
             color: getColor("apiUsers"),
-            dataKey: "api_active_users" as const,
             gradientId: "apiActiveUsers",
-            description: "Unique users who made requests through direct API access, excluding web app and MCP traffic.",
+        },
+    ]
+
+    const apiActivitySeries: MultiLineSeriesDefinition[] = [
+        {
+            dataKey: "mcp_requests",
+            label: "MCP",
+            color: getColor("mcpRequests"),
+            gradientId: "mcpRequests",
+        },
+        {
+            dataKey: "api_requests",
+            label: "API",
+            color: getColor("apiRequests"),
+            gradientId: "apiRequests",
         },
     ]
 
@@ -449,19 +612,22 @@ export function AnalyticsContent() {
                         Usage from the Sourcebot web interface.
                     </p>
                 </div>
-                {webCharts.map((chart) => (
-                    <AnalyticsChart
-                        key={chart.dataKey}
-                        data={periodData}
-                        title={chart.title}
-                        icon={chart.icon}
-                        period={selectedPeriod}
-                        dataKey={chart.dataKey}
-                        color={chart.color}
-                        gradientId={chart.gradientId}
-                        description={chart.description}
-                    />
-                ))}
+                <MultiLineAnalyticsChart
+                    data={periodData}
+                    title={`${periodLabels[selectedPeriod]} Web Active Users`}
+                    icon={Users}
+                    period={selectedPeriod}
+                    series={webActiveUsersSeries}
+                    description="Unique users who interacted with the Sourcebot web interface. All includes users who performed any web action (code searches, navigations, Ask chats, or file views), excluding repo listing. Search and Ask show the subset of users who performed those specific actions."
+                />
+                <MultiLineAnalyticsChart
+                    data={periodData}
+                    title={`${periodLabels[selectedPeriod]} Web Activity`}
+                    icon={Activity}
+                    period={selectedPeriod}
+                    series={webActivitySeries}
+                    description="Total event counts for web interface activity. Code Searches are searches performed in the web search bar. Ask Chats are conversations created through the web interface. Navigations are go-to-definition and find-references actions in the code viewer."
+                />
             </div>
 
             {/* API Section */}
@@ -472,19 +638,22 @@ export function AnalyticsContent() {
                         Usage from MCP integrations and direct API access.
                     </p>
                 </div>
-                {apiCharts.map((chart) => (
-                    <AnalyticsChart
-                        key={chart.dataKey}
-                        data={periodData}
-                        title={chart.title}
-                        icon={chart.icon}
-                        period={selectedPeriod}
-                        dataKey={chart.dataKey}
-                        color={chart.color}
-                        gradientId={chart.gradientId}
-                        description={chart.description}
-                    />
-                ))}
+                <MultiLineAnalyticsChart
+                    data={periodData}
+                    title={`${periodLabels[selectedPeriod]} API Active Users`}
+                    icon={Users}
+                    period={selectedPeriod}
+                    series={apiActiveUsersSeries}
+                    description="Unique users who interacted via MCP integrations or direct API access. Any shows users who used either MCP or API. MCP includes requests from IDE extensions and other MCP clients. API includes direct HTTP API access (e.g., API keys), excluding web app and MCP traffic."
+                />
+                <MultiLineAnalyticsChart
+                    data={periodData}
+                    title={`${periodLabels[selectedPeriod]} API Requests`}
+                    icon={Activity}
+                    period={selectedPeriod}
+                    series={apiActivitySeries}
+                    description="Total request counts from MCP integrations and direct API access. MCP includes code searches, file reads, tree listings, repo listings, and Ask chats from MCP clients. API includes direct HTTP API requests, excluding web app and MCP traffic."
+                />
             </div>
         </div>
     )

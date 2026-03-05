@@ -180,10 +180,10 @@ export const injectAuditDataV2: Script = {
                 const activityChance = isWeekend ? user.weekendActivity : user.weekdayActivity;
                 if (Math.random() >= activityChance) continue;
 
-                // --- Web UI activity (source='sourcebot-web-client' or 'sourcebot-ui-codenav') ---
+                // --- Web UI activity (source='sourcebot-web-client') ---
                 if (user.webWeight > 0) {
                     const webMeta: Prisma.InputJsonValue = { source: 'sourcebot-web-client' };
-                    const codenavMeta: Prisma.InputJsonValue = { source: 'sourcebot-ui-codenav' };
+                    const codenavMeta: Prisma.InputJsonValue = { source: 'sourcebot-web-client' };
 
                     // Code searches (2-5 base)
                     await createAudits(user.id, 'user.performed_code_search',

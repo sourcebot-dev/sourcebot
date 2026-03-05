@@ -14,6 +14,6 @@ WHERE action IN ('user.performed_code_search', 'user.created_ask_chat')
 -- Navigation events (find references, goto definition) were web-only
 -- (created from the symbolHoverPopup client component)
 UPDATE "Audit"
-SET metadata = jsonb_set(COALESCE(metadata, '{}')::jsonb, '{source}', '"sourcebot-ui-codenav"')
+SET metadata = jsonb_set(COALESCE(metadata, '{}')::jsonb, '{source}', '"sourcebot-web-client"')
 WHERE action IN ('user.performed_find_references', 'user.performed_goto_definition')
   AND (metadata IS NULL OR metadata->>'source' IS NULL);

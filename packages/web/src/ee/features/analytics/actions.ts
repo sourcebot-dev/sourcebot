@@ -81,25 +81,42 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
             ELSE              c.month
           END AS bucket,
 
-          -- Global active users (any action, any source)
-          COUNT(DISTINCT c."actorId") AS active_users,
+          -- Global active users (any action, any source; excludes web repo listings)
+          COUNT(DISTINCT c."actorId") FILTER (
+            WHERE NOT (c.action = 'user.listed_repos' AND c.metadata->>'source' LIKE 'sourcebot-%')
+          ) AS active_users,
 
-          -- Web App metrics (source LIKE 'sourcebot-%')
+          -- Web App metrics
+          COUNT(DISTINCT c."actorId") FILTER (
+            WHERE c.action = 'user.performed_code_search'
+              AND c.metadata->>'source' = 'sourcebot-web-client'
+          ) AS web_search_active_users,
           COUNT(*) FILTER (
             WHERE c.action = 'user.performed_code_search'
-              AND c.metadata->>'source' LIKE 'sourcebot-%'
+              AND c.metadata->>'source' = 'sourcebot-web-client'
           ) AS web_code_searches,
           COUNT(*) FILTER (
             WHERE c.action IN ('user.performed_find_references', 'user.performed_goto_definition')
-              AND c.metadata->>'source' LIKE 'sourcebot-%'
+              AND c.metadata->>'source' = 'sourcebot-web-client'
           ) AS web_navigations,
+          COUNT(DISTINCT c."actorId") FILTER (
+            WHERE c.action = 'user.created_ask_chat'
+              AND c.metadata->>'source' = 'sourcebot-web-client'
+          ) AS web_ask_active_users,
           COUNT(*) FILTER (
             WHERE c.action = 'user.created_ask_chat'
-              AND c.metadata->>'source' LIKE 'sourcebot-%'
+              AND c.metadata->>'source' = 'sourcebot-web-client'
           ) AS web_ask_chats,
           COUNT(DISTINCT c."actorId") FILTER (
-            WHERE c.metadata->>'source' LIKE 'sourcebot-%'
+            WHERE c.metadata->>'source' = 'sourcebot-web-client'
+              AND c.action != 'user.listed_repos'
           ) AS web_active_users,
+
+          -- MCP + API combined active users (any non-web source)
+          COUNT(DISTINCT c."actorId") FILTER (
+            WHERE c.metadata->>'source' IS NULL
+              OR c.metadata->>'source' NOT LIKE 'sourcebot-%'
+          ) AS non_web_active_users,
 
           -- MCP metrics (source = 'mcp')
           COUNT(*) FILTER (
@@ -130,10 +147,13 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
         b.period,
         b.bucket,
         COALESCE(a.active_users, 0)::int AS active_users,
+        COALESCE(a.web_search_active_users, 0)::int AS web_search_active_users,
         COALESCE(a.web_code_searches, 0)::int AS web_code_searches,
         COALESCE(a.web_navigations, 0)::int AS web_navigations,
+        COALESCE(a.web_ask_active_users, 0)::int AS web_ask_active_users,
         COALESCE(a.web_ask_chats, 0)::int AS web_ask_chats,
         COALESCE(a.web_active_users, 0)::int AS web_active_users,
+        COALESCE(a.non_web_active_users, 0)::int AS non_web_active_users,
         COALESCE(a.mcp_requests, 0)::int AS mcp_requests,
         COALESCE(a.mcp_active_users, 0)::int AS mcp_active_users,
         COALESCE(a.api_requests, 0)::int AS api_requests,

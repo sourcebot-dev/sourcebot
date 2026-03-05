@@ -123,7 +123,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
             action: "user.performed_goto_definition",
             metadata: {
                 message: symbolInfo.symbolName,
-                source: 'sourcebot-ui-codenav',
+                source: 'sourcebot-web-client',
             },
         });
 
@@ -177,7 +177,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
             action: "user.performed_find_references",
             metadata: {
                 message: symbolInfo.symbolName,
-                source: 'sourcebot-ui-codenav',
+                source: 'sourcebot-web-client',
             },
         })
 
