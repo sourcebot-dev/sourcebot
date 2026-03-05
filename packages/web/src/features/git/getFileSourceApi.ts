@@ -67,9 +67,9 @@ export const getFileSource = async ({ path: filePath, repo: repoName, ref }: Fil
         repo.defaultBranch ??
         'HEAD';
 
-    let source: string;
+    let fileContent: string;
     try {
-        source = await git.raw(['show', `${gitRef}:${filePath}`]);
+        fileContent = await git.raw(['show', `${gitRef}:${filePath}`]);
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         if (errorMessage.includes('does not exist') || errorMessage.includes('fatal: path')) {
@@ -97,7 +97,7 @@ export const getFileSource = async ({ path: filePath, repo: repoName, ref }: Fil
     });
 
     return {
-        source,
+        source: fileContent,
         language,
         path: filePath,
         repo: repoName,
