@@ -115,7 +115,7 @@ export const readFilesTool = tool({
                 path,
                 repo: repository,
                 ref: revision,
-            }, { sourceOverride: 'sourcebot-ask-agent' });
+            }, { source: 'sourcebot-ask-agent' });
         }));
 
         if (responses.some(isServiceError)) {
@@ -222,7 +222,7 @@ export const createCodeSearchTool = (selectedRepos: string[]) => tool({
                 isCaseSensitivityEnabled: caseSensitive,
                 isRegexEnabled: useRegex,
             },
-            sourceOverride: 'sourcebot-ask-agent',
+            source: 'sourcebot-ask-agent',
         });
 
         if (isServiceError(response)) {
@@ -254,7 +254,7 @@ export const listReposTool = tool({
     description: 'Lists repositories in the organization with optional filtering and pagination.',
     inputSchema: listReposQueryParamsSchema,
     execute: async (request: ListReposQueryParams) => {
-        const reposResponse = await listRepos({ ...request, sourceOverride: 'sourcebot-ask-agent' });
+        const reposResponse = await listRepos({ ...request, source: 'sourcebot-ask-agent' });
 
         if (isServiceError(reposResponse)) {
             return reposResponse;

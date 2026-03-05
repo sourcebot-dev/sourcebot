@@ -15,7 +15,7 @@ type QueryStringSearchRequest = {
     queryType: 'string';
     query: string;
     options: SearchOptions;
-    sourceOverride?: string;
+    source?: string;
 }
 
 type QueryIRSearchRequest = {
@@ -23,7 +23,7 @@ type QueryIRSearchRequest = {
     query: QueryIR;
     // Omit options that are specific to query syntax parsing.
     options: Omit<SearchOptions, 'isRegexEnabled' | 'isCaseSensitivityEnabled'>;
-    sourceOverride?: string;
+    source?: string;
 }
 
 type SearchRequest = QueryStringSearchRequest | QueryIRSearchRequest;
@@ -31,7 +31,7 @@ type SearchRequest = QueryStringSearchRequest | QueryIRSearchRequest;
 export const search = (request: SearchRequest) => sew(() =>
     withOptionalAuthV2(async ({ prisma, user, org }) => {
         if (user) {
-            const source = request.sourceOverride ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
+            const source = request.source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
             getAuditService().createAudit({
                 action: 'user.performed_code_search',
                 actor: { id: user.id, type: 'user' },
@@ -62,7 +62,7 @@ export const search = (request: SearchRequest) => sew(() =>
 export const streamSearch = (request: SearchRequest) => sew(() =>
     withOptionalAuthV2(async ({ prisma, user, org }) => {
         if (user) {
-            const source = request.sourceOverride ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
+            const source = request.source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
             getAuditService().createAudit({
                 action: 'user.performed_code_search',
                 actor: { id: user.id, type: 'user' },

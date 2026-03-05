@@ -26,16 +26,16 @@ export type GetTreeResponse = z.infer<typeof getTreeResponseSchema>;
  * repo/revision, including intermediate directories needed to connect them
  * into a single tree.
  */
-export const getTree = async ({ repoName, revisionName, paths }: GetTreeRequest, { sourceOverride }: { sourceOverride?: string } = {}): Promise<GetTreeResponse | ServiceError> => sew(() =>
+export const getTree = async ({ repoName, revisionName, paths }: GetTreeRequest, { source }: { source?: string } = {}): Promise<GetTreeResponse | ServiceError> => sew(() =>
     withOptionalAuthV2(async ({ org, prisma, user }) => {
         if (user) {
-            const source = sourceOverride ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
+            const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
             getAuditService().createAudit({
                 action: 'user.fetched_file_tree',
                 actor: { id: user.id, type: 'user' },
                 target: { id: org.id.toString(), type: 'org' },
                 orgId: org.id,
-                metadata: { source },
+                metadata: { source: resolvedSource },
             });
         }
 

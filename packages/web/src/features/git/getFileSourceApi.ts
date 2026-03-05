@@ -33,15 +33,15 @@ export const fileSourceResponseSchema = z.object({
 });
 export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
 
-export const getFileSource = async ({ path: filePath, repo: repoName, ref }: FileSourceRequest, { sourceOverride }: { sourceOverride?: string } = {}): Promise<FileSourceResponse | ServiceError> => sew(() => withOptionalAuthV2(async ({ org, prisma, user }) => {
+export const getFileSource = async ({ path: filePath, repo: repoName, ref }: FileSourceRequest, { source }: { source?: string } = {}): Promise<FileSourceResponse | ServiceError> => sew(() => withOptionalAuthV2(async ({ org, prisma, user }) => {
     if (user) {
-        const source = sourceOverride ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
+        const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
         getAuditService().createAudit({
             action: 'user.fetched_file_source',
             actor: { id: user.id, type: 'user' },
             target: { id: org.id.toString(), type: 'org' },
             orgId: org.id,
-            metadata: { source },
+            metadata: { source: resolvedSource },
         });
     }
 
