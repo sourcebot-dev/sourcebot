@@ -212,10 +212,21 @@ describe('verifyAndRotateRefreshToken', () => {
         });
     });
 
-    test('returns invalid_grant and revokes all tokens when refresh token is not found (theft detection)', async () => {
+    test('returns invalid_grant immediately if token does not have the correct prefix', async () => {
+        const result = await verifyAndRotateRefreshToken({
+            rawRefreshToken: 'invalid_prefix_token',
+            clientId: 'test-client-id',
+            resource: null,
+        });
+
+        expect(result).toMatchObject({ error: 'invalid_grant' });
+        expect(prisma.oAuthRefreshToken.findUnique).not.toHaveBeenCalled();
+        expect(prisma.oAuthToken.deleteMany).not.toHaveBeenCalled();
+        expect(prisma.oAuthRefreshToken.deleteMany).not.toHaveBeenCalled();
+    });
+
+    test('returns invalid_grant when refresh token is not found without revoking other tokens', async () => {
         prisma.oAuthRefreshToken.findUnique.mockResolvedValue(null);
-        prisma.oAuthToken.deleteMany.mockResolvedValue({ count: 1 });
-        prisma.oAuthRefreshToken.deleteMany.mockResolvedValue({ count: 1 });
 
         const result = await verifyAndRotateRefreshToken({
             rawRefreshToken: 'sbor_used',
@@ -224,8 +235,8 @@ describe('verifyAndRotateRefreshToken', () => {
         });
 
         expect(result).toMatchObject({ error: 'invalid_grant' });
-        expect(prisma.oAuthToken.deleteMany).toHaveBeenCalledWith({ where: { clientId: 'test-client-id' } });
-        expect(prisma.oAuthRefreshToken.deleteMany).toHaveBeenCalledWith({ where: { clientId: 'test-client-id' } });
+        expect(prisma.oAuthToken.deleteMany).not.toHaveBeenCalled();
+        expect(prisma.oAuthRefreshToken.deleteMany).not.toHaveBeenCalled();
     });
 
     test('returns invalid_grant if client_id does not match', async () => {

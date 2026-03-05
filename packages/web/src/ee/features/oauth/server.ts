@@ -153,17 +153,15 @@ export async function verifyAndRotateRefreshToken({
     clientId: string;
     resource: string | null;
 }): Promise<{ token: string; refreshToken: string; expiresIn: number } | { error: string; errorDescription: string }> {
+    if (!rawRefreshToken.startsWith(OAUTH_REFRESH_TOKEN_PREFIX)) {
+        return { error: 'invalid_grant', errorDescription: 'Refresh token is invalid.' };
+    }
+
     const hash = hashSecret(rawRefreshToken.slice(OAUTH_REFRESH_TOKEN_PREFIX.length));
 
     const existing = await prisma.oAuthRefreshToken.findUnique({ where: { hash } });
 
     if (!existing) {
-        // Token not found — either never existed or already rotated.
-        // Treat as potential theft: revoke all tokens for this client to be safe.
-        await prisma.$transaction([
-            prisma.oAuthToken.deleteMany({ where: { clientId } }),
-            prisma.oAuthRefreshToken.deleteMany({ where: { clientId } }),
-        ]);
         return { error: 'invalid_grant', errorDescription: 'Refresh token is invalid or has already been used.' };
     }
 
