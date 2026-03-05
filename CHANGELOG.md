@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.14.0] - 2026-03-05
+
 ### Added
 - Added support a MCP streamable http transport hosted at `/api/mcp`. [#976](https://github.com/sourcebot-dev/sourcebot/pull/976)
 - [EE] Added support for Oauth 2.1 to the remote MCP server hosted at `/api/mcp`. [#977](https://github.com/sourcebot-dev/sourcebot/pull/977)
