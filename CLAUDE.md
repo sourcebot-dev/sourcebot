@@ -184,7 +184,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
 
 ## Next.js Router Navigation
 
-Do NOT call `router.refresh()` immediately after `router.push()`. In Next.js 16, the prefetch cache and navigation system was completely rewritten, and calling `router.refresh()` right after `router.push()` creates a race condition — the refresh invalidates the cache and can interrupt the in-flight navigation, leaving the page stuck or not loading.
+Do NOT call `router.refresh()` immediately after `router.push()`. In Next.js 16, the prefetch cache and navigation system was completely rewritten, and calling `router.refresh()` right after `router.push()` creates a race condition. The refresh invalidates the cache and can interrupt the in-flight navigation, leaving the page stuck or not loading.
 
 ```ts
 // Bad - router.refresh() races with router.push() in Next.js 16
@@ -196,6 +196,18 @@ router.push(url); // ✅
 ```
 
 If you need to refresh server component data after a mutation, use the server-side `refresh()` from `next/cache` in a Server Action instead of `router.refresh()` on the client.
+
+## Documentation Writing Style
+
+When writing or editing `.mdx` files in `docs/`:
+
+- Do NOT use em dashes (`—`). Use periods to break sentences, commas, or parentheses instead.
+- Write in second person ("you") and present tense.
+- Keep sentences short and direct. Lead with what the user needs to know.
+- Use bold for UI elements and key terms (e.g., **Settings → API Keys**).
+- Use inline code for technical values, flags, and identifiers (e.g., `REPO_READ`).
+- Prefer short paragraphs (1-3 sentences). Use bullet lists to break up dense information.
+- Use tables for parameter documentation.
 
 ## Docs Images
 

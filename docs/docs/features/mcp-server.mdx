@@ -281,7 +281,7 @@ Regardless of which method you use, all MCP requests are scoped to the associate
 
 <LicenseKeyRequired feature="OAuth" />
 
-Sourcebot implements an OAuth 2.0 authorization server with support for dynamic client registration (RFC 7591). This means MCP clients can register themselves automatically without any manual setup — just point your client at the MCP endpoint and it will handle the full authorization flow, prompting you to log in and approve access in your browser the first time you connect. No API key or manual token management is required.
+Sourcebot implements an OAuth 2.0 authorization server with support for dynamic client registration (RFC 7591). This means MCP clients can register themselves automatically without any manual setup. Just point your client at the MCP endpoint and it will handle the full authorization flow, prompting you to log in and approve access in your browser the first time you connect. No API key or manual token management is required.
 
 Once authorized, Sourcebot issues a short-lived access token (valid for 1 hour) and a refresh token (valid for 90 days). The MCP client handles token refresh automatically, so you stay connected without needing to re-authorize.
 
