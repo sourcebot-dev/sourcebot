@@ -365,6 +365,10 @@ model User {
   chats Chat[]
   sharedChats ChatAccess[]
 
+  oauthTokens        OAuthToken[]
+  oauthAuthCodes     OAuthAuthorizationCode[]
+  oauthRefreshTokens OAuthRefreshToken[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -484,4 +488,65 @@ model ChatAccess {
   createdAt DateTime @default(now())
 
   @@unique([chatId, userId])
+}
+
+// OAuth2 Authorization Server models
+// @see: https://datatracker.ietf.org/doc/html/rfc6749
+
+/// A registered OAuth2 client application (e.g. Claude Desktop, Cursor).
+/// Created via dynamic client registration (RFC 7591) at POST /api/ee/oauth/register.
+model OAuthClient {
+  id           String   @id @default(cuid())
+  name         String
+  logoUri      String?
+  redirectUris String[]
+  createdAt    DateTime @default(now())
+
+  authCodes     OAuthAuthorizationCode[]
+  tokens        OAuthToken[]
+  refreshTokens OAuthRefreshToken[]
+}
+
+/// A short-lived authorization code issued during the OAuth2 authorization code flow.
+/// Single-use and expires after 10 minutes. Stores the PKCE code challenge.
+model OAuthAuthorizationCode {
+  codeHash      String   @id // hashSecret(rawCode)
+  clientId      String
+  client        OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  redirectUri   String
+  codeChallenge String // BASE64URL(SHA-256(codeVerifier))
+  resource      String? // RFC 8707: canonical URI of the target resource server
+  expiresAt     DateTime
+  createdAt     DateTime    @default(now())
+}
+
+/// An opaque OAuth2 refresh token. Single-use with rotation (RFC 6749 Section 10.4, OAuth 2.1 Section 4.3.1).
+model OAuthRefreshToken {
+  hash      String   @id // hashSecret(rawToken secret portion)
+  clientId  String
+  client    OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scope     String      @default("")
+  resource  String? // RFC 8707
+  expiresAt DateTime
+  createdAt DateTime    @default(now())
+
+  @@index([clientId, userId])
+}
+
+/// An opaque OAuth2 access token. The raw token is never stored — only its HMAC-SHA256 hash.
+model OAuthToken {
+  hash       String   @id // hashSecret(rawToken secret portion)
+  clientId   String
+  client     OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scope      String      @default("")
+  resource   String? // RFC 8707: canonical URI of the target resource server
+  expiresAt  DateTime
+  createdAt  DateTime    @default(now())
+  lastUsedAt DateTime?
 }

@@ -40,7 +40,8 @@ const entitlements = [
     "permission-syncing",
     "github-app",
     "chat-sharing",
-    "org-management"
+    "org-management",
+    "oauth",
 ] as const;
 export type Entitlement = (typeof entitlements)[number];
 
@@ -58,6 +59,7 @@ const entitlementsByPlan: Record<Plan, Entitlement[]> = {
         "github-app",
         "chat-sharing",
         "org-management",
+        "oauth",
     ],
     "self-hosted:enterprise-unlimited": [
         "anonymous-access",
@@ -70,6 +72,7 @@ const entitlementsByPlan: Record<Plan, Entitlement[]> = {
         "github-app",
         "chat-sharing",
         "org-management",
+        "oauth",
     ],
 } as const;
 
