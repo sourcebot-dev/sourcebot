@@ -45,7 +45,8 @@ export const POST = apiHandler(async (request: NextRequest) => {
         return serviceErrorResponse(requestBodySchemaValidationError(parsed.error));
     }
 
-    const response = await askCodebase(parsed.data);
+    const source = request.headers.get('X-Sourcebot-Client-Source') ?? undefined;
+    const response = await askCodebase({ ...parsed.data, source });
 
     if (isServiceError(response)) {
         return serviceErrorResponse(response);

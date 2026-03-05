@@ -11,6 +11,7 @@ import { randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
 import { InferUIMessageChunk, UIDataTypes, UIMessage, UITools } from "ai";
 import { captureEvent } from "@/lib/posthog";
+import { getAuditService } from "@/ee/features/audit/factory";
 import { createMessageStream } from "../chat/agent";
 
 const logger = createLogger('ask-codebase-api');
@@ -20,6 +21,7 @@ export type AskCodebaseParams = {
     repos?: string[];
     languageModel?: LanguageModelInfo;
     visibility?: ChatVisibility;
+    source?: string;
 };
 
 export type AskCodebaseResult = {
@@ -42,7 +44,7 @@ const blockStreamUntilFinish = async <T extends UIMessage<unknown, UIDataTypes, 
 export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResult | ServiceError> =>
     sew(() =>
         withOptionalAuthV2(async ({ org, user, prisma }) => {
-            const { query, repos = [], languageModel: requestedLanguageModel, visibility: requestedVisibility } = params;
+            const { query, repos = [], languageModel: requestedLanguageModel, visibility: requestedVisibility, source } = params;
 
             const configuredModels = await getConfiguredLanguageModels();
             if (configuredModels.length === 0) {
@@ -88,6 +90,16 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 chatId: chat.id,
                 isAnonymous: !user,
             });
+
+            if (user) {
+                getAuditService().createAudit({
+                    action: 'user.created_ask_chat',
+                    actor: { id: user.id, type: 'user' },
+                    target: { id: org.id.toString(), type: 'org' },
+                    orgId: org.id,
+                    metadata: { source },
+                });
+            }
 
             logger.debug(`Starting blocking agent for chat ${chat.id}`, {
                 chatId: chat.id,

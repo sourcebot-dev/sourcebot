@@ -28,7 +28,7 @@ The Sourcebot MCP server gives your LLM agents the ability to fetch code context
 
 2. (optional) Spin up a Sourcebot instance by following [this guide](https://docs.sourcebot.dev/self-hosting/overview). The host url of your instance (e.g., `http://localhost:3000`) is passed to the MCP server via the `SOURCEBOT_HOST` url. This allows you to control which repos Sourcebot MCP fetches context from (including private repos). 
 
-    If a host is not provided, then the server will fallback to using the demo instance hosted at https://demo.sourcebot.dev. You can see the list of repositories indexed [here](https://demo.sourcebot.dev/~/repos). Add additional repositories by [opening a PR](https://github.com/sourcebot-dev/sourcebot/blob/main/demo-site-config.json).
+    If a host is not provided, then the server will fallback to using the demo instance hosted at https://app.sourcebot.dev. You can see the list of repositories indexed [here](https://app.sourcebot.dev/~/repos). Add additional repositories by [opening a PR](https://github.com/sourcebot-dev/sourcebot/blob/main/demo-site-config.json).
 
 3. Install `@sourcebot/mcp` into your MCP client:
 
@@ -47,7 +47,7 @@ The Sourcebot MCP server gives your LLM agents the ability to fetch code context
             "sourcebot": {
                 "command": "npx",
                 "args": ["-y", "@sourcebot/mcp@latest" ],
-                // Optional - if not specified, https://demo.sourcebot.dev is used
+                // Optional - if not specified, https://app.sourcebot.dev is used
                 "env": {
                     "SOURCEBOT_HOST": "http://localhost:3000"
                 }
@@ -72,7 +72,7 @@ The Sourcebot MCP server gives your LLM agents the ability to fetch code context
             "sourcebot": {
                 "command": "npx",
                 "args": ["-y", "@sourcebot/mcp@latest" ],
-                // Optional - if not specified, https://demo.sourcebot.dev is used
+                // Optional - if not specified, https://app.sourcebot.dev is used
                 "env": {
                     "SOURCEBOT_HOST": "http://localhost:3000"
                 }
@@ -96,7 +96,7 @@ The Sourcebot MCP server gives your LLM agents the ability to fetch code context
                 "type": "stdio",
                 "command": "npx",
                 "args": ["-y", "@sourcebot/mcp@latest"],
-                // Optional - if not specified, https://demo.sourcebot.dev is used
+                // Optional - if not specified, https://app.sourcebot.dev is used
                 "env": {
                     "SOURCEBOT_HOST": "http://localhost:3000"
                 }
@@ -116,7 +116,7 @@ The Sourcebot MCP server gives your LLM agents the ability to fetch code context
 
     ```sh
     # SOURCEBOT_HOST env var is optional - if not specified,
-    # https://demo.sourcebot.dev is used.
+    # https://app.sourcebot.dev is used.
     claude mcp add sourcebot -e SOURCEBOT_HOST=http://localhost:3000 -- npx -y @sourcebot/mcp@latest
     ```
     </details>
@@ -134,7 +134,7 @@ The Sourcebot MCP server gives your LLM agents the ability to fetch code context
             "sourcebot": {
                 "command": "npx",
                 "args": ["-y", "@sourcebot/mcp@latest"],
-                // Optional - if not specified, https://demo.sourcebot.dev is used
+                // Optional - if not specified, https://app.sourcebot.dev is used
                 "env": {
                     "SOURCEBOT_HOST": "http://localhost:3000"
                 }

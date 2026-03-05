@@ -127,6 +127,7 @@ export function createMcpServer(): McpServer {
                     isRegexEnabled: useRegex,
                     isCaseSensitivityEnabled: caseSensitive,
                 },
+                source: 'mcp',
             });
 
             if (isServiceError(response)) {
@@ -241,7 +242,7 @@ export function createMcpServer(): McpServer {
             })
         },
         async ({ query, page, perPage, sort, direction }) => {
-            const result = await listRepos({ query, page, perPage, sort, direction });
+            const result = await listRepos({ query, page, perPage, sort, direction, source: 'mcp' });
 
             if (isServiceError(result)) {
                 return {
@@ -279,7 +280,7 @@ export function createMcpServer(): McpServer {
             },
         },
         async ({ repo, path, ref }) => {
-            const response = await getFileSource({ repo, path, ref });
+            const response = await getFileSource({ repo, path, ref }, { source: 'mcp' });
 
             if (isServiceError(response)) {
                 return {
@@ -372,7 +373,7 @@ export function createMcpServer(): McpServer {
                     repoName: repo,
                     revisionName: ref,
                     paths: currentLevelPaths.filter(Boolean),
-                });
+                }, { source: 'mcp' });
 
                 if (isServiceError(treeResult)) {
                     treeError = treeResult.message;
@@ -484,6 +485,7 @@ export function createMcpServer(): McpServer {
                 repos: request.repos,
                 languageModel: request.languageModel,
                 visibility: request.visibility as ChatVisibility | undefined,
+                source: 'mcp',
             });
 
             if (isServiceError(result)) {

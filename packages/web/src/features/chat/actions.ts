@@ -15,7 +15,7 @@ import { generateChatNameFromMessage, getConfiguredLanguageModels, isChatSharedW
 
 const auditService = getAuditService();
 
-export const createChat = async () => sew(() =>
+export const createChat = async ({ source }: { source?: string } = {}) => sew(() =>
     withOptionalAuthV2(async ({ org, user, prisma }) => {
         const isGuestUser = user === undefined;
 
@@ -45,6 +45,7 @@ export const createChat = async () => sew(() =>
                     type: "org",
                 },
                 orgId: org.id,
+                metadata: { source },
             });
         }
 
