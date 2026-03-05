@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Increased pagination limit to 1000 for bitbucket data center requests. [#981](https://github.com/sourcebot-dev/sourcebot/pull/981)
+
 ## [4.15.0] - 2026-03-05
 - Added MCP and API key usage tracking to analytics dashboard and added audit retention system [#950](https://github.com/sourcebot-dev/sourcebot/pull/950)
 
