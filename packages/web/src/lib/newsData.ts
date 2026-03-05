@@ -2,6 +2,12 @@ import { NewsItem } from "./types";
 
 export const newsData: NewsItem[] = [
     {
+        unique_id: "analytics-by-source",
+        header: "MCP Analytics",
+        sub_header: "We've extended analytics to include data on MCP/API usage",
+        url: "https://docs.sourcebot.dev/docs/features/analytics"
+    },
+    {
         unique_id: "ai-search-assist",
         header: "AI Search Assist",
         sub_header: "Describe what you're looking for in natural language and AI will generate a code search query for you.",

@@ -14,7 +14,7 @@ import { Callout } from 'nextra/components'
 Analytics provides comprehensive insights into your organization's usage of Sourcebot, helping you understand adoption patterns and
 quantify the value of time saved.
 
-This dashboard is backed by [audit log](/docs/configuration/audit-logs) events. Please ensure you have audit logging enabled in order to see these insights.
+This dashboard is backed by [audit log](/docs/configuration/audit-logs) events. Please ensure you have audit logging enabled in order to see these insights. Analytics data is subject to the audit log [retention policy](/docs/configuration/audit-logs#retention-policy). By default, data older than 180 days is automatically pruned.
 
 <video
   autoPlay
@@ -25,18 +25,40 @@ This dashboard is backed by [audit log](/docs/configuration/audit-logs) events. 
   src="/images/analytics_demo.mp4"
 ></video>
 
-## Data Metrics
+The analytics dashboard segments usage by source so you can understand how your team interacts with Sourcebot across different interfaces. Each chart supports daily, weekly, and monthly time periods.
+
+## Global
 
 ### Active Users
-Tracks the number of unique users who performed any Sourcebot operation within each time period. This metric helps you understand team adoption
-and engagement with Sourcebot.
+Tracks the number of unique users who performed any tracked action across all sources (web app, MCP, and API). This includes code searches, navigations, Ask chats, file views, and tree browsing. Web repo listings are excluded to reduce noise from passive page loads.
 
-### Code Searches
-Counts the number of code search operations performed by your team.
+## Web App
 
-### Code Navigation
-Tracks "Go to Definition" and "Find All References" navigation actions. Navigation actions help developers quickly move
-between code locations and understand code relationships.
+Metrics from the Sourcebot web interface.
 
-### Ask Chats
-Tracks the number of new Ask chat sessions created by your team.
+### Web Active Users
+Shows unique users who interacted with the web interface, broken down by activity type:
+- **All**: Users who performed any web action (code searches, navigations, Ask chats, or file views), excluding repo listings.
+- **Search**: The subset of users who performed code searches.
+- **Ask**: The subset of users who created Ask chat sessions.
+
+### Web Activity
+Total event counts for web interface activity:
+- **Code Searches**: Searches performed in the web search bar.
+- **Ask Chats**: Conversations created through the web interface.
+- **Navigations**: "Go to Definition" and "Find All References" actions in the code viewer.
+
+## API
+
+Metrics from MCP integrations and direct API access.
+
+### API Active Users
+Shows unique users who interacted via non-web sources:
+- **Any**: Users who used either MCP or the API.
+- **MCP**: Users from IDE extensions and other MCP clients.
+- **API**: Users from direct HTTP API access (e.g., via API keys), excluding web app and MCP traffic.
+
+### API Requests
+Total request counts:
+- **MCP**: Code searches, file reads, tree listings, repo listings, and Ask chats from MCP clients.
+- **API**: Direct HTTP API requests, excluding web app and MCP traffic.
