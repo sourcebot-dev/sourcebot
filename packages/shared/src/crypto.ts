@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { env } from './env.server.js';
 import { Token } from '@sourcebot/schemas/v3/shared.type';
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
+import { API_KEY_PREFIX, OAUTH_ACCESS_TOKEN_PREFIX, OAUTH_REFRESH_TOKEN_PREFIX } from './constants.js';
 
 const algorithm = 'aes-256-cbc';
 const ivLength = 16; // 16 bytes for CBC
@@ -35,7 +36,7 @@ export function generateApiKey(): { key: string; hash: string } {
     const hash = hashSecret(secret);
 
     return {
-        key: `sourcebot-${secret}`,
+        key: `${API_KEY_PREFIX}${secret}`,
         hash,
     };
 }
@@ -45,7 +46,17 @@ export function generateOAuthToken(): { token: string; hash: string } {
     const hash = hashSecret(secret);
 
     return {
-        token: `sourcebot-oauth-${secret}`,
+        token: `${OAUTH_ACCESS_TOKEN_PREFIX}${secret}`,
+        hash,
+    };
+}
+
+export function generateOAuthRefreshToken(): { token: string; hash: string } {
+    const secret = crypto.randomBytes(32).toString('hex');
+    const hash = hashSecret(secret);
+
+    return {
+        token: `${OAUTH_REFRESH_TOKEN_PREFIX}${secret}`,
         hash,
     };
 }

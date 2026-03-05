@@ -365,8 +365,9 @@ model User {
   chats Chat[]
   sharedChats ChatAccess[]
 
-  oauthTokens    OAuthToken[]
-  oauthAuthCodes OAuthAuthorizationCode[]
+  oauthTokens        OAuthToken[]
+  oauthAuthCodes     OAuthAuthorizationCode[]
+  oauthRefreshTokens OAuthRefreshToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -501,8 +502,9 @@ model OAuthClient {
   redirectUris String[]
   createdAt    DateTime @default(now())
 
-  authCodes OAuthAuthorizationCode[]
-  tokens    OAuthToken[]
+  authCodes     OAuthAuthorizationCode[]
+  tokens        OAuthToken[]
+  refreshTokens OAuthRefreshToken[]
 }
 
 /// A short-lived authorization code issued during the OAuth2 authorization code flow.
@@ -518,6 +520,21 @@ model OAuthAuthorizationCode {
   resource      String? // RFC 8707: canonical URI of the target resource server
   expiresAt     DateTime
   createdAt     DateTime    @default(now())
+}
+
+/// An opaque OAuth2 refresh token. Single-use with rotation (RFC 6749 Section 10.4, OAuth 2.1 Section 4.3.1).
+model OAuthRefreshToken {
+  hash      String   @id // hashSecret(rawToken secret portion)
+  clientId  String
+  client    OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scope     String      @default("")
+  resource  String? // RFC 8707
+  expiresAt DateTime
+  createdAt DateTime    @default(now())
+
+  @@index([clientId, userId])
 }
 
 /// An opaque OAuth2 access token. The raw token is never stored — only its HMAC-SHA256 hash.

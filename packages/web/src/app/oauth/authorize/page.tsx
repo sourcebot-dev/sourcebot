@@ -1,5 +1,5 @@
 import { auth } from '@/auth';
-import { generateAndStoreAuthCode } from '@/features/oauth/server';
+import { generateAndStoreAuthCode } from '@/ee/features/oauth/server';
 import { LogoutEscapeHatch } from '@/app/components/logoutEscapeHatch';
 import { ClientIcon } from './components/clientIcon';
 import { Button } from '@/components/ui/button';

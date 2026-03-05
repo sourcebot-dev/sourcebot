@@ -46,6 +46,7 @@ export {
     hashSecret,
     generateApiKey,
     generateOAuthToken,
+    generateOAuthRefreshToken,
     verifySignature,
     encryptOAuthToken,
     decryptOAuthToken,

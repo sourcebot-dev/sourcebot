@@ -1,4 +1,4 @@
-import { revokeToken } from '@/features/oauth/server';
+import { revokeToken } from '@/ee/features/oauth/server';
 import { apiHandler } from '@/lib/apiHandler';
 import { hasEntitlement } from '@sourcebot/shared';
 import { NextRequest } from 'next/server';

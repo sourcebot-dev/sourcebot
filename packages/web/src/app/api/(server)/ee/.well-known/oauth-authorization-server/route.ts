@@ -15,7 +15,7 @@ export const GET = apiHandler(async () => {
         registration_endpoint: `${issuer}/api/ee/oauth/register`,
         revocation_endpoint: `${issuer}/api/ee/oauth/revoke`,
         response_types_supported: ['code'],
-        grant_types_supported: ['authorization_code'],
+        grant_types_supported: ['authorization_code', 'refresh_token'],
         code_challenge_methods_supported: ['S256'],
         token_endpoint_auth_methods_supported: ['none'],
         service_documentation: 'https://docs.sourcebot.dev',
