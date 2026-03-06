@@ -4,6 +4,7 @@ import { prisma } from '@/prisma';
 import { hasEntitlement } from '@sourcebot/shared';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
 
 // RFC 7591: OAuth 2.0 Dynamic Client Registration
 // @see: https://datatracker.ietf.org/doc/html/rfc7591
@@ -16,7 +17,7 @@ const registerRequestSchema = z.object({
 export const POST = apiHandler(async (request: NextRequest) => {
     if (!hasEntitlement('oauth')) {
         return Response.json(
-            { error: 'access_denied', error_description: 'OAuth is not available on this plan. Please see https://sourcebot.dev/pricing' },
+            { error: 'access_denied', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
             { status: 403 }
         );
     }

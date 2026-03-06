@@ -28,6 +28,10 @@ Sourcebot MCP uses a [Streamable HTTP](https://modelcontextprotocol.io/specifica
 
 You can read more about the options in the [authorization](#authorization) section.
 
+<Note>
+    If [anonymous access](https://docs.sourcebot.dev/docs/configuration/auth/access-settings#anonymous-access) is enabled on your Sourcebot instance, no OAuth token or API key is required. You can connect directly to the MCP endpoint without any authorization.
+</Note>
+
 <AccordionGroup>
 <Accordion title="Claude Code">
         [Claude Code MCP docs](https://code.claude.com/docs/en/mcp#connect-claude-code-to-tools-via-mcp)
@@ -273,7 +277,7 @@ You can read more about the options in the [authorization](#authorization) secti
 
 ## Authorization
 
-The Sourcebot MCP server supports two authorization methods, OAuth and API keys.
+The Sourcebot MCP server supports two authorization methods, OAuth and API keys. If [anonymous access](/docs/configuration/auth/access-settings#anonymous-access) is enabled on your instance, no authorization is required.
 
 Regardless of which method you use, all MCP requests are scoped to the associated Sourcebot user and inherit the [user's role and permissions](/docs/configuration/auth/roles-and-permissions). When [permission syncing](/docs/features/permission-syncing) is configured, this includes repository permissions - the MCP server will only surface results from repositories the user has access to.
 

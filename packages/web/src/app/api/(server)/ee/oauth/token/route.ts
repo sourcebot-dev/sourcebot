@@ -2,6 +2,7 @@ import { verifyAndExchangeCode, verifyAndRotateRefreshToken, ACCESS_TOKEN_TTL_SE
 import { apiHandler } from '@/lib/apiHandler';
 import { hasEntitlement } from '@sourcebot/shared';
 import { NextRequest } from 'next/server';
+import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
 
 // OAuth 2.0 Token Endpoint
 // Supports grant_type=authorization_code with PKCE (RFC 7636).
@@ -9,7 +10,7 @@ import { NextRequest } from 'next/server';
 export const POST = apiHandler(async (request: NextRequest) => {
     if (!hasEntitlement('oauth')) {
         return Response.json(
-            { error: 'access_denied', error_description: 'OAuth is not available on this plan. Please see https://sourcebot.dev/pricing' },
+            { error: 'access_denied', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
             { status: 403 }
         );
     }
