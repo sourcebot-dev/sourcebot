@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed issue where users would not be redirected to the homepage when clicking "continue with guest". [#984](https://github.com/sourcebot-dev/sourcebot/pull/984)
+
 ### Changed
 - Increased pagination limit to 1000 for bitbucket data center requests. [#981](https://github.com/sourcebot-dev/sourcebot/pull/981)
 
