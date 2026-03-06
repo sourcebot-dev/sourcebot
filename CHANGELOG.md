@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.15.2] - 2026-03-06
+
 ### Fixed
 - [EE] Avoid advertising OAuth support on MCP endpoints if that entitlement is not actually configured. [#985](https://github.com/sourcebot-dev/sourcebot/pull/985)
 
