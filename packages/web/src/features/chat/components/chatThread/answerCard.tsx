@@ -38,6 +38,7 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
     traceId,
 }, forwardedRef) => {
     const markdownRendererRef = useRef<HTMLDivElement>(null);
+    // eslint-disable-next-line react-hooks/refs -- ref.current is passed to a custom hook, not used directly in render output
     const { tocItems, activeId } = useExtractTOCItems({ target: markdownRendererRef.current });
     const [isTOCButtonToggled, setIsTOCButtonToggled] = useState(false);
     const { toast } = useToast();
@@ -57,8 +58,9 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
         toast({
             description: "✅ Copied to clipboard",
         });
+        captureEvent('wa_chat_copy_answer_pressed', { chatId });
         return true;
-    }, [answerText, toast]);
+    }, [answerText, chatId, captureEvent, toast]);
 
     const onFeedback = useCallback(async (feedbackType: 'like' | 'dislike') => {
         setIsSubmittingFeedback(true);
@@ -128,7 +130,10 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
                                         <Toggle
                                             className="h-6 w-6 px-3 min-w-6 text-muted-foreground"
                                             pressed={isTOCButtonToggled}
-                                            onPressedChange={setIsTOCButtonToggled}
+                                            onPressedChange={(next) => {
+                                                setIsTOCButtonToggled(next);
+                                                captureEvent('wa_chat_toc_toggled', { chatId, isExpanded: next });
+                                            }}
                                         >
                                             <TableOfContentsIcon className="h-3 w-3" />
                                         </Toggle>

@@ -4,8 +4,6 @@ sidebarTitle: Bitbucket Data Center
 icon: Bitbucket
 ---
 
-import BitbucketToken from '/snippets/bitbucket-token.mdx';
-import BitbucketAppPassword from '/snippets/bitbucket-app-password.mdx';
 import BitbucketSchema from '/snippets/schemas/v3/bitbucket.schema.mdx'
 
 <Note>
@@ -41,6 +39,18 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
         }
         ```
     </Accordion>
+    <Accordion title="Sync all repos">
+        <Note>Requires a `token` to be set in order to access private repositories.</Note>
+        ```json
+        {
+            "type": "bitbucket",
+            "deploymentType": "server",
+            "url": "https://mybitbucketdeployment.com",
+            // Index all repos visible to the provided token
+            "all": true
+        }
+        ```
+    </Accordion>
     <Accordion title="Exclude repos from syncing">
         ```json
         {
@@ -70,14 +80,98 @@ If you're not familiar with Sourcebot [connections](/docs/connections/overview),
 
 ## Authenticating with Bitbucket Data Center
 
-In order to index private repositories, you'll need to provide an access token to Sourcebot via a [token](/docs/configuration/config-file#tokens).
+In order to index private repositories, you'll need to provide a [HTTP Access Token](https://confluence.atlassian.com/bitbucketserver/http-access-tokens-939515499.html). Tokens can be scoped to a user account, a project, or an individual repository. Only repositories visible to the token will be able to be indexed by Sourcebot.
 
-Create an access token for the desired scope (repo, project, or workspace). Visit the official [Bitbucket Data Center docs](https://confluence.atlassian.com/bitbucketserver/http-access-tokens-939515499.html)
-for more info.
+<Note>
+  If [permission syncing](/docs/features/permission-syncing#bitbucket-data-center) is enabled, the token must have **Repository Admin** permissions so Sourcebot can read repository-level user permissions.
+</Note>
 
-Next, provide the access token to Sourcebot:
+<Tabs>
+    <Tab title="User account token">
+        User account tokens grant access to all repositories the user can access. Because these are tied to a specific user account, you must also set the `user` field to that user's username.
 
-<BitbucketToken />
+        1. In Bitbucket Data Center, navigate to your profile → **Manage account** → **HTTP access tokens** and click **Create token**. Give it a name and grant it **Project read** and **Repository read** permissions.
+
+        2. Add the `user` (your Bitbucket username) and `token` properties to your connection config:
+
+        ```json
+        {
+            "type": "bitbucket",
+            "deploymentType": "server",
+            "url": "https://mybitbucketdeployment.com",
+            "user": "myusername",
+            "token": {
+                // note: this env var can be named anything. It
+                // doesn't need to be `BITBUCKET_TOKEN`.
+                "env": "BITBUCKET_TOKEN"
+            },
+            // At least one of the following is required to specify which repos to sync:
+            "repos": ["myProject/myRepo"],
+            // "projects": ["myProject"],
+            // "all": true
+        }
+        ```
+
+        3. Pass this environment variable each time you run Sourcebot:
+
+        ```bash
+        docker run \
+            -e BITBUCKET_TOKEN=<ACCESS_TOKEN> \
+            /* additional args */ \
+            ghcr.io/sourcebot-dev/sourcebot:latest
+        ```
+    </Tab>
+    <Tab title="Project / repository token">
+        Project and repository tokens are scoped to a specific project or repository.
+
+        1. In Bitbucket Data Center, navigate to the project or repository → **Settings** → **HTTP access tokens** and click **Create token**. Give it a name and grant it **Repository read** and **Project read** permissions.
+
+        2. Add the `token` property to your connection config:
+
+        ```json
+        {
+            "type": "bitbucket",
+            "deploymentType": "server",
+            "url": "https://mybitbucketdeployment.com",
+            "token": {
+                // note: this env var can be named anything. It
+                // doesn't need to be `BITBUCKET_TOKEN`.
+                "env": "BITBUCKET_TOKEN"
+            },
+            // At least one of the following is required to specify which repos to sync:
+            "repos": ["myProject/myRepo"],
+            // "projects": ["myProject"],
+            // "all": true
+        }
+        ```
+
+        3. Pass this environment variable each time you run Sourcebot:
+
+        ```bash
+        docker run \
+            -e BITBUCKET_TOKEN=<ACCESS_TOKEN> \
+            /* additional args */ \
+            ghcr.io/sourcebot-dev/sourcebot:latest
+        ```
+    </Tab>
+</Tabs>
+
+## Rate limiting
+
+Bitbucket Data Center supports [rate limiting](https://confluence.atlassian.com/bitbucketserver094/improving-instance-stability-with-rate-limiting-1489803023.html) to protect instance stability. Rate limiting applies to HTTP requests with basic or bearer authentication, which includes the REST API calls Sourcebot makes to sync repositories.
+
+If rate limiting is enabled on your instance, Sourcebot may receive `HTTP 429 (Too Many Requests)` errors during sync. To prevent this, add a rate limiting exemption for the user (service account) whose token is used in your connection config.
+
+To add an exemption:
+
+1. In Bitbucket Data Center, go to **Administration** → **Rate limiting** → **Exemptions** tab.
+2. Click **Add exemption** and find the service account user.
+3. Select **Allow unlimited requests** (recommended) or set a custom token bucket size and refill rate appropriate for your sync volume.
+4. Click **Save**.
+
+<Frame>
+  <img src="/images/bitbucket_rate_limit.png" alt="Bitbucket Data Center rate limiting exemptions tab showing a user with unlimited requests" />
+</Frame>
 
 ## Troubleshooting
 If you're seeing errors like `TypeError: fetch failed` when fetching repo info, it may be that Sourcebot is refusing to connect to your self-hosted Bitbucket instance due to unrecognized SSL certs. Try setting the `NODE_TLS_REJECT_UNAUTHORIZED=0` environment variable or providing Sourcebot your certs through the `NODE_EXTRA_CA_CERTS` environment variable.

@@ -12,6 +12,7 @@ export type {
 export type {
     RepoMetadata,
     RepoIndexingJobMetadata,
+    IdentityProviderType,
 } from "./types.js";
 export {
     repoMetadataSchema,
@@ -23,6 +24,7 @@ export {
     loadJsonFile,
     getConfigSettings,
     getRepoPath,
+    getRepoIdFromPath,
 } from "./utils.js";
 export * from "./constants.js";
 export {
@@ -43,6 +45,8 @@ export {
     decrypt,
     hashSecret,
     generateApiKey,
+    generateOAuthToken,
+    generateOAuthRefreshToken,
     verifySignature,
     encryptOAuthToken,
     decryptOAuthToken,

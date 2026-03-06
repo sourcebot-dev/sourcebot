@@ -1,11 +1,13 @@
 import { sew } from '@/actions';
-import { notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
+import { getAuditService } from '@/ee/features/audit/factory';
+import { invalidGitRef, notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { getRepoPath } from '@sourcebot/shared';
+import { headers } from 'next/headers';
 import simpleGit from 'simple-git';
 import z from 'zod';
 import { fileTreeNodeSchema } from './types';
-import { buildFileTree, isPathValid, logger, normalizePath } from './utils';
+import { buildFileTree, isGitRefValid, isPathValid, logger, normalizePath } from './utils';
 
 export const getTreeRequestSchema = z.object({
     repoName: z.string(),
@@ -24,8 +26,19 @@ export type GetTreeResponse = z.infer<typeof getTreeResponseSchema>;
  * repo/revision, including intermediate directories needed to connect them
  * into a single tree.
  */
-export const getTree = async ({ repoName, revisionName, paths }: GetTreeRequest): Promise<GetTreeResponse | ServiceError> => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma }) => {
+export const getTree = async ({ repoName, revisionName, paths }: GetTreeRequest, { source }: { source?: string } = {}): Promise<GetTreeResponse | ServiceError> => sew(() =>
+    withOptionalAuthV2(async ({ org, prisma, user }) => {
+        if (user) {
+            const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
+            getAuditService().createAudit({
+                action: 'user.fetched_file_tree',
+                actor: { id: user.id, type: 'user' },
+                target: { id: org.id.toString(), type: 'org' },
+                orgId: org.id,
+                metadata: { source: resolvedSource },
+            });
+        }
+
         const repo = await prisma.repo.findFirst({
             where: {
                 name: repoName,
@@ -35,6 +48,10 @@ export const getTree = async ({ repoName, revisionName, paths }: GetTreeRequest)
 
         if (!repo) {
             return notFound(`Repository "${repoName}" not found.`);
+        }
+
+        if (!isGitRefValid(revisionName)) {
+            return invalidGitRef(revisionName);
         }
 
         const { path: repoPath } = getRepoPath(repo);

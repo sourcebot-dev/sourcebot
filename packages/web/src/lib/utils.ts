@@ -44,7 +44,7 @@ export const createInviteLink = (baseUrl: string, inviteLinkId?: string | null):
  */
 export const createPathWithQueryParams = (path: string, ...queryParams: [string, string | null][]) => {
     // Filter out undefined values
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     queryParams = queryParams.filter(([_key, value]) => value !== null);
 
     if (queryParams.length === 0) {
@@ -151,6 +151,24 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
                 displayName: "Email Code",
                 icon: null, // No icon needed for email
             };
+        case "bitbucket-cloud":
+            return {
+                id: "bitbucket-cloud",
+                name: "Bitbucket Cloud",
+                displayName: "Bitbucket Cloud",
+                icon: {
+                    src: bitbucketLogo,
+                },
+            };
+        case "bitbucket-server":
+            return {
+                id: "bitbucket-server",
+                name: "Bitbucket Server",
+                displayName: "Bitbucket Server",
+                icon: {
+                    src: bitbucketLogo,
+                },
+            };
         default:
             return {
                 id: providerId,
@@ -239,7 +257,7 @@ export const getCodeHostInfoForRepo = (repo: {
             return {
                 type: "bitbucketServer",
                 displayName: displayName ?? name,
-                codeHostName: "Bitbucket",
+                codeHostName: "Bitbucket Server",
                 externalWebUrl,
                 icon: src,
                 iconClassName: className,
@@ -250,7 +268,7 @@ export const getCodeHostInfoForRepo = (repo: {
             return {
                 type: "bitbucketCloud",
                 displayName: displayName ?? name,
-                codeHostName: "Bitbucket",
+                codeHostName: "Bitbucket Cloud",
                 externalWebUrl,
                 icon: src,
                 iconClassName: className,

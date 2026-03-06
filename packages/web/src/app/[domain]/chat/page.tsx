@@ -1,6 +1,7 @@
 import { getRepos, getReposStats, getSearchContexts } from "@/actions";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
-import { getConfiguredLanguageModelsInfo, getUserChatHistory } from "@/features/chat/actions";
+import { getUserChatHistory } from "@/features/chat/actions";
+import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError, measure } from "@/lib/utils";
@@ -103,6 +104,7 @@ export default async function Page(props: PageProps) {
                             languageModels={languageModels}
                             repos={allRepos}
                             searchContexts={searchContexts}
+                            isAuthenticated={!!session}
                         />
                     </CustomSlateEditor>
 

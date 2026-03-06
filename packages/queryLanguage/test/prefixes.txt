@@ -334,3 +334,43 @@ Program(ParenExpr(PrefixExpr(FileExpr)))
 
 Program(ParenExpr(AndExpr(PrefixExpr(FileExpr),PrefixExpr(LangExpr))))
 
+# File with regex alternation in value
+
+file:(test|spec)
+
+==>
+
+Program(PrefixExpr(FileExpr))
+
+# Repo with regex alternation in value
+
+repo:(org1|org2)
+
+==>
+
+Program(PrefixExpr(RepoExpr))
+
+# Sym with regex alternation in value
+
+sym:(Foo|Bar)
+
+==>
+
+Program(PrefixExpr(SymExpr))
+
+# Content with regex alternation in value
+
+content:(error|warning)
+
+==>
+
+Program(PrefixExpr(ContentExpr))
+
+# File alternation combined with other filters
+
+file:(test|spec) lang:TypeScript
+
+==>
+
+Program(AndExpr(PrefixExpr(FileExpr),PrefixExpr(LangExpr)))
+

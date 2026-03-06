@@ -150,16 +150,98 @@ export type PosthogEventMap = {
         chatId: string,
         messageId: string,
     },
-    wa_chat_thread_created: {},
+    wa_chat_thread_created: {
+        chatId: string,
+        isAnonymous: boolean,
+    },
     wa_chat_message_sent: {
+        chatId: string,
         messageCount: number,
+        selectedReposCount: number,
+        /**
+         * @note this field will only be populated when
+         * the EXPERIMENT_ASK_GH_ENABLED environment variable
+         * is set to true.
+         */
+        selectedRepos?: string[],
     },
     wa_chat_tool_used: {
+        chatId: string,
         toolName: string,
         success: boolean,
     },
+    wa_chat_share_dialog_opened: {
+        chatId: string,
+        currentVisibility: 'PUBLIC' | 'PRIVATE',
+    },
+    wa_chat_visibility_changed: {
+        chatId: string,
+        fromVisibility: 'PUBLIC' | 'PRIVATE',
+        toVisibility: 'PUBLIC' | 'PRIVATE',
+    },
+    wa_chat_link_copied: {
+        chatId: string,
+        visibility: 'PUBLIC' | 'PRIVATE',
+    },
+    wa_chat_users_invited: {
+        chatId: string,
+        numUsersInvited: number,
+    },
+    wa_chat_user_removed: {
+        chatId: string,
+    },
+    wa_shared_chat_viewed: {
+        chatId: string,
+        visibility: 'PUBLIC' | 'PRIVATE',
+        viewerType: 'authenticated' | 'anonymous',
+        accessType: 'public_link' | 'direct_invite',
+    },
+    wa_chat_sign_in_banner_displayed: {
+        chatId: string,
+    },
+    wa_chat_sign_in_banner_dismissed: {
+        chatId: string,
+    },
+    wa_chat_sign_in_banner_clicked: {
+        chatId: string,
+    },
+    wa_anonymous_chats_claimed: {
+        claimedCount: number,
+    },
+    wa_chat_duplicated: {
+        chatId: string,
+    },
+    wa_chat_renamed: {
+        chatId: string,
+    },
+    wa_chat_deleted: {
+        chatId: string,
+    },
+    wa_chat_details_card_toggled: {
+        chatId: string,
+        isExpanded: boolean,
+    },
+    wa_chat_copy_answer_pressed: {
+        chatId: string,
+    },
+    wa_chat_toc_toggled: {
+        chatId: string,
+        isExpanded: boolean,
+    },
+    wa_user_created: {
+        userId: string,
+    },
+    //////////////////////////////////////////////////////////////////
+    wa_askgh_login_wall_prompted: {},
     //////////////////////////////////////////////////////////////////
     wa_demo_docs_link_pressed: {},
+    wa_search_assist_opened: {},
+    wa_search_assist_query_generated: {},
+    wa_search_assist_generate_failed: {},
+    wa_search_assist_example_clicked: {
+        example: string,
+    },
+    //////////////////////////////////////////////////////////////////
     wa_demo_search_example_card_pressed: {
         exampleTitle: string,
         exampleUrl: string,
@@ -202,6 +284,20 @@ export type PosthogEventMap = {
     api_request: {
         path: string;
         source: string;
+        method: string;
+    },
+    //////////////////////////////////////////////////////////////////
+    wa_oauth_consent_viewed: {
+        clientId: string,
+        clientName: string,
+    },
+    wa_oauth_authorization_approved: {
+        clientId: string,
+        clientName: string,
+    },
+    wa_oauth_authorization_denied: {
+        clientId: string,
+        clientName: string,
     },
 } 
 export type PosthogEvent = keyof PosthogEventMap;

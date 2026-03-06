@@ -215,6 +215,12 @@ const ChatBoxComponent = ({
                         break;
                     }
 
+                    if (event.altKey) {
+                        event.preventDefault();
+                        editor.insertBreak();
+                        break;
+                    }
+
                     event.preventDefault();
                     onSubmit();
                     break;
@@ -248,7 +254,7 @@ const ChatBoxComponent = ({
                 }
             }
         }
-    }, [suggestionMode, suggestions, onSubmit, index, onInsertSuggestion]);
+    }, [suggestionMode, suggestions, onSubmit, editor, index, onInsertSuggestion]);
 
     useEffect(() => {
         if (!range || !suggestionsBoxRef.current) {
@@ -292,7 +298,7 @@ const ChatBoxComponent = ({
             className={cn("flex flex-col justify-between gap-0.5 w-full px-3 py-2", className)}
         >
             <Editable
-                className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm max-h-64 overflow-y-auto"
                 placeholder="Ask a question about your code. @mention files or select search scopes to refine your query."
                 renderElement={renderElement}
                 renderLeaf={renderLeaf}

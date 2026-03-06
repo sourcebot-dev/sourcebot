@@ -144,18 +144,18 @@ export const secretAlreadyExists = (): ServiceError => {
     }
 }
 
+export const invalidGitRef = (ref: string): ServiceError => {
+    return {
+        statusCode: StatusCodes.BAD_REQUEST,
+        errorCode: ErrorCode.INVALID_GIT_REF,
+        message: `Invalid git reference: "${ref}". Git refs cannot start with '-'.`,
+    };
+}
+
 export const stripeClientNotInitialized = (): ServiceError => {
     return {
         statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
         errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
         message: "Stripe client is not initialized.",
-    }
-}
-
-export const chatIsReadonly = (): ServiceError => {
-    return {
-        statusCode: StatusCodes.FORBIDDEN,
-        errorCode: ErrorCode.CHAT_IS_READONLY,
-        message: "This chat is read-only and cannot be modified.",
     }
 }

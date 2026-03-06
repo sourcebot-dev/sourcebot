@@ -19,7 +19,12 @@ import {
     FileSourceRequest,
     FileSourceResponse,
 } from "@/features/git";
-import { PermissionSyncStatusResponse } from "../(server)/ee/permissionSyncStatus/route";
+import type { PermissionSyncStatusResponse } from "../(server)/ee/permissionSyncStatus/api";
+import type { AccountSyncStatusResponse } from "../(server)/ee/accountPermissionSyncJobStatus/api";
+import type {
+    SearchChatShareableMembersQueryParams,
+    SearchChatShareableMembersResponse,
+} from "../(server)/ee/chat/[chatId]/searchMembers/route";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -134,4 +139,33 @@ export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusRes
         },
     }).then(response => response.json());
     return result as PermissionSyncStatusResponse | ServiceError;
+}
+
+export const getAccountSyncStatus = async (jobId: string): Promise<AccountSyncStatusResponse | ServiceError> => {
+    const url = new URL("/api/ee/accountPermissionSyncJobStatus", window.location.origin);
+    url.searchParams.set("jobId", jobId);
+    const result = await fetch(url, {
+        headers: { "X-Sourcebot-Client-Source": "sourcebot-web-client" },
+    }).then(r => r.json());
+    return result as AccountSyncStatusResponse | ServiceError;
+}
+
+export const searchChatShareableMembers = async (
+    params: SearchChatShareableMembersQueryParams & { chatId: string },
+    signal?: AbortSignal
+): Promise<SearchChatShareableMembersResponse | ServiceError> => {
+    const url = new URL(`/api/ee/chat/${params.chatId}/searchMembers`, window.location.origin);
+    if (params.query) {
+        url.searchParams.set('query', params.query);
+    }
+
+    const result = await fetch(url, {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+        signal,
+    }).then(response => response.json());
+
+    return result as SearchChatShareableMembersResponse | ServiceError;
 }

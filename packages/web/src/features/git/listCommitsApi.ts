@@ -1,9 +1,10 @@
 import { sew } from '@/actions';
-import { notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
+import { invalidGitRef, notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuthV2 } from '@/withAuthV2';
 import { getRepoPath } from '@sourcebot/shared';
 import { simpleGit } from 'simple-git';
 import { toGitDate, validateDateRange } from './dateUtils';
+import { isGitRefValid } from './utils';
 
 export interface Commit {
     hash: string;
@@ -58,6 +59,10 @@ export const listCommits = async ({
 
         if (!repo) {
             return notFound(`Repository "${repoName}" not found.`);
+        }
+
+        if (!isGitRefValid(ref)) {
+            return invalidGitRef(ref);
         }
 
         const { path: repoPath } = getRepoPath(repo);

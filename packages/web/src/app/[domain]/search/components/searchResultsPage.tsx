@@ -42,6 +42,7 @@ interface SearchResultsPageProps {
     isRegexEnabled: boolean;
     isCaseSensitivityEnabled: boolean;
     session: Session | null;
+    isSearchAssistSupported: boolean;
 }
 
 export const SearchResultsPage = ({
@@ -50,6 +51,7 @@ export const SearchResultsPage = ({
     isRegexEnabled,
     isCaseSensitivityEnabled,
     session,
+    isSearchAssistSupported,
 }: SearchResultsPageProps) => {
     const router = useRouter();
     const { setSearchHistory } = useSearchHistory();
@@ -163,9 +165,11 @@ export const SearchResultsPage = ({
         const url = createPathWithQueryParams(`/${domain}/search`,
             [SearchQueryParams.query, searchQuery],
             [SearchQueryParams.matches, `${maxMatchCount * 2}`],
+            [SearchQueryParams.isRegexEnabled, isRegexEnabled ? "true" : null],
+            [SearchQueryParams.isCaseSensitivityEnabled, isCaseSensitivityEnabled ? "true" : null],
         )
         router.push(url);
-    }, [maxMatchCount, router, searchQuery, domain]);
+    }, [maxMatchCount, router, searchQuery, domain, isRegexEnabled, isCaseSensitivityEnabled]);
 
     
     return (
@@ -183,6 +187,7 @@ export const SearchResultsPage = ({
                         query: searchQuery,
                     }}
                     className="w-full"
+                    isSearchAssistSupported={isSearchAssistSupported}
                 />
             </TopBar>
 

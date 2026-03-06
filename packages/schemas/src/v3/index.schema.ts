@@ -1129,7 +1129,11 @@ const schema = {
                 },
                 "user": {
                   "type": "string",
-                  "description": "The username to use for authentication. Only needed if token is an app password."
+                  "description": "The username to use for API authentication. For app passwords, this is your Bitbucket username. For API tokens, this is your Bitbucket account email address."
+                },
+                "gitUser": {
+                  "type": "string",
+                  "description": "The username to use for git clone authentication over HTTPS. If not set, falls back to 'user'. For API tokens, this is your Bitbucket username"
                 },
                 "token": {
                   "anyOf": [
@@ -1181,6 +1185,11 @@ const schema = {
                   "default": "cloud",
                   "description": "The type of Bitbucket deployment"
                 },
+                "all": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Sync all repositories visible to the provided `token` (if any) in the Bitbucket Server instance. This option is ignored if `deploymentType` is `cloud`."
+                },
                 "workspaces": {
                   "type": "array",
                   "items": {
@@ -1222,8 +1231,8 @@ const schema = {
                       },
                       "examples": [
                         [
-                          "cloud_workspace/repo1",
-                          "server_project/repo2"
+                          "cloud_workspace/PROJECT_KEY/repo1",
+                          "SERVER_PROJECT_KEY/repo2"
                         ]
                       ],
                       "description": "List of specific repos to exclude from syncing."
@@ -1786,7 +1795,38 @@ const schema = {
                     "additionalProperties": false
                   }
                 ],
-                "description": "Optional API key to use with the model. Defaults to the `ANTHROPIC_API_KEY` environment variable."
+                "description": "Optional API key to use with the model, sent as the `x-api-key` header. Defaults to the `ANTHROPIC_API_KEY` environment variable."
+              },
+              "authToken": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "Optional auth token to use with the model, sent as the `Authorization: Bearer` header. Defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable."
               },
               "baseUrl": {
                 "type": "string",
@@ -3215,7 +3255,38 @@ const schema = {
                     "additionalProperties": false
                   }
                 ],
-                "description": "Optional API key to use with the model. Defaults to the `ANTHROPIC_API_KEY` environment variable."
+                "description": "Optional API key to use with the model, sent as the `x-api-key` header. Defaults to the `ANTHROPIC_API_KEY` environment variable."
+              },
+              "authToken": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "Optional auth token to use with the model, sent as the `Authorization: Bearer` header. Defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable."
               },
               "baseUrl": {
                 "type": "string",
@@ -5210,6 +5281,91 @@ const schema = {
               "audience"
             ]
           },
+          "BitbucketCloudIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "provider": {
+                "const": "bitbucket-cloud"
+              },
+              "purpose": {
+                "enum": [
+                  "sso",
+                  "account_linking"
+                ]
+              },
+              "clientId": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "clientSecret": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "accountLinkingRequired": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "required": [
+              "provider",
+              "purpose",
+              "clientId",
+              "clientSecret"
+            ]
+          },
           "AuthentikIdentityProviderConfig": {
             "type": "object",
             "additionalProperties": false,
@@ -5317,6 +5473,100 @@ const schema = {
               "clientId",
               "clientSecret",
               "issuer"
+            ]
+          },
+          "BitbucketServerIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "provider": {
+                "const": "bitbucket-server"
+              },
+              "purpose": {
+                "enum": [
+                  "sso",
+                  "account_linking"
+                ]
+              },
+              "clientId": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "clientSecret": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "baseUrl": {
+                "type": "string",
+                "description": "The URL of the Bitbucket Server/Data Center host.",
+                "examples": [
+                  "https://bitbucket.example.com"
+                ],
+                "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+              },
+              "accountLinkingRequired": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "required": [
+              "provider",
+              "purpose",
+              "clientId",
+              "clientSecret",
+              "baseUrl"
             ]
           }
         },
@@ -6072,6 +6322,185 @@ const schema = {
               "clientId",
               "clientSecret",
               "issuer"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "provider": {
+                "const": "bitbucket-cloud"
+              },
+              "purpose": {
+                "enum": [
+                  "sso",
+                  "account_linking"
+                ]
+              },
+              "clientId": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "clientSecret": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "accountLinkingRequired": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "required": [
+              "provider",
+              "purpose",
+              "clientId",
+              "clientSecret"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "provider": {
+                "const": "bitbucket-server"
+              },
+              "purpose": {
+                "enum": [
+                  "sso",
+                  "account_linking"
+                ]
+              },
+              "clientId": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "clientSecret": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "baseUrl": {
+                "type": "string",
+                "description": "The URL of the Bitbucket Server/Data Center host.",
+                "examples": [
+                  "https://bitbucket.example.com"
+                ],
+                "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$"
+              },
+              "accountLinkingRequired": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "required": [
+              "provider",
+              "purpose",
+              "clientId",
+              "clientSecret",
+              "baseUrl"
             ]
           }
         ]

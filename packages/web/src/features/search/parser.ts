@@ -272,7 +272,15 @@ const transformTreeToIR = async ({
                 };
 
             case ContentExpr:
-                return {
+                return isRegexEnabled ? {
+                    regexp: {
+                        regexp: value,
+                        case_sensitive: isCaseSensitivityEnabled,
+                        file_name: false,
+                        content: true
+                    },
+                    query: "regexp"
+                } : {
                     substring: {
                         pattern: value,
                         case_sensitive: isCaseSensitivityEnabled,

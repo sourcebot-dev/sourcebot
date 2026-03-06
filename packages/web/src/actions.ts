@@ -28,8 +28,8 @@ import InviteUserEmail from "./emails/inviteUserEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
-import { orgDomainSchema, orgNameSchema, repositoryQuerySchema } from "./lib/schemas";
-import { ApiKeyPayload, TenancyMode } from "./lib/types";
+import { orgDomainSchema, orgNameSchema } from "./lib/schemas";
+import { ApiKeyPayload, RepositoryQuery, TenancyMode } from "./lib/types";
 import { withAuthV2, withOptionalAuthV2 } from "./withAuthV2";
 import { getBrowsePath } from "./app/[domain]/browse/hooks/utils";
 
@@ -479,7 +479,7 @@ export const getRepos = async ({
         
         const baseUrl = env.AUTH_URL;
 
-        return repos.map((repo) => repositoryQuerySchema.parse({
+        return repos.map((repo) => ({
             codeHostType: repo.external_codeHostType,
             repoId: repo.id,
             repoName: repo.name,
@@ -494,7 +494,10 @@ export const getRepos = async ({
             imageUrl: repo.imageUrl ?? undefined,
             indexedAt: repo.indexedAt ?? undefined,
             pushedAt: repo.pushedAt ?? undefined,
-        }))
+            defaultBranch: repo.defaultBranch ?? undefined,
+            isFork: repo.isFork,
+            isArchived: repo.isArchived,
+        } satisfies RepositoryQuery))
     }));
 
 /**

@@ -58,6 +58,30 @@ export const indexRepo = async (repoId: number) => sew(() =>
     )
 );
 
+export const triggerAccountPermissionSync = async (accountId: string) => sew(() =>
+    withAuthV2(({ role }) =>
+        withMinimumOrgRole(role, OrgRole.MEMBER, async () => {
+            const response = await fetch(`${WORKER_API_URL}/api/trigger-account-permission-sync`, {
+                method: 'POST',
+                body: JSON.stringify({ accountId }),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                return unexpectedError('Failed to trigger account permission sync');
+            }
+
+            const data = await response.json();
+            const schema = z.object({
+                jobId: z.string(),
+            });
+            return schema.parse(data);
+        })
+    )
+);
+
 export const addGithubRepo = async (owner: string, repo: string) => sew(() =>
     withOptionalAuthV2(async () => {
         const response = await fetch(`${WORKER_API_URL}/api/experimental/add-github-repo`, {

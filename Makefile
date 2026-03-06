@@ -14,7 +14,13 @@ zoekt:
 	export CTAGS_COMMANDS=ctags
 
 clean:
-	redis-cli FLUSHALL
+	@if docker ps 2>/dev/null | grep -q sourcebot-redis; then \
+		echo "Flushing Redis in Docker container..."; \
+		docker exec sourcebot-redis redis-cli FLUSHALL; \
+	else \
+		echo "Flushing local Redis..."; \
+		redis-cli FLUSHALL; \
+	fi
 	yarn dev:prisma:migrate:reset
 
 	rm -rf \
@@ -36,7 +42,13 @@ clean:
 
 soft-reset:
 	rm -rf .sourcebot
-	redis-cli FLUSHALL
+	@if docker ps 2>/dev/null | grep -q sourcebot-redis; then \
+		echo "Flushing Redis in Docker container..."; \
+		docker exec sourcebot-redis redis-cli FLUSHALL; \
+	else \
+		echo "Flushing local Redis..."; \
+		redis-cli FLUSHALL; \
+	fi
 	yarn dev:prisma:migrate:reset
 
 

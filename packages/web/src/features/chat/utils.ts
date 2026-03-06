@@ -1,8 +1,8 @@
+import { BrowseHighlightRange, getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { CreateUIMessage, TextUIPart, UIMessagePart } from "ai";
 import { Descendant, Editor, Point, Range, Transforms } from "slate";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
-import { getBrowsePath, BrowseHighlightRange } from "@/app/[domain]/browse/hooks/utils";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import {
     CustomEditor,
     CustomText,
@@ -18,6 +18,7 @@ import {
     SearchScope,
     Source,
 } from "./types";
+
 
 export const insertMention = (editor: CustomEditor, data: MentionData, target?: Range | null) => {
     const mention: MentionElement = {
@@ -365,4 +366,4 @@ export const tryResolveFileReference = (reference: FileReference, sources: FileS
         (source) => source.repo.endsWith(reference.repo) &&
             source.path.endsWith(reference.path)
     );
-}
+};

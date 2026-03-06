@@ -1,9 +1,8 @@
 import * as Sentry from "@sentry/node";
-import { PrismaClient, AccountPermissionSyncJobStatus, Account} from "@sourcebot/db";
-import { env, hasEntitlement, createLogger, loadConfig, decryptOAuthToken } from "@sourcebot/shared";
+import { PrismaClient, AccountPermissionSyncJobStatus, Account, PermissionSyncSource} from "@sourcebot/db";
+import { env, hasEntitlement, createLogger, loadConfig, decryptOAuthToken, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
-import { PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "../constants.js";
 import {
     createOctokitFromToken,
     getOAuthScopesForAuthenticatedUser as getGitHubOAuthScopesForAuthenticatedUser,
@@ -14,6 +13,7 @@ import {
     getOAuthScopesForAuthenticatedUser as getGitLabOAuthScopesForAuthenticatedUser,
     getProjectsForAuthenticatedUser,
 } from "../gitlab.js";
+import { createBitbucketCloudClient, createBitbucketServerClient, getReposForAuthenticatedBitbucketCloudUser, getReposForAuthenticatedBitbucketServerUser } from "../bitbucket.js";
 import { Settings } from "../types.js";
 import { setIntervalAsync } from "../utils.js";
 
@@ -64,7 +64,7 @@ export class AccountPermissionSyncer {
                     AND: [
                         {
                             provider: {
-                                in: PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES
+                                in: PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS
                             }
                         },
                         {
@@ -113,6 +113,22 @@ export class AccountPermissionSyncer {
         }
         await this.worker.close(/* force = */ true);
         await this.queue.close();
+    }
+
+    public async schedulePermissionSyncForAccount(account: Account) {
+        const [job] = await this.db.accountPermissionSyncJob.createManyAndReturn({
+            data: [{ accountId: account.id }],
+        });
+
+        await this.queue.add('accountPermissionSyncJob', {
+            jobId: job.id,
+        }, {
+            removeOnComplete: env.REDIS_REMOVE_ON_COMPLETE,
+            removeOnFail: env.REDIS_REMOVE_ON_FAIL,
+            priority: 1,
+        });
+
+        return job.id;
     }
 
     private async schedulePermissionSync(accounts: Account[]) {
@@ -267,6 +283,53 @@ export class AccountPermissionSyncer {
                 });
 
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
+            } else if (account.provider === 'bitbucket-cloud') {
+                if (!accessToken) {
+                    throw new Error(`User '${account.user.email}' does not have a Bitbucket Cloud OAuth access token associated with their account. Please re-authenticate with Bitbucket Cloud to refresh the token.`);
+                }
+
+                // @note: we don't pass a user here since we want to use a bearer token
+                // for authentication.
+                const client = createBitbucketCloudClient(/* user = */ undefined, accessToken)
+                const bitbucketRepos = await getReposForAuthenticatedBitbucketCloudUser(client);
+                const bitbucketRepoUuids = bitbucketRepos.map(repo => repo.uuid);
+
+                const repos = await this.db.repo.findMany({
+                    where: {
+                        external_codeHostType: 'bitbucketCloud',
+                        external_id: {
+                            in: bitbucketRepoUuids,
+                        }
+                    }
+                });
+
+                repos.forEach(repo => aggregatedRepoIds.add(repo.id));
+            } else if (account.provider === 'bitbucket-server') {
+                if (!accessToken) {
+                    throw new Error(`User '${account.user.email}' does not have a Bitbucket Server OAuth access token associated with their account. Please re-authenticate with Bitbucket Server to refresh the token.`);
+                }
+
+                // @hack: we don't have a way of identifying specific identity providers in the config file.
+                // Instead, we'll use the first Bitbucket Server connection's URL as the base URL.
+                const baseUrl = Array.from(Object.values(config.connections ?? {}))
+                    .find(connection => connection.type === 'bitbucket' && connection.deploymentType === 'server')?.url;
+
+                if (!baseUrl) {
+                    throw new Error(`No Bitbucket Server connection URL found in config for account ${account.id}`);
+                }
+
+                const client = createBitbucketServerClient(baseUrl, /* user = */ undefined, accessToken);
+                const serverRepos = await getReposForAuthenticatedBitbucketServerUser(client);
+                const serverRepoIds = serverRepos.map(r => r.id);
+
+                const repos = await this.db.repo.findMany({
+                    where: {
+                        external_codeHostType: 'bitbucketServer',
+                        external_id: { in: serverRepoIds },
+                    }
+                });
+
+                repos.forEach(repo => aggregatedRepoIds.add(repo.id));
             }
 
             return Array.from(aggregatedRepoIds);
@@ -287,6 +350,7 @@ export class AccountPermissionSyncer {
                 data: repoIds.map(repoId => ({
                     accountId: account.id,
                     repoId,
+                    source: PermissionSyncSource.ACCOUNT_DRIVEN,
                 })),
                 skipDuplicates: true,
             })

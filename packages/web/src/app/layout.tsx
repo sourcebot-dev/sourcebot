@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { QueryClientProvider } from "./queryClientProvider";
@@ -11,6 +12,7 @@ import { PlanProvider } from "@/features/entitlements/planProvider";
 import { getEntitlements } from "@sourcebot/shared";
 
 export const metadata: Metadata = {
+  metadataBase: env.AUTH_URL ? new URL(env.AUTH_URL) : undefined,
   // Using the title.template will allow child pages to set the title
   // while keeping a consistent suffix.
   title: {
@@ -33,6 +35,21 @@ export default function RootLayout({
             // @see : https://github.com/pacocoursey/next-themes?tab=readme-ov-file#with-app
             suppressHydrationWarning
         >
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/@react-grab/mcp/dist/client.global.js"
+            strategy="lazyOnload"
+          />
+        )}
+      </head>
             <body>
                 <Toaster />
                 <SessionProvider>

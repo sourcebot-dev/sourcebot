@@ -1,4 +1,4 @@
-import { Settings as SettingsSchema } from "@sourcebot/schemas/v3/index.type";
+import { IdentityProviderConfig, Settings as SettingsSchema } from "@sourcebot/schemas/v3/index.type";
 import { z } from "zod";
 
 export type ConfigSettings = Required<SettingsSchema>;
@@ -31,6 +31,20 @@ export const repoMetadataSchema = z.object({
      * A list of revisions that were indexed for the repo.
      */
     indexedRevisions: z.array(z.string()).optional(),
+
+    /**
+     * Code host specific metadata, keyed by code host type.
+     */
+    codeHostMetadata: z.object({
+        bitbucketCloud: z.object({
+            workspace: z.string(),
+            repoSlug: z.string(),
+        }).optional(),
+        bitbucketServer: z.object({
+            projectKey: z.string(),
+            repoSlug: z.string(),
+        }).optional(),
+    }).optional(),
 });
 
 export type RepoMetadata = z.infer<typeof repoMetadataSchema>;
@@ -45,3 +59,5 @@ export const repoIndexingJobMetadataSchema = z.object({
 export type RepoIndexingJobMetadata = z.infer<typeof repoIndexingJobMetadataSchema>;
 
 export const tenancyModeSchema = z.enum(["multi", "single"]);
+
+export type IdentityProviderType = IdentityProviderConfig['provider'];

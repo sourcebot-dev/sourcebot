@@ -69,7 +69,6 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                 <div className="flex items-start justify-between">
                     <div>
                         <h1 className="text-3xl font-semibold">{repo.displayName || repo.name}</h1>
-                        <p className="text-muted-foreground mt-2">{repo.name}</p>
                     </div>
                     {codeHostInfo.externalWebUrl && (
                         <Button variant="outline" asChild>

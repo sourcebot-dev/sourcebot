@@ -714,7 +714,11 @@ const schema = {
         },
         "user": {
           "type": "string",
-          "description": "The username to use for authentication. Only needed if token is an app password."
+          "description": "The username to use for API authentication. For app passwords, this is your Bitbucket username. For API tokens, this is your Bitbucket account email address."
+        },
+        "gitUser": {
+          "type": "string",
+          "description": "The username to use for git clone authentication over HTTPS. If not set, falls back to 'user'. For API tokens, this is your Bitbucket username"
         },
         "token": {
           "description": "An authentication token.",
@@ -766,6 +770,11 @@ const schema = {
           "default": "cloud",
           "description": "The type of Bitbucket deployment"
         },
+        "all": {
+          "type": "boolean",
+          "default": false,
+          "description": "Sync all repositories visible to the provided `token` (if any) in the Bitbucket Server instance. This option is ignored if `deploymentType` is `cloud`."
+        },
         "workspaces": {
           "type": "array",
           "items": {
@@ -807,8 +816,8 @@ const schema = {
               },
               "examples": [
                 [
-                  "cloud_workspace/repo1",
-                  "server_project/repo2"
+                  "cloud_workspace/PROJECT_KEY/repo1",
+                  "SERVER_PROJECT_KEY/repo2"
                 ]
               ],
               "description": "List of specific repos to exclude from syncing."
