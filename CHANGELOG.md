@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Avoid advertising OAuth support on MCP endpoints if that entitlment is not actually configured.
+
 ## [4.15.1] - 2026-03-06
 
 ### Fixed
