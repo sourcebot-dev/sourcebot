@@ -1,11 +1,25 @@
 import { z } from "zod";
 
-export const analyticsResponseSchema = z.array(z.object({
+export const analyticsRowSchema = z.object({
   period: z.enum(['day', 'week', 'month']),
   bucket: z.date(),
-  code_searches: z.number(),
-  navigations: z.number(),
-  ask_chats: z.number(),
   active_users: z.number(),
-}))
-export type AnalyticsResponse = z.infer<typeof analyticsResponseSchema>;
+  web_search_active_users: z.number(),
+  web_code_searches: z.number(),
+  web_navigations: z.number(),
+  web_ask_active_users: z.number(),
+  web_ask_chats: z.number(),
+  web_active_users: z.number(),
+  non_web_active_users: z.number(),
+  mcp_requests: z.number(),
+  mcp_active_users: z.number(),
+  api_requests: z.number(),
+  api_active_users: z.number(),
+});
+export type AnalyticsRow = z.infer<typeof analyticsRowSchema>;
+
+export type AnalyticsResponse = {
+  rows: AnalyticsRow[];
+  retentionDays: number;
+  oldestRecordDate: Date | null;
+};

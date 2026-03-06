@@ -19,8 +19,9 @@ To connect to a gerrit instance, provide the `url` property to your config:
 ```json
 {
     "type": "gerrit",
-    "url": "https://gerrit.example.com"
-    // .. rest of config ..
+    "url": "https://gerrit.example.com",
+    // Specify which projects to sync using glob patterns:
+    "projects": ["project1/**"]
 }
 ```
 

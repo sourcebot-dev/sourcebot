@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.15.2] - 2026-03-06
+
+### Fixed
+- [EE] Avoid advertising OAuth support on MCP endpoints if that entitlement is not actually configured. [#985](https://github.com/sourcebot-dev/sourcebot/pull/985)
+
+## [4.15.1] - 2026-03-06
+
+### Fixed
+- Fixed issue where users would not be redirected to the homepage when clicking "continue with guest". [#984](https://github.com/sourcebot-dev/sourcebot/pull/984)
+
+### Changed
+- Increased pagination limit to 1000 for bitbucket data center requests. [#981](https://github.com/sourcebot-dev/sourcebot/pull/981)
+
+## [4.15.0] - 2026-03-05
+
+### Added
+- Added MCP and API key usage tracking to analytics dashboard and added audit retention system [#950](https://github.com/sourcebot-dev/sourcebot/pull/950)
+
+## [4.14.0] - 2026-03-05
+
+### Added
+- Added support a MCP streamable http transport hosted at `/api/mcp`. [#976](https://github.com/sourcebot-dev/sourcebot/pull/976)
+- [EE] Added support for Oauth 2.1 to the remote MCP server hosted at `/api/mcp`. [#977](https://github.com/sourcebot-dev/sourcebot/pull/977)
+
 ## [4.13.2] - 2026-03-02
 
 ### Changed

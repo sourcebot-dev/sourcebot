@@ -168,15 +168,36 @@ export type SetChatStatePayload = {
 
 export type LanguageModelProvider = LanguageModel['provider'];
 
-// This is a subset of information about a configured
-// language model that we can safely send to the client.
-// @note: ensure this is in sync with the LanguageModelInfo type.
+export const languageModelProviders = [
+    "amazon-bedrock",
+    "anthropic",
+    "azure",
+    "deepseek",
+    "google-generative-ai",
+    "google-vertex-anthropic",
+    "google-vertex",
+    "mistral",
+    "openai",
+    "openai-compatible",
+    "openrouter",
+    "xai",
+] as const satisfies readonly LanguageModelProvider[];
+
+// Type-check assertion that ensure the above array is up to date
+// with the LanguageModelProvider type.
+type _AssertAllProviders = LanguageModelProvider extends typeof languageModelProviders[number] ? true : never;
+const _assertAllProviders: _AssertAllProviders = true;
+void _assertAllProviders;
+
 export const languageModelInfoSchema = z.object({
-    provider: z.string(),
-    model: z.string(),
-    displayName: z.string().optional(),
+    provider: z.enum(languageModelProviders).describe("The model provider (e.g., 'anthropic', 'openai')"),
+    model: z.string().describe("The model ID"),
+    displayName: z.string().optional().describe("Optional display name for the model"),
 });
 
+/**
+ * Client safe subset of information about a language model.
+ */
 export type LanguageModelInfo = {
     provider: LanguageModelProvider,
     model: LanguageModel['model'],

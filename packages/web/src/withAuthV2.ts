@@ -1,5 +1,5 @@
 import { prisma as __unsafePrisma, userScopedPrismaClientExtension } from "@/prisma";
-import { hashSecret } from "@sourcebot/shared";
+import { hashSecret, OAUTH_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX, LEGACY_API_KEY_PREFIX } from "@sourcebot/shared";
 import { ApiKey, Org, OrgRole, PrismaClient, UserWithAccounts } from "@sourcebot/db";
 import { headers } from "next/headers";
 import { auth } from "./auth";
@@ -115,6 +115,49 @@ export const getAuthenticatedUser = async () => {
         return user ?? undefined;
     }
 
+    // If not, check for a Bearer token in the Authorization header.
+    const authorizationHeader = (await headers()).get("Authorization") ?? undefined;
+    if (authorizationHeader?.startsWith("Bearer ")) {
+        const bearerToken = authorizationHeader.slice(7);
+
+        // OAuth access token
+        if (bearerToken.startsWith(OAUTH_ACCESS_TOKEN_PREFIX)) {
+            if (!hasEntitlement('oauth')) {
+                return undefined;
+            }
+
+            const secret = bearerToken.slice(OAUTH_ACCESS_TOKEN_PREFIX.length);
+            const hash = hashSecret(secret);
+            const oauthToken = await __unsafePrisma.oAuthToken.findUnique({
+                where: { hash },
+                include: { user: { include: { accounts: true } } },
+            });
+            if (oauthToken && oauthToken.expiresAt > new Date()) {
+                await __unsafePrisma.oAuthToken.update({
+                    where: { hash },
+                    data: { lastUsedAt: new Date() },
+                });
+                return oauthToken.user;
+            }
+        }
+
+        // API key Bearer token (sourcebot-<hex>)
+        const apiKey = await getVerifiedApiObject(bearerToken);
+        if (apiKey) {
+            const user = await __unsafePrisma.user.findUnique({
+                where: { id: apiKey.createdById },
+                include: { accounts: true },
+            });
+            if (user) {
+                await __unsafePrisma.apiKey.update({
+                    where: { hash: apiKey.hash },
+                    data: { lastUsedAt: new Date() },
+                });
+                return user;
+            }
+        }
+    }
+
     // If not, check if we have a valid API key.
     const apiKeyString = (await headers()).get("X-Sourcebot-Api-Key") ?? undefined;
     if (apiKeyString) {
@@ -154,15 +197,27 @@ export const getAuthenticatedUser = async () => {
 }
 
 /**
- * Returns a API key object if the API key string is valid, otherwise returns undefined.
+ * Returns an API key object if the API key string is valid, otherwise returns undefined.
+ * Supports both the current prefix (sbk_) and the legacy prefix (sourcebot-).
  */
 export const getVerifiedApiObject = async (apiKeyString: string): Promise<ApiKey | undefined> => {
-    const parts = apiKeyString.split("-");
-    if (parts.length !== 2 || parts[0] !== "sourcebot") {
+    let secret: string;
+
+    if (apiKeyString.startsWith(API_KEY_PREFIX)) {
+        secret = apiKeyString.slice(API_KEY_PREFIX.length);
+        if (!secret) {
+            return undefined;
+        }
+    } else if (apiKeyString.startsWith(LEGACY_API_KEY_PREFIX)) {
+        secret = apiKeyString.slice(LEGACY_API_KEY_PREFIX.length);
+        if (!secret) {
+            return undefined;
+        }
+    } else {
         return undefined;
     }
 
-    const hash = hashSecret(parts[1]);
+    const hash = hashSecret(secret);
     const apiKey = await __unsafePrisma.apiKey.findUnique({
         where: {
             hash,

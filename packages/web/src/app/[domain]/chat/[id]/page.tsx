@@ -1,5 +1,6 @@
 import { getRepos, getSearchContexts } from '@/actions';
-import { getUserChatHistory, getConfiguredLanguageModelsInfo, getChatInfo, claimAnonymousChats, getSharedWithUsersForChat } from '@/features/chat/actions';
+import { getUserChatHistory, getChatInfo, claimAnonymousChats, getSharedWithUsersForChat } from '@/features/chat/actions';
+import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { ServiceErrorException } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
 import { ChatThreadPanel } from './components/chatThreadPanel';
