@@ -9,7 +9,7 @@ import { StatusCodes } from 'http-status-codes';
 import { NextRequest } from 'next/server';
 import { sew } from '@/actions';
 import { apiHandler } from '@/lib/apiHandler';
-import { env } from '@sourcebot/shared';
+import { env, hasEntitlement } from '@sourcebot/shared';
 
 // On 401, tell MCP clients where to find the OAuth protected resource metadata (RFC 9728)
 // so they can discover the authorization server and initiate the authorization code flow.
@@ -18,7 +18,7 @@ import { env } from '@sourcebot/shared';
 // @see: https://datatracker.ietf.org/doc/html/rfc9728
 function mcpErrorResponse(error: ServiceError): Response {
     const response = serviceErrorResponse(error);
-    if (error.statusCode === StatusCodes.UNAUTHORIZED) {
+    if (error.statusCode === StatusCodes.UNAUTHORIZED && hasEntitlement('oauth')) {
         const issuer = env.AUTH_URL.replace(/\/$/, '');
         response.headers.set(
             'WWW-Authenticate',

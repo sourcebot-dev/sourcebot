@@ -1,11 +1,17 @@
 import { apiHandler } from '@/lib/apiHandler';
-import { env } from '@sourcebot/shared';
+import { env, hasEntitlement } from '@sourcebot/shared';
+import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
 
 // RFC 8414: OAuth 2.0 Authorization Server Metadata
-// @note: we do not gate on entitlements here. That is handled in the /register,
-// /token, and /revoke routes.
 // @see: https://datatracker.ietf.org/doc/html/rfc8414
 export const GET = apiHandler(async () => {
+    if (!hasEntitlement('oauth')) {
+        return Response.json(
+            { error: 'not_found', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
+            { status: 404 }
+        );
+    }
+
     const issuer = env.AUTH_URL.replace(/\/$/, '');
 
     return Response.json({
