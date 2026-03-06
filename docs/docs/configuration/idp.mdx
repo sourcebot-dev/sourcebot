@@ -5,7 +5,7 @@ sidebarTitle: External identity providers
 
 import LicenseKeyRequired from '/snippets/license-key-required.mdx'
 
-<LicenseKeyRequired />
+<LicenseKeyRequired feature="External Identity Providers" />
 
 You can connect Sourcebot to various **external identity providers** to associate a Sourcebot user with one or more external service accounts (ex. Google, GitHub, etc).
 
@@ -74,9 +74,11 @@ in the GitHub identity provider config.
                 - `"Metadata" repository permissions (read)` (only needed if using permission syncing)
         </Tab>
         <Tab title="GitHub OAuth App">
-            Follow [this guide](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) by GitHub to create an OAuth App. 
-            
+            Follow [this guide](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) by GitHub to create an OAuth App.
+
             When asked to provide a callback url, provide `<sourcebot_url>/api/auth/callback/github` (ex. https://sourcebot.coolcorp.com/api/auth/callback/github)
+
+            If [permission syncing](/docs/features/permission-syncing#github) is enabled, also enable the `repo` scope.
         </Tab>
         </Tabs>
     </Step>
@@ -128,7 +130,7 @@ in the GitLab identity provider config.
         When configuring your application:
         - Set the callback URL to `<sourcebot_url>/api/auth/callback/gitlab` (ex. https://sourcebot.coolcorp.com/api/auth/callback/gitlab)
         - Enable the `read_user` scope
-        - If using for permission syncing, also enable the `read_api` scope
+        - If [permission syncing](/docs/features/permission-syncing#gitlab) is enabled, also enable the `read_api` scope
 
         The result of registering an OAuth application is an `APPLICATION_ID` (`CLIENT_ID`) and `SECRET` (`CLIENT_SECRET`) which you'll provide to Sourcebot.
     </Step>
@@ -157,6 +159,109 @@ in the GitLab identity provider config.
                     },
                     // Optional: for self-hosted GitLab instances
                     "baseUrl": "https://gitlab.example.com"
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+### Bitbucket Cloud
+
+[Auth.js Bitbucket Provider Docs](https://authjs.dev/getting-started/providers/bitbucket)
+
+A Bitbucket Cloud connection can be used for [authentication](/docs/configuration/auth) and/or [permission syncing](/docs/features/permission-syncing). This is controlled using the `purpose` field
+in the Bitbucket Cloud identity provider config.
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Register an OAuth Consumer">
+        To begin, you must register an OAuth consumer in Bitbucket to facilitate the identity provider connection.
+
+        Navigate to your Bitbucket workspace settings at `https://bitbucket.org/<your-workspace>/workspace/settings/api` and create a new **OAuth consumer** under the **OAuth consumers** section.
+
+        When configuring your consumer:
+        - Set the callback URL to `<sourcebot_url>/api/auth/callback/bitbucket-cloud` (ex. https://sourcebot.coolcorp.com/api/auth/callback/bitbucket-cloud)
+        - Enable **Account: Read**
+        - If [permission syncing](/docs/features/permission-syncing#bitbucket-cloud) is enabled, also enable **Repositories: Read**
+
+        The result of creating an OAuth consumer is a `Key` (`CLIENT_ID`) and `Secret` (`CLIENT_SECRET`) which you'll provide to Sourcebot.
+    </Step>
+    <Step title="Define environment variables">
+        To provide Sourcebot the client id and secret for your OAuth consumer you must set them as environment variables. These can be named whatever you like
+        (ex. `BITBUCKET_CLOUD_IDENTITY_PROVIDER_CLIENT_ID` and `BITBUCKET_CLOUD_IDENTITY_PROVIDER_CLIENT_SECRET`)
+    </Step>
+    <Step title="Define the identity provider config">
+        Finally, pass the client id and secret to Sourcebot by defining a `identityProvider` object in the [config file](/docs/configuration/config-file):
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "bitbucket-cloud",
+                    // "sso" for auth + perm sync, "account_linking" for only perm sync
+                    "purpose": "account_linking",
+                    // if purpose == "account_linking" this controls if a user must connect to the IdP
+                    "accountLinkingRequired": true,
+                    "clientId": {
+                        "env": "YOUR_CLIENT_ID_ENV_VAR"
+                    },
+                    "clientSecret": {
+                        "env": "YOUR_CLIENT_SECRET_ENV_VAR"
+                    }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
+
+### Bitbucket Server
+
+A Bitbucket Server (Data Center) connection can be used for [authentication](/docs/configuration/auth) and/or [permission syncing](/docs/features/permission-syncing). This is controlled using the `purpose` field
+in the Bitbucket Server identity provider config.
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Register an OAuth 2.0 Application">
+        To begin, you must register an OAuth 2.0 application in your Bitbucket Server instance to facilitate the identity provider connection.
+
+        In your Bitbucket Server admin panel, navigate to **Administration → Application Links** and create a new incoming external application link.
+
+        When configuring your application:
+        - Set the redirect URL to `<sourcebot_url>/api/auth/callback/bitbucket-server` (ex. https://sourcebot.coolcorp.com/api/auth/callback/bitbucket-server)
+        - If [permission syncing](/docs/features/permission-syncing#bitbucket-data-center) is enabled, also enable the `REPO_READ` scope
+
+        The result of creating the application is a `CLIENT_ID` and `CLIENT_SECRET` which you'll provide to Sourcebot.
+    </Step>
+    <Step title="Define environment variables">
+        To provide Sourcebot the client id and secret for your OAuth application you must set them as environment variables. These can be named whatever you like
+        (ex. `BITBUCKET_SERVER_IDENTITY_PROVIDER_CLIENT_ID` and `BITBUCKET_SERVER_IDENTITY_PROVIDER_CLIENT_SECRET`)
+    </Step>
+    <Step title="Define the identity provider config">
+        Finally, pass the client id, client secret, and your Bitbucket Server base URL to Sourcebot by defining a `identityProvider` object in the [config file](/docs/configuration/config-file):
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "bitbucket-server",
+                    // "sso" for auth + perm sync, "account_linking" for only perm sync
+                    "purpose": "account_linking",
+                    // if purpose == "account_linking" this controls if a user must connect to the IdP
+                    "accountLinkingRequired": true,
+                    "baseUrl": "https://bitbucket.example.com",
+                    "clientId": {
+                        "env": "YOUR_CLIENT_ID_ENV_VAR"
+                    },
+                    "clientSecret": {
+                        "env": "YOUR_CLIENT_SECRET_ENV_VAR"
+                    }
                 }
             ]
         }

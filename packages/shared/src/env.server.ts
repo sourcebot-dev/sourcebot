@@ -143,7 +143,7 @@ export const env = createEnv({
         // Enterprise Auth
         AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING:
             booleanSchema
-            .default('false')
+            .default('true')
             .describe('When enabled, different SSO accounts with the same email address will automatically be linked.'),
 
         AUTH_EE_GCP_IAP_ENABLED: booleanSchema.default('false'),
@@ -191,6 +191,7 @@ export const env = createEnv({
         // EE License
         SOURCEBOT_EE_LICENSE_KEY: z.string().optional(),
         SOURCEBOT_EE_AUDIT_LOGGING_ENABLED: booleanSchema.default('true'),
+        SOURCEBOT_EE_AUDIT_RETENTION_DAYS: numberSchema.default(180),
 
         // GitHub app for review agent
         GITHUB_REVIEW_AGENT_APP_ID: z.string().optional(),
@@ -202,6 +203,7 @@ export const env = createEnv({
         REVIEW_AGENT_REVIEW_COMMAND: z.string().default('review'),
 
         ANTHROPIC_API_KEY: z.string().optional(),
+        ANTHROPIC_AUTH_TOKEN: z.string().optional(),
         ANTHROPIC_THINKING_BUDGET_TOKENS: numberSchema.default(12000),
 
         AZURE_API_KEY: z.string().optional(),

@@ -1,0 +1,83 @@
+---
+title: "Sizing Guide"
+---
+
+Sourcebot runs as a single container (vertical scaling). This guide helps you choose the right CPU, memory, and disk allocation based on the number of repositories you plan to index.
+
+<Info>
+These recommendations are based on real-world deployments. Your results may vary depending on repository sizes, search patterns, and whether you use features like [multi-branch indexing](/docs/features/search/multi-branch-indexing) or [Ask Sourcebot](/docs/features/ask/overview).
+</Info>
+
+## Recommendations
+
+| | Small | Medium | Large | Extra Large |
+|---|---|---|---|---|
+| **Repos** | Up to 100 | 100 – 500 | 500 – 2,000 | 2,000+ |
+| **CPU** | 2 cores | 4 cores | 8 cores | 16+ cores |
+| **Memory** | 4 GB | 8 GB | 32 GB | 64+ GB |
+| **Disk** | 50 GB | 100 GB | 250 GB | 500+ GB |
+
+We recommend using external managed Postgres and Redis instances rather than the ones embedded in the Sourcebot container, as this adds stability to your deployment. You can configure these with the `DATABASE_URL` and `REDIS_URL` [environment variables](/docs/configuration/environment-variables).
+
+Of all resources, **memory has the most direct impact on search performance**. Sourcebot uses [Zoekt](https://github.com/sourcegraph/zoekt) for search indexing, and the OS page cache keeps frequently accessed index data in memory. More memory means more of the index stays cached, which translates directly to faster searches and less disk I/O.
+
+## Disk usage
+
+Disk is consumed by two things:
+
+1. **Cloned repositories** stored in the `.sourcebot/` cache directory
+2. **Zoekt search indexes** built from those repositories
+
+As a rule of thumb, plan for **2 – 3x the total size of the source code** you intend to index. For example, if your repositories total 50 GB, allocate at least 100 – 150 GB of disk.
+
+<Warning>
+[Multi-branch indexing](/docs/features/search/multi-branch-indexing) significantly increases disk usage since each indexed branch produces its own search index. In testing, enabling branch indexing across all branches can **triple** storage requirements. Start with a subset of branches (e.g., release branches) and monitor disk usage before expanding.
+</Warning>
+
+## Tuning concurrency
+
+If your instance is resource-constrained, you can reduce the concurrency of background jobs to lower CPU and memory pressure during indexing. These are configured in your [config file](/docs/configuration/config-file#settings):
+
+| Setting | Default | Description |
+|---|---|---|
+| `maxRepoIndexingJobConcurrency` | 8 | Number of repos indexed in parallel |
+| `maxConnectionSyncJobConcurrency` | 8 | Number of connections synced in parallel |
+
+Lowering these values reduces peak resource usage at the cost of slower initial indexing.
+
+## Audit log storage
+
+<Info>
+Audit logging is an enterprise feature and is only available with an [enterprise license](/docs/overview#license-key). If you are not on an enterprise plan, audit logs are not stored and this section does not apply.
+</Info>
+
+[Audit logs](/docs/configuration/audit-logs) are stored in the Postgres database connected to your Sourcebot deployment. Each audit record captures the action performed, the actor, the target, a timestamp, and optional metadata (e.g., request source). There are three database indexes on the audit table to support analytics and lookup queries.
+
+**Estimated storage per audit event: ~350 bytes** (including row data and indexes).
+
+<Info>
+The table below assumes 50 events per user per day. The actual number depends on usage patterns — each user action (code search, file view, navigation, Ask chat, etc.) creates one audit event. Users who interact via [MCP](/docs/features/mcp-server) or the API tend to generate significantly more events than web-only users, so your real usage may vary.
+</Info>
+
+| Team size | Avg events / user / day | Daily events | Monthly storage | 6-month storage |
+|---|---|---|---|---|
+| 10 users | 50 | 500 | ~5 MB | ~30 MB |
+| 50 users | 50 | 2,500 | ~25 MB | ~150 MB |
+| 100 users | 50 | 5,000 | ~50 MB | ~300 MB |
+| 500 users | 50 | 25,000 | ~250 MB | ~1.5 GB |
+| 1,000 users | 50 | 50,000 | ~500 MB | ~3 GB |
+
+### Retention policy
+
+By default, audit logs older than **180 days** are automatically pruned daily by a background job. You can adjust this with the `SOURCEBOT_EE_AUDIT_RETENTION_DAYS` [environment variable](/docs/configuration/environment-variables). Set it to `0` to disable pruning and retain logs indefinitely.
+
+For most deployments, the default 180-day retention keeps database size manageable. If you have a large team with heavy MCP/API usage and need longer retention, plan your Postgres disk allocation accordingly using the estimates above.
+
+## Monitoring
+
+We recommend monitoring the following metrics after deployment to validate your sizing:
+
+- **Memory utilization**: sustained usage near the limit suggests you should scale up memory. High memory usage is expected and healthy since the OS page cache will use available memory.
+- **CPU utilization**: sustained high CPU during searches (not just during indexing) indicates you may need more cores.
+- **Disk usage**: monitor disk consumption as you add repositories. Running out of disk will cause indexing failures.
+- **Search response times**: if searches are consistently slow, try increasing memory first, then CPU.

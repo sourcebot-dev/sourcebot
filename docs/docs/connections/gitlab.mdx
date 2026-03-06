@@ -129,8 +129,12 @@ Next, provide the PAT via an environment variable [token](/docs/configuration/co
                 // note: this env var can be named anything. It
                 // doesn't need to be `GITLAB_TOKEN`.
                 "env": "GITLAB_TOKEN"
-            }
-            // .. rest of config ..
+            },
+            // At least one of the following is required to specify which projects to sync:
+            "projects": ["my-group/myProject"],
+            // "groups": ["my-group"],
+            // "users": ["my-user"],
+            // "all": true (self-managed only)
         }
         ```
 
@@ -151,8 +155,12 @@ To connect to a GitLab host other than `gitlab.com`, provide the `url` property 
 ```json
 {
     "type": "gitlab",
-    "url": "https://gitlab.example.com"
-    // .. rest of config ..
+    "url": "https://gitlab.example.com",
+    // At least one of the following is required to specify which projects to sync:
+    "projects": ["my-group/myProject"],
+    // "groups": ["my-group"],
+    // "users": ["my-user"],
+    // "all": true
 }
 ```
 

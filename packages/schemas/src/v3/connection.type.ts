@@ -257,9 +257,13 @@ export interface BitbucketConnectionConfig {
    */
   type: "bitbucket";
   /**
-   * The username to use for authentication. Only needed if token is an app password.
+   * The username to use for API authentication. For app passwords, this is your Bitbucket username. For API tokens, this is your Bitbucket account email address.
    */
   user?: string;
+  /**
+   * The username to use for git clone authentication over HTTPS. If not set, falls back to 'user'. For API tokens, this is your Bitbucket username
+   */
+  gitUser?: string;
   /**
    * An authentication token.
    */
@@ -284,6 +288,10 @@ export interface BitbucketConnectionConfig {
    * The type of Bitbucket deployment
    */
   deploymentType?: "cloud" | "server";
+  /**
+   * Sync all repositories visible to the provided `token` (if any) in the Bitbucket Server instance. This option is ignored if `deploymentType` is `cloud`.
+   */
+  all?: boolean;
   /**
    * List of workspaces to sync. Ignored if deploymentType is server.
    */

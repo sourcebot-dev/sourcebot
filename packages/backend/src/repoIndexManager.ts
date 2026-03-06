@@ -1,18 +1,18 @@
 import * as Sentry from '@sentry/node';
 import { PrismaClient, Repo, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
-import { createLogger, env, getRepoPath, Logger, RepoIndexingJobMetadata, repoIndexingJobMetadataSchema, RepoMetadata, repoMetadataSchema } from "@sourcebot/shared";
+import { createLogger, env, getRepoPath, Logger, getRepoIdFromPath, RepoIndexingJobMetadata, repoIndexingJobMetadataSchema, RepoMetadata, repoMetadataSchema } from "@sourcebot/shared";
 import { DelayedError, Job, Queue, Worker } from "bullmq";
 import { existsSync } from 'fs';
 import { readdir, rm } from 'fs/promises';
 import { Redis } from 'ioredis';
 import micromatch from 'micromatch';
 import Redlock, { ExecutionError } from 'redlock';
-import { INDEX_CACHE_DIR, WORKER_STOP_GRACEFUL_TIMEOUT_MS } from './constants.js';
-import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLatestCommitTimestamp, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, unsetGitConfig, upsertGitConfig } from './git.js';
+import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, WORKER_STOP_GRACEFUL_TIMEOUT_MS } from './constants.js';
+import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLatestCommitTimestamp, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, isRepoEmpty, unsetGitConfig, upsertGitConfig } from './git.js';
 import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
 import { RepoWithConnections, Settings } from "./types.js";
-import { getAuthCredentialsForRepo, getShardPrefix, measure, setIntervalAsync } from './utils.js';
+import { getAuthCredentialsForRepo, getRepoIdFromShardFileName, getShardPrefix, measure, setIntervalAsync } from './utils.js';
 import { cleanupTempShards, indexGitRepository } from './zoekt.js';
 
 const LOG_TAG = 'repo-index-manager';
@@ -96,8 +96,10 @@ export class RepoIndexManager {
         });
     }
 
-    public startScheduler() {
+    public async startScheduler() {
         logger.debug('Starting scheduler');
+        // Cleanup any orphaned disk resources on startup
+        await this.cleanupOrphanedDiskResources();
         this.interval = setIntervalAsync(async () => {
             await this.scheduleIndexJobs();
             await this.scheduleCleanupJobs();
@@ -531,7 +533,8 @@ export class RepoIndexManager {
 
             if (jobData.type === RepoIndexingJobType.INDEX) {
                 const { path: repoPath } = getRepoPath(jobData.repo);
-                const commitHash = await getCommitHashForRefName({
+                const isEmpty = await isRepoEmpty({ path: repoPath });
+                const commitHash = isEmpty ? undefined : await getCommitHashForRefName({
                     path: repoPath,
                     refName: 'HEAD',
                 });
@@ -575,11 +578,12 @@ export class RepoIndexManager {
             this.promClient.activeRepoIndexJobs.dec({ repo: job.data.repoName, type: jobTypeLabel });
             this.promClient.repoIndexJobSuccessTotal.inc({ repo: job.data.repoName, type: jobTypeLabel });
 
-            captureEvent('backend_repo_index_job_completed', {
-                repoId: job.data.repoId,
-                jobType: job.data.type,
-                type: jobData.repo.external_codeHostType,
-            });
+            if (jobData.type === RepoIndexingJobType.INDEX && jobData.repo.indexedAt === null) {
+                captureEvent('backend_repo_first_indexed', {
+                    repoId: job.data.repoId,
+                    type: jobData.repo.external_codeHostType,
+                });
+            }
         } catch (error) {
             Sentry.captureException(error);
             logger.error(`Exception thrown while executing lifecycle function \`onJobCompleted\`.`, error);
@@ -632,6 +636,71 @@ export class RepoIndexManager {
         } catch (err) {
             Sentry.captureException(err);
             logger.error(`Exception thrown while executing lifecycle function \`onJobMaybeFailed\`.`, err);
+        }
+    }
+
+    // Scans the repos and index directories on disk and removes any entries
+    // that have no corresponding Repo record in the database. This handles
+    // edge cases where the DB and disk resources are out of sync.
+    private async cleanupOrphanedDiskResources() {
+        // --- Repo directories ---
+        // Dirs are named by repoId: DATA_CACHE_DIR/repos/<repoId>/
+        if (existsSync(REPOS_CACHE_DIR)) {
+            const entries = await readdir(REPOS_CACHE_DIR);
+            const repoIdToPath = new Map<number, string>();
+            for (const entry of entries) {
+                const repoPath = `${REPOS_CACHE_DIR}/${entry}`;
+                const repoId = getRepoIdFromPath(repoPath);
+                if (repoId !== undefined) {
+                    repoIdToPath.set(repoId, repoPath);
+                }
+            }
+
+            if (repoIdToPath.size > 0) {
+                const existingRepos = await this.db.repo.findMany({
+                    where: { id: { in: [...repoIdToPath.keys()] } },
+                    select: { id: true },
+                });
+                const existingIds = new Set(existingRepos.map(r => r.id));
+                for (const [repoId, repoPath] of repoIdToPath) {
+                    if (!existingIds.has(repoId)) {
+                        logger.info(`Removing orphaned repo directory with no DB record: ${repoPath}`);
+                        await rm(repoPath, { recursive: true, force: true });
+                    }
+                }
+            }
+        }
+
+        // --- Index shards ---
+        // Shard files are prefixed with <orgId>_<repoId>: DATA_CACHE_DIR/index/<orgId>_<repoId>_*.zoekt
+        if (existsSync(INDEX_CACHE_DIR)) {
+            const entries = await readdir(INDEX_CACHE_DIR);
+            const repoIdToShards = new Map<number, string[]>();
+            for (const entry of entries) {
+                const repoId = getRepoIdFromShardFileName(entry);
+                if (repoId !== undefined) {
+                    const shards = repoIdToShards.get(repoId) ?? [];
+                    shards.push(entry);
+                    repoIdToShards.set(repoId, shards);
+                }
+            }
+
+            if (repoIdToShards.size > 0) {
+                const existingRepos = await this.db.repo.findMany({
+                    where: { id: { in: [...repoIdToShards.keys()] } },
+                    select: { id: true },
+                });
+                const existingIds = new Set(existingRepos.map(r => r.id));
+                for (const [repoId, shards] of repoIdToShards) {
+                    if (!existingIds.has(repoId)) {
+                        for (const entry of shards) {
+                            const shardPath = `${INDEX_CACHE_DIR}/${entry}`;
+                            logger.info(`Removing orphaned index shard with no DB record: ${shardPath}`);
+                            await rm(shardPath, { force: true });
+                        }
+                    }
+                }
+            }
         }
     }
 

@@ -25,7 +25,8 @@
                                 "group": "Deployment",
                                 "pages": [
                                     "docs/deployment/docker-compose",
-                                    "docs/deployment/k8s"
+                                    "docs/deployment/k8s",
+                                    "docs/deployment/sizing-guide"
                                 ]
                             }
                         ]
@@ -38,6 +39,7 @@
                                 "pages": [
                                     "docs/features/search/overview",
                                     "docs/features/search/syntax-reference",
+                                    "docs/features/search/ai-search-assist",
                                     "docs/features/search/multi-branch-indexing",
                                     "docs/features/search/search-contexts"
                                 ]
@@ -46,12 +48,13 @@
                                 "group": "Ask Sourcebot",
                                 "pages": [
                                     "docs/features/ask/overview",
+                                    "docs/features/ask/chat-sharing",
                                     "docs/features/ask/add-model-providers"
                                 ]
                             },
+                            "docs/features/mcp-server",
                             "docs/features/code-navigation",
                             "docs/features/analytics",
-                            "docs/features/mcp-server",
                             "docs/features/permission-syncing",
                             {
                                 "group": "Agents",

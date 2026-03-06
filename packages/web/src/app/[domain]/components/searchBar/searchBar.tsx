@@ -42,9 +42,14 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Toggle } from "@/components/ui/toggle";
 import { useDomain } from "@/hooks/useDomain";
-import { createAuditAction } from "@/ee/features/audit/actions";
 import tailwind from "@/tailwind";
-import { CaseSensitiveIcon, RegexIcon } from "lucide-react";
+import React from "react";
+import Link from "next/link";
+import { CaseSensitiveIcon, RegexIcon, Wand2Icon } from "lucide-react";
+import { SearchAssistBox } from "./searchAssistBox";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
+
+const LANGUAGE_MODEL_DOCS_URL = "https://docs.sourcebot.dev/docs/configuration/language-model-providers"; 
 
 interface SearchBarProps {
     className?: string;
@@ -55,6 +60,7 @@ interface SearchBarProps {
         query?: string;
     }
     autoFocus?: boolean;
+    isSearchAssistSupported: boolean;
 }
 
 const searchBarKeymap: readonly KeyBinding[] = ([
@@ -100,14 +106,18 @@ export const SearchBar = ({
         isRegexEnabled: defaultIsRegexEnabled = false,
         isCaseSensitivityEnabled: defaultIsCaseSensitivityEnabled = false,
         query: defaultQuery = "",
-    } = {}
+    } = {},
+    isSearchAssistSupported,
 }: SearchBarProps) => {
     const router = useRouter();
     const domain = useDomain();
+    const captureEvent = useCaptureEvent();
     const suggestionBoxRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<ReactCodeMirrorRef>(null);
     const [cursorPosition, setCursorPosition] = useState(0);
-    const [isSuggestionsEnabled, setIsSuggestionsEnabled] = useState(false);
+    const [activePanel, setActivePanel] = useState<'suggestions' | 'searchAssist'>();
+    const isSuggestionsEnabled = activePanel === 'suggestions';
+    const isSearchAssistEnabled = activePanel === 'searchAssist';
     const [isSuggestionsBoxFocused, setIsSuggestionsBoxFocused] = useState(false);
     const [isHistorySearchEnabled, setIsHistorySearchEnabled] = useState(false);
     const [isRegexEnabled, setIsRegexEnabled] = useState(defaultIsRegexEnabled);
@@ -131,6 +141,7 @@ export const SearchBar = ({
             setQuery(defaultQuery);
         }
     }, [defaultQuery])
+
 
     const { suggestionMode, suggestionQuery } = useSuggestionModeAndQuery({
         isSuggestionsEnabled,
@@ -194,7 +205,7 @@ export const SearchBar = ({
     useHotkeys('/', (event) => {
         event.preventDefault();
         focusEditor();
-        setIsSuggestionsEnabled(true);
+        setActivePanel('suggestions');
         if (editorRef.current?.view) {
             cursorDocEnd({
                 state: editorRef.current.view.state,
@@ -206,22 +217,15 @@ export const SearchBar = ({
     // Collapse the suggestions box if the user clicks outside of the search bar container.
     useClickListener('.search-bar-container', (isElementClicked) => {
         if (!isElementClicked) {
-            setIsSuggestionsEnabled(false);
+            setActivePanel(undefined);
         } else {
-            setIsSuggestionsEnabled(true);
+            setActivePanel(prev => prev ?? 'suggestions');
         }
     });
 
     const onSubmit = useCallback((query: string) => {
-        setIsSuggestionsEnabled(false);
+        setActivePanel(undefined);
         setIsHistorySearchEnabled(false);
-
-        createAuditAction({
-            action: "user.performed_code_search",
-            metadata: {
-                message: query,
-            },
-        })
 
         const url = createPathWithQueryParams(`/${domain}/search`,
             [SearchQueryParams.query, query],
@@ -237,18 +241,20 @@ export const SearchBar = ({
             onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    setIsSuggestionsEnabled(false);
-                    onSubmit(query);
+                    if (activePanel !== 'searchAssist') {
+                        setActivePanel(undefined);
+                        onSubmit(query);
+                    }
                 }
 
                 if (e.key === 'Escape') {
                     e.preventDefault();
-                    setIsSuggestionsEnabled(false);
+                    setActivePanel(undefined);
                 }
 
-                if (e.key === 'ArrowDown') {
+                if (e.key === 'ArrowDown' && !isSearchAssistEnabled) {
                     e.preventDefault();
-                    setIsSuggestionsEnabled(true);
+                    setActivePanel('suggestions');
                     focusSuggestionsBox();
                 }
 
@@ -257,15 +263,46 @@ export const SearchBar = ({
                 }
             }}
         >
-            <SearchHistoryButton
-                isToggled={isHistorySearchEnabled}
-                onClick={() => {
-                    setQuery("");
-                    setIsHistorySearchEnabled(!isHistorySearchEnabled);
-                    setIsSuggestionsEnabled(true);
-                    focusEditor();
-                }}
-            />
+            <div className="flex flex-row items-center gap-1">
+                <SearchBarButton
+                    isToggled={isHistorySearchEnabled}
+                    onClick={() => {
+                        setQuery("");
+                        setIsHistorySearchEnabled(!isHistorySearchEnabled);
+                        setActivePanel('suggestions');
+                        focusEditor();
+                    }}
+                    tooltip="Search history"
+                    icon={CounterClockwiseClockIcon}
+                />
+                <SearchBarButton
+                    isToggled={isSearchAssistEnabled}
+                    onClick={() => {
+                        setQuery("");
+                        setIsHistorySearchEnabled(false);
+                        setActivePanel(prev => {
+                            const next = prev === 'searchAssist' ? undefined : 'searchAssist';
+                            if (next === 'searchAssist') {
+                                captureEvent('wa_search_assist_opened', {});
+                            }
+                            return next;
+                        });
+                        focusEditor();
+                    }}
+                    tooltip="AI search assist"
+                    icon={Wand2Icon}
+                    preventBlurOnClick
+                    disabled={!isSearchAssistSupported}
+                    disabledTooltip={
+                        <span>
+                            AI search assist requires a language model to be configured.{" "}
+                            <Link href={LANGUAGE_MODEL_DOCS_URL} target="_blank" className="underline">
+                                Learn more
+                            </Link>.
+                        </span>
+                    }
+                />
+            </div>
             <Separator
                 className="mx-1 h-6"
                 orientation="vertical"
@@ -279,7 +316,7 @@ export const SearchBar = ({
                     setQuery(value);
                     // Whenever the user types, we want to re-enable
                     // the suggestions box.
-                    setIsSuggestionsEnabled(true);
+                    setActivePanel('suggestions');
                 }}
                 theme={theme}
                 basicSetup={false}
@@ -288,41 +325,43 @@ export const SearchBar = ({
                 autoFocus={autoFocus ?? false}
             />
             <div className="flex flex-row items-center gap-1 ml-1">
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <span>
-                            <Toggle
-                                className="h-7 w-7 min-w-7 p-0 cursor-pointer"
-                                pressed={isCaseSensitivityEnabled}
-                                onPressedChange={setIsCaseSensitivityEnabled}
-                            >
-                                <CaseSensitiveIcon className="w-4 h-4" />
-                            </Toggle>
-                        </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="flex flex-row items-center gap-2">
-                        {isCaseSensitivityEnabled ? "Disable" : "Enable"} case sensitivity
-                    </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <span>
-                            <Toggle
-                                className="h-7 w-7 min-w-7 p-0 cursor-pointer"
-                                pressed={isRegexEnabled}
-                                onPressedChange={setIsRegexEnabled}
-                            >
-                                <RegexIcon className="w-4 h-4" />
-                            </Toggle>
-                        </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="flex flex-row items-center gap-2">
-                        {isRegexEnabled ? "Disable" : "Enable"} regular expressions
-                    </TooltipContent>
-                </Tooltip>
+                <SearchBarButton
+                    isToggled={isCaseSensitivityEnabled}
+                    onClick={() => setIsCaseSensitivityEnabled(!isCaseSensitivityEnabled)}
+                    tooltip={`${isCaseSensitivityEnabled ? "Disable" : "Enable"} case sensitivity`}
+                    icon={CaseSensitiveIcon}
+
+                />
+                <SearchBarButton
+                    isToggled={isRegexEnabled}
+                    onClick={() => setIsRegexEnabled(!isRegexEnabled)}
+                    tooltip={`${isRegexEnabled ? "Disable" : "Enable"} regular expressions`}
+                    icon={RegexIcon}
+
+                />
             </div>
+            <SearchAssistBox
+                className={size === "sm" ? "top-7" : "top-9"}
+                isEnabled={isSearchAssistEnabled}
+                onBlur={() => {
+                    setActivePanel(undefined);
+                }}
+                onQueryGenerated={(translatedQuery: string) => {
+                    setQuery(translatedQuery);
+                    editorRef.current?.view?.dispatch({
+                        changes: { from: 0, to: editorRef.current.view.state.doc.length, insert: translatedQuery },
+                        selection: { anchor: translatedQuery.length },
+                    });
+                    setActivePanel(undefined);
+                    focusEditor();
+                    // Always enable regex and case sensitivity when using search assist.
+                    setIsRegexEnabled(true);
+                    setIsCaseSensitivityEnabled(true);
+                }}
+            />
             <SearchSuggestionsBox
                 ref={suggestionBoxRef}
+                className={size === "sm" ? "top-9" : "top-12"}
                 query={query}
                 suggestionQuery={suggestionQuery}
                 suggestionMode={suggestionMode}
@@ -368,33 +407,41 @@ export const SearchBar = ({
     )
 }
 
-const SearchHistoryButton = ({
+const SearchBarButton = ({
     isToggled,
     onClick,
+    tooltip,
+    icon: Icon,
+    preventBlurOnClick = false,
+    disabled = false,
+    disabledTooltip,
 }: {
     isToggled: boolean,
-    onClick: () => void
+    onClick: () => void,
+    tooltip: React.ReactNode,
+    icon: React.ElementType,
+    preventBlurOnClick?: boolean,
+    disabled?: boolean,
+    disabledTooltip?: React.ReactNode,
 }) => {
     return (
         <Tooltip>
-            <TooltipTrigger
-                asChild={true}
-            >
+            <TooltipTrigger asChild={true}>
                 {/* @see : https://github.com/shadcn-ui/ui/issues/1988#issuecomment-1980597269 */}
                 <div>
                     <Toggle
                         pressed={isToggled}
                         className="h-6 w-6 min-w-6 px-0 p-1 cursor-pointer"
                         onClick={onClick}
+                        onMouseDown={preventBlurOnClick ? (e) => e.preventDefault() : undefined}
+                        disabled={disabled}
                     >
-                        <CounterClockwiseClockIcon />
+                        <Icon className="w-4 h-4" />
                     </Toggle>
                 </div>
             </TooltipTrigger>
-            <TooltipContent
-                side="bottom"
-            >
-                Search history
+            <TooltipContent side="bottom">
+                {disabled && disabledTooltip ? disabledTooltip : tooltip}
             </TooltipContent>
         </Tooltip>
     )

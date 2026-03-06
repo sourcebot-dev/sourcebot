@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { useSyntaxGuide } from "@/app/[domain]/components/syntaxGuideProvider";
 import { useRefineModeSuggestions } from "./useRefineModeSuggestions";
+import { cn } from "@/lib/utils";
 
 export type Suggestion = {
     value: string;
@@ -41,6 +42,7 @@ export type SuggestionMode =
     "context";
 
 interface SearchSuggestionsBoxProps {
+    className?: string;
     query: string;
     suggestionQuery: string;
     suggestionMode: SuggestionMode;
@@ -62,6 +64,7 @@ interface SearchSuggestionsBoxProps {
 }
 
 const SearchSuggestionsBox = forwardRef(({
+    className,
     query,
     suggestionQuery,
     suggestionMode,
@@ -315,7 +318,7 @@ const SearchSuggestionsBox = forwardRef(({
     return (
         <div
             ref={ref}
-            className="w-full absolute z-10 top-12 border rounded-md bg-background drop-shadow-2xl p-2"
+            className={cn("w-full absolute z-10 border rounded-md bg-background drop-shadow-2xl p-2", className)}
             tabIndex={0}
             onKeyDown={(e) => {
                 if (e.key === 'Enter') {

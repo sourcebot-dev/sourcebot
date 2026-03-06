@@ -1,12 +1,24 @@
 import { sew } from "@/actions";
-import { repositoryQuerySchema } from "@/lib/schemas";
-import { ListReposQueryParams } from "@/lib/types";
+import { getAuditService } from "@/ee/features/audit/factory";
+import { ListReposQueryParams, RepositoryQuery } from "@/lib/types";
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { env } from "@sourcebot/shared";
+import { headers } from "next/headers";
 
-export const listRepos = async ({ query, page, perPage, sort, direction }: ListReposQueryParams) => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma }) => {
+export const listRepos = async ({ query, page, perPage, sort, direction, source }: ListReposQueryParams & { source?: string }) => sew(() =>
+    withOptionalAuthV2(async ({ org, prisma, user }) => {
+        if (user) {
+            const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
+            getAuditService().createAudit({
+                action: 'user.listed_repos',
+                actor: { id: user.id, type: 'user' },
+                target: { id: org.id.toString(), type: 'org' },
+                orgId: org.id,
+                metadata: { source: resolvedSource },
+            });
+        }
+
         const skip = (page - 1) * perPage;
         const orderByField = sort === 'pushed' ? 'pushedAt' : 'name';
         const baseUrl = env.AUTH_URL;
@@ -34,7 +46,7 @@ export const listRepos = async ({ query, page, perPage, sort, direction }: ListR
         ]);
 
         return {
-            data: repos.map((repo) => repositoryQuerySchema.parse({
+            data: repos.map((repo) => ({
                 codeHostType: repo.external_codeHostType,
                 repoId: repo.id,
                 repoName: repo.name,
@@ -49,7 +61,10 @@ export const listRepos = async ({ query, page, perPage, sort, direction }: ListR
                 imageUrl: repo.imageUrl ?? undefined,
                 indexedAt: repo.indexedAt ?? undefined,
                 pushedAt: repo.pushedAt ?? undefined,
-            })),
+                defaultBranch: repo.defaultBranch ?? undefined,
+                isFork: repo.isFork,
+                isArchived: repo.isArchived,
+            } satisfies RepositoryQuery)),
             totalCount,
         };
     })

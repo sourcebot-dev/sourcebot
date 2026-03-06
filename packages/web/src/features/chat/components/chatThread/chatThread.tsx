@@ -9,7 +9,7 @@ import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMes
 import { createUIMessage, getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport } from 'ai';
-import { ArrowDownIcon } from 'lucide-react';
+import { ArrowDownIcon, CopyIcon } from 'lucide-react';
 import { useNavigationGuard } from 'next-navigation-guard';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Descendant } from 'slate';
@@ -22,14 +22,22 @@ import { ErrorBanner } from './errorBanner';
 import { useRouter } from 'next/navigation';
 import { usePrevious } from '@uidotdev/usehooks';
 import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
-import { generateAndUpdateChatNameFromMessage } from '../../actions';
+import { duplicateChat, generateAndUpdateChatNameFromMessage } from '../../actions';
 import { isServiceError } from '@/lib/utils';
 import { NotConfiguredErrorBanner } from '../notConfiguredErrorBanner';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
+import { SignInPromptBanner } from './signInPromptBanner';
+import { DuplicateChatDialog } from '@/app/[domain]/chat/components/duplicateChatDialog';
+import { LoginModal } from '@/app/components/loginModal';
+import type { IdentityProviderMetadata } from '@/lib/identityProviders';
+import { getAskGhLoginWallData } from '../../actions';
+import { useParams } from 'next/navigation';
 
 type ChatHistoryState = {
     scrollOffset?: number;
 }
+
+const PENDING_MESSAGE_STORAGE_KEY = "askgh_chat_pending_message";
 
 interface ChatThreadProps {
     id?: string | undefined;
@@ -40,7 +48,9 @@ interface ChatThreadProps {
     searchContexts: SearchContextQuery[];
     selectedSearchScopes: SearchScope[];
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
-    isChatReadonly: boolean;
+    isOwner?: boolean;
+    isAuthenticated?: boolean;
+    chatName?: string;
 }
 
 export const ChatThread = ({
@@ -52,7 +62,9 @@ export const ChatThread = ({
     searchContexts,
     selectedSearchScopes,
     onSelectedSearchScopesChange,
-    isChatReadonly,
+    isOwner = true,
+    isAuthenticated = false,
+    chatName,
 }: ChatThreadProps) => {
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -61,7 +73,12 @@ export const ChatThread = ({
     const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const params = useParams<{ domain: string }>();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
+    const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+    const [loginWallProviders, setLoginWallProviders] = useState<IdentityProviderMetadata[]>([]);
+    const hasRestoredPendingMessage = useRef(false);
     const captureEvent = useCaptureEvent();
 
     // Initial state is from attachments that exist in in the chat history.
@@ -120,10 +137,6 @@ export const ChatThread = ({
             } satisfies AdditionalChatRequestParams,
         });
 
-        captureEvent('wa_chat_message_sent', {
-            messageCount: messages.length + 1,
-        });
-
         if (
             messages.length === 0 &&
             message.parts.length > 0 &&
@@ -154,7 +167,6 @@ export const ChatThread = ({
         toast,
         chatId,
         router,
-        captureEvent,
     ]);
 
 
@@ -195,6 +207,38 @@ export const ChatThread = ({
         setIsAutoScrollEnabled(true);
         hasSubmittedInputMessage.current = true;
     }, [inputMessage, sendMessage]);
+
+    // Restore pending message after OAuth redirect (askgh login wall)
+    useEffect(() => {
+        if (!isAuthenticated || !isOwner || hasRestoredPendingMessage.current) {
+            return;
+        }
+
+        const stored = sessionStorage.getItem(PENDING_MESSAGE_STORAGE_KEY);
+        if (!stored) {
+            return;
+        }
+
+        hasRestoredPendingMessage.current = true;
+        sessionStorage.removeItem(PENDING_MESSAGE_STORAGE_KEY);
+
+        try {
+            const { chatId: storedChatId, children } = JSON.parse(stored) as { chatId: string; children: Descendant[] };
+
+            // Only restore if we're on the same chat that stored the pending message
+            if (storedChatId !== chatId) {
+                return;
+            }
+
+            const text = slateContentToString(children);
+            const mentions = getAllMentionElements(children);
+            const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes);
+            sendMessage(message);
+            setIsAutoScrollEnabled(true);
+        } catch (error) {
+            console.error('Failed to restore pending message:', error);
+        }
+    }, [isAuthenticated, isOwner, chatId, sendMessage, selectedSearchScopes]);
 
     // Track scroll position changes.
     useEffect(() => {
@@ -283,7 +327,18 @@ export const ChatThread = ({
         }
     }, [error]);
 
-    const onSubmit = useCallback((children: Descendant[], editor: CustomEditor) => {
+    const onSubmit = useCallback(async (children: Descendant[], editor: CustomEditor) => {
+        if (!isAuthenticated) {
+            const result = await getAskGhLoginWallData();
+            if (!isServiceError(result) && result.isEnabled) {
+                captureEvent('wa_askgh_login_wall_prompted', {});
+                sessionStorage.setItem(PENDING_MESSAGE_STORAGE_KEY, JSON.stringify({ chatId, children }));
+                setLoginWallProviders(result.providers);
+                setIsLoginModalOpen(true);
+                return;
+            }
+        }
+
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
@@ -293,7 +348,26 @@ export const ChatThread = ({
         setIsAutoScrollEnabled(true);
 
         resetEditor(editor);
-    }, [sendMessage, selectedSearchScopes]);
+    }, [sendMessage, selectedSearchScopes, isAuthenticated, captureEvent, chatId]);
+
+    const onDuplicate = useCallback(async (newName: string): Promise<string | null> => {
+        if (!defaultChatId) {
+            return null;
+        }
+
+        const result = await duplicateChat({ chatId: defaultChatId, newName });
+        if (isServiceError(result)) {
+            toast({
+                description: `Failed to duplicate chat: ${result.message}`,
+                variant: "destructive",
+            });
+            return null;
+        }
+
+        captureEvent('wa_chat_duplicated', { chatId: defaultChatId });
+        router.push(`/${params.domain}/chat/${result.id}`);
+        return result.id;
+    }, [defaultChatId, toast, router, params.domain, captureEvent]);
 
     return (
         <>
@@ -363,41 +437,76 @@ export const ChatThread = ({
                     )
                 }
             </ScrollArea>
-            {!isChatReadonly && (
-                <div className="w-full max-w-3xl mx-auto mb-8">
-                    {languageModels.length === 0 && (
-                        <NotConfiguredErrorBanner className="mb-2" />
-                    )}
+            <div className="w-full max-w-3xl mx-auto mb-8">
+                <SignInPromptBanner
+                    chatId={chatId}
+                    isAuthenticated={isAuthenticated}
+                    isOwner={isOwner}
+                    hasMessages={messages.length > 0}
+                    isStreaming={status === "streaming" || status === "submitted"}
+                />
+                {isOwner ? (
+                    <>
+                        {languageModels.length === 0 && (
+                            <NotConfiguredErrorBanner className="mb-2" />
+                        )}
 
-                    <div className="border rounded-md w-full shadow-sm">
-                        <CustomSlateEditor>
-                            <ChatBox
-                                onSubmit={onSubmit}
-                                className="min-h-[80px]"
-                                preferredSuggestionsBoxPlacement="top-start"
-                                isGenerating={status === "streaming" || status === "submitted"}
-                                onStop={stop}
-                                languageModels={languageModels}
-                                selectedSearchScopes={selectedSearchScopes}
-                                searchContexts={searchContexts}
-                                onContextSelectorOpenChanged={setIsContextSelectorOpen}
-                                isDisabled={languageModels.length === 0}
-                            />
-                            <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
-                                <ChatBoxToolbar
+                        <div className="border rounded-md w-full shadow-sm">
+                            <CustomSlateEditor>
+                                <ChatBox
+                                    onSubmit={onSubmit}
+                                    className="min-h-[80px]"
+                                    preferredSuggestionsBoxPlacement="top-start"
+                                    isGenerating={status === "streaming" || status === "submitted"}
+                                    onStop={stop}
                                     languageModels={languageModels}
-                                    repos={repos}
-                                    searchContexts={searchContexts}
                                     selectedSearchScopes={selectedSearchScopes}
-                                    onSelectedSearchScopesChange={onSelectedSearchScopesChange}
-                                    isContextSelectorOpen={isContextSelectorOpen}
+                                    searchContexts={searchContexts}
                                     onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                                    isDisabled={languageModels.length === 0}
                                 />
-                            </div>
-                        </CustomSlateEditor>
+                                <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
+                                    <ChatBoxToolbar
+                                        languageModels={languageModels}
+                                        repos={repos}
+                                        searchContexts={searchContexts}
+                                        selectedSearchScopes={selectedSearchScopes}
+                                        onSelectedSearchScopesChange={onSelectedSearchScopesChange}
+                                        isContextSelectorOpen={isContextSelectorOpen}
+                                        onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                                    />
+                                </div>
+                            </CustomSlateEditor>
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex flex-row items-center justify-center gap-3 p-4 border rounded-md bg-muted/50">
+                        <p className="text-sm text-muted-foreground">This chat is read-only.</p>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => setIsDuplicateDialogOpen(true)}
+                        >
+                            <CopyIcon className="h-4 w-4" />
+                            Duplicate
+                        </Button>
+                        <DuplicateChatDialog
+                            isOpen={isDuplicateDialogOpen}
+                            onOpenChange={setIsDuplicateDialogOpen}
+                            onDuplicate={onDuplicate}
+                            currentName={chatName ?? 'Untitled chat'}
+                        />
                     </div>
-                </div>
-            )}
+                )}
+            </div>
+
+            <LoginModal
+                isOpen={isLoginModalOpen}
+                onOpenChange={setIsLoginModalOpen}
+                providers={loginWallProviders}
+                callbackUrl={typeof window !== 'undefined' ? window.location.href : ''}
+            />
         </>
     );
 }

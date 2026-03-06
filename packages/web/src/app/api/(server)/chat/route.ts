@@ -1,28 +1,19 @@
 import { sew } from "@/actions";
-import { _getConfiguredLanguageModelsFull, _getAISDKLanguageModelAndOptions, updateChatMessages } from "@/features/chat/actions";
-import { createAgentStream } from "@/features/chat/agent";
-import { additionalChatRequestParamsSchema, LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
-import { getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
+import { createMessageStream } from "@/features/chat/agent";
+import { additionalChatRequestParamsSchema } from "@/features/chat/types";
+import { getLanguageModelKey } from "@/features/chat/utils";
+import { getAISDKLanguageModelAndOptions, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
+import { captureEvent } from "@/lib/posthog";
 import { notFound, requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuthV2 } from "@/withAuthV2";
-import { LanguageModelV2 as AISDKLanguageModelV2 } from "@ai-sdk/provider";
 import * as Sentry from "@sentry/nextjs";
-import { PrismaClient } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/shared";
+import { createLogger, env } from "@sourcebot/shared";
 import {
-    createUIMessageStream,
-    createUIMessageStreamResponse,
-    JSONValue,
-    ModelMessage,
-    StreamTextResult,
-    UIMessageStreamOnFinishCallback,
-    UIMessageStreamOptions,
-    UIMessageStreamWriter
+    createUIMessageStreamResponse
 } from "ai";
-import { randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
 import { z } from "zod";
@@ -46,11 +37,11 @@ export const POST = apiHandler(async (req: NextRequest) => {
     // @note: a bit of type massaging is required here since the
     // zod schema does not enum on `model` or `provider`.
     // @see: chat/types.ts
-    const languageModel = _languageModel as LanguageModelInfo;
+    const languageModel = _languageModel;
 
     const response = await sew(() =>
-        withOptionalAuthV2(async ({ org, prisma }) => {
-            // Validate that the chat exists and is not readonly.
+        withOptionalAuthV2(async ({ org, user, prisma }) => {
+            // Validate that the chat exists.
             const chat = await prisma.chat.findUnique({
                 where: {
                     orgId: org.id,
@@ -62,18 +53,20 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 return notFound();
             }
 
-            if (chat.isReadonly) {
+            // Check ownership - only the owner can send messages
+            const isOwner = await isOwnerOfChat(chat, user);
+            if (!isOwner) {
                 return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "Chat is readonly and cannot be edited.",
+                    statusCode: StatusCodes.FORBIDDEN,
+                    errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+                    message: 'Only the owner of a chat can send messages.',
                 } satisfies ServiceError;
             }
 
             // From the language model ID, attempt to find the
             // corresponding config in `config.json`.
             const languageModelConfig =
-                (await _getConfiguredLanguageModelsFull())
+                (await getConfiguredLanguageModels())
                     .find((model) => getLanguageModelKey(model) === getLanguageModelKey(languageModel));
 
             if (!languageModelConfig) {
@@ -84,21 +77,39 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 } satisfies ServiceError;
             }
 
-            const { model, providerOptions } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
+            const { model, providerOptions } = await getAISDKLanguageModelAndOptions(languageModelConfig);
+
+            const expandedRepos = (await Promise.all(selectedSearchScopes.map(async (scope) => {
+                if (scope.type === 'repo') return [scope.value];
+                if (scope.type === 'reposet') {
+                    const reposet = await prisma.searchContext.findFirst({
+                        where: { orgId: org.id, name: scope.value },
+                        include: { repos: true }
+                    });
+                    return reposet ? reposet.repos.map(r => r.name) : [];
+                }
+                return [];
+            }))).flat();
+
+            await captureEvent('wa_chat_message_sent', {
+                chatId: id,
+                messageCount: messages.length,
+                selectedReposCount: expandedRepos.length,
+                ...(env.EXPERIMENT_ASK_GH_ENABLED === 'true' ? { selectedRepos: expandedRepos } : {}),
+            } );
 
             const stream = await createMessageStream({
+                chatId: id,
                 messages,
-                selectedSearchScopes,
+                metadata: {
+                    selectedSearchScopes,
+                },
+                selectedRepos: expandedRepos,
                 model,
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                 modelProviderOptions: providerOptions,
-                orgId: org.id,
-                prisma,
                 onFinish: async ({ messages }) => {
-                    await updateChatMessages({
-                        chatId: id,
-                        messages
-                    });
+                    await updateChatMessages({ chatId: id, messages, prisma });
                 },
                 onError: (error: unknown) => {
                     logger.error(error);
@@ -132,145 +143,3 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
     return response;
 });
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMessageStreamWriter<SBChatMessage>, options: UIMessageStreamOptions<SBChatMessage> = {}) => {
-    await new Promise<void>((resolve) => writer.merge(stream.toUIMessageStream({
-        ...options,
-        onFinish: async () => {
-            resolve();
-        }
-    })));
-}
-
-interface CreateMessageStreamResponseProps {
-    messages: SBChatMessage[];
-    selectedSearchScopes: SearchScope[];
-    model: AISDKLanguageModelV2;
-    modelName: string;
-    modelProviderOptions?: Record<string, Record<string, JSONValue>>;
-    orgId: number;
-    prisma: PrismaClient;
-    onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;
-    onError: (error: unknown) => string;
-}
-
-export const createMessageStream = async ({
-    messages,
-    selectedSearchScopes,
-    model,
-    modelName,
-    modelProviderOptions,
-    orgId,
-    prisma,
-    onFinish,
-    onError,
-}: CreateMessageStreamResponseProps) => {
-    const latestMessage = messages[messages.length - 1];
-    const sources = latestMessage.parts
-        .filter((part) => part.type === 'data-source')
-        .map((part) => part.data);
-
-    const traceId = randomUUID();
-
-    // Extract user messages and assistant answers.
-    // We will use this as the context we carry between messages.
-    const messageHistory =
-        messages.map((message): ModelMessage | undefined => {
-            if (message.role === 'user') {
-                return {
-                    role: 'user',
-                    content: message.parts[0].type === 'text' ? message.parts[0].text : '',
-                };
-            }
-
-            if (message.role === 'assistant') {
-                const answerPart = getAnswerPartFromAssistantMessage(message, false);
-                if (answerPart) {
-                    return {
-                        role: 'assistant',
-                        content: [answerPart]
-                    }
-                }
-            }
-        }).filter(message => message !== undefined);
-
-    const stream = createUIMessageStream<SBChatMessage>({
-        execute: async ({ writer }) => {
-            writer.write({
-                type: 'start',
-            });
-
-            const startTime = new Date();
-
-            const expandedRepos = (await Promise.all(selectedSearchScopes.map(async (scope) => {
-                if (scope.type === 'repo') {
-                    return [scope.value];
-                }
-
-                if (scope.type === 'reposet') {
-                    const reposet = await prisma.searchContext.findFirst({
-                        where: {
-                            orgId,
-                            name: scope.value
-                        },
-                        include: {
-                            repos: true
-                        }
-                    });
-
-                    if (reposet) {
-                        return reposet.repos.map(repo => repo.name);
-                    }
-                }
-
-                return [];
-            }))).flat()
-
-            const researchStream = await createAgentStream({
-                model,
-                providerOptions: modelProviderOptions,
-                inputMessages: messageHistory,
-                inputSources: sources,
-                selectedRepos: expandedRepos,
-                onWriteSource: (source) => {
-                    writer.write({
-                        type: 'data-source',
-                        data: source,
-                    });
-                },
-                traceId,
-            });
-
-            await mergeStreamAsync(researchStream, writer, {
-                sendReasoning: true,
-                sendStart: false,
-                sendFinish: false,
-            });
-
-            const totalUsage = await researchStream.totalUsage;
-
-            writer.write({
-                type: 'message-metadata',
-                messageMetadata: {
-                    totalTokens: totalUsage.totalTokens,
-                    totalInputTokens: totalUsage.inputTokens,
-                    totalOutputTokens: totalUsage.outputTokens,
-                    totalResponseTimeMs: new Date().getTime() - startTime.getTime(),
-                    modelName,
-                    selectedSearchScopes,
-                    traceId,
-                }
-            });
-
-            writer.write({
-                type: 'finish',
-            });
-        },
-        onError,
-        originalMessages: messages,
-        onFinish,
-    });
-
-    return stream;
-};

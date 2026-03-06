@@ -3,9 +3,11 @@ import { LoginForm } from "../login/components/loginForm";
 import { redirect } from "next/navigation";
 import { Footer } from "@/app/components/footer";
 import { getIdentityProviderMetadata } from "@/lib/identityProviders";
-import { createLogger } from "@sourcebot/shared";
+import { createLogger, env } from "@sourcebot/shared";
 import { getOrgFromDomain } from "@/data/org";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
+import { getAnonymousAccessStatus } from "@/actions";
+import { isServiceError } from "@/lib/utils";
 
 const logger = createLogger('signup-page');
 
@@ -30,6 +32,9 @@ export default async function Signup(props: LoginProps) {
     }
 
     const providers = getIdentityProviderMetadata();
+    const anonymousAccessStatus = await getAnonymousAccessStatus(SINGLE_TENANT_ORG_DOMAIN);
+    const isAnonymousAccessEnabled = !isServiceError(anonymousAccessStatus) && anonymousAccessStatus;
+
     return (
         <div className="flex flex-col min-h-screen bg-backgroundSecondary">
             <div className="flex-1 flex flex-col items-center p-4 sm:p-12 w-full">
@@ -38,6 +43,8 @@ export default async function Signup(props: LoginProps) {
                     error={searchParams.error}
                     providers={providers}
                     context="signup"
+                    isAnonymousAccessEnabled={isAnonymousAccessEnabled}
+                    hideSecurityNotice={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
                 />
             </div>
             <Footer />

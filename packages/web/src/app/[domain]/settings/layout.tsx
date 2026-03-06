@@ -68,8 +68,6 @@ export default async function SettingsLayout(
         throw new ServiceErrorException(connectionStats);
     }
 
-    const hasPermissionSyncingEntitlement = hasEntitlement("permission-syncing");
-
     const sidebarNavItems: SidebarNavItem[] = [
         {
             title: "General",
@@ -88,7 +86,7 @@ export default async function SettingsLayout(
             }
         ] : []),
         ...(userRoleInOrg === OrgRole.OWNER ? [{
-            title:"Members",
+            title: "Members",
             isNotificationDotVisible: numJoinRequests !== undefined && numJoinRequests > 0,
             href: `/${domain}/settings/members`,
         }] : []),
@@ -108,10 +106,10 @@ export default async function SettingsLayout(
             title: "Analytics",
             href: `/${domain}/settings/analytics`,
         },
-        ...(hasPermissionSyncingEntitlement ? [
+        ...(hasEntitlement("sso") ? [
             {
                 title: "Linked Accounts",
-                href: `/${domain}/settings/permission-syncing`,
+                href: `/${domain}/settings/linked-accounts`,
             }
         ] : []),
         {

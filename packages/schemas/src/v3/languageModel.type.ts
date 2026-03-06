@@ -124,9 +124,25 @@ export interface AnthropicLanguageModel {
    */
   displayName?: string;
   /**
-   * Optional API key to use with the model. Defaults to the `ANTHROPIC_API_KEY` environment variable.
+   * Optional API key to use with the model, sent as the `x-api-key` header. Defaults to the `ANTHROPIC_API_KEY` environment variable.
    */
   token?:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  /**
+   * Optional auth token to use with the model, sent as the `Authorization: Bearer` header. Defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable.
+   */
+  authToken?:
     | {
         /**
          * The name of the environment variable that contains the token.

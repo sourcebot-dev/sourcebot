@@ -7,6 +7,147 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Increased pagination limit to 1000 for bitbucket data center requests. [#981](https://github.com/sourcebot-dev/sourcebot/pull/981)
+
+## [4.15.0] - 2026-03-05
+- Added MCP and API key usage tracking to analytics dashboard and added audit retention system [#950](https://github.com/sourcebot-dev/sourcebot/pull/950)
+
+## [4.14.0] - 2026-03-05
+
+### Added
+- Added support a MCP streamable http transport hosted at `/api/mcp`. [#976](https://github.com/sourcebot-dev/sourcebot/pull/976)
+- [EE] Added support for Oauth 2.1 to the remote MCP server hosted at `/api/mcp`. [#977](https://github.com/sourcebot-dev/sourcebot/pull/977)
+
+## [4.13.2] - 2026-03-02
+
+### Changed
+- Upgraded Vercel AI SDK from v5 to v6. [#969](https://github.com/sourcebot-dev/sourcebot/pull/969)
+- Added support for using bearer tokens with anthropic. [#967](https://github.com/sourcebot-dev/sourcebot/pull/967)
+- Updated to Next.JS 16. [#970](https://github.com/sourcebot-dev/sourcebot/pull/970)
+
+### Fixed
+- Preserve regex and case sensitivity query parameters when loading more search results. [#972](https://github.com/sourcebot-dev/sourcebot/pull/972)
+- Fixed page navigation failing after Next.js 16 upgrade by removing `router.refresh()` calls immediately following `router.push()`. [#974](https://github.com/sourcebot-dev/sourcebot/pull/974)
+- Add filesystem-first GC scan to remove orphaned repo directories and index shards that have no corresponding database record. [#973](https://github.com/sourcebot-dev/sourcebot/pull/973)
+
+
+## [4.13.1] - 2026-02-28
+
+### Changed
+- Bumped `tar` to `7.5.9`. [#953](https://github.com/sourcebot-dev/sourcebot/pull/953)
+- Bumped `@isaacs/brace-expansion` to `5.0.1`. [#952](https://github.com/sourcebot-dev/sourcebot/pull/952)
+- Bumped `qs` transitive dependency to `^6.14.2` via yarn resolutions. [#954](https://github.com/sourcebot-dev/sourcebot/pull/954)
+- Bumped `@aws-sdk/credential-providers` to `^3.1000.0`. [#955](https://github.com/sourcebot-dev/sourcebot/pull/955)
+- Bumped `rollup` transitive dependency to `^4.59.0` via yarn resolutions. [#956](https://github.com/sourcebot-dev/sourcebot/pull/956)
+- Bumped `next` to `15.5.10`. [#960](https://github.com/sourcebot-dev/sourcebot/pull/960)
+- Bumped `nodemailer` to `7.0.11`. [#959](https://github.com/sourcebot-dev/sourcebot/pull/959)
+- Bumped `glob` transitive dependency to `^10.5.0` via scoped yarn resolutions. [#962](https://github.com/sourcebot-dev/sourcebot/pull/962)
+- Bumped `@react-email/preview-server` to `5.2.8`. [#961](https://github.com/sourcebot-dev/sourcebot/pull/961)
+
+### Fixed
+- Validate `ref` and `path` inputs in git API routes to reject values that could affect git command behavior. [#965](https://github.com/sourcebot-dev/sourcebot/pull/965)
+
+## [4.13.0] - 2026-02-27
+
+### Added
+- Added pagination and UTC time range filtering to the audit GET endpoint. [#949](https://github.com/sourcebot-dev/sourcebot/pull/949)
+- Added AI Search Assist — describe what you're looking for in natural language and AI will generate a code search query for you. [#951](https://github.com/sourcebot-dev/sourcebot/pull/951)
+
+### Fixed
+- Fixed search query parser rejecting parenthesized regex alternation in filter values (e.g. `file:(test|spec)`, `-file:(test|spec)`). [#946](https://github.com/sourcebot-dev/sourcebot/pull/946)
+- Fixed `content:` filter ignoring the regex toggle. [#947](https://github.com/sourcebot-dev/sourcebot/pull/947)
+
+## [4.12.0] - 2026-02-26
+
+### Added
+- Added Bitbucket Cloud SSO & Permission syncing support. [#924](https://github.com/sourcebot-dev/sourcebot/pull/924) [#925](https://github.com/sourcebot-dev/sourcebot/pull/925)
+- Added Bitbucket Data Center SSO & Permission syncing support. [#934](https://github.com/sourcebot-dev/sourcebot/pull/934) [#938](https://github.com/sourcebot-dev/sourcebot/pull/938)
+- Added PostHog events for chat UI interactions (details card expand/collapse, copy answer, table of contents toggle). [#922](https://github.com/sourcebot-dev/sourcebot/pull/922)
+- Added `wa_user_created` PostHog event fired on successful user sign-up. [#933](https://github.com/sourcebot-dev/sourcebot/pull/933)
+- Added `wa_askgh_login_wall_prompted` PostHog event fired when an unauthenticated user attempts to ask a question on Ask GitHub. [#933](https://github.com/sourcebot-dev/sourcebot/pull/933)
+- Added login wall when anonymous users try to send messages on duplicated chats (askgh experiment). [#939](https://github.com/sourcebot-dev/sourcebot/pull/939)
+- Added `GET /api/ee/user` endpoint that returns the authenticated owner's user info (name, email, createdAt, updatedAt). [#940](https://github.com/sourcebot-dev/sourcebot/pull/940)
+- Added `selectedReposCount` to the `wa_chat_message_sent` PostHog event to track the number of selected repositories when users ask questions. [#941](https://github.com/sourcebot-dev/sourcebot/pull/941)
+- Added ability to re-sync repo permissions from the "linked accounts" settings page. [#945](https://github.com/sourcebot-dev/sourcebot/pull/945)
+
+### Changed
+- Hide version upgrade toast for askgithub deployment (`EXPERIMENT_ASK_GH_ENABLED`). [#931](https://github.com/sourcebot-dev/sourcebot/pull/931)
+- Hide security notice on login and signup pages when `EXPERIMENT_ASK_GH_ENABLED` is enabled. [#943](https://github.com/sourcebot-dev/sourcebot/pull/943)
+
+### Fixed
+- Fixed text inside angle brackets (e.g., `<id>`) being hidden in chat prompt display due to HTML parsing. [#929](https://github.com/sourcebot-dev/sourcebot/pull/929) [#932](https://github.com/sourcebot-dev/sourcebot/pull/932)
+- Fixed permission sync banner flashing on initial page load. [#942](https://github.com/sourcebot-dev/sourcebot/pull/942)
+- Fixed issue where the permission sync banner would sometimes not appear until the page was refreshed. [#942](https://github.com/sourcebot-dev/sourcebot/pull/942)
+
+## [4.11.7] - 2026-02-23
+
+### Changed
+- Skip redundant dev build when production release commits are pushed to main. [#919](https://github.com/sourcebot-dev/sourcebot/pull/919)
+- Bumped zoekt version. [#921](https://github.com/sourcebot-dev/sourcebot/pull/921)
+
+## [4.11.6] - 2026-02-21
+
+### Added
+- Added GitHub workflow to automatically tag Linear issues with the release version when a new release is published. [#917](https://github.com/sourcebot-dev/sourcebot/pull/917)
+- Added optional `gitUser` field to the Bitbucket connection config to support Bitbucket Cloud API tokens, which require an email address for the REST API but an Atlassian username for git clone. [#918](https://github.com/sourcebot-dev/sourcebot/pull/918)
+
+## [4.11.5] - 2026-02-21
+
+### Fixed
+- Skip calling `getCommitHashForRefName` for empty repositories to avoid noisy debug log output. [#914](https://github.com/sourcebot-dev/sourcebot/pull/914)
+- Fixed "Open in GitLab" links having a double slash when the GitLab host URL is configured with a trailing slash. [#915](https://github.com/sourcebot-dev/sourcebot/pull/915)
+
+## [4.11.4] - 2026-02-20
+
+### Fixed
+- Fixed `og:image` URL resolving to `localhost` instead of the public domain when the app is deployed behind a reverse proxy. [#908](https://github.com/sourcebot-dev/sourcebot/pull/908)
+- Fixed search bar not taking the full width on the search results and browse pages. [#909](https://github.com/sourcebot-dev/sourcebot/pull/909)
+- Added max height to the chat input box so it scrolls instead of expanding unboundedly when a large blob of text is pasted. [#913](https://github.com/sourcebot-dev/sourcebot/pull/913)
+
+### Changed
+- Changed the "Open in" button copy to distinguish between Bitbucket serve & cloud. [#910](https://github.com/sourcebot-dev/sourcebot/pull/910)
+- `Alt+Enter` (Option+Enter on Mac) now inserts a newline in the chat input instead of submitting. [#912](https://github.com/sourcebot-dev/sourcebot/pull/912)
+
+## [4.11.3] - 2026-02-19
+
+### Fixed
+- Fixed issue where chat threads created via the `/api/chat/blocking` endpoint would not have any messages when called without authentication. [#907](https://github.com/sourcebot-dev/sourcebot/pull/907)
+
+### Changed
+- Added `chatId` to all chat related posthog events. [#907](https://github.com/sourcebot-dev/sourcebot/pull/907)
+
+## [4.11.2] - 2026-02-18
+
+### Fixed
+- Fixed Bitbucket Server and Cloud repo identifiers to include the project key, preventing collisions across projects. **Note:** Bitbucket Cloud users with `exclude.repos` patterns must update them from `workspace/repo` to `workspace/PROJECT_KEY/repo` format. [#904](https://github.com/sourcebot-dev/sourcebot/pull/904)
+
+### Added
+- Added optional `visibility` parameter to `/api/chat/blocking` endpoint and MCP `ask_codebase` tool to allow controlling chat session visibility in shared environments. [#903](https://github.com/sourcebot-dev/sourcebot/pull/903)
+- Added `defaultBranch`, `isFork`, and `isArchived` fields to the `/api/repos` endpoint response and MCP `list_repos` tool. [#905](https://github.com/sourcebot-dev/sourcebot/pull/905)
+
+## [4.11.1] - 2026-02-18
+
+### Changed
+- Replaced `backend_repo_index_job_completed` PostHog event with `backend_repo_first_indexed`, which fires only on the first successful index of a repo. [#900](https://github.com/sourcebot-dev/sourcebot/pull/900)
+
+### Fixed
+- Fixed startup env override parsing to ignore STDERR output, preventing Node warnings from breaking eval processing. [#902](https://github.com/sourcebot-dev/sourcebot/pull/902)
+
+## [4.11.0] - 2026-02-18
+
+### Added
+- Added chat duplication to create copies of existing chats. [#888](https://github.com/sourcebot-dev/sourcebot/pull/888)
+- Added Open Graph metadata and image generation for shared chat links. [#888](https://github.com/sourcebot-dev/sourcebot/pull/888)
+- [EE] Added chat sharing with specific users, allowing chat owners to invite org members to view private chats. [#888](https://github.com/sourcebot-dev/sourcebot/pull/888)
+
+### Changed
+- Changed chat permissions model from read-only flag to ownership-based access control. [#888](https://github.com/sourcebot-dev/sourcebot/pull/888)
+- Improved anonymous chat experience: anonymous users can now create chats and claim them upon signing in. [#888](https://github.com/sourcebot-dev/sourcebot/pull/888)
+
+### Fixed
+- Fixed issue where local repos with URL-encoded spaces in remote URLs would fail to load tree preview and index correctly. [#899](https://github.com/sourcebot-dev/sourcebot/pull/899)
+
 ## [4.10.30] - 2026-02-12
 
 ### Added

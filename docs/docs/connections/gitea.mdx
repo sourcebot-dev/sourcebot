@@ -94,8 +94,11 @@ Next, provide the access token via an environment variable [token](/docs/configu
                 // note: this env var can be named anything. It
                 // doesn't need to be `GITEA_TOKEN`.
                 "env": "GITEA_TOKEN"
-            }
-            // .. rest of config ..
+            },
+            // At least one of the following is required to specify which repos to sync:
+            "repos": ["my-org/myRepo"],
+            // "orgs": ["my-org"],
+            // "users": ["my-user"]
         }
         ```
 
@@ -116,8 +119,11 @@ To connect to a custom Gitea deployment, provide the `url` property to your conf
 ```json
 {
     "type": "gitea",
-    "url": "https://gitea.example.com"
-    // .. rest of config ..
+    "url": "https://gitea.example.com",
+    // At least one of the following is required to specify which repos to sync:
+    "repos": ["my-org/myRepo"],
+    // "orgs": ["my-org"],
+    // "users": ["my-user"]
 }
 ```
 

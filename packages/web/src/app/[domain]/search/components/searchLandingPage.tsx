@@ -12,10 +12,12 @@ import { isServiceError } from "@/lib/utils"
 
 export interface SearchLandingPageProps {
     domain: string;
+    isSearchAssistSupported: boolean;
 }
 
 export const SearchLandingPage = async ({
     domain,
+    isSearchAssistSupported,
 }: SearchLandingPageProps) => {
     const carouselRepos = await getRepos({
         where: {
@@ -47,6 +49,7 @@ export const SearchLandingPage = async ({
                     <SearchBar
                         autoFocus={true}
                         className="border-none pt-0.5 pb-0"
+                        isSearchAssistSupported={isSearchAssistSupported}
                     />
                     <Separator />
                     <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">

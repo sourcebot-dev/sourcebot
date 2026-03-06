@@ -22,6 +22,9 @@ export const repositoryQuerySchema = z.object({
     imageUrl: z.string().optional(),
     indexedAt: z.coerce.date().optional(),
     pushedAt: z.coerce.date().optional(),
+    defaultBranch: z.string().optional(),
+    isFork: z.boolean(),
+    isArchived: z.boolean(),
 });
 
 export const searchContextQuerySchema = z.object({

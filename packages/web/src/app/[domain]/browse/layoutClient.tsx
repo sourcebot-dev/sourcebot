@@ -16,11 +16,13 @@ import { Session } from "next-auth";
 interface LayoutProps {
     children: React.ReactNode;
     session: Session | null;
+    isSearchAssistSupported: boolean;
 }
 
 export function LayoutClient({
     children,
     session,
+    isSearchAssistSupported,
 }: LayoutProps) {
     const { repoName, revisionName } = useBrowseParams();
     const domain = useDomain();
@@ -38,6 +40,7 @@ export function LayoutClient({
                             query: `repo:^${escapeStringRegexp(repoName)}$${revisionName ? ` rev:${revisionName}` : ''} `,
                         }}
                         className="w-full"
+                        isSearchAssistSupported={isSearchAssistSupported}
                     />
                 </TopBar>
                 <ResizablePanelGroup

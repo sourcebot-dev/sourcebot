@@ -2,6 +2,30 @@ import { NewsItem } from "./types";
 
 export const newsData: NewsItem[] = [
     {
+        unique_id: "analytics-by-source",
+        header: "MCP Analytics",
+        sub_header: "We've extended analytics to include data on MCP/API usage",
+        url: "https://docs.sourcebot.dev/docs/features/analytics"
+    },
+    {
+        unique_id: "mcp-server",
+        header: "Remote MCP Server",
+        sub_header: "Sourcebot now exposes a built-in MCP server over Streamable HTTP with OAuth.",
+        url: "https://docs.sourcebot.dev/docs/features/mcp-server"
+    },
+    {
+        unique_id: "ai-search-assist",
+        header: "AI Search Assist",
+        sub_header: "Describe what you're looking for in natural language and AI will generate a code search query for you.",
+        url: "https://docs.sourcebot.dev/docs/features/search/ai-search-assist"
+    },
+    {
+        unique_id: "chat-sharing",
+        header: "Chat Sharing",
+        sub_header: "Share Ask Sourcebot chats via link or with specific team members.",
+        url: "https://docs.sourcebot.dev/docs/features/ask/chat-sharing"
+    },
+    {
         unique_id: "ask-sourcebot",
         header: "Ask Sourcebot",
         sub_header: "Ask Sourcebot to search, summarize, and explain code. Bring your own LLM.",
@@ -61,4 +85,4 @@ export const newsData: NewsItem[] = [
         sub_header: "Filter searches by groups of repos",
         url: "https://docs.sourcebot.dev/docs/features/search/search-contexts"
     }
-]; 
+];

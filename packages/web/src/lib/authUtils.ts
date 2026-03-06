@@ -107,7 +107,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                 type: "org"
             }
         });
-    } else if (!defaultOrg.memberApprovalRequired) { 
+    } else if (!defaultOrg.memberApprovalRequired) {
         const hasAvailability = await orgHasAvailability(defaultOrg.domain);
         if (!hasAvailability) {
             logger.warn(`onCreateUser: org ${SINGLE_TENANT_ORG_ID} has reached max capacity. User ${user.id} was not added to the org.`);
@@ -123,6 +123,10 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
         });
     }
 
+    // Dynamic import to avoid circular dependency:
+    // authUtils -> posthog -> auth -> authUtils
+    const { captureEvent } = await import("@/lib/posthog");
+    await captureEvent('wa_user_created', { userId: user.id });
 };
 
 

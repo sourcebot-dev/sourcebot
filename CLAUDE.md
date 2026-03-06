@@ -18,6 +18,26 @@ To build a specific package:
 yarn workspace @sourcebot/<package-name> build
 ```
 
+## File Naming
+
+Files should use camelCase starting with a lowercase letter:
+
+```
+// Correct
+shareChatPopover.tsx
+userAvatar.tsx
+apiClient.ts
+
+// Incorrect
+ShareChatPopover.tsx
+UserAvatar.tsx
+share-chat-popover.tsx
+```
+
+Exceptions:
+- Special files like `README.md`, `CHANGELOG.md`, `LICENSE`
+- Next.js conventions: `page.tsx`, `layout.tsx`, `loading.tsx`, etc.
+
 ## Tailwind CSS
 
 Use Tailwind color classes directly instead of CSS variable syntax:
@@ -28,6 +48,175 @@ className="border-border bg-card text-foreground text-muted-foreground bg-muted 
 
 // Incorrect
 className="border-[var(--border)] bg-[var(--card)] text-[var(--foreground)]"
+```
+
+## API Route Handlers
+
+Route handlers should validate inputs using Zod schemas.
+
+**Query parameters** (GET requests):
+
+```ts
+import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
+import { z } from "zod";
+
+const myQueryParamsSchema = z.object({
+    q: z.string().default(''),
+    page: z.coerce.number().int().positive().default(1),
+});
+
+export const GET = apiHandler(async (request: NextRequest) => {
+    const rawParams = Object.fromEntries(
+        Object.keys(myQueryParamsSchema.shape).map(key => [
+            key,
+            request.nextUrl.searchParams.get(key) ?? undefined
+        ])
+    );
+    const parsed = myQueryParamsSchema.safeParse(rawParams);
+
+    if (!parsed.success) {
+        return serviceErrorResponse(
+            queryParamsSchemaValidationError(parsed.error)
+        );
+    }
+
+    const { q, page } = parsed.data;
+    // ... rest of handler
+});
+```
+
+**Request body** (POST/PUT/PATCH requests):
+
+```ts
+import { requestBodySchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
+import { z } from "zod";
+
+const myRequestBodySchema = z.object({
+    name: z.string(),
+    count: z.number().optional(),
+});
+
+export const POST = apiHandler(async (request: NextRequest) => {
+    const body = await request.json();
+    const parsed = myRequestBodySchema.safeParse(body);
+
+    if (!parsed.success) {
+        return serviceErrorResponse(
+            requestBodySchemaValidationError(parsed.error)
+        );
+    }
+
+    const { name, count } = parsed.data;
+    // ... rest of handler
+});
+```
+
+## Data Fetching
+
+For GET requests, prefer using API routes with react-query over server actions. This provides caching benefits and better control over data refetching.
+
+```tsx
+// Preferred: API route + react-query
+import { useQuery } from "@tanstack/react-query";
+
+const { data, isLoading } = useQuery({
+    queryKey: ["items", id],
+    queryFn: () => fetch(`/api/items/${id}`).then(res => res.json()),
+});
+```
+
+Server actions should be used for mutations (POST/PUT/DELETE operations), not for data fetching.
+
+## Authentication
+
+Use `withAuthV2` or `withOptionalAuthV2` from `@/withAuthV2` to protect server actions and API routes.
+
+- **`withAuthV2`** - Requires authentication. Returns `notAuthenticated()` if user is not logged in.
+- **`withOptionalAuthV2`** - Allows anonymous access if the org has anonymous access enabled. `user` may be `undefined`.
+- **`withMinimumOrgRole`** - Wrap inside auth context to require a minimum role (e.g., `OrgRole.OWNER`).
+
+**Important:** Always use the `prisma` instance provided by the auth context. This instance has `userScopedPrismaClientExtension` applied, which enforces repository visibility rules (e.g., filtering repos based on user permissions). Do NOT import `prisma` directly from `@/prisma` in actions or routes that return data to the client.
+
+**Server actions** - Wrap with `sew()` for error handling:
+
+```ts
+'use server';
+
+import { sew } from "@/actions";
+import { withAuthV2 } from "@/withAuthV2";
+
+export const myProtectedAction = async ({ id }: { id: string }) => sew(() =>
+    withAuthV2(async ({ org, user, prisma }) => {
+        // user is guaranteed to be defined
+        // prisma is scoped to the user
+        return { success: true };
+    })
+);
+
+export const myPublicAction = async ({ id }: { id: string }) => sew(() =>
+    withOptionalAuthV2(async ({ org, user, prisma }) => {
+        // user may be undefined for anonymous access
+        return { success: true };
+    })
+);
+```
+
+**API routes** - Check `isServiceError` and return `serviceErrorResponse`:
+
+```ts
+import { serviceErrorResponse } from "@/lib/serviceError";
+import { isServiceError } from "@/lib/utils";
+import { withAuthV2 } from "@/withAuthV2";
+
+export const GET = apiHandler(async (request: NextRequest) => {
+    const result = await withAuthV2(async ({ org, user, prisma }) => {
+        // ... your logic
+        return data;
+    });
+
+    if (isServiceError(result)) {
+        return serviceErrorResponse(result);
+    }
+
+    return Response.json(result);
+});
+```
+
+## Next.js Router Navigation
+
+Do NOT call `router.refresh()` immediately after `router.push()`. In Next.js 16, the prefetch cache and navigation system was completely rewritten, and calling `router.refresh()` right after `router.push()` creates a race condition. The refresh invalidates the cache and can interrupt the in-flight navigation, leaving the page stuck or not loading.
+
+```ts
+// Bad - router.refresh() races with router.push() in Next.js 16
+router.push(url);
+router.refresh(); // ❌ can cancel the navigation
+
+// Good - if navigating to a new route, the page will fetch fresh data on load
+router.push(url); // ✅
+```
+
+If you need to refresh server component data after a mutation, use the server-side `refresh()` from `next/cache` in a Server Action instead of `router.refresh()` on the client.
+
+## Documentation Writing Style
+
+When writing or editing `.mdx` files in `docs/`:
+
+- Do NOT use em dashes (`—`). Use periods to break sentences, commas, or parentheses instead.
+- Write in second person ("you") and present tense.
+- Keep sentences short and direct. Lead with what the user needs to know.
+- Use bold for UI elements and key terms (e.g., **Settings → API Keys**).
+- Use inline code for technical values, flags, and identifiers (e.g., `REPO_READ`).
+- Prefer short paragraphs (1-3 sentences). Use bullet lists to break up dense information.
+- Use tables for parameter documentation.
+
+## Docs Images
+
+Images added to `.mdx` files in `docs/` should be wrapped in a `<Frame>` component:
+
+```mdx
+<Frame>
+  <img src="/images/my_image.png" alt="Description" />
+</Frame>
 ```
 
 ## Branches and Pull Requests
@@ -41,9 +230,23 @@ Branch naming convention:
 - Bug fixes: `<username>/fix-<linear_issue_id>`
 - If no Linear issue ID is available, omit it from the branch name
 
+PR title should follow conventional commit standards:
+- `feat:` new feature or functionality
+- `fix:` bug fix
+- `docs:` documentation or README changes
+- `chore:` maintenance tasks, dependency updates, etc.
+- `refactor:` code refactoring without changing behavior
+- `test:` adding or updating tests
+
+You can optionally include a scope to indicate which package is affected:
+- `feat(web):` feature in the web package
+- `fix(worker):` bug fix in the worker package (`backend/`)
+
 PR description:
 - If a GitHub issue number was provided, include `Fixes #<github_issue_number>` in the PR description
 
 After the PR is created:
 - Update CHANGELOG.md with an entry under `[Unreleased]` linking to the new PR. New entries should be placed at the bottom of their section.
 - If the change touches `packages/mcp`, update `packages/mcp/CHANGELOG.md` instead
+- Do NOT add a CHANGELOG entry for documentation-only changes (e.g., changes only in `docs/`)
+- Enterprise-only features (gated by an entitlement) should be prefixed with `[EE]` in the CHANGELOG entry (e.g., `- [EE] Added support for ...`)

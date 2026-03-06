@@ -3,6 +3,11 @@ import { FileTreeItem, FileTreeNode } from "./types";
 
 export const logger = createLogger('git');
 
+// @note: reject refs starting with '-' to prevent git flag injection.
+export const isGitRefValid = (ref: string): boolean => {
+    return !ref.startsWith('-');
+}
+
 // @note: we don't allow directory traversal
 // or null bytes in the path.
 export const isPathValid = (path: string) => {

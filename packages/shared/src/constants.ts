@@ -1,6 +1,16 @@
-import { ConfigSettings } from "./types.js";
+import { CodeHostType } from "@sourcebot/db";
+import { ConfigSettings, IdentityProviderType } from "./types.js";
 
 export const SOURCEBOT_SUPPORT_EMAIL = 'team@sourcebot.dev';
+
+/**
+ * @deprecated Use API_KEY_PREFIX instead.
+ */
+export const LEGACY_API_KEY_PREFIX = 'sourcebot-';
+
+export const API_KEY_PREFIX = 'sbk_';
+export const OAUTH_ACCESS_TOKEN_PREFIX = 'sboa_';
+export const OAUTH_REFRESH_TOKEN_PREFIX = 'sbor_';
 
 export const SOURCEBOT_UNLIMITED_SEATS = -1;
 
@@ -25,3 +35,17 @@ export const DEFAULT_CONFIG_SETTINGS: ConfigSettings = {
     maxAccountPermissionSyncJobConcurrency: 8,
     maxRepoPermissionSyncJobConcurrency: 8,
 }
+
+export const PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES: CodeHostType[] = [
+    'github',
+    'gitlab',
+    'bitbucketCloud',
+    'bitbucketServer',
+];
+
+export const PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS: IdentityProviderType[] = [
+    'github',
+    'gitlab',
+    'bitbucket-cloud',
+    'bitbucket-server',
+];

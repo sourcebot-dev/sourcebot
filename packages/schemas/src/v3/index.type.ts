@@ -34,7 +34,9 @@ export type IdentityProviderConfig =
   | KeycloakIdentityProviderConfig
   | MicrosoftEntraIDIdentityProviderConfig
   | GCPIAPIdentityProviderConfig
-  | AuthentikIdentityProviderConfig;
+  | AuthentikIdentityProviderConfig
+  | BitbucketCloudIdentityProviderConfig
+  | BitbucketServerIdentityProviderConfig;
 
 export interface SourcebotConfig {
   $schema?: string;
@@ -455,9 +457,13 @@ export interface BitbucketConnectionConfig {
    */
   type: "bitbucket";
   /**
-   * The username to use for authentication. Only needed if token is an app password.
+   * The username to use for API authentication. For app passwords, this is your Bitbucket username. For API tokens, this is your Bitbucket account email address.
    */
   user?: string;
+  /**
+   * The username to use for git clone authentication over HTTPS. If not set, falls back to 'user'. For API tokens, this is your Bitbucket username
+   */
+  gitUser?: string;
   /**
    * An authentication token.
    */
@@ -482,6 +488,10 @@ export interface BitbucketConnectionConfig {
    * The type of Bitbucket deployment
    */
   deploymentType?: "cloud" | "server";
+  /**
+   * Sync all repositories visible to the provided `token` (if any) in the Bitbucket Server instance. This option is ignored if `deploymentType` is `cloud`.
+   */
+  all?: boolean;
   /**
    * List of workspaces to sync. Ignored if deploymentType is server.
    */
@@ -705,9 +715,25 @@ export interface AnthropicLanguageModel {
    */
   displayName?: string;
   /**
-   * Optional API key to use with the model. Defaults to the `ANTHROPIC_API_KEY` environment variable.
+   * Optional API key to use with the model, sent as the `x-api-key` header. Defaults to the `ANTHROPIC_API_KEY` environment variable.
    */
   token?:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  /**
+   * Optional auth token to use with the model, sent as the `Authorization: Bearer` header. Defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable.
+   */
+  authToken?:
     | {
         /**
          * The name of the environment variable that contains the token.
@@ -1452,4 +1478,70 @@ export interface AuthentikIdentityProviderConfig {
          */
         googleCloudSecret: string;
       };
+}
+export interface BitbucketCloudIdentityProviderConfig {
+  provider: "bitbucket-cloud";
+  purpose: "sso" | "account_linking";
+  clientId:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  clientSecret:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  accountLinkingRequired?: boolean;
+}
+export interface BitbucketServerIdentityProviderConfig {
+  provider: "bitbucket-server";
+  purpose: "sso" | "account_linking";
+  clientId:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  clientSecret:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  /**
+   * The URL of the Bitbucket Server/Data Center host.
+   */
+  baseUrl: string;
+  accountLinkingRequired?: boolean;
 }

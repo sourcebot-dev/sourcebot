@@ -1,6 +1,6 @@
 {
     "name": "@sourcebot/mcp",
-    "version": "1.0.16",
+    "version": "1.0.18",
     "type": "module",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -17,12 +17,12 @@
         "typescript": "^5.0.0"
     },
     "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.10.2",
+        "@modelcontextprotocol/sdk": "^1.26.0",
         "@t3-oss/env-core": "^0.13.4",
         "dedent": "^1.7.1",
         "escape-string-regexp": "^5.0.0",
         "express": "^5.1.0",
-        "zod": "^3.24.3"
+        "zod": "^4.3.6"
     },
     "bin": {
         "sourcebot-mcp": "./dist/index.js"

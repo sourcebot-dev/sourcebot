@@ -52,7 +52,7 @@ const getPostHogCookie = (cookieStore: Pick<RequestCookies, 'get'>): PostHogCook
 /**
  * Attempts to retrieve the distinct id of the current user.
  */
-const tryGetDistinctId = async () => {
+export const tryGetPostHogDistinctId = async () => {
     // First, attempt to retrieve the distinct id from the cookie.
     const cookieStore = await cookies();
     const cookie = getPostHogCookie(cookieStore);
@@ -77,21 +77,26 @@ const tryGetDistinctId = async () => {
     return apiKey?.createdById;
 }
 
+export const createPostHogClient = async () => {
+    const posthog = new PostHog(env.POSTHOG_PAPIK, {
+        host: 'https://us.i.posthog.com',
+        flushAt: 1,
+        flushInterval: 0
+    });
+
+    return posthog;
+}
+
 export async function captureEvent<E extends PosthogEvent>(event: E, properties: PosthogEventMap[E]) {
     if (env.SOURCEBOT_TELEMETRY_DISABLED === 'true') {
         return;
     }
 
-    const distinctId = await tryGetDistinctId();
+    const distinctId = await tryGetPostHogDistinctId();
+    const posthog = await createPostHogClient();
 
     const headersList = await headers();
     const host = headersList.get("host") ?? undefined;
-
-    const posthog = new PostHog(env.POSTHOG_PAPIK, {
-        host: 'https://us.i.posthog.com',
-        flushAt: 1,
-        flushInterval: 0
-    })
 
     posthog.capture({
         event,

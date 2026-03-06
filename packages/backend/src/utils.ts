@@ -57,6 +57,14 @@ export const getShardPrefix = (orgId: number, repoId: number) => {
     return `${orgId}_${repoId}`;
 }
 
+export const getRepoIdFromShardFileName = (fileName: string): number | undefined => {
+    const match = fileName.match(/^(\d+)_(\d+)_/);
+    if (!match) {
+        return undefined;
+    }
+    return parseInt(match[2], 10);
+}
+
 export const fetchWithRetry = async <T>(
     fetchFn: () => Promise<T>,
     identifier: string,
@@ -145,6 +153,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                             password: token,
                         }
                     ),
+                    connectionConfig: config,
                 }
             }
         } else if (connection.connectionType === 'gitlab') {
@@ -161,6 +170,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                             password: token
                         }
                     ),
+                    connectionConfig: config,
                 }
             }
         } else if (connection.connectionType === 'gitea') {
@@ -176,13 +186,14 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                             password: token
                         }
                     ),
+                    connectionConfig: config,
                 }
             }
         } else if (connection.connectionType === 'bitbucket') {
             const config = connection.config as unknown as BitbucketConnectionConfig;
             if (config.token) {
                 const token = await getTokenFromConfig(config.token);
-                const username = config.user ?? 'x-token-auth';
+                const username = config.gitUser ?? config.user ?? 'x-token-auth';
                 return {
                     hostUrl: config.url,
                     token,
@@ -193,6 +204,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                             password: token
                         }
                     ),
+                    connectionConfig: config,
                 }
             }
         } else if (connection.connectionType === 'azuredevops') {
@@ -223,6 +235,7 @@ export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logge
                                 password: token
                             }
                         ),
+                        connectionConfig: config,
                     }
                 }
             }

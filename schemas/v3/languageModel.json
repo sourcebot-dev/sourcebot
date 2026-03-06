@@ -71,7 +71,11 @@
                 },
                 "token": {
                     "$ref": "./shared.json#/definitions/Token",
-                    "description": "Optional API key to use with the model. Defaults to the `ANTHROPIC_API_KEY` environment variable."
+                    "description": "Optional API key to use with the model, sent as the `x-api-key` header. Defaults to the `ANTHROPIC_API_KEY` environment variable."
+                },
+                "authToken": {
+                    "$ref": "./shared.json#/definitions/Token",
+                    "description": "Optional auth token to use with the model, sent as the `Authorization: Bearer` header. Defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable."
                 },
                 "baseUrl": {
                     "type": "string",

@@ -43,10 +43,11 @@ export function apiHandler<H extends AnyHandler>(
     const wrappedHandler = async (request: NextRequest, ...rest: unknown[]) => {
         if (track) {
             const path = request.nextUrl.pathname;
+            const method = request.method;
             const source = request.headers.get('X-Sourcebot-Client-Source') ?? 'unknown';
 
             // Fire and forget - don't await to avoid blocking the request
-            captureEvent('api_request', { path, source }).catch(() => {
+            captureEvent('api_request', { path, method, source }).catch(() => {
                 // Silently ignore tracking errors
             });
         }

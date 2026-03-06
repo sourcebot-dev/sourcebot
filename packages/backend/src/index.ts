@@ -12,6 +12,7 @@ import { ConfigManager } from "./configManager.js";
 import { ConnectionManager } from './connectionManager.js';
 import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, SHUTDOWN_SIGNALS } from './constants.js';
 import { AccountPermissionSyncer } from "./ee/accountPermissionSyncer.js";
+import { AuditLogPruner } from "./ee/auditLogPruner.js";
 import { GithubAppManager } from "./ee/githubAppManager.js";
 import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
 import { shutdownPosthog } from "./posthog.js";
@@ -64,9 +65,11 @@ const repoPermissionSyncer = new RepoPermissionSyncer(prisma, settings, redis);
 const accountPermissionSyncer = new AccountPermissionSyncer(prisma, settings, redis);
 const repoIndexManager = new RepoIndexManager(prisma, settings, redis, promClient);
 const configManager = new ConfigManager(prisma, connectionManager, env.CONFIG_PATH);
+const auditLogPruner = new AuditLogPruner(prisma);
 
 connectionManager.startScheduler();
-repoIndexManager.startScheduler();
+await repoIndexManager.startScheduler();
+auditLogPruner.startScheduler();
 
 if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && !hasEntitlement('permission-syncing')) {
     logger.error('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
@@ -82,6 +85,7 @@ const api = new Api(
     prisma,
     connectionManager,
     repoIndexManager,
+    accountPermissionSyncer,
 );
 
 logger.info('Worker started.');
@@ -104,6 +108,7 @@ const listenToShutdownSignals = () => {
             await connectionManager.dispose()
             await repoPermissionSyncer.dispose()
             await accountPermissionSyncer.dispose()
+            await auditLogPruner.dispose()
             await configManager.dispose()
 
             await prisma.$disconnect();

@@ -29,7 +29,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
                     statusCode: serviceError.statusCode,
                 }
             }
-        /* eslint-disable no-empty */
+         
         } catch {}
 
         return {

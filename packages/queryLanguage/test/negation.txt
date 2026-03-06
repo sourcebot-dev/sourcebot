@@ -253,3 +253,27 @@ Program(NegateExpr(ParenExpr))
 ==>
 
 Program(NegateExpr(PrefixExpr(FileExpr)))
+
+# Negate file with regex alternation in value
+
+-file:(test|spec)
+
+==>
+
+Program(NegateExpr(PrefixExpr(FileExpr)))
+
+# Negate repo with regex alternation in value
+
+-repo:(org1|org2)
+
+==>
+
+Program(NegateExpr(PrefixExpr(RepoExpr)))
+
+# Complex query with negated file alternation
+
+chat lang:TypeScript -file:(test|spec)
+
+==>
+
+Program(AndExpr(Term,PrefixExpr(LangExpr),NegateExpr(PrefixExpr(FileExpr))))
