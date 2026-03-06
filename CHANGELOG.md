@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.15.1] - 2026-03-06
+
 ### Fixed
 - Fixed issue where users would not be redirected to the homepage when clicking "continue with guest". [#984](https://github.com/sourcebot-dev/sourcebot/pull/984)
 
