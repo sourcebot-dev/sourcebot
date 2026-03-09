@@ -15,7 +15,7 @@ interface AuthorizePageProps {
         code_challenge_method?: string;
         response_type?: string;
         state?: string;
-        resource?: string;
+        resource?: string | string[];
     }>;
 }
 
@@ -25,7 +25,13 @@ export default async function AuthorizePage({ searchParams }: AuthorizePageProps
     }
 
     const params = await searchParams;
-    const { client_id, redirect_uri, code_challenge, code_challenge_method, response_type, state, resource } = params;
+    const { client_id, redirect_uri, code_challenge, code_challenge_method, response_type, state, resource: _resource } = params;
+
+    // RFC 8707 allows multiple resource parameters to indicate a token intended for multiple resources.
+    // Sourcebot only supports a single resource (the MCP endpoint), so we take the first value.
+    //
+    // @see: https://www.rfc-editor.org/rfc/rfc8707.html#section-2-2.2
+    const resource = Array.isArray(_resource) ? _resource[0] : _resource;
 
     // Validate required parameters. Per spec, do NOT redirect on client errors —
     // show an error page instead to avoid open redirect vulnerabilities.
