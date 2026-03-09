@@ -44,10 +44,10 @@ export function ConsentScreen({
         setPending('approve');
         const result = await approveAuthorization({ clientId, redirectUri, codeChallenge, resource, state });
         if (!isServiceError(result)) {
-            window.location.href = result;
             toast({
-                description: `✅ Authorization approved successfully. Redirecting to ${result}...`,
+                description: `✅ Authorization approved successfully. Redirecting...`,
             });
+            window.location.href = result;
         } else {
             toast({
                 description: `❌ Failed to approve authorization. ${result.message}`,
