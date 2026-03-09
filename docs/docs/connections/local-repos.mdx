@@ -91,6 +91,30 @@ The commit graph can be updated when fetching with `--write-commit-graph`:
 git fetch --write-commit-graph
 ```
 
+## Permission issues
+
+When running a Sync Job on your local repositories, if you have a different user than the one that Sourcebot runs as
+(in Docker, the Sourcebot user is 1500:1500), you may encounter the following error:
+
+```sh
+fatal: detected dubious ownership in repository at '/repos/org_name/repo_name.git'
+To add an exception for this directory, call:
+git config --global --add safe.directory /repos/org_name/repo_name.git.git
+```
+
+As the code should be read-only by sourcebot, you can use the following [git-config environment variables](https://git-scm.com/docs/git-config#ENVIRONMENT)
+to allow Sourcebot to read from any repository, regardless of ownership:
+
+```sh
+GIT_CONFIG_COUNT=1
+GIT_CONFIG_KEY_0=safe.directory
+GIT_CONFIG_VALUE_0=*
+```
+
+If you're using docker-compose, this can be added to the `environment` section of the `sourcebot` service
+in the [docker-compose](https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/docker-compose.yml) file,
+otherwise you can set these environment variables in the environment where sourcebot is running.
+
 ## Schema reference
 
 <Accordion title="Reference">
