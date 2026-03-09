@@ -1,0 +1,54 @@
+[coast]
+name = "sourcebot"
+
+[coast.setup]
+packages = ["nodejs", "npm", "bash", "ctags"]
+run = ["npm install -g corepack", "corepack enable"]
+
+[ports]
+web = 3000
+zoekt = 6070
+
+[shared_services.postgres]
+image = "postgres:16-alpine"
+ports = [5432]
+env = { POSTGRES_USER = "postgres", POSTGRES_PASSWORD = "postgres", POSTGRES_DB = "postgres" }
+auto_create_db = true
+inject = "env:DATABASE_URL"
+
+[shared_services.redis]
+image = "redis:7-alpine"
+ports = [6379]
+inject = "env:REDIS_URL"
+
+[services.web]
+install = [
+  "yarn install",
+  "yarn with-env yarn workspace @sourcebot/db prisma migrate deploy",
+]
+command = "yarn with-env yarn workspace @sourcebot/web dev"
+port = 3000
+restart = "on-failure"
+
+[services.backend]
+command = "yarn with-env yarn workspace @sourcebot/backend dev:watch"
+restart = "on-failure"
+
+[services.zoekt]
+command = "yarn with-env zoekt-webserver -index .sourcebot/index -rpc"
+port = 6070
+restart = "on-failure"
+
+[services.mcp_watcher]
+command = "yarn workspace @sourcebot/mcp build:watch"
+restart = "on-failure"
+
+[services.schemas_watcher]
+command = "yarn workspace @sourcebot/schemas watch"
+restart = "on-failure"
+
+[assign]
+default = "hot"
+
+[assign.services]
+zoekt = "none"
