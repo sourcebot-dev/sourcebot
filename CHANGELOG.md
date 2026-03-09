@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- [EE] Handle duplicate `resource` query parameters in the OAuth authorization endpoint. [#987](https://github.com/sourcebot-dev/sourcebot/pull/987)
+
 ## [4.15.2] - 2026-03-06
 
 ### Fixed
