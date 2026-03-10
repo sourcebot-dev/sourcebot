@@ -45,8 +45,9 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `SOURCEBOT_EE_AUDIT_RETENTION_DAYS` | `180` | <p>The number of days to retain audit logs. Audit log records older than this will be automatically pruned daily. Set to `0` to disable pruning and retain logs indefinitely.</p> |
 | `AUTH_EE_GCP_IAP_ENABLED` | `false` | <p>When enabled, allows Sourcebot to automatically register/login from a successful GCP IAP redirect</p> |
 | `AUTH_EE_GCP_IAP_AUDIENCE` | - | <p>The GCP IAP audience to use when verifying JWT tokens. Must be set to enable GCP IAP JIT provisioning</p> | 
-| `EXPERIMENT_EE_PERMISSION_SYNC_ENABLED` | `false` | <p>Enables [permission syncing](/docs/features/permission-syncing).</p> |
-| `PERMISSION_SYNC_REPO_DRIVEN_ENABLED` | `true` | <p>Enables/disables [repo-driven permission syncing](/docs/features/permission-syncing#how-it-works). Only applies when `EXPERIMENT_EE_PERMISSION_SYNC_ENABLED` is `true`.</p> |
+| `PERMISSION_SYNC_ENABLED` | `false` | <p>Enables [permission syncing](/docs/features/permission-syncing).</p> |
+| `PERMISSION_SYNC_REPO_DRIVEN_ENABLED` | `true` | <p>Enables/disables [repo-driven permission syncing](/docs/features/permission-syncing#how-it-works). Only applies when `PERMISSION_SYNC_ENABLED` is `true`.</p> |
+| `EXPERIMENT_EE_PERMISSION_SYNC_ENABLED` **(deprecated)** | `false` | <p>Deprecated. Use `PERMISSION_SYNC_ENABLED` instead.</p> |
 | `AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING` | `true` | <p>When enabled, different SSO accounts with the same email address will automatically be linked.</p> |
 
 

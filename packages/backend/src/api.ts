@@ -100,7 +100,7 @@ export class Api {
     }
 
     private async triggerAccountPermissionSync(req: Request, res: Response) {
-        if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED !== 'true' || !hasEntitlement('permission-syncing')) {
+        if (env.PERMISSION_SYNC_ENABLED !== 'true' || !hasEntitlement('permission-syncing')) {
             res.status(403).json({ error: 'Permission syncing is not enabled.' });
             return;
         }

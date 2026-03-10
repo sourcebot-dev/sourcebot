@@ -84,6 +84,10 @@ export interface GithubConnectionConfig {
     };
   };
   revisions?: GitRevisions;
+  /**
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissions?: boolean;
 }
 /**
  * The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.
@@ -168,6 +172,10 @@ export interface GitlabConnectionConfig {
     topics?: string[];
   };
   revisions?: GitRevisions;
+  /**
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissions?: boolean;
 }
 export interface GiteaConnectionConfig {
   /**
@@ -221,6 +229,10 @@ export interface GiteaConnectionConfig {
     repos?: string[];
   };
   revisions?: GitRevisions;
+  /**
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissions?: boolean;
 }
 export interface GerritConnectionConfig {
   /**
@@ -250,6 +262,10 @@ export interface GerritConnectionConfig {
     hidden?: boolean;
   };
   revisions?: GitRevisions;
+  /**
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissions?: boolean;
 }
 export interface BitbucketConnectionConfig {
   /**
@@ -319,6 +335,10 @@ export interface BitbucketConnectionConfig {
     repos?: string[];
   };
   revisions?: GitRevisions;
+  /**
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissions?: boolean;
 }
 export interface AzureDevOpsConnectionConfig {
   /**
@@ -393,6 +413,10 @@ export interface AzureDevOpsConnectionConfig {
     };
   };
   revisions?: GitRevisions;
+  /**
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissions?: boolean;
 }
 export interface GenericGitHostConnectionConfig {
   /**
@@ -404,4 +428,8 @@ export interface GenericGitHostConnectionConfig {
    */
   url: string;
   revisions?: GitRevisions;
+  /**
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissions?: boolean;
 }

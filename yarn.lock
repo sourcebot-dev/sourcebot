@@ -8817,16 +8817,18 @@ __metadata:
     "@logtail/winston": "npm:^0.5.2"
     "@sourcebot/db": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
-    "@t3-oss/env-core": "npm:^0.12.0"
+    "@t3-oss/env-core": "npm:^0.13.10"
     "@types/micromatch": "npm:^4.0.9"
     "@types/node": "npm:^22.7.5"
     ajv: "npm:^8.17.1"
+    cross-env: "npm:^7.0.3"
     micromatch: "npm:^4.0.8"
     strip-json-comments: "npm:^5.0.1"
     triple-beam: "npm:^1.4.1"
     tsc-watch: "npm:6.2.1"
     tsx: "npm:^4.19.1"
     typescript: "npm:^5.7.3"
+    vitest: "npm:^2.1.9"
     winston: "npm:^3.15.0"
     zod: "npm:^3.25.74"
   languageName: unknown
@@ -9095,21 +9097,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@t3-oss/env-core@npm:^0.12.0":
-  version: 0.12.0
-  resolution: "@t3-oss/env-core@npm:0.12.0"
+"@t3-oss/env-core@npm:^0.13.10":
+  version: 0.13.10
+  resolution: "@t3-oss/env-core@npm:0.13.10"
   peerDependencies:
+    arktype: ^2.1.0
     typescript: ">=5.0.0"
     valibot: ^1.0.0-beta.7 || ^1.0.0
-    zod: ^3.24.0
+    zod: ^3.24.0 || ^4.0.0
   peerDependenciesMeta:
+    arktype:
+      optional: true
     typescript:
       optional: true
     valibot:
       optional: true
     zod:
       optional: true
-  checksum: 10c0/b79d2c291b8996b008ef77fa9b3afb8fd7c4c59e271b65039a52a504a9cdb7492ec88b414e6b5691dc4c2c93077abfac85a5cea00dcfdd083ad94912efc5464b
+  checksum: 10c0/b3bd6edf9306ca77078cc1c596f038a6589fec9d279febcad5e02007ec6afa2e7a7173e62d74920620222e91a9c0a4a51a995c231c0a16bbdd9ddd966d6cbd67
   languageName: node
   linkType: hard
 

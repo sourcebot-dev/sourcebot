@@ -37,7 +37,7 @@ export const userScopedPrismaClientExtension = (user?: UserWithAccounts) => {
         (prisma) => {
             return prisma.$extends({
                 query: {
-                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ? {
+                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ? {
                         repo: {
                             async $allOperations({ args, query }) {
                                 const argsWithWhere = args as Record<string, unknown> & {
@@ -79,6 +79,26 @@ export const getRepoPermissionFilterForUser = (user?: UserWithAccounts): Prisma.
             // or are public.
             {
                 isPublic: true,
+            },
+            // or have at least one connection and none of those connections enforce permissions
+            // (i.e. all connections have opted out of enforcement).
+            // The `connections: { some: {} }` guard ensures repos with zero connections are
+            // not inadvertently exposed by the vacuous NOT condition.
+            {
+                AND: [
+                    { connections: { some: {} } },
+                    {
+                        NOT: {
+                            connections: {
+                                some: {
+                                    connection: {
+                                        enforcePermissions: true,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
             }
         ]
     }

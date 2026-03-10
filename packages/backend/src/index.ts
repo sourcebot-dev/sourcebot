@@ -19,7 +19,6 @@ import { shutdownPosthog } from "./posthog.js";
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from "./repoIndexManager.js";
 
-
 const logger = createLogger('backend-entrypoint');
 
 const reposPath = REPOS_CACHE_DIR;
@@ -71,11 +70,11 @@ connectionManager.startScheduler();
 await repoIndexManager.startScheduler();
 auditLogPruner.startScheduler();
 
-if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && !hasEntitlement('permission-syncing')) {
+if (env.PERMISSION_SYNC_ENABLED === 'true' && !hasEntitlement('permission-syncing')) {
     logger.error('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
     process.exit(1);
 }
-else if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')) {
+else if (env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')) {
     if (env.PERMISSION_SYNC_REPO_DRIVEN_ENABLED === 'true') {
         repoPermissionSyncer.startScheduler();
     }

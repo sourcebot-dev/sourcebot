@@ -84,6 +84,15 @@ export const getConfigSettings = async (configPath?: string): Promise<ConfigSett
     return {
         ...DEFAULT_CONFIG_SETTINGS,
         ...config.settings,
+        // Fall back to deprecated experiment_ variants if new keys are not set.
+        repoDrivenPermissionSyncIntervalMs:
+            config.settings?.repoDrivenPermissionSyncIntervalMs
+            ?? config.settings?.experiment_repoDrivenPermissionSyncIntervalMs
+            ?? DEFAULT_CONFIG_SETTINGS.repoDrivenPermissionSyncIntervalMs,
+        userDrivenPermissionSyncIntervalMs:
+            config.settings?.userDrivenPermissionSyncIntervalMs
+            ?? config.settings?.experiment_userDrivenPermissionSyncIntervalMs
+            ?? DEFAULT_CONFIG_SETTINGS.userDrivenPermissionSyncIntervalMs,
     }
 }
 

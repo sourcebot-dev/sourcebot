@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - [EE] Added multi-owner support with promote/demote actions. [#988](https://github.com/sourcebot-dev/sourcebot/pull/988)
 - [EE] Added `PERMISSION_SYNC_REPO_DRIVEN_ENABLED` environment variable to enable/disable repo-driven permission syncing. [#989](https://github.com/sourcebot-dev/sourcebot/pull/989)
+- [EE] Added `enforcePermissions` per-connection flag to control whether repository permissions are enforced for a given connection. Defaults to the value of `PERMISSION_SYNC_ENABLED`. [#991](https://github.com/sourcebot-dev/sourcebot/pull/991)
+- [EE] Added `repoDrivenPermissionSyncIntervalMs` and `userDrivenPermissionSyncIntervalMs` config settings, deprecating the `experiment_` prefixed variants (still respected as fallbacks). [#991](https://github.com/sourcebot-dev/sourcebot/pull/991)
+
+### Changed
+- [EE] Promoted `PERMISSION_SYNC_ENABLED` as the canonical env var for enabling permission syncing, deprecating `EXPERIMENT_EE_PERMISSION_SYNC_ENABLED` (still respected as a fallback). [#991](https://github.com/sourcebot-dev/sourcebot/pull/991)
 
 ## [4.15.3] - 2026-03-10
 

@@ -149,7 +149,7 @@ const createGitHubProvider = (clientId: string, clientSecret: string, baseUrl?: 
                     // Permission syncing requires the `repo` scope in order to fetch repositories
                     // for the authenticated user.
                     // @see: https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-the-authenticated-user
-                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
+                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
                         ['repo'] :
                         []
                     ),
@@ -174,7 +174,7 @@ const createGitLabProvider = (clientId: string, clientSecret: string, baseUrl?: 
                     // Permission syncing requires the `read_api` scope in order to fetch projects
                     // for the authenticated user and project members.
                     // @see: https://docs.gitlab.com/ee/api/projects.html#list-all-projects
-                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
+                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
                         ['read_api'] :
                         []
                     ),
@@ -242,7 +242,7 @@ const createBitbucketCloudProvider = (clientId: string, clientSecret: string): P
                 scope: [
                     "account",
                     "email",
-                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
+                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
                         ['repository'] :
                         []
                     ),
@@ -267,7 +267,7 @@ const createBitbucketServerProvider = (clientId: string, clientSecret: string, b
                 // @see: https://confluence.atlassian.com/bitbucketserver/bitbucket-oauth-2-0-provider-api-1108483661.html
                 scope: [
                     "PUBLIC_REPOS",
-                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')
+                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')
                         ? ['REPO_READ']
                         : []),
                 ].join(' ')
