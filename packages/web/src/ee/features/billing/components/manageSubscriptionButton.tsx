@@ -38,7 +38,7 @@ export function ManageSubscriptionButton({ currentUserRole }: { currentUserRole:
             <Button
                 onClick={redirectToCustomerPortal}
                 disabled={isLoading || !isOwner}
-                title={!isOwner ? "Only the owner of the org can manage the subscription" : undefined}
+                title={!isOwner ? "Only owners of the org can manage the subscription" : undefined}
             >
                 {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Manage Subscription
