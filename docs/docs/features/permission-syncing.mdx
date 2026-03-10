@@ -41,6 +41,8 @@ We are actively working on supporting more code hosts. If you'd like to see a sp
 | [GitLab (Self-managed & Cloud)](/docs/features/permission-syncing#gitlab) | ✅ |
 | [Bitbucket Cloud](/docs/features/permission-syncing#bitbucket-cloud) | 🟠 Partial |
 | [Bitbucket Data Center](/docs/features/permission-syncing#bitbucket-data-center) | 🟠 Partial |
+| Azure DevOps Cloud | 🛑 |
+| Azure DevOps Server | 🛑 |
 | Gitea | 🛑 |
 | Gerrit | 🛑 |
 | Generic git host | 🛑 |
@@ -134,7 +136,14 @@ Permission syncing works by periodically syncing ACLs from the code host(s) to S
 - **User driven** : fetches the list of all repositories that a given user has access to.
 - **Repo driven** : fetches the list of all users that have access to a given repository.
 
-User driven and repo driven syncing occurs every 24 hours by default. These intervals can be configured using the following settings in the [config file](/docs/configuration/config-file):
+User driven and repo driven syncing occurs every 24 hours by default. Repo-driven syncing can be disabled independently using the following environment variable:
+
+| Environment variable | Default | Description |
+|---|---|---|
+| `PERMISSION_SYNC_REPO_DRIVEN_ENABLED` | `true` | Enables/disables repo-driven syncing. |
+
+The sync intervals can be configured using the following settings in the [config file](/docs/configuration/config-file):
+
 | Setting                                         | Type    | Default    | Minimum |
 |-------------------------------------------------|---------|------------|---------|
 | `experiment_repoDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
