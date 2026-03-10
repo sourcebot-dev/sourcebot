@@ -37,7 +37,7 @@ export const useCreateNewChatThread = ({ isAuthenticated = false }: UseCreateNew
         const inputMessage = createUIMessage(text, mentions.map((mention) => mention.data), selectedSearchScopes);
 
         setIsLoading(true);
-        const response = await createChat();
+        const response = await createChat({ source: 'sourcebot-web-client' });
         if (isServiceError(response)) {
             toast({
                 description: `❌ Failed to create chat. Reason: ${response.message}`

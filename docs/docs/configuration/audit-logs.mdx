@@ -5,7 +5,7 @@ sidebarTitle: Audit logs
 
 import LicenseKeyRequired from '/snippets/license-key-required.mdx'
 
-<LicenseKeyRequired />
+<LicenseKeyRequired feature="Audit Logs" />
 
 Audit logs are a collection of notable events performed by users within a Sourcebot deployment. Each audit log records information on the action taken, the user who performed the 
 action, and when the action took place. 
@@ -14,6 +14,9 @@ This feature gives security and compliance teams the necessary information to en
 
 ## Enabling/Disabling Audit Logs
 Audit logs are enabled by default and can be controlled with the `SOURCEBOT_EE_AUDIT_LOGGING_ENABLED` [environment variable](/docs/configuration/environment-variables).
+
+## Retention Policy
+By default, audit logs older than 180 days are automatically pruned daily. You can configure the retention period using the `SOURCEBOT_EE_AUDIT_RETENTION_DAYS` [environment variable](/docs/configuration/environment-variables). Set it to `0` to disable automatic pruning and retain logs indefinitely.
 
 ## Fetching Audit Logs
 Audit logs are stored in the [postgres database](/docs/overview#architecture) connected to Sourcebot. To fetch all of the audit logs, you can use the following API:
@@ -110,26 +113,35 @@ curl --request GET '$SOURCEBOT_URL/api/ee/audit' \
 
 | Action  | Actor Type | Target Type |
 | :------- | :------ | :------|
-| `api_key.creation_failed`             | `user` | `org` |
 | `api_key.created`                     | `user` | `api_key` |
-| `api_key.deletion_failed`             | `user` | `org` |
+| `api_key.creation_failed`             | `user` | `org` |
 | `api_key.deleted`                     | `user` | `api_key` |
+| `api_key.deletion_failed`             | `user` | `org` |
+| `audit.fetch`                         | `user` | `org` |
+| `chat.deleted`                        | `user` | `chat` |
+| `chat.shared_with_users`              | `user` | `chat` |
+| `chat.unshared_with_user`             | `user` | `chat` |
+| `chat.visibility_updated`             | `user` | `chat` |
+| `org.ownership_transfer_failed`       | `user` | `org` |
+| `org.ownership_transferred`           | `user` | `org` |
+| `user.created_ask_chat`               | `user` | `org` |
 | `user.creation_failed`                | `user` | `user` |
-| `user.owner_created`                  | `user` | `org` |
-| `user.performed_code_search`              | `user` | `org` |
-| `user.performed_find_references` | `user` | `org` |
-| `user.performed_goto_definition` | `user` | `org` |
-| `user.created_ask_chat`          | `user` | `org` |
-| `user.jit_provisioning_failed`        | `user` | `org` |
-| `user.jit_provisioned`                | `user` | `org` |
-| `user.join_request_creation_failed`   | `user` | `org` |
-| `user.join_requested`                 | `user` | `org` |
-| `user.join_request_approve_failed`    | `user` | `account_join_request` |
-| `user.join_request_approved`          | `user` | `account_join_request` |
-| `user.invite_failed`                  | `user` | `org` |
-| `user.invites_created`                | `user` | `org` |
+| `user.delete`                         | `user` | `user` |
+| `user.fetched_file_source`            | `user` | `org` |
+| `user.fetched_file_tree`              | `user` | `org` |
 | `user.invite_accept_failed`           | `user` | `invite` |
 | `user.invite_accepted`                | `user` | `invite` |
+| `user.invite_failed`                  | `user` | `org` |
+| `user.invites_created`                | `user` | `org` |
+| `user.join_request_approve_failed`    | `user` | `account_join_request` |
+| `user.join_request_approved`          | `user` | `account_join_request` |
+| `user.list`                           | `user` | `org` |
+| `user.listed_repos`                   | `user` | `org` |
+| `user.owner_created`                  | `user` | `org` |
+| `user.performed_code_search`          | `user` | `org` |
+| `user.performed_find_references`      | `user` | `org` |
+| `user.performed_goto_definition`      | `user` | `org` |
+| `user.read`                           | `user` | `user` |
 | `user.signed_in`                      | `user` | `user` |
 | `user.signed_out`                     | `user` | `user` |
 | `org.ownership_transfer_failed`       | `user` | `org` |
@@ -182,7 +194,7 @@ curl --request GET '$SOURCEBOT_URL/api/ee/audit' \
       },
       "targetType": {
         "type": "string",
-        "enum": ["user", "org", "file", "api_key", "account_join_request", "invite"]
+        "enum": ["user", "org", "file", "api_key", "account_join_request", "invite", "chat"]
       },
       "sourcebotVersion": {
         "type": "string"
@@ -194,7 +206,8 @@ curl --request GET '$SOURCEBOT_URL/api/ee/audit' \
             "properties": {
               "message": { "type": "string" },
               "api_key": { "type": "string" },
-              "emails": { "type": "string" }
+              "emails": { "type": "string" },
+              "source": { "type": "string" }
             },
             "additionalProperties": false
           },

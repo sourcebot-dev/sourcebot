@@ -480,6 +480,7 @@ async function serverGetReposForProjects(client: BitbucketClient, projects: stri
                     const response = await client.apiClient.GET(url, {
                         params: {
                             query: {
+                                limit: 1000,
                                 start,
                             }
                         }
@@ -581,7 +582,7 @@ async function serverGetAllRepos(client: BitbucketClient): Promise<{repos: Serve
     const { durationMs, data } = await measure(async () => {
         const fetchFn = () => getPaginatedServer<ServerRepository>(path, async (url, start) => {
             const response = await client.apiClient.GET(url, {
-                params: { query: { start } }
+                params: { query: { limit: 1000, start } }
             });
             const { data, error } = response;
             if (error) {
@@ -712,7 +713,7 @@ export const getReposForAuthenticatedBitbucketServerUser = async (
                 params: {
                     query: {
                         permission: 'REPO_READ',
-                        limit: 100,
+                        limit: 1000,
                         start,
                     },
                 },
@@ -747,7 +748,7 @@ export const getUserPermissionsForServerRepo = async (
         `/rest/api/1.0/projects/${projectKey}/repos/${repoSlug}/permissions/users` as ServerGetRequestPath,
         async (url, start) => {
             const response = await client.apiClient.GET(url, {
-                params: { query: { limit: 100, start } },
+                params: { query: { limit: 1000, start } },
             });
             const { data, error } = response;
             if (error) {

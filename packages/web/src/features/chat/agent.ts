@@ -1,18 +1,146 @@
+import { SBChatMessage, SBChatMessageMetadata } from "@/features/chat/types";
+import { getAnswerPartFromAssistantMessage } from "@/features/chat/utils";
 import { getFileSource } from '@/features/git';
-import { isServiceError } from "@/lib/utils";
 import { captureEvent } from "@/lib/posthog";
+import { isServiceError } from "@/lib/utils";
+import { LanguageModelV3 as AISDKLanguageModelV3 } from "@ai-sdk/provider";
 import { ProviderOptions } from "@ai-sdk/provider-utils";
 import { createLogger, env } from "@sourcebot/shared";
-import { LanguageModel, ModelMessage, StopCondition, streamText } from "ai";
+import {
+    createUIMessageStream, JSONValue, LanguageModel, ModelMessage, StopCondition, streamText, StreamTextResult,
+    UIMessageStreamOnFinishCallback,
+    UIMessageStreamOptions,
+    UIMessageStreamWriter
+} from "ai";
+import { randomUUID } from "crypto";
+import _dedent from "dedent";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, toolNames } from "./constants";
-import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, listReposTool, listCommitsTool, readFilesTool } from "./tools";
+import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, listCommitsTool, listReposTool, readFilesTool } from "./tools";
 import { Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
-import _dedent from "dedent";
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
 const logger = createLogger('chat-agent');
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMessageStreamWriter<SBChatMessage>, options: UIMessageStreamOptions<SBChatMessage> = {}) => {
+    await new Promise<void>((resolve) => writer.merge(stream.toUIMessageStream({
+        ...options,
+        onFinish: async () => {
+            resolve();
+        }
+    })));
+}
+
+interface CreateMessageStreamResponseProps {
+    chatId: string;
+    messages: SBChatMessage[];
+    selectedRepos: string[];
+    model: AISDKLanguageModelV3;
+    modelName: string;
+    onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;
+    onError: (error: unknown) => string;
+    modelProviderOptions?: Record<string, Record<string, JSONValue>>;
+    metadata?: Partial<SBChatMessageMetadata>;
+}
+
+export const createMessageStream = async ({
+    chatId,
+    messages,
+    metadata,
+    selectedRepos,
+    model,
+    modelName,
+    modelProviderOptions,
+    onFinish,
+    onError,
+}: CreateMessageStreamResponseProps) => {
+    const latestMessage = messages[messages.length - 1];
+    const sources = latestMessage.parts
+        .filter((part) => part.type === 'data-source')
+        .map((part) => part.data);
+
+    const traceId = randomUUID();
+
+    // Extract user messages and assistant answers.
+    // We will use this as the context we carry between messages.
+    const messageHistory =
+        messages.map((message): ModelMessage | undefined => {
+            if (message.role === 'user') {
+                return {
+                    role: 'user',
+                    content: message.parts[0].type === 'text' ? message.parts[0].text : '',
+                };
+            }
+
+            if (message.role === 'assistant') {
+                const answerPart = getAnswerPartFromAssistantMessage(message, false);
+                if (answerPart) {
+                    return {
+                        role: 'assistant',
+                        content: [answerPart]
+                    }
+                }
+            }
+        }).filter(message => message !== undefined);
+
+    const stream = createUIMessageStream<SBChatMessage>({
+        execute: async ({ writer }) => {
+            writer.write({
+                type: 'start',
+            });
+
+            const startTime = new Date();
+
+            const researchStream = await createAgentStream({
+                model,
+                providerOptions: modelProviderOptions,
+                inputMessages: messageHistory,
+                inputSources: sources,
+                selectedRepos,
+                onWriteSource: (source) => {
+                    writer.write({
+                        type: 'data-source',
+                        data: source,
+                    });
+                },
+                traceId,
+                chatId,
+            });
+
+            await mergeStreamAsync(researchStream, writer, {
+                sendReasoning: true,
+                sendStart: false,
+                sendFinish: false,
+            });
+
+            const totalUsage = await researchStream.totalUsage;
+
+            writer.write({
+                type: 'message-metadata',
+                messageMetadata: {
+                    totalTokens: totalUsage.totalTokens,
+                    totalInputTokens: totalUsage.inputTokens,
+                    totalOutputTokens: totalUsage.outputTokens,
+                    totalResponseTimeMs: new Date().getTime() - startTime.getTime(),
+                    modelName,
+                    traceId,
+                    ...metadata,
+                }
+            });
+
+            writer.write({
+                type: 'finish',
+            });
+        },
+        onError,
+        originalMessages: messages,
+        onFinish,
+    });
+
+    return stream;
+};
 
 interface AgentOptions {
     model: LanguageModel;
@@ -25,7 +153,7 @@ interface AgentOptions {
     chatId: string;
 }
 
-export const createAgentStream = async ({
+const createAgentStream = async ({
     model,
     providerOptions,
     inputMessages,
@@ -43,7 +171,7 @@ export const createAgentStream = async ({
                 path: source.path,
                 repo: source.repo,
                 ref: source.revision,
-            });
+            }, { source: 'sourcebot-ask-agent' });
 
             if (isServiceError(fileSource)) {
                 logger.error("Error fetching file source:", fileSource);

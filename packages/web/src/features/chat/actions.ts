@@ -2,135 +2,20 @@
 
 import { sew } from "@/actions";
 import { getAuditService } from "@/ee/features/audit/factory";
-import { ErrorCode } from "@/lib/errorCodes";
-import { notFound, ServiceError } from "@/lib/serviceError";
-import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
-import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
-import { createAzure } from '@ai-sdk/azure';
-import { createDeepSeek } from '@ai-sdk/deepseek';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createVertex } from '@ai-sdk/google-vertex';
-import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { createMistral } from '@ai-sdk/mistral';
-import { createOpenAI, OpenAIResponsesProviderOptions } from "@ai-sdk/openai";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { LanguageModelV3 as AISDKLanguageModelV3 } from "@ai-sdk/provider";
-import { createXai } from '@ai-sdk/xai';
-import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { getTokenFromConfig, createLogger, env } from "@sourcebot/shared";
-import { ChatVisibility, Prisma } from "@sourcebot/db";
-import { LanguageModel } from "@sourcebot/schemas/v3/languageModel.type";
-import { Token } from "@sourcebot/schemas/v3/shared.type";
-import { generateText, JSONValue, extractReasoningMiddleware, wrapLanguageModel } from "ai";
-import { loadConfig } from "@sourcebot/shared";
-import fs from 'fs';
-import { StatusCodes } from "http-status-codes";
-import path from 'path';
-import { LanguageModelInfo, SBChatMessage } from "./types";
-import { withAuthV2, withOptionalAuthV2 } from "@/withAuthV2";
 import { getAnonymousId, getOrCreateAnonymousId } from "@/lib/anonymousId";
-import { Chat, PrismaClient, User } from "@sourcebot/db";
+import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
-import { withTracing } from "@posthog/ai";
-import { createPostHogClient, tryGetPostHogDistinctId } from "@/lib/posthog";
+import { notFound, ServiceError } from "@/lib/serviceError";
+import { withAuthV2, withOptionalAuthV2 } from "@/withAuthV2";
+import { ChatVisibility, Prisma } from "@sourcebot/db";
+import { env } from "@sourcebot/shared";
+import { StatusCodes } from "http-status-codes";
+import { SBChatMessage } from "./types";
+import { generateChatNameFromMessage, getConfiguredLanguageModels, isChatSharedWithUser, isOwnerOfChat } from "./utils.server";
 
-const logger = createLogger('chat-actions');
 const auditService = getAuditService();
 
-/**
- * Checks if the current user (authenticated or anonymous) is the owner of a chat.
- */
-export const _isOwnerOfChat = async (chat: Chat, user: User | undefined): Promise<boolean> => {
-    // Authenticated user owns the chat
-    if (user && chat.createdById === user.id) {
-        return true;
-    }
-
-    // Only check the anonymous cookie for unclaimed chats (createdById === null).
-    // Once a chat has been claimed by an authenticated user, the anonymous path
-    // must not grant access — even if the same browser still holds the original cookie.
-    if (!chat.createdById && chat.anonymousCreatorId) {
-        const anonymousId = await getAnonymousId();
-        if (anonymousId && chat.anonymousCreatorId === anonymousId) {
-            return true;
-        }
-    }
-
-    return false;
-};
-
-
-/**
- * Checks if a user has been explicitly shared access to a chat.
- */
-export const _hasSharedAccess = async ({ prisma, chatId, userId }: { prisma: PrismaClient, chatId: string, userId: string | undefined }): Promise<boolean> => {
-    if (!userId) {
-        return false;
-    }
-
-    const share = await prisma.chatAccess.findUnique({
-        where: {
-            chatId_userId: {
-                chatId,
-                userId,
-            },
-        },
-    });
-
-    return share !== null;
-};
-
-export const _updateChatMessages = async ({ chatId, messages, prisma }: { chatId: string, messages: SBChatMessage[], prisma: PrismaClient }) => {
-    await prisma.chat.update({
-        where: {
-            id: chatId,
-        },
-        data: {
-            messages: messages as unknown as Prisma.InputJsonValue,
-        },
-    });
-
-    if (env.DEBUG_WRITE_CHAT_MESSAGES_TO_FILE) {
-        const chatDir = path.join(env.DATA_CACHE_DIR, 'chats');
-        if (!fs.existsSync(chatDir)) {
-            fs.mkdirSync(chatDir, { recursive: true });
-        }
-
-        const chatFile = path.join(chatDir, `${chatId}.json`);
-        fs.writeFileSync(chatFile, JSON.stringify(messages, null, 2));
-    }
-};
-
-
-export const _generateChatNameFromMessage = async ({ message, languageModelConfig }: { message: string, languageModelConfig: LanguageModel }) => {
-    const { model } = await _getAISDKLanguageModelAndOptions(languageModelConfig);
-
-    const prompt = `Convert this question into a short topic title (max 50 characters). 
-
-Rules:
-- Do NOT include question words (what, where, how, why, when, which)
-- Do NOT end with a question mark
-- Capitalize the first letter of the title
-- Focus on the subject/topic being discussed
-- Make it sound like a file name or category
-
-Examples:
-"Where is the authentication code?" → "Authentication Code"
-"How to setup the database?" → "Database Setup"
-"What are the API endpoints?" → "API Endpoints"
-
-User question: ${message}`;
-
-    const result = await generateText({
-        model,
-        prompt,
-    });
-
-    return result.text;
-}
-
-export const createChat = async () => sew(() =>
+export const createChat = async ({ source }: { source?: string } = {}) => sew(() =>
     withOptionalAuthV2(async ({ org, user, prisma }) => {
         const isGuestUser = user === undefined;
 
@@ -160,6 +45,7 @@ export const createChat = async () => sew(() =>
                     type: "org",
                 },
                 orgId: org.id,
+                metadata: { source },
             });
         }
 
@@ -188,8 +74,8 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
             return notFound();
         }
 
-        const isOwner = await _isOwnerOfChat(chat, user);
-        const isSharedWithUser = await _hasSharedAccess({ prisma, chatId, userId: user?.id });
+        const isOwner = await isOwnerOfChat(chat, user);
+        const isSharedWithUser = await isChatSharedWithUser({ prisma, chatId, userId: user?.id });
 
         // Private chats can only be viewed by the owner or users it's been shared with
         if (chat.visibility === ChatVisibility.PRIVATE && !isOwner && !isSharedWithUser) {
@@ -203,34 +89,6 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
             isOwner,
             isSharedWithUser,
         };
-    })
-);
-
-export const updateChatMessages = async ({ chatId, messages }: { chatId: string, messages: SBChatMessage[] }) => sew(() =>
-    withOptionalAuthV2(async ({ org, user, prisma }) => {
-        const chat = await prisma.chat.findUnique({
-            where: {
-                id: chatId,
-                orgId: org.id,
-            },
-        });
-
-        if (!chat) {
-            return notFound();
-        }
-
-        const isOwner = await _isOwnerOfChat(chat, user);
-
-        // Only the owner can modify chat messages
-        if (!isOwner) {
-            return notFound();
-        }
-
-        await _updateChatMessages({ chatId, messages, prisma });
-
-        return {
-            success: true,
-        }
     })
 );
 
@@ -268,7 +126,7 @@ export const updateChatName = async ({ chatId, name }: { chatId: string, name: s
             return notFound();
         }
 
-        const isOwner = await _isOwnerOfChat(chat, user);
+        const isOwner = await isOwnerOfChat(chat, user);
 
         // Only the owner can rename chats
         if (!isOwner) {
@@ -346,13 +204,13 @@ export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageMod
             return notFound();
         }
 
-        const isOwner = await _isOwnerOfChat(chat, user);
+        const isOwner = await isOwnerOfChat(chat, user);
         if (!isOwner) {
             return notFound();
         }
 
         const languageModelConfig =
-            (await _getConfiguredLanguageModelsFull())
+            (await getConfiguredLanguageModels())
                 .find((model) => model.model === languageModelId);
 
         if (!languageModelConfig) {
@@ -363,7 +221,7 @@ export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageMod
             } satisfies ServiceError;
         }
 
-        const name = await _generateChatNameFromMessage({ message, languageModelConfig });
+        const name = await generateChatNameFromMessage({ message, languageModelConfig });
 
         await prisma.chat.update({
             where: {
@@ -472,8 +330,8 @@ export const duplicateChat = async ({ chatId, newName }: { chatId: string, newNa
         }
 
         // Check if user can access the chat (owner, shared, or public)
-        const isOwner = await _isOwnerOfChat(originalChat, user);
-        const isSharedWithUser = await _hasSharedAccess({ prisma, chatId, userId: user?.id });
+        const isOwner = await isOwnerOfChat(originalChat, user);
+        const isSharedWithUser = await isChatSharedWithUser({ prisma, chatId, userId: user?.id });
         if (originalChat.visibility === ChatVisibility.PRIVATE && !isOwner && !isSharedWithUser) {
             return notFound();
         }
@@ -654,7 +512,7 @@ export const submitFeedback = async ({
         }
 
         // When a chat is private, only the creator or shared users can submit feedback.
-        const isSharedWithUser = await _hasSharedAccess({ prisma, chatId, userId: user?.id });
+        const isSharedWithUser = await isChatSharedWithUser({ prisma, chatId, userId: user?.id });
         if (chat.visibility === ChatVisibility.PRIVATE && chat.createdById !== user?.id && !isSharedWithUser) {
             return notFound();
         }
@@ -691,299 +549,6 @@ export const submitFeedback = async ({
     })
 )
 
-/**
- * Returns the subset of information about the configured language models
- * that we can safely send to the client.
- */
-export const getConfiguredLanguageModelsInfo = async (): Promise<LanguageModelInfo[]> => {
-    const models = await _getConfiguredLanguageModelsFull();
-    return models.map((model): LanguageModelInfo => ({
-        provider: model.provider,
-        model: model.model,
-        displayName: model.displayName,
-    }));
-}
-
-/**
- * Returns the full configuration of the language models.
- *
- * @warning Do NOT call this function from the client,
- * or pass the result of calling this function to the client.
- */
-export const _getConfiguredLanguageModelsFull = async (): Promise<LanguageModel[]> => {
-    try {
-        const config = await loadConfig(env.CONFIG_PATH);
-        return config.models ?? [];
-    } catch (error) {
-        logger.error('Failed to load language model configuration', error);
-        return [];
-    }
-}
-
-export const _getAISDKLanguageModelAndOptions = async (config: LanguageModel): Promise<{
-    model: AISDKLanguageModelV3,
-    providerOptions?: Record<string, Record<string, JSONValue>>,
-}> => {
-    const { provider, model: modelId } = config;
-
-    const { model: _model, providerOptions } = await (async (): Promise<{
-        model: AISDKLanguageModelV3,
-        providerOptions?: Record<string, Record<string, JSONValue>>,
-    }> => {
-        switch (provider) {
-            case 'amazon-bedrock': {
-                const aws = createAmazonBedrock({
-                    baseURL: config.baseUrl,
-                    region: config.region ?? env.AWS_REGION,
-                    accessKeyId: config.accessKeyId
-                        ? await getTokenFromConfig(config.accessKeyId)
-                        : env.AWS_ACCESS_KEY_ID,
-                    secretAccessKey: config.accessKeySecret
-                        ? await getTokenFromConfig(config.accessKeySecret)
-                        : env.AWS_SECRET_ACCESS_KEY,
-                    sessionToken: config.sessionToken
-                        ? await getTokenFromConfig(config.sessionToken)
-                        : env.AWS_SESSION_TOKEN,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
-                    // Fallback to the default Node.js credential provider chain if no credentials are provided.
-                    // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/Package/-aws-sdk-credential-providers/#fromnodeproviderchain
-                    credentialProvider: !config.accessKeyId && !config.accessKeySecret && !config.sessionToken
-                        ? fromNodeProviderChain()
-                        : undefined,
-                });
-
-                return {
-                    model: aws(modelId),
-                };
-            }
-            case 'anthropic': {
-                const anthropic = createAnthropic({
-                    baseURL: config.baseUrl,
-                    apiKey: config.token
-                        ? await getTokenFromConfig(config.token)
-                        : env.ANTHROPIC_API_KEY,
-                    authToken: config.authToken
-                        ? await getTokenFromConfig(config.authToken)
-                        : env.ANTHROPIC_AUTH_TOKEN,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
-                });
-
-                return {
-                    model: anthropic(modelId),
-                    providerOptions: {
-                        anthropic: {
-                            thinking: {
-                                type: "enabled",
-                                budgetTokens: env.ANTHROPIC_THINKING_BUDGET_TOKENS,
-                            }
-                        } satisfies AnthropicProviderOptions,
-                    },
-                };
-            }
-            case 'azure': {
-                const azure = createAzure({
-                    baseURL: config.baseUrl,
-                    apiKey: config.token ? (await getTokenFromConfig(config.token)) : env.AZURE_API_KEY,
-                    apiVersion: config.apiVersion,
-                    resourceName: config.resourceName ?? env.AZURE_RESOURCE_NAME,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
-                });
-
-                return {
-                    model: azure(modelId),
-                };
-            }
-            case 'deepseek': {
-                const deepseek = createDeepSeek({
-                    baseURL: config.baseUrl,
-                    apiKey: config.token ? (await getTokenFromConfig(config.token)) : env.DEEPSEEK_API_KEY,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
-                });
-
-                return {
-                    model: deepseek(modelId),
-                };
-            }
-            case 'google-generative-ai': {
-                const google = createGoogleGenerativeAI({
-                    baseURL: config.baseUrl,
-                    apiKey: config.token
-                        ? await getTokenFromConfig(config.token)
-                        : env.GOOGLE_GENERATIVE_AI_API_KEY,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
-                });
-
-                return {
-                    model: google(modelId),
-                };
-            }
-            case 'google-vertex': {
-                const vertex = createVertex({
-                    project: config.project ?? env.GOOGLE_VERTEX_PROJECT,
-                    location: config.region ?? env.GOOGLE_VERTEX_REGION,
-                    ...(config.credentials ? {
-                        googleAuthOptions: {
-                            keyFilename: await getTokenFromConfig(config.credentials),
-                        }
-                    } : {}),
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
-                });
-
-                return {
-                    model: vertex(modelId),
-                    providerOptions: {
-                        vertex: {
-                            thinkingConfig: {
-                                thinkingBudget: env.GOOGLE_VERTEX_THINKING_BUDGET_TOKENS,
-                                includeThoughts: env.GOOGLE_VERTEX_INCLUDE_THOUGHTS === 'true',
-                            }
-                        }
-                    },
-                };
-            }
-            case 'google-vertex-anthropic': {
-                const vertexAnthropic = createVertexAnthropic({
-                    project: config.project ?? env.GOOGLE_VERTEX_PROJECT,
-                    location: config.region ?? env.GOOGLE_VERTEX_REGION,
-                    ...(config.credentials ? {
-                        googleAuthOptions: {
-                            keyFilename: await getTokenFromConfig(config.credentials),
-                        }
-                    } : {}),
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
-                });
-
-                return {
-                    model: vertexAnthropic(modelId),
-                };
-            }
-            case 'mistral': {
-                const mistral = createMistral({
-                    baseURL: config.baseUrl,
-                    apiKey: config.token
-                        ? await getTokenFromConfig(config.token)
-                        : env.MISTRAL_API_KEY,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
-                });
-
-                return {
-                    model: mistral(modelId),
-                };
-            }
-            case 'openai': {
-                const openai = createOpenAI({
-                    baseURL: config.baseUrl,
-                    apiKey: config.token
-                        ? await getTokenFromConfig(config.token)
-                        : env.OPENAI_API_KEY,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
-                });
-
-                return {
-                    model: openai(modelId),
-                    providerOptions: {
-                        openai: {
-                            reasoningEffort: config.reasoningEffort ?? 'medium',
-                        } satisfies OpenAIResponsesProviderOptions,
-                    },
-                };
-            }
-            case 'openai-compatible': {
-                const openai = createOpenAICompatible({
-                    baseURL: config.baseUrl,
-                    name: config.displayName ?? modelId,
-                    apiKey: config.token
-                        ? await getTokenFromConfig(config.token)
-                        : undefined,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
-                    queryParams: config.queryParams
-                        ? await extractLanguageModelKeyValuePairs(config.queryParams)
-                        : undefined,
-                });
-
-                const model = wrapLanguageModel({
-                    model: openai.chatModel(modelId),
-                    middleware: [
-                        extractReasoningMiddleware({
-                            tagName: config.reasoningTag ?? 'think',
-                        }),
-                    ]
-                });
-
-                return {
-                    model,
-                }
-            }
-            case 'openrouter': {
-                const openrouter = createOpenRouter({
-                    baseURL: config.baseUrl,
-                    apiKey: config.token
-                        ? await getTokenFromConfig(config.token)
-                        : env.OPENROUTER_API_KEY,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
-                });
-
-                return {
-                    model: openrouter(modelId),
-                };
-            }
-            case 'xai': {
-                const xai = createXai({
-                    baseURL: config.baseUrl,
-                    apiKey: config.token
-                        ? await getTokenFromConfig(config.token)
-                        : env.XAI_API_KEY,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
-                });
-
-                return {
-                    model: xai(modelId),
-                };
-            }
-        }
-    })();
-
-    const posthog = await createPostHogClient();
-    const distinctId = await tryGetPostHogDistinctId();
-
-    // Only enable posthog LLM analytics for the ask GH experiment.
-    const model = env.EXPERIMENT_ASK_GH_ENABLED === 'true' ?
-        withTracing(_model, posthog, {
-            posthogDistinctId: distinctId,
-        }) :
-        _model;
-
-    return {
-        model,
-        providerOptions,
-    };
-
-}
-
 export const getAskGhLoginWallData = async () => sew(async () => {
     const isEnabled = env.EXPERIMENT_ASK_GH_ENABLED === 'true';
     if (!isEnabled) {
@@ -994,26 +559,3 @@ export const getAskGhLoginWallData = async () => sew(async () => {
     return { isEnabled: true as const, providers: getIdentityProviderMetadata() };
 });
 
-const extractLanguageModelKeyValuePairs = async (
-    pairs: {
-        [k: string]: string | Token;
-    }
-): Promise<Record<string, string>> => {
-    const resolvedPairs: Record<string, string> = {};
-
-    if (!pairs) {
-        return resolvedPairs;
-    }
-
-    for (const [key, val] of Object.entries(pairs)) {
-        if (typeof val === "string") {
-            resolvedPairs[key] = val;
-            continue;
-        }
-
-        const value = await getTokenFromConfig(val);
-        resolvedPairs[key] = value;
-    }
-
-    return resolvedPairs;
-}

@@ -24,6 +24,31 @@ const nextConfig = {
                 source: "/ingest/decide",
                 destination: `https://us.i.posthog.com/decide`,
             },
+            // Expose OAuth discovery documents at canonical RFC paths (without /api/ee prefix)
+            // so MCP clients and OAuth tools can find them via standard discovery.
+            //
+            // RFC 8414: /.well-known/oauth-authorization-server
+            {
+                source: "/.well-known/oauth-authorization-server",
+                destination: "/api/ee/.well-known/oauth-authorization-server",
+            },
+            // RFC 9728: path-specific form /.well-known/oauth-protected-resource/{resource-path}
+            {
+                source: "/.well-known/oauth-protected-resource/:path*",
+                destination: "/api/ee/.well-known/oauth-protected-resource/:path*",
+            },
+            // Non-spec fallback: some MCP clients (observed in Claude Code and Cursor) guess
+            // /register as the Dynamic Client Registration endpoint (RFC 7591) when OAuth
+            // Authorization Server Metadata discovery fails entirely. This happens when the
+            // instance does not hold an enterprise license, causing all well-known endpoints
+            // to return 404. Per the MCP spec, clients should only attempt Dynamic Client
+            // Registration if the authorization server advertises a registration_endpoint in
+            // its metadata — guessing the URL is not spec-compliant behavior. This rewrite
+            // ensures those requests reach the actual endpoint rather than hitting a 404.
+            {
+                source: "/register",
+                destination: "/api/ee/oauth/register",
+            }
         ];
     },
     // This is required to support PostHog trailing slash API requests

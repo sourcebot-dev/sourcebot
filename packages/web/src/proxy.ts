@@ -10,7 +10,8 @@ export async function proxy(request: NextRequest) {
         url.pathname.startsWith('/redeem') ||
         url.pathname.startsWith('/signup') ||
         url.pathname.startsWith('/invite') ||
-        url.pathname.startsWith('/onboard')
+        url.pathname.startsWith('/onboard') ||
+        url.pathname.startsWith('/oauth')
     ) {
         return NextResponse.next();
     }
@@ -30,6 +31,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
     // https://nextjs.org/docs/app/building-your-application/routing/middleware#matcher
     matcher: [
-        '/((?!api|_next/static|ingest|_next/image|favicon.ico|sitemap.xml|robots.txt|manifest.json|logo_192.png|logo_512.png|sb_logo_light_large.png|arrow.png|placeholder_avatar.png|sb_logo_dark_small.png|sb_logo_light_small.png).*)',
+        '/((?!api|_next/static|.well-known/oauth-authorization-server|.well-known/oauth-protected-resource|register|ingest|_next/image|favicon.ico|sitemap.xml|robots.txt|manifest.json|logo_192.png|logo_512.png|sb_logo_light_large.png|arrow.png|placeholder_avatar.png|sb_logo_dark_small.png|sb_logo_light_small.png).*)',
     ],
 }

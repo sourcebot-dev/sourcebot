@@ -59,6 +59,7 @@
     "@hookform/resolvers": "^3.9.0",
     "@iconify/react": "^5.1.0",
     "@iizukak/codemirror-lang-wgsl": "^0.3.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "@opentelemetry/api-logs": "^0.203.0",
     "@opentelemetry/instrumentation": "^0.203.0",
@@ -195,6 +196,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@react-email/preview-server": "5.2.8",
+    "@react-grab/mcp": "^0.1.23",
     "@tanstack/eslint-plugin-query": "^5.74.7",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.0",
@@ -215,6 +217,7 @@
     "npm-run-all": "^4.1.5",
     "postcss": "^8",
     "react-email": "^5.1.0",
+    "react-grab": "^0.1.23",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.19.2",
     "typescript": "^5",

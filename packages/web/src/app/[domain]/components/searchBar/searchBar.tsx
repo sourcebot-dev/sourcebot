@@ -42,7 +42,6 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Toggle } from "@/components/ui/toggle";
 import { useDomain } from "@/hooks/useDomain";
-import { createAuditAction } from "@/ee/features/audit/actions";
 import tailwind from "@/tailwind";
 import React from "react";
 import Link from "next/link";
@@ -227,13 +226,6 @@ export const SearchBar = ({
     const onSubmit = useCallback((query: string) => {
         setActivePanel(undefined);
         setIsHistorySearchEnabled(false);
-
-        createAuditAction({
-            action: "user.performed_code_search",
-            metadata: {
-                message: query,
-            },
-        })
 
         const url = createPathWithQueryParams(`/${domain}/search`,
             [SearchQueryParams.query, query],

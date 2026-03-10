@@ -1,226 +1,381 @@
 ---
-title: Sourcebot MCP server (@sourcebot/mcp)
-sidebarTitle: Sourcebot MCP server
+title: Sourcebot MCP server
+sidebarTitle: Sourcebot MCP
 ---
 
-The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP) is an open standard for providing context to LLMs. The [@sourcebot/mcp](https://www.npmjs.com/package/@sourcebot/mcp) package is a MCP server that enables LLMs to interface with your Sourcebot instance, enabling MCP clients like Cursor, Vscode, and others to have context over your entire codebase.
+import LicenseKeyRequired from '/snippets/license-key-required.mdx'
+
+<Note>
+    The [@sourcebot/mcp](https://www.npmjs.com/package/@sourcebot/mcp) npm
+    package has been deprecated as of 2026-03-04. Please migrate to using the
+    streamable http transport.
+</Note>
+
+The Sourcebot MCP Server connects AI tools to your Sourcebot deployment. This gives AI agents and automations the ability to search, read files, resolve references & definitions, and more across all of your code hosted on Sourcebot.
+
+## Use cases
+
+- **Context for local agents:** Plug the MCP into coding agents like Cursor, Claude Code, or Copilot to give them context across your entire codebase, not just the open workspace.
+- **Building autonomous AI agents:** Use Sourcebot as a code context layer for multi-agent systems that review PRs, auto-fix bugs, and answer questions across the company.
+- **Effort estimation and impact analysis:** Validate vendor estimates and analyze change impact across hundreds of repositories.
 
 ## Getting Started
 
-<Steps>
-    <Step title="Launch Sourcebot">
-        Follow the [deployment guides](/docs/deployment/docker-compose) to launch Sourcebot and get your code indexed. The host url of your instance (e.g., `http://localhost:3000`) is passed to the MCP server via the `SOURCEBOT_HOST` environment variable.
-    </Step>
+Sourcebot MCP uses a [Streamable HTTP](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#streamable-http) transport hosted at the `/api/mcp` route. Two authorization mechanisms are supported:
 
-    <Step title="Create an API key">
-        Create an API key to allow the MCP server to query your Sourcebot instance. To create an API key, login to your Sourcebot instance and navigate to **Settings -> API Keys**:
+- **OAuth (preferred)**: MCP clients that support OAuth 2.0 will automatically handle the authorization flow and issue a short lived access token. No API key or manual token management required. Only available with an active [Enterprise license](/docs/license-key).
+- **API key**: Any MCP client can authorize using a Sourcebot API key passed as a `Authorization: Bearer <key>` header. Create one in **Settings → API Keys**.
 
-        ![API Keys UI](/images/api_key.png)
+You can read more about the options in the [authorization](#authorization) section.
 
-        Copy the API key and set it as the `SOURCEBOT_API_KEY` environment variable.
-    </Step>
+<Note>
+    If [anonymous access](https://docs.sourcebot.dev/docs/configuration/auth/access-settings#anonymous-access) is enabled on your Sourcebot instance, no OAuth token or API key is required. You can connect directly to the MCP endpoint without any authorization.
+</Note>
 
-    <Step title="Install the MCP server">
-        <Note>
-            Ensure you have [Node.js](https://nodejs.org/en) >= v18.0.0 installed.
-        </Note>
-        Next, we can install the [@sourcebot/mcp](https://www.npmjs.com/package/@sourcebot/mcp) MCP server into any supported MCP client:
-        
-        <AccordionGroup>
-            <Accordion title="Cursor">
-                [Cursor MCP docs](https://docs.cursor.com/context/model-context-protocol)
+<AccordionGroup>
+<Accordion title="Claude Code">
+        [Claude Code MCP docs](https://code.claude.com/docs/en/mcp#connect-claude-code-to-tools-via-mcp)
 
-                Go to: `Settings` -> `Cursor Settings` -> `MCP` -> `Add new global MCP server`
+        Run the following command:
 
-                Paste the following into your `~/.cursor/mcp.json` file. This will install Sourcebot globally within Cursor:
+        <Tabs>
+            <Tab title="OAuth">
+                <LicenseKeyRequired feature="OAuth" />
+
+                ```sh
+                claude mcp add --transport http sourcebot https://sb.example.com/api/mcp
+                ```
+
+                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted. Claude Code will automatically handle the OAuth 2.0 authorization flow the first time you connect.
+            </Tab>
+            <Tab title="API Key">
+                ```sh
+                claude mcp add --transport http sourcebot https://sb.example.com/api/mcp \
+                  --header "Authorization: Bearer <key>"
+                ```
+
+                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
+            </Tab>
+        </Tabs>
+    </Accordion>
+
+    <Accordion title="Cursor">
+        [Cursor MCP docs](https://cursor.com/docs/context/mcp)
+
+        Go to: `Settings` -> `Cursor Settings` -> `Tools & MCP` -> `New MCP Server`
+
+        Paste the following into your `~/.cursor/mcp.json` file:
+
+        <Tabs>
+            <Tab title="OAuth">
+                <LicenseKeyRequired feature="OAuth" />
 
                 ```json
                 {
                     "mcpServers": {
                         "sourcebot": {
-                            "command": "npx",
-                            "args": ["-y", "@sourcebot/mcp@latest" ],
-                            "env": {
-                                "SOURCEBOT_HOST": "http://localhost:3000",
-                                "SOURCEBOT_API_KEY": "your-api-key"
+                            "type": "http",
+                            "url": "https://sb.example.com/api/mcp"
+                        }
+                    }
+                }
+                ```
+
+                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted. Cursor will automatically handle the OAuth 2.0 authorization flow the first time you connect.
+            </Tab>
+            <Tab title="API Key">
+                ```json
+                {
+                    "mcpServers": {
+                        "sourcebot": {
+                            "type": "http",
+                            "url": "https://sb.example.com/api/mcp",
+                            "headers": {
+                                "Authorization": "Bearer <key>"
                             }
                         }
                     }
                 }
                 ```
 
-                Replace `http://localhost:3000` with wherever your Sourcebot instance is hosted.
-            </Accordion>
-            <Accordion title="Windsurf">
-                [Windsurf MCP docs](https://docs.windsurf.com/windsurf/mcp)
+                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
+            </Tab>
+        </Tabs>
+    </Accordion>
+    
+    <Accordion title="VS Code">
+        [VS Code MCP docs](https://code.visualstudio.com/docs/copilot/customization/mcp-servers)
 
-                Go to: `Windsurf Settings` -> `Cascade` -> `Add Server` -> `Add Custom Server`
+        Add the following to your [.vscode/mcp.json](https://code.visualstudio.com/docs/copilot/customization/mcp-servers#_add-an-mcp-server-to-your-workspace) file:
 
-                Paste the following into your `mcp_config.json` file:
+        <Tabs>
+            <Tab title="OAuth">
+                <LicenseKeyRequired feature="OAuth" />
 
-                ```json
-                {
-                    "mcpServers": {
-                        "sourcebot": {
-                            "command": "npx",
-                            "args": ["-y", "@sourcebot/mcp@latest" ],
-                            "env": {
-                                "SOURCEBOT_HOST": "http://localhost:3000",
-                                "SOURCEBOT_API_KEY": "your-api-key"
-                            }
-                        }
-                    }
-                }
-                ```
-
-                Replace `http://localhost:3000` with wherever your Sourcebot instance is hosted.
-
-            </Accordion>
-            <Accordion title="VS Code">
-                [VS Code MCP docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers)
-
-                Add the following to your [.vscode/mcp.json](https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_add-an-mcp-server-to-your-workspace) file:
-                
                 ```json
                 {
                     "servers": {
                         "sourcebot": {
-                            "type": "stdio",
-                            "command": "npx",
-                            "args": ["-y", "@sourcebot/mcp@latest"],
-                            "env": {
-                                "SOURCEBOT_HOST": "http://localhost:3000",
-                                "SOURCEBOT_API_KEY": "your-api-key"
+                            "type": "http",
+                            "url": "https://sb.example.com/api/mcp"
+                        }
+                    }
+                }
+                ```
+
+                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted. VS Code will automatically handle the OAuth 2.0 authorization flow the first time you connect.
+            </Tab>
+            <Tab title="API Key">
+                ```json
+                {
+                    "servers": {
+                        "sourcebot": {
+                            "type": "http",
+                            "url": "https://sb.example.com/api/mcp",
+                            "headers": {
+                                "Authorization": "Bearer <key>"
                             }
                         }
                     }
                 }
                 ```
 
-                Replace `http://localhost:3000` with wherever your Sourcebot instance is hosted.
-            </Accordion>
-            <Accordion title="Claude Code">
-                [Claude Code MCP docs](https://docs.anthropic.com/en/docs/claude-code/tutorials#set-up-model-context-protocol-mcp)
+                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
+            </Tab>
+        </Tabs>
+    </Accordion>
 
-                Run the following command:
+    <Accordion title="Codex">
+        [Codex MCP docs](https://developers.openai.com/codex/mcp)
 
-                ```sh
-                claude mcp add sourcebot -e SOURCEBOT_HOST=http://localhost:3000 -e SOURCEBOT_API_KEY=your-api-key -- npx -y @sourcebot/mcp@latest
+        Add the following to your `~/.codex/config.toml` file:
+
+        <Tabs>
+            <Tab title="OAuth">
+                <LicenseKeyRequired feature="OAuth" />
+
+                ```toml
+                [mcp_servers.sourcebot]
+                url = "https://sb.example.com/api/mcp"
                 ```
 
-                Replace `http://localhost:3000` with wherever your Sourcebot instance is hosted.
-            </Accordion>
-            <Accordion title="Claude Desktop">
-                [Claude Desktop MCP docs](https://modelcontextprotocol.io/quickstart/user)
+                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted. Then run the following to authenticate:
 
-                Add the following to your `claude_desktop_config.json`:
+                ```sh
+                codex mcp login sourcebot
+                ```
+            </Tab>
+            <Tab title="API Key">
+                ```toml
+                [mcp_servers.sourcebot]
+                url = "https://sb.example.com/api/mcp"
+                bearer_token_env_var = "SOURCEBOT_API_KEY"
+                ```
+
+                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted, then set your API key as an environment variable:
+
+                ```sh
+                export SOURCEBOT_API_KEY=<key>
+                ```
+
+                Generate an API key in **Settings → API Keys**.
+            </Tab>
+        </Tabs>
+    </Accordion>
+    
+    <Accordion title="OpenCode">
+        [OpenCode MCP docs](https://opencode.ai/docs/mcp-servers)
+
+        Add the following to your `opencode.jsonc` file:
+
+        <Tabs>
+            <Tab title="OAuth">
+                <LicenseKeyRequired feature="OAuth" />
+
+                ```json
+                {
+                    "$schema": "https://opencode.ai/config.json",
+                    "mcp": {
+                        "sourcebot": {
+                            "type": "remote",
+                            "url": "https://sb.example.com/api/mcp"
+                        }
+                    }
+                }
+                ```
+
+                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted. OpenCode will automatically handle the OAuth 2.0 authorization flow the first time you connect. You can also manually trigger it with:
+
+                ```sh
+                opencode mcp auth sourcebot
+                ```
+            </Tab>
+            <Tab title="API Key">
+                ```json
+                {
+                    "$schema": "https://opencode.ai/config.json",
+                    "mcp": {
+                        "sourcebot": {
+                            "type": "remote",
+                            "url": "https://sb.example.com/api/mcp",
+                            "oauth": false,
+                            "headers": {
+                                "Authorization": "Bearer <key>"
+                            }
+                        }
+                    }
+                }
+                ```
+
+                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
+            </Tab>
+        </Tabs>
+    </Accordion>
+    
+    <Accordion title="Windsurf">
+        [Windsurf MCP docs](https://docs.windsurf.com/windsurf/cascade/mcp)
+
+        Go to: `Windsurf Settings` -> `Cascade` -> `Add Server` -> `Add Custom Server`
+
+        Paste the following into your `~/.codeium/windsurf/mcp_config.json` file:
+
+        <Tabs>
+            <Tab title="OAuth">
+                <LicenseKeyRequired feature="OAuth" />
 
                 ```json
                 {
                     "mcpServers": {
                         "sourcebot": {
-                            "command": "npx",
-                            "args": ["-y", "@sourcebot/mcp@latest"],
-                            "env": {
-                                "SOURCEBOT_HOST": "http://localhost:3000",
-                                "SOURCEBOT_API_KEY": "your-api-key"
+                            "serverUrl": "https://sb.example.com/api/mcp"
+                        }
+                    }
+                }
+                ```
+
+                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted. Windsurf will automatically handle the OAuth 2.0 authorization flow the first time you connect.
+            </Tab>
+            <Tab title="API Key">
+                ```json
+                {
+                    "mcpServers": {
+                        "sourcebot": {
+                            "serverUrl": "https://sb.example.com/api/mcp",
+                            "headers": {
+                                "Authorization": "Bearer <key>"
                             }
                         }
                     }
                 }
                 ```
 
-                Replace `http://localhost:3000` with wherever your Sourcebot instance is hosted.
-            </Accordion>
-        </AccordionGroup>
-    </Step>
+                Replace `https://sb.example.com` with wherever your Sourcebot instance is hosted, and `<key>` with an API key generated in **Settings → API Keys**.
+            </Tab>
+        </Tabs>
+    </Accordion>
+</AccordionGroup>
 
-    <Step title="Prompt the LLM">
-        Tell your LLM to `use sourcebot` when prompting.
-    </Step>
+## Authorization
 
-</Steps>
+The Sourcebot MCP server supports two authorization methods, OAuth and API keys. If [anonymous access](/docs/configuration/auth/access-settings#anonymous-access) is enabled on your instance, no authorization is required.
 
+Regardless of which method you use, all MCP requests are scoped to the associated Sourcebot user and inherit the [user's role and permissions](/docs/configuration/auth/roles-and-permissions). When [permission syncing](/docs/features/permission-syncing) is configured, this includes repository permissions - the MCP server will only surface results from repositories the user has access to.
+
+### OAuth 2.0
+
+<LicenseKeyRequired feature="OAuth" />
+
+Sourcebot implements an OAuth 2.0 authorization server with support for dynamic client registration (RFC 7591). This means MCP clients can register themselves automatically without any manual setup. Just point your client at the MCP endpoint and it will handle the full authorization flow, prompting you to log in and approve access in your browser the first time you connect. No API key or manual token management is required.
+
+Once authorized, Sourcebot issues a short-lived access token (valid for 1 hour) and a refresh token (valid for 90 days). The MCP client handles token refresh automatically, so you stay connected without needing to re-authorize.
+
+<Frame>
+    <img src="/images/mcp_oauth_authorize.png" alt="OAuth authorization prompt showing Cursor requesting access to a Sourcebot account" />
+</Frame>
+
+### API Key (Bearer token)
+
+API keys provide a simpler alternative to OAuth that works with any MCP client. Each key is scoped to the user who created it and inherits their permissions. To create one, navigate to **Settings → API Keys** and click **Create API Key**.
+
+Pass the key as an `Authorization: Bearer <key>` header when connecting to the MCP server.
+
+<Frame>
+    <img src="/images/mcp_api_key_settings.png" alt="API Keys page in Sourcebot Settings" />
+</Frame>
 
 ## Available Tools
-
 
 ### `search_code`
 
 Searches for code that matches the provided search query as a substring by default, or as a regular expression if `useRegex` is true.
 
 Parameters:
-| Name                  | Required | Description                                                                                                          |
+| Name | Required | Description |
 |:----------------------|:---------|:---------------------------------------------------------------------------------------------------------------------|
-| `query`               | yes      | The search pattern to match against code contents. Do not escape quotes in your query.                               |
-| `useRegex`            | no       | Whether to use regular expression matching. When false, substring matching is used (default: false).                 |
-| `filterByRepos`       | no       | Scope the search to specific repositories.                                                                           |
-| `filterByLanguages`   | no       | Scope the search to specific languages.                                                                              |
-| `filterByFilepaths`   | no       | Scope the search to specific filepaths.                                                                              |
-| `caseSensitive`       | no       | Whether the search should be case sensitive (default: false).                                                        |
-| `includeCodeSnippets` | no       | Whether to include code snippets in the response (default: false).                                                   |
-| `ref`                 | no       | Commit SHA, branch or tag name to search on. If not provided, defaults to the default branch.                        |
-| `maxTokens`           | no       | The maximum number of tokens to return (default: 10000).                                                             |
-
+| `query` | yes | The search pattern to match against code contents. Do not escape quotes in your query. |
+| `useRegex` | no | Whether to use regular expression matching. When false, substring matching is used (default: false). |
+| `filterByRepos` | no | Scope the search to specific repositories. |
+| `filterByLanguages` | no | Scope the search to specific languages. |
+| `filterByFilepaths` | no | Scope the search to specific filepaths. |
+| `caseSensitive` | no | Whether the search should be case sensitive (default: false). |
+| `includeCodeSnippets` | no | Whether to include code snippets in the response (default: false). |
+| `ref` | no | Commit SHA, branch or tag name to search on. If not provided, defaults to the default branch. |
+| `maxTokens` | no | The maximum number of tokens to return (default: 10000). |
 
 ### `list_repos`
 
 Lists repositories indexed by Sourcebot with optional filtering and pagination.
 
 Parameters:
-| Name        | Required | Description                                                                     |
+| Name | Required | Description |
 |:------------|:---------|:--------------------------------------------------------------------------------|
-| `query`     | no       | Filter repositories by name (case-insensitive).                                 |
-| `page`      | no       | Page number for pagination (min 1, default: 1).                                 |
-| `perPage`   | no       | Results per page for pagination (min 1, max 100, default: 30).                  |
-| `sort`      | no       | Sort repositories by 'name' or 'pushed' (most recent commit). Default: 'name'. |
-| `direction` | no       | Sort direction: 'asc' or 'desc' (default: 'asc').                               |
-
+| `query` | no | Filter repositories by name (case-insensitive). |
+| `page` | no | Page number for pagination (min 1, default: 1). |
+| `perPage` | no | Results per page for pagination (min 1, max 100, default: 30). |
+| `sort` | no | Sort repositories by 'name' or 'pushed' (most recent commit). Default: 'name'. |
+| `direction` | no | Sort direction: 'asc' or 'desc' (default: 'asc'). |
 
 ### `read_file`
 
 Reads the source code for a given file.
 
 Parameters:
-| Name   | Required | Description                                                                                            |
+| Name | Required | Description |
 |:-------|:---------|:-------------------------------------------------------------------------------------------------------|
-| `repo` | yes      | The repository name.                                                                                   |
-| `path` | yes      | The path to the file.                                                                                  |
-| `ref`  | no       | Commit SHA, branch or tag name to fetch the source code for. If not provided, uses the default branch. |
-
+| `repo` | yes | The repository name. |
+| `path` | yes | The path to the file. |
+| `ref` | no | Commit SHA, branch or tag name to fetch the source code for. If not provided, uses the default branch. |
 
 ### `list_tree`
 
 Lists files and directories from a repository path. Can be used as a directory listing tool (`depth: 1`) or a repo-tree tool (`depth > 1`).
 
 Parameters:
-| Name                 | Required | Description                                                                                                   |
+| Name | Required | Description |
 |:---------------------|:---------|:--------------------------------------------------------------------------------------------------------------|
-| `repo`               | yes      | The name of the repository to list files from.                                                                |
-| `path`               | no       | Directory path (relative to repo root). If omitted, the repo root is used.                                    |
-| `ref`                | no       | Commit SHA, branch or tag name to list files from. If not provided, uses the default branch.                  |
-| `depth`              | no       | Number of directory levels to traverse below `path` (min 1, max 10, default: 1).                              |
-| `includeFiles`       | no       | Whether to include file entries in the output (default: true).                                                |
-| `includeDirectories` | no       | Whether to include directory entries in the output (default: true).                                           |
-| `maxEntries`         | no       | Maximum number of entries to return before truncating (min 1, max 10000, default: 1000).                      |
-
+| `repo` | yes | The name of the repository to list files from. |
+| `path` | no | Directory path (relative to repo root). If omitted, the repo root is used. |
+| `ref` | no | Commit SHA, branch or tag name to list files from. If not provided, uses the default branch. |
+| `depth` | no | Number of directory levels to traverse below `path` (min 1, max 10, default: 1). |
+| `includeFiles` | no | Whether to include file entries in the output (default: true). |
+| `includeDirectories` | no | Whether to include directory entries in the output (default: true). |
+| `maxEntries` | no | Maximum number of entries to return before truncating (min 1, max 10000, default: 1000). |
 
 ### `list_commits`
 
 Get a list of commits for a given repository.
 
 Parameters:
-| Name      | Required | Description                                                                                                            |
+| Name | Required | Description |
 |:----------|:---------|:-----------------------------------------------------------------------------------------------------------------------|
-| `repo`    | yes      | The name of the repository to list commits for.                                                                        |
-| `query`   | no       | Search query to filter commits by message content (case-insensitive).                                                  |
-| `since`   | no       | Show commits more recent than this date. Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago'). |
-| `until`   | no       | Show commits older than this date. Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday').     |
-| `author`  | no       | Filter commits by author name or email (case-insensitive).                                                             |
-| `ref`     | no       | Commit SHA, branch or tag name to list commits of. If not provided, uses the default branch.                           |
-| `page`    | no       | Page number for pagination (min 1, default: 1).                                                                        |
-| `perPage` | no       | Results per page for pagination (min 1, max 100, default: 50).                                                         |
-
+| `repo` | yes | The name of the repository to list commits for. |
+| `query` | no | Search query to filter commits by message content (case-insensitive). |
+| `since` | no | Show commits more recent than this date. Supports ISO 8601 (e.g., '2024-01-01') or relative formats (e.g., '30 days ago'). |
+| `until` | no | Show commits older than this date. Supports ISO 8601 (e.g., '2024-12-31') or relative formats (e.g., 'yesterday'). |
+| `author` | no | Filter commits by author name or email (case-insensitive). |
+| `ref` | no | Commit SHA, branch or tag name to list commits of. If not provided, uses the default branch. |
+| `page` | no | Page number for pagination (min 1, default: 1). |
+| `perPage` | no | Results per page for pagination (min 1, max 100, default: 50). |
 
 ### `list_language_models`
 
@@ -230,26 +385,14 @@ Parameters:
 
 This tool takes no parameters.
 
-
 ### `ask_codebase`
 
 Ask a natural language question about the codebase. This tool uses an AI agent to autonomously search code, read files, and find symbol references/definitions to answer your question. Returns a detailed answer in markdown format with code references, plus a link to view the full research session in the Sourcebot web UI.
 
 Parameters:
-| Name            | Required | Description                                                                                                                                    |
+| Name | Required | Description |
 |:----------------|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
-| `query`         | yes      | The query to ask about the codebase.                                                                                                           |
-| `repos`         | no       | The repositories that are accessible to the agent during the chat. If not provided, all repositories are accessible.                           |
-| `languageModel` | no       | The language model to use for answering the question. Object with `provider` and `model`. If not provided, defaults to the first model in the config. Use `list_language_models` to see available options. |
-| `visibility`    | no       | The visibility of the chat session (`'PRIVATE'` or `'PUBLIC'`). Defaults to `PRIVATE` for authenticated users and `PUBLIC` for anonymous users. Set to `PUBLIC` to make the chat viewable by anyone with the link (useful in shared environments like Slack). |
-
-
-## Environment Variables
-
-| Name                     | Default                | Description                                       |
-|:-------------------------|:-----------------------|:--------------------------------------------------|
-| `SOURCEBOT_HOST`         | http://localhost:3000  | URL of your Sourcebot instance.                   |
-| `SOURCEBOT_API_KEY`      | -                      | Sourcebot API key.                                |
-| `DEFAULT_MINIMUM_TOKENS` | 10000                  | Minimum number of tokens to return in responses.  |
-| `DEFAULT_MATCHES`        | 10000                  | Number of code matches to fetch per search.       |
-| `DEFAULT_CONTEXT_LINES`  | 5                      | Lines of context to include above/below matches.  |
+| `query` | yes | The query to ask about the codebase. |
+| `repos` | no | The repositories that are accessible to the agent during the chat. If not provided, all repositories are accessible. |
+| `languageModel` | no | The language model to use for answering the question. Object with `provider` and `model`. If not provided, defaults to the first model in the config. Use `list_language_models` to see available options. |
+| `visibility` | no | The visibility of the chat session (`'PRIVATE'` or `'PUBLIC'`). Defaults to `PRIVATE` for authenticated users and `PUBLIC` for anonymous users. Set to `PUBLIC` to make the chat viewable by anyone with the link (useful in shared environments like Slack). |

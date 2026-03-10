@@ -2,6 +2,7 @@ import { PrismaClient } from "@sourcebot/db";
 import { ArgumentParser } from "argparse";
 import { migrateDuplicateConnections } from "./scripts/migrate-duplicate-connections";
 import { injectAuditData } from "./scripts/inject-audit-data";
+import { injectAuditDataV2 } from "./scripts/inject-audit-data-v2";
 import { injectUserData } from "./scripts/inject-user-data";
 import { confirmAction } from "./utils";
 import { injectRepoData } from "./scripts/inject-repo-data";
@@ -14,6 +15,7 @@ export interface Script {
 export const scripts: Record<string, Script> = {
     "migrate-duplicate-connections": migrateDuplicateConnections,
     "inject-audit-data": injectAuditData,
+    "inject-audit-data-v2": injectAuditDataV2,
     "inject-user-data": injectUserData,
     "inject-repo-data": injectRepoData,
     "test-repo-query-perf": testRepoQueryPerf,

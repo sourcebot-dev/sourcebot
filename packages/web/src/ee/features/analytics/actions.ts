@@ -4,8 +4,8 @@ import { sew, withAuth, withOrgMembership } from "@/actions";
 import { OrgRole } from "@sourcebot/db";
 import { prisma } from "@/prisma";
 import { ServiceError } from "@/lib/serviceError";
-import { AnalyticsResponse } from "./types";
-import { hasEntitlement } from "@sourcebot/shared";
+import { AnalyticsResponse, AnalyticsRow } from "./types";
+import { env, hasEntitlement } from "@sourcebot/shared";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 
@@ -20,28 +20,32 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
         } satisfies ServiceError;
       }
 
-      const rows = await prisma.$queryRaw<AnalyticsResponse>`
+      const rows = await prisma.$queryRaw<AnalyticsRow[]>`
       WITH core AS (
         SELECT
           date_trunc('day',   "timestamp") AS day,
           date_trunc('week',  "timestamp") AS week,
           date_trunc('month', "timestamp") AS month,
           action,
-          "actorId"
+          "actorId",
+          metadata
         FROM "Audit"
         WHERE "orgId" = ${org.id}
           AND action IN (
             'user.performed_code_search',
             'user.performed_find_references',
             'user.performed_goto_definition',
-            'user.created_ask_chat'
+            'user.created_ask_chat',
+            'user.listed_repos',
+            'user.fetched_file_source',
+            'user.fetched_file_tree'
           )
       ),
-    
+
       periods AS (
         SELECT unnest(array['day', 'week', 'month']) AS period
       ),
-    
+
       buckets AS (
         SELECT
           generate_series(
@@ -67,7 +71,7 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
           ),
           'month'
       ),
-    
+
       aggregated AS (
         SELECT
           b.period,
@@ -76,24 +80,84 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
             WHEN 'week'  THEN c.week
             ELSE              c.month
           END AS bucket,
-          COUNT(*) FILTER (WHERE c.action = 'user.performed_code_search') AS code_searches,
-          COUNT(*) FILTER (WHERE c.action IN ('user.performed_find_references', 'user.performed_goto_definition')) AS navigations,
-          COUNT(*) FILTER (WHERE c.action = 'user.created_ask_chat') AS ask_chats,
-          COUNT(DISTINCT c."actorId") AS active_users
+
+          -- Global active users (any action, any source; excludes web repo listings)
+          COUNT(DISTINCT c."actorId") FILTER (
+            WHERE NOT (c.action = 'user.listed_repos' AND c.metadata->>'source' LIKE 'sourcebot-%')
+          ) AS active_users,
+
+          -- Web App metrics
+          COUNT(DISTINCT c."actorId") FILTER (
+            WHERE c.action = 'user.performed_code_search'
+              AND c.metadata->>'source' = 'sourcebot-web-client'
+          ) AS web_search_active_users,
+          COUNT(*) FILTER (
+            WHERE c.action = 'user.performed_code_search'
+              AND c.metadata->>'source' = 'sourcebot-web-client'
+          ) AS web_code_searches,
+          COUNT(*) FILTER (
+            WHERE c.action IN ('user.performed_find_references', 'user.performed_goto_definition')
+              AND c.metadata->>'source' = 'sourcebot-web-client'
+          ) AS web_navigations,
+          COUNT(DISTINCT c."actorId") FILTER (
+            WHERE c.action = 'user.created_ask_chat'
+              AND c.metadata->>'source' = 'sourcebot-web-client'
+          ) AS web_ask_active_users,
+          COUNT(*) FILTER (
+            WHERE c.action = 'user.created_ask_chat'
+              AND c.metadata->>'source' = 'sourcebot-web-client'
+          ) AS web_ask_chats,
+          COUNT(DISTINCT c."actorId") FILTER (
+            WHERE c.metadata->>'source' = 'sourcebot-web-client'
+              AND c.action != 'user.listed_repos'
+          ) AS web_active_users,
+
+          -- MCP + API combined active users (any non-web source)
+          COUNT(DISTINCT c."actorId") FILTER (
+            WHERE c.metadata->>'source' IS NULL
+              OR c.metadata->>'source' NOT LIKE 'sourcebot-%'
+          ) AS non_web_active_users,
+
+          -- MCP metrics (source = 'mcp')
+          COUNT(*) FILTER (
+            WHERE c.metadata->>'source' = 'mcp'
+          ) AS mcp_requests,
+          COUNT(DISTINCT c."actorId") FILTER (
+            WHERE c.metadata->>'source' = 'mcp'
+          ) AS mcp_active_users,
+
+          -- API metrics (source IS NULL or not sourcebot-*/mcp)
+          COUNT(*) FILTER (
+            WHERE c.metadata->>'source' IS NULL
+              OR (c.metadata->>'source' NOT LIKE 'sourcebot-%' AND c.metadata->>'source' != 'mcp')
+          ) AS api_requests,
+          COUNT(DISTINCT c."actorId") FILTER (
+            WHERE c.metadata->>'source' IS NULL
+              OR (c.metadata->>'source' NOT LIKE 'sourcebot-%' AND c.metadata->>'source' != 'mcp')
+          ) AS api_active_users
+
         FROM core c
         JOIN LATERAL (
           SELECT unnest(array['day', 'week', 'month']) AS period
         ) b ON true
         GROUP BY b.period, bucket
       )
-    
+
       SELECT
         b.period,
         b.bucket,
-        COALESCE(a.code_searches, 0)::int AS code_searches,
-        COALESCE(a.navigations, 0)::int AS navigations,
-        COALESCE(a.ask_chats, 0)::int AS ask_chats,
-        COALESCE(a.active_users, 0)::int AS active_users
+        COALESCE(a.active_users, 0)::int AS active_users,
+        COALESCE(a.web_search_active_users, 0)::int AS web_search_active_users,
+        COALESCE(a.web_code_searches, 0)::int AS web_code_searches,
+        COALESCE(a.web_navigations, 0)::int AS web_navigations,
+        COALESCE(a.web_ask_active_users, 0)::int AS web_ask_active_users,
+        COALESCE(a.web_ask_chats, 0)::int AS web_ask_chats,
+        COALESCE(a.web_active_users, 0)::int AS web_active_users,
+        COALESCE(a.non_web_active_users, 0)::int AS non_web_active_users,
+        COALESCE(a.mcp_requests, 0)::int AS mcp_requests,
+        COALESCE(a.mcp_active_users, 0)::int AS mcp_active_users,
+        COALESCE(a.api_requests, 0)::int AS api_requests,
+        COALESCE(a.api_active_users, 0)::int AS api_active_users
       FROM buckets b
       LEFT JOIN aggregated a
         ON a.period = b.period AND a.bucket = b.bucket
@@ -101,6 +165,16 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
     `;
     
 
-      return rows;
+      const oldestRecord = await prisma.audit.findFirst({
+        where: { orgId: org.id },
+        orderBy: { timestamp: 'asc' },
+        select: { timestamp: true },
+      });
+
+      return {
+        rows,
+        retentionDays: env.SOURCEBOT_EE_AUDIT_RETENTION_DAYS,
+        oldestRecordDate: oldestRecord?.timestamp ?? null,
+      };
     }, /* minRequiredRole = */ OrgRole.MEMBER), /* allowAnonymousAccess = */ true, apiKey ? { apiKey, domain } : undefined)
 ); 

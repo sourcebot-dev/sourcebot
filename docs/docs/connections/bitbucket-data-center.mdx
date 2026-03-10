@@ -104,8 +104,11 @@ In order to index private repositories, you'll need to provide a [HTTP Access To
                 // note: this env var can be named anything. It
                 // doesn't need to be `BITBUCKET_TOKEN`.
                 "env": "BITBUCKET_TOKEN"
-            }
-            // .. rest of config ..
+            },
+            // At least one of the following is required to specify which repos to sync:
+            "repos": ["myProject/myRepo"],
+            // "projects": ["myProject"],
+            // "all": true
         }
         ```
 
@@ -134,8 +137,11 @@ In order to index private repositories, you'll need to provide a [HTTP Access To
                 // note: this env var can be named anything. It
                 // doesn't need to be `BITBUCKET_TOKEN`.
                 "env": "BITBUCKET_TOKEN"
-            }
-            // .. rest of config ..
+            },
+            // At least one of the following is required to specify which repos to sync:
+            "repos": ["myProject/myRepo"],
+            // "projects": ["myProject"],
+            // "all": true
         }
         ```
 
@@ -149,6 +155,23 @@ In order to index private repositories, you'll need to provide a [HTTP Access To
         ```
     </Tab>
 </Tabs>
+
+## Rate limiting
+
+Bitbucket Data Center supports [rate limiting](https://confluence.atlassian.com/bitbucketserver094/improving-instance-stability-with-rate-limiting-1489803023.html) to protect instance stability. Rate limiting applies to HTTP requests with basic or bearer authentication, which includes the REST API calls Sourcebot makes to sync repositories.
+
+If rate limiting is enabled on your instance, Sourcebot may receive `HTTP 429 (Too Many Requests)` errors during sync. To prevent this, add a rate limiting exemption for the user (service account) whose token is used in your connection config.
+
+To add an exemption:
+
+1. In Bitbucket Data Center, go to **Administration** → **Rate limiting** → **Exemptions** tab.
+2. Click **Add exemption** and find the service account user.
+3. Select **Allow unlimited requests** (recommended) or set a custom token bucket size and refill rate appropriate for your sync volume.
+4. Click **Save**.
+
+<Frame>
+  <img src="/images/bitbucket_rate_limit.png" alt="Bitbucket Data Center rate limiting exemptions tab showing a user with unlimited requests" />
+</Frame>
 
 ## Troubleshooting
 If you're seeing errors like `TypeError: fetch failed` when fetching repo info, it may be that Sourcebot is refusing to connect to your self-hosted Bitbucket instance due to unrecognized SSL certs. Try setting the `NODE_TLS_REJECT_UNAUTHORIZED=0` environment variable or providing Sourcebot your certs through the `NODE_EXTRA_CA_CERTS` environment variable.
