@@ -11,7 +11,8 @@ import { OrgRole } from "@prisma/client";
 import placeholderAvatar from "@/public/placeholder_avatar.png";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useDomain } from "@/hooks/useDomain";
-import { transferOwnership, removeMemberFromOrg, leaveOrg } from "@/actions";
+import { removeMemberFromOrg, leaveOrg } from "@/actions";
+import { promoteToOwner, demoteToMember } from "@/ee/features/userManagement/actions";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -31,21 +32,26 @@ export interface MembersListProps {
     currentUserId: string,
     currentUserRole: OrgRole,
     orgName: string,
+    hasOrgManagement: boolean,
 }
 
-export const MembersList = ({ members, currentUserId, currentUserRole, orgName }: MembersListProps) => {
+export const MembersList = ({ members, currentUserId, currentUserRole, orgName, hasOrgManagement }: MembersListProps) => {
     const [searchQuery, setSearchQuery] = useState("")
     const [roleFilter, setRoleFilter] = useState<"all" | OrgRole>("all")
     const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest")
     const [memberToRemove, setMemberToRemove] = useState<Member | null>(null)
-    const [memberToTransfer, setMemberToTransfer] = useState<Member | null>(null)
+    const [memberToPromote, setMemberToPromote] = useState<Member | null>(null)
+    const [memberToDemote, setMemberToDemote] = useState<Member | null>(null)
     const domain = useDomain()
     const { toast } = useToast()
     const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false)
-    const [isTransferOwnershipDialogOpen, setIsTransferOwnershipDialogOpen] = useState(false)
+    const [isPromoteDialogOpen, setIsPromoteDialogOpen] = useState(false)
+    const [isDemoteDialogOpen, setIsDemoteDialogOpen] = useState(false)
     const [isLeaveOrgDialogOpen, setIsLeaveOrgDialogOpen] = useState(false)
     const router = useRouter();
     const captureEvent = useCaptureEvent();
+
+    const ownerCount = useMemo(() => members.filter(m => m.role === OrgRole.OWNER).length, [members]);
 
     const filteredMembers = useMemo(() => {
         return members
@@ -83,25 +89,45 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
             });
     }, [domain, toast, router, captureEvent]);
 
-    const onTransferOwnership = useCallback((memberId: string) => {
-        transferOwnership(memberId, domain)
+    const onPromoteToOwner = useCallback((memberId: string) => {
+        promoteToOwner(memberId)
             .then((response) => {
                 if (isServiceError(response)) {
                     toast({
-                        description: `❌ Failed to transfer ownership. Reason: ${response.message}`
+                        description: `❌ Failed to promote member. Reason: ${response.message}`
                     })
-                    captureEvent('wa_members_list_transfer_ownership_fail', {
+                    captureEvent('wa_members_list_promote_to_owner_fail', {
                         errorCode: response.errorCode,
                     })
                 } else {
                     toast({
-                        description: `✅ Ownership transferred successfully.`
+                        description: `✅ Member promoted to owner.`
                     })
-                    captureEvent('wa_members_list_transfer_ownership_success', {})
+                    captureEvent('wa_members_list_promote_to_owner_success', {})
                     router.refresh();
                 }
             });
-    }, [domain, toast, router, captureEvent]);
+    }, [toast, router, captureEvent]);
+
+    const onDemoteToMember = useCallback((memberId: string) => {
+        demoteToMember(memberId)
+            .then((response) => {
+                if (isServiceError(response)) {
+                    toast({
+                        description: `❌ Failed to demote owner. Reason: ${response.message}`
+                    })
+                    captureEvent('wa_members_list_demote_to_member_fail', {
+                        errorCode: response.errorCode,
+                    })
+                } else {
+                    toast({
+                        description: `✅ Owner demoted to member.`
+                    })
+                    captureEvent('wa_members_list_demote_to_member_success', {})
+                    router.refresh();
+                }
+            });
+    }, [toast, router, captureEvent]);
 
     const onLeaveOrg = useCallback(() => {
         leaveOrg(domain)
@@ -207,15 +233,26 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                                                 >
                                                     Copy email
                                                 </DropdownMenuItem>
-                                                {member.id !== currentUserId && currentUserRole === OrgRole.OWNER && (
+                                                {hasOrgManagement && member.id !== currentUserId && currentUserRole === OrgRole.OWNER && member.role !== OrgRole.OWNER && (
                                                     <DropdownMenuItem
                                                         className="cursor-pointer"
                                                         onClick={() => {
-                                                            setMemberToTransfer(member);
-                                                            setIsTransferOwnershipDialogOpen(true);
+                                                            setMemberToPromote(member);
+                                                            setIsPromoteDialogOpen(true);
                                                         }}
                                                     >
-                                                        Transfer ownership
+                                                        Promote to owner
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {hasOrgManagement && currentUserRole === OrgRole.OWNER && member.role === OrgRole.OWNER && (
+                                                    <DropdownMenuItem
+                                                        className="cursor-pointer"
+                                                        onClick={() => {
+                                                            setMemberToDemote(member);
+                                                            setIsDemoteDialogOpen(true);
+                                                        }}
+                                                    >
+                                                        Demote to member
                                                     </DropdownMenuItem>
                                                 )}
                                                 {member.id !== currentUserId && currentUserRole === OrgRole.OWNER && (
@@ -232,7 +269,7 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                                                 {member.id === currentUserId && (
                                                     <DropdownMenuItem
                                                         className="cursor-pointer text-destructive"
-                                                        disabled={currentUserRole === OrgRole.OWNER}
+                                                        disabled={currentUserRole === OrgRole.OWNER && ownerCount <= 1}
                                                         onClick={() => {
                                                             setIsLeaveOrgDialogOpen(true);
                                                         }}
@@ -273,24 +310,51 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
                     </AlertDialogContent>
                 </AlertDialog>
                 <AlertDialog
-                    open={isTransferOwnershipDialogOpen}
-                    onOpenChange={setIsTransferOwnershipDialogOpen}
+                    open={isPromoteDialogOpen}
+                    onOpenChange={setIsPromoteDialogOpen}
                 >
                     <AlertDialogContent>
                         <AlertDialogHeader>
-                            <AlertDialogTitle>Transfer Ownership</AlertDialogTitle>
+                            <AlertDialogTitle>Promote to Owner</AlertDialogTitle>
                             <AlertDialogDescription>
-                                {`Are you sure you want to transfer ownership of ${orgName} to ${memberToTransfer?.name ?? memberToTransfer?.email}?`}
+                                {`Are you sure you want to promote ${memberToPromote?.name ?? memberToPromote?.email} to owner? They will have full administrative access to ${orgName}.`}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                                 onClick={() => {
-                                    onTransferOwnership(memberToTransfer?.id ?? "");
+                                    onPromoteToOwner(memberToPromote?.id ?? "");
                                 }}
                             >
-                                Transfer
+                                Promote
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                <AlertDialog
+                    open={isDemoteDialogOpen}
+                    onOpenChange={setIsDemoteDialogOpen}
+                >
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Demote to Member</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                {memberToDemote?.id === currentUserId
+                                    ? `Are you sure you want to step down as owner? You will lose administrative access to ${orgName}.`
+                                    : `Are you sure you want to demote ${memberToDemote?.name ?? memberToDemote?.email} from owner to member? They will lose administrative access.`
+                                }
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={() => {
+                                    onDemoteToMember(memberToDemote?.id ?? "");
+                                }}
+                            >
+                                Demote
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
@@ -321,4 +385,3 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName }
         </div>
     )
 }
-

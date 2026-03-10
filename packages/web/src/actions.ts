@@ -1150,6 +1150,11 @@ export const getInviteInfo = async (inviteId: string) => sew(() =>
         }
     }));
 
+/**
+ * @deprecated Use `promoteToOwner` and `demoteToMember` from `@/ee/features/userManagement/actions` instead.
+ * This function atomically promotes a member to OWNER and demotes the caller to MEMBER.
+ * In a multi-owner model, use promoteToOwner (and optionally leaveOrg) for equivalent behavior.
+ */
 export const transferOwnership = async (newOwnerId: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
@@ -1301,11 +1306,20 @@ export const leaveOrg = async (domain: string): Promise<{ success: boolean } | S
     withAuth(async (userId) =>
         withOrgMembership(userId, domain, async ({ org, userRole }) => {
             if (userRole === OrgRole.OWNER) {
-                return {
-                    statusCode: StatusCodes.FORBIDDEN,
-                    errorCode: ErrorCode.OWNER_CANNOT_LEAVE_ORG,
-                    message: "Organization owners cannot leave their own organization",
-                } satisfies ServiceError;
+                const ownerCount = await prisma.userToOrg.count({
+                    where: {
+                        orgId: org.id,
+                        role: OrgRole.OWNER,
+                    },
+                });
+
+                if (ownerCount <= 1) {
+                    return {
+                        statusCode: StatusCodes.FORBIDDEN,
+                        errorCode: ErrorCode.OWNER_CANNOT_LEAVE_ORG,
+                        message: "You are the last owner of this organization. Promote another member to owner before leaving.",
+                    } satisfies ServiceError;
+                }
             }
 
             await prisma.$transaction(async (tx) => {
