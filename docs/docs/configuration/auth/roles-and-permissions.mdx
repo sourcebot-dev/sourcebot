@@ -9,6 +9,26 @@ Each member has a role which defines their permissions within an organization:
 
 | Role | Permission |
 | :--- | :--------- |
-| `Owner` | Each organization has a single `Owner`. This user has full access rights, including: connection management, organization management, and inviting new members. |
+| `Owner` | An organization can have one or more `Owner`s. Owners have full access rights, including: connection management, organization management, and inviting new members. |
 | `Member` | Read-only access to the organization. A `Member` can search across the repos indexed by an organization's connections, as well as view the organizations configuration and member list. However, they cannot modify this configuration or invite new members. |
 | `Guest` | When accessing Sourcebot [anonymously](/docs/configuration/auth/access-settings#anonymous-access), a user has the `Guest` role. `Guest`'s can search across repos indexed by an organization's connections, but cannot view any information regarding the organizations configuration or members. |
+
+## Managing owners
+
+import LicenseKeyRequired from '/snippets/license-key-required.mdx'
+
+<LicenseKeyRequired />
+
+Organizations support multiple owners, allowing you to share administrative responsibilities across your team. Owners can promote members to owner and demote other owners back to member from **Settings -> Members**.
+
+### Promoting a member to owner
+
+To promote a member, click the action menu (three dots) next to their name in the members list and select **Promote to owner**. The member will immediately gain full administrative access.
+
+### Demoting an owner to member
+
+To demote an owner, click the action menu next to their name and select **Demote to member**. Owners can also demote themselves to step down from the role. The last remaining owner of an organization cannot be demoted — at least one owner must exist at all times.
+
+### Leaving an organization as an owner
+
+An owner can leave the organization as long as at least one other owner exists. If you are the last owner, you must promote another member to owner before leaving.
