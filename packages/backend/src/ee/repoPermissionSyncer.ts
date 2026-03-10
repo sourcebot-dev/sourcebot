@@ -71,6 +71,16 @@ export class RepoPermissionSyncer {
                                 in: PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES,
                             }
                         },
+                        // They have at least one connection with permission enforcement enabled
+                        {
+                            connections: {
+                                some: {
+                                    connection: {
+                                        enforcePermissions: true,
+                                    }
+                                }
+                            }
+                        },
                         // They have not been synced within the threshold date.
                         {
                             OR: [

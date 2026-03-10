@@ -18,11 +18,11 @@ that they have access to on the code host. Practically, this means:
 - Ask Sourcebot (and the underlying LLM) will only have access to repositories that the user has access to.
 - File browsing is scoped to the repositories that the user has access to.
 
-Permission syncing can be enabled by setting the `EXPERIMENT_EE_PERMISSION_SYNC_ENABLED` environment variable to `true`.
+Permission syncing can be enabled by setting the `PERMISSION_SYNC_ENABLED` environment variable to `true`.
 
 ```bash
 docker run \
-    -e EXPERIMENT_EE_PERMISSION_SYNC_ENABLED=true \
+    -e PERMISSION_SYNC_ENABLED=true \
     /* additional args */ \
     ghcr.io/sourcebot-dev/sourcebot:latest
 ```
@@ -130,6 +130,54 @@ If your instance relies heavily on project or group-level permissions, we recomm
 - The connection token must have **Repository Read** permissions so Sourcebot can read repository-level user permissions for [Repo driven syncing](/docs/features/permission-syncing#how-it-works).
 - OAuth tokens require the `REPO_READ` scope to list accessible repositories during [User driven syncing](/docs/features/permission-syncing#how-it-works).
 
+# Manually refreshing permissions
+
+If a user's permissions have changed and they need access updated immediately (without waiting for the next scheduled sync), they can trigger a manual refresh from the **Linked Accounts** page:
+
+1. Navigate to **Settings → Linked Accounts**.
+2. Click the **Connected** button next to the relevant code host account.
+3. Select **Refresh Permissions** from the dropdown.
+
+<Frame>
+  <img src="/images/linked_accounts_refresh_permissions.png" alt="Linked Accounts - Refresh Permissions" />
+</Frame>
+
+The button will show a spinner while the sync is in progress and display a confirmation once it completes.
+
+
+# Overriding enforcement per connection
+
+Each [connection](/docs/connections/overview) supports an `enforcePermissions` flag that controls whether permissions are enforced for repositories in that connection. This lets you mix code hosts in a single deployment - for example, enforcing access control on a private GitHub connection while keeping an internal Gerrit instance open to all users.
+
+By default, `enforcePermissions` inherits the value of `PERMISSION_SYNC_ENABLED`. You can override it per connection in the [config file](/docs/configuration/config-file):
+
+```json
+{
+  "connections": {
+    "my-github": {
+      "type": "github",
+      "enforcePermissions": true
+    },
+    "my-gerrit": {
+      "type": "gerrit",
+      "url": "https://gerrit.example.com",
+      "enforcePermissions": false
+    }
+  }
+}
+```
+
+Setting `enforcePermissions: false` on a connection makes all repositories from that connection accessible to any user, regardless of the global `PERMISSION_SYNC_ENABLED` setting.
+
+The table below shows when permissions are enforced based on the combination of `PERMISSION_SYNC_ENABLED` and `enforcePermissions`:
+
+| `PERMISSION_SYNC_ENABLED` | `enforcePermissions` | Permissions enforced? |
+|--------------------------|---------------------|-----------------------|
+| `true`                   | `true`              | Yes                   |
+| `true`                   | `false`             | No                    |
+| `false`                  | `true`              | No                    |
+| `false`                  | `false`             | No                    |
+
 # How it works
 
 Permission syncing works by periodically syncing ACLs from the code host(s) to Sourcebot to build an internal mapping between Users and Repositories. This mapping is hydrated in two directions:
@@ -148,17 +196,3 @@ The sync intervals can be configured using the following settings in the [config
 |-------------------------------------------------|---------|------------|---------|
 | `experiment_repoDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
 | `experiment_userDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
-
-## Manually refreshing permissions
-
-If a user's permissions have changed and they need access updated immediately (without waiting for the next scheduled sync), they can trigger a manual refresh from the **Linked Accounts** page:
-
-1. Navigate to **Settings → Linked Accounts**.
-2. Click the **Connected** button next to the relevant code host account.
-3. Select **Refresh Permissions** from the dropdown.
-
-<Frame>
-  <img src="/images/linked_accounts_refresh_permissions.png" alt="Linked Accounts - Refresh Permissions" />
-</Frame>
-
-The button will show a spinner while the sync is in progress and display a confirmation once it completes.

@@ -43,7 +43,7 @@ export const getLinkedAccounts = async () => sew(() =>
             const providerErrors = session?.linkedAccountProviderErrors;
 
             const permissionSyncEnabled =
-                env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' &&
+                env.PERMISSION_SYNC_ENABLED === 'true' &&
                 hasEntitlement('permission-syncing');
 
             const accountsByProvider = new Map(accounts.map(a => [a.provider, a]));

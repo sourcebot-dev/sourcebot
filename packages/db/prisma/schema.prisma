@@ -175,6 +175,10 @@ model Connection {
   /// When the connection was last synced successfully.
   syncedAt           DateTime?
 
+  /// Controls whether permissions are enforced for repositories in this connection.
+  /// When PERMISSION_SYNC_ENABLED is false, this setting has no effect.
+  enforcePermissions Boolean @default(true)
+
   // The organization that owns this connection
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int

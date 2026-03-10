@@ -46,7 +46,7 @@ export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusRes
             AccountPermissionSyncJobStatus.IN_PROGRESS
         ];
 
-        const hasPendingFirstSync = env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' &&
+        const hasPendingFirstSync = env.PERMISSION_SYNC_ENABLED === 'true' &&
             accounts.some(account =>
                 account.permissionSyncedAt === null &&
                 // @note: to handle the case where the permission sync job
