@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [EE] Added multi-owner support with promote/demote actions. [#988](https://github.com/sourcebot-dev/sourcebot/pull/988)
+
 ## [4.15.3] - 2026-03-10
 
 ### Fixed
