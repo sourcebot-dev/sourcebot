@@ -295,7 +295,7 @@ export interface GithubConnectionConfig {
   };
   revisions?: GitRevisions;
   /**
-   * Controls whether repository permissions are enforced for this connection. When PERMISSION_SYNC_ENABLED is false, this setting has no effect. Defaults to the value of PERMISSION_SYNC_ENABLED. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
    */
   enforcePermissions?: boolean;
 }
@@ -383,7 +383,7 @@ export interface GitlabConnectionConfig {
   };
   revisions?: GitRevisions;
   /**
-   * Controls whether repository permissions are enforced for this connection. When PERMISSION_SYNC_ENABLED is false, this setting has no effect. Defaults to the value of PERMISSION_SYNC_ENABLED. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
    */
   enforcePermissions?: boolean;
 }
@@ -440,7 +440,7 @@ export interface GiteaConnectionConfig {
   };
   revisions?: GitRevisions;
   /**
-   * Controls whether repository permissions are enforced for this connection. When PERMISSION_SYNC_ENABLED is false, this setting has no effect. Defaults to the value of PERMISSION_SYNC_ENABLED. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
    */
   enforcePermissions?: boolean;
 }
@@ -473,7 +473,7 @@ export interface GerritConnectionConfig {
   };
   revisions?: GitRevisions;
   /**
-   * Controls whether repository permissions are enforced for this connection. When PERMISSION_SYNC_ENABLED is false, this setting has no effect. Defaults to the value of PERMISSION_SYNC_ENABLED. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
    */
   enforcePermissions?: boolean;
 }
@@ -546,7 +546,7 @@ export interface BitbucketConnectionConfig {
   };
   revisions?: GitRevisions;
   /**
-   * Controls whether repository permissions are enforced for this connection. When PERMISSION_SYNC_ENABLED is false, this setting has no effect. Defaults to the value of PERMISSION_SYNC_ENABLED. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
    */
   enforcePermissions?: boolean;
 }
@@ -624,7 +624,7 @@ export interface AzureDevOpsConnectionConfig {
   };
   revisions?: GitRevisions;
   /**
-   * Controls whether repository permissions are enforced for this connection. When PERMISSION_SYNC_ENABLED is false, this setting has no effect. Defaults to the value of PERMISSION_SYNC_ENABLED. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
    */
   enforcePermissions?: boolean;
 }
@@ -639,7 +639,7 @@ export interface GenericGitHostConnectionConfig {
   url: string;
   revisions?: GitRevisions;
   /**
-   * Controls whether repository permissions are enforced for this connection. When PERMISSION_SYNC_ENABLED is false, this setting has no effect. Defaults to the value of PERMISSION_SYNC_ENABLED. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
    */
   enforcePermissions?: boolean;
 }

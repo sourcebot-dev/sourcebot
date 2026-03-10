@@ -80,17 +80,25 @@ export const getRepoPermissionFilterForUser = (user?: UserWithAccounts): Prisma.
             {
                 isPublic: true,
             },
-            // or have no connections with permission enforcement enabled (exempt from enforcement).
+            // or have at least one connection and none of those connections enforce permissions
+            // (i.e. all connections have opted out of enforcement).
+            // The `connections: { some: {} }` guard ensures repos with zero connections are
+            // not inadvertently exposed by the vacuous NOT condition.
             {
-                NOT: {
-                    connections: {
-                        some: {
-                            connection: {
-                                enforcePermissions: true,
+                AND: [
+                    { connections: { some: {} } },
+                    {
+                        NOT: {
+                            connections: {
+                                some: {
+                                    connection: {
+                                        enforcePermissions: true,
+                                    }
+                                }
                             }
                         }
                     }
-                }
+                ]
             }
         ]
     }
