@@ -6,7 +6,7 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, ServiceError } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
 import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
-import { OrgRole } from "@sourcebot/db";
+import { OrgRole, Prisma } from "@sourcebot/db";
 import { hasEntitlement } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
 
@@ -87,53 +87,61 @@ export const demoteToMember = async (memberId: string): Promise<{ success: boole
                 return orgManagementNotAvailable();
             }
 
-            const targetMember = await prisma.userToOrg.findUnique({
-                where: {
-                    orgId_userId: {
-                        orgId: org.id,
-                        userId: memberId,
+            const guardError = await prisma.$transaction(async (tx) => {
+                const targetMember = await tx.userToOrg.findUnique({
+                    where: {
+                        orgId_userId: {
+                            orgId: org.id,
+                            userId: memberId,
+                        },
                     },
-                },
-            });
+                });
 
-            if (!targetMember) {
-                return notFound("Member not found in this organization");
-            }
+                if (!targetMember) {
+                    return notFound("Member not found in this organization");
+                }
 
-            if (targetMember.role !== OrgRole.OWNER) {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "This member is not an owner.",
-                } satisfies ServiceError;
-            }
+                if (targetMember.role !== OrgRole.OWNER) {
+                    return {
+                        statusCode: StatusCodes.BAD_REQUEST,
+                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                        message: "This member is not an owner.",
+                    } satisfies ServiceError;
+                }
 
-            const ownerCount = await prisma.userToOrg.count({
-                where: {
-                    orgId: org.id,
-                    role: OrgRole.OWNER,
-                },
-            });
-
-            if (ownerCount <= 1) {
-                return {
-                    statusCode: StatusCodes.FORBIDDEN,
-                    errorCode: ErrorCode.LAST_OWNER_CANNOT_BE_DEMOTED,
-                    message: "Cannot demote the last owner. Promote another member to owner first.",
-                } satisfies ServiceError;
-            }
-
-            await prisma.userToOrg.update({
-                where: {
-                    orgId_userId: {
+                const ownerCount = await tx.userToOrg.count({
+                    where: {
                         orgId: org.id,
-                        userId: memberId,
+                        role: OrgRole.OWNER,
                     },
-                },
-                data: {
-                    role: "MEMBER",
-                },
-            });
+                });
+
+                if (ownerCount <= 1) {
+                    return {
+                        statusCode: StatusCodes.FORBIDDEN,
+                        errorCode: ErrorCode.LAST_OWNER_CANNOT_BE_DEMOTED,
+                        message: "Cannot demote the last owner. Promote another member to owner first.",
+                    } satisfies ServiceError;
+                }
+
+                await tx.userToOrg.update({
+                    where: {
+                        orgId_userId: {
+                            orgId: org.id,
+                            userId: memberId,
+                        },
+                    },
+                    data: {
+                        role: "MEMBER",
+                    },
+                });
+
+                return null;
+            }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+            if (guardError) {
+                return guardError;
+            }
 
             await auditService.createAudit({
                 action: "org.owner_demoted_to_member",
