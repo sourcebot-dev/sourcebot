@@ -57,7 +57,7 @@ export class AccountPermissionSyncer {
         logger.debug('Starting scheduler');
 
         this.interval = setIntervalAsync(async () => {
-            const thresholdDate = new Date(Date.now() - this.settings.experiment_userDrivenPermissionSyncIntervalMs);
+            const thresholdDate = new Date(Date.now() - this.settings.userDrivenPermissionSyncIntervalMs);
 
             const accounts = await this.db.account.findMany({
                 where: {

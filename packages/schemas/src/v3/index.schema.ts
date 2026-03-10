@@ -69,14 +69,26 @@ const schema = {
           "description": "This setting is deprecated. Please use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.",
           "default": false
         },
-        "experiment_repoDrivenPermissionSyncIntervalMs": {
+        "repoDrivenPermissionSyncIntervalMs": {
           "type": "number",
           "description": "The interval (in milliseconds) at which the repo permission syncer should run. Defaults to 24 hours.",
           "minimum": 1
         },
-        "experiment_userDrivenPermissionSyncIntervalMs": {
+        "userDrivenPermissionSyncIntervalMs": {
           "type": "number",
           "description": "The interval (in milliseconds) at which the user permission syncer should run. Defaults to 24 hours.",
+          "minimum": 1
+        },
+        "experiment_repoDrivenPermissionSyncIntervalMs": {
+          "type": "number",
+          "deprecated": true,
+          "description": "Deprecated. Use `repoDrivenPermissionSyncIntervalMs` instead.",
+          "minimum": 1
+        },
+        "experiment_userDrivenPermissionSyncIntervalMs": {
+          "type": "number",
+          "deprecated": true,
+          "description": "Deprecated. Use `userDrivenPermissionSyncIntervalMs` instead.",
           "minimum": 1
         },
         "maxAccountPermissionSyncJobConcurrency": {
@@ -215,14 +227,26 @@ const schema = {
           "description": "This setting is deprecated. Please use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.",
           "default": false
         },
-        "experiment_repoDrivenPermissionSyncIntervalMs": {
+        "repoDrivenPermissionSyncIntervalMs": {
           "type": "number",
           "description": "The interval (in milliseconds) at which the repo permission syncer should run. Defaults to 24 hours.",
           "minimum": 1
         },
-        "experiment_userDrivenPermissionSyncIntervalMs": {
+        "userDrivenPermissionSyncIntervalMs": {
           "type": "number",
           "description": "The interval (in milliseconds) at which the user permission syncer should run. Defaults to 24 hours.",
+          "minimum": 1
+        },
+        "experiment_repoDrivenPermissionSyncIntervalMs": {
+          "type": "number",
+          "deprecated": true,
+          "description": "Deprecated. Use `repoDrivenPermissionSyncIntervalMs` instead.",
+          "minimum": 1
+        },
+        "experiment_userDrivenPermissionSyncIntervalMs": {
+          "type": "number",
+          "deprecated": true,
+          "description": "Deprecated. Use `userDrivenPermissionSyncIntervalMs` instead.",
           "minimum": 1
         },
         "maxAccountPermissionSyncJobConcurrency": {

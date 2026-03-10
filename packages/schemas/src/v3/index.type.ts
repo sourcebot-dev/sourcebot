@@ -126,9 +126,19 @@ export interface Settings {
   /**
    * The interval (in milliseconds) at which the repo permission syncer should run. Defaults to 24 hours.
    */
-  experiment_repoDrivenPermissionSyncIntervalMs?: number;
+  repoDrivenPermissionSyncIntervalMs?: number;
   /**
    * The interval (in milliseconds) at which the user permission syncer should run. Defaults to 24 hours.
+   */
+  userDrivenPermissionSyncIntervalMs?: number;
+  /**
+   * @deprecated
+   * Deprecated. Use `repoDrivenPermissionSyncIntervalMs` instead.
+   */
+  experiment_repoDrivenPermissionSyncIntervalMs?: number;
+  /**
+   * @deprecated
+   * Deprecated. Use `userDrivenPermissionSyncIntervalMs` instead.
    */
   experiment_userDrivenPermissionSyncIntervalMs?: number;
   /**

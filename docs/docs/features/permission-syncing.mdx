@@ -97,9 +97,9 @@ Permission syncing works with **Bitbucket Cloud**. OAuth tokens must assume the 
 - Membership in the [project that contains the repository](https://support.atlassian.com/bitbucket-cloud/docs/configure-project-permissions-for-users-and-groups/)
 - Membership in a group that is part of a project containing the repository
 
-These users **will** still gain access via [user-driven syncing](/docs/features/permission-syncing#how-it-works), which fetches all private repositories accessible to each authenticated user. However, there may be a delay between when a repository is added and when affected users gain access in Sourcebot (up to the `experiment_userDrivenPermissionSyncIntervalMs` interval, which defaults to 24 hours).
+These users **will** still gain access via [user-driven syncing](/docs/features/permission-syncing#how-it-works), which fetches all private repositories accessible to each authenticated user. However, there may be a delay between when a repository is added and when affected users gain access in Sourcebot (up to the `userDrivenPermissionSyncIntervalMs` interval, which defaults to 24 hours).
 
-If your workspace relies heavily on group or project-level permissions rather than direct user grants, we recommend reducing the `experiment_userDrivenPermissionSyncIntervalMs` interval to limit the window of delay.
+If your workspace relies heavily on group or project-level permissions rather than direct user grants, we recommend reducing the `userDrivenPermissionSyncIntervalMs` interval to limit the window of delay.
 </Warning>
 
 **Notes:**
@@ -120,9 +120,9 @@ Permission syncing works with **Bitbucket Data Center**. OAuth tokens must assum
 - Project-level permissions (inherited by all repos in the project)
 - Group membership
 
-These users **will** still gain access via [user-driven syncing](/docs/features/permission-syncing#how-it-works), which fetches all repositories accessible to each authenticated user using the `REPO_READ` scope. However, there may be a delay between when access is granted and when affected users see the repository in Sourcebot (up to the `experiment_userDrivenPermissionSyncIntervalMs` interval, which defaults to 24 hours).
+These users **will** still gain access via [user-driven syncing](/docs/features/permission-syncing#how-it-works), which fetches all repositories accessible to each authenticated user using the `REPO_READ` scope. However, there may be a delay between when access is granted and when affected users see the repository in Sourcebot (up to the `userDrivenPermissionSyncIntervalMs` interval, which defaults to 24 hours).
 
-If your instance relies heavily on project or group-level permissions, we recommend reducing the `experiment_userDrivenPermissionSyncIntervalMs` interval to limit the window of delay.
+If your instance relies heavily on project or group-level permissions, we recommend reducing the `userDrivenPermissionSyncIntervalMs` interval to limit the window of delay.
 </Warning>
 
 **Notes:**
@@ -194,5 +194,5 @@ The sync intervals can be configured using the following settings in the [config
 
 | Setting                                         | Type    | Default    | Minimum |
 |-------------------------------------------------|---------|------------|---------|
-| `experiment_repoDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
-| `experiment_userDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
+| `repoDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
+| `userDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
