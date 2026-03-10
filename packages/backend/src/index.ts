@@ -79,9 +79,7 @@ else if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement(
     if (env.PERMISSION_SYNC_REPO_DRIVEN_ENABLED === 'true') {
         repoPermissionSyncer.startScheduler();
     }
-    if (env.PERMISSION_SYNC_USER_DRIVEN_ENABLED === 'true') {
-        accountPermissionSyncer.startScheduler();
-    }
+    accountPermissionSyncer.startScheduler();
 }
 
 const api = new Api(
