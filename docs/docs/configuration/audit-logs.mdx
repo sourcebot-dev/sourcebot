@@ -122,8 +122,6 @@ curl --request GET '$SOURCEBOT_URL/api/ee/audit' \
 | `chat.shared_with_users`              | `user` | `chat` |
 | `chat.unshared_with_user`             | `user` | `chat` |
 | `chat.visibility_updated`             | `user` | `chat` |
-| `org.ownership_transfer_failed`       | `user` | `org` |
-| `org.ownership_transferred`           | `user` | `org` |
 | `user.created_ask_chat`               | `user` | `org` |
 | `user.creation_failed`                | `user` | `user` |
 | `user.delete`                         | `user` | `user` |
@@ -144,8 +142,6 @@ curl --request GET '$SOURCEBOT_URL/api/ee/audit' \
 | `user.read`                           | `user` | `user` |
 | `user.signed_in`                      | `user` | `user` |
 | `user.signed_out`                     | `user` | `user` |
-| `org.ownership_transfer_failed`       | `user` | `org` |
-| `org.ownership_transferred`           | `user` | `org` |
 | `org.member_promoted_to_owner`        | `user` | `user` |
 | `org.owner_demoted_to_member`         | `user` | `user` |
 
