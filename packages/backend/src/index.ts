@@ -76,8 +76,12 @@ if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && !hasEntitlement('per
     process.exit(1);
 }
 else if (env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')) {
-    repoPermissionSyncer.startScheduler();
-    accountPermissionSyncer.startScheduler();
+    if (env.PERMISSION_SYNC_REPO_DRIVEN_ENABLED === 'true') {
+        repoPermissionSyncer.startScheduler();
+    }
+    if (env.PERMISSION_SYNC_USER_DRIVEN_ENABLED === 'true') {
+        accountPermissionSyncer.startScheduler();
+    }
 }
 
 const api = new Api(

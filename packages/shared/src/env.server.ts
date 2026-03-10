@@ -247,6 +247,8 @@ export const env = createEnv({
         // @NOTE: Take care to update actions.ts when changing the name of this.
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN: z.string().optional(),
         EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
+        PERMISSION_SYNC_USER_DRIVEN_ENABLED: booleanSchema.default('true'),
+        PERMISSION_SYNC_REPO_DRIVEN_ENABLED: booleanSchema.default('true'),
         EXPERIMENT_ASK_GH_ENABLED: booleanSchema.default('false'),
 
         SOURCEBOT_ENCRYPTION_KEY: z.string(),
