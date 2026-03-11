@@ -30,6 +30,42 @@ const MAX_TREE_DEPTH = 10;
 const DEFAULT_MAX_TREE_ENTRIES = 1000;
 const MAX_MAX_TREE_ENTRIES = 10000;
 
+const TOOL_DESCRIPTIONS = {
+    search_code: dedent`
+        Searches for code that matches the provided search query as a substring by default, or as a regular expression if useRegex is true. Useful for exploring remote repositories by
+        searching for exact symbols, functions, variables, or specific code patterns.
+
+        To determine if a repository is indexed, use the \`list_repos\` tool. By default, searches are global and will search the default branch of all repositories. Searches can be
+        scoped to specific repositories, languages, and branches.
+
+        When referencing code outputted by this tool, always include the file's external URL as a link. This makes it easier for the user to view the file, even if they don't have it locally checked out.
+        `,
+    list_commits: dedent`Get a list of commits for a given repository.`,
+    list_repos: dedent`Lists repositories in the organization with optional filtering and pagination.`,
+    read_file: dedent`Reads the source code for a given file.`,
+    list_tree: dedent`
+        Lists files and directories from a repository path. This can be used as a repo tree tool or directory listing tool.
+        Returns a flat list of entries with path metadata and depth relative to the requested path.
+        `,
+    list_language_models: dedent`Lists the available language models configured on the Sourcebot instance. Use this to discover which models can be specified when calling ask_codebase.`,
+    ask_codebase: dedent`
+        DO NOT USE THIS TOOL UNLESS EXPLICITLY ASKED TO. THE PROMPT MUST SPECIFICALLY ASK TO USE THE ask_codebase TOOL.
+
+        Ask a natural language question about the codebase. This tool uses an AI agent to autonomously search code, read files, and find symbol references/definitions to answer your question.
+
+        This is a blocking operation that may take 60+ seconds to research the codebase, so only invoke it if the user has explicitly asked you to by specifying the ask_codebase tool call in the prompt.
+
+        The agent will:
+        - Analyze your question and determine what context it needs
+        - Search the codebase using multiple strategies (code search, symbol lookup, file reading)
+        - Synthesize findings into a comprehensive answer with code references
+
+        Returns a detailed answer in markdown format with code references, plus a link to view the full research session (including all tool calls and reasoning) in the Sourcebot web UI.
+
+        When using this in shared environments (e.g., Slack), you can set the visibility parameter to 'PUBLIC' to ensure everyone can access the chat link.
+        `,
+};
+
 export function createMcpServer(): McpServer {
     const server = new McpServer({
         name: 'sourcebot-mcp-server',
@@ -39,8 +75,7 @@ export function createMcpServer(): McpServer {
     server.registerTool(
         "search_code",
         {
-            description: dedent`
-            Searches for code that matches the provided search query as a substring by default, or as a regular expression if useRegex is true. Useful for exploring remote repositories by searching for exact symbols, functions, variables, or specific code patterns. To determine if a repository is indexed, use the \`list_repos\` tool. By default, searches are global and will search the default branch of all repositories. Searches can be scoped to specific repositories, languages, and branches. When referencing code outputted by this tool, always include the file's external URL as a link. This makes it easier for the user to view the file, even if they don't have it locally checked out.`,
+            description: TOOL_DESCRIPTIONS.search_code,
             inputSchema: {
                 query: z
                     .string()
@@ -194,7 +229,7 @@ export function createMcpServer(): McpServer {
     server.registerTool(
         "list_commits",
         {
-            description: dedent`Get a list of commits for a given repository.`,
+            description: TOOL_DESCRIPTIONS.list_commits,
             inputSchema: z.object({
                 repo: z.string().describe("The name of the repository to list commits for."),
                 query: z.string().describe("Search query to filter commits by message content (case-insensitive).").optional(),
@@ -232,7 +267,7 @@ export function createMcpServer(): McpServer {
     server.registerTool(
         "list_repos",
         {
-            description: dedent`Lists repositories in the organization with optional filtering and pagination.`,
+            description: TOOL_DESCRIPTIONS.list_repos,
             inputSchema: z.object({
                 query: z.string().describe("Filter repositories by name (case-insensitive)").optional(),
                 page: z.number().int().positive().describe("Page number for pagination (min 1). Default: 1").optional().default(1),
@@ -272,7 +307,7 @@ export function createMcpServer(): McpServer {
     server.registerTool(
         "read_file",
         {
-            description: dedent`Reads the source code for a given file.`,
+            description: TOOL_DESCRIPTIONS.read_file,
             inputSchema: {
                 repo: z.string().describe("The repository name."),
                 path: z.string().describe("The path to the file."),
@@ -305,10 +340,7 @@ export function createMcpServer(): McpServer {
     server.registerTool(
         "list_tree",
         {
-            description: dedent`
-            Lists files and directories from a repository path. This can be used as a repo tree tool or directory listing tool.
-            Returns a flat list of entries with path metadata and depth relative to the requested path.
-            `,
+            description: TOOL_DESCRIPTIONS.list_tree,
             inputSchema: {
                 repo: z.string().describe("The name of the repository to list files from."),
                 path: z.string().describe("Directory path (relative to repo root). If omitted, the repo root is used.").optional().default(''),
@@ -447,7 +479,7 @@ export function createMcpServer(): McpServer {
     server.registerTool(
         "list_language_models",
         {
-            description: dedent`Lists the available language models configured on the Sourcebot instance. Use this to discover which models can be specified when calling ask_codebase.`,
+            description: TOOL_DESCRIPTIONS.list_language_models,
         },
         async () => {
             const models = await getConfiguredLanguageModelsInfo();
@@ -458,20 +490,7 @@ export function createMcpServer(): McpServer {
     server.registerTool(
         "ask_codebase",
         {
-            description: dedent`
-            Ask a natural language question about the codebase. This tool uses an AI agent to autonomously search code, read files, and find symbol references/definitions to answer your question.
-
-            The agent will:
-            - Analyze your question and determine what context it needs
-            - Search the codebase using multiple strategies (code search, symbol lookup, file reading)
-            - Synthesize findings into a comprehensive answer with code references
-
-            Returns a detailed answer in markdown format with code references, plus a link to view the full research session (including all tool calls and reasoning) in the Sourcebot web UI.
-
-            When using this in shared environments (e.g., Slack), you can set the visibility parameter to 'PUBLIC' to ensure everyone can access the chat link.
-
-            This is a blocking operation that may take 30-60+ seconds for complex questions as the agent researches the codebase.
-            `,
+            description: TOOL_DESCRIPTIONS.ask_codebase,
             inputSchema: z.object({
                 query: z.string().describe("The query to ask about the codebase."),
                 repos: z.array(z.string()).optional().describe("The repositories accessible to the agent. If not provided, all repositories are accessible."),
