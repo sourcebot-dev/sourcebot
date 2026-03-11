@@ -28,6 +28,7 @@ export const runtime = 'nodejs';
 export type IdentityProvider = {
     provider: Provider;
     purpose: "sso" | "account_linking";
+    issuerUrl?: string;
     required?: boolean;
 }
 
@@ -50,7 +51,7 @@ declare module 'next-auth/jwt' {
 }
 
 export const getProviders = () => {
-    const providers: IdentityProvider[] = eeIdentityProviders;
+    const providers: IdentityProvider[] = [...eeIdentityProviders];
 
     if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
         providers.push({
@@ -158,7 +159,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // This is necessary to update the access token when the user
             // re-authenticates.
             // NOTE: Tokens are encrypted before storage for security
-            if (account && account.provider && account.provider !== 'credentials' && account.providerAccountId) {
+            if (
+                account &&
+                account.provider &&
+                account.provider !== 'credentials' &&
+                account.providerAccountId
+            ) {
+                const issuerUrl = await getIssuerUrlForAccount(account);
+
                 await prisma.account.update({
                     where: {
                         provider_providerAccountId: {
@@ -173,6 +181,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         token_type: account.token_type,
                         scope: account.scope,
                         id_token: account.id_token,
+                        issuerUrl,
                     })
                 })
             }
@@ -219,6 +228,34 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 token.userId = user.id;
             }
 
+            // @note The following performs a lazy migration of the issuerUrl
+            // in the user's accounts. The issuerUrl was introduced in v4.15.4
+            // and will not be present for accounts created prior to this version.
+            //
+            // @see https://github.com/sourcebot-dev/sourcebot/pull/993
+            if (token.userId) {
+                const accountsWithoutIssuerUrl = await prisma.account.findMany({
+                    where: {
+                        userId: token.userId,
+                        issuerUrl: null,
+                    },
+                });
+
+                for (const account of accountsWithoutIssuerUrl) {
+                    const issuerUrl = await getIssuerUrlForAccount(account);
+                    if (issuerUrl) {
+                        await prisma.account.update({
+                            where: {
+                                id: account.id,
+                            },
+                            data: {
+                                issuerUrl,
+                            },
+                        });
+                    }
+                }
+            }
+
             // Refresh expiring tokens and capture any errors.
             if (hasEntitlement('sso') && token.userId) {
                 const errors = await refreshLinkedAccountTokens(token.userId);
@@ -251,3 +288,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // verifyRequest: "/login/verify",
     }
 });
+
+/**
+ * Returns the issuer URL for a given auth.js account
+ */
+const getIssuerUrlForAccount = async (account: { provider: string; }) => {
+    const providers = getProviders();
+    const matchingProvider = providers.find((provider) => {
+        if (typeof provider.provider === "function") {
+            const providerInfo = provider.provider();
+            return providerInfo.id === account.provider;
+        } else {
+            return provider.provider.id === account.provider;
+        }
+    });
+    return matchingProvider?.issuerUrl;
+}

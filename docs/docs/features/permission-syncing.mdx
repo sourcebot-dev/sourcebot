@@ -147,9 +147,13 @@ The button will show a spinner while the sync is in progress and display a confi
 
 # Overriding enforcement per connection
 
-Each [connection](/docs/connections/overview) supports an `enforcePermissions` flag that controls whether permissions are enforced for repositories in that connection. This lets you mix code hosts in a single deployment - for example, enforcing access control on a private GitHub connection while keeping an internal Gerrit instance open to all users.
+Each [connection](/docs/connections/overview) supports two flags that control permission enforcement for that connection's repositories:
 
-By default, `enforcePermissions` inherits the value of `PERMISSION_SYNC_ENABLED`. You can override it per connection in the [config file](/docs/configuration/config-file):
+- **`enforcePermissions`**: Controls whether repository permissions are enforced for the connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`.
+- **`enforcePermissionsForPublicRepos`**: Controls whether repository permissions are enforced for public repositories in the connection. When true, public repositories are only visible to users with a linked account for the connection's code host. When false, public repositories are visible to all users. Has no effect when `enforcePermissions` is false. Defaults to false.
+
+
+These flags are useful when you want different enforcement behavior across connections. For example, you may want to enforce permissions on an internal GitHub Enterprise connection while leaving a public-facing Gerrit mirror open to all users. Or, you can use `enforcePermissionsForPublicRepos` to restrict public repositories on a Bitbucket connection so that only users who have authenticated with that host can browse them.
 
 ```json
 {
@@ -157,6 +161,11 @@ By default, `enforcePermissions` inherits the value of `PERMISSION_SYNC_ENABLED`
     "my-github": {
       "type": "github",
       "enforcePermissions": true
+    },
+    "my-bitbucket": {
+      "type": "bitbucket",
+      "enforcePermissions": true,
+      "enforcePermissionsForPublicRepos": true
     },
     "my-gerrit": {
       "type": "gerrit",
@@ -167,16 +176,14 @@ By default, `enforcePermissions` inherits the value of `PERMISSION_SYNC_ENABLED`
 }
 ```
 
-Setting `enforcePermissions: false` on a connection makes all repositories from that connection accessible to any user, regardless of the global `PERMISSION_SYNC_ENABLED` setting.
+The table below shows when permissions are enforced based on the combination of `PERMISSION_SYNC_ENABLED`, `enforcePermissions`, and `enforcePermissionsForPublicRepos`:
 
-The table below shows when permissions are enforced based on the combination of `PERMISSION_SYNC_ENABLED` and `enforcePermissions`:
-
-| `PERMISSION_SYNC_ENABLED` | `enforcePermissions` | Permissions enforced? |
-|--------------------------|---------------------|-----------------------|
-| `true`                   | `true`              | Yes                   |
-| `true`                   | `false`             | No                    |
-| `false`                  | `true`              | No                    |
-| `false`                  | `false`             | No                    |
+| `PERMISSION_SYNC_ENABLED` | `enforcePermissions` | `enforcePermissionsForPublicRepos` | Private repos enforced? | Public repos enforced? |
+|--------------------------|---------------------|------------------------------------|------------------------|------------------------|
+| `true`                   | `true`              | `false`                            | Yes                    | No                     |
+| `true`                   | `true`              | `true`                             | Yes                    | Yes                    |
+| `true`                   | `false`             | any                                | No                     | No                     |
+| `false`                  | any                 | any                                | No                     | No                     |
 
 # How it works
 
