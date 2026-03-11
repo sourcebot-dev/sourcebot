@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.15.4] - 2026-03-11
+
 ### Added
 - [EE] Added multi-owner support with promote/demote actions. [#988](https://github.com/sourcebot-dev/sourcebot/pull/988)
 - [EE] Added `PERMISSION_SYNC_REPO_DRIVEN_ENABLED` environment variable to enable/disable repo-driven permission syncing. [#989](https://github.com/sourcebot-dev/sourcebot/pull/989)
