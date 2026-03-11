@@ -51,7 +51,7 @@ declare module 'next-auth/jwt' {
 }
 
 export const getProviders = () => {
-    const providers: IdentityProvider[] = eeIdentityProviders;
+    const providers: IdentityProvider[] = [...eeIdentityProviders];
 
     if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
         providers.push({
