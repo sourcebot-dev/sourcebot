@@ -99,7 +99,7 @@ export async function verifyAndExchangeCode({
     }
 
     // RFC 8707: if a resource was bound to the auth code, the token request must present the same value.
-    if (authCode.resource !== null && authCode.resource !== resource) {
+    if (resource !== null && authCode.resource !== null && authCode.resource !== resource) {
         return { error: 'invalid_target', errorDescription: 'resource parameter does not match the value bound to the authorization code.' };
     }
 
@@ -174,7 +174,7 @@ export async function verifyAndRotateRefreshToken({
         return { error: 'invalid_grant', errorDescription: 'Refresh token has expired.' };
     }
 
-    if (existing.resource !== null && existing.resource !== resource) {
+    if (resource !== null && existing.resource !== null && existing.resource !== resource) {
         return { error: 'invalid_target', errorDescription: 'resource parameter does not match the refresh token.' };
     }
 
