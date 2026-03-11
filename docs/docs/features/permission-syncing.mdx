@@ -176,10 +176,6 @@ These flags are useful when you want different enforcement behavior across conne
 }
 ```
 
-<Warning>
-If you set `enforcePermissionsForPublicRepos` to true on an existing deployment, users who are already signed in will need to sign out and sign back in before the flag takes effect for their account.
-</Warning>
-
 The table below shows when permissions are enforced based on the combination of `PERMISSION_SYNC_ENABLED`, `enforcePermissions`, and `enforcePermissionsForPublicRepos`:
 
 | `PERMISSION_SYNC_ENABLED` | `enforcePermissions` | `enforcePermissionsForPublicRepos` | Private repos enforced? | Public repos enforced? |
