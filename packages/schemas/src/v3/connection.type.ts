@@ -88,6 +88,10 @@ export interface GithubConnectionConfig {
    * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
    */
   enforcePermissions?: boolean;
+  /**
+   * Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissionsForPublicRepos?: boolean;
 }
 /**
  * The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.
@@ -176,6 +180,10 @@ export interface GitlabConnectionConfig {
    * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
    */
   enforcePermissions?: boolean;
+  /**
+   * Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissionsForPublicRepos?: boolean;
 }
 export interface GiteaConnectionConfig {
   /**
@@ -233,6 +241,10 @@ export interface GiteaConnectionConfig {
    * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
    */
   enforcePermissions?: boolean;
+  /**
+   * Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissionsForPublicRepos?: boolean;
 }
 export interface GerritConnectionConfig {
   /**
@@ -266,6 +278,10 @@ export interface GerritConnectionConfig {
    * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
    */
   enforcePermissions?: boolean;
+  /**
+   * Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissionsForPublicRepos?: boolean;
 }
 export interface BitbucketConnectionConfig {
   /**
@@ -339,6 +355,10 @@ export interface BitbucketConnectionConfig {
    * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
    */
   enforcePermissions?: boolean;
+  /**
+   * Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissionsForPublicRepos?: boolean;
 }
 export interface AzureDevOpsConnectionConfig {
   /**
@@ -417,6 +437,10 @@ export interface AzureDevOpsConnectionConfig {
    * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
    */
   enforcePermissions?: boolean;
+  /**
+   * Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissionsForPublicRepos?: boolean;
 }
 export interface GenericGitHostConnectionConfig {
   /**
@@ -432,4 +456,8 @@ export interface GenericGitHostConnectionConfig {
    * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
    */
   enforcePermissions?: boolean;
+  /**
+   * Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissionsForPublicRepos?: boolean;
 }

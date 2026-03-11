@@ -28,6 +28,7 @@ export const runtime = 'nodejs';
 export type IdentityProvider = {
     provider: Provider;
     purpose: "sso" | "account_linking";
+    issuerUrl?: string;
     required?: boolean;
 }
 
@@ -159,6 +160,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // re-authenticates.
             // NOTE: Tokens are encrypted before storage for security
             if (account && account.provider && account.provider !== 'credentials' && account.providerAccountId) {
+
+                // Find the matching provider for the account
+                const providers = getProviders();
+                const matchingProvider = providers.find((provider) => {
+                    if (typeof provider.provider === "function") {
+                        const providerInfo = provider.provider();
+                        return providerInfo.id === account.provider;
+                    } else {
+                        return provider.provider.id === account.provider;
+                    }
+                });
+
                 await prisma.account.update({
                     where: {
                         provider_providerAccountId: {
@@ -173,6 +186,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         token_type: account.token_type,
                         scope: account.scope,
                         id_token: account.id_token,
+                        issuerUrl: matchingProvider?.issuerUrl,
                     })
                 })
             }

@@ -175,9 +175,21 @@ model Connection {
   /// When the connection was last synced successfully.
   syncedAt           DateTime?
 
-  /// Controls whether permissions are enforced for repositories in this connection.
-  /// When PERMISSION_SYNC_ENABLED is false, this setting has no effect.
+  /// Controls whether repository permissions are enforced for this connection.
+  /// When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect.
+  /// Defaults to the value of `PERMISSION_SYNC_ENABLED`.
+  ///
+  /// See https://docs.sourcebot.dev/docs/features/permission-syncing
   enforcePermissions Boolean @default(true)
+
+  /// Controls whether repository permissions are enforced for public repositories
+  /// in this connection. When true, public repositories are only visible to users
+  /// with a linked account for this connection's code host. When false, public
+  /// repositories are visible to all users. Has no effect when enforcePermissions
+  /// is false. Defaults to false.
+  ///
+  /// See https://docs.sourcebot.dev/docs/features/permission-syncing
+  enforcePermissionsForPublicRepos Boolean @default(false)
 
   // The organization that owns this connection
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -433,6 +445,11 @@ model Account {
   id_token          String?
   session_state     String?
   
+  /// The issuer URL of the identity provider that issued this account (e.g., https://github.com)
+  /// @note: For code-host providers (like GitHub, GitLab, etc.) this will match the external_codeHostUrl
+  /// of a repo record. This is important for activities like permission syncing.
+  issuerUrl String?
+
   /// List of repos that this account has access to.
   accessibleRepos AccountToRepoPermission[]
 

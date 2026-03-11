@@ -69,6 +69,7 @@ export class ConfigManager {
                     !isEqual(existingConnectionConfig, newConnectionConfig);
 
                 const enforcePermissions = newConnectionConfig.enforcePermissions ?? (env.PERMISSION_SYNC_ENABLED === 'true');
+                const enforcePermissionsForPublicRepos = newConnectionConfig.enforcePermissionsForPublicRepos ?? false;
 
                 // Either update the existing connection or create a new one.
                 const connection = existingConnection ?
@@ -80,6 +81,7 @@ export class ConfigManager {
                             config: newConnectionConfig as unknown as Prisma.InputJsonValue,
                             isDeclarative: true,
                             enforcePermissions,
+                            enforcePermissionsForPublicRepos,
                         }
                     }) :
                     await this.db.connection.create({
@@ -89,6 +91,7 @@ export class ConfigManager {
                             connectionType: newConnectionConfig.type,
                             isDeclarative: true,
                             enforcePermissions,
+                            enforcePermissionsForPublicRepos,
                             org: {
                                 connect: {
                                     id: SINGLE_TENANT_ORG_ID,
