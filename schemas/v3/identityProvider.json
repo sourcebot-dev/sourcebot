@@ -216,6 +216,28 @@
             },
             "required": ["provider", "purpose", "clientId", "clientSecret", "issuer"]
         },
+        "JumpCloudIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "provider": {
+                    "const": "jumpcloud"
+                },
+                "purpose": {
+                    "const": "sso"
+                },
+                "clientId": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "clientSecret": {
+                    "$ref": "./shared.json#/definitions/Token"
+                },
+                "issuer": {
+                    "$ref": "./shared.json#/definitions/Token"
+                }
+            },
+            "required": ["provider", "purpose", "clientId", "clientSecret", "issuer"]
+        },
         "BitbucketServerIdentityProviderConfig": {
             "type": "object",
             "additionalProperties": false,
@@ -273,6 +295,9 @@
         },
         {
             "$ref": "#/definitions/BitbucketCloudIdentityProviderConfig"
+        },
+        {
+            "$ref": "#/definitions/JumpCloudIdentityProviderConfig"
         },
         {
             "$ref": "#/definitions/BitbucketServerIdentityProviderConfig"

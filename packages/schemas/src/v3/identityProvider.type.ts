@@ -10,6 +10,7 @@ export type IdentityProviderConfig =
   | GCPIAPIdentityProviderConfig
   | AuthentikIdentityProviderConfig
   | BitbucketCloudIdentityProviderConfig
+  | JumpCloudIdentityProviderConfig
   | BitbucketServerIdentityProviderConfig;
 
 export interface GitHubIdentityProviderConfig {
@@ -331,6 +332,49 @@ export interface BitbucketCloudIdentityProviderConfig {
         googleCloudSecret: string;
       };
   accountLinkingRequired?: boolean;
+}
+export interface JumpCloudIdentityProviderConfig {
+  provider: "jumpcloud";
+  purpose: "sso";
+  clientId:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  clientSecret:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  issuer:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
 }
 export interface BitbucketServerIdentityProviderConfig {
   provider: "bitbucket-server";
