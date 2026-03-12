@@ -58,6 +58,8 @@ export const LoginForm = ({ callbackUrl, error, providers, context, isAnonymousA
                 return "wa_login_with_keycloak" as const;
             case "microsoft-entra-id":
                 return "wa_login_with_microsoft_entra_id" as const;
+            case "jumpcloud":
+                return "wa_login_with_jumpcloud" as const;
             default:
                 return "wa_login_with_github" as const; // fallback
         }

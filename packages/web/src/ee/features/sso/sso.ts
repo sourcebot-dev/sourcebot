@@ -1,7 +1,7 @@
 import type { IdentityProvider } from "@/auth";
 import { onCreateUser } from "@/lib/authUtils";
 import { prisma } from "@/prisma";
-import { AuthentikIdentityProviderConfig, BitbucketCloudIdentityProviderConfig, BitbucketServerIdentityProviderConfig, GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
+import { AuthentikIdentityProviderConfig, BitbucketCloudIdentityProviderConfig, BitbucketServerIdentityProviderConfig, GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, JumpCloudIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
 import type { IdentityProviderType } from "@sourcebot/shared";
 import { createLogger, env, getTokenFromConfig, hasEntitlement, loadConfig } from "@sourcebot/shared";
 import { OAuth2Client } from "google-auth-library";
@@ -128,6 +128,18 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
             const issuer = (await getTokenFromConfig(providerConfig.issuer)).replace(/\/+$/, '');
             providers.push({
                 provider: createAuthentikProvider(clientId, clientSecret, issuer),
+                purpose: providerConfig.purpose,
+                issuerUrl: issuer
+            });
+        }
+
+        if (identityProvider.provider === "jumpcloud") {
+            const providerConfig = identityProvider as JumpCloudIdentityProviderConfig;
+            const clientId = await getTokenFromConfig(providerConfig.clientId);
+            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
+            const issuer = (await getTokenFromConfig(providerConfig.issuer)).replace(/\/+$/, '');
+            providers.push({
+                provider: createJumpCloudProvider(clientId, clientSecret, issuer),
                 purpose: providerConfig.purpose,
                 issuerUrl: issuer
             });
@@ -420,6 +432,18 @@ export const createAuthentikProvider = (clientId: string, clientSecret: string, 
         issuer: issuer,
         allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
+}
+
+const createJumpCloudProvider = (clientId: string, clientSecret: string, issuer: string): Provider => {
+    return {
+        id: 'jumpcloud' satisfies IdentityProviderType,
+        name: "JumpCloud",
+        type: "oidc",
+        clientId: clientId,
+        clientSecret: clientSecret,
+        issuer: issuer,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
+    } as Provider;
 }
 
 const createGCPIAPProvider = (audience: string): Provider => {
