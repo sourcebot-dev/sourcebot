@@ -700,7 +700,7 @@ export const getReposForAuthenticatedBitbucketCloudUser = async (
 /**
  * Returns the IDs of all repositories accessible to the authenticated Bitbucket Server user.
  * Used for account-driven permission syncing.
- * 
+ *
  * @see https://developer.atlassian.com/server/bitbucket/rest/v906/api-group-repository/#api-api-latest-repos-get
  */
 export const getReposForAuthenticatedBitbucketServerUser = async (
