@@ -3,7 +3,6 @@ import { createLogger, env, hasEntitlement, PERMISSION_SYNC_SUPPORTED_IDENTITY_P
 import express, { Request, Response } from 'express';
 import 'express-async-errors';
 import * as http from "http";
-import z from 'zod';
 import { ConnectionManager } from './connectionManager.js';
 import { AccountPermissionSyncer } from './ee/accountPermissionSyncer.js';
 import { PromClient } from './promClient.js';
@@ -11,6 +10,7 @@ import { RepoIndexManager } from './repoIndexManager.js';
 import { createGitHubRepoRecord } from './repoCompileUtils.js';
 import { Octokit } from '@octokit/rest';
 import { SINGLE_TENANT_ORG_ID } from './constants.js';
+import z from 'zod';
 
 const logger = createLogger('api');
 const PORT = 3060;

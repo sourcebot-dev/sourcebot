@@ -5,20 +5,12 @@ import { withOptionalAuthV2 } from "@/withAuthV2";
 import { getRepoPath } from '@sourcebot/shared';
 import { headers } from 'next/headers';
 import simpleGit from 'simple-git';
-import z from 'zod';
-import { fileTreeNodeSchema } from './types';
+import type z from 'zod';
+import { getTreeRequestSchema, getTreeResponseSchema } from './schemas';
 import { buildFileTree, isGitRefValid, isPathValid, logger, normalizePath } from './utils';
 
-export const getTreeRequestSchema = z.object({
-    repoName: z.string(),
-    revisionName: z.string(),
-    paths: z.array(z.string()),
-});
+export { getTreeRequestSchema, getTreeResponseSchema } from './schemas';
 export type GetTreeRequest = z.infer<typeof getTreeRequestSchema>;
-
-export const getTreeResponseSchema = z.object({
-    tree: fileTreeNodeSchema,
-});
 export type GetTreeResponse = z.infer<typeof getTreeResponseSchema>;
 
 /**

@@ -1,0 +1,1111 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Sourcebot Public API",
+    "version": "v4.15.2",
+    "description": "OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development web app"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Search",
+      "description": "Code search endpoints."
+    },
+    {
+      "name": "Repositories",
+      "description": "Repository listing and metadata endpoints."
+    },
+    {
+      "name": "Files",
+      "description": "File tree, file listing, and file content endpoints."
+    },
+    {
+      "name": "Misc",
+      "description": "Miscellaneous public API endpoints."
+    }
+  ],
+  "components": {
+    "schemas": {
+      "PublicSearchResponse": {
+        "type": "object",
+        "properties": {
+          "stats": {
+            "type": "object",
+            "properties": {
+              "actualMatchCount": {
+                "type": "number"
+              },
+              "totalMatchCount": {
+                "type": "number"
+              },
+              "duration": {
+                "type": "number"
+              },
+              "fileCount": {
+                "type": "number"
+              },
+              "filesSkipped": {
+                "type": "number"
+              },
+              "contentBytesLoaded": {
+                "type": "number"
+              },
+              "indexBytesLoaded": {
+                "type": "number"
+              },
+              "crashes": {
+                "type": "number"
+              },
+              "shardFilesConsidered": {
+                "type": "number"
+              },
+              "filesConsidered": {
+                "type": "number"
+              },
+              "filesLoaded": {
+                "type": "number"
+              },
+              "shardsScanned": {
+                "type": "number"
+              },
+              "shardsSkipped": {
+                "type": "number"
+              },
+              "shardsSkippedFilter": {
+                "type": "number"
+              },
+              "ngramMatches": {
+                "type": "number"
+              },
+              "ngramLookups": {
+                "type": "number"
+              },
+              "wait": {
+                "type": "number"
+              },
+              "matchTreeConstruction": {
+                "type": "number"
+              },
+              "matchTreeSearch": {
+                "type": "number"
+              },
+              "regexpsConsidered": {
+                "type": "number"
+              },
+              "flushReason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "actualMatchCount",
+              "totalMatchCount",
+              "duration",
+              "fileCount",
+              "filesSkipped",
+              "contentBytesLoaded",
+              "indexBytesLoaded",
+              "crashes",
+              "shardFilesConsidered",
+              "filesConsidered",
+              "filesLoaded",
+              "shardsScanned",
+              "shardsSkipped",
+              "shardsSkippedFilter",
+              "ngramMatches",
+              "ngramLookups",
+              "wait",
+              "matchTreeConstruction",
+              "matchTreeSearch",
+              "regexpsConsidered",
+              "flushReason"
+            ]
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fileName": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    },
+                    "matchRanges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "start": {
+                            "type": "object",
+                            "properties": {
+                              "byteOffset": {
+                                "type": "number"
+                              },
+                              "lineNumber": {
+                                "type": "number"
+                              },
+                              "column": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "byteOffset",
+                              "lineNumber",
+                              "column"
+                            ]
+                          },
+                          "end": {
+                            "type": "object",
+                            "properties": {
+                              "byteOffset": {
+                                "type": "number"
+                              },
+                              "lineNumber": {
+                                "type": "number"
+                              },
+                              "column": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "byteOffset",
+                              "lineNumber",
+                              "column"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "start",
+                          "end"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "text",
+                    "matchRanges"
+                  ]
+                },
+                "webUrl": {
+                  "type": "string"
+                },
+                "externalWebUrl": {
+                  "type": "string"
+                },
+                "repository": {
+                  "type": "string"
+                },
+                "repositoryId": {
+                  "type": "number"
+                },
+                "language": {
+                  "type": "string"
+                },
+                "chunks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "content": {
+                        "type": "string"
+                      },
+                      "matchRanges": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "start": {
+                              "type": "object",
+                              "properties": {
+                                "byteOffset": {
+                                  "type": "number"
+                                },
+                                "lineNumber": {
+                                  "type": "number"
+                                },
+                                "column": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "byteOffset",
+                                "lineNumber",
+                                "column"
+                              ]
+                            },
+                            "end": {
+                              "type": "object",
+                              "properties": {
+                                "byteOffset": {
+                                  "type": "number"
+                                },
+                                "lineNumber": {
+                                  "type": "number"
+                                },
+                                "column": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "byteOffset",
+                                "lineNumber",
+                                "column"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "start",
+                            "end"
+                          ]
+                        }
+                      },
+                      "contentStart": {
+                        "type": "object",
+                        "properties": {
+                          "byteOffset": {
+                            "type": "number"
+                          },
+                          "lineNumber": {
+                            "type": "number"
+                          },
+                          "column": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "byteOffset",
+                          "lineNumber",
+                          "column"
+                        ]
+                      },
+                      "symbols": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "symbol": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "parent": {
+                              "type": "object",
+                              "properties": {
+                                "symbol": {
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "symbol",
+                                "kind"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "symbol",
+                            "kind"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "content",
+                      "matchRanges",
+                      "contentStart"
+                    ]
+                  }
+                },
+                "branches": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "content": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "fileName",
+                "webUrl",
+                "repository",
+                "repositoryId",
+                "language",
+                "chunks"
+              ]
+            }
+          },
+          "repositoryInfo": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "number"
+                },
+                "codeHostType": {
+                  "type": "string",
+                  "enum": [
+                    "github",
+                    "gitlab",
+                    "gitea",
+                    "gerrit",
+                    "bitbucketServer",
+                    "bitbucketCloud",
+                    "genericGitHost",
+                    "azuredevops"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                },
+                "webUrl": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "codeHostType",
+                "name"
+              ]
+            }
+          },
+          "isSearchExhaustive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "stats",
+          "files",
+          "repositoryInfo",
+          "isSearchExhaustive"
+        ]
+      },
+      "PublicApiServiceError": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number"
+          },
+          "errorCode": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "statusCode",
+          "errorCode",
+          "message"
+        ],
+        "description": "Structured error response returned by Sourcebot public API endpoints."
+      },
+      "PublicSearchRequest": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "matches": {
+            "type": "number"
+          },
+          "contextLines": {
+            "type": "number"
+          },
+          "whole": {
+            "type": "boolean"
+          },
+          "isRegexEnabled": {
+            "type": "boolean"
+          },
+          "isCaseSensitivityEnabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "query",
+          "matches"
+        ]
+      },
+      "PublicStreamSearchSse": {
+        "type": "string",
+        "description": "Server-sent event stream. Each data frame contains one JSON object matching PublicStreamedSearchEvent.",
+        "example": "data: {\"type\":\"chunk\",\"stats\":{\"actualMatchCount\":1}}\n\n"
+      },
+      "PublicRepository": {
+        "type": "object",
+        "properties": {
+          "codeHostType": {
+            "type": "string",
+            "enum": [
+              "github",
+              "gitlab",
+              "gitea",
+              "gerrit",
+              "bitbucketServer",
+              "bitbucketCloud",
+              "genericGitHost",
+              "azuredevops"
+            ]
+          },
+          "repoId": {
+            "type": "number"
+          },
+          "repoName": {
+            "type": "string"
+          },
+          "webUrl": {
+            "type": "string"
+          },
+          "repoDisplayName": {
+            "type": "string"
+          },
+          "externalWebUrl": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "indexedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pushedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "defaultBranch": {
+            "type": "string"
+          },
+          "isFork": {
+            "type": "boolean"
+          },
+          "isArchived": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "codeHostType",
+          "repoId",
+          "repoName",
+          "webUrl",
+          "isFork",
+          "isArchived"
+        ]
+      },
+      "PublicListReposResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/PublicRepository"
+        }
+      },
+      "PublicVersionResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "Running Sourcebot version.",
+            "example": "v4.15.2"
+          }
+        },
+        "required": [
+          "version"
+        ]
+      },
+      "PublicFileSourceResponse": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "repoCodeHostType": {
+            "type": "string",
+            "enum": [
+              "github",
+              "gitlab",
+              "gitea",
+              "gerrit",
+              "bitbucketServer",
+              "bitbucketCloud",
+              "genericGitHost",
+              "azuredevops"
+            ]
+          },
+          "repoDisplayName": {
+            "type": "string"
+          },
+          "repoExternalWebUrl": {
+            "type": "string"
+          },
+          "webUrl": {
+            "type": "string"
+          },
+          "externalWebUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "language",
+          "path",
+          "repo",
+          "repoCodeHostType",
+          "webUrl"
+        ]
+      },
+      "PublicGetTreeRequest": {
+        "type": "object",
+        "properties": {
+          "repoName": {
+            "type": "string"
+          },
+          "revisionName": {
+            "type": "string"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "repoName",
+          "revisionName",
+          "paths"
+        ]
+      },
+      "PublicGetFilesResponse": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "path",
+            "name"
+          ]
+        }
+      },
+      "PublicGetFilesRequest": {
+        "type": "object",
+        "properties": {
+          "repoName": {
+            "type": "string"
+          },
+          "revisionName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "repoName",
+          "revisionName"
+        ]
+      },
+      "PublicFileTreeNode": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicFileTreeNode"
+            }
+          }
+        },
+        "required": [
+          "type",
+          "path",
+          "name",
+          "children"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/api/search": {
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Run a blocking code search",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicSearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected search failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stream_search": {
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Run a streaming code search",
+        "description": "Returns a server-sent event stream. Each event data payload is a JSON object describing either a chunk, final summary, or error.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SSE stream of search results.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicStreamSearchSse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected search failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/repos": {
+      "get": {
+        "tags": [
+          "Repositories"
+        ],
+        "summary": "List repositories",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "maximum": 100,
+              "default": 30
+            },
+            "required": false,
+            "name": "perPage",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "pushed"
+              ],
+              "default": "name"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "asc"
+            },
+            "required": false,
+            "name": "direction",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "query",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated repository list.",
+            "headers": {
+              "X-Total-Count": {
+                "description": "Total number of repositories matching the query across all pages.",
+                "schema": {
+                  "type": "integer",
+                  "example": 137
+                }
+              },
+              "Link": {
+                "description": "Pagination links formatted per RFC 8288. Includes `rel=\"next\"`, `rel=\"prev\"`, `rel=\"first\"`, and `rel=\"last\"` when applicable.",
+                "schema": {
+                  "type": "string",
+                  "example": "</api/repos?page=2&perPage=30>; rel=\"next\", </api/repos?page=5&perPage=30>; rel=\"last\""
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicListReposResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected repository listing failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/version": {
+      "get": {
+        "tags": [
+          "Misc"
+        ],
+        "summary": "Get Sourcebot version",
+        "responses": {
+          "200": {
+            "description": "Current Sourcebot version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicVersionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/source": {
+      "get": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Get file contents",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "path",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "repo",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "ref",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File source and metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicFileSourceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters or git ref.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Repository or file not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected file retrieval failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tree": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Get a file tree",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicGetTreeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File tree for the requested repository revision.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tree": {
+                      "$ref": "#/components/schemas/PublicFileTreeNode"
+                    }
+                  },
+                  "required": [
+                    "tree"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or git ref.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Repository or path not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected tree retrieval failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "List files in a repository revision",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicGetFilesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Flat list of files in the requested repository revision.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicGetFilesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Repository not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected file listing failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

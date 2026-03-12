@@ -1,0 +1,24 @@
+---
+title: API Reference
+sidebarTitle: API Reference
+---
+
+Sourcebot exposes a public REST API for code search, repository listing, and file browsing.
+
+The endpoint reference in this section is generated from the web app's Zod schemas and OpenAPI registry, then rendered by Mintlify from [`api-reference/sourcebot-public.openapi.json`](/api-reference/sourcebot-public.openapi.json).
+
+The first documented surface includes:
+
+- `/api/search`
+- `/api/stream_search`
+- `/api/repos`
+- `/api/version`
+- `/api/source`
+- `/api/tree`
+- `/api/files`
+
+To refresh the spec after changing those contracts:
+
+```bash
+yarn openapi:generate
+```

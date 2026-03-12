@@ -9,28 +9,12 @@ import { withOptionalAuthV2 } from '@/withAuthV2';
 import { getRepoPath } from '@sourcebot/shared';
 import { headers } from 'next/headers';
 import simpleGit from 'simple-git';
-import z from 'zod';
+import type z from 'zod';
 import { isGitRefValid, isPathValid } from './utils';
-import { CodeHostType } from '@sourcebot/db';
+import { fileSourceRequestSchema, fileSourceResponseSchema } from './schemas';
 
-export const fileSourceRequestSchema = z.object({
-    path: z.string(),
-    repo: z.string(),
-    ref: z.string().optional(),
-});
+export { fileSourceRequestSchema, fileSourceResponseSchema } from './schemas';
 export type FileSourceRequest = z.infer<typeof fileSourceRequestSchema>;
-
-export const fileSourceResponseSchema = z.object({
-    source: z.string(),
-    language: z.string(),
-    path: z.string(),
-    repo: z.string(),
-    repoCodeHostType: z.nativeEnum(CodeHostType),
-    repoDisplayName: z.string().optional(),
-    repoExternalWebUrl: z.string().optional(),
-    webUrl: z.string(),
-    externalWebUrl: z.string().optional(),
-});
 export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
 
 export const getFileSource = async ({ path: filePath, repo: repoName, ref }: FileSourceRequest, { source }: { source?: string } = {}): Promise<FileSourceResponse | ServiceError> => sew(() => withOptionalAuthV2(async ({ org, prisma, user }) => {
