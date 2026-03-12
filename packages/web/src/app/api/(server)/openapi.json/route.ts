@@ -6,13 +6,7 @@ export const dynamic = 'force-dynamic';
 
 async function loadOpenApiDocument() {
     const openApiPath = path.resolve(process.cwd(), '../../docs/api-reference/sourcebot-public.openapi.json');
-    try {
-        return JSON.parse(await fs.readFile(openApiPath, 'utf8'));
-    } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-            throw error;
-        }
-    }
+    return JSON.parse(await fs.readFile(openApiPath, 'utf8'));
 }
 
 export const GET = apiHandler(async () => {
