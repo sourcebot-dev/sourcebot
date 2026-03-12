@@ -4,24 +4,15 @@ import { apiHandler } from '@/lib/apiHandler';
 
 export const dynamic = 'force-dynamic';
 
-const openApiPathCandidates = [
-    path.resolve(process.cwd(), 'docs/api-reference/sourcebot-public.openapi.json'),
-    path.resolve(process.cwd(), '../docs/api-reference/sourcebot-public.openapi.json'),
-    path.resolve(process.cwd(), '../../docs/api-reference/sourcebot-public.openapi.json'),
-];
-
 async function loadOpenApiDocument() {
-    for (const candidate of openApiPathCandidates) {
-        try {
-            return JSON.parse(await fs.readFile(candidate, 'utf8'));
-        } catch (error) {
-            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-                throw error;
-            }
+    const openApiPath = path.resolve(process.cwd(), '../../docs/api-reference/sourcebot-public.openapi.json');
+    try {
+        return JSON.parse(await fs.readFile(openApiPath, 'utf8'));
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+            throw error;
         }
     }
-
-    throw new Error('OpenAPI spec file not found');
 }
 
 export const GET = apiHandler(async () => {
