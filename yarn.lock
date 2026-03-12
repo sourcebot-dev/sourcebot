@@ -8699,7 +8699,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@sourcebot/backend@workspace:packages/backend"
   dependencies:
-    "@asteasolutions/zod-to-openapi": "npm:7.3.4"
     "@coderabbitai/bitbucket": "npm:^1.1.3"
     "@gitbeaker/rest": "npm:^40.5.1"
     "@octokit/app": "npm:^16.1.1"

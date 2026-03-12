@@ -2,15 +2,9 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Sourcebot Public API",
-    "version": "v4.15.2",
+    "version": "v4.15.4",
     "description": "OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing."
   },
-  "servers": [
-    {
-      "url": "http://localhost:3000",
-      "description": "Local development web app"
-    }
-  ],
   "tags": [
     {
       "name": "Search",
@@ -443,7 +437,7 @@
       },
       "PublicStreamSearchSse": {
         "type": "string",
-        "description": "Server-sent event stream. Each data frame contains one JSON object matching PublicStreamedSearchEvent.",
+        "description": "Server-sent event stream. Each data frame contains one JSON object representing either a chunk update, a final summary, or an error.",
         "example": "data: {\"type\":\"chunk\",\"stats\":{\"actualMatchCount\":1}}\n\n"
       },
       "PublicRepository": {

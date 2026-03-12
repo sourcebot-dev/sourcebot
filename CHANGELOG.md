@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Require explicit invocation of ask_codebase tool in MCP [#995](https://github.com/sourcebot-dev/sourcebot/pull/995)
 - Gate MCP API behind authentication when Ask GitHub is enabled. [#994](https://github.com/sourcebot-dev/sourcebot/pull/994)
+- Added generated OpenAPI documentation for the public search, repo, and file browsing API surface. [#101](https://github.com/sourcebot-dev/sourcebot/issues/101)
 
 ## [4.15.4] - 2026-03-11
 

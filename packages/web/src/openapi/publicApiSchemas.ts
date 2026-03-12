@@ -71,6 +71,6 @@ export const publicListReposQuerySchema = z.object({
 export const publicListReposResponseSchema = z.array(publicRepositorySchema).openapi('PublicListReposResponse');
 
 export const publicStreamSearchSseSchema = z.string().openapi('PublicStreamSearchSse', {
-    description: 'Server-sent event stream. Each data frame contains one JSON object matching PublicStreamedSearchEvent.',
+    description: 'Server-sent event stream. Each data frame contains one JSON object representing either a chunk update, a final summary, or an error.',
     example: 'data: {"type":"chunk","stats":{"actualMatchCount":1}}\n\n',
 });

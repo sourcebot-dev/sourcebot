@@ -229,12 +229,6 @@ export function createPublicOpenApiDocument(version: string) {
             version,
             description: 'OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing.',
         },
-        servers: [
-            {
-                url: 'http://localhost:3000',
-                description: 'Local development web app',
-            },
-        ],
         tags: [searchTag, reposTag, filesTag, miscTag],
     });
 
