@@ -700,12 +700,31 @@ export const getReposForAuthenticatedBitbucketCloudUser = async (
 /**
  * Returns the IDs of all repositories accessible to the authenticated Bitbucket Server user.
  * Used for account-driven permission syncing.
- *
- * @see https://developer.atlassian.com/server/bitbucket/rest/v906/api-group-repository/#api-rest-api-latest-repos-get
+ * 
+ * @see https://developer.atlassian.com/server/bitbucket/rest/v906/api-group-repository/#api-api-latest-repos-get
  */
 export const getReposForAuthenticatedBitbucketServerUser = async (
     client: BitbucketClient,
 ): Promise<Array<{ id: string }>> => {
+
+    /**
+     * @note We need to explicitly check if the user is authenticated here because
+     * /rest/api/1.0/repos?permission=REPO_READ will return an empty list if the
+     * following conditions are met:
+     * 1. Anonymous access is enabled via `feature.public.access`
+     * 2. The token is expired or invalid.
+     * 
+     * This check ensures we will not hit this condition and instead fail with a
+     * explicit error.
+     *
+     * @see https://developer.atlassian.com/server/bitbucket/rest/v906/api-group-repository/#api-api-latest-repos-get
+     * @see https://confluence.atlassian.com/bitbucketserver/configuration-properties-776640155.html
+     */
+    const isAuthenticated = await isBitbucketServerUserAuthenticated(client);
+    if (!isAuthenticated) {
+        throw new Error(`Bitbucket Server authentication check failed. The OAuth token may be expired and the server may be treating the request as anonymous. Please re-authenticate with Bitbucket Server.`);
+    }
+
     const repos = await fetchWithRetry(() => getPaginatedServer<{ id: number }>(
         `/rest/api/1.0/repos` as ServerGetRequestPath,
         async (url, start) => {
@@ -761,4 +780,15 @@ export const getUserPermissionsForServerRepo = async (
     return repoUsers
         .filter(entry => entry.user?.id != null)
         .map(entry => ({ userId: String(entry.user.id) }));
+};
+
+/**
+ * Returns true if the Bitbucket Server client is authenticated as a real user,
+ * false if the token is expired, invalid, or the request is being treated as anonymous.
+ */
+export const isBitbucketServerUserAuthenticated = async (
+    client: BitbucketClient,
+): Promise<boolean> => {
+    const { error } = await client.apiClient.GET(`/rest/api/1.0/profile/recent/repos` as ServerGetRequestPath, {});
+    return !error;
 };

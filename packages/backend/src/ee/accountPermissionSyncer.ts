@@ -330,6 +330,8 @@ export class AccountPermissionSyncer {
                 });
 
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
+            } else {
+                throw new Error(`Unsupported code host type: ${account.provider}`);
             }
 
             return Array.from(aggregatedRepoIds);
