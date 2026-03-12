@@ -12,6 +12,7 @@ import oktaLogo from "@/public/okta.svg";
 import keycloakLogo from "@/public/keycloak.svg";
 import microsoftLogo from "@/public/microsoft_entra.svg";
 import authentikLogo from "@/public/authentik.svg";
+import jumpcloudLogo from "@/public/jumpcloud.svg";
 import { ServiceError } from "./serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
@@ -137,6 +138,15 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
                     src: authentikLogo,
                 },
             }
+        case "jumpcloud":
+            return {
+                id: "jumpcloud",
+                name: "JumpCloud",
+                displayName: "JumpCloud",
+                icon: {
+                    src: jumpcloudLogo,
+                },
+            };
         case "credentials":
             return {
                 id: "credentials",
