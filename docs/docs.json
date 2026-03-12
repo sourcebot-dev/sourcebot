@@ -67,6 +67,17 @@
                         ]
                     },
                     {
+                        "group": "API Reference",
+                        "pages": [
+                            "docs/api-reference/overview",
+                            {
+                                "group": "Public API",
+                                "openapi": "api-reference/sourcebot-public.openapi.json",
+                                "directory": "docs/api-reference/public-api"
+                            }
+                        ]
+                    },
+                    {
                         "group": "Configuration",
                         "pages": [
                             "docs/configuration/config-file",
