@@ -789,6 +789,20 @@ export const getUserPermissionsForServerRepo = async (
 export const isBitbucketServerUserAuthenticated = async (
     client: BitbucketClient,
 ): Promise<boolean> => {
-    const { error } = await client.apiClient.GET(`/rest/api/1.0/profile/recent/repos` as ServerGetRequestPath, {});
-    return !error;
+    try {
+        const { error, response } = await client.apiClient.GET(`/rest/api/1.0/profile/recent/repos` as ServerGetRequestPath, {});
+        if (error) {
+            if (response.status === 401 || response.status === 403) {
+                return false;
+            }
+            throw new Error(`Unexpected error when verifying Bitbucket Server authentication status: ${JSON.stringify(error)}`);
+        }
+        return true;
+    } catch (e: any) {
+        // Handle the case where openapi-fetch throws directly for auth errors
+        if (e?.status === 401 || e?.status === 403) {
+            return false;
+        }
+        throw e;
+    }
 };
