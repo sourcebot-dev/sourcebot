@@ -338,9 +338,7 @@ export class RepoPermissionSyncer {
                 }
             }
 
-            return {
-                accountIds: [],
-            }
+            throw new Error(`Unsupported code host type: ${repo.external_codeHostType}`);
         })();
 
         await this.db.$transaction([
