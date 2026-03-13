@@ -44,7 +44,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          tools: "Bash,Read,Write,Glob,Grep,WebFetch"
+          claude_args: '--allowedTools "Bash,Read,Write,Glob,Grep,WebFetch"'
           prompt: |
             You are a license compliance auditor. Your job is to review the OSS dependency
             licenses in this repository and produce a structured audit result.
