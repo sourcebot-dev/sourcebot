@@ -783,6 +783,33 @@ export const getUserPermissionsForServerRepo = async (
 };
 
 /**
+ * Checks if the Bitbucket Server instance has the `feature.public.access` flag enabled
+ * by making a single unauthenticated request to a repo that the API reports as public.
+ */
+export const isBitbucketServerPublicAccessEnabled = async (
+    serverUrl: string,
+    publicRepo: ServerRepository,
+): Promise<boolean> => {
+    const projectKey = publicRepo.project?.key;
+    const repoSlug = publicRepo.slug;
+    if (!projectKey || !repoSlug) {
+        return false;
+    }
+
+    const url = `${serverUrl}/rest/api/1.0/projects/${projectKey}/repos/${repoSlug}`;
+    try {
+        const response = await fetch(url, {
+            headers: { Accept: 'application/json' },
+            // Intentionally no Authorization header - we want to test anonymous access
+        });
+        return response.ok;
+    } catch (e) {
+        logger.warn(`Failed to probe public access for ${projectKey}/${repoSlug}: ${e}`);
+        return false;
+    }
+};
+
+/**
  * Returns true if the Bitbucket Server client is authenticated as a real user,
  * false if the token is expired, invalid, or the request is being treated as anonymous.
  */

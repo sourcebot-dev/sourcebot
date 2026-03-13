@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - [EE] Fixed account-driven permission sync silently wiping all Bitbucket Server repository permissions when the OAuth token expires on instances with anonymous access enabled. [#998](https://github.com/sourcebot-dev/sourcebot/pull/998)
+- [EE] Fixed Bitbucket Server repos being incorrectly treated as public in Sourcebot when the instance-level `feature.public.access` flag is disabled but per-repo public flags were not reset. [#999](https://github.com/sourcebot-dev/sourcebot/pull/999)
 
 ## [4.15.5] - 2026-03-12
 
