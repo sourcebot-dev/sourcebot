@@ -55,5 +55,8 @@ export {
     getDBConnectionString,
 } from "./db.js";
 export {
+    getSMTPConnectionURL,
+} from "./smtp.js";
+export {
     SOURCEBOT_VERSION,
 } from "./version.js";

@@ -13,3 +13,15 @@ To enable transactional emails in your deployment, set the following environment
 | :------- | :---------- |
 | `SMTP_CONNECTION_URL` | SMTP server connection (`smtp://[user[:password]@]host[:port]`)|
 | `EMAIL_FROM_ADDRESS` | The sender's email address |
+
+You can also provide the SMTP connection details as individual environment variables instead of a full URL.
+
+| Variable | Description |
+| :------- | :---------- |
+| `SMTP_HOST` | The hostname of the SMTP server |
+| `SMTP_PORT` | The port of the SMTP server |
+| `SMTP_USERNAME` | The username for SMTP authentication |
+| `SMTP_PASSWORD` | The password for SMTP authentication |
+| `EMAIL_FROM_ADDRESS` | The sender's email address |
+
+If `SMTP_CONNECTION_URL` is set, it takes precedence over the individual variables.

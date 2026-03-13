@@ -28,7 +28,11 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `REDIS_REMOVE_ON_FAIL` | `100` | <p>Controls how many failed jobs are allowed to remain in Redis queues</p> |
 | `REPO_SYNC_RETRY_BASE_SLEEP_SECONDS` | `60` | <p>The base sleep duration (in seconds) for exponential backoff when retrying repository sync operations that fail</p> |
 | `GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS` | `600` | <p>The timeout duration (in seconds) for GitLab client queries</p> |
-| `SMTP_CONNECTION_URL` | `-` | <p>The url to the SMTP service used for sending transactional emails. See [this doc](/docs/configuration/transactional-emails) for more info.</p> |
+| `SMTP_CONNECTION_URL` | `-` | <p>The url to the SMTP service used for sending transactional emails. See [this doc](/docs/configuration/transactional-emails) for more info.</p><p>You can also use `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, and `SMTP_PASSWORD` to construct the SMTP connection url.</p> |
+| `SMTP_HOST` | `-` | <p>The hostname of the SMTP server. Used to construct `SMTP_CONNECTION_URL` when individual SMTP variables are provided.</p> |
+| `SMTP_PORT` | `-` | <p>The port of the SMTP server.</p> |
+| `SMTP_USERNAME` | `-` | <p>The username for SMTP authentication.</p> |
+| `SMTP_PASSWORD` | `-` | <p>The password for SMTP authentication.</p> |
 | `SOURCEBOT_ENCRYPTION_KEY` | Automatically generated at startup if no value is provided. Generated using `openssl rand -base64 24` | <p>Used to encrypt connection secrets and generate API keys.</p> |
 | `SOURCEBOT_PUBLIC_KEY_PATH` | `/app/public.pem` | <p>Sourcebot's public key that's used to verify encrypted license key signatures.</p> |
 | `SOURCEBOT_LOG_LEVEL` | `info` | <p>The Sourcebot logging level. Valid values are `debug`, `info`, `warn`, `error`, in order of severity.</p> |
