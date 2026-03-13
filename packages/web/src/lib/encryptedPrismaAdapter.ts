@@ -40,6 +40,7 @@ export function encryptAccountData(data: {
     token_type?: string | null;
     scope?: string | null;
     issuerUrl?: string | null;
+    tokenRefreshErrorMessage?: string | null;
 }) {
     return {
         ...data,

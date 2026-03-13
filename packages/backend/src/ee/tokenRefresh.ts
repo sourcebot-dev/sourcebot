@@ -1,11 +1,22 @@
-import { loadConfig, decryptOAuthToken } from "@sourcebot/shared";
-import { getTokenFromConfig, createLogger, env, encryptOAuthToken } from "@sourcebot/shared";
-import { BitbucketCloudIdentityProviderConfig, BitbucketServerIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
-import { IdentityProviderType } from "@sourcebot/shared";
+import { Account, PrismaClient } from '@sourcebot/db';
+import {
+    BitbucketCloudIdentityProviderConfig,
+    BitbucketServerIdentityProviderConfig,
+    GitHubIdentityProviderConfig,
+    GitLabIdentityProviderConfig,
+} from '@sourcebot/schemas/v3/index.type';
+import {
+    createLogger,
+    decryptOAuthToken,
+    encryptOAuthToken,
+    env,
+    getTokenFromConfig,
+    IdentityProviderType,
+    loadConfig,
+} from '@sourcebot/shared';
 import { z } from 'zod';
-import { prisma } from '@/prisma';
 
-const logger = createLogger('web-ee-token-refresh');
+const logger = createLogger('backend-ee-token-refresh');
 
 const SUPPORTED_PROVIDERS = [
     'github',
@@ -16,117 +27,124 @@ const SUPPORTED_PROVIDERS = [
 
 type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
 
-const isSupportedProvider = (provider: string): provider is SupportedProvider => {
-    return SUPPORTED_PROVIDERS.includes(provider as SupportedProvider);
-}
+const isSupportedProvider = (provider: string): provider is SupportedProvider =>
+    SUPPORTED_PROVIDERS.includes(provider as SupportedProvider);
 
-// Map of providerAccountId -> error message
-export type LinkedAccountErrors = Record<string, string>;
+// @see: https://datatracker.ietf.org/doc/html/rfc6749#section-5.1
+const OAuthTokenResponseSchema = z.object({
+    access_token: z.string(),
+    token_type: z.string().optional(),
+    expires_in: z.number().optional(),
+    refresh_token: z.string().optional(),
+    scope: z.string().optional(),
+});
 
-// In-memory lock to prevent concurrent refresh attempts for the same user
-const refreshLocks = new Map<string, Promise<LinkedAccountErrors>>();
+type OAuthTokenResponse = z.infer<typeof OAuthTokenResponseSchema>;
 
-/**
- * Refreshes expiring OAuth tokens for all linked accounts of a user.
- * Loads accounts from database, refreshes tokens as needed, and returns any errors.
- * Uses an in-memory lock to prevent concurrent refresh attempts for the same user.
- */
-export const refreshLinkedAccountTokens = async (userId: string): Promise<LinkedAccountErrors> => {
-    // Check if there's already an in-flight refresh for this user
-    const existingRefresh = refreshLocks.get(userId);
-    if (existingRefresh) {
-        return existingRefresh;
-    }
-
-    // Create the refresh promise and store it in the lock map
-    const refreshPromise = doRefreshLinkedAccountTokens(userId);
-    refreshLocks.set(userId, refreshPromise);
-
-    try {
-        return await refreshPromise;
-    } finally {
-        refreshLocks.delete(userId);
-    }
+type ProviderCredentials = {
+    clientId: string;
+    clientSecret: string;
+    baseUrl?: string;
 };
 
-const doRefreshLinkedAccountTokens = async (userId: string): Promise<LinkedAccountErrors> => {
-    // Only grab accounts that can be refreshed (i.e., have an access token, refresh token, and expires_at).
-    const accounts = await prisma.account.findMany({
-        where: {
-            userId,
-            access_token: { not: null },
-            refresh_token: { not: null },
-            expires_at: { not: null },
-        },
-        select: {
-            provider: true,
-            providerAccountId: true,
-            access_token: true,
-            refresh_token: true,
-            expires_at: true,
+const EXPIRY_BUFFER_S = 5 * 60; // 5 minutes
+
+/**
+ * Ensures the OAuth access token for a given account is fresh.
+ *
+ * - If the token is not expired (or has no expiry), decrypts and returns it as-is.
+ * - If the token is expired or near expiry, attempts a refresh using the OAuth
+ *   client credentials from the config file (or deprecated env vars).
+ * - On successful refresh: persists the new tokens to the DB, clears any
+ *   tokenRefreshErrorMessage, and returns the fresh access token.
+ * - On failure: sets tokenRefreshErrorMessage on the account and throws, so
+ *   the calling job fails with a clear error.
+ */
+export const ensureFreshAccountToken = async (
+    account: Account,
+    db: PrismaClient,
+): Promise<string> => {
+    if (!account.access_token) {
+        throw new Error(`Account ${account.id} (${account.provider}) has no access token.`);
+    }
+
+    if (!isSupportedProvider(account.provider)) {
+        // Non-refreshable provider — just decrypt and return whatever is stored.
+        const token = decryptOAuthToken(account.access_token);
+        if (!token) {
+            throw new Error(`Failed to decrypt access token for account ${account.id}.`);
+        }
+        return token;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const isExpiredOrNearExpiry =
+        account.expires_at !== null &&
+        account.expires_at > 0 &&
+        now >= account.expires_at - EXPIRY_BUFFER_S;
+
+    if (!isExpiredOrNearExpiry) {
+        const token = decryptOAuthToken(account.access_token);
+        if (!token) {
+            throw new Error(`Failed to decrypt access token for account ${account.id}.`);
+        }
+        return token;
+    }
+
+    if (!account.refresh_token) {
+        const message = `Account ${account.id} (${account.provider}) token is expired and has no refresh token.`;
+        logger.error(message);
+        await setTokenRefreshError(account.id, message, db);
+        throw new Error(message);
+    }
+
+    const refreshToken = decryptOAuthToken(account.refresh_token);
+    if (!refreshToken) {
+        const message = `Failed to decrypt refresh token for account ${account.id} (${account.provider}).`;
+        logger.error(message);
+        await setTokenRefreshError(account.id, message, db);
+        throw new Error(message);
+    }
+
+    logger.debug(`Refreshing OAuth token for account ${account.id} (${account.provider})...`);
+
+    const refreshResponse = await refreshOAuthToken(account.provider, refreshToken);
+    if (!refreshResponse) {
+        const message = `OAuth token refresh failed for account ${account.id} (${account.provider}).`;
+        logger.error(message);
+        await setTokenRefreshError(account.id, message, db);
+        throw new Error(message);
+    }
+
+    const newExpiresAt = refreshResponse.expires_in
+        ? Math.floor(Date.now() / 1000) + refreshResponse.expires_in
+        : null;
+
+    await db.account.update({
+        where: { id: account.id },
+        data: {
+            access_token: encryptOAuthToken(refreshResponse.access_token),
+            // Only update refresh_token if a new one was provided; preserve the
+            // existing one otherwise (some providers use rotating refresh tokens,
+            // others reuse the same one).
+            ...(refreshResponse.refresh_token !== undefined
+                ? { refresh_token: encryptOAuthToken(refreshResponse.refresh_token) }
+                : {}),
+            expires_at: newExpiresAt,
+            tokenRefreshErrorMessage: null,
         },
     });
 
-    const now = Math.floor(Date.now() / 1000);
-    const bufferTimeS = 5 * 60; // 5 minutes
-    const errors: LinkedAccountErrors = {};
+    logger.debug(`Successfully refreshed OAuth token for account ${account.id} (${account.provider}).`);
+    return refreshResponse.access_token;
+};
 
-    await Promise.all(
-        accounts.map(async (account) => {
-            const { provider, providerAccountId, expires_at } = account;
-
-            if (!isSupportedProvider(provider)) {
-                return;
-            }
-
-            if (expires_at !== null && expires_at > 0 && now >= (expires_at - bufferTimeS)) {
-                const refreshToken = decryptOAuthToken(account.refresh_token);
-                if (!refreshToken) {
-                    logger.error(`Failed to decrypt refresh token for providerAccountId: ${providerAccountId}`);
-                    errors[providerAccountId] = 'RefreshTokenError';
-                    return;
-                }
-
-                try {
-                    logger.info(`Refreshing token for providerAccountId: ${providerAccountId} (${provider})`);
-                    const refreshTokenResponse = await refreshOAuthToken(provider, refreshToken);
-
-                    if (refreshTokenResponse) {
-                        const expires_at = refreshTokenResponse.expires_in ? Math.floor(Date.now() / 1000) + refreshTokenResponse.expires_in : null;
-
-                        await prisma.account.update({
-                            where: {
-                                provider_providerAccountId: {
-                                    provider,
-                                    providerAccountId,
-                                }
-                            },
-                            data: {
-                                access_token: encryptOAuthToken(refreshTokenResponse.access_token),
-                                // Only update refresh_token if a new one was provided.
-                                // This will preserve an existing refresh token if the provider
-                                // does not return a new one.
-                                ...(refreshTokenResponse.refresh_token !== undefined ? {
-                                    refresh_token: encryptOAuthToken(refreshTokenResponse.refresh_token),
-                                } : {}),
-                                expires_at,
-                            },
-                        });
-                        logger.info(`Successfully refreshed token for provider: ${provider}`);
-                    } else {
-                        logger.error(`Failed to refresh token for provider: ${provider}`);
-                        errors[providerAccountId] = 'RefreshTokenError';
-                    }
-                } catch (error) {
-                    logger.error(`Error refreshing token for provider ${provider}:`, error);
-                    errors[providerAccountId] = 'RefreshTokenError';
-                }
-            }
-        })
-    );
-
-    return errors;
-}
+const setTokenRefreshError = async (accountId: string, message: string, db: PrismaClient) => {
+    await db.account.update({
+        where: { id: accountId },
+        data: { tokenRefreshErrorMessage: message },
+    });
+};
 
 const refreshOAuthToken = async (
     provider: SupportedProvider,
@@ -135,10 +153,9 @@ const refreshOAuthToken = async (
     try {
         const config = await loadConfig(env.CONFIG_PATH);
         const identityProviders = config?.identityProviders ?? [];
-
         const providerConfigs = identityProviders.filter(idp => idp.provider === provider);
 
-        // If no provider configs in the config file, try deprecated env vars
+        // If no provider configs in the config file, try deprecated env vars.
         if (providerConfigs.length === 0) {
             const envCredentials = getDeprecatedEnvCredentials(provider);
             if (envCredentials) {
@@ -150,7 +167,7 @@ const refreshOAuthToken = async (
                 logger.error(`Failed to refresh ${provider} token using deprecated env credentials`);
                 return null;
             }
-            logger.error(`Provider config not found or invalid for: ${provider}`);
+            logger.error(`No provider config or env credentials found for: ${provider}`);
             return null;
         }
 
@@ -172,7 +189,9 @@ const refreshOAuthToken = async (
                 // Get client credentials from config
                 const clientId = await getTokenFromConfig(linkedAccountProviderConfig.clientId);
                 const clientSecret = await getTokenFromConfig(linkedAccountProviderConfig.clientSecret);
-                const baseUrl = 'baseUrl' in linkedAccountProviderConfig ? linkedAccountProviderConfig.baseUrl : undefined;
+                const baseUrl = 'baseUrl' in linkedAccountProviderConfig
+                    ? linkedAccountProviderConfig.baseUrl
+                    : undefined;
 
                 const result = await tryRefreshToken(provider, refreshToken, { clientId, clientSecret, baseUrl });
                 if (result) {
@@ -186,28 +205,11 @@ const refreshOAuthToken = async (
 
         logger.error(`All provider configs failed for: ${provider}`);
         return null;
-    } catch (error) {
-        logger.error(`Error refreshing ${provider} token:`, error);
+    } catch (e) {
+        logger.error(`Error refreshing ${provider} token:`, e);
         return null;
     }
-}
-
-type ProviderCredentials = {
-    clientId: string;
-    clientSecret: string;
-    baseUrl?: string;
 };
-
-// @see: https://datatracker.ietf.org/doc/html/rfc6749#section-5.1
-const OAuthTokenResponseSchema = z.object({
-    access_token: z.string(),
-    token_type: z.string().optional(),
-    expires_in: z.number().optional(),
-    refresh_token: z.string().optional(),
-    scope: z.string().optional(),
-});
-
-type OAuthTokenResponse = z.infer<typeof OAuthTokenResponseSchema>;
 
 const tryRefreshToken = async (
     provider: SupportedProvider,

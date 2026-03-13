@@ -1,7 +1,6 @@
 'use server';
 
 import { sew } from "@/actions";
-import { auth } from "@/auth";
 import { OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME } from "@/lib/constants";
 import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
 import { OrgRole } from "@sourcebot/db";
@@ -33,14 +32,12 @@ export const getLinkedAccounts = async () => sew(() =>
                     id: true,
                     provider: true,
                     providerAccountId: true,
+                    tokenRefreshErrorMessage: true,
                 },
             });
 
             const config = await loadConfig(env.CONFIG_PATH);
             const identityProviderConfigs = config.identityProviders ?? [];
-
-            const session = await auth();
-            const providerErrors = session?.linkedAccountProviderErrors;
 
             const permissionSyncEnabled =
                 env.PERMISSION_SYNC_ENABLED === 'true' &&
@@ -59,7 +56,7 @@ export const getLinkedAccounts = async () => sew(() =>
                     isLinked: true,
                     accountId: account.id,
                     providerAccountId: account.providerAccountId,
-                    error: providerErrors?.[account.providerAccountId],
+                    error: account.tokenRefreshErrorMessage ?? undefined,
                     isAccountLinkingProvider: isAccountLinking,
                     required: isAccountLinking ? (providerConfig?.accountLinkingRequired ?? false) : false,
                     supportsPermissionSync: permissionSyncEnabled && PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS.includes(account.provider as IdentityProviderType),

@@ -460,6 +460,10 @@ model Account {
   permissionSyncJobs AccountPermissionSyncJob[]
   permissionSyncedAt DateTime?
 
+  /// Set when an OAuth token refresh fails and the account needs to be re-linked by the user.
+  /// Cleared when the user successfully re-authenticates.
+  tokenRefreshErrorMessage String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
