@@ -154,7 +154,13 @@ const options = {
         SOURCEBOT_PUBLIC_KEY_PATH: z.string(),
 
         // Email
+        // Either SMTP_CONNECTION_URL or SMTP_HOST must be set to enable transactional emails.
+        // @see: shared/src/smtp.ts for more details.
         SMTP_CONNECTION_URL: z.string().url().optional(),
+        SMTP_HOST: z.string().optional(),
+        SMTP_PORT: z.coerce.number().optional(),
+        SMTP_USERNAME: z.string().optional(),
+        SMTP_PASSWORD: z.string().optional(),
         EMAIL_FROM_ADDRESS: z.string().email().optional(),
 
         // Stripe

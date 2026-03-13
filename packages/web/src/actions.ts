@@ -1,7 +1,7 @@
 'use server';
 
 import { getAuditService } from "@/ee/features/audit/factory";
-import { env } from "@sourcebot/shared";
+import { env, getSMTPConnectionURL } from "@sourcebot/shared";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notAuthenticated, notFound, orgNotFound, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
@@ -893,7 +893,8 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
             });
 
             // Send invites to recipients
-            if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
+            const smtpConnectionUrl = getSMTPConnectionURL();
+            if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS) {
                 await Promise.all(emails.map(async (email) => {
                     const invite = await prisma.invite.findUnique({
                         where: {
@@ -917,7 +918,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                         },
                     });
                     const inviteLink = `${env.AUTH_URL}/redeem?invite_id=${invite.id}`;
-                    const transport = createTransport(env.SMTP_CONNECTION_URL);
+                    const transport = createTransport(smtpConnectionUrl);
                     const html = await render(InviteUserEmail({
                         host: {
                             name: user.name ?? undefined,
@@ -1272,7 +1273,8 @@ export const createAccountRequest = async (userId: string, domain: string) => se
             },
         });
 
-        if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
+        const smtpConnectionUrl = getSMTPConnectionURL();
+        if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS) {
             // TODO: This is needed because we can't fetch the origin from the request headers when this is called
             // on user creation (the header isn't set when next-auth calls onCreateUser for some reason)
             const deploymentUrl = env.AUTH_URL;
@@ -1303,7 +1305,7 @@ export const createAccountRequest = async (userId: string, domain: string) => se
                     orgImageUrl: org.imageUrl ?? undefined,
                 }));
 
-                const transport = createTransport(env.SMTP_CONNECTION_URL);
+                const transport = createTransport(smtpConnectionUrl);
                 const result = await transport.sendMail({
                     to: owner.email!,
                     from: env.EMAIL_FROM_ADDRESS,
@@ -1414,7 +1416,8 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
             }
 
             // Send approval email to the user
-            if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
+            const smtpConnectionUrl = getSMTPConnectionURL();
+            if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS) {
                 const html = await render(JoinRequestApprovedEmail({
                     baseUrl: env.AUTH_URL,
                     user: {
@@ -1426,7 +1429,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                     orgDomain: org.domain
                 }));
 
-                const transport = createTransport(env.SMTP_CONNECTION_URL);
+                const transport = createTransport(smtpConnectionUrl);
                 const result = await transport.sendMail({
                     to: request.requestedBy.email!,
                     from: env.EMAIL_FROM_ADDRESS,
