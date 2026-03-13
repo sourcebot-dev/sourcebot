@@ -38,19 +38,6 @@ if [ -n "$CONFIG_PATH" ]; then
     fi
 fi
 
-# Construct the SMTP connection URL from individual variables if SMTP_CONNECTION_URL is not set
-if [ -z "$SMTP_CONNECTION_URL" ] && [ -n "$SMTP_HOST" ]; then
-    SMTP_CONNECTION_URL="smtp://"
-    if [ -n "$SMTP_USERNAME" ] && [ -n "$SMTP_PASSWORD" ]; then
-        SMTP_CONNECTION_URL="${SMTP_CONNECTION_URL}${SMTP_USERNAME}:${SMTP_PASSWORD}@"
-    fi
-    SMTP_CONNECTION_URL="${SMTP_CONNECTION_URL}${SMTP_HOST}"
-    if [ -n "$SMTP_PORT" ]; then
-        SMTP_CONNECTION_URL="${SMTP_CONNECTION_URL}:${SMTP_PORT}"
-    fi
-    export SMTP_CONNECTION_URL
-fi
-
 # Construct the database URL from the individual variables if DATABASE_URL is not set
 if [ -z "$DATABASE_URL" ] && [ -n "$DATABASE_HOST" ] && [ -n "$DATABASE_USERNAME" ] && [ -n "$DATABASE_PASSWORD" ]  && [ -n "$DATABASE_NAME" ]; then
     DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}/${DATABASE_NAME}"
