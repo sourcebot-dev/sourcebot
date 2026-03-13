@@ -164,3 +164,6 @@ dist
 /bin
 /config.json
 .DS_Store
+oss-licenses.json
+oss-license-summary.json
+license-audit-result.json
