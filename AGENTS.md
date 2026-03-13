@@ -43,3 +43,7 @@ Standard dev commands are documented in `CONTRIBUTING.md` and `package.json`. Ke
 - **Config file:** Create a `config.json` at the repo root (referenced by `CONFIG_PATH` in `.env.development`) to configure which repos to index. A minimal example is in `CONTRIBUTING.md`.
 - **Environment variables:** `.env.development` has sensible defaults for local dev. Create `.env.development.local` for overrides (it's gitignored).
 - The backend worker does not expose a health-check endpoint. Verify it's running by checking its logs or that BullMQ jobs are processing.
+
+### Pull Request Workflow
+
+- **CHANGELOG entry required:** Every PR must include a follow-up commit adding an entry to `CHANGELOG.md` under `[Unreleased]`. The entry must be a single sentence describing the change, followed by a link to the PR in the format `[#<id>](https://github.com/sourcebot-dev/sourcebot/pull/<id>)`. Place new entries at the bottom of the appropriate section (`Added`, `Changed`, `Fixed`, etc.). See `CLAUDE.md` and existing entries in `CHANGELOG.md` for the exact conventions.
