@@ -520,4 +520,51 @@ An Authentik connection can be used for [authentication](/docs/configuration/aut
 </Steps>
 </Accordion>
 
+### JumpCloud
+
+A JumpCloud connection can be used for [authentication](/docs/configuration/auth). JumpCloud supports OIDC (OpenID Connect), which Sourcebot uses to authenticate users.
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Create an SSO Application in JumpCloud">
+        To begin, you must create an SSO application in JumpCloud to facilitate the identity provider connection. For more information, see the [JumpCloud OIDC documentation](https://jumpcloud.com/support/sso-with-oidc).
+
+        When configuring your application:
+        - Set the SSO type to "OIDC"
+        - Add `<sourcebot_url>/api/auth/callback/jumpcloud` to the redirect URIs (ex. https://sourcebot.coolcorp.com/api/auth/callback/jumpcloud)
+        - Set the login URL to `<sourcebot_url>/login`
+
+        After creating the application, note the `CLIENT_ID` and `CLIENT_SECRET`. The issuer URL is typically `https://oauth.id.jumpcloud.com`.
+    </Step>
+    <Step title="Define environment variables">
+        The client id, secret, and issuer URL are provided to Sourcebot via environment variables. These can be named whatever you like
+        (ex. `JUMPCLOUD_IDENTITY_PROVIDER_CLIENT_ID`, `JUMPCLOUD_IDENTITY_PROVIDER_CLIENT_SECRET`, and `JUMPCLOUD_IDENTITY_PROVIDER_ISSUER`)
+    </Step>
+    <Step title="Define the identity provider config">
+        Create a `identityProvider` object in the [config file](/docs/configuration/config-file) with the following fields:
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "jumpcloud",
+                    "purpose": "sso",
+                    "clientId": {
+                        "env": "JUMPCLOUD_IDENTITY_PROVIDER_CLIENT_ID"
+                    },
+                    "clientSecret": {
+                        "env": "JUMPCLOUD_IDENTITY_PROVIDER_CLIENT_SECRET"
+                    },
+                    "issuer": {
+                        "env": "JUMPCLOUD_IDENTITY_PROVIDER_ISSUER"
+                    }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
 

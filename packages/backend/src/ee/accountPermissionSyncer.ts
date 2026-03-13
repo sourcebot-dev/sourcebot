@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/node";
 import { PrismaClient, AccountPermissionSyncJobStatus, Account, PermissionSyncSource} from "@sourcebot/db";
-import { env, hasEntitlement, createLogger, loadConfig, decryptOAuthToken, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
+import { env, hasEntitlement, createLogger, loadConfig, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
+import { ensureFreshAccountToken } from "./tokenRefresh.js";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
 import {
@@ -182,18 +183,15 @@ export class AccountPermissionSyncer {
 
         logger.info(`Syncing permissions for ${account.provider} account (id: ${account.id}) for user ${account.user.email}...`);
 
-        // Decrypt tokens (stored encrypted in the database)
-        const accessToken = decryptOAuthToken(account.access_token);
+        // Ensure the OAuth token is fresh, refreshing it if it is expired or near expiry.
+        // Throws and sets Account.tokenRefreshErrorMessage if the refresh fails.
+        const accessToken = await ensureFreshAccountToken(account, this.db);
 
         // Get a list of all repos that the user has access to from all connected accounts.
         const repoIds = await (async () => {
             const aggregatedRepoIds: Set<number> = new Set();
 
             if (account.provider === 'github') {
-                if (!accessToken) {
-                    throw new Error(`User '${account.user.email}' does not have an GitHub OAuth access token associated with their GitHub account. Please re-authenticate with GitHub to refresh the token.`);
-                }
-
                 // @hack: we don't have a way of identifying specific identity providers in the config file.
                 // Instead, we'll use the first connection of type 'github' and hope for the best.
                 const baseUrl = Array.from(Object.values(config.connections ?? {}))
@@ -244,10 +242,6 @@ export class AccountPermissionSyncer {
 
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
             } else if (account.provider === 'gitlab') {
-                if (!accessToken) {
-                    throw new Error(`User '${account.user.email}' does not have a GitLab OAuth access token associated with their GitLab account. Please re-authenticate with GitLab to refresh the token.`);
-                }
-
                 // @hack: we don't have a way of identifying specific identity providers in the config file.
                 // Instead, we'll use the first connection of type 'gitlab' and hope for the best.
                 const baseUrl = Array.from(Object.values(config.connections ?? {}))
@@ -284,10 +278,6 @@ export class AccountPermissionSyncer {
 
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
             } else if (account.provider === 'bitbucket-cloud') {
-                if (!accessToken) {
-                    throw new Error(`User '${account.user.email}' does not have a Bitbucket Cloud OAuth access token associated with their account. Please re-authenticate with Bitbucket Cloud to refresh the token.`);
-                }
-
                 // @note: we don't pass a user here since we want to use a bearer token
                 // for authentication.
                 const client = createBitbucketCloudClient(/* user = */ undefined, accessToken)
@@ -305,10 +295,6 @@ export class AccountPermissionSyncer {
 
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
             } else if (account.provider === 'bitbucket-server') {
-                if (!accessToken) {
-                    throw new Error(`User '${account.user.email}' does not have a Bitbucket Server OAuth access token associated with their account. Please re-authenticate with Bitbucket Server to refresh the token.`);
-                }
-
                 // @hack: we don't have a way of identifying specific identity providers in the config file.
                 // Instead, we'll use the first Bitbucket Server connection's URL as the base URL.
                 const baseUrl = Array.from(Object.values(config.connections ?? {}))
@@ -330,6 +316,8 @@ export class AccountPermissionSyncer {
                 });
 
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
+            } else {
+                throw new Error(`Unsupported code host type: ${account.provider}`);
             }
 
             return Array.from(aggregatedRepoIds);

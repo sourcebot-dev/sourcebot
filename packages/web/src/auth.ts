@@ -17,7 +17,6 @@ import { hasEntitlement } from '@sourcebot/shared';
 import { onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
-import { refreshLinkedAccountTokens, LinkedAccountErrors } from '@/ee/features/sso/tokenRefresh';
 import { EncryptedPrismaAdapter, encryptAccountData } from '@/lib/encryptedPrismaAdapter';
 
 const auditService = getAuditService();
@@ -39,14 +38,12 @@ export type SessionUser = {
 declare module 'next-auth' {
     interface Session {
         user: SessionUser;
-        linkedAccountProviderErrors?: LinkedAccountErrors;
     }
 }
 
 declare module 'next-auth/jwt' {
     interface JWT {
         userId: string;
-        linkedAccountErrors?: LinkedAccountErrors;
     }
 }
 
@@ -182,6 +179,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         scope: account.scope,
                         id_token: account.id_token,
                         issuerUrl,
+                        // Clear any token refresh error since the user has successfully re-authenticated.
+                        tokenRefreshErrorMessage: null,
                     })
                 })
             }
@@ -256,12 +255,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 }
             }
 
-            // Refresh expiring tokens and capture any errors.
-            if (hasEntitlement('sso') && token.userId) {
-                const errors = await refreshLinkedAccountTokens(token.userId);
-                token.linkedAccountErrors = Object.keys(errors).length > 0 ? errors : undefined;
-            }
-
             return token;
         },
         async session({ session, token }) {
@@ -271,11 +264,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 ...session.user,
                 // Propagate the userId to the session.
                 id: token.userId,
-            }
-
-            // Pass linked account errors to the session for UI display
-            if (token.linkedAccountErrors) {
-                session.linkedAccountProviderErrors = token.linkedAccountErrors;
             }
 
             return session;

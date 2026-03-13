@@ -126,6 +126,17 @@ jobs:
           echo "Updated version.ts with version v$VERSION"
           cat packages/shared/src/version.ts
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Generate OpenAPI docs
+        run: yarn openapi:generate
+
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
@@ -133,7 +144,7 @@ jobs:
 
       - name: Commit changes
         run: |
-          git add CHANGELOG.md packages/shared/src/version.ts
+          git add CHANGELOG.md packages/shared/src/version.ts docs/api-reference/sourcebot-public.openapi.json
           git commit -m "[skip ci] Release v$VERSION"
 
       - name: Push to temporary branch

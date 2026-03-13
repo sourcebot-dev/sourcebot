@@ -3,7 +3,7 @@ import { getGitHubReposFromConfig, OctokitRepository } from "./github.js";
 import { getGitLabReposFromConfig } from "./gitlab.js";
 import { getGiteaReposFromConfig } from "./gitea.js";
 import { getGerritReposFromConfig } from "./gerrit.js";
-import { BitbucketRepository, getBitbucketReposFromConfig } from "./bitbucket.js";
+import { BitbucketRepository, getBitbucketReposFromConfig, isBitbucketServerPublicAccessEnabled } from "./bitbucket.js";
 import { getAzureDevOpsReposFromConfig } from "./azuredevops.js";
 import { SchemaRestRepository as BitbucketServerRepository } from "@coderabbitai/bitbucket/server/openapi";
 import { SchemaRepository as BitbucketCloudRepository } from "@coderabbitai/bitbucket/cloud/openapi";
@@ -401,6 +401,22 @@ export const compileBitbucketConfig = async (
         .toString()
         .replace(/^https?:\/\//, '');
 
+    // For Bitbucket Server, verify that the instance-level `feature.public.access` flag is
+    // actually enabled. When it is disabled, per-repo `public` flags may still be stale
+    // (i.e., remain `true` from before the flag was turned off) but repos are no longer
+    // anonymously accessible. We detect this by making a single unauthenticated probe
+    // request to one of the repos the API reports as public.
+    let isServerPublicAccessEnabled = true;
+    if (config.deploymentType === 'server') {
+        const firstPublicRepo = bitbucketRepos.find(repo => (repo as BitbucketServerRepository).public === true);
+        if (firstPublicRepo) {
+            isServerPublicAccessEnabled = await isBitbucketServerPublicAccessEnabled(hostUrl, firstPublicRepo as BitbucketServerRepository);
+            if (!isServerPublicAccessEnabled) {
+                logger.warn(`Bitbucket Server at ${hostUrl} has repos marked as public but they are not anonymously accessible. The feature.public.access flag may be disabled. Treating all repos as private.`);
+            }
+        }
+    }
+
     const getCloneUrl = (repo: BitbucketRepository) => {
         if (!repo.links) {
             throw new Error(`No clone links found for server repo ${repo.name}`);
@@ -467,7 +483,9 @@ export const compileBitbucketConfig = async (
             }
         })();
         const externalId = isServer ? (repo as BitbucketServerRepository).id!.toString() : (repo as BitbucketCloudRepository).uuid!;
-        const isPublic = isServer ? (repo as BitbucketServerRepository).public : (repo as BitbucketCloudRepository).is_private === false;
+        const isPublic = isServer
+            ? (isServerPublicAccessEnabled && (repo as BitbucketServerRepository).public === true)
+            : (repo as BitbucketCloudRepository).is_private === false;
         const isArchived = isServer ? (repo as BitbucketServerRepository).archived === true : false;
         const isFork = isServer ? (repo as BitbucketServerRepository).origin !== undefined : (repo as BitbucketCloudRepository).parent !== undefined;
         const repoName = path.join(repoNameRoot, displayName);
