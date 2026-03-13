@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.15.6] - 2026-03-13
+
 ### Added
 - Added generated OpenAPI documentation for the public search, repo, and file browsing API surface. [#996](https://github.com/sourcebot-dev/sourcebot/pull/996)
 
