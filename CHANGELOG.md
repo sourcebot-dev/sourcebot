@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Fixed account-driven permission sync silently wiping all Bitbucket Server repository permissions when the OAuth token expires on instances with anonymous access enabled. [#998](https://github.com/sourcebot-dev/sourcebot/pull/998)
 - [EE] Fixed Bitbucket Server repos being incorrectly treated as public in Sourcebot when the instance-level `feature.public.access` flag is disabled but per-repo public flags were not reset. [#999](https://github.com/sourcebot-dev/sourcebot/pull/999)
 - [EE] Fixed account-driven permission sync jobs failing when OAuth tokens expire between user visits by moving token refresh into the backend sync flow. [#1000](https://github.com/sourcebot-dev/sourcebot/pull/1000)
+- Fixed `filterByRepos` and `filterByFilepaths` returning no results for repository names containing dots, dashes, or slashes by replacing `escape-string-regexp` (which produces `\xNN` hex escapes incompatible with Zoekt's RE2 engine) with a RE2-compatible escaper. [#1004](https://github.com/sourcebot-dev/sourcebot/pull/1004)
 
 ## [4.15.5] - 2026-03-12
 
