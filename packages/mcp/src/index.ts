@@ -4,7 +4,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import _dedent from "dedent";
-import escapeStringRegexp from 'escape-string-regexp';
+// Escapes special RE2 regex characters using backslash (compatible with Zoekt/Go RE2).
+// escape-string-regexp v5 uses \xNN hex escapes which RE2 does not support.
+const escapeRE2 = (s: string) => s.replace(/[.+*?^${}[\]|(\\]/g, '\\$&');
 import { z } from 'zod';
 import { askCodebase, getFileSource, listCommits, listLanguageModels, listRepos, listTree, search } from './client.js';
 import { env, numberSchema } from './env.js';
@@ -81,7 +83,7 @@ server.tool(
         useRegex = false,
     }) => {
         if (repos.length > 0) {
-            query += ` (repo:${repos.map(id => escapeStringRegexp(id)).join(' or repo:')})`;
+            query += ` (repo:${repos.map(id => escapeRE2(id)).join(' or repo:')})`;
         }
 
         if (languages.length > 0) {
@@ -89,7 +91,7 @@ server.tool(
         }
 
         if (filepaths.length > 0) {
-            query += ` (file:${filepaths.map(filepath => escapeStringRegexp(filepath)).join(' or file:')})`;
+            query += ` (file:${filepaths.map(filepath => escapeRE2(filepath)).join(' or file:')})`;
         }
 
         if (ref) {

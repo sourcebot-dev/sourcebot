@@ -11,7 +11,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ChatVisibility } from '@sourcebot/db';
 import { SOURCEBOT_VERSION } from '@sourcebot/shared';
 import _dedent from 'dedent';
-import escapeStringRegexp from 'escape-string-regexp';
+// Escapes special RE2 regex characters using backslash (compatible with Zoekt/Go RE2).
+// escape-string-regexp v5 uses \xNN hex escapes which RE2 does not support.
+const escapeRE2 = (s: string) => s.replace(/[.+*?^${}[\]|(\\]/g, '\\$&');
 import { z } from 'zod';
 import {
     ListTreeEntry,
@@ -141,13 +143,13 @@ export function createMcpServer(): McpServer {
             maxTokens?: number;
         }) => {
             if (repos.length > 0) {
-                query += ` (repo:${repos.map(id => escapeStringRegexp(id)).join(' or repo:')})`;
+                query += ` (repo:${repos.map(id => escapeRE2(id)).join(' or repo:')})`;
             }
             if (languages.length > 0) {
                 query += ` (lang:${languages.join(' or lang:')})`;
             }
             if (filepaths.length > 0) {
-                query += ` (file:${filepaths.map(fp => escapeStringRegexp(fp)).join(' or file:')})`;
+                query += ` (file:${filepaths.map(fp => escapeRE2(fp)).join(' or file:')})`;
             }
             if (ref) {
                 query += ` ( rev:${ref} )`;
