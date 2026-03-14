@@ -10,7 +10,9 @@ import { useBrowseParams } from "./hooks/useBrowseParams";
 import { FileSearchCommandDialog } from "./components/fileSearchCommandDialog";
 import { useDomain } from "@/hooks/useDomain";
 import { SearchBar } from "../components/searchBar";
-import escapeStringRegexp from "escape-string-regexp";
+// Escapes special RE2 regex characters using backslash (compatible with Zoekt/Go RE2).
+// escape-string-regexp v5 uses \xNN hex escapes which RE2 does not support.
+const escapeRE2 = (s: string) => s.replace(/[.+*?^${}[\]|(\\]/g, '\\$&');
 import { Session } from "next-auth";
 
 interface LayoutProps {
@@ -37,7 +39,7 @@ export function LayoutClient({
                     <SearchBar
                         size="sm"
                         defaults={{
-                            query: `repo:^${escapeStringRegexp(repoName)}$${revisionName ? ` rev:${revisionName}` : ''} `,
+                            query: `repo:^${escapeRE2(repoName)}$${revisionName ? ` rev:${revisionName}` : ''} `,
                         }}
                         className="w-full"
                         isSearchAssistSupported={isSearchAssistSupported}

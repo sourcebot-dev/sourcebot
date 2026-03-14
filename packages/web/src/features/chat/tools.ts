@@ -9,7 +9,9 @@ import { toolNames } from "./constants";
 import { listReposQueryParamsSchema } from "@/lib/schemas";
 import { ListReposQueryParams } from "@/lib/types";
 import { listRepos } from "@/app/api/(server)/repos/listReposApi";
-import escapeStringRegexp from "escape-string-regexp";
+// Escapes special RE2 regex characters using backslash (compatible with Zoekt/Go RE2).
+// escape-string-regexp v5 uses \xNN hex escapes which RE2 does not support.
+const escapeRE2 = (s: string) => s.replace(/[.+*?^${}[\]|(\\]/g, '\\$&');
 
 // @NOTE: When adding a new tool, follow these steps:
 // 1. Add the tool to the `toolNames` constant in `constants.ts`.
@@ -198,7 +200,7 @@ export const createCodeSearchTool = (selectedRepos: string[]) => tool({
         }
 
         if (repos.length > 0) {
-            query += ` (repo:${repos.map(id => escapeStringRegexp(id)).join(' or repo:')})`;
+            query += ` (repo:${repos.map(id => escapeRE2(id)).join(' or repo:')})`;
         }
 
         if (languages.length > 0) {
@@ -206,7 +208,7 @@ export const createCodeSearchTool = (selectedRepos: string[]) => tool({
         }
 
         if (filepaths.length > 0) {
-            query += ` (file:${filepaths.map(filepath => escapeStringRegexp(filepath)).join(' or file:')})`;
+            query += ` (file:${filepaths.map(filepath => escapeRE2(filepath)).join(' or file:')})`;
         }
 
         if (ref) {
