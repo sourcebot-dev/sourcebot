@@ -27,7 +27,7 @@ export const useRefineModeSuggestions = () => {
             ] : []),
             {
                 value: SearchPrefix.select,
-                description: "Project results — return matching repositories instead of individual files.",
+                description: "Project results — return repositories instead of files.",
                 spotlight: true,
             },
             {

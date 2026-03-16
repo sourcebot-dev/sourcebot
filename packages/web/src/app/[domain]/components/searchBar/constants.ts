@@ -19,6 +19,7 @@ export enum SearchPrefix {
     fork = "fork:",
     visibility = "visibility:",
     context = "context:",
+    select = "select:",
 }
 
 export const visibilityModeSuggestions: Suggestion[] = [
@@ -66,3 +67,10 @@ export const archivedModeSuggestions: Suggestion[] = [
     }
 ];
 
+
+export const selectModeSuggestions: Suggestion[] = [
+    {
+        value: "repo",
+        description: "Return the list of repositories containing matches instead of individual file results.",
+    },
+];

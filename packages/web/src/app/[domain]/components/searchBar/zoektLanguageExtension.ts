@@ -47,7 +47,7 @@ export const zoekt = () => {
 
             // Check for prefixes first
             // If these match, we return 'keyword'
-            if (stream.match(/(archived:|rev:|content:|f:|file:|fork:|visibility:|r:|repo:|regex:|lang:|sym:|t:|type:|context:)/)) {
+            if (stream.match(/(archived:|rev:|content:|f:|file:|fork:|visibility:|r:|repo:|regex:|lang:|sym:|t:|type:|context:|select:)/)) {
                 return t.keyword.toString();
             }
 
