@@ -8,13 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added AGENTS.md with Cursor Cloud development environment instructions. [#1001](https://github.com/sourcebot-dev/sourcebot/pull/1001)
+- Added support for configuring SMTP via individual environment variables (SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD) as an alternative to SMTP_CONNECTION_URL. [#1002](https://github.com/sourcebot-dev/sourcebot/pull/1002)
+- Added `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` and `DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS` environment variables to restrict API key creation and usage to organization owners. [#1007](https://github.com/sourcebot-dev/sourcebot/pull/1007)
+
+### Changed
+- Deprecated `EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS` in favour of `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS`. The old variable will continue to work as a fallback. [#1007](https://github.com/sourcebot-dev/sourcebot/pull/1007)
+
+## [4.15.6] - 2026-03-13
+
+### Added
 - Added generated OpenAPI documentation for the public search, repo, and file browsing API surface. [#996](https://github.com/sourcebot-dev/sourcebot/pull/996)
 
 ### Fixed
 - [EE] Fixed account-driven permission sync silently wiping all Bitbucket Server repository permissions when the OAuth token expires on instances with anonymous access enabled. [#998](https://github.com/sourcebot-dev/sourcebot/pull/998)
 - [EE] Fixed Bitbucket Server repos being incorrectly treated as public in Sourcebot when the instance-level `feature.public.access` flag is disabled but per-repo public flags were not reset. [#999](https://github.com/sourcebot-dev/sourcebot/pull/999)
 - [EE] Fixed account-driven permission sync jobs failing when OAuth tokens expire between user visits by moving token refresh into the backend sync flow. [#1000](https://github.com/sourcebot-dev/sourcebot/pull/1000)
+<<<<<<< brendan/fix-repo-filter-special-chars-SOU-556
 - Fixed `filterByRepos` and `filterByFilepaths` returning no results for repository names containing dots, dashes, or slashes by replacing `escape-string-regexp` (which produces `\xNN` hex escapes incompatible with Zoekt's RE2 engine) with a RE2-compatible escaper. [#1004](https://github.com/sourcebot-dev/sourcebot/pull/1004)
+=======
+>>>>>>> main
 
 ## [4.15.5] - 2026-03-12
 

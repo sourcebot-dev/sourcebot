@@ -4,6 +4,8 @@ import { notAuthenticated } from './lib/serviceError';
 import { getAuthContext, getAuthenticatedUser, withAuthV2, withOptionalAuthV2 } from './withAuthV2';
 import { MOCK_API_KEY, MOCK_OAUTH_TOKEN, MOCK_ORG, MOCK_USER_WITH_ACCOUNTS, prisma } from './__mocks__/prisma';
 import { OrgRole } from '@sourcebot/db';
+import { ErrorCode } from './lib/errorCodes';
+import { StatusCodes } from 'http-status-codes';
 
 const mocks = vi.hoisted(() => {
     return {
@@ -11,6 +13,7 @@ const mocks = vi.hoisted(() => {
         auth: vi.fn(async (): Promise<Session | null> => null),
         headers: vi.fn(async (): Promise<Headers> => new Headers()),
         hasEntitlement: vi.fn((_entitlement: string) => false),
+        env: {} as Record<string, string>,
     }
 });
 
@@ -40,7 +43,7 @@ vi.mock('@sourcebot/shared', () => ({
     OAUTH_ACCESS_TOKEN_PREFIX: 'sboa_',
     API_KEY_PREFIX: 'sbk_',
     LEGACY_API_KEY_PREFIX: 'sourcebot-',
-    env: {}
+    env: mocks.env,
 }));
 
 // Test utility to set the mock session
@@ -70,6 +73,8 @@ beforeEach(() => {
     vi.clearAllMocks();
     mocks.auth.mockResolvedValue(null);
     mocks.headers.mockResolvedValue(new Headers());
+    // Reset env flags between tests
+    Object.keys(mocks.env).forEach(key => delete mocks.env[key]);
 });
 
 describe('getAuthenticatedUser', () => {
@@ -80,9 +85,10 @@ describe('getAuthenticatedUser', () => {
             id: userId,
         });
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
-        const user = await getAuthenticatedUser();
-        expect(user).not.toBeUndefined();
-        expect(user?.id).toBe(userId);
+        const result = await getAuthenticatedUser();
+        expect(result).not.toBeUndefined();
+        expect(result?.user.id).toBe(userId);
+        expect(result?.source).toBe('session');
     });
 
     test('should return a user object if a valid api key is present', async () => {
@@ -98,9 +104,10 @@ describe('getAuthenticatedUser', () => {
         });
 
         setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));
-        const user = await getAuthenticatedUser();
-        expect(user).not.toBeUndefined();
-        expect(user?.id).toBe(userId);
+        const result = await getAuthenticatedUser();
+        expect(result).not.toBeUndefined();
+        expect(result?.user.id).toBe(userId);
+        expect(result?.source).toBe('api_key');
         expect(prisma.apiKey.update).toHaveBeenCalledWith({
             where: {
                 hash: 'apikey',
@@ -124,9 +131,10 @@ describe('getAuthenticatedUser', () => {
         });
 
         setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sbk_apikey' }));
-        const user = await getAuthenticatedUser();
-        expect(user).not.toBeUndefined();
-        expect(user?.id).toBe(userId);
+        const result = await getAuthenticatedUser();
+        expect(result).not.toBeUndefined();
+        expect(result?.user.id).toBe(userId);
+        expect(result?.source).toBe('api_key');
         expect(prisma.apiKey.update).toHaveBeenCalledWith({
             where: { hash: 'apikey' },
             data: { lastUsedAt: expect.any(Date) },
@@ -146,9 +154,10 @@ describe('getAuthenticatedUser', () => {
         });
 
         setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-apikey' }));
-        const user = await getAuthenticatedUser();
-        expect(user).not.toBeUndefined();
-        expect(user?.id).toBe(userId);
+        const result = await getAuthenticatedUser();
+        expect(result).not.toBeUndefined();
+        expect(result?.user.id).toBe(userId);
+        expect(result?.source).toBe('api_key');
         expect(prisma.apiKey.update).toHaveBeenCalledWith({
             where: {
                 hash: 'apikey',
@@ -170,9 +179,10 @@ describe('getAuthenticatedUser', () => {
         mocks.hasEntitlement.mockReturnValue(true);
         prisma.oAuthToken.findUnique.mockResolvedValue(MOCK_OAUTH_TOKEN);
         setMockHeaders(new Headers({ 'Authorization': 'Bearer sboa_oauthtoken' }));
-        const user = await getAuthenticatedUser();
-        expect(user).not.toBeUndefined();
-        expect(user?.id).toBe(MOCK_USER_WITH_ACCOUNTS.id);
+        const result = await getAuthenticatedUser();
+        expect(result).not.toBeUndefined();
+        expect(result?.user.id).toBe(MOCK_USER_WITH_ACCOUNTS.id);
+        expect(result?.source).toBe('oauth');
     });
 
     test('should update lastUsedAt when an OAuth Bearer token is used', async () => {
@@ -378,6 +388,75 @@ describe('getAuthContext', () => {
             org: MOCK_ORG,
             role: OrgRole.GUEST,
             prisma: undefined,
+        });
+    });
+
+    describe('DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS', () => {
+        test('should return a 403 service error when flag is enabled and a non-owner authenticates via api key', async () => {
+            mocks.env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS = 'true';
+            const userId = 'test-user-id';
+            prisma.user.findUnique.mockResolvedValue({ ...MOCK_USER_WITH_ACCOUNTS, id: userId });
+            prisma.org.findUnique.mockResolvedValue({ ...MOCK_ORG });
+            prisma.userToOrg.findUnique.mockResolvedValue({
+                joinedAt: new Date(),
+                userId,
+                orgId: MOCK_ORG.id,
+                role: OrgRole.MEMBER,
+            });
+            prisma.apiKey.findUnique.mockResolvedValue({ ...MOCK_API_KEY, hash: 'apikey', createdById: userId });
+            setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));
+
+            const authContext = await getAuthContext();
+            expect(authContext).toStrictEqual({
+                statusCode: StatusCodes.FORBIDDEN,
+                errorCode: ErrorCode.API_KEY_USAGE_DISABLED,
+                message: 'API key usage is disabled for non-admin users.',
+            });
+        });
+
+        test('should allow an owner to authenticate via api key when flag is enabled', async () => {
+            mocks.env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS = 'true';
+            const userId = 'test-user-id';
+            prisma.user.findUnique.mockResolvedValue({ ...MOCK_USER_WITH_ACCOUNTS, id: userId });
+            prisma.org.findUnique.mockResolvedValue({ ...MOCK_ORG });
+            prisma.userToOrg.findUnique.mockResolvedValue({
+                joinedAt: new Date(),
+                userId,
+                orgId: MOCK_ORG.id,
+                role: OrgRole.OWNER,
+            });
+            prisma.apiKey.findUnique.mockResolvedValue({ ...MOCK_API_KEY, hash: 'apikey', createdById: userId });
+            setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));
+
+            const authContext = await getAuthContext();
+            expect(authContext).toStrictEqual({
+                user: { ...MOCK_USER_WITH_ACCOUNTS, id: userId },
+                org: MOCK_ORG,
+                role: OrgRole.OWNER,
+                prisma: undefined,
+            });
+        });
+
+        test('should allow a non-owner to authenticate via session when flag is enabled', async () => {
+            mocks.env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS = 'true';
+            const userId = 'test-user-id';
+            prisma.user.findUnique.mockResolvedValue({ ...MOCK_USER_WITH_ACCOUNTS, id: userId });
+            prisma.org.findUnique.mockResolvedValue({ ...MOCK_ORG });
+            prisma.userToOrg.findUnique.mockResolvedValue({
+                joinedAt: new Date(),
+                userId,
+                orgId: MOCK_ORG.id,
+                role: OrgRole.MEMBER,
+            });
+            setMockSession(createMockSession({ user: { id: userId } }));
+
+            const authContext = await getAuthContext();
+            expect(authContext).toStrictEqual({
+                user: { ...MOCK_USER_WITH_ACCOUNTS, id: userId },
+                org: MOCK_ORG,
+                role: OrgRole.MEMBER,
+                prisma: undefined,
+            });
         });
     });
 });

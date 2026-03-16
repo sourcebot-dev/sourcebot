@@ -10,7 +10,7 @@ import { getConnectionStats, getMe, getOrgAccountRequests } from "@/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getOrgFromDomain } from "@/data/org";
 import { OrgRole } from "@prisma/client";
-import { hasEntitlement } from "@sourcebot/shared";
+import { env, hasEntitlement } from "@sourcebot/shared";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -98,10 +98,12 @@ export default async function SettingsLayout(
                 isNotificationDotVisible: connectionStats.numberOfConnectionsWithFirstTimeSyncJobsInProgress > 0,
             }
         ] : []),
-        {
-            title: "API Keys",
-            href: `/${domain}/settings/apiKeys`,
-        },
+        ...(env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'false' || userRoleInOrg === OrgRole.OWNER ? [
+            {
+                title: "API Keys",
+                href: `/${domain}/settings/apiKeys`,
+            }
+        ] : []),
         {
             title: "Analytics",
             href: `/${domain}/settings/analytics`,
