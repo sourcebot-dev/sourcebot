@@ -16,7 +16,7 @@ import { PrismaClient, Repo } from "@sourcebot/db";
 import { createLogger, env } from "@sourcebot/shared";
 import path from 'path';
 import { isBranchQuery, QueryIR, someInQueryIR } from './ir';
-import { RepositoryInfo, SearchResponse, SearchResultFile, SearchStats, SourceRange, StreamedSearchErrorResponse, StreamedSearchResponse } from "./types";
+import { RepositoryInfo, RepoResult, SearchResponse, SearchResultFile, SearchStats, SourceRange, StreamedSearchErrorResponse, StreamedSearchResponse } from "./types";
 import { captureEvent } from "@/lib/posthog";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
@@ -148,7 +148,7 @@ export const zoektSearch = async (searchRequest: ZoektGrpcSearchRequest, prisma:
     });
 }
 
-export const zoektStreamSearch = async (searchRequest: ZoektGrpcSearchRequest, prisma: PrismaClient): Promise<ReadableStream> => {
+export const zoektStreamSearch = async (searchRequest: ZoektGrpcSearchRequest, prisma: PrismaClient, selectMode?: string | null): Promise<ReadableStream> => {
     const client = createGrpcClient();
     let grpcStream: ReturnType<WebserverServiceClient['StreamSearch']> | null = null;
     let isStreamActive = true;
@@ -177,6 +177,8 @@ export const zoektStreamSearch = async (searchRequest: ZoektGrpcSearchRequest, p
         flushReason: ZoektGrpcFlushReason.FLUSH_REASON_UNKNOWN_UNSPECIFIED,
     };
 
+    const _accumulatedRepoMap = new Map<number, RepoResult>();
+
     return new ReadableStream({
         async start(controller) {
             const tryCloseController = () => {
@@ -185,6 +187,9 @@ export const zoektStreamSearch = async (searchRequest: ZoektGrpcSearchRequest, p
                         type: 'final',
                         accumulatedStats,
                         isSearchExhaustive: accumulatedStats.totalMatchCount <= accumulatedStats.actualMatchCount,
+                        ...(selectMode === 'repo' ? {
+                            repoResults: Array.from(_accumulatedRepoMap.values()).sort((a, b) => b.matchCount - a.matchCount)
+                        } : {}),
                     }
 
                     controller.enqueue(encodeSSEREsponseChunk(finalResponse));
@@ -234,11 +239,24 @@ export const zoektStreamSearch = async (searchRequest: ZoektGrpcSearchRequest, p
 
                         accumulatedStats = accumulateStats(accumulatedStats, stats);
 
+                        // Accumulate repo map for select:repo mode
+                        if (selectMode === 'repo') {
+                            for (const file of files) {
+                                const repoId = file.repositoryId;
+                                if (!_accumulatedRepoMap.has(repoId)) {
+                                    const ri = repositoryInfo.find(r => r.id === repoId);
+                                    _accumulatedRepoMap.set(repoId, { repositoryId: repoId, repository: file.repository, repositoryInfo: ri, matchCount: file.chunks.reduce((acc, chunk) => acc + chunk.matchRanges.length, 0) });
+                                } else {
+                                    _accumulatedRepoMap.get(repoId)!.matchCount += file.chunks.reduce((acc, chunk) => acc + chunk.matchRanges.length, 0);
+                                }
+                            }
+                        }
+
                         const response: StreamedSearchResponse = {
                             type: 'chunk',
-                            files,
+                            files: selectMode === 'repo' ? [] : files,
                             repositoryInfo,
-                            stats
+                            stats,
                         }
 
                         controller.enqueue(encodeSSEREsponseChunk(response));

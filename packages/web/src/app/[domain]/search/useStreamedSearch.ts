@@ -1,6 +1,6 @@
 'use client';
 
-import { RepositoryInfo, SearchRequest, SearchResultFile, SearchStats, StreamedSearchResponse } from '@/features/search';
+import { RepositoryInfo, RepoResult, SearchRequest, SearchResultFile, SearchStats, StreamedSearchResponse } from '@/features/search';
 import { ServiceErrorException } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
 import * as Sentry from '@sentry/nextjs';
@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 interface CacheEntry {
     files: SearchResultFile[];
     repoInfo: Record<number, RepositoryInfo>;
+    repoResults: RepoResult[];
     numMatches: number;
     timeToSearchCompletionMs: number;
     timeToFirstSearchResultMs: number;
@@ -41,6 +42,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
         error: Error | null,
         files: SearchResultFile[],
         repoInfo: Record<number, RepositoryInfo>,
+        repoResults: RepoResult[],
         timeToSearchCompletionMs: number,
         timeToFirstSearchResultMs: number,
         numMatches: number,
@@ -51,6 +53,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
         error: null,
         files: [],
         repoInfo: {},
+        repoResults: [],
         timeToSearchCompletionMs: 0,
         timeToFirstSearchResultMs: 0,
         numMatches: 0,
@@ -98,6 +101,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                     error: null,
                     files: cachedEntry.files,
                     repoInfo: cachedEntry.repoInfo,
+                    repoResults: cachedEntry.repoResults ?? [],
                     timeToSearchCompletionMs: cachedEntry.timeToSearchCompletionMs,
                     timeToFirstSearchResultMs: cachedEntry.timeToFirstSearchResultMs,
                     numMatches: cachedEntry.numMatches,
@@ -111,6 +115,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                 error: null,
                 files: [],
                 repoInfo: {},
+                repoResults: [],
                 timeToSearchCompletionMs: 0,
                 timeToFirstSearchResultMs: 0,
                 numMatches: 0,
@@ -200,6 +205,10 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                                         ...prev.files,
                                         ...response.files
                                     ],
+                                    repoResults: response.repoResults ? [
+                                        ...prev.repoResults,
+                                        ...response.repoResults
+                                    ] : prev.repoResults,
                                     repoInfo: {
                                         ...prev.repoInfo,
                                         ...response.repositoryInfo.reduce((acc, repo) => {
@@ -218,6 +227,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                                     ...prev,
                                     isExhaustive: response.isSearchExhaustive,
                                     stats: response.accumulatedStats,
+                                    ...(response.repoResults ? { repoResults: response.repoResults } : {}),
                                     ...(isFirstMessage ? {
                                         timeToFirstSearchResultMs: performance.now() - startTime,
                                     } : {}),
@@ -237,6 +247,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                     searchCache.set(cacheKey, {
                         files: prev.files,
                         repoInfo: prev.repoInfo,
+                        repoResults: prev.repoResults,
                         isExhaustive: prev.isExhaustive,
                         numMatches: prev.numMatches,
                         timeToFirstSearchResultMs: prev.timeToFirstSearchResultMs,

@@ -6,8 +6,8 @@ import { PrismaClient, UserWithAccounts } from "@sourcebot/db";
 import { env, hasEntitlement } from "@sourcebot/shared";
 import { headers } from "next/headers";
 import { QueryIR } from './ir';
-import { parseQuerySyntaxIntoIR } from './parser';
-import { SearchOptions } from "./types";
+import { parseQuerySyntaxIntoIR, SelectMode } from './parser';
+import { SearchOptions, SearchResponse, RepoResult } from "./types";
 import { createZoektSearchRequest, zoektSearch, zoektStreamSearch } from './zoektSearcher';
 
 
@@ -21,7 +21,6 @@ type QueryStringSearchRequest = {
 type QueryIRSearchRequest = {
     queryType: 'ir';
     query: QueryIR;
-    // Omit options that are specific to query syntax parsing.
     options: Omit<SearchOptions, 'isRegexEnabled' | 'isCaseSensitivityEnabled'>;
     source?: string;
 }
@@ -43,12 +42,16 @@ export const search = (request: SearchRequest) => sew(() =>
 
         const repoSearchScope = await getAccessibleRepoNamesForUser({ user, prisma });
 
-        // If needed, parse the query syntax into the query intermediate representation.
-        const query = request.queryType === 'string' ? await parseQuerySyntaxIntoIR({
-            query: request.query,
-            options: request.options,
-            prisma,
-        }) : request.query;
+        let selectMode: SelectMode = null;
+        const query = request.queryType === 'string' ? await (async () => {
+            const { ir, selectMode: mode } = await parseQuerySyntaxIntoIR({
+                query: request.query,
+                options: request.options,
+                prisma,
+            });
+            selectMode = mode;
+            return ir;
+        })() : request.query;
 
         const zoektSearchRequest = await createZoektSearchRequest({
             query,
@@ -56,7 +59,11 @@ export const search = (request: SearchRequest) => sew(() =>
             repoSearchScope,
         });
 
-        return zoektSearch(zoektSearchRequest, prisma);
+        const result = await zoektSearch(zoektSearchRequest, prisma);
+        if (selectMode === 'repo') {
+            return applySelectRepo(result);
+        }
+        return result;
     }));
 
 export const streamSearch = (request: SearchRequest) => sew(() =>
@@ -74,12 +81,16 @@ export const streamSearch = (request: SearchRequest) => sew(() =>
 
         const repoSearchScope = await getAccessibleRepoNamesForUser({ user, prisma });
 
-        // If needed, parse the query syntax into the query intermediate representation.
-        const query = request.queryType === 'string' ? await parseQuerySyntaxIntoIR({
-            query: request.query,
-            options: request.options,
-            prisma,
-        }) : request.query;
+        let selectMode: SelectMode = null;
+        const query = request.queryType === 'string' ? await (async () => {
+            const { ir, selectMode: mode } = await parseQuerySyntaxIntoIR({
+                query: request.query,
+                options: request.options,
+                prisma,
+            });
+            selectMode = mode;
+            return ir;
+        })() : request.query;
 
         const zoektSearchRequest = await createZoektSearchRequest({
             query,
@@ -87,13 +98,9 @@ export const streamSearch = (request: SearchRequest) => sew(() =>
             repoSearchScope,
         });
 
-        return zoektStreamSearch(zoektSearchRequest, prisma);
+        return zoektStreamSearch(zoektSearchRequest, prisma, selectMode);
     }));
 
-/**
- * Returns a list of repository names that the user has access to.
- * If permission syncing is disabled, returns undefined.
- */
 const getAccessibleRepoNamesForUser = async ({ user, prisma }: { user?: UserWithAccounts, prisma: PrismaClient }) => {
     if (
         env.PERMISSION_SYNC_ENABLED !== 'true' ||
@@ -110,3 +117,29 @@ const getAccessibleRepoNamesForUser = async ({ user, prisma }: { user?: UserWith
     });
     return accessibleRepos.map(repo => repo.name);
 }
+
+const applySelectRepo = (result: SearchResponse): SearchResponse => {
+    const repoMap = new Map<number, RepoResult>();
+
+    for (const file of result.files) {
+        const repoId = file.repositoryId;
+        if (!repoMap.has(repoId)) {
+            const repoInfo = result.repositoryInfo.find(r => r.id === repoId);
+            repoMap.set(repoId, {
+                repositoryId: repoId,
+                repository: file.repository,
+                repositoryInfo: repoInfo,
+                matchCount: file.chunks.reduce((acc, chunk) => acc + chunk.matchRanges.length, 0),
+            });
+        } else {
+            const existing = repoMap.get(repoId)!;
+            existing.matchCount += file.chunks.reduce((acc, chunk) => acc + chunk.matchRanges.length, 0);
+        }
+    }
+
+    return {
+        ...result,
+        repoResults: Array.from(repoMap.values()).sort((a, b) => b.matchCount - a.matchCount),
+        files: [],
+    };
+};
