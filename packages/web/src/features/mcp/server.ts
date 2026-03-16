@@ -98,7 +98,7 @@ export function createMcpServer(): McpServer {
                     .optional(),
                 filterByFilepaths: z
                     .array(z.string())
-                    .describe(`Scope the search to the provided filepaths.`)
+                    .describe(`Scope the search to the provided filepaths. Each filepath is a regular expression matched against the full file path.`)
                     .optional(),
                 caseSensitive: z
                     .boolean()
@@ -147,7 +147,7 @@ export function createMcpServer(): McpServer {
                 query += ` (lang:${languages.join(' or lang:')})`;
             }
             if (filepaths.length > 0) {
-                query += ` (file:${filepaths.map(fp => escapeStringRegexp(fp)).join(' or file:')})`;
+                query += ` (file:${filepaths.join(' or file:')})`;
             }
             if (ref) {
                 query += ` ( rev:${ref} )`;
