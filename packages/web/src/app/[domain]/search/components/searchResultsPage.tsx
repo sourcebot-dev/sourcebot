@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search";
+import { RepoResult, RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useDomain } from "@/hooks/useDomain";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
@@ -33,6 +33,7 @@ import { CodePreviewPanel } from "./codePreviewPanel";
 import { FilterPanel } from "./filterPanel";
 import { useFilteredMatches } from "./filterPanel/useFilterMatches";
 import { SearchResultsPanel, SearchResultsPanelHandle } from "./searchResultsPanel";
+import { RepoResultsPanel } from "./repoResultsPanel";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { Session } from "next-auth";
 
@@ -67,6 +68,7 @@ export const SearchResultsPage = ({
         error,
         files,
         repoInfo,
+        repoResults,
         timeToSearchCompletionMs,
         timeToFirstSearchResultMs,
         isStreaming,
@@ -81,6 +83,9 @@ export const SearchResultsPage = ({
         isRegexEnabled,
         isCaseSensitivityEnabled,
     });
+
+    // Detect if the query uses select:repo projection
+    const isSelectRepoMode = /(?:^|\s)select:repo(?:\s|$)/.test(searchQuery);
 
     useEffect(() => {
         if (error) {
@@ -208,6 +213,9 @@ export const SearchResultsPage = ({
                     searchStats={stats}
                     isMoreResultsButtonVisible={!isExhaustive}
                     isBranchFilteringEnabled={isBranchFilteringEnabled}
+                    isSelectRepoMode={isSelectRepoMode}
+                    repoResults={repoResults}
+                    searchQuery={searchQuery}
                 />
             )}
         </div>
@@ -224,6 +232,9 @@ interface PanelGroupProps {
     searchDurationMs: number;
     numMatches: number;
     searchStats?: SearchStats;
+    isSelectRepoMode: boolean;
+    repoResults: RepoResult[] | undefined;
+    searchQuery: string;
 }
 
 const PanelGroup = ({
@@ -236,6 +247,9 @@ const PanelGroup = ({
     searchDurationMs: _searchDurationMs,
     numMatches,
     searchStats,
+    isSelectRepoMode,
+    repoResults,
+    searchQuery,
 }: PanelGroupProps) => {
     const [previewedFile, setPreviewedFile] = useState<SearchResultFile | undefined>(undefined);
     const filteredFileMatches = useFilteredMatches(fileMatches);
@@ -354,7 +368,11 @@ const PanelGroup = ({
                                     </TooltipContent>
                                 </Tooltip>
                                 {
-                                    fileMatches.length > 0 ? (
+                                    isSelectRepoMode ? (
+                                        repoResults && repoResults.length > 0 ? (
+                                            <p className="text-sm font-medium">{`[${searchDurationMs} ms] Found ${repoResults.length} ${repoResults.length === 1 ? 'repository' : 'repositories'}`}</p>
+                                        ) : null
+                                    ) : fileMatches.length > 0 ? (
                                         <p className="text-sm font-medium">{`[${searchDurationMs} ms] Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
                                     ) : (
                                         <p className="text-sm font-medium">No results</p>
@@ -372,7 +390,20 @@ const PanelGroup = ({
                         )}
                     </div>
                     <div className="flex-1 min-h-0">
-                        {filteredFileMatches.length > 0 ? (
+                        {isSelectRepoMode ? (
+                            (repoResults && repoResults.length > 0) ? (
+                                <RepoResultsPanel repoResults={repoResults} searchQuery={searchQuery} />
+                            ) : isStreaming ? (
+                                <div className="flex flex-col items-center justify-center h-full gap-2">
+                                    <RefreshCwIcon className="h-6 w-6 animate-spin" />
+                                    <p className="font-semibold text-center">Searching...</p>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full">
+                                    <p className="text-sm text-muted-foreground">No results found</p>
+                                </div>
+                            )
+                        ) : filteredFileMatches.length > 0 ? (
                             <SearchResultsPanel
                                 ref={searchResultsPanelRef}
                                 fileMatches={filteredFileMatches}
