@@ -30,6 +30,14 @@ export const repositoryInfoSchema = z.object({
 });
 export type RepositoryInfo = z.infer<typeof repositoryInfoSchema>;
 
+export const repoResultSchema = z.object({
+    repositoryId: z.number(),
+    repository: z.string(),
+    repositoryInfo: repositoryInfoSchema.optional(),
+    matchCount: z.number(),
+});
+export type RepoResult = z.infer<typeof repoResultSchema>;
+
 // @note: Many of these fields are defined in zoekt/api.go.
 export const searchStatsSchema = z.object({
     actualMatchCount: z.number(),          // The actual number of matches returned by the search. This will always be less than or equal to `totalMatchCount`.
@@ -104,6 +112,7 @@ export const searchResponseSchema = z.object({
     files: z.array(searchFileSchema),
     repositoryInfo: z.array(repositoryInfoSchema),
     isSearchExhaustive: z.boolean(),
+    repoResults: z.array(repoResultSchema).optional(),
 });
 export type SearchResponse = z.infer<typeof searchResponseSchema>;
 
@@ -115,6 +124,7 @@ export const streamedSearchChunkResponseSchema = z.object({
     stats: searchStatsSchema,
     files: z.array(searchFileSchema),
     repositoryInfo: z.array(repositoryInfoSchema),
+    repoResults: z.array(repoResultSchema).optional(),
 });
 export type StreamedSearchChunkResponse = z.infer<typeof streamedSearchChunkResponseSchema>;
 
@@ -125,6 +135,7 @@ export const streamedSearchFinalResponseSchema = z.object({
     type: z.literal('final'),
     accumulatedStats: searchStatsSchema,
     isSearchExhaustive: z.boolean(),
+    repoResults: z.array(repoResultSchema).optional(),
 });
 export type StreamedSearchFinalResponse = z.infer<typeof streamedSearchFinalResponseSchema>;
 

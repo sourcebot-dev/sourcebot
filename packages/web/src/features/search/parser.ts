@@ -21,6 +21,7 @@ import {
     QuotedTerm,
     Tree,
     VisibilityExpr,
+    SelectExpr,
 } from '@sourcebot/query-language';
 import { parser as _parser } from '@sourcebot/query-language';
 import { PrismaClient } from '@sourcebot/db';
@@ -64,6 +65,30 @@ const findLinguistLanguage = (value: string): string => {
     return languageKeyLowerCaseMap.get(value.toLowerCase()) ?? value;
 }
 
+export type SelectMode = 'repo' | null;
+
+/**
+ * Extracts the select: modifier from a Lezer tree.
+ * Returns 'repo' or null.
+ */
+const extractSelectMode = (tree: Tree, input: string): SelectMode => {
+    let selectMode: SelectMode = null;
+    const cursor = tree.cursor();
+    do {
+        if (cursor.name === 'SelectExpr') {
+            const text = input.substring(cursor.from, cursor.to);
+            const colonIndex = text.indexOf(':');
+            if (colonIndex !== -1) {
+                const value = text.substring(colonIndex + 1).trim();
+                if (value === 'repo') {
+                    selectMode = value;
+                }
+            }
+        }
+    } while (cursor.next());
+    return selectMode;
+}
+
 /**
  * Given a query string, parses it into the query intermediate representation.
  */
@@ -78,14 +103,17 @@ export const parseQuerySyntaxIntoIR = async ({
         isRegexEnabled?: boolean;
     },
     prisma: PrismaClient,
-}): Promise<QueryIR> => {
+}): Promise<{ ir: QueryIR, selectMode: SelectMode }> => {
 
     try {
         // First parse the query into a Lezer tree.
         const tree = parser.parse(query);
 
+        // Extract the select mode before transforming (select: is a projection modifier, not a zoekt filter)
+        const selectMode = extractSelectMode(tree, query);
+
         // Then transform the tree into the intermediate representation.
-        return transformTreeToIR({
+        const ir = await transformTreeToIR({
             tree,
             input: query,
             isCaseSensitivityEnabled: options.isCaseSensitivityEnabled ?? false,
@@ -110,6 +138,8 @@ export const parseQuerySyntaxIntoIR = async ({
                 return context.repos.map((repo) => repo.name);
             },
         });
+
+        return { ir, selectMode };
     } catch (error) {
         if (error instanceof SyntaxError) {
             throw new ServiceErrorException({
@@ -415,6 +445,11 @@ const transformTreeToIR = async ({
                     query: "repo_set"
                 };
             }
+            case SelectExpr: {
+                // select: is a projection modifier — no-op match-all, optimized away by zoekt
+                return { const: true, query: "const" };
+            }
+
             default:
                 throw new Error(`Unknown prefix type: ${prefixNode.type.name} (id: ${prefixTypeId})`);
         }

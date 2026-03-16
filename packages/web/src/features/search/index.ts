@@ -12,4 +12,5 @@ export type {
     StreamedSearchResponse,
     SearchResultChunk,
     SearchResponse,
+    RepoResult,
 } from './types';
