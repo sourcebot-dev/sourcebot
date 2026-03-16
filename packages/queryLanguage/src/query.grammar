@@ -47,7 +47,8 @@ PrefixExpr {
   RepoExpr |
   LangExpr |
   SymExpr |
-  RepoSetExpr
+  RepoSetExpr |
+  SelectExpr
 }
 
 RevisionExpr { revisionKw value }
@@ -58,6 +59,8 @@ RepoExpr { repoKw value }
 LangExpr { langKw value }
 SymExpr { symKw value }
 RepoSetExpr { reposetKw value }
+
+SelectExpr { selectKw value }
 
 // Modifiers
 ArchivedExpr { archivedKw archivedValue }
@@ -87,6 +90,7 @@ value { quotedString | word }
   langKw { "lang:" }
   symKw { "sym:" }
   reposetKw { "reposet:" }
+  selectKw { "select:" }
 
   // 'or' is now handled by external orToken tokenizer
 
@@ -100,6 +104,6 @@ value { quotedString | word }
     quotedString,
     archivedKw, revisionKw, contentKw, contextKw, fileKw,
     forkKw, visibilityKw, repoKw, langKw,
-    symKw, reposetKw
+    symKw, reposetKw, selectKw
   }
 }

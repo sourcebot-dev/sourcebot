@@ -25,6 +25,7 @@ const PREFIXES = [
     "lang:",
     "sym:",
     "reposet:",
+    "select:",
 ];
 
 function isWhitespace(ch: number): boolean {
