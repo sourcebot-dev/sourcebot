@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added AGENTS.md with Cursor Cloud development environment instructions. [#1001](https://github.com/sourcebot-dev/sourcebot/pull/1001)
 - Added support for configuring SMTP via individual environment variables (SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD) as an alternative to SMTP_CONNECTION_URL. [#1002](https://github.com/sourcebot-dev/sourcebot/pull/1002)
+- Added `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` and `DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS` environment variables to restrict API key creation and usage to organization owners. [#1007](https://github.com/sourcebot-dev/sourcebot/pull/1007)
 
 ## [4.15.6] - 2026-03-13
 
