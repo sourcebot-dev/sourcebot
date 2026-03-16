@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.15.7] - 2026-03-16
+
 ### Added
 - Added AGENTS.md with Cursor Cloud development environment instructions. [#1001](https://github.com/sourcebot-dev/sourcebot/pull/1001)
 - Added support for configuring SMTP via individual environment variables (SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD) as an alternative to SMTP_CONNECTION_URL. [#1002](https://github.com/sourcebot-dev/sourcebot/pull/1002)

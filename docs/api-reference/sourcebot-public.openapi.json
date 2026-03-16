@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Sourcebot Public API",
-    "version": "v4.15.6",
+    "version": "v4.15.7",
     "description": "OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing."
   },
   "tags": [
