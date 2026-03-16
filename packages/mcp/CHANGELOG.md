@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Clarified that `filterByFilepaths` in the `search_code` tool accepts regular expressions matched against the full file path. [#1008](https://github.com/sourcebot-dev/sourcebot/pull/1008)
+
 ## [1.0.18] - 2026-02-28
 
 ### Changed
