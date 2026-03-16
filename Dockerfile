@@ -220,6 +220,9 @@ RUN chown -R sourcebot:sourcebot /app
 # Copy zoekt proto files (needed for gRPC client at runtime)
 COPY --chown=sourcebot:sourcebot vendor/zoekt/grpc/protos /app/vendor/zoekt/grpc/protos
 
+# Copy OpenAPI docs
+COPY --chown=sourcebot:sourcebot docs/api-reference/sourcebot-public.openapi.json /app/docs/api-reference/sourcebot-public.openapi.json
+
 # Copy all of the things
 COPY --chown=sourcebot:sourcebot --from=web-builder /app/packages/web/public ./packages/web/public
 COPY --chown=sourcebot:sourcebot --from=web-builder /app/packages/web/.next/standalone ./

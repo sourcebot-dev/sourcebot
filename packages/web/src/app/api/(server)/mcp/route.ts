@@ -3,7 +3,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createMcpServer } from '@/features/mcp/server';
 import { withOptionalAuthV2 } from '@/withAuthV2';
 import { isServiceError } from '@/lib/utils';
-import { serviceErrorResponse, ServiceError } from '@/lib/serviceError';
+import { notAuthenticated, serviceErrorResponse, ServiceError } from '@/lib/serviceError';
 import { ErrorCode } from '@/lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
 import { NextRequest } from 'next/server';
@@ -44,6 +44,9 @@ const sessions = new Map<string, McpSession>();
 export const POST = apiHandler(async (request: NextRequest) => {
     const response = await sew(() =>
         withOptionalAuthV2(async ({ user }) => {
+            if (env.EXPERIMENT_ASK_GH_ENABLED === 'true' && !user) {
+                return notAuthenticated();
+            }
             const ownerId = user?.id ?? null;
             const sessionId = request.headers.get(MCP_SESSION_ID_HEADER);
 
@@ -93,6 +96,9 @@ export const POST = apiHandler(async (request: NextRequest) => {
 export const DELETE = apiHandler(async (request: NextRequest) => {
     const result = await sew(() =>
         withOptionalAuthV2(async ({ user }) => {
+            if (env.EXPERIMENT_ASK_GH_ENABLED === 'true' && !user) {
+                return notAuthenticated();
+            }
             const ownerId = user?.id ?? null;
             const sessionId = request.headers.get(MCP_SESSION_ID_HEADER);
             if (!sessionId || !sessions.has(sessionId)) {
@@ -126,6 +132,9 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
 export const GET = apiHandler(async (request: NextRequest) => {
     const result = await sew(() =>
         withOptionalAuthV2(async ({ user }) => {
+            if (env.EXPERIMENT_ASK_GH_ENABLED === 'true' && !user) {
+                return notAuthenticated();
+            }
             const ownerId = user?.id ?? null;
             const sessionId = request.headers.get(MCP_SESSION_ID_HEADER);
             if (!sessionId || !sessions.has(sessionId)) {

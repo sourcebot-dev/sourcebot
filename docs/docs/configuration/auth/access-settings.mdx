@@ -17,20 +17,20 @@ When accessing Sourcebot anonymously, a user's permissions are limited to that o
 
 # Member Approval 
 
-By default, Sourcebot requires new members to be approved by the owner of the deployment. This section explains how approvals work and how
+By default, Sourcebot requires new members to be approved by an owner of the deployment. This section explains how approvals work and how
 to configure this behavior.
 
 ### Configuration
-Member approval can be configured by the owner of the deployment by navigating to **Settings -> Access**, or by setting the `REQUIRE_APPROVAL_NEW_MEMBERS` environment variable. When the environment variable is set, the UI toggle is disabled and the setting is controlled by the environment variable.
+Member approval can be configured by an owner of the deployment by navigating to **Settings -> Access**, or by setting the `REQUIRE_APPROVAL_NEW_MEMBERS` environment variable. When the environment variable is set, the UI toggle is disabled and the setting is controlled by the environment variable.
 
 ![Member Approval Toggle](/images/member_approval_toggle.png)
 
 ### Managing Requests
 
 If member approval is enabled, new members will be asked to submit a join request after signing up. They will not have access to the Sourcebot deployment
-until this request is approved by the owner.
+until this request is approved by an owner.
 
-The owner can see and manage all pending join requests by navigating to **Settings -> Members**.
+Owners can see and manage all pending join requests by navigating to **Settings -> Members**.
 
 ## Invite link
 

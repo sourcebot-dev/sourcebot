@@ -52,8 +52,9 @@ export function LinkedAccountProviderCard({
         if (syncJobId && syncStatusData !== undefined && !syncStatusData.isSyncing) {
             setSyncJobId(null);
             toast({ description: `✅ Permissions refreshed for ${providerInfo.displayName}.` });
+            router.refresh();
         }
-    }, [syncJobId, syncStatusData, providerInfo.displayName, toast]);
+    }, [syncJobId, syncStatusData, providerInfo.displayName, toast, router]);
 
     const handleConnect = () => {
         signIn(linkedAccount.provider, { redirectTo: callbackUrl ?? window.location.href });

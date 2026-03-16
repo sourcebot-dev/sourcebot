@@ -81,12 +81,12 @@ export const loadConfig = async (configPath?: string): Promise<SourcebotConfig> 
                     });
                 } catch (error) {
                     lastError = error as Error;
-                    
+
                     // Only retry on ENOENT errors (file not found)
                     if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
                         throw error; // Throw immediately for non-ENOENT errors
                     }
-                    
+
                     // Log warning before retry (except on the last attempt)
                     if (attempt < maxAttempts) {
                         console.warn(`Config file not found, retrying in 2s... (Attempt ${attempt}/${maxAttempts})`);
@@ -94,12 +94,12 @@ export const loadConfig = async (configPath?: string): Promise<SourcebotConfig> 
                     }
                 }
             }
-            
+
             // If we've exhausted all retries, throw the last ENOENT error
             if (lastError) {
                 throw lastError;
             }
-            
+
             throw new Error('Failed to load config after all retry attempts');
         }
     })();
@@ -127,11 +127,11 @@ const runtimeEnv = await (async () => {
     }
 })();
 
-export const env = createEnv({
+const options = {
     server: {
         // Zoekt
         ZOEKT_WEBSERVER_URL: z.string().url().default("http://localhost:6070"),
-        
+
         // Auth
         FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
         REQUIRE_APPROVAL_NEW_MEMBERS: booleanSchema.optional(),
@@ -143,8 +143,8 @@ export const env = createEnv({
         // Enterprise Auth
         AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING:
             booleanSchema
-            .default('true')
-            .describe('When enabled, different SSO accounts with the same email address will automatically be linked.'),
+                .default('true')
+                .describe('When enabled, different SSO accounts with the same email address will automatically be linked.'),
 
         AUTH_EE_GCP_IAP_ENABLED: booleanSchema.default('false'),
         AUTH_EE_GCP_IAP_AUDIENCE: z.string().optional(),
@@ -154,7 +154,13 @@ export const env = createEnv({
         SOURCEBOT_PUBLIC_KEY_PATH: z.string(),
 
         // Email
+        // Either SMTP_CONNECTION_URL or SMTP_HOST must be set to enable transactional emails.
+        // @see: shared/src/smtp.ts for more details.
         SMTP_CONNECTION_URL: z.string().url().optional(),
+        SMTP_HOST: z.string().optional(),
+        SMTP_PORT: z.coerce.number().optional(),
+        SMTP_USERNAME: z.string().optional(),
+        SMTP_PASSWORD: z.string().optional(),
         EMAIL_FROM_ADDRESS: z.string().email().optional(),
 
         // Stripe
@@ -240,13 +246,26 @@ export const env = createEnv({
 
         SOURCEBOT_DEMO_EXAMPLES_PATH: z.string().optional(),
 
+        DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS: booleanSchema.default('false'),
+
+        DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS: booleanSchema
+            .optional()
+            .transform(value => {
+                return value ?? ((process.env.EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS as 'true' | 'false') ?? 'false');
+            }),
+
+        /**
+         * @deprecated Use `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` instead.
+         */
+        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
+
+
         // Experimental Environment Variables
         // @note: These environment variables are subject to change at any time and are not garunteed to be backwards compatible.
-        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED: booleanSchema.default('false'),
         // @NOTE: Take care to update actions.ts when changing the name of this.
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN: z.string().optional(),
-        EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
+        PERMISSION_SYNC_REPO_DRIVEN_ENABLED: booleanSchema.default('true'),
         EXPERIMENT_ASK_GH_ENABLED: booleanSchema.default('false'),
 
         SOURCEBOT_ENCRYPTION_KEY: z.string(),
@@ -276,6 +295,22 @@ export const env = createEnv({
         ALWAYS_INDEX_FILE_PATTERNS: z.string().optional(),
 
         /**
+         * Controls whether permission syncing is enabled
+         * at the deployment level. Falls back to the deprecated
+         * variable `EXPERIMENT_EE_PERMISSION_SYNC_ENABLED` if not set.
+         */
+        PERMISSION_SYNC_ENABLED: booleanSchema
+            .optional()
+            .transform(value => {
+                return value ?? ((process.env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED as 'true' | 'false') ?? 'false');
+            }),
+
+        /**
+         * @deprecated Use `PERMISSION_SYNC_ENABLED` instead.
+         */
+        EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
+
+        /**
          * Configure whether to send telemetry events.
          * By default, all events are anonymized and do not contain PII data,
          * unless SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED is set to true.
@@ -295,7 +330,7 @@ export const env = createEnv({
          * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
          */
         AUTH_EE_GITHUB_CLIENT_ID: z.string().optional(),
-        
+
         /**
          * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
          */
@@ -380,4 +415,15 @@ export const env = createEnv({
     runtimeEnv,
     emptyStringAsUndefined: true,
     skipValidation: process.env.SKIP_ENV_VALIDATION === "1",
-});
+}
+
+// The typecast below uses `typeof options['server']` in a mapped type, which causes TypeScript to
+// emit a reference to the named `options` export in the `.d.ts` declaration file. This is what
+// preserves JSDoc comments (including `@deprecated`) on individual env var properties — without
+// it, the return type of `createEnv` does not reference `options` by name and TypeScript loses
+// the JSDoc. `options` must also be an exported named declaration (not an anonymous inline
+// literal) for TypeScript to resolve and emit its JSDoc.
+// See: https://github.com/microsoft/TypeScript/issues/62309
+export const env = createEnv(options) as unknown as {
+    [K in keyof typeof options['server']]: z.output<(typeof options['server'])[K]>
+}

@@ -50,8 +50,10 @@ The following are settings that can be provided in your config file to modify So
 | `repoGarbageCollectionGracePeriodMs`            | number  | 10 seconds | 1       | Grace period to avoid deleting shards while loading.                                   |
 | `repoIndexTimeoutMs`                            | number  | 2 hours    | 1       | Timeout for a single repo‑indexing run.                                                |
 | `enablePublicAccess` **(deprecated)**           | boolean | false      | —       | Use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.                  |
-| `experiment_repoDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       | Interval at which the repo permission syncer should run.                               |
-| `experiment_userDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       | Interval at which the user permission syncer should run.                               |
+| `repoDrivenPermissionSyncIntervalMs`            | number  | 24 hours   | 1       | Interval at which the repo permission syncer should run.                               |
+| `userDrivenPermissionSyncIntervalMs`            | number  | 24 hours   | 1       | Interval at which the user permission syncer should run.                               |
+| `experiment_repoDrivenPermissionSyncIntervalMs` **(deprecated)** | number  | 24 hours   | 1       | Use `repoDrivenPermissionSyncIntervalMs` instead.             |
+| `experiment_userDrivenPermissionSyncIntervalMs` **(deprecated)** | number  | 24 hours   | 1       | Use `userDrivenPermissionSyncIntervalMs` instead.             |
 | `maxAccountPermissionSyncJobConcurrency`        | number  | 8          | 1       | Concurrent account permission sync jobs.                                               |
 | `maxRepoPermissionSyncJobConcurrency`           | number  | 8          | 1       | Concurrent repo permission sync jobs.                                                  |
 

@@ -53,7 +53,7 @@ export class RepoPermissionSyncer {
 
         this.interval = setIntervalAsync(async () => {
             // @todo: make this configurable
-            const thresholdDate = new Date(Date.now() - this.settings.experiment_repoDrivenPermissionSyncIntervalMs);
+            const thresholdDate = new Date(Date.now() - this.settings.repoDrivenPermissionSyncIntervalMs);
 
             const repos = await this.db.repo.findMany({
                 // Repos need their permissions to be synced against the code host when...
@@ -69,6 +69,16 @@ export class RepoPermissionSyncer {
                         {
                             external_codeHostType: {
                                 in: PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES,
+                            }
+                        },
+                        // They have at least one connection with permission enforcement enabled
+                        {
+                            connections: {
+                                some: {
+                                    connection: {
+                                        enforcePermissions: true,
+                                    }
+                                }
                             }
                         },
                         // They have not been synced within the threshold date.
@@ -270,7 +280,7 @@ export class RepoPermissionSyncer {
                 // granted access to this repository. Users who have access via a group added to the repo,
                 // via project-level membership, or via a group in a project are NOT captured here.
                 // These users will still gain access through user-driven syncing (accountPermissionSyncer),
-                // but there may be a delay of up to `experiment_userDrivenPermissionSyncIntervalMs` before
+                // but there may be a delay of up to `userDrivenPermissionSyncIntervalMs` before
                 // they see the repository in Sourcebot.
                 // @see: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-repo-slug-permissions-config-users-get
                 const users = await getExplicitUserPermissionsForCloudRepo(client, workspace, repoSlug);
@@ -328,9 +338,7 @@ export class RepoPermissionSyncer {
                 }
             }
 
-            return {
-                accountIds: [],
-            }
+            throw new Error(`Unsupported code host type: ${repo.external_codeHostType}`);
         })();
 
         await this.db.$transaction([

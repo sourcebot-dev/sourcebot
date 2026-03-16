@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `filterByFilepaths` in the MCP `search_code` tool now accepts regular expressions matched against the full file path, instead of treating values as escaped literals. [#1008](https://github.com/sourcebot-dev/sourcebot/pull/1008)
+
+## [4.15.7] - 2026-03-16
+
+### Added
+- Added AGENTS.md with Cursor Cloud development environment instructions. [#1001](https://github.com/sourcebot-dev/sourcebot/pull/1001)
+- Added support for configuring SMTP via individual environment variables (SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD) as an alternative to SMTP_CONNECTION_URL. [#1002](https://github.com/sourcebot-dev/sourcebot/pull/1002)
+- Added `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` and `DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS` environment variables to restrict API key creation and usage to organization owners. [#1007](https://github.com/sourcebot-dev/sourcebot/pull/1007)
+
+### Changed
+- Deprecated `EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS` in favour of `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS`. The old variable will continue to work as a fallback. [#1007](https://github.com/sourcebot-dev/sourcebot/pull/1007)
+
+## [4.15.6] - 2026-03-13
+
+### Added
+- Added generated OpenAPI documentation for the public search, repo, and file browsing API surface. [#996](https://github.com/sourcebot-dev/sourcebot/pull/996)
+
+### Fixed
+- [EE] Fixed account-driven permission sync silently wiping all Bitbucket Server repository permissions when the OAuth token expires on instances with anonymous access enabled. [#998](https://github.com/sourcebot-dev/sourcebot/pull/998)
+- [EE] Fixed Bitbucket Server repos being incorrectly treated as public in Sourcebot when the instance-level `feature.public.access` flag is disabled but per-repo public flags were not reset. [#999](https://github.com/sourcebot-dev/sourcebot/pull/999)
+- [EE] Fixed account-driven permission sync jobs failing when OAuth tokens expire between user visits by moving token refresh into the backend sync flow. [#1000](https://github.com/sourcebot-dev/sourcebot/pull/1000)
+
+## [4.15.5] - 2026-03-12
+
+### Added
+- [EE] Added JumpCloud as an identity provider for SSO authentication. [#997](https://github.com/sourcebot-dev/sourcebot/pull/997)
+
+### Changed
+- Require explicit invocation of ask_codebase tool in MCP [#995](https://github.com/sourcebot-dev/sourcebot/pull/995)
+- Gate MCP API behind authentication when Ask GitHub is enabled. [#994](https://github.com/sourcebot-dev/sourcebot/pull/994)
+
+## [4.15.4] - 2026-03-11
+
+### Added
+- [EE] Added multi-owner support with promote/demote actions. [#988](https://github.com/sourcebot-dev/sourcebot/pull/988)
+- [EE] Added `PERMISSION_SYNC_REPO_DRIVEN_ENABLED` environment variable to enable/disable repo-driven permission syncing. [#989](https://github.com/sourcebot-dev/sourcebot/pull/989)
+- [EE] Added `enforcePermissions` per-connection flag to control whether repository permissions are enforced for a given connection. Defaults to the value of `PERMISSION_SYNC_ENABLED`. [#991](https://github.com/sourcebot-dev/sourcebot/pull/991)
+- [EE] Added `repoDrivenPermissionSyncIntervalMs` and `userDrivenPermissionSyncIntervalMs` config settings, deprecating the `experiment_` prefixed variants (still respected as fallbacks). [#991](https://github.com/sourcebot-dev/sourcebot/pull/991)
+- [EE] Added `enforcePermissionsForPublicRepos` per-connection flag to restrict public repository visibility to users with a linked account for that connection's code host. [#993](https://github.com/sourcebot-dev/sourcebot/pull/993)
+
+### Changed
+- [EE] Promoted `PERMISSION_SYNC_ENABLED` as the canonical env var for enabling permission syncing, deprecating `EXPERIMENT_EE_PERMISSION_SYNC_ENABLED` (still respected as a fallback). [#991](https://github.com/sourcebot-dev/sourcebot/pull/991)
+
+## [4.15.3] - 2026-03-10
+
+### Fixed
+- [EE] Handle duplicate `resource` query parameters in the OAuth authorization endpoint. [#987](https://github.com/sourcebot-dev/sourcebot/pull/987)
+
 ## [4.15.2] - 2026-03-06
 
 ### Fixed

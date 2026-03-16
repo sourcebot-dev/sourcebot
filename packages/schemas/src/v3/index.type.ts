@@ -36,6 +36,7 @@ export type IdentityProviderConfig =
   | GCPIAPIdentityProviderConfig
   | AuthentikIdentityProviderConfig
   | BitbucketCloudIdentityProviderConfig
+  | JumpCloudIdentityProviderConfig
   | BitbucketServerIdentityProviderConfig;
 
 export interface SourcebotConfig {
@@ -126,9 +127,19 @@ export interface Settings {
   /**
    * The interval (in milliseconds) at which the repo permission syncer should run. Defaults to 24 hours.
    */
-  experiment_repoDrivenPermissionSyncIntervalMs?: number;
+  repoDrivenPermissionSyncIntervalMs?: number;
   /**
    * The interval (in milliseconds) at which the user permission syncer should run. Defaults to 24 hours.
+   */
+  userDrivenPermissionSyncIntervalMs?: number;
+  /**
+   * @deprecated
+   * Deprecated. Use `repoDrivenPermissionSyncIntervalMs` instead.
+   */
+  experiment_repoDrivenPermissionSyncIntervalMs?: number;
+  /**
+   * @deprecated
+   * Deprecated. Use `userDrivenPermissionSyncIntervalMs` instead.
    */
   experiment_userDrivenPermissionSyncIntervalMs?: number;
   /**
@@ -284,6 +295,14 @@ export interface GithubConnectionConfig {
     };
   };
   revisions?: GitRevisions;
+  /**
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissions?: boolean;
+  /**
+   * Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissionsForPublicRepos?: boolean;
 }
 /**
  * The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.
@@ -368,6 +387,14 @@ export interface GitlabConnectionConfig {
     topics?: string[];
   };
   revisions?: GitRevisions;
+  /**
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissions?: boolean;
+  /**
+   * Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissionsForPublicRepos?: boolean;
 }
 export interface GiteaConnectionConfig {
   /**
@@ -421,6 +448,14 @@ export interface GiteaConnectionConfig {
     repos?: string[];
   };
   revisions?: GitRevisions;
+  /**
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissions?: boolean;
+  /**
+   * Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissionsForPublicRepos?: boolean;
 }
 export interface GerritConnectionConfig {
   /**
@@ -450,6 +485,14 @@ export interface GerritConnectionConfig {
     hidden?: boolean;
   };
   revisions?: GitRevisions;
+  /**
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissions?: boolean;
+  /**
+   * Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissionsForPublicRepos?: boolean;
 }
 export interface BitbucketConnectionConfig {
   /**
@@ -519,6 +562,14 @@ export interface BitbucketConnectionConfig {
     repos?: string[];
   };
   revisions?: GitRevisions;
+  /**
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissions?: boolean;
+  /**
+   * Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissionsForPublicRepos?: boolean;
 }
 export interface AzureDevOpsConnectionConfig {
   /**
@@ -593,6 +644,14 @@ export interface AzureDevOpsConnectionConfig {
     };
   };
   revisions?: GitRevisions;
+  /**
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissions?: boolean;
+  /**
+   * Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissionsForPublicRepos?: boolean;
 }
 export interface GenericGitHostConnectionConfig {
   /**
@@ -604,6 +663,14 @@ export interface GenericGitHostConnectionConfig {
    */
   url: string;
   revisions?: GitRevisions;
+  /**
+   * Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissions?: boolean;
+  /**
+   * Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing
+   */
+  enforcePermissionsForPublicRepos?: boolean;
 }
 export interface AmazonBedrockLanguageModel {
   /**
@@ -1509,6 +1576,49 @@ export interface BitbucketCloudIdentityProviderConfig {
         googleCloudSecret: string;
       };
   accountLinkingRequired?: boolean;
+}
+export interface JumpCloudIdentityProviderConfig {
+  provider: "jumpcloud";
+  purpose: "sso";
+  clientId:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  clientSecret:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  issuer:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
 }
 export interface BitbucketServerIdentityProviderConfig {
   provider: "bitbucket-server";

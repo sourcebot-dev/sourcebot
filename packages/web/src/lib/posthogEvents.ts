@@ -69,6 +69,14 @@ export type PosthogEventMap = {
     wa_members_list_transfer_ownership_fail: {
         errorCode: string,
     },
+    wa_members_list_promote_to_owner_success: {},
+    wa_members_list_promote_to_owner_fail: {
+        errorCode: string,
+    },
+    wa_members_list_demote_to_member_success: {},
+    wa_members_list_demote_to_member_fail: {
+        errorCode: string,
+    },
     wa_members_list_leave_org_success: {},
     wa_members_list_leave_org_fail: {
         errorCode: string,
@@ -105,6 +113,7 @@ export type PosthogEventMap = {
     wa_login_with_okta: {},
     wa_login_with_keycloak: {},
     wa_login_with_microsoft_entra_id: {},
+    wa_login_with_jumpcloud: {},
     wa_login_with_magic_link: {},
     wa_login_with_credentials: {},
     //////////////////////////////////////////////////////////////////

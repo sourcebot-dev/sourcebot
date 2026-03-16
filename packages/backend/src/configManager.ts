@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient } from "@sourcebot/db";
-import { createLogger } from "@sourcebot/shared";
+import { createLogger, env } from "@sourcebot/shared";
 import { ConnectionConfig } from "@sourcebot/schemas/v3/connection.type";
 import { loadConfig } from "@sourcebot/shared";
 import chokidar, { FSWatcher } from 'chokidar';
@@ -68,6 +68,9 @@ export class ConfigManager {
                     !existingConnectionConfig ||
                     !isEqual(existingConnectionConfig, newConnectionConfig);
 
+                const enforcePermissions = newConnectionConfig.enforcePermissions ?? (env.PERMISSION_SYNC_ENABLED === 'true');
+                const enforcePermissionsForPublicRepos = newConnectionConfig.enforcePermissionsForPublicRepos ?? false;
+
                 // Either update the existing connection or create a new one.
                 const connection = existingConnection ?
                     await this.db.connection.update({
@@ -77,6 +80,8 @@ export class ConfigManager {
                         data: {
                             config: newConnectionConfig as unknown as Prisma.InputJsonValue,
                             isDeclarative: true,
+                            enforcePermissions,
+                            enforcePermissionsForPublicRepos,
                         }
                     }) :
                     await this.db.connection.create({
@@ -85,6 +90,8 @@ export class ConfigManager {
                             config: newConnectionConfig as unknown as Prisma.InputJsonValue,
                             connectionType: newConnectionConfig.type,
                             isDeclarative: true,
+                            enforcePermissions,
+                            enforcePermissionsForPublicRepos,
                             org: {
                                 connect: {
                                     id: SINGLE_TENANT_ORG_ID,

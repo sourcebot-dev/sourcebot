@@ -8,6 +8,7 @@ import Image from 'next/image';
 import logo from '@/public/logo_512.png';
 import { useEffect, useState } from 'react';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
+import { useToast } from '@/components/hooks/use-toast';
 
 interface ConsentScreenProps {
     clientId: string;
@@ -32,6 +33,7 @@ export function ConsentScreen({
 }: ConsentScreenProps) {
     const [pending, setPending] = useState<'approve' | 'deny' | null>(null);
     const captureEvent = useCaptureEvent();
+    const { toast } = useToast();
 
     useEffect(() => {
         captureEvent('wa_oauth_consent_viewed', { clientId, clientName });
@@ -41,11 +43,17 @@ export function ConsentScreen({
         captureEvent('wa_oauth_authorization_approved', { clientId, clientName });
         setPending('approve');
         const result = await approveAuthorization({ clientId, redirectUri, codeChallenge, resource, state });
-        if (isServiceError(result)) {
-            setPending(null);
-            return;
+        if (!isServiceError(result)) {
+            toast({
+                description: `✅ Authorization approved successfully. Redirecting...`,
+            });
+            window.location.href = result;
+        } else {
+            toast({
+                description: `❌ Failed to approve authorization. ${result.message}`,
+            });
         }
-        window.location.href = result;
+        setPending(null);
     };
 
     const onDeny = async () => {

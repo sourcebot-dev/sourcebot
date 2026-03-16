@@ -96,7 +96,7 @@ export const streamSearch = (request: SearchRequest) => sew(() =>
  */
 const getAccessibleRepoNamesForUser = async ({ user, prisma }: { user?: UserWithAccounts, prisma: PrismaClient }) => {
     if (
-        env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED !== 'true' ||
+        env.PERMISSION_SYNC_ENABLED !== 'true' ||
         !hasEntitlement('permission-syncing')
     ) {
         return undefined;

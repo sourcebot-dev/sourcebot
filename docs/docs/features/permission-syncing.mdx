@@ -18,11 +18,11 @@ that they have access to on the code host. Practically, this means:
 - Ask Sourcebot (and the underlying LLM) will only have access to repositories that the user has access to.
 - File browsing is scoped to the repositories that the user has access to.
 
-Permission syncing can be enabled by setting the `EXPERIMENT_EE_PERMISSION_SYNC_ENABLED` environment variable to `true`.
+Permission syncing can be enabled by setting the `PERMISSION_SYNC_ENABLED` environment variable to `true`.
 
 ```bash
 docker run \
-    -e EXPERIMENT_EE_PERMISSION_SYNC_ENABLED=true \
+    -e PERMISSION_SYNC_ENABLED=true \
     /* additional args */ \
     ghcr.io/sourcebot-dev/sourcebot:latest
 ```
@@ -41,6 +41,8 @@ We are actively working on supporting more code hosts. If you'd like to see a sp
 | [GitLab (Self-managed & Cloud)](/docs/features/permission-syncing#gitlab) | ✅ |
 | [Bitbucket Cloud](/docs/features/permission-syncing#bitbucket-cloud) | 🟠 Partial |
 | [Bitbucket Data Center](/docs/features/permission-syncing#bitbucket-data-center) | 🟠 Partial |
+| Azure DevOps Cloud | 🛑 |
+| Azure DevOps Server | 🛑 |
 | Gitea | 🛑 |
 | Gerrit | 🛑 |
 | Generic git host | 🛑 |
@@ -95,9 +97,9 @@ Permission syncing works with **Bitbucket Cloud**. OAuth tokens must assume the 
 - Membership in the [project that contains the repository](https://support.atlassian.com/bitbucket-cloud/docs/configure-project-permissions-for-users-and-groups/)
 - Membership in a group that is part of a project containing the repository
 
-These users **will** still gain access via [user-driven syncing](/docs/features/permission-syncing#how-it-works), which fetches all private repositories accessible to each authenticated user. However, there may be a delay between when a repository is added and when affected users gain access in Sourcebot (up to the `experiment_userDrivenPermissionSyncIntervalMs` interval, which defaults to 24 hours).
+These users **will** still gain access via [user-driven syncing](/docs/features/permission-syncing#how-it-works), which fetches all private repositories accessible to each authenticated user. However, there may be a delay between when a repository is added and when affected users gain access in Sourcebot (up to the `userDrivenPermissionSyncIntervalMs` interval, which defaults to 24 hours).
 
-If your workspace relies heavily on group or project-level permissions rather than direct user grants, we recommend reducing the `experiment_userDrivenPermissionSyncIntervalMs` interval to limit the window of delay.
+If your workspace relies heavily on group or project-level permissions rather than direct user grants, we recommend reducing the `userDrivenPermissionSyncIntervalMs` interval to limit the window of delay.
 </Warning>
 
 **Notes:**
@@ -118,9 +120,9 @@ Permission syncing works with **Bitbucket Data Center**. OAuth tokens must assum
 - Project-level permissions (inherited by all repos in the project)
 - Group membership
 
-These users **will** still gain access via [user-driven syncing](/docs/features/permission-syncing#how-it-works), which fetches all repositories accessible to each authenticated user using the `REPO_READ` scope. However, there may be a delay between when access is granted and when affected users see the repository in Sourcebot (up to the `experiment_userDrivenPermissionSyncIntervalMs` interval, which defaults to 24 hours).
+These users **will** still gain access via [user-driven syncing](/docs/features/permission-syncing#how-it-works), which fetches all repositories accessible to each authenticated user using the `REPO_READ` scope. However, there may be a delay between when access is granted and when affected users see the repository in Sourcebot (up to the `userDrivenPermissionSyncIntervalMs` interval, which defaults to 24 hours).
 
-If your instance relies heavily on project or group-level permissions, we recommend reducing the `experiment_userDrivenPermissionSyncIntervalMs` interval to limit the window of delay.
+If your instance relies heavily on project or group-level permissions, we recommend reducing the `userDrivenPermissionSyncIntervalMs` interval to limit the window of delay.
 </Warning>
 
 **Notes:**
@@ -128,19 +130,7 @@ If your instance relies heavily on project or group-level permissions, we recomm
 - The connection token must have **Repository Read** permissions so Sourcebot can read repository-level user permissions for [Repo driven syncing](/docs/features/permission-syncing#how-it-works).
 - OAuth tokens require the `REPO_READ` scope to list accessible repositories during [User driven syncing](/docs/features/permission-syncing#how-it-works).
 
-# How it works
-
-Permission syncing works by periodically syncing ACLs from the code host(s) to Sourcebot to build an internal mapping between Users and Repositories. This mapping is hydrated in two directions:
-- **User driven** : fetches the list of all repositories that a given user has access to.
-- **Repo driven** : fetches the list of all users that have access to a given repository.
-
-User driven and repo driven syncing occurs every 24 hours by default. These intervals can be configured using the following settings in the [config file](/docs/configuration/config-file):
-| Setting                                         | Type    | Default    | Minimum |
-|-------------------------------------------------|---------|------------|---------|
-| `experiment_repoDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
-| `experiment_userDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
-
-## Manually refreshing permissions
+# Manually refreshing permissions
 
 If a user's permissions have changed and they need access updated immediately (without waiting for the next scheduled sync), they can trigger a manual refresh from the **Linked Accounts** page:
 
@@ -153,3 +143,63 @@ If a user's permissions have changed and they need access updated immediately (w
 </Frame>
 
 The button will show a spinner while the sync is in progress and display a confirmation once it completes.
+
+
+# Overriding enforcement per connection
+
+Each [connection](/docs/connections/overview) supports two flags that control permission enforcement for that connection's repositories:
+
+- **`enforcePermissions`**: Controls whether repository permissions are enforced for the connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`.
+- **`enforcePermissionsForPublicRepos`**: Controls whether repository permissions are enforced for public repositories in the connection. When true, public repositories are only visible to users with a linked account for the connection's code host. When false, public repositories are visible to all users. Has no effect when `enforcePermissions` is false. Defaults to false.
+
+
+These flags are useful when you want different enforcement behavior across connections. For example, you may want to enforce permissions on an internal GitHub Enterprise connection while leaving a public-facing Gerrit mirror open to all users. Or, you can use `enforcePermissionsForPublicRepos` to restrict public repositories on a Bitbucket connection so that only users who have authenticated with that host can browse them.
+
+```json
+{
+  "connections": {
+    "my-github": {
+      "type": "github",
+      "enforcePermissions": true
+    },
+    "my-bitbucket": {
+      "type": "bitbucket",
+      "enforcePermissions": true,
+      "enforcePermissionsForPublicRepos": true
+    },
+    "my-gerrit": {
+      "type": "gerrit",
+      "url": "https://gerrit.example.com",
+      "enforcePermissions": false
+    }
+  }
+}
+```
+
+The table below shows when permissions are enforced based on the combination of `PERMISSION_SYNC_ENABLED`, `enforcePermissions`, and `enforcePermissionsForPublicRepos`:
+
+| `PERMISSION_SYNC_ENABLED` | `enforcePermissions` | `enforcePermissionsForPublicRepos` | Private repos enforced? | Public repos enforced? |
+|--------------------------|---------------------|------------------------------------|------------------------|------------------------|
+| `true`                   | `true`              | `false`                            | Yes                    | No                     |
+| `true`                   | `true`              | `true`                             | Yes                    | Yes                    |
+| `true`                   | `false`             | any                                | No                     | No                     |
+| `false`                  | any                 | any                                | No                     | No                     |
+
+# How it works
+
+Permission syncing works by periodically syncing ACLs from the code host(s) to Sourcebot to build an internal mapping between Users and Repositories. This mapping is hydrated in two directions:
+- **User driven** : fetches the list of all repositories that a given user has access to.
+- **Repo driven** : fetches the list of all users that have access to a given repository.
+
+User driven and repo driven syncing occurs every 24 hours by default. Repo-driven syncing can be disabled independently using the following environment variable:
+
+| Environment variable | Default | Description |
+|---|---|---|
+| `PERMISSION_SYNC_REPO_DRIVEN_ENABLED` | `true` | Enables/disables repo-driven syncing. |
+
+The sync intervals can be configured using the following settings in the [config file](/docs/configuration/config-file):
+
+| Setting                                         | Type    | Default    | Minimum |
+|-------------------------------------------------|---------|------------|---------|
+| `repoDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
+| `userDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |

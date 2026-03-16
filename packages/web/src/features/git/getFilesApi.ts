@@ -1,19 +1,15 @@
 import { sew } from '@/actions';
-import { FileTreeItem, fileTreeItemSchema } from "./types";
+import { FileTreeItem } from "./types";
 import { notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuthV2 } from "@/withAuthV2";
 import { getRepoPath } from '@sourcebot/shared';
 import simpleGit from 'simple-git';
-import z from 'zod';
+import type z from 'zod';
+import { getFilesRequestSchema, getFilesResponseSchema } from './schemas';
 import { logger } from './utils';
 
-export const getFilesRequestSchema = z.object({
-    repoName: z.string(),
-    revisionName: z.string(),
-});
+export { getFilesRequestSchema, getFilesResponseSchema } from './schemas';
 export type GetFilesRequest = z.infer<typeof getFilesRequestSchema>;
-
-export const getFilesResponseSchema = z.array(fileTreeItemSchema);
 export type GetFilesResponse = z.infer<typeof getFilesResponseSchema>;
 
 export const getFiles = async ({ repoName, revisionName }: GetFilesRequest): Promise<GetFilesResponse | ServiceError> => sew(() =>

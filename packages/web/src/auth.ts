@@ -3,7 +3,7 @@ import NextAuth, { DefaultSession, User as AuthJsUser } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/nodemailer";
 import { prisma } from "@/prisma";
-import { env } from "@sourcebot/shared";
+import { env, getSMTPConnectionURL } from "@sourcebot/shared";
 import { User } from '@sourcebot/db';
 import 'next-auth/jwt';
 import type { Provider } from "next-auth/providers";
@@ -17,7 +17,6 @@ import { hasEntitlement } from '@sourcebot/shared';
 import { onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
-import { refreshLinkedAccountTokens, LinkedAccountErrors } from '@/ee/features/sso/tokenRefresh';
 import { EncryptedPrismaAdapter, encryptAccountData } from '@/lib/encryptedPrismaAdapter';
 
 const auditService = getAuditService();
@@ -28,6 +27,7 @@ export const runtime = 'nodejs';
 export type IdentityProvider = {
     provider: Provider;
     purpose: "sso" | "account_linking";
+    issuerUrl?: string;
     required?: boolean;
 }
 
@@ -38,24 +38,23 @@ export type SessionUser = {
 declare module 'next-auth' {
     interface Session {
         user: SessionUser;
-        linkedAccountProviderErrors?: LinkedAccountErrors;
     }
 }
 
 declare module 'next-auth/jwt' {
     interface JWT {
         userId: string;
-        linkedAccountErrors?: LinkedAccountErrors;
     }
 }
 
 export const getProviders = () => {
-    const providers: IdentityProvider[] = eeIdentityProviders;
+    const providers: IdentityProvider[] = [...eeIdentityProviders];
 
-    if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
+    const smtpConnectionUrl = getSMTPConnectionURL();
+    if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
         providers.push({
             provider: EmailProvider({
-                server: env.SMTP_CONNECTION_URL,
+                server: smtpConnectionUrl,
                 from: env.EMAIL_FROM_ADDRESS,
                 maxAge: 60 * 10,
                 generateVerificationToken: async () => {
@@ -158,7 +157,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // This is necessary to update the access token when the user
             // re-authenticates.
             // NOTE: Tokens are encrypted before storage for security
-            if (account && account.provider && account.provider !== 'credentials' && account.providerAccountId) {
+            if (
+                account &&
+                account.provider &&
+                account.provider !== 'credentials' &&
+                account.providerAccountId
+            ) {
+                const issuerUrl = await getIssuerUrlForAccount(account);
+
                 await prisma.account.update({
                     where: {
                         provider_providerAccountId: {
@@ -173,6 +179,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         token_type: account.token_type,
                         scope: account.scope,
                         id_token: account.id_token,
+                        issuerUrl,
+                        // Clear any token refresh error since the user has successfully re-authenticated.
+                        tokenRefreshErrorMessage: null,
                     })
                 })
             }
@@ -219,10 +228,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 token.userId = user.id;
             }
 
-            // Refresh expiring tokens and capture any errors.
-            if (hasEntitlement('sso') && token.userId) {
-                const errors = await refreshLinkedAccountTokens(token.userId);
-                token.linkedAccountErrors = Object.keys(errors).length > 0 ? errors : undefined;
+            // @note The following performs a lazy migration of the issuerUrl
+            // in the user's accounts. The issuerUrl was introduced in v4.15.4
+            // and will not be present for accounts created prior to this version.
+            //
+            // @see https://github.com/sourcebot-dev/sourcebot/pull/993
+            if (token.userId) {
+                const accountsWithoutIssuerUrl = await prisma.account.findMany({
+                    where: {
+                        userId: token.userId,
+                        issuerUrl: null,
+                    },
+                });
+
+                for (const account of accountsWithoutIssuerUrl) {
+                    const issuerUrl = await getIssuerUrlForAccount(account);
+                    if (issuerUrl) {
+                        await prisma.account.update({
+                            where: {
+                                id: account.id,
+                            },
+                            data: {
+                                issuerUrl,
+                            },
+                        });
+                    }
+                }
             }
 
             return token;
@@ -236,11 +267,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 id: token.userId,
             }
 
-            // Pass linked account errors to the session for UI display
-            if (token.linkedAccountErrors) {
-                session.linkedAccountProviderErrors = token.linkedAccountErrors;
-            }
-
             return session;
         },
     },
@@ -251,3 +277,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // verifyRequest: "/login/verify",
     }
 });
+
+/**
+ * Returns the issuer URL for a given auth.js account
+ */
+const getIssuerUrlForAccount = async (account: { provider: string; }) => {
+    const providers = getProviders();
+    const matchingProvider = providers.find((provider) => {
+        if (typeof provider.provider === "function") {
+            const providerInfo = provider.provider();
+            return providerInfo.id === account.provider;
+        } else {
+            return provider.provider.id === account.provider;
+        }
+    });
+    return matchingProvider?.issuerUrl;
+}

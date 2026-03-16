@@ -39,6 +39,8 @@ export function encryptAccountData(data: {
     expires_at?: number | null;
     token_type?: string | null;
     scope?: string | null;
+    issuerUrl?: string | null;
+    tokenRefreshErrorMessage?: string | null;
 }) {
     return {
         ...data,

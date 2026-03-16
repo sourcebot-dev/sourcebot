@@ -1,26 +1,20 @@
 'use server';
 
 import { getFileSource } from '@/features/git';
+import { fileSourceRequestSchema } from '@/features/git/schemas';
 import { apiHandler } from "@/lib/apiHandler";
 import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
-import { z } from "zod";
-
-const querySchema = z.object({
-    repo: z.string(),
-    path: z.string(),
-    ref: z.string().optional(),
-});
 
 export const GET = apiHandler(async (request: NextRequest) => {
     const rawParams = Object.fromEntries(
-        Object.keys(querySchema.shape).map(key => [
+        Object.keys(fileSourceRequestSchema.shape).map(key => [
             key,
             request.nextUrl.searchParams.get(key) ?? undefined
         ])
     );
-    const parsed = querySchema.safeParse(rawParams);
+    const parsed = fileSourceRequestSchema.safeParse(rawParams);
 
     if (!parsed.success) {
         return serviceErrorResponse(

@@ -1,7 +1,7 @@
 import type { IdentityProvider } from "@/auth";
 import { onCreateUser } from "@/lib/authUtils";
 import { prisma } from "@/prisma";
-import { AuthentikIdentityProviderConfig, BitbucketCloudIdentityProviderConfig, BitbucketServerIdentityProviderConfig, GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
+import { AuthentikIdentityProviderConfig, BitbucketCloudIdentityProviderConfig, BitbucketServerIdentityProviderConfig, GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, JumpCloudIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
 import type { IdentityProviderType } from "@sourcebot/shared";
 import { createLogger, env, getTokenFromConfig, hasEntitlement, loadConfig } from "@sourcebot/shared";
 import { OAuth2Client } from "google-auth-library";
@@ -20,8 +20,6 @@ import Okta from "next-auth/providers/okta";
 
 const logger = createLogger('web-sso');
 
-const GITHUB_CLOUD_HOSTNAME = "github.com"
-
 export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
     const providers: IdentityProvider[] = [];
 
@@ -33,67 +31,131 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
             const providerConfig = identityProvider as GitHubIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const baseUrl = providerConfig.baseUrl;
-            providers.push({ provider: createGitHubProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose, required: providerConfig.accountLinkingRequired ?? false });
+            const baseUrl = (providerConfig.baseUrl ?? 'https://github.com').replace(/\/+$/, '');
+            providers.push({
+                provider: createGitHubProvider(clientId, clientSecret, baseUrl),
+                purpose: providerConfig.purpose,
+                required: providerConfig.accountLinkingRequired ?? false,
+                issuerUrl: baseUrl,
+            });
         }
+
         if (identityProvider.provider === "gitlab") {
             const providerConfig = identityProvider as GitLabIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const baseUrl = providerConfig.baseUrl;
-            providers.push({ provider: createGitLabProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose, required: providerConfig.accountLinkingRequired ?? false });
+            const baseUrl = (providerConfig.baseUrl ?? 'https://gitlab.com').replace(/\/+$/, '');
+            providers.push({
+                provider: createGitLabProvider(clientId, clientSecret, baseUrl),
+                purpose: providerConfig.purpose,
+                required: providerConfig.accountLinkingRequired ?? false,
+                issuerUrl: baseUrl,
+            });
         }
+
         if (identityProvider.provider === "google") {
             const providerConfig = identityProvider as GoogleIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            providers.push({ provider: createGoogleProvider(clientId, clientSecret), purpose: providerConfig.purpose });
+            providers.push({
+                provider: createGoogleProvider(clientId, clientSecret),
+                purpose: providerConfig.purpose,
+                issuerUrl: 'https://accounts.google.com'
+            });
         }
+
         if (identityProvider.provider === "okta") {
             const providerConfig = identityProvider as OktaIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const issuer = await getTokenFromConfig(providerConfig.issuer);
-            providers.push({ provider: createOktaProvider(clientId, clientSecret, issuer), purpose: providerConfig.purpose });
+            const issuer = (await getTokenFromConfig(providerConfig.issuer)).replace(/\/+$/, '');
+            providers.push({
+                provider: createOktaProvider(clientId, clientSecret, issuer),
+                purpose: providerConfig.purpose,
+                issuerUrl: issuer
+            });
         }
+
         if (identityProvider.provider === "keycloak") {
             const providerConfig = identityProvider as KeycloakIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const issuer = await getTokenFromConfig(providerConfig.issuer);
-            providers.push({ provider: createKeycloakProvider(clientId, clientSecret, issuer), purpose: providerConfig.purpose });
+            const issuer = (await getTokenFromConfig(providerConfig.issuer)).replace(/\/+$/, '');
+            providers.push({
+                provider: createKeycloakProvider(clientId, clientSecret, issuer),
+                purpose: providerConfig.purpose,
+                issuerUrl: issuer
+            });
         }
+
         if (identityProvider.provider === "microsoft-entra-id") {
             const providerConfig = identityProvider as MicrosoftEntraIDIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const issuer = await getTokenFromConfig(providerConfig.issuer);
-            providers.push({ provider: createMicrosoftEntraIDProvider(clientId, clientSecret, issuer), purpose: providerConfig.purpose });
+            const issuer = (await getTokenFromConfig(providerConfig.issuer)).replace(/\/+$/, '');
+            providers.push({
+                provider: createMicrosoftEntraIDProvider(clientId, clientSecret, issuer),
+                purpose: providerConfig.purpose,
+                issuerUrl: issuer
+            });
         }
+
         if (identityProvider.provider === "gcp-iap") {
             const providerConfig = identityProvider as GCPIAPIdentityProviderConfig;
             const audience = await getTokenFromConfig(providerConfig.audience);
-            providers.push({ provider: createGCPIAPProvider(audience), purpose: providerConfig.purpose });
+            providers.push({
+                provider: createGCPIAPProvider(audience),
+                purpose: providerConfig.purpose
+            });
         }
+
         if (identityProvider.provider === "bitbucket-cloud") {
             const providerConfig = identityProvider as BitbucketCloudIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            providers.push({ provider: createBitbucketCloudProvider(clientId, clientSecret), purpose: providerConfig.purpose, required: providerConfig.accountLinkingRequired ?? false });
+            providers.push({
+                provider: createBitbucketCloudProvider(clientId, clientSecret),
+                purpose: providerConfig.purpose,
+                required: providerConfig.accountLinkingRequired ?? false,
+                issuerUrl: 'https://bitbucket.org'
+            });
         }
+
         if (identityProvider.provider === "authentik") {
             const providerConfig = identityProvider as AuthentikIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const issuer = await getTokenFromConfig(providerConfig.issuer);
-            providers.push({ provider: createAuthentikProvider(clientId, clientSecret, issuer), purpose: providerConfig.purpose });
+            const issuer = (await getTokenFromConfig(providerConfig.issuer)).replace(/\/+$/, '');
+            providers.push({
+                provider: createAuthentikProvider(clientId, clientSecret, issuer),
+                purpose: providerConfig.purpose,
+                issuerUrl: issuer
+            });
         }
+
+        if (identityProvider.provider === "jumpcloud") {
+            const providerConfig = identityProvider as JumpCloudIdentityProviderConfig;
+            const clientId = await getTokenFromConfig(providerConfig.clientId);
+            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
+            const issuer = (await getTokenFromConfig(providerConfig.issuer)).replace(/\/+$/, '');
+            providers.push({
+                provider: createJumpCloudProvider(clientId, clientSecret, issuer),
+                purpose: providerConfig.purpose,
+                issuerUrl: issuer
+            });
+        }
+
         if (identityProvider.provider === "bitbucket-server") {
             const providerConfig = identityProvider as BitbucketServerIdentityProviderConfig;
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const baseUrl = providerConfig.baseUrl;
-            providers.push({ provider: createBitbucketServerProvider(clientId, clientSecret, baseUrl), purpose: providerConfig.purpose, required: providerConfig.accountLinkingRequired ?? false });
+            const baseUrl = providerConfig.baseUrl.replace(/\/+$/, '');
+            providers.push({
+                provider: createBitbucketServerProvider(clientId, clientSecret, baseUrl),
+                purpose: providerConfig.purpose,
+                required: providerConfig.accountLinkingRequired ?? false,
+                issuerUrl: baseUrl
+            });
         }
     }
 
@@ -103,44 +165,86 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
     // We only go through this path if no identityProviders are defined in the config to prevent accidental duplication of providers
     if (identityProviders.length == 0) {
         if (env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
-            providers.push({ provider: createGitHubProvider(env.AUTH_EE_GITHUB_CLIENT_ID, env.AUTH_EE_GITHUB_CLIENT_SECRET, env.AUTH_EE_GITHUB_BASE_URL), purpose: "sso" });
+            const baseUrl = (env.AUTH_EE_GITHUB_BASE_URL ?? 'https://github.com').replace(/\/+$/, '');
+            providers.push({
+                provider: createGitHubProvider(
+                    env.AUTH_EE_GITHUB_CLIENT_ID,
+                    env.AUTH_EE_GITHUB_CLIENT_SECRET,
+                    baseUrl
+                ),
+                purpose: "sso",
+                issuerUrl: baseUrl
+            });
         }
 
         if (env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
-            providers.push({ provider: createGitLabProvider(env.AUTH_EE_GITLAB_CLIENT_ID, env.AUTH_EE_GITLAB_CLIENT_SECRET, env.AUTH_EE_GITLAB_BASE_URL), purpose: "sso" });
+            const baseUrl = (env.AUTH_EE_GITLAB_BASE_URL ?? 'https://gitlab.com').replace(/\/+$/, '');
+            providers.push({
+                provider: createGitLabProvider(
+                    env.AUTH_EE_GITLAB_CLIENT_ID,
+                    env.AUTH_EE_GITLAB_CLIENT_SECRET,
+                    baseUrl,
+                ),
+                purpose: "sso",
+                issuerUrl: baseUrl
+            });
         }
 
         if (env.AUTH_EE_GOOGLE_CLIENT_ID && env.AUTH_EE_GOOGLE_CLIENT_SECRET) {
-            providers.push({ provider: createGoogleProvider(env.AUTH_EE_GOOGLE_CLIENT_ID, env.AUTH_EE_GOOGLE_CLIENT_SECRET), purpose: "sso" });
+            providers.push({
+                provider: createGoogleProvider(env.AUTH_EE_GOOGLE_CLIENT_ID, env.AUTH_EE_GOOGLE_CLIENT_SECRET),
+                purpose: "sso",
+                issuerUrl: 'https://accounts.google.com'
+            });
         }
 
         if (env.AUTH_EE_OKTA_CLIENT_ID && env.AUTH_EE_OKTA_CLIENT_SECRET && env.AUTH_EE_OKTA_ISSUER) {
-            providers.push({ provider: createOktaProvider(env.AUTH_EE_OKTA_CLIENT_ID, env.AUTH_EE_OKTA_CLIENT_SECRET, env.AUTH_EE_OKTA_ISSUER), purpose: "sso" });
+            const issuer = env.AUTH_EE_OKTA_ISSUER.replace(/\/+$/, '');
+            providers.push({
+                provider: createOktaProvider(env.AUTH_EE_OKTA_CLIENT_ID, env.AUTH_EE_OKTA_CLIENT_SECRET, issuer),
+                purpose: "sso",
+                issuerUrl: issuer
+            });
         }
 
         if (env.AUTH_EE_KEYCLOAK_CLIENT_ID && env.AUTH_EE_KEYCLOAK_CLIENT_SECRET && env.AUTH_EE_KEYCLOAK_ISSUER) {
-            providers.push({ provider: createKeycloakProvider(env.AUTH_EE_KEYCLOAK_CLIENT_ID, env.AUTH_EE_KEYCLOAK_CLIENT_SECRET, env.AUTH_EE_KEYCLOAK_ISSUER), purpose: "sso" });
+            const issuer = env.AUTH_EE_KEYCLOAK_ISSUER.replace(/\/+$/, '');
+            providers.push({
+                provider: createKeycloakProvider(env.AUTH_EE_KEYCLOAK_CLIENT_ID, env.AUTH_EE_KEYCLOAK_CLIENT_SECRET, issuer),
+                purpose: "sso",
+                issuerUrl: issuer
+            });
         }
 
         if (env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID && env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET && env.AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER) {
-            providers.push({ provider: createMicrosoftEntraIDProvider(env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID, env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET, env.AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER), purpose: "sso" });
+            const issuer = env.AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER.replace(/\/+$/, '');
+            providers.push({
+                provider: createMicrosoftEntraIDProvider(env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID, env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET, issuer),
+                purpose: "sso",
+                issuerUrl: issuer
+            });
         }
 
         if (env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
-            providers.push({ provider: createGCPIAPProvider(env.AUTH_EE_GCP_IAP_AUDIENCE), purpose: "sso" });
+            providers.push({
+                provider: createGCPIAPProvider(env.AUTH_EE_GCP_IAP_AUDIENCE),
+                purpose: "sso"
+            });
         }
     }
 
     return providers;
 }
 
-const createGitHubProvider = (clientId: string, clientSecret: string, baseUrl?: string): Provider => {
-    const hostname = baseUrl ? new URL(baseUrl).hostname : GITHUB_CLOUD_HOSTNAME
+const createGitHubProvider = (clientId: string, clientSecret: string, baseUrl: string) => {
     return GitHub({
         id: 'github' satisfies IdentityProviderType,
         clientId: clientId,
         clientSecret: clientSecret,
-        ...(hostname === GITHUB_CLOUD_HOSTNAME ? { enterprise: { baseUrl: baseUrl } } : {}), // if this is set the provider expects GHE so we need this check
+        // if this is set the provider expects GHE so we need this check
+        ...(baseUrl !== 'https://github.com' ? {
+            enterprise: { baseUrl: baseUrl }
+        } : {}),
         authorization: {
             params: {
                 scope: [
@@ -149,7 +253,7 @@ const createGitHubProvider = (clientId: string, clientSecret: string, baseUrl?: 
                     // Permission syncing requires the `repo` scope in order to fetch repositories
                     // for the authenticated user.
                     // @see: https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-the-authenticated-user
-                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
+                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
                         ['repo'] :
                         []
                     ),
@@ -160,21 +264,20 @@ const createGitHubProvider = (clientId: string, clientSecret: string, baseUrl?: 
     });
 }
 
-const createGitLabProvider = (clientId: string, clientSecret: string, baseUrl?: string): Provider => {
-    const url = baseUrl ?? 'https://gitlab.com';
+const createGitLabProvider = (clientId: string, clientSecret: string, baseUrl: string) => {
     return Gitlab({
         id: 'gitlab' satisfies IdentityProviderType,
         clientId: clientId,
         clientSecret: clientSecret,
         authorization: {
-            url: `${url}/oauth/authorize`,
+            url: `${baseUrl}/oauth/authorize`,
             params: {
                 scope: [
                     "read_user",
                     // Permission syncing requires the `read_api` scope in order to fetch projects
                     // for the authenticated user and project members.
                     // @see: https://docs.gitlab.com/ee/api/projects.html#list-all-projects
-                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
+                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
                         ['read_api'] :
                         []
                     ),
@@ -182,16 +285,16 @@ const createGitLabProvider = (clientId: string, clientSecret: string, baseUrl?: 
             },
         },
         token: {
-            url: `${url}/oauth/token`,
+            url: `${baseUrl}/oauth/token`,
         },
         userinfo: {
-            url: `${url}/api/v4/user`,
+            url: `${baseUrl}/api/v4/user`,
         },
         allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
 }
 
-const createGoogleProvider = (clientId: string, clientSecret: string): Provider => {
+const createGoogleProvider = (clientId: string, clientSecret: string) => {
     return Google({
         id: 'google' satisfies IdentityProviderType,
         clientId: clientId,
@@ -242,7 +345,7 @@ const createBitbucketCloudProvider = (clientId: string, clientSecret: string): P
                 scope: [
                     "account",
                     "email",
-                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
+                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
                         ['repository'] :
                         []
                     ),
@@ -267,7 +370,7 @@ const createBitbucketServerProvider = (clientId: string, clientSecret: string, b
                 // @see: https://confluence.atlassian.com/bitbucketserver/bitbucket-oauth-2-0-provider-api-1108483661.html
                 scope: [
                     "PUBLIC_REPOS",
-                    ...(env.EXPERIMENT_EE_PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')
+                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')
                         ? ['REPO_READ']
                         : []),
                 ].join(' ')
@@ -329,6 +432,18 @@ export const createAuthentikProvider = (clientId: string, clientSecret: string, 
         issuer: issuer,
         allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     });
+}
+
+const createJumpCloudProvider = (clientId: string, clientSecret: string, issuer: string): Provider => {
+    return {
+        id: 'jumpcloud' satisfies IdentityProviderType,
+        name: "JumpCloud",
+        type: "oidc",
+        clientId: clientId,
+        clientSecret: clientSecret,
+        issuer: issuer,
+        allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
+    } as Provider;
 }
 
 const createGCPIAPProvider = (audience: string): Provider => {

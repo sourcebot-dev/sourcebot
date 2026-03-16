@@ -1,5 +1,5 @@
 import { prisma as __unsafePrisma, userScopedPrismaClientExtension } from "@/prisma";
-import { hashSecret, OAUTH_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX, LEGACY_API_KEY_PREFIX } from "@sourcebot/shared";
+import { hashSecret, OAUTH_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX, LEGACY_API_KEY_PREFIX, env } from "@sourcebot/shared";
 import { ApiKey, Org, OrgRole, PrismaClient, UserWithAccounts } from "@sourcebot/db";
 import { headers } from "next/headers";
 import { auth } from "./auth";
@@ -67,7 +67,7 @@ export const withOptionalAuthV2 = async <T>(fn: (params: OptionalAuthContext) =>
 };
 
 export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceError> => {
-    const user = await getAuthenticatedUser();
+    const authResult = await getAuthenticatedUser();
 
     const org = await __unsafePrisma.org.findUnique({
         where: {
@@ -79,6 +79,8 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         return notFound("Organization not found");
     }
 
+    const user = authResult?.user;
+
     const membership = user ? await __unsafePrisma.userToOrg.findUnique({
         where: {
             orgId_userId: {
@@ -88,17 +90,33 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         },
     }) : null;
 
+    const role = membership?.role ?? OrgRole.GUEST;
+
+    if (
+        env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'true' &&
+        authResult?.source === 'api_key' &&
+        role !== OrgRole.OWNER
+    ) {
+        return {
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.API_KEY_USAGE_DISABLED,
+            message: "API key usage is disabled for non-admin users.",
+        } satisfies ServiceError;
+    }
+
     const prisma = __unsafePrisma.$extends(userScopedPrismaClientExtension(user)) as PrismaClient;
 
     return {
         user: user ?? undefined,
         org,
-        role: membership?.role ?? OrgRole.GUEST,
+        role,
         prisma,
     };
 };
 
-export const getAuthenticatedUser = async () => {
+type AuthSource = 'session' | 'oauth' | 'api_key';
+
+export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, source: AuthSource } | undefined> => {
     // First, check if we have a valid JWT session.
     const session = await auth();
     if (session) {
@@ -112,7 +130,7 @@ export const getAuthenticatedUser = async () => {
             }
         });
 
-        return user ?? undefined;
+        return user ? { user, source: 'session' } : undefined;
     }
 
     // If not, check for a Bearer token in the Authorization header.
@@ -137,7 +155,7 @@ export const getAuthenticatedUser = async () => {
                     where: { hash },
                     data: { lastUsedAt: new Date() },
                 });
-                return oauthToken.user;
+                return { user: oauthToken.user, source: 'oauth' };
             }
         }
 
@@ -153,7 +171,7 @@ export const getAuthenticatedUser = async () => {
                     where: { hash: apiKey.hash },
                     data: { lastUsedAt: new Date() },
                 });
-                return user;
+                return { user, source: 'api_key' };
             }
         }
     }
@@ -190,7 +208,7 @@ export const getAuthenticatedUser = async () => {
             },
         });
 
-        return user;
+        return { user, source: 'api_key' };
     }
 
     return undefined;

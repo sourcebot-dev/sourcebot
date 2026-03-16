@@ -1,0 +1,261 @@
+name: License Audit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "yarn.lock"
+      - "package.json"
+      - "packages/*/package.json"
+      - "scripts/fetchLicenses.mjs"
+      - "scripts/summarizeLicenses.mjs"
+      - "scripts/npmLicenseMap.json"
+  workflow_dispatch:
+
+jobs:
+  license-audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Fetch licenses
+        run: node scripts/fetchLicenses.mjs
+
+      - name: Summarize licenses
+        run: node scripts/summarizeLicenses.mjs
+
+      - name: Audit licenses with Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: '--allowedTools "Bash,Read,Write,Glob,Grep,WebFetch"'
+          prompt: |
+            You are a license compliance auditor. Your job is to review the OSS dependency
+            licenses in this repository and produce a structured audit result.
+
+            ## Steps
+
+            1. Read the file `oss-licenses.json` in the repo root.
+
+            2. Identify every package whose `license` field is:
+               - `"UNKNOWN"`
+               - A non-standard SPDX string (e.g., `"SEE LICENSE IN LICENSE"`, `"UNLICENSED"`,
+                 `"SEE LICENSE IN ..."`, or any value that is not a recognized SPDX identifier)
+               - An object instead of a string (e.g., `{"type":"MIT","url":"..."}`)
+
+            3. For each such package, try to resolve the actual license:
+               - Use WebFetch to visit `https://www.npmjs.com/package/<package-name>` and look
+                 for license information on the npm page.
+               - If the npm page is inconclusive, check the package's `repository` or `homepage`
+                 URL (from oss-licenses.json) via WebFetch to find a LICENSE file.
+               - If the license field is an object like `{"type":"MIT","url":"..."}`, extract the
+                 `type` field as the resolved license.
+
+            4. Identify all copyleft-licensed packages. Classify them as:
+               - **Strong copyleft**: GPL-2.0, GPL-3.0, AGPL-1.0, AGPL-3.0, SSPL-1.0, EUPL-1.1,
+                 EUPL-1.2, CPAL-1.0, OSL-3.0 (and any `-only` or `-or-later` variants)
+               - **Weak copyleft**: LGPL-2.0, LGPL-2.1, LGPL-3.0, MPL-2.0, CC-BY-SA-3.0,
+                 CC-BY-SA-4.0 (and any `-only` or `-or-later` variants)
+
+            5. Write a file called `license-audit-result.json` in the repo root with this structure:
+               ```json
+               {
+                 "status": "PASS or FAIL",
+                 "failReasons": ["list of reasons if FAIL, empty array if PASS"],
+                 "summary": {
+                   "totalPackages": 0,
+                   "resolvedCount": 0,
+                   "unresolvedCount": 0,
+                   "strongCopyleftCount": 0,
+                   "weakCopyleftCount": 0
+                 },
+                 "resolved": [
+                   { "name": "pkg-name", "version": "1.0.0", "originalLicense": "...", "resolvedLicense": "MIT", "source": "npm page / GitHub repo / extracted from object" }
+                 ],
+                 "unresolved": [
+                   { "name": "pkg-name", "version": "1.0.0", "license": "UNKNOWN", "reason": "why it could not be resolved" }
+                 ],
+                 "copyleft": {
+                   "strong": [
+                     { "name": "pkg-name", "version": "1.0.0", "license": "GPL-3.0" }
+                   ],
+                   "weak": [
+                     { "name": "pkg-name", "version": "1.0.0", "license": "MPL-2.0" }
+                   ]
+                 }
+               }
+               ```
+
+            6. Set `status` to `"FAIL"` if `unresolvedCount > 0` OR `strongCopyleftCount > 0`.
+               Otherwise set it to `"PASS"`.
+
+            7. If the status is FAIL, populate `failReasons` with human-readable explanations, e.g.:
+               - "2 packages have unresolvable licenses: pkg-a, pkg-b"
+               - "1 package uses strong copyleft license: pkg-c (GPL-3.0)"
+
+            ## Important Notes
+            - Do NOT modify any source files. Only write `license-audit-result.json`.
+            - Be thorough: check every non-standard license, not just a sample.
+            - If a package's license object has a `type` field, that counts as resolved.
+            - Weak copyleft licenses (LGPL, MPL) are flagged but do NOT cause a FAIL.
+
+      - name: Validate audit result
+        run: |
+          if [ ! -f license-audit-result.json ]; then
+            echo "::error::license-audit-result.json was not created by the audit step"
+            exit 1
+          fi
+
+          STATUS=$(node -e "const r = require('./license-audit-result.json'); console.log(r.status)")
+          UNRESOLVED=$(node -e "const r = require('./license-audit-result.json'); console.log(r.summary.unresolvedCount)")
+          STRONG=$(node -e "const r = require('./license-audit-result.json'); console.log(r.summary.strongCopyleftCount)")
+          WEAK=$(node -e "const r = require('./license-audit-result.json'); console.log(r.summary.weakCopyleftCount)")
+          RESOLVED=$(node -e "const r = require('./license-audit-result.json'); console.log(r.summary.resolvedCount)")
+
+          echo "## License Audit Result: $STATUS"
+          echo ""
+          echo "- Resolved: $RESOLVED"
+          echo "- Unresolved: $UNRESOLVED"
+          echo "- Strong copyleft: $STRONG"
+          echo "- Weak copyleft: $WEAK"
+
+          if [ "$STATUS" = "FAIL" ]; then
+            echo ""
+            echo "::error::License audit failed. See details below:"
+            node -e "const r = require('./license-audit-result.json'); r.failReasons.forEach(r => console.log('  - ' + r))"
+            exit 1
+          fi
+
+      - name: Comment on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'license-audit-result.json';
+
+            if (!fs.existsSync(path)) {
+              const body = `## License Audit\n\n:x: Audit failed to produce results. Check the workflow logs for details.`;
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+              const existing = comments.data.find(c => c.body.startsWith('## License Audit'));
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                  body,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body,
+                });
+              }
+              return;
+            }
+
+            const result = JSON.parse(fs.readFileSync(path, 'utf-8'));
+            const icon = result.status === 'PASS' ? ':white_check_mark:' : ':x:';
+
+            let body = `## License Audit\n\n`;
+            body += `${icon} **Status: ${result.status}**\n\n`;
+            body += `| Metric | Count |\n|---|---|\n`;
+            body += `| Total packages | ${result.summary.totalPackages} |\n`;
+            body += `| Resolved (non-standard) | ${result.summary.resolvedCount} |\n`;
+            body += `| Unresolved | ${result.summary.unresolvedCount} |\n`;
+            body += `| Strong copyleft | ${result.summary.strongCopyleftCount} |\n`;
+            body += `| Weak copyleft | ${result.summary.weakCopyleftCount} |\n`;
+
+            if (result.failReasons && result.failReasons.length > 0) {
+              body += `\n### Fail Reasons\n\n`;
+              for (const reason of result.failReasons) {
+                body += `- ${reason}\n`;
+              }
+            }
+
+            if (result.unresolved && result.unresolved.length > 0) {
+              body += `\n### Unresolved Packages\n\n`;
+              body += `| Package | Version | License | Reason |\n|---|---|---|---|\n`;
+              for (const pkg of result.unresolved) {
+                body += `| ${pkg.name} | ${pkg.version} | \`${pkg.license}\` | ${pkg.reason} |\n`;
+              }
+            }
+
+            if (result.copyleft && result.copyleft.strong && result.copyleft.strong.length > 0) {
+              body += `\n### Strong Copyleft Packages\n\n`;
+              body += `| Package | Version | License |\n|---|---|---|\n`;
+              for (const pkg of result.copyleft.strong) {
+                body += `| ${pkg.name} | ${pkg.version} | \`${pkg.license}\` |\n`;
+              }
+            }
+
+            if (result.copyleft && result.copyleft.weak && result.copyleft.weak.length > 0) {
+              body += `\n### Weak Copyleft Packages (informational)\n\n`;
+              body += `| Package | Version | License |\n|---|---|---|\n`;
+              for (const pkg of result.copyleft.weak) {
+                body += `| ${pkg.name} | ${pkg.version} | \`${pkg.license}\` |\n`;
+              }
+            }
+
+            if (result.resolved && result.resolved.length > 0) {
+              body += `\n<details><summary>Resolved Packages (${result.resolved.length})</summary>\n\n`;
+              body += `| Package | Version | Original | Resolved | Source |\n|---|---|---|---|---|\n`;
+              for (const pkg of result.resolved) {
+                body += `| ${pkg.name} | ${pkg.version} | \`${pkg.originalLicense}\` | \`${pkg.resolvedLicense}\` | ${pkg.source} |\n`;
+              }
+              body += `\n</details>\n`;
+            }
+
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.data.find(c => c.body.startsWith('## License Audit'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-audit
+          path: |
+            oss-licenses.json
+            oss-license-summary.json
+            license-audit-result.json

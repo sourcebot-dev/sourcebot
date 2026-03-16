@@ -9,7 +9,7 @@ import { InvitesList } from "./components/invitesList";
 import { getOrgInvites, getMe, getOrgAccountRequests } from "@/actions";
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { ServiceErrorException } from "@/lib/serviceError";
-import { getSeats, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
+import { getSeats, hasEntitlement, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { RequestsList } from "./components/requestsList";
 import { OrgRole } from "@prisma/client";
 import { redirect } from "next/navigation";
@@ -160,6 +160,7 @@ export default async function MembersSettingsPage(props: MembersSettingsPageProp
                         currentUserId={me.id}
                         currentUserRole={userRoleInOrg}
                         orgName={org.name}
+                        hasOrgManagement={hasEntitlement('org-management')}
                     />
                 </TabsContent>
 

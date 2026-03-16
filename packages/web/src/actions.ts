@@ -1,7 +1,7 @@
 'use server';
 
 import { getAuditService } from "@/ee/features/audit/factory";
-import { env } from "@sourcebot/shared";
+import { env, getSMTPConnectionURL } from "@sourcebot/shared";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notAuthenticated, notFound, orgNotFound, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
@@ -22,7 +22,7 @@ import { createTransport } from "nodemailer";
 import { Octokit } from "octokit";
 import { auth } from "./auth";
 import { getOrgFromDomain } from "./data/org";
-import { decrementOrgSeatCount, getSubscriptionForOrg } from "./ee/features/billing/serverUtils";
+import { getSubscriptionForOrg } from "./ee/features/billing/serverUtils";
 import { IS_BILLING_ENABLED } from "./ee/features/billing/stripe";
 import InviteUserEmail from "./emails/inviteUserEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
@@ -80,6 +80,19 @@ export const withAuth = async <T>(fn: (userId: string, apiKeyHash: string | unde
             if (!user) {
                 logger.error(`No user found for API key: ${apiKey}`);
                 return notAuthenticated();
+            }
+
+            if (env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'true') {
+                const membership = await prisma.userToOrg.findFirst({
+                    where: { userId: user.id },
+                });
+                if (membership?.role !== OrgRole.OWNER) {
+                    return {
+                        statusCode: StatusCodes.FORBIDDEN,
+                        errorCode: ErrorCode.API_KEY_USAGE_DISABLED,
+                        message: "API key usage is disabled for non-admin users.",
+                    } satisfies ServiceError;
+                }
             }
 
             await prisma.apiKey.update({
@@ -312,7 +325,7 @@ export const verifyApiKey = async (apiKeyPayload: ApiKeyPayload): Promise<{ apiK
 export const createApiKey = async (name: string, domain: string): Promise<{ key: string } | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org, userRole }) => {
-            if (env.EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS === 'true' && userRole !== OrgRole.OWNER) {
+            if ((env.DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS === 'true' || env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'true') && userRole !== OrgRole.OWNER) {
                logger.error(`API key creation is disabled for non-admin users. User ${userId} is not an owner.`);
                return {
                 statusCode: StatusCodes.FORBIDDEN,
@@ -893,7 +906,8 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
             });
 
             // Send invites to recipients
-            if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
+            const smtpConnectionUrl = getSMTPConnectionURL();
+            if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS) {
                 await Promise.all(emails.map(async (email) => {
                     const invite = await prisma.invite.findUnique({
                         where: {
@@ -917,7 +931,7 @@ export const createInvites = async (emails: string[], domain: string): Promise<{
                         },
                     });
                     const inviteLink = `${env.AUTH_URL}/redeem?invite_id=${invite.id}`;
-                    const transport = createTransport(env.SMTP_CONNECTION_URL);
+                    const transport = createTransport(smtpConnectionUrl);
                     const html = await render(InviteUserEmail({
                         host: {
                             name: user.name ?? undefined,
@@ -1150,102 +1164,6 @@ export const getInviteInfo = async (inviteId: string) => sew(() =>
         }
     }));
 
-export const transferOwnership = async (newOwnerId: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const currentUserId = userId;
-
-            const failAuditCallback = async (error: string) => {
-                await auditService.createAudit({
-                    action: "org.ownership_transfer_failed",
-                    actor: {
-                        id: currentUserId,
-                        type: "user"
-                    },
-                    target: {
-                        id: org.id.toString(),
-                        type: "org"
-                    },
-                    orgId: org.id,
-                    metadata: {
-                        message: error
-                    }
-                })
-            }
-            if (newOwnerId === currentUserId) {
-                await failAuditCallback("User is already the owner of this org");
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "You're already the owner of this org",
-                } satisfies ServiceError;
-            }
-
-            const newOwner = await prisma.userToOrg.findUnique({
-                where: {
-                    orgId_userId: {
-                        userId: newOwnerId,
-                        orgId: org.id,
-                    },
-                },
-            });
-
-            if (!newOwner) {
-                await failAuditCallback("The user you're trying to make the owner doesn't exist");
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "The user you're trying to make the owner doesn't exist",
-                } satisfies ServiceError;
-            }
-
-            await prisma.$transaction([
-                prisma.userToOrg.update({
-                    where: {
-                        orgId_userId: {
-                            userId: newOwnerId,
-                            orgId: org.id,
-                        },
-                    },
-                    data: {
-                        role: "OWNER",
-                    }
-                }),
-                prisma.userToOrg.update({
-                    where: {
-                        orgId_userId: {
-                            userId: currentUserId,
-                            orgId: org.id,
-                        },
-                    },
-                    data: {
-                        role: "MEMBER",
-                    }
-                })
-            ]);
-
-            await auditService.createAudit({
-                action: "org.ownership_transferred",
-                actor: {
-                    id: currentUserId,
-                    type: "user"
-                },
-                target: {
-                    id: org.id.toString(),
-                    type: "org"
-                },
-                orgId: org.id,
-                metadata: {
-                    message: `Ownership transferred from ${currentUserId} to ${newOwnerId}`
-                }
-            });
-
-            return {
-                success: true,
-            }
-        }, /* minRequiredRole = */ OrgRole.OWNER)
-    ));
-
 export const checkIfOrgDomainExists = async (domain: string): Promise<boolean | ServiceError> => sew(() =>
     withAuth(async () => {
         const org = await prisma.org.findFirst({
@@ -1257,80 +1175,6 @@ export const checkIfOrgDomainExists = async (domain: string): Promise<boolean | 
         return !!org;
     }));
 
-export const removeMemberFromOrg = async (memberId: string, domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth(async (userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const targetMember = await prisma.userToOrg.findUnique({
-                where: {
-                    orgId_userId: {
-                        orgId: org.id,
-                        userId: memberId,
-                    }
-                }
-            });
-
-            if (!targetMember) {
-                return notFound();
-            }
-
-            await prisma.$transaction(async (tx) => {
-                await tx.userToOrg.delete({
-                    where: {
-                        orgId_userId: {
-                            orgId: org.id,
-                            userId: memberId,
-                        }
-                    }
-                });
-
-                if (IS_BILLING_ENABLED) {
-                    const result = await decrementOrgSeatCount(org.id, tx);
-                    if (isServiceError(result)) {
-                        throw result;
-                    }
-                }
-            });
-
-            return {
-                success: true,
-            }
-        }, /* minRequiredRole = */ OrgRole.OWNER)
-    ));
-
-export const leaveOrg = async (domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth(async (userId) =>
-        withOrgMembership(userId, domain, async ({ org, userRole }) => {
-            if (userRole === OrgRole.OWNER) {
-                return {
-                    statusCode: StatusCodes.FORBIDDEN,
-                    errorCode: ErrorCode.OWNER_CANNOT_LEAVE_ORG,
-                    message: "Organization owners cannot leave their own organization",
-                } satisfies ServiceError;
-            }
-
-            await prisma.$transaction(async (tx) => {
-                await tx.userToOrg.delete({
-                    where: {
-                        orgId_userId: {
-                            orgId: org.id,
-                            userId: userId,
-                        }
-                    }
-                });
-
-                if (IS_BILLING_ENABLED) {
-                    const result = await decrementOrgSeatCount(org.id, tx);
-                    if (isServiceError(result)) {
-                        throw result;
-                    }
-                }
-            });
-
-            return {
-                success: true,
-            }
-        })
-    ));
 
 export const getOrgMembers = async (domain: string) => sew(() =>
     withAuth(async (userId) =>
@@ -1442,7 +1286,8 @@ export const createAccountRequest = async (userId: string, domain: string) => se
             },
         });
 
-        if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
+        const smtpConnectionUrl = getSMTPConnectionURL();
+        if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS) {
             // TODO: This is needed because we can't fetch the origin from the request headers when this is called
             // on user creation (the header isn't set when next-auth calls onCreateUser for some reason)
             const deploymentUrl = env.AUTH_URL;
@@ -1473,7 +1318,7 @@ export const createAccountRequest = async (userId: string, domain: string) => se
                     orgImageUrl: org.imageUrl ?? undefined,
                 }));
 
-                const transport = createTransport(env.SMTP_CONNECTION_URL);
+                const transport = createTransport(smtpConnectionUrl);
                 const result = await transport.sendMail({
                     to: owner.email!,
                     from: env.EMAIL_FROM_ADDRESS,
@@ -1584,7 +1429,8 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
             }
 
             // Send approval email to the user
-            if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS) {
+            const smtpConnectionUrl = getSMTPConnectionURL();
+            if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS) {
                 const html = await render(JoinRequestApprovedEmail({
                     baseUrl: env.AUTH_URL,
                     user: {
@@ -1596,7 +1442,7 @@ export const approveAccountRequest = async (requestId: string, domain: string) =
                     orgDomain: org.domain
                 }));
 
-                const transport = createTransport(env.SMTP_CONNECTION_URL);
+                const transport = createTransport(smtpConnectionUrl);
                 const result = await transport.sendMail({
                     to: request.requestedBy.email!,
                     from: env.EMAIL_FROM_ADDRESS,

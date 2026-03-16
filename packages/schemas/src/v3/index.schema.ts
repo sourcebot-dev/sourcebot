@@ -69,14 +69,26 @@ const schema = {
           "description": "This setting is deprecated. Please use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.",
           "default": false
         },
-        "experiment_repoDrivenPermissionSyncIntervalMs": {
+        "repoDrivenPermissionSyncIntervalMs": {
           "type": "number",
           "description": "The interval (in milliseconds) at which the repo permission syncer should run. Defaults to 24 hours.",
           "minimum": 1
         },
-        "experiment_userDrivenPermissionSyncIntervalMs": {
+        "userDrivenPermissionSyncIntervalMs": {
           "type": "number",
           "description": "The interval (in milliseconds) at which the user permission syncer should run. Defaults to 24 hours.",
+          "minimum": 1
+        },
+        "experiment_repoDrivenPermissionSyncIntervalMs": {
+          "type": "number",
+          "deprecated": true,
+          "description": "Deprecated. Use `repoDrivenPermissionSyncIntervalMs` instead.",
+          "minimum": 1
+        },
+        "experiment_userDrivenPermissionSyncIntervalMs": {
+          "type": "number",
+          "deprecated": true,
+          "description": "Deprecated. Use `userDrivenPermissionSyncIntervalMs` instead.",
           "minimum": 1
         },
         "maxAccountPermissionSyncJobConcurrency": {
@@ -215,14 +227,26 @@ const schema = {
           "description": "This setting is deprecated. Please use the `FORCE_ENABLE_ANONYMOUS_ACCESS` environment variable instead.",
           "default": false
         },
-        "experiment_repoDrivenPermissionSyncIntervalMs": {
+        "repoDrivenPermissionSyncIntervalMs": {
           "type": "number",
           "description": "The interval (in milliseconds) at which the repo permission syncer should run. Defaults to 24 hours.",
           "minimum": 1
         },
-        "experiment_userDrivenPermissionSyncIntervalMs": {
+        "userDrivenPermissionSyncIntervalMs": {
           "type": "number",
           "description": "The interval (in milliseconds) at which the user permission syncer should run. Defaults to 24 hours.",
+          "minimum": 1
+        },
+        "experiment_repoDrivenPermissionSyncIntervalMs": {
+          "type": "number",
+          "deprecated": true,
+          "description": "Deprecated. Use `repoDrivenPermissionSyncIntervalMs` instead.",
+          "minimum": 1
+        },
+        "experiment_userDrivenPermissionSyncIntervalMs": {
+          "type": "number",
+          "deprecated": true,
+          "description": "Deprecated. Use `userDrivenPermissionSyncIntervalMs` instead.",
           "minimum": 1
         },
         "maxAccountPermissionSyncJobConcurrency": {
@@ -619,6 +643,15 @@ const schema = {
                     }
                   },
                   "additionalProperties": false
+                },
+                "enforcePermissions": {
+                  "type": "boolean",
+                  "description": "Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing"
+                },
+                "enforcePermissionsForPublicRepos": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing"
                 }
               },
               "required": [
@@ -821,6 +854,15 @@ const schema = {
                     }
                   },
                   "additionalProperties": false
+                },
+                "enforcePermissions": {
+                  "type": "boolean",
+                  "description": "Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing"
+                },
+                "enforcePermissionsForPublicRepos": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing"
                 }
               },
               "required": [
@@ -976,6 +1018,15 @@ const schema = {
                     }
                   },
                   "additionalProperties": false
+                },
+                "enforcePermissions": {
+                  "type": "boolean",
+                  "description": "Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing"
+                },
+                "enforcePermissionsForPublicRepos": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing"
                 }
               },
               "required": [
@@ -1083,6 +1134,15 @@ const schema = {
                     }
                   },
                   "additionalProperties": false
+                },
+                "enforcePermissions": {
+                  "type": "boolean",
+                  "description": "Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing"
+                },
+                "enforcePermissionsForPublicRepos": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing"
                 }
               },
               "required": [
@@ -1253,6 +1313,15 @@ const schema = {
                     }
                   },
                   "additionalProperties": false
+                },
+                "enforcePermissions": {
+                  "type": "boolean",
+                  "description": "Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing"
+                },
+                "enforcePermissionsForPublicRepos": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing"
                 }
               },
               "required": [
@@ -1461,6 +1530,15 @@ const schema = {
                     }
                   },
                   "additionalProperties": false
+                },
+                "enforcePermissions": {
+                  "type": "boolean",
+                  "description": "Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing"
+                },
+                "enforcePermissionsForPublicRepos": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing"
                 }
               },
               "required": [
@@ -1530,6 +1608,15 @@ const schema = {
                     }
                   },
                   "additionalProperties": false
+                },
+                "enforcePermissions": {
+                  "type": "boolean",
+                  "description": "Controls whether repository permissions are enforced for this connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`. See https://docs.sourcebot.dev/docs/features/permission-syncing"
+                },
+                "enforcePermissionsForPublicRepos": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Controls whether repository permissions are enforced for public repositories in this connection. When true, public repositories are only visible to users with a linked account for this connection's code host. When false, public repositories are visible to all users. Has no effect when enforcePermissions is false. Defaults to false. See https://docs.sourcebot.dev/docs/features/permission-syncing"
                 }
               },
               "required": [
@@ -5448,6 +5535,115 @@ const schema = {
               "issuer"
             ]
           },
+          "JumpCloudIdentityProviderConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "provider": {
+                "const": "jumpcloud"
+              },
+              "purpose": {
+                "const": "sso"
+              },
+              "clientId": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "clientSecret": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "issuer": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "provider",
+              "purpose",
+              "clientId",
+              "clientSecret",
+              "issuer"
+            ]
+          },
           "BitbucketServerIdentityProviderConfig": {
             "type": "object",
             "additionalProperties": false,
@@ -6380,6 +6576,115 @@ const schema = {
               "purpose",
               "clientId",
               "clientSecret"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "provider": {
+                "const": "jumpcloud"
+              },
+              "purpose": {
+                "const": "sso"
+              },
+              "clientId": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "clientSecret": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "issuer": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "provider",
+              "purpose",
+              "clientId",
+              "clientSecret",
+              "issuer"
             ]
           },
           {
