@@ -82,6 +82,19 @@ export const withAuth = async <T>(fn: (userId: string, apiKeyHash: string | unde
                 return notAuthenticated();
             }
 
+            if (env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'true') {
+                const membership = await prisma.userToOrg.findFirst({
+                    where: { userId: user.id },
+                });
+                if (membership?.role !== OrgRole.OWNER) {
+                    return {
+                        statusCode: StatusCodes.FORBIDDEN,
+                        errorCode: ErrorCode.API_KEY_USAGE_DISABLED,
+                        message: "API key usage is disabled for non-admin users.",
+                    } satisfies ServiceError;
+                }
+            }
+
             await prisma.apiKey.update({
                 where: {
                     hash: apiKeyOrError.apiKey.hash,
@@ -312,7 +325,7 @@ export const verifyApiKey = async (apiKeyPayload: ApiKeyPayload): Promise<{ apiK
 export const createApiKey = async (name: string, domain: string): Promise<{ key: string } | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org, userRole }) => {
-            if (env.EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS === 'true' && userRole !== OrgRole.OWNER) {
+            if ((env.DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS === 'true' || env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'true') && userRole !== OrgRole.OWNER) {
                logger.error(`API key creation is disabled for non-admin users. User ${userId} is not an owner.`);
                return {
                 statusCode: StatusCodes.FORBIDDEN,

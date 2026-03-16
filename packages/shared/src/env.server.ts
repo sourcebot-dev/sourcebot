@@ -246,9 +246,22 @@ const options = {
 
         SOURCEBOT_DEMO_EXAMPLES_PATH: z.string().optional(),
 
+        DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS: booleanSchema.default('false'),
+
+        DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS: booleanSchema
+            .optional()
+            .transform(value => {
+                return value ?? ((process.env.EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS as 'true' | 'false') ?? 'false');
+            }),
+
+        /**
+         * @deprecated Use `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` instead.
+         */
+        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
+
+
         // Experimental Environment Variables
         // @note: These environment variables are subject to change at any time and are not garunteed to be backwards compatible.
-        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED: booleanSchema.default('false'),
         // @NOTE: Take care to update actions.ts when changing the name of this.
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN: z.string().optional(),

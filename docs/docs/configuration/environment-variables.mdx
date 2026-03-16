@@ -53,6 +53,9 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `PERMISSION_SYNC_REPO_DRIVEN_ENABLED` | `true` | <p>Enables/disables [repo-driven permission syncing](/docs/features/permission-syncing#how-it-works). Only applies when `PERMISSION_SYNC_ENABLED` is `true`.</p> |
 | `EXPERIMENT_EE_PERMISSION_SYNC_ENABLED` **(deprecated)** | `false` | <p>Deprecated. Use `PERMISSION_SYNC_ENABLED` instead.</p> |
 | `AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING` | `true` | <p>When enabled, different SSO accounts with the same email address will automatically be linked.</p> |
+| `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` | `false` | <p>When enabled, only organization owners can create API keys. Non-owner members will receive a `403` error if they attempt to create one.</p> |
+| `EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS` **(deprecated)** | `false` | <p>Deprecated. Use `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` instead.</p> |
+| `DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS` | `false` | <p>When enabled, only organization owners can create or use API keys. Non-owner members will receive a `403` error if they attempt to create or authenticate with an API key. If you only want to restrict creation (not usage), use `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` instead.</p> |
 
 
 ### Review Agent Environment Variables
