@@ -378,7 +378,7 @@ export class ConnectionManager {
             this.promClient.activeConnectionSyncJobs.dec({ connection: connection.name });
             this.promClient.connectionSyncJobFailTotal.inc({ connection: connection.name });
 
-            jobLogger.error(`Failed job ${job.id} for connection ${connection.name} (id: ${connection.id}). Failing job.`);
+            jobLogger.error(`Failed job ${job.id} for connection ${connection.name} (id: ${connection.id}). Reason: ${job.failedReason}`);
 
             const config = connection.config as unknown as ConnectionConfig;
             captureEvent('backend_connection_sync_job_failed', {
