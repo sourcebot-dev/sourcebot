@@ -15,9 +15,11 @@ import {
 import { randomUUID } from "crypto";
 import _dedent from "dedent";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, toolNames } from "./constants";
-import { findSymbolDefinitionsTool, findSymbolReferencesTool, listCommitsTool, listReposTool, searchCodeTool } from "./tools";
+import { findSymbolDefinitionsTool, findSymbolReferencesTool, searchCodeTool } from "./tools";
 import { toVercelAITool } from "@/features/tools/adapters";
 import { readFileDefinition } from "@/features/tools/readFile";
+import { listCommitsDefinition } from "@/features/tools/listCommits";
+import { listReposDefinition } from "@/features/tools/listRepos";
 import { Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
 
@@ -205,8 +207,8 @@ const createAgentStream = async ({
             [toolNames.readFile]: toVercelAITool(readFileDefinition),
             [toolNames.findSymbolReferences]: findSymbolReferencesTool,
             [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
-            [toolNames.listRepos]: listReposTool,
-            [toolNames.listCommits]: listCommitsTool,
+            [toolNames.listRepos]: toVercelAITool(listReposDefinition),
+            [toolNames.listCommits]: toVercelAITool(listCommitsDefinition),
         },
         temperature: env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
         stopWhen: [

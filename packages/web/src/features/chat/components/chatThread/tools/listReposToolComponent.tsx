@@ -1,6 +1,6 @@
 'use client';
 
-import { ListReposToolUIPart } from "@/features/chat/tools";
+import { ListReposToolUIPart } from "@/features/tools/registry";
 import { isServiceError } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { ToolHeader, TreeList } from "./shared";
@@ -41,14 +41,14 @@ export const ListReposToolComponent = ({ part }: { part: ListReposToolUIPart }) 
                         </TreeList>
                     ) : (
                         <>
-                            {part.output.length === 0 ? (
+                            {part.output.metadata.repos.length === 0 ? (
                                 <span className="text-sm text-muted-foreground ml-[25px]">No repositories found</span>
                             ) : (
                                 <TreeList>
                                     <div className="text-sm text-muted-foreground mb-2">
-                                        Found {part.output.length} repositories:
+                                        Found {part.output.metadata.repos.length} repositories:
                                     </div>
-                                    {part.output.map((repoName, index) => (
+                                    {part.output.metadata.repos.map((repoName, index) => (
                                         <div key={index} className="flex items-center gap-2 text-sm">
                                             <FolderOpenIcon className="h-4 w-4 text-muted-foreground" />
                                             <span className="truncate">{repoName}</span>

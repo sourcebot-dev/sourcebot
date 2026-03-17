@@ -1,6 +1,6 @@
 'use client';
 
-import { ListCommitsToolUIPart } from "@/features/chat/tools";
+import { ListCommitsToolUIPart } from "@/features/tools/registry";
 import { isServiceError } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { ToolHeader, TreeList } from "./shared";
@@ -41,14 +41,14 @@ export const ListCommitsToolComponent = ({ part }: { part: ListCommitsToolUIPart
                         </TreeList>
                     ) : (
                         <>
-                            {part.output.commits.length === 0 ? (
+                            {part.output.metadata.commits.length === 0 ? (
                                 <span className="text-sm text-muted-foreground ml-[25px]">No commits found</span>
                             ) : (
                                 <TreeList>
                                     <div className="text-sm text-muted-foreground mb-2">
-                                        Found {part.output.commits.length} of {part.output.totalCount} total commits:
+                                        Found {part.output.metadata.commits.length} of {part.output.metadata.totalCount} total commits:
                                     </div>
-                                    {part.output.commits.map((commit) => (
+                                    {part.output.metadata.commits.map((commit) => (
                                         <div key={commit.hash} className="mb-3 last:mb-0">
                                             <div className="flex items-start gap-2 text-sm">
                                                 <GitCommitVerticalIcon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
