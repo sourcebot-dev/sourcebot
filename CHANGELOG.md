@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `filterByFilepaths` in the MCP `search_code` tool now accepts regular expressions matched against the full file path, instead of treating values as escaped literals. [#1008](https://github.com/sourcebot-dev/sourcebot/pull/1008)
 
+### Fixed
+- Connection sync job failures now log the actual error reason instead of a generic message. [#1012](https://github.com/sourcebot-dev/sourcebot/pull/1012)
+
 ## [4.15.7] - 2026-03-16
 
 ### Added
