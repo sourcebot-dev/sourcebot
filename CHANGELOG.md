@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added read-only annotations to MCP tools for compatibility with Cursor Ask mode and other MCP clients that restrict tool usage based on behavior hints. [#1013](https://github.com/sourcebot-dev/sourcebot/pull/1013)
+
 ## [4.15.8] - 2026-03-17
 
 ### Added
