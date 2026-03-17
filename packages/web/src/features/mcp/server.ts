@@ -76,6 +76,7 @@ export function createMcpServer(): McpServer {
         "search_code",
         {
             description: TOOL_DESCRIPTIONS.search_code,
+            annotations: { readOnlyHint: true },
             inputSchema: {
                 query: z
                     .string()
@@ -230,6 +231,7 @@ export function createMcpServer(): McpServer {
         "list_commits",
         {
             description: TOOL_DESCRIPTIONS.list_commits,
+            annotations: { readOnlyHint: true },
             inputSchema: z.object({
                 repo: z.string().describe("The name of the repository to list commits for."),
                 query: z.string().describe("Search query to filter commits by message content (case-insensitive).").optional(),
@@ -268,6 +270,7 @@ export function createMcpServer(): McpServer {
         "list_repos",
         {
             description: TOOL_DESCRIPTIONS.list_repos,
+            annotations: { readOnlyHint: true },
             inputSchema: z.object({
                 query: z.string().describe("Filter repositories by name (case-insensitive)").optional(),
                 page: z.number().int().positive().describe("Page number for pagination (min 1). Default: 1").optional().default(1),
@@ -308,6 +311,7 @@ export function createMcpServer(): McpServer {
         "read_file",
         {
             description: TOOL_DESCRIPTIONS.read_file,
+            annotations: { readOnlyHint: true },
             inputSchema: {
                 repo: z.string().describe("The repository name."),
                 path: z.string().describe("The path to the file."),
@@ -341,6 +345,7 @@ export function createMcpServer(): McpServer {
         "list_tree",
         {
             description: TOOL_DESCRIPTIONS.list_tree,
+            annotations: { readOnlyHint: true },
             inputSchema: {
                 repo: z.string().describe("The name of the repository to list files from."),
                 path: z.string().describe("Directory path (relative to repo root). If omitted, the repo root is used.").optional().default(''),
@@ -480,6 +485,7 @@ export function createMcpServer(): McpServer {
         "list_language_models",
         {
             description: TOOL_DESCRIPTIONS.list_language_models,
+            annotations: { readOnlyHint: true },
         },
         async () => {
             const models = await getConfiguredLanguageModelsInfo();
@@ -491,6 +497,7 @@ export function createMcpServer(): McpServer {
         "ask_codebase",
         {
             description: TOOL_DESCRIPTIONS.ask_codebase,
+            annotations: { readOnlyHint: true },
             inputSchema: z.object({
                 query: z.string().describe("The query to ask about the codebase."),
                 repos: z.array(z.string()).optional().describe("The repositories accessible to the agent. If not provided, all repositories are accessible."),
