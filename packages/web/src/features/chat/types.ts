@@ -3,8 +3,9 @@ import { BaseEditor, Descendant } from "slate";
 import { HistoryEditor } from "slate-history";
 import { ReactEditor, RenderElementProps } from "slate-react";
 import { z } from "zod";
-import { FindSymbolDefinitionsTool, FindSymbolReferencesTool, ReadFileTool, SearchCodeTool, ListReposTool, ListCommitsTool } from "./tools";
+import { FindSymbolDefinitionsTool, FindSymbolReferencesTool, SearchCodeTool, ListReposTool, ListCommitsTool } from "./tools";
 import { toolNames } from "./constants";
+import { ToolTypes } from "@/features/tools/registry";
 import { LanguageModel } from "@sourcebot/schemas/v3/index.type";
 
 const fileSourceSchema = z.object({
@@ -80,7 +81,7 @@ export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;
 
 export type SBChatMessageToolTypes = {
     [toolNames.searchCode]: SearchCodeTool,
-    [toolNames.readFile]: ReadFileTool,
+    [toolNames.readFile]: ToolTypes['readFile'],
     [toolNames.findSymbolReferences]: FindSymbolReferencesTool,
     [toolNames.findSymbolDefinitions]: FindSymbolDefinitionsTool,
     [toolNames.listRepos]: ListReposTool,

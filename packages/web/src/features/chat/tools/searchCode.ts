@@ -10,7 +10,7 @@ import description from './searchCode.txt';
 
 const DEFAULT_SEARCH_LIMIT = 100;
 
-export const createCodeSearchTool = (selectedRepos: string[]) => tool({
+export const searchCodeTool = tool({
     description,
     inputSchema: z.object({
         query: z
@@ -64,10 +64,6 @@ export const createCodeSearchTool = (selectedRepos: string[]) => tool({
     }) => {
         logger.debug('searchCode', { query, useRegex, repos, languages, filepaths, caseSensitive, ref, limit });
 
-        if (selectedRepos.length > 0) {
-            query += ` reposet:${selectedRepos.join(',')}`;
-        }
-
         if (repos.length > 0) {
             query += ` (repo:${repos.map(id => escapeStringRegexp(id)).join(' or repo:')})`;
         }
@@ -115,7 +111,7 @@ export const createCodeSearchTool = (selectedRepos: string[]) => tool({
     },
 });
 
-export type SearchCodeTool = InferUITool<ReturnType<typeof createCodeSearchTool>>;
-export type SearchCodeToolInput = InferToolInput<ReturnType<typeof createCodeSearchTool>>;
-export type SearchCodeToolOutput = InferToolOutput<ReturnType<typeof createCodeSearchTool>>;
+export type SearchCodeTool = InferUITool<typeof searchCodeTool>;
+export type SearchCodeToolInput = InferToolInput<typeof searchCodeTool>;
+export type SearchCodeToolOutput = InferToolOutput<typeof searchCodeTool>;
 export type SearchCodeToolUIPart = ToolUIPart<{ [toolNames.searchCode]: SearchCodeTool }>;

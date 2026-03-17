@@ -10,7 +10,6 @@
 
 export * from "./findSymbolReferences";
 export * from "./findSymbolDefinitions";
-export * from "./readFile";
 export * from "./searchCode";
 export * from "./listRepos";
 export * from "./listCommits";

@@ -1,10 +1,11 @@
 import { z } from "zod";
-import { InferToolInput, InferToolOutput, InferUITool, tool, ToolUIPart } from "ai";
 import { isServiceError } from "@/lib/utils";
 import { getFileSource } from "@/features/git";
-import { toolNames } from "../constants";
-import { logger } from "../logger";
-import description from './readFile.txt';
+import { createLogger } from "@sourcebot/shared";
+import { ToolDefinition } from "./types";
+import description from "./readFile.txt";
+
+const logger = createLogger('tool-readFile');
 
 // NOTE: if you change these values, update readFile.txt to match.
 const READ_FILES_MAX_LINES = 500;
@@ -13,20 +14,33 @@ const MAX_LINE_SUFFIX = `... (line truncated to ${MAX_LINE_LENGTH} chars)`;
 const MAX_BYTES = 5 * 1024;
 const MAX_BYTES_LABEL = `${MAX_BYTES / 1024}KB`;
 
-export const readFileTool = tool({
+const readFileShape = {
+    path: z.string().describe("The path to the file"),
+    repository: z.string().describe("The repository to read the file from"),
+    offset: z.number().int().positive()
+        .optional()
+        .describe("Line number to start reading from (1-indexed). Omit to start from the beginning."),
+    limit: z.number().int().positive()
+        .optional()
+        .describe(`Maximum number of lines to read (max: ${READ_FILES_MAX_LINES}). Omit to read up to ${READ_FILES_MAX_LINES} lines.`),
+};
+
+export type ReadFileMetadata = {
+    path: string;
+    repository: string;
+    language: string;
+    startLine: number;
+    endLine: number;
+    isTruncated: boolean;
+    revision: string;
+};
+
+export const readFileDefinition: ToolDefinition<"readFile", typeof readFileShape, ReadFileMetadata> = {
+    name: "readFile",
     description,
-    inputSchema: z.object({
-        path: z.string().describe("The path to the file"),
-        repository: z.string().describe("The repository to read the file from"),
-        offset: z.number().int().positive()
-            .optional()
-            .describe("Line number to start reading from (1-indexed). Omit to start from the beginning."),
-        limit: z.number().int().positive()
-            .optional()
-            .describe(`Maximum number of lines to read (max: ${READ_FILES_MAX_LINES}). Omit to read up to ${READ_FILES_MAX_LINES} lines.`),
-    }),
+    inputSchema: z.object(readFileShape),
     execute: async ({ path, repository, offset, limit }) => {
-        logger.debug('readFiles', { path, repository, offset, limit });
+        logger.debug('readFile', { path, repository, offset, limit });
         // @todo: make revision configurable.
         const revision = "HEAD";
 
@@ -81,27 +95,16 @@ export const readFileTool = tool({
 
         output += `\n</content>`;
 
-        return {
+        const metadata: ReadFileMetadata = {
             path: fileSource.path,
             repository: fileSource.repo,
             language: fileSource.language,
-            source: output,
-            totalLines: lines.length,
+            startLine,
+            endLine: lastReadLine,
+            isTruncated: truncatedByBytes || truncatedByLines,
             revision,
         };
-    },
-    toModelOutput: ({ output }) => {
-        return {
-            type: 'content',
-            value: [{
-                type: 'text',
-                text: output.source,
-            }]
-        }
-    }
-});
 
-export type ReadFileTool = InferUITool<typeof readFileTool>;
-export type ReadFileToolInput = InferToolInput<typeof readFileTool>;
-export type ReadFileToolOutput = InferToolOutput<typeof readFileTool>;
-export type ReadFileToolUIPart = ToolUIPart<{ [toolNames.readFile]: ReadFileTool }>
+        return { output, metadata };
+    },
+};

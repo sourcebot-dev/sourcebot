@@ -15,7 +15,9 @@ import {
 import { randomUUID } from "crypto";
 import _dedent from "dedent";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, toolNames } from "./constants";
-import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, listCommitsTool, listReposTool, readFileTool } from "./tools";
+import { findSymbolDefinitionsTool, findSymbolReferencesTool, listCommitsTool, listReposTool, searchCodeTool } from "./tools";
+import { toVercelAITool } from "@/features/tools/adapters";
+import { readFileDefinition } from "@/features/tools/readFile";
 import { Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
 
@@ -199,8 +201,8 @@ const createAgentStream = async ({
         messages: inputMessages,
         system: systemPrompt,
         tools: {
-            [toolNames.searchCode]: createCodeSearchTool(selectedRepos),
-            [toolNames.readFile]: readFileTool,
+            [toolNames.searchCode]: searchCodeTool,
+            [toolNames.readFile]: toVercelAITool(readFileDefinition),
             [toolNames.findSymbolReferences]: findSymbolReferencesTool,
             [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
             [toolNames.listRepos]: listReposTool,
@@ -226,11 +228,11 @@ const createAgentStream = async ({
                 if (toolName === toolNames.readFile) {
                     onWriteSource({
                         type: 'file',
-                        language: output.language,
-                        repo: output.repository,
-                        path: output.path,
-                        revision: output.revision,
-                        name: output.path.split('/').pop() ?? output.path,
+                        language: output.metadata.language,
+                        repo: output.metadata.repository,
+                        path: output.metadata.path,
+                        revision: output.metadata.revision,
+                        name: output.metadata.path.split('/').pop() ?? output.metadata.path,
                     });
                 } else if (toolName === toolNames.searchCode) {
                     output.files.forEach((file) => {
@@ -310,6 +312,8 @@ const createPrompt = ({
         <selected_repositories>
         The user has explicitly selected the following repositories for analysis:
         ${repos.map(repo => `- ${repo}`).join('\n')}
+
+        When calling the searchCode tool, always pass these repositories as \`filterByRepos\` to scope results to the selected repositories.
         </selected_repositories>
     ` : ''}
 

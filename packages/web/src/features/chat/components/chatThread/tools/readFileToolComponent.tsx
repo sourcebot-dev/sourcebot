@@ -2,7 +2,7 @@
 
 import { CodeSnippet } from "@/app/components/codeSnippet";
 import { Separator } from "@/components/ui/separator";
-import { ReadFileToolUIPart } from "@/features/chat/tools";
+import { ReadFileToolUIPart } from "@/features/tools/registry";
 import { isServiceError } from "@/lib/utils";
 import { EyeIcon } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -14,7 +14,7 @@ export const ReadFileToolComponent = ({ part }: { part: ReadFileToolUIPart }) =>
 
     const onCopy = () => {
         if (part.state !== 'output-available' || isServiceError(part.output)) return false;
-        navigator.clipboard.writeText(part.output.source);
+        navigator.clipboard.writeText(part.output.output);
         return true;
     };
 
@@ -30,7 +30,10 @@ export const ReadFileToolComponent = ({ part }: { part: ReadFileToolUIPart }) =>
                 if (isServiceError(part.output)) {
                     return 'Failed to read file';
                 }
-                return `Read ${part.output.path}`;
+                if (part.output.metadata.isTruncated || part.output.metadata.startLine > 1) {
+                    return `Read ${part.output.metadata.path} (lines ${part.output.metadata.startLine}–${part.output.metadata.endLine})`;
+                }
+                return `Read ${part.output.metadata.path}`;
         }
     }, [part]);
 
@@ -60,8 +63,8 @@ export const ReadFileToolComponent = ({ part }: { part: ReadFileToolUIPart }) =>
                             <span>Failed with the following error: <CodeSnippet className="text-sm text-destructive">{part.output.message}</CodeSnippet></span>
                         ) : (
                             <FileListItem
-                                path={part.output.path}
-                                repoName={part.output.repository}
+                                path={part.output.metadata.path}
+                                repoName={part.output.metadata.repository}
                             />
                         )}
                     </TreeList>

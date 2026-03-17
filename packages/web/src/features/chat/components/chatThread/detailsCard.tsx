@@ -208,7 +208,16 @@ const DetailsCardComponent = ({
                                                         part={part}
                                                     />
                                                 )
+                                            case 'data-source':
+                                            case 'dynamic-tool':
+                                            case 'file':
+                                            case 'source-document':
+                                            case 'source-url':
+                                            case 'step-start':
+                                                return null;
                                             default:
+                                                // Guarantees this switch-case to be exhaustive
+                                                part satisfies never;
                                                 return null;
                                         }
                                     })}

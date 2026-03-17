@@ -1,0 +1,1 @@
+Get the current weather for a given city.
