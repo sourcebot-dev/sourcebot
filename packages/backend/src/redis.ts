@@ -3,7 +3,7 @@ import { Redis } from 'ioredis';
 import fs from "fs";
 
 const buildTlsOptions = (): Record<string, unknown> => {
-    if (env.REDIS_TLS_ENABLED !== "true") {
+    if (env.REDIS_TLS_ENABLED !== "true" && !env.REDIS_URL.startsWith("rediss://")) {
         return {};
     }
 
