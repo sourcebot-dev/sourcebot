@@ -69,6 +69,7 @@ server.tool(
             .transform((val) => (val < env.DEFAULT_MINIMUM_TOKENS ? env.DEFAULT_MINIMUM_TOKENS : val))
             .optional(),
     },
+    { readOnlyHint: true },
     async ({
         query,
         filterByRepos: repos = [],
@@ -186,6 +187,7 @@ server.tool(
     "list_commits",
     dedent`Get a list of commits for a given repository.`,
     listCommitsQueryParamsSchema.shape,
+    { readOnlyHint: true },
     async (request: ListCommitsQueryParamsSchema) => {
         const result = await listCommits(request);
 
@@ -201,6 +203,7 @@ server.tool(
     "list_repos",
     dedent`Lists repositories in the organization with optional filtering and pagination.`,
     listReposQueryParamsSchema.shape,
+    { readOnlyHint: true },
     async (request: ListReposQueryParams) => {
         const result = await listRepos(request);
 
@@ -226,6 +229,7 @@ server.tool(
     "read_file",
     dedent`Reads the source code for a given file.`,
     fileSourceRequestSchema.shape,
+    { readOnlyHint: true },
     async (request: FileSourceRequest) => {
         const response = await getFileSource(request);
 
@@ -249,6 +253,7 @@ server.tool(
     Returns a flat list of entries with path metadata and depth relative to the requested path.
     `,
     listTreeRequestSchema.shape,
+    { readOnlyHint: true },
     async ({
         repo,
         path = '',
@@ -395,6 +400,7 @@ server.tool(
     "list_language_models",
     dedent`Lists the available language models configured on the Sourcebot instance. Use this to discover which models can be specified when calling ask_codebase.`,
     {},
+    { readOnlyHint: true },
     async () => {
         const models = await listLanguageModels();
 
@@ -424,6 +430,7 @@ server.tool(
     This is a blocking operation that may take 30-60+ seconds for complex questions as the agent researches the codebase.
     `,
     askCodebaseRequestSchema.shape,
+    { readOnlyHint: true },
     async (request: AskCodebaseRequest) => {
         const response = await askCodebase(request);
 
