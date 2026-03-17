@@ -279,6 +279,19 @@ const options = {
         REDIS_REMOVE_ON_COMPLETE: numberSchema.default(0),
         REDIS_REMOVE_ON_FAIL: numberSchema.default(100),
 
+        // Redis TLS
+        REDIS_TLS_ENABLED: booleanSchema.default("false"),
+        REDIS_TLS_CA_PATH: z.string().optional(),
+        REDIS_TLS_CERT_PATH: z.string().optional(),
+        REDIS_TLS_KEY_PATH: z.string().optional(),
+        REDIS_TLS_SERVERNAME: z.string().optional(),
+        REDIS_TLS_REJECT_UNAUTHORIZED: booleanSchema.optional(),
+        REDIS_TLS_CHECK_SERVER_IDENTITY: booleanSchema.optional(),
+        REDIS_TLS_SECURE_PROTOCOL: z.string().optional(),
+        REDIS_TLS_CIPHERS: z.string().optional(),
+        REDIS_TLS_HONOR_CIPHER_ORDER: booleanSchema.optional(),
+        REDIS_TLS_KEY_PASSPHRASE: z.string().optional(),
+
         CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(300000),
         REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),
 

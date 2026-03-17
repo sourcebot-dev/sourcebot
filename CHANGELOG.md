@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added support for connecting to Redis over TLS via `REDIS_TLS_ENABLED` and related environment variables. [#1011](https://github.com/sourcebot-dev/sourcebot/pull/1011)
+
 ### Changed
 - `filterByFilepaths` in the MCP `search_code` tool now accepts regular expressions matched against the full file path, instead of treating values as escaped literals. [#1008](https://github.com/sourcebot-dev/sourcebot/pull/1008)
 
