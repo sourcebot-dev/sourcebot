@@ -15,11 +15,78 @@ import { buildTreeNodeIndex, joinTreePath, normalizeTreePath, sortTreeEntries } 
 const dedent = _dedent.withOptions({ alignValues: true });
 
 // Create MCP server
-const server = new McpServer({
+export const server = new McpServer({
     name: 'sourcebot-mcp-server',
     version: '0.1.0',
 });
 
+
+// ---------------------------------------------------------------------------
+// Shared query-building helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Common filter parameters accepted by every search tool.
+ * Add new filter params here once and they become available to all tools.
+ */
+const searchFilterParamsSchema = {
+    filterByLanguages: z
+        .array(z.string())
+        .describe(`Scope the search to the provided languages.`)
+        .optional(),
+    filterByRepos: z
+        .array(z.string())
+        .describe(`Scope the search to the provided repositories.`)
+        .optional(),
+    filterByFilepaths: z
+        .array(z.string())
+        .describe(`Scope the search to the provided file paths.`)
+        .optional(),
+    ref: z
+        .string()
+        .describe(`Commit SHA, branch or tag name to search on. Defaults to the default branch.`)
+        .optional(),
+    caseSensitive: z
+        .boolean()
+        .describe(`Whether the search should be case sensitive (default: false).`)
+        .optional(),
+    useRegex: z
+        .boolean()
+        .describe(`Whether to use regular expression matching. When false, substring matching is used. (default: false)`)
+        .optional(),
+};
+
+/**
+ * Appends zoekt filter tokens (lang:, repo:, file:, rev:) to a base query.
+ */
+const buildQueryFilters = ({
+    query,
+    filterByLanguages = [],
+    filterByRepos = [],
+    filterByFilepaths = [],
+    ref,
+}: {
+    query: string;
+    filterByLanguages?: string[];
+    filterByRepos?: string[];
+    filterByFilepaths?: string[];
+    ref?: string;
+}): string => {
+    let q = query;
+    if (filterByRepos.length > 0) {
+        q += ` (repo:${filterByRepos.map(id => escapeStringRegexp(id)).join(' or repo:')})`;
+    }
+    if (filterByLanguages.length > 0) {
+        q += ` (lang:${filterByLanguages.join(' or lang:')})`;
+    }
+    if (filterByFilepaths.length > 0) {
+        q += ` (file:${filterByFilepaths.map(fp => escapeStringRegexp(fp)).join(' or file:')})`;
+    }
+    if (ref) {
+        q += ` (rev:${ref})`;
+    }
+    return q;
+};
 
 server.tool(
     "search_code",
@@ -36,34 +103,13 @@ server.tool(
                 const escaped = val.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
                 return `"${escaped}"`;
             }),
-        useRegex: z
-            .boolean()
-            .describe(`Whether to use regular expression matching to match the search query against code contents. When false, substring matching is used. (default: false)`)
-            .optional(),
-        filterByRepos: z
-            .array(z.string())
-            .describe(`Scope the search to the provided repositories.`)
-            .optional(),
-        filterByLanguages: z
-            .array(z.string())
-            .describe(`Scope the search to the provided languages.`)
-            .optional(),
-        filterByFilepaths: z
-            .array(z.string())
-            .describe(`Scope the search to the provided filepaths.`)
-            .optional(),
-        caseSensitive: z
-            .boolean()
-            .describe(`Whether the search should be case sensitive (default: false).`)
-            .optional(),
+
+        ...searchFilterParamsSchema,
         includeCodeSnippets: z
             .boolean()
             .describe(`Whether to include the code snippets in the response. If false, only the file's URL, repository, and language will be returned. (default: false)`)
             .optional(),
-        ref: z
-            .string()
-            .describe(`Commit SHA, branch or tag name to search on. If not provided, defaults to the default branch (usually 'main' or 'master').`)
-            .optional(),
+
         maxTokens: numberSchema
             .describe(`The maximum number of tokens to return (default: ${env.DEFAULT_MINIMUM_TOKENS}). Higher values provide more context but consume more tokens. Values less than ${env.DEFAULT_MINIMUM_TOKENS} will be ignored.`)
             .transform((val) => (val < env.DEFAULT_MINIMUM_TOKENS ? env.DEFAULT_MINIMUM_TOKENS : val))
@@ -81,21 +127,7 @@ server.tool(
         ref,
         useRegex = false,
     }) => {
-        if (repos.length > 0) {
-            query += ` (repo:${repos.map(id => escapeStringRegexp(id)).join(' or repo:')})`;
-        }
-
-        if (languages.length > 0) {
-            query += ` (lang:${languages.join(' or lang:')})`;
-        }
-
-        if (filepaths.length > 0) {
-            query += ` (file:${filepaths.map(filepath => escapeStringRegexp(filepath)).join(' or file:')})`;
-        }
-
-        if (ref) {
-            query += ` ( rev:${ref} )`;
-        }
+        query = buildQueryFilters({ query, filterByRepos: repos, filterByLanguages: languages, filterByFilepaths: filepaths, ref });
 
         const response = await search({
             query,
@@ -452,12 +484,82 @@ server.tool(
     }
 );
 
+
+server.tool(
+    "search_repos",
+    `Searches code and returns the list of matching repositories (deduplicated), sorted by number of matches. Useful for answering "which repos use X?" questions. Equivalent to appending select:repo to a Sourcebot query.`,
+    {
+        query: z
+            .string()
+            .describe(`The search pattern to match against code contents. Supports plain text or regex if useRegex is true.`),
+
+        ...searchFilterParamsSchema,
+        maxResults: z
+            .number()
+            .int()
+            .positive()
+            .describe(`Maximum number of repositories to return (default: 50).`)
+            .optional(),
+    },
+    async ({
+        query,
+        filterByLanguages: languages = [],
+        caseSensitive = false,
+        ref,
+        useRegex = false,
+        maxResults = 50,
+    }) => {
+        let fullQuery = buildQueryFilters({ query, filterByLanguages: languages, ref });
+        if (!fullQuery.includes('select:repo')) {
+            fullQuery += ' select:repo';
+        }
+
+        const response = await search({
+            query: fullQuery,
+            matches: env.DEFAULT_MATCHES,
+            contextLines: 0,
+            isRegexEnabled: useRegex,
+            isCaseSensitivityEnabled: caseSensitive,
+        });
+
+        const repos = response.repoResults ?? [];
+
+        if (repos.length === 0) {
+            return {
+                content: [{
+                    type: "text",
+                    text: `No repositories found matching: ${query}`,
+                }],
+            };
+        }
+
+        const limited = repos.slice(0, maxResults);
+        const lines = limited.map(r =>
+            `repo: ${r.repository}  matches: ${r.matchCount}${r.repositoryInfo?.webUrl ? `  url: ${r.repositoryInfo.webUrl}` : ''}`
+        );
+
+        const text = [
+            `Found ${repos.length} repositor${repos.length === 1 ? 'y' : 'ies'} matching "${query}"${limited.length < repos.length ? ` (showing top ${maxResults})` : ''}:`,
+            '',
+            ...lines,
+        ].join('\n');
+
+        return {
+            content: [{ type: "text", text }],
+        };
+    }
+);
+
 const runServer = async () => {
     const transport = new StdioServerTransport();
     await server.connect(transport);
 }
 
-runServer().catch((error) => {
-    console.error('Failed to start MCP server:', error);
-    process.exit(1);
-});
+// Only auto-start when run directly (not when imported in tests)
+const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\.ts$/, '.js').split('/').pop() ?? '');
+if (isMain) {
+    runServer().catch((error) => {
+        console.error('Failed to start MCP server:', error);
+        process.exit(1);
+    });
+}

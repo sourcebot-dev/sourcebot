@@ -3,6 +3,7 @@
 import {
     fileSourceResponseSchema,
     listReposQueryParamsSchema,
+    repoResultSchema,
     locationSchema,
     searchRequestSchema,
     searchResponseSchema,
@@ -24,6 +25,7 @@ import {
 } from "./schemas.js";
 import { z } from "zod";
 
+export type RepoResult = z.infer<typeof repoResultSchema>;
 export type SearchRequest = z.infer<typeof searchRequestSchema>;
 export type SearchResponse = z.infer<typeof searchResponseSchema>;
 export type SearchResultRange = z.infer<typeof rangeSchema>;

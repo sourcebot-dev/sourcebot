@@ -114,8 +114,16 @@ export const searchStatsSchema = z.object({
     flushReason: z.string(),
 });
 
+export const repoResultSchema = z.object({
+    repositoryId: z.number(),
+    repository: z.string(),
+    repositoryInfo: repositoryInfoSchema.optional(),
+    matchCount: z.number(),
+});
+
 export const searchResponseSchema = z.object({
     stats: searchStatsSchema,
+    repoResults: z.array(repoResultSchema).optional(),
     files: z.array(z.object({
         fileName: z.object({
             // The name of the file

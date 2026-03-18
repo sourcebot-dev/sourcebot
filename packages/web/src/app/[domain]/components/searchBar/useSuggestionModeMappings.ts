@@ -91,6 +91,12 @@ export const useSuggestionModeMappings = () => {
                     ]
                 } satisfies SuggestionModeMapping,
             ] : []),
+            {
+                suggestionMode: "select",
+                prefixes: [
+                    SearchPrefix.select,
+                ],
+            },
         ]
     }, [isSearchContextsEnabled]);
 

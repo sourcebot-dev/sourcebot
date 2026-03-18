@@ -8,6 +8,7 @@ import { forwardRef, Ref, useEffect, useMemo, useState } from "react";
 import {
     archivedModeSuggestions,
     forkModeSuggestions,
+    selectModeSuggestions,
     visibilityModeSuggestions,
 } from "./constants";
 import { IconType } from "react-icons/lib";
@@ -39,7 +40,8 @@ export type SuggestionMode =
     "content" |
     "repo" |
     "searchHistory" |
-    "context";
+    "context" |
+    "select";
 
 interface SearchSuggestionsBoxProps {
     className?: string;
@@ -206,6 +208,12 @@ const SearchSuggestionsBox = forwardRef(({
                         descriptionPlacement: "left",
                         DefaultIcon: VscFilter,
                     }
+                case "select":
+                    return {
+                        list: selectModeSuggestions,
+                        onSuggestionClicked: createOnSuggestionClickedHandler({ trailingSpace: true }),
+                        descriptionPlacement: "left",
+                    }
                 case "none":
                 case "revision":
                 case "content":
@@ -299,6 +307,8 @@ const SearchSuggestionsBox = forwardRef(({
                 return "Search history"
             case "context":
                 return "Search contexts"
+            case "select":
+                return "Select mode"
             default:
                 return "";
         }

@@ -7,7 +7,8 @@
     "scripts": {
         "build": "tsc",
         "dev": "node ./dist/index.js",
-        "build:watch": "tsc-watch --preserveWatchOutput"
+        "build:watch": "tsc-watch --preserveWatchOutput",
+        "test": "node --import tsx/esm --test src/__tests__/*.test.ts"
     },
     "devDependencies": {
         "@types/express": "^5.0.1",
