@@ -1,12 +1,10 @@
-import { CreateUIMessage, UIMessage, UIMessagePart } from "ai";
+import { CreateUIMessage, InferUITool, UIMessage, UIMessagePart } from "ai";
 import { BaseEditor, Descendant } from "slate";
 import { HistoryEditor } from "slate-history";
 import { ReactEditor, RenderElementProps } from "slate-react";
 import { z } from "zod";
-import { FindSymbolDefinitionsTool, FindSymbolReferencesTool, SearchCodeTool } from "./tools";
-import { toolNames } from "./constants";
-import { ToolTypes } from "@/features/tools/registry";
 import { LanguageModel } from "@sourcebot/schemas/v3/index.type";
+import { tools } from "./tools";
 
 const fileSourceSchema = z.object({
     type: z.literal('file'),
@@ -80,13 +78,8 @@ export const sbChatMessageMetadataSchema = z.object({
 export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;
 
 export type SBChatMessageToolTypes = {
-    [toolNames.searchCode]: SearchCodeTool,
-    [toolNames.readFile]: ToolTypes['readFile'],
-    [toolNames.findSymbolReferences]: FindSymbolReferencesTool,
-    [toolNames.findSymbolDefinitions]: FindSymbolDefinitionsTool,
-    [toolNames.listRepos]: ToolTypes['listRepos'],
-    [toolNames.listCommits]: ToolTypes['listCommits'],
-}
+    [K in keyof typeof tools]: InferUITool<typeof tools[K]>;
+};
 
 export type SBChatMessageDataParts = {
     // The `source` data type allows us to know what sources the LLM saw

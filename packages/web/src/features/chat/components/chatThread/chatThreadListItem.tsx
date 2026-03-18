@@ -13,7 +13,6 @@ import { AnswerCard } from './answerCard';
 import { DetailsCard } from './detailsCard';
 import { MarkdownRenderer, REFERENCE_PAYLOAD_ATTRIBUTE } from './markdownRenderer';
 import { ReferencedSourcesListView } from './referencedSourcesListView';
-import { uiVisiblePartTypes } from '../../constants';
 import isEqual from "fast-deep-equal/react";
 
 interface ChatThreadListItemProps {
@@ -102,7 +101,12 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                         return part.text !== answerPart?.text;
                     })
                     .filter((part) => {
-                        return uiVisiblePartTypes.includes(part.type);
+                        // Only include text, reasoning, and tool parts
+                        return (
+                            part.type === 'text' ||
+                            part.type === 'reasoning' ||
+                            part.type.startsWith('tool-')
+                        )
                     })
             )
             // Then, filter out any steps that are empty

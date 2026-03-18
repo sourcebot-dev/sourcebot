@@ -2,7 +2,7 @@
 
 import { CodeSnippet } from "@/app/components/codeSnippet";
 import { Separator } from "@/components/ui/separator";
-import { ReadFileToolUIPart } from "@/features/tools/registry";
+import { ReadFileToolUIPart } from "@/features/chat/tools";
 import { isServiceError } from "@/lib/utils";
 import { EyeIcon } from "lucide-react";
 import { useMemo, useState } from "react";

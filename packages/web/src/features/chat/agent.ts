@@ -14,14 +14,14 @@ import {
 } from "ai";
 import { randomUUID } from "crypto";
 import _dedent from "dedent";
-import { ANSWER_TAG, FILE_REFERENCE_PREFIX, toolNames } from "./constants";
-import { findSymbolDefinitionsTool, findSymbolReferencesTool, searchCodeTool } from "./tools";
-import { toVercelAITool } from "@/features/tools/adapters";
+import { ANSWER_TAG, FILE_REFERENCE_PREFIX } from "./constants";
+import { findSymbolReferencesDefinition } from "@/features/tools/findSymbolReferences";
+import { findSymbolDefinitionsDefinition } from "@/features/tools/findSymbolDefinitions";
 import { readFileDefinition } from "@/features/tools/readFile";
-import { listCommitsDefinition } from "@/features/tools/listCommits";
-import { listReposDefinition } from "@/features/tools/listRepos";
+import { searchCodeDefinition } from "@/features/tools/searchCode";
 import { Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
+import { tools } from "./tools";
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -202,14 +202,7 @@ const createAgentStream = async ({
         providerOptions,
         messages: inputMessages,
         system: systemPrompt,
-        tools: {
-            [toolNames.searchCode]: searchCodeTool,
-            [toolNames.readFile]: toVercelAITool(readFileDefinition),
-            [toolNames.findSymbolReferences]: findSymbolReferencesTool,
-            [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
-            [toolNames.listRepos]: toVercelAITool(listReposDefinition),
-            [toolNames.listCommits]: toVercelAITool(listCommitsDefinition),
-        },
+        tools,
         temperature: env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
         stopWhen: [
             stepCountIsGTE(env.SOURCEBOT_CHAT_MAX_STEP_COUNT),
@@ -227,7 +220,7 @@ const createAgentStream = async ({
                     return;
                 }
 
-                if (toolName === toolNames.readFile) {
+                if (toolName === readFileDefinition.name) {
                     onWriteSource({
                         type: 'file',
                         language: output.metadata.language,
@@ -236,8 +229,8 @@ const createAgentStream = async ({
                         revision: output.metadata.revision,
                         name: output.metadata.path.split('/').pop() ?? output.metadata.path,
                     });
-                } else if (toolName === toolNames.searchCode) {
-                    output.files.forEach((file) => {
+                } else if (toolName === searchCodeDefinition.name) {
+                    output.metadata.files.forEach((file) => {
                         onWriteSource({
                             type: 'file',
                             language: file.language,
@@ -247,8 +240,8 @@ const createAgentStream = async ({
                             name: file.fileName.split('/').pop() ?? file.fileName,
                         });
                     });
-                } else if (toolName === toolNames.findSymbolDefinitions || toolName === toolNames.findSymbolReferences) {
-                    output.forEach((file) => {
+                } else if (toolName === findSymbolDefinitionsDefinition.name || toolName === findSymbolReferencesDefinition.name) {
+                    output.metadata.files.forEach((file) => {
                         onWriteSource({
                             type: 'file',
                             language: file.language,

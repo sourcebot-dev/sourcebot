@@ -1,6 +1,6 @@
 'use client';
 
-import { ListReposToolUIPart } from "@/features/tools/registry";
+import { ListReposToolUIPart } from "@/features/chat/tools";
 import { isServiceError } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { ToolHeader, TreeList } from "./shared";
