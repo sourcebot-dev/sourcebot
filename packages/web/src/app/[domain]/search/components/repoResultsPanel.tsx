@@ -16,11 +16,18 @@ export const RepoResultsPanel = ({ repoResults, searchQuery }: RepoResultsPanelP
     const router = useRouter();
 
     const navigateToRepo = (repoName: string) => {
+        // Quote repo names that contain spaces or special characters so the
+        // zoekt repo: filter parses them as a single token.
+        const needsQuoting = /[^a-zA-Z0-9\-._/]/.test(repoName);
+        const safeRepo = needsQuoting
+            ? `"${repoName.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+            : repoName;
+
         // Replace select:repo with repo:xxx, preserving all other filters
         const newQuery = searchQuery
             .replace(/(?:^|\s)select:repo(?:\s|$)/g, ' ')
             .trim()
-            .concat(` repo:${repoName}`)
+            .concat(` repo:${safeRepo}`)
             .trim();
         const path = createPathWithQueryParams(
             `/${domain}/search`,
