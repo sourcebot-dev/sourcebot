@@ -72,7 +72,7 @@ export const ListCommitsToolComponent = ({ part }: { part: ListCommitsToolUIPart
                                                         {commit.message}
                                                     </div>
                                                     <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                                                        <span>{commit.author}</span>
+                                                        <span>{commit.author_name}</span>
                                                         <span>•</span>
                                                         <span>{new Date(commit.date).toLocaleString()}</span>
                                                     </div>
