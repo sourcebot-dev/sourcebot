@@ -497,12 +497,14 @@ server.tool(
     async ({
         query,
         filterByLanguages: languages = [],
+        filterByRepos: repos = [],
+        filterByFilepaths: filepaths = [],
         caseSensitive = false,
         ref,
         useRegex = false,
         maxResults = 50,
     }) => {
-        let fullQuery = buildQueryFilters({ query, filterByLanguages: languages, ref });
+        let fullQuery = buildQueryFilters({ query, filterByLanguages: languages, filterByRepos: repos, filterByFilepaths: filepaths, ref });
         if (!fullQuery.includes('select:repo')) {
             fullQuery += ' select:repo';
         }
