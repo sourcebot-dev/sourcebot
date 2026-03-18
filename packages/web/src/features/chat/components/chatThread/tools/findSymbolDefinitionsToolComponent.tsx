@@ -1,7 +1,6 @@
 'use client';
 
 import { FindSymbolDefinitionsToolUIPart } from "@/features/chat/tools";
-import { isServiceError } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { FileListItem, ToolHeader, TreeList } from "./shared";
 import { CodeSnippet } from "@/app/components/codeSnippet";
@@ -29,38 +28,30 @@ export const FindSymbolDefinitionsToolComponent = ({ part }: { part: FindSymbolD
         <div className="my-4">
             <ToolHeader
                 isLoading={part.state !== 'output-available' && part.state !== 'output-error'}
-                isError={part.state === 'output-error' || (part.state === 'output-available' && isServiceError(part.output))}
+                isError={part.state === 'output-error'}
                 isExpanded={isExpanded}
                 label={label}
                 Icon={BookOpenIcon}
                 onExpand={setIsExpanded}
                 input={part.state !== 'input-streaming' ? JSON.stringify(part.input) : undefined}
-                output={part.state === 'output-available' && !isServiceError(part.output) ? part.output.output : undefined}
+                output={part.state === 'output-available' ? part.output.output : undefined}
             />
             {part.state === 'output-available' && isExpanded && (
                 <>
-                    {isServiceError(part.output) ? (
-                        <TreeList>
-                            <span>Failed with the following error: <CodeSnippet className="text-sm text-destructive">{part.output.message}</CodeSnippet></span>
-                        </TreeList>
+                    {part.output.metadata.files.length === 0 ? (
+                        <span className="text-sm text-muted-foreground ml-[25px]">No matches found</span>
                     ) : (
-                        <>
-                            {part.output.metadata.files.length === 0 ? (
-                                <span className="text-sm text-muted-foreground ml-[25px]">No matches found</span>
-                            ) : (
-                                <TreeList>
-                                    {part.output.metadata.files.map((file) => {
-                                        return (
-                                            <FileListItem
-                                                key={file.fileName}
-                                                path={file.fileName}
-                                                repoName={file.repo}
-                                            />
-                                        )
-                                    })}
-                                </TreeList>
-                            )}
-                        </>
+                        <TreeList>
+                            {part.output.metadata.files.map((file) => {
+                                return (
+                                    <FileListItem
+                                        key={file.fileName}
+                                        path={file.fileName}
+                                        repoName={file.repo}
+                                    />
+                                )
+                            })}
+                        </TreeList>
                     )}
                     <Separator className='ml-[7px] my-2' />
                 </>

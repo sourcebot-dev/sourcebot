@@ -80,6 +80,7 @@ export const readFileDefinition: ToolDefinition<"read_file", typeof readFileShap
         let output = [
             `<repo>${fileSource.repo}</repo>`,
             `<path>${fileSource.path}</path>`,
+            `<url>${fileSource.webUrl}</url>`,
             '<content>\n'
         ].join('\n');
 

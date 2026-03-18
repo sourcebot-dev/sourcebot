@@ -1,9 +1,7 @@
 'use client';
 
-import { CodeSnippet } from "@/app/components/codeSnippet";
 import { Separator } from "@/components/ui/separator";
 import { ReadFileToolUIPart } from "@/features/chat/tools";
-import { isServiceError } from "@/lib/utils";
 import { EyeIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { FileListItem, ToolHeader, TreeList } from "./shared";
@@ -20,9 +18,6 @@ export const ReadFileToolComponent = ({ part }: { part: ReadFileToolUIPart }) =>
             case 'output-error':
                 return 'Tool call failed';
             case 'output-available':
-                if (isServiceError(part.output)) {
-                    return 'Failed to read file';
-                }
                 if (part.output.metadata.isTruncated || part.output.metadata.startLine > 1) {
                     return `Read ${part.output.metadata.path} (lines ${part.output.metadata.startLine}–${part.output.metadata.endLine})`;
                 }
@@ -34,25 +29,21 @@ export const ReadFileToolComponent = ({ part }: { part: ReadFileToolUIPart }) =>
         <div className="my-4">
             <ToolHeader
                 isLoading={part.state !== 'output-available' && part.state !== 'output-error'}
-                isError={part.state === 'output-error' || (part.state === 'output-available' && isServiceError(part.output))}
+                isError={part.state === 'output-error'}
                 isExpanded={isExpanded}
                 label={label}
                 Icon={EyeIcon}
                 onExpand={setIsExpanded}
                 input={part.state !== 'input-streaming' ? JSON.stringify(part.input) : undefined}
-                output={part.state === 'output-available' && !isServiceError(part.output) ? part.output.output : undefined}
+                output={part.state === 'output-available' ? part.output.output : undefined}
             />
             {part.state === 'output-available' && isExpanded && (
                 <>
                     <TreeList>
-                        {isServiceError(part.output) ? (
-                            <span>Failed with the following error: <CodeSnippet className="text-sm text-destructive">{part.output.message}</CodeSnippet></span>
-                        ) : (
-                            <FileListItem
-                                path={part.output.metadata.path}
-                                repoName={part.output.metadata.repo}
-                            />
-                        )}
+                        <FileListItem
+                            path={part.output.metadata.path}
+                            repoName={part.output.metadata.repo}
+                        />
                     </TreeList>
                     <Separator className='ml-[7px] my-2' />
                 </>

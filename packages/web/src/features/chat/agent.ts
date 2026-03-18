@@ -231,14 +231,7 @@ const createAgentStream = async ({
                     });
                 } else if (toolName === grepDefinition.name) {
                     output.metadata.files.forEach((file) => {
-                        onWriteSource({
-                            type: 'file',
-                            language: file.language,
-                            repo: file.repo,
-                            path: file.fileName,
-                            revision: file.revision,
-                            name: file.fileName.split('/').pop() ?? file.fileName,
-                        });
+                        onWriteSource(file);
                     });
                 } else if (toolName === findSymbolDefinitionsDefinition.name || toolName === findSymbolReferencesDefinition.name) {
                     output.metadata.files.forEach((file) => {
@@ -308,7 +301,7 @@ const createPrompt = ({
         The user has explicitly selected the following repositories for analysis:
         ${repos.map(repo => `- ${repo}`).join('\n')}
 
-        When calling tools that accept a \`repo\` parameter (e.g. \`read_file\`, \`list_commits\`, \`list_tree\`, \`grep\`), use these repository names directly.
+        When calling tools that accept a \`repo\` parameter (e.g. \`read_file\`, \`list_commits\`, \`list_tree\`, \`grep\`), use these repository names exactly as listed above, including the full host prefix (e.g. \`github.com/org/repo\`).
         </selected_repositories>
     ` : ''}
 

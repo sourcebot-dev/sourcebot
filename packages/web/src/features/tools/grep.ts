@@ -2,13 +2,15 @@ import { z } from "zod";
 import globToRegexp from "glob-to-regexp";
 import { isServiceError } from "@/lib/utils";
 import { search } from "@/features/search";
-import { addLineNumbers } from "@/features/chat/utils";
 import escapeStringRegexp from "escape-string-regexp";
 import { ToolDefinition } from "./types";
 import { logger } from "./logger";
 import description from "./grep.txt";
+import { FileSource } from "../chat/types";
 
 const DEFAULT_SEARCH_LIMIT = 100;
+const MAX_LINE_LENGTH = 2000;
+const MAX_LINE_SUFFIX = `... (line truncated to ${MAX_LINE_LENGTH} chars)`;
 
 function globToFileRegexp(glob: string): string {
     const re = globToRegexp(glob, { extended: true, globstar: true });
@@ -42,17 +44,8 @@ const grepShape = {
         .optional(),
 };
 
-export type GrepFile = {
-    fileName: string;
-    webUrl: string;
-    repo: string;
-    language: string;
-    matches: string[];
-    revision: string;
-};
-
 export type GrepMetadata = {
-    files: GrepFile[];
+    files: FileSource[];
     query: string;
 };
 
@@ -96,7 +89,7 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
             query,
             options: {
                 matches: limit,
-                contextLines: 3,
+                contextLines: 0,
                 isCaseSensitivityEnabled: true,
                 isRegexEnabled: true,
             },
@@ -109,20 +102,52 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
 
         const metadata: GrepMetadata = {
             files: response.files.map((file) => ({
-                fileName: file.fileName.text,
-                webUrl: file.webUrl,
-                repo: file.repository,
+                type: 'file',
+                path: file.fileName.text,
+                name: file.fileName.text.split('/').pop() ?? file.fileName.text,
                 language: file.language,
-                matches: file.chunks.map(({ content, contentStart }) => {
-                    return addLineNumbers(content, contentStart.lineNumber);
-                }),
+                repo: file.repository,
                 revision: ref ?? 'HEAD',
             })),
             query,
         };
 
+        const totalFiles = response.files.length;
+        const actualMatches = response.stats.actualMatchCount;
+
+        if (totalFiles === 0) {
+            return {
+                output: 'No files found',
+                metadata,
+            };
+        }
+
+        const outputLines: string[] = [
+            `Found ${actualMatches} match${actualMatches !== 1 ? 'es' : ''} in ${totalFiles} file${totalFiles !== 1 ? 's' : ''}`,
+        ];
+
+        for (const file of response.files) {
+            outputLines.push('');
+            outputLines.push(`[${file.repository}] ${file.fileName.text}:`);
+            for (const chunk of file.chunks) {
+                chunk.content.split('\n').forEach((content, i) => {
+                    if (!content.trim()) return;
+                    const lineNum = chunk.contentStart.lineNumber + i;
+                    const line = content.length > MAX_LINE_LENGTH
+                        ? content.substring(0, MAX_LINE_LENGTH) + MAX_LINE_SUFFIX
+                        : content;
+                    outputLines.push(`  ${lineNum}: ${line}`);
+                });
+            }
+        }
+
+        if (!response.isSearchExhaustive) {
+            outputLines.push('');
+            outputLines.push(`(Results truncated. Consider using a more specific path or pattern, specifying a repo, or increasing the limit.)`);
+        }
+
         return {
-            output: JSON.stringify(metadata),
+            output: outputLines.join('\n'),
             metadata,
         };
     },
