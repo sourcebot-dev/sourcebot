@@ -507,13 +507,13 @@ export const getFormattedDate = (date: Date) => {
 /**
  * Converts a number to a string
  */
-export const getShortenedNumberDisplayString = (number: number) => {
+export const getShortenedNumberDisplayString = (number: number, fractionDigits: number = 1) => {
     if (number < 1000) {
         return number.toString();
     } else if (number < 1000000) {
-        return `${(number / 1000).toFixed(1)}k`;
+        return `${(number / 1000).toFixed(fractionDigits)}k`;
     } else {
-        return `${(number / 1000000).toFixed(1)}m`;
+        return `${(number / 1000000).toFixed(fractionDigits)}m`;
     }
 }
 

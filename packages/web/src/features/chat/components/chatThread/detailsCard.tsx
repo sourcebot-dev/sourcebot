@@ -5,7 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
+import { cn, getShortenedNumberDisplayString } from '@/lib/utils';
 import { Brain, ChevronDown, ChevronRight, Clock, InfoIcon, Loader2, List, ScanSearchIcon, Zap } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
@@ -106,15 +106,35 @@ const DetailsCardComponent = ({
                                             </div>
                                         )}
                                         {metadata?.totalTokens && (
-                                            <div className="flex items-center text-xs">
-                                                <Zap className="w-3 h-3 mr-1 flex-shrink-0" />
-                                                {metadata?.totalTokens} tokens
-                                            </div>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="flex items-center text-xs cursor-help">
+                                                        <Zap className="w-3 h-3 mr-1 flex-shrink-0" />
+                                                        {getShortenedNumberDisplayString(metadata.totalTokens, 0)} tokens
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom">
+                                                    <div className="space-y-1 text-xs">
+                                                        <div className="flex justify-between gap-4">
+                                                            <span className="text-muted-foreground">Input</span>
+                                                            <span>{metadata.totalInputTokens?.toLocaleString() ?? '—'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between gap-4">
+                                                            <span className="text-muted-foreground">Output</span>
+                                                            <span>{metadata.totalOutputTokens?.toLocaleString() ?? '—'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between gap-4 border-t border-border pt-1">
+                                                            <span className="text-muted-foreground">Total</span>
+                                                            <span>{metadata.totalTokens.toLocaleString()}</span>
+                                                        </div>
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
                                         )}
                                         {metadata?.totalResponseTimeMs && (
                                             <div className="flex items-center text-xs">
                                                 <Clock className="w-3 h-3 mr-1 flex-shrink-0" />
-                                                {metadata?.totalResponseTimeMs / 1000} seconds
+                                                {Math.round(metadata.totalResponseTimeMs / 1000)} seconds
                                             </div>
                                         )}
                                         <div className="flex items-center text-xs">
