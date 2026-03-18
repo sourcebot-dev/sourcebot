@@ -13,6 +13,7 @@ export interface ToolDefinition<
     description: string;
     inputSchema: z.ZodObject<TShape>;
     isReadOnly: boolean;
+    isIdempotent: boolean;
     execute: (input: z.infer<z.ZodObject<TShape>>, context: ToolContext) => Promise<ToolResult<TMetadata>>;
 }
 

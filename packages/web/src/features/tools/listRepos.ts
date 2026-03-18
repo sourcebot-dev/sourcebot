@@ -34,6 +34,7 @@ export const listReposDefinition: ToolDefinition<
 > = {
     name: 'list_repos',
     isReadOnly: true,
+    isIdempotent: true,
     description,
     inputSchema: z.object(listReposShape),
     execute: async ({ page, perPage, sort, direction, query }, context) => {

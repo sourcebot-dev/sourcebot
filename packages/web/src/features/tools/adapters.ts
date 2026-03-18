@@ -31,6 +31,7 @@ export function registerMcpTool<TName extends string, TShape extends z.ZodRawSha
             inputSchema: def.inputSchema.shape as z.ZodRawShape,
             annotations: {
                 readOnlyHint: def.isReadOnly,
+                idempotentHint: def.isIdempotent,
             },
         },
         async (input) => {

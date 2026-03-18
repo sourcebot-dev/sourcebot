@@ -24,6 +24,7 @@ export const findSymbolDefinitionsDefinition: ToolDefinition<
 > = {
     name: 'find_symbol_definitions',
     isReadOnly: true,
+    isIdempotent: true,
     description,
     inputSchema: z.object(findSymbolDefinitionsShape),
     execute: async ({ symbol, language, repo }, _context) => {

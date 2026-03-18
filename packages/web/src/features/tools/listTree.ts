@@ -41,6 +41,7 @@ export type ListTreeMetadata = {
 export const listTreeDefinition: ToolDefinition<'list_tree', typeof listTreeShape, ListTreeMetadata> = {
     name: 'list_tree',
     isReadOnly: true,
+    isIdempotent: true,
     description,
     inputSchema: z.object(listTreeShape),
     execute: async ({ repo, path = '', ref = 'HEAD', depth = DEFAULT_TREE_DEPTH, includeFiles = true, includeDirectories = true, maxEntries = DEFAULT_MAX_TREE_ENTRIES }, context) => {
