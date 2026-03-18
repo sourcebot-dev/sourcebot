@@ -68,6 +68,16 @@ const findLinguistLanguage = (value: string): string => {
 export type SelectMode = 'repo' | null;
 
 /**
+ * Parses a raw query string and returns the select: modifier value, if present.
+ * Uses the same Lezer parser as the backend so behaviour is identical.
+ * Safe to call on the client — uses the non-strict parser variant.
+ */
+export const getSelectModeFromQuery = (query: string): SelectMode => {
+    const tree = _parser.parse(query);
+    return extractSelectMode(tree, query);
+};
+
+/**
  * Extracts the select: modifier from a Lezer tree.
  * Returns 'repo' or null.
  */

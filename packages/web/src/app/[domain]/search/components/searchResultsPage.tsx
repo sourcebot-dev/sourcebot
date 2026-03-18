@@ -12,6 +12,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { RepoResult, RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search";
+import { getSelectModeFromQuery } from "@/features/search/parser";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useDomain } from "@/hooks/useDomain";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
@@ -84,8 +85,8 @@ export const SearchResultsPage = ({
         isCaseSensitivityEnabled,
     });
 
-    // Detect if the query uses select:repo projection
-    const isSelectRepoMode = /(?:^|\s)select:repo(?:\s|$)/.test(searchQuery);
+    // Detect if the query uses select:repo projection — uses the same Lezer parser as the backend
+    const isSelectRepoMode = getSelectModeFromQuery(searchQuery) === 'repo';
 
     useEffect(() => {
         if (error) {
