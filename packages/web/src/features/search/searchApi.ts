@@ -8,7 +8,7 @@ import { headers } from "next/headers";
 import { QueryIR } from './ir';
 import { parseQuerySyntaxIntoIR, SelectMode } from './parser';
 import { SearchOptions, SearchResponse, RepoResult } from "./types";
-import { createZoektSearchRequest, zoektSearch, zoektStreamSearch } from './zoektSearcher';
+import { accumulateRepoMap, createZoektSearchRequest, zoektSearch, zoektStreamSearch } from './zoektSearcher';
 
 
 type QueryStringSearchRequest = {
@@ -120,23 +120,7 @@ const getAccessibleRepoNamesForUser = async ({ user, prisma }: { user?: UserWith
 
 const applySelectRepo = (result: SearchResponse): SearchResponse => {
     const repoMap = new Map<number, RepoResult>();
-
-    for (const file of result.files) {
-        const repoId = file.repositoryId;
-        if (!repoMap.has(repoId)) {
-            const repoInfo = result.repositoryInfo.find(r => r.id === repoId);
-            repoMap.set(repoId, {
-                repositoryId: repoId,
-                repository: file.repository,
-                repositoryInfo: repoInfo,
-                matchCount: file.chunks.reduce((acc, chunk) => acc + chunk.matchRanges.length, 0),
-            });
-        } else {
-            const existing = repoMap.get(repoId)!;
-            existing.matchCount += file.chunks.reduce((acc, chunk) => acc + chunk.matchRanges.length, 0);
-        }
-    }
-
+    accumulateRepoMap(result.files, result.repositoryInfo, repoMap);
     return {
         ...result,
         repoResults: Array.from(repoMap.values()).sort((a, b) => b.matchCount - a.matchCount),

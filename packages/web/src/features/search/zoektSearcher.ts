@@ -148,6 +148,28 @@ export const zoektSearch = async (searchRequest: ZoektGrpcSearchRequest, prisma:
     });
 }
 
+/**
+ * Accumulates file results into a per-repository match-count map.
+ * Shared by the streaming (zoektStreamSearch) and non-streaming (applySelectRepo) paths
+ * to ensure identical aggregation behaviour.
+ */
+export const accumulateRepoMap = (
+    files: SearchResultFile[],
+    repositoryInfo: RepositoryInfo[],
+    repoMap: Map<number, RepoResult>,
+): void => {
+    for (const file of files) {
+        const repoId = file.repositoryId;
+        const matchCount = file.chunks.reduce((acc, chunk) => acc + chunk.matchRanges.length, 0);
+        if (!repoMap.has(repoId)) {
+            const ri = repositoryInfo.find(r => r.id === repoId);
+            repoMap.set(repoId, { repositoryId: repoId, repository: file.repository, repositoryInfo: ri, matchCount });
+        } else {
+            repoMap.get(repoId)!.matchCount += matchCount;
+        }
+    }
+};
+
 export const zoektStreamSearch = async (searchRequest: ZoektGrpcSearchRequest, prisma: PrismaClient, selectMode?: string | null): Promise<ReadableStream> => {
     const client = createGrpcClient();
     let grpcStream: ReturnType<WebserverServiceClient['StreamSearch']> | null = null;
@@ -241,15 +263,7 @@ export const zoektStreamSearch = async (searchRequest: ZoektGrpcSearchRequest, p
 
                         // Accumulate repo map for select:repo mode
                         if (selectMode === 'repo') {
-                            for (const file of files) {
-                                const repoId = file.repositoryId;
-                                if (!_accumulatedRepoMap.has(repoId)) {
-                                    const ri = repositoryInfo.find(r => r.id === repoId);
-                                    _accumulatedRepoMap.set(repoId, { repositoryId: repoId, repository: file.repository, repositoryInfo: ri, matchCount: file.chunks.reduce((acc, chunk) => acc + chunk.matchRanges.length, 0) });
-                                } else {
-                                    _accumulatedRepoMap.get(repoId)!.matchCount += file.chunks.reduce((acc, chunk) => acc + chunk.matchRanges.length, 0);
-                                }
-                            }
+                            accumulateRepoMap(files, repositoryInfo, _accumulatedRepoMap);
                         }
 
                         const response: StreamedSearchResponse = {
