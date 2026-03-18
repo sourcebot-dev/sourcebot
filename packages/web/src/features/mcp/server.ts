@@ -17,7 +17,7 @@ import {
     listTreeDefinition,
     readFileDefinition,
     registerMcpTool,
-    searchCodeDefinition,
+    grepDefinition,
 } from '../tools';
 
 const dedent = _dedent.withOptions({ alignValues: true });
@@ -28,7 +28,7 @@ export function createMcpServer(): McpServer {
         version: SOURCEBOT_VERSION,
     });
 
-    registerMcpTool(server, searchCodeDefinition);
+    registerMcpTool(server, grepDefinition);
     registerMcpTool(server, listCommitsDefinition);
     registerMcpTool(server, listReposDefinition);
     registerMcpTool(server, readFileDefinition);

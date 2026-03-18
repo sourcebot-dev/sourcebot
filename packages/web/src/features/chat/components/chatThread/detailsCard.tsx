@@ -13,7 +13,7 @@ import { MarkdownRenderer } from './markdownRenderer';
 import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
 import { ReadFileToolComponent } from './tools/readFileToolComponent';
-import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
+import { GrepToolComponent } from './tools/grepToolComponent';
 import { ListReposToolComponent } from './tools/listReposToolComponent';
 import { ListCommitsToolComponent } from './tools/listCommitsToolComponent';
 import { ListTreeToolComponent } from './tools/listTreeToolComponent';
@@ -174,9 +174,9 @@ const DetailsCardComponent = ({
                                                         part={part}
                                                     />
                                                 )
-                                            case 'tool-search_code':
+                                            case 'tool-grep':
                                                 return (
-                                                    <SearchCodeToolComponent
+                                                    <GrepToolComponent
                                                         key={index}
                                                         part={part}
                                                     />

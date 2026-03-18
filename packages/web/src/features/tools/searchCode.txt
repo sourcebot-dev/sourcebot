@@ -1,9 +1,0 @@
-Searches for code that matches the provided search query as a substring by default, or as a regular expression if useRegex is true. Useful for exploring remote repositories by searching for exact symbols, functions, variables, or specific code patterns. To determine if a repository is indexed, use the `list_repos` tool. By default, searches are global and will search the default branch of all repositories. Searches can be scoped to specific repositories, languages, and branches.
-
-Usage:
-- If the repository name is not known, use `list_repos` first to discover the correct name.
-- Use `filterByRepos` to scope searches to specific repositories rather than searching all repositories globally.
-- Use `filterByFilepaths` with a regular expression to scope searches to specific directories or file types (e.g. `src/.*\.ts$`).
-- Prefer narrow, specific queries over broad ones to avoid hitting the result limit.
-- Call this tool in parallel when you need to search for multiple independent patterns simultaneously.
-- [**mcp only**] When referencing code returned by this tool, always include the file's `webUrl` as a link so the user can view the file directly.

@@ -11,10 +11,6 @@ import { FileListItem, ToolHeader, TreeList } from "./shared";
 export const ReadFileToolComponent = ({ part }: { part: ReadFileToolUIPart }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    const onCopy = part.state === 'output-available' && !isServiceError(part.output)
-        ? () => { navigator.clipboard.writeText((part.output as { output: string }).output); return true; }
-        : undefined;
-
     const label = useMemo(() => {
         switch (part.state) {
             case 'input-streaming':
@@ -43,7 +39,8 @@ export const ReadFileToolComponent = ({ part }: { part: ReadFileToolUIPart }) =>
                 label={label}
                 Icon={EyeIcon}
                 onExpand={setIsExpanded}
-                onCopy={onCopy}
+                input={part.state !== 'input-streaming' ? JSON.stringify(part.input) : undefined}
+                output={part.state === 'output-available' && !isServiceError(part.output) ? part.output.output : undefined}
             />
             {part.state === 'output-available' && isExpanded && (
                 <>

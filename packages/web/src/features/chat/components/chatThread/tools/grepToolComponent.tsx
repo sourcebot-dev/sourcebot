@@ -1,6 +1,6 @@
 'use client';
 
-import { SearchCodeToolUIPart } from "@/features/chat/tools";
+import { GrepToolUIPart } from "@/features/chat/tools";
 import { isServiceError } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { FileListItem, ToolHeader, TreeList } from "./shared";
@@ -8,7 +8,7 @@ import { CodeSnippet } from "@/app/components/codeSnippet";
 import { Separator } from "@/components/ui/separator";
 import { SearchIcon } from "lucide-react";
 
-export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }) => {
+export const GrepToolComponent = ({ part }: { part: GrepToolUIPart }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     const displayQuery = useMemo(() => {
@@ -16,7 +16,7 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
             return '';
         }
 
-        return part.input.query;
+        return part.input.pattern;
     }, [part]);
 
     const label = useMemo(() => {
@@ -31,10 +31,6 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
         }
     }, [part, displayQuery]);
 
-    const onCopy = part.state === 'output-available' && !isServiceError(part.output)
-        ? () => { navigator.clipboard.writeText(part.output.output); return true; }
-        : undefined;
-
     return (
         <div className="my-4">
             <ToolHeader
@@ -44,7 +40,8 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
                 label={label}
                 Icon={SearchIcon}
                 onExpand={setIsExpanded}
-                onCopy={onCopy}
+                input={part.state !== 'input-streaming' ? JSON.stringify(part.input) : undefined}
+                output={part.state === 'output-available' && !isServiceError(part.output) ? part.output.output : undefined}
             />
             {part.state === 'output-available' && isExpanded && (
                 <>

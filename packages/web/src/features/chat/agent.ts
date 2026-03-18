@@ -18,7 +18,7 @@ import { ANSWER_TAG, FILE_REFERENCE_PREFIX } from "./constants";
 import { findSymbolReferencesDefinition } from "@/features/tools/findSymbolReferences";
 import { findSymbolDefinitionsDefinition } from "@/features/tools/findSymbolDefinitions";
 import { readFileDefinition } from "@/features/tools/readFile";
-import { searchCodeDefinition } from "@/features/tools/searchCode";
+import { grepDefinition } from "@/features/tools/grep";
 import { Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
 import { tools } from "./tools";
@@ -229,7 +229,7 @@ const createAgentStream = async ({
                         revision: output.metadata.revision,
                         name: output.metadata.path.split('/').pop() ?? output.metadata.path,
                     });
-                } else if (toolName === searchCodeDefinition.name) {
+                } else if (toolName === grepDefinition.name) {
                     output.metadata.files.forEach((file) => {
                         onWriteSource({
                             type: 'file',
@@ -308,8 +308,7 @@ const createPrompt = ({
         The user has explicitly selected the following repositories for analysis:
         ${repos.map(repo => `- ${repo}`).join('\n')}
 
-        When calling tools that accept a \`repo\` parameter (e.g. \`read_file\`, \`list_commits\`, \`list_tree\`), use these repository names directly.
-        When calling the \`search_code\` tool, pass these repositories as \`filterByRepos\` to scope results to the selected repositories.
+        When calling tools that accept a \`repo\` parameter (e.g. \`read_file\`, \`list_commits\`, \`list_tree\`, \`grep\`), use these repository names directly.
         </selected_repositories>
     ` : ''}
 

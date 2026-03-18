@@ -83,11 +83,22 @@ interface ToolHeaderProps {
     label: React.ReactNode;
     Icon: React.ElementType;
     onExpand: (isExpanded: boolean) => void;
-    onCopy?: () => boolean;
+    input?: string;
+    output?: string;
     className?: string;
 }
 
-export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpand, onCopy, className }: ToolHeaderProps) => {
+export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpand, input, output, className }: ToolHeaderProps) => {
+    const onCopy = output !== undefined
+        ? () => {
+            const text = [
+                input !== undefined ? `Input:\n${input}` : null,
+                `Output:\n${output}`,
+            ].filter(Boolean).join('\n\n');
+            navigator.clipboard.writeText(text);
+            return true;
+        }
+        : undefined;
     return (
         <div
             tabIndex={0}
