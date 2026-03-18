@@ -341,8 +341,14 @@ const PanelGroup = ({
                             <>
                                 <RefreshCwIcon className="h-4 w-4 animate-spin mr-2" />
                                 <p className="text-sm font-medium mr-1">Searching...</p>
-                                {numMatches > 0 && (
-                                    <p className="text-sm font-medium">{`Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
+                                {isSelectRepoMode ? (
+                                    (repoResults?.length ?? 0) > 0 && (
+                                        <p className="text-sm font-medium">{`Found ${repoResults!.length} ${repoResults!.length === 1 ? 'repository' : 'repositories'}`}</p>
+                                    )
+                                ) : (
+                                    numMatches > 0 && (
+                                        <p className="text-sm font-medium">{`Found ${numMatches} matches in ${fileMatches.length} ${fileMatches.length > 1 ? 'files' : 'file'}`}</p>
+                                    )
                                 )}
                             </>
                         ) : (
