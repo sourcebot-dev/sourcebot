@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added AGENTS.md with Cursor Cloud development environment instructions. [#1001](https://github.com/sourcebot-dev/sourcebot/pull/1001)
 - Added support for configuring SMTP via individual environment variables (SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD) as an alternative to SMTP_CONNECTION_URL. [#1002](https://github.com/sourcebot-dev/sourcebot/pull/1002)
+- Added `select:repo` query modifier that returns a deduplicated list of matching repositories sorted by match count, with a new `RepoResultsPanel` UI and a `search_repos` MCP tool. [#1015](https://github.com/sourcebot-dev/sourcebot/pull/1015)
 
 ## [4.15.6] - 2026-03-13
 
