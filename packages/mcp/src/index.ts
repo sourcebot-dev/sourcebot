@@ -505,7 +505,7 @@ server.tool(
         maxResults = 50,
     }) => {
         let fullQuery = buildQueryFilters({ query, filterByLanguages: languages, filterByRepos: repos, filterByFilepaths: filepaths, ref });
-        if (!fullQuery.includes('select:repo')) {
+        if (!/(?:^|\s)select:repo(?:\s|$)/.test(fullQuery)) {
             fullQuery += ' select:repo';
         }
 
