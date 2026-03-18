@@ -338,7 +338,7 @@ export const getAnswerPartFromAssistantMessage = (message: SBChatMessage, isStre
     const lastTextPart = message.parts
         .findLast((part) => part.type === 'text')
 
-    if (lastTextPart?.text.startsWith(ANSWER_TAG)) {
+    if (lastTextPart?.text.includes(ANSWER_TAG)) {
         return lastTextPart;
     }
 

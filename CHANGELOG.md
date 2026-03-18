@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `find_symbol_definitions`, and `find_symbol_references` tools to the MCP server. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 - Added `list_tree` tool to the ask agent. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 
+### Fixed
+- Fixed issue where ask responses would sometimes appear in the details panel while generating. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+
 ## [4.15.9] - 2026-03-17
 
 ### Added
