@@ -29,6 +29,10 @@ export function createMcpServer(): McpServer {
         "list_language_models",
         {
             description: dedent`Lists the available language models configured on the Sourcebot instance. Use this to discover which models can be specified when calling ask_codebase.`,
+            annotations: {
+                readOnlyHint: true,
+                idempotentHint: true,
+            }
         },
         async () => {
             const models = await getConfiguredLanguageModelsInfo();
@@ -61,6 +65,9 @@ export function createMcpServer(): McpServer {
                 languageModel: languageModelInfoSchema.optional().describe("The language model to use. If not provided, defaults to the first model in the config."),
                 visibility: z.enum(['PRIVATE', 'PUBLIC']).optional().describe("The visibility of the chat session. Defaults to PRIVATE for authenticated users."),
             }),
+            annotations: {
+                readOnlyHint: true,
+            }
         },
         async (request) => {
             const result = await askCodebase({
