@@ -104,6 +104,11 @@ describe('searchResponseSchema with repoResults', () => {
 // ---- 2. hasModifiers transform logic ----------------------------------------
 
 describe('search_code query transform — hasModifiers regex', () => {
+    // The regex is intentionally defined here rather than imported from the
+    // implementation. These tests assert the expected contract (which modifiers
+    // should and should not be detected) independently of the implementation,
+    // so a change to the source that breaks the contract will fail the tests
+    // even if the regex itself was updated.
     const RE = /(?:^|\s)(?:select|repo|lang|file|case|rev|branch|sym|content):/;
 
     it('detects select:repo modifier', () => assert.ok(RE.test('useState select:repo')));
