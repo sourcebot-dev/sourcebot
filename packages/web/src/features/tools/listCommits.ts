@@ -1,11 +1,9 @@
 import { z } from "zod";
 import { isServiceError } from "@/lib/utils";
 import { listCommits, SearchCommitsResult } from "@/features/git";
-import { createLogger } from "@sourcebot/shared";
 import { ToolDefinition } from "./types";
+import { logger } from "./logger";
 import description from "./listCommits.txt";
-
-const logger = createLogger('tool-listCommits');
 
 const listCommitsShape = {
     repo: z.string().describe("The repository to list commits from"),
@@ -24,7 +22,7 @@ export const listCommitsDefinition: ToolDefinition<"list_commits", typeof listCo
     name: "list_commits",
     description,
     inputSchema: z.object(listCommitsShape),
-    execute: async (params) => {
+    execute: async (params, _context) => {
         logger.debug('list_commits', params);
 
         const { repo, query, since, until, author, ref, page, perPage } = params;

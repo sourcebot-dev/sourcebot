@@ -2,12 +2,10 @@ import { z } from "zod";
 import { isServiceError } from "@/lib/utils";
 import { findSearchBasedSymbolDefinitions } from "@/features/codeNav/api";
 import { addLineNumbers } from "@/features/chat/utils";
-import { createLogger } from "@sourcebot/shared";
 import { ToolDefinition } from "./types";
 import { FindSymbolFile } from "./findSymbolReferences";
+import { logger } from "./logger";
 import description from "./findSymbolDefinitions.txt";
-
-const logger = createLogger('tool-findSymbolDefinitions');
 
 const findSymbolDefinitionsShape = {
     symbol: z.string().describe("The symbol to find definitions of"),
@@ -27,8 +25,8 @@ export const findSymbolDefinitionsDefinition: ToolDefinition<
     name: 'find_symbol_definitions',
     description,
     inputSchema: z.object(findSymbolDefinitionsShape),
-    execute: async ({ symbol, language, repo }) => {
-        logger.debug('findSymbolDefinitions', { symbol, language, repo });
+    execute: async ({ symbol, language, repo }, _context) => {
+        logger.debug('find_symbol_definitions', { symbol, language, repo });
         const revision = "HEAD";
 
         const response = await findSearchBasedSymbolDefinitions({

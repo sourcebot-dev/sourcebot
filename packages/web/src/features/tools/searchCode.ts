@@ -2,12 +2,10 @@ import { z } from "zod";
 import { isServiceError } from "@/lib/utils";
 import { search } from "@/features/search";
 import { addLineNumbers } from "@/features/chat/utils";
-import { createLogger } from "@sourcebot/shared";
 import escapeStringRegexp from "escape-string-regexp";
 import { ToolDefinition } from "./types";
+import { logger } from "./logger";
 import description from "./searchCode.txt";
-
-const logger = createLogger('tool-searchCode');
 
 const DEFAULT_SEARCH_LIMIT = 100;
 
@@ -77,8 +75,8 @@ export const searchCodeDefinition: ToolDefinition<'search_code', typeof searchCo
         caseSensitive = false,
         ref,
         limit = DEFAULT_SEARCH_LIMIT,
-    }) => {
-        logger.debug('searchCode', { query, useRegex, repos, languages, filepaths, caseSensitive, ref, limit });
+    }, context) => {
+        logger.debug('search_code', { query, useRegex, repos, languages, filepaths, caseSensitive, ref, limit });
 
         if (repos.length > 0) {
             query += ` (repo:${repos.map(id => escapeStringRegexp(id)).join(' or repo:')})`;
@@ -104,7 +102,8 @@ export const searchCodeDefinition: ToolDefinition<'search_code', typeof searchCo
                 contextLines: 3,
                 isCaseSensitivityEnabled: caseSensitive,
                 isRegexEnabled: useRegex,
-            }
+            },
+            source: context.source,
         });
 
         if (isServiceError(response)) {

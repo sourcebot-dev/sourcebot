@@ -1,11 +1,9 @@
 import { z } from "zod";
 import { isServiceError } from "@/lib/utils";
 import { getFileSource } from "@/features/git";
-import { createLogger } from "@sourcebot/shared";
 import { ToolDefinition } from "./types";
+import { logger } from "./logger";
 import description from "./readFile.txt";
-
-const logger = createLogger('tool-readFile');
 
 // NOTE: if you change these values, update readFile.txt to match.
 const READ_FILES_MAX_LINES = 500;
@@ -39,8 +37,8 @@ export const readFileDefinition: ToolDefinition<"read_file", typeof readFileShap
     name: "read_file",
     description,
     inputSchema: z.object(readFileShape),
-    execute: async ({ path, repo, offset, limit }) => {
-        logger.debug('readFile', { path, repo, offset, limit });
+    execute: async ({ path, repo, offset, limit }, context) => {
+        logger.debug('read_file', { path, repo, offset, limit });
         // @todo: make revision configurable.
         const revision = "HEAD";
 
@@ -48,7 +46,7 @@ export const readFileDefinition: ToolDefinition<"read_file", typeof readFileShap
             path,
             repo,
             ref: revision,
-        });
+        }, { source: context.source });
 
         if (isServiceError(fileSource)) {
             throw new Error(fileSource.message);

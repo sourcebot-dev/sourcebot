@@ -2,11 +2,9 @@ import { z } from "zod";
 import { isServiceError } from "@/lib/utils";
 import { findSearchBasedSymbolReferences } from "@/features/codeNav/api";
 import { addLineNumbers } from "@/features/chat/utils";
-import { createLogger } from "@sourcebot/shared";
 import { ToolDefinition } from "./types";
+import { logger } from "./logger";
 import description from "./findSymbolReferences.txt";
-
-const logger = createLogger('tool-findSymbolReferences');
 
 const findSymbolReferencesShape = {
     symbol: z.string().describe("The symbol to find references to"),
@@ -34,8 +32,8 @@ export const findSymbolReferencesDefinition: ToolDefinition<
     name: 'find_symbol_references',
     description,
     inputSchema: z.object(findSymbolReferencesShape),
-    execute: async ({ symbol, language, repo }) => {
-        logger.debug('findSymbolReferences', { symbol, language, repo });
+    execute: async ({ symbol, language, repo }, _context) => {
+        logger.debug('find_symbol_references', { symbol, language, repo });
         const revision = "HEAD";
 
         const response = await findSearchBasedSymbolReferences({

@@ -9,7 +9,7 @@ export function toVercelAITool<TName extends string, TShape extends z.ZodRawShap
     return tool({
         description: def.description,
         inputSchema: def.inputSchema,
-        execute: def.execute,
+        execute: (input) => def.execute(input, { source: 'sourcebot-ask-agent' }),
         toModelOutput: ({ output }) => ({
             type: "content",
             value: [{ type: "text", text: output.output }],
@@ -30,7 +30,7 @@ export function registerMcpTool<TName extends string, TShape extends z.ZodRawSha
         async (input) => {
             try {
                 const parsed = def.inputSchema.parse(input);
-                const result = await def.execute(parsed);
+                const result = await def.execute(parsed, { source: 'mcp' });
                 return { content: [{ type: "text" as const, text: result.output }] };
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);

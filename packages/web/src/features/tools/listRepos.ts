@@ -2,6 +2,7 @@ import { z } from "zod";
 import { isServiceError } from "@/lib/utils";
 import { listRepos } from "@/app/api/(server)/repos/listReposApi";
 import { ToolDefinition } from "./types";
+import { logger } from "./logger";
 import description from './listRepos.txt';
 
 const listReposShape = {
@@ -34,8 +35,16 @@ export const listReposDefinition: ToolDefinition<
     name: 'list_repos',
     description,
     inputSchema: z.object(listReposShape),
-    execute: async ({ page, perPage, sort, direction, query }) => {
-        const reposResponse = await listRepos({ page, perPage, sort, direction, query });
+    execute: async ({ page, perPage, sort, direction, query }, context) => {
+        logger.debug('list_repos', { page, perPage, sort, direction, query });
+        const reposResponse = await listRepos({
+            page,
+            perPage,
+            sort,
+            direction,
+            query,
+            source: context.source,
+        });
 
         if (isServiceError(reposResponse)) {
             throw new Error(reposResponse.message);

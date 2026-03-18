@@ -3,6 +3,7 @@ import { isServiceError } from "@/lib/utils";
 import { getTree } from "@/features/git";
 import { buildTreeNodeIndex, joinTreePath, normalizeTreePath, sortTreeEntries } from "@/features/mcp/utils";
 import { ToolDefinition } from "./types";
+import { logger } from "./logger";
 import description from "./listTree.txt";
 
 const DEFAULT_TREE_DEPTH = 1;
@@ -41,7 +42,8 @@ export const listTreeDefinition: ToolDefinition<'list_tree', typeof listTreeShap
     name: 'list_tree',
     description,
     inputSchema: z.object(listTreeShape),
-    execute: async ({ repo, path = '', ref = 'HEAD', depth = DEFAULT_TREE_DEPTH, includeFiles = true, includeDirectories = true, maxEntries = DEFAULT_MAX_TREE_ENTRIES }) => {
+    execute: async ({ repo, path = '', ref = 'HEAD', depth = DEFAULT_TREE_DEPTH, includeFiles = true, includeDirectories = true, maxEntries = DEFAULT_MAX_TREE_ENTRIES }, context) => {
+        logger.debug('list_tree', { repo, path, ref, depth, includeFiles, includeDirectories, maxEntries });
         const normalizedPath = normalizeTreePath(path);
         const normalizedDepth = Math.min(depth, MAX_TREE_DEPTH);
         const normalizedMaxEntries = Math.min(maxEntries, MAX_MAX_TREE_ENTRIES);
@@ -74,7 +76,7 @@ export const listTreeDefinition: ToolDefinition<'list_tree', typeof listTreeShap
                 repoName: repo,
                 revisionName: ref,
                 paths: currentLevelPaths.filter(Boolean),
-            });
+            }, { source: context.source });
 
             if (isServiceError(treeResult)) {
                 throw new Error(treeResult.message);
