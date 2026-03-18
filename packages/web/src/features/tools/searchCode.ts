@@ -64,6 +64,7 @@ export type SearchCodeMetadata = {
 
 export const searchCodeDefinition: ToolDefinition<'search_code', typeof searchCodeShape, SearchCodeMetadata> = {
     name: 'search_code',
+    isReadOnly: true,
     description,
     inputSchema: z.object(searchCodeShape),
     execute: async ({

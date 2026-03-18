@@ -26,7 +26,13 @@ export function registerMcpTool<TName extends string, TShape extends z.ZodRawSha
     // type. def.inputSchema.parse() recovers the correctly typed value inside.
     server.registerTool(
         def.name,
-        { description: def.description, inputSchema: def.inputSchema.shape as z.ZodRawShape },
+        {
+            description: def.description,
+            inputSchema: def.inputSchema.shape as z.ZodRawShape,
+            annotations: {
+                readOnlyHint: def.isReadOnly,
+            },
+        },
         async (input) => {
             try {
                 const parsed = def.inputSchema.parse(input);

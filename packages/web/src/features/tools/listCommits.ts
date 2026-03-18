@@ -20,6 +20,7 @@ export type ListCommitsMetadata = SearchCommitsResult;
 
 export const listCommitsDefinition: ToolDefinition<"list_commits", typeof listCommitsShape, ListCommitsMetadata> = {
     name: "list_commits",
+    isReadOnly: true,
     description,
     inputSchema: z.object(listCommitsShape),
     execute: async (params, _context) => {

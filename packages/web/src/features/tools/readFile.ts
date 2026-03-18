@@ -35,6 +35,7 @@ export type ReadFileMetadata = {
 
 export const readFileDefinition: ToolDefinition<"read_file", typeof readFileShape, ReadFileMetadata> = {
     name: "read_file",
+    isReadOnly: true,
     description,
     inputSchema: z.object(readFileShape),
     execute: async ({ path, repo, offset, limit }, context) => {

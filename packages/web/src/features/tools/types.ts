@@ -12,6 +12,7 @@ export interface ToolDefinition<
     name: TName;
     description: string;
     inputSchema: z.ZodObject<TShape>;
+    isReadOnly: boolean;
     execute: (input: z.infer<z.ZodObject<TShape>>, context: ToolContext) => Promise<ToolResult<TMetadata>>;
 }
 
