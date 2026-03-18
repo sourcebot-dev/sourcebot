@@ -16,7 +16,7 @@ const MAX_BYTES_LABEL = `${MAX_BYTES / 1024}KB`;
 
 const readFileShape = {
     path: z.string().describe("The path to the file"),
-    repository: z.string().describe("The repository to read the file from"),
+    repo: z.string().describe("The repository to read the file from"),
     offset: z.number().int().positive()
         .optional()
         .describe("Line number to start reading from (1-indexed). Omit to start from the beginning."),
@@ -27,7 +27,7 @@ const readFileShape = {
 
 export type ReadFileMetadata = {
     path: string;
-    repository: string;
+    repo: string;
     language: string;
     startLine: number;
     endLine: number;
@@ -35,18 +35,18 @@ export type ReadFileMetadata = {
     revision: string;
 };
 
-export const readFileDefinition: ToolDefinition<"readFile", typeof readFileShape, ReadFileMetadata> = {
-    name: "readFile",
+export const readFileDefinition: ToolDefinition<"read_file", typeof readFileShape, ReadFileMetadata> = {
+    name: "read_file",
     description,
     inputSchema: z.object(readFileShape),
-    execute: async ({ path, repository, offset, limit }) => {
-        logger.debug('readFile', { path, repository, offset, limit });
+    execute: async ({ path, repo, offset, limit }) => {
+        logger.debug('readFile', { path, repo, offset, limit });
         // @todo: make revision configurable.
         const revision = "HEAD";
 
         const fileSource = await getFileSource({
             path,
-            repo: repository,
+            repo,
             ref: revision,
         });
 
@@ -97,7 +97,7 @@ export const readFileDefinition: ToolDefinition<"readFile", typeof readFileShape
 
         const metadata: ReadFileMetadata = {
             path: fileSource.path,
-            repository: fileSource.repo,
+            repo: fileSource.repo,
             language: fileSource.language,
             startLine,
             endLine: lastReadLine,

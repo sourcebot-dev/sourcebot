@@ -224,7 +224,7 @@ const createAgentStream = async ({
                     onWriteSource({
                         type: 'file',
                         language: output.metadata.language,
-                        repo: output.metadata.repository,
+                        repo: output.metadata.repo,
                         path: output.metadata.path,
                         revision: output.metadata.revision,
                         name: output.metadata.path.split('/').pop() ?? output.metadata.path,
@@ -234,7 +234,7 @@ const createAgentStream = async ({
                         onWriteSource({
                             type: 'file',
                             language: file.language,
-                            repo: file.repository,
+                            repo: file.repo,
                             path: file.fileName,
                             revision: file.revision,
                             name: file.fileName.split('/').pop() ?? file.fileName,
@@ -245,7 +245,7 @@ const createAgentStream = async ({
                         onWriteSource({
                             type: 'file',
                             language: file.language,
-                            repo: file.repository,
+                            repo: file.repo,
                             path: file.fileName,
                             revision: file.revision,
                             name: file.fileName.split('/').pop() ?? file.fileName,
@@ -308,7 +308,8 @@ const createPrompt = ({
         The user has explicitly selected the following repositories for analysis:
         ${repos.map(repo => `- ${repo}`).join('\n')}
 
-        When calling the searchCode tool, always pass these repositories as \`filterByRepos\` to scope results to the selected repositories.
+        When calling tools that accept a \`repo\` parameter (e.g. \`read_file\`, \`list_commits\`, \`list_tree\`), use these repository names directly.
+        When calling the \`search_code\` tool, pass these repositories as \`filterByRepos\` to scope results to the selected repositories.
         </selected_repositories>
     ` : ''}
 

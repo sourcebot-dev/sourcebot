@@ -4,4 +4,5 @@ export * from './listRepos';
 export * from './searchCode';
 export * from './findSymbolReferences';
 export * from './findSymbolDefinitions';
+export * from './listTree';
 export * from './adapters';

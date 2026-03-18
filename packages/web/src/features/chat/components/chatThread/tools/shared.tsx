@@ -1,6 +1,7 @@
 'use client';
 
 import { VscodeFileIcon } from '@/app/components/vscodeFileIcon';
+import { CopyIconButton } from '@/app/[domain]/components/copyIconButton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
@@ -82,15 +83,16 @@ interface ToolHeaderProps {
     label: React.ReactNode;
     Icon: React.ElementType;
     onExpand: (isExpanded: boolean) => void;
+    onCopy?: () => boolean;
     className?: string;
 }
 
-export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpand, className }: ToolHeaderProps) => {
+export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpand, onCopy, className }: ToolHeaderProps) => {
     return (
         <div
             tabIndex={0}
             className={cn(
-                "flex flex-row items-center gap-2 group select-none",
+                "flex flex-row items-center gap-2 group/header select-none",
                 {
                     'hover:text-foreground cursor-pointer': !isLoading,
                 },
@@ -112,7 +114,7 @@ export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpa
                 <Icon className="h-4 w-4 flex-shrink-0" />
             )}
             <span
-                className={cn("text-sm font-medium line-clamp-2",
+                className={cn("text-sm font-medium line-clamp-2 flex-1",
                 {
                     'animate-pulse': isLoading,
                     'text-destructive': isError,
@@ -121,8 +123,17 @@ export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpa
             >
                 {label}
             </span>
+            {onCopy && (
+                // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+                <div onClick={(e) => e.stopPropagation()}>
+                    <CopyIconButton
+                        onCopy={onCopy}
+                        className="opacity-0 group-hover/header:opacity-100 transition-opacity"
+                    />
+                </div>
+            )}
             {!isLoading && (
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="opacity-0 group-hover/header:opacity-100 transition-opacity">
                     {isExpanded ? (
                         <ChevronDown className="h-3 w-3" />
                     ) : (

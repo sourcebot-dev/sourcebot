@@ -6,17 +6,14 @@ import { ReadFileToolUIPart } from "@/features/chat/tools";
 import { isServiceError } from "@/lib/utils";
 import { EyeIcon } from "lucide-react";
 import { useMemo, useState } from "react";
-import { CopyIconButton } from "@/app/[domain]/components/copyIconButton";
 import { FileListItem, ToolHeader, TreeList } from "./shared";
 
 export const ReadFileToolComponent = ({ part }: { part: ReadFileToolUIPart }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    const onCopy = () => {
-        if (part.state !== 'output-available' || isServiceError(part.output)) return false;
-        navigator.clipboard.writeText(part.output.output);
-        return true;
-    };
+    const onCopy = part.state === 'output-available' && !isServiceError(part.output)
+        ? () => { navigator.clipboard.writeText((part.output as { output: string }).output); return true; }
+        : undefined;
 
     const label = useMemo(() => {
         switch (part.state) {
@@ -39,23 +36,15 @@ export const ReadFileToolComponent = ({ part }: { part: ReadFileToolUIPart }) =>
 
     return (
         <div className="my-4">
-            <div className="flex items-center gap-2 group/header">
-                <ToolHeader
-                    isLoading={part.state !== 'output-available' && part.state !== 'output-error'}
-                    isError={part.state === 'output-error' || (part.state === 'output-available' && isServiceError(part.output))}
-                    isExpanded={isExpanded}
-                    label={label}
-                    Icon={EyeIcon}
-                    onExpand={setIsExpanded}
-                    className="flex-1"
-                />
-                {part.state === 'output-available' && !isServiceError(part.output) && (
-                    <CopyIconButton
-                        onCopy={onCopy}
-                        className="opacity-0 group-hover/header:opacity-100 transition-opacity"
-                    />
-                )}
-            </div>
+            <ToolHeader
+                isLoading={part.state !== 'output-available' && part.state !== 'output-error'}
+                isError={part.state === 'output-error' || (part.state === 'output-available' && isServiceError(part.output))}
+                isExpanded={isExpanded}
+                label={label}
+                Icon={EyeIcon}
+                onExpand={setIsExpanded}
+                onCopy={onCopy}
+            />
             {part.state === 'output-available' && isExpanded && (
                 <>
                     <TreeList>
@@ -64,7 +53,7 @@ export const ReadFileToolComponent = ({ part }: { part: ReadFileToolUIPart }) =>
                         ) : (
                             <FileListItem
                                 path={part.output.metadata.path}
-                                repoName={part.output.metadata.repository}
+                                repoName={part.output.metadata.repo}
                             />
                         )}
                     </TreeList>

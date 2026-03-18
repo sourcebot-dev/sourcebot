@@ -25,6 +25,10 @@ export const FindSymbolDefinitionsToolComponent = ({ part }: { part: FindSymbolD
         }
     }, [part]);
 
+    const onCopy = part.state === 'output-available' && !isServiceError(part.output)
+        ? () => { navigator.clipboard.writeText(part.output.output); return true; }
+        : undefined;
+
     return (
         <div className="my-4">
             <ToolHeader
@@ -34,6 +38,7 @@ export const FindSymbolDefinitionsToolComponent = ({ part }: { part: FindSymbolD
                 label={label}
                 Icon={BookOpenIcon}
                 onExpand={setIsExpanded}
+                onCopy={onCopy}
             />
             {part.state === 'output-available' && isExpanded && (
                 <>
@@ -52,7 +57,7 @@ export const FindSymbolDefinitionsToolComponent = ({ part }: { part: FindSymbolD
                                             <FileListItem
                                                 key={file.fileName}
                                                 path={file.fileName}
-                                                repoName={file.repository}
+                                                repoName={file.repo}
                                             />
                                         )
                                     })}

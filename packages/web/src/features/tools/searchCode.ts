@@ -52,7 +52,8 @@ const searchCodeShape = {
 
 export type SearchCodeFile = {
     fileName: string;
-    repository: string;
+    webUrl: string;
+    repo: string;
     language: string;
     matches: string[];
     revision: string;
@@ -63,8 +64,8 @@ export type SearchCodeMetadata = {
     query: string;
 };
 
-export const searchCodeDefinition: ToolDefinition<'searchCode', typeof searchCodeShape, SearchCodeMetadata> = {
-    name: 'searchCode',
+export const searchCodeDefinition: ToolDefinition<'search_code', typeof searchCodeShape, SearchCodeMetadata> = {
+    name: 'search_code',
     description,
     inputSchema: z.object(searchCodeShape),
     execute: async ({
@@ -113,13 +114,13 @@ export const searchCodeDefinition: ToolDefinition<'searchCode', typeof searchCod
         const metadata: SearchCodeMetadata = {
             files: response.files.map((file) => ({
                 fileName: file.fileName.text,
-                repository: file.repository,
+                webUrl: file.webUrl,
+                repo: file.repository,
                 language: file.language,
                 matches: file.chunks.map(({ content, contentStart }) => {
                     return addLineNumbers(content, contentStart.lineNumber);
                 }),
-                // @todo: make revision configurable.
-                revision: 'HEAD',
+                revision: ref ?? 'HEAD',
             })),
             query,
         };

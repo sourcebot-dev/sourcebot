@@ -1,6 +1,6 @@
 import { FileTreeNode } from "../git";
 import { ServiceError } from "@/lib/serviceError";
-import { ListTreeEntry } from "./types";
+import { ListTreeEntry } from "@/features/tools/listTree";
 
 export const isServiceError = (data: unknown): data is ServiceError => {
     return typeof data === 'object' &&

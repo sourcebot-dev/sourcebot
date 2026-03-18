@@ -11,12 +11,12 @@ const logger = createLogger('tool-findSymbolReferences');
 const findSymbolReferencesShape = {
     symbol: z.string().describe("The symbol to find references to"),
     language: z.string().describe("The programming language of the symbol"),
-    repository: z.string().describe("The repository to scope the search to").optional(),
+    repo: z.string().describe("The repository to scope the search to").optional(),
 };
 
 export type FindSymbolFile = {
     fileName: string;
-    repository: string;
+    repo: string;
     language: string;
     matches: string[];
     revision: string;
@@ -27,22 +27,22 @@ export type FindSymbolReferencesMetadata = {
 };
 
 export const findSymbolReferencesDefinition: ToolDefinition<
-    'findSymbolReferences',
+    'find_symbol_references',
     typeof findSymbolReferencesShape,
     FindSymbolReferencesMetadata
 > = {
-    name: 'findSymbolReferences',
+    name: 'find_symbol_references',
     description,
     inputSchema: z.object(findSymbolReferencesShape),
-    execute: async ({ symbol, language, repository }) => {
-        logger.debug('findSymbolReferences', { symbol, language, repository });
+    execute: async ({ symbol, language, repo }) => {
+        logger.debug('findSymbolReferences', { symbol, language, repo });
         const revision = "HEAD";
 
         const response = await findSearchBasedSymbolReferences({
             symbolName: symbol,
             language,
             revisionName: revision,
-            repoName: repository,
+            repoName: repo,
         });
 
         if (isServiceError(response)) {
@@ -52,7 +52,7 @@ export const findSymbolReferencesDefinition: ToolDefinition<
         const metadata: FindSymbolReferencesMetadata = {
             files: response.files.map((file) => ({
                 fileName: file.fileName,
-                repository: file.repository,
+                repo: file.repository,
                 language: file.language,
                 matches: file.matches.map(({ lineContent, range }) => {
                     return addLineNumbers(lineContent, range.start.lineNumber);

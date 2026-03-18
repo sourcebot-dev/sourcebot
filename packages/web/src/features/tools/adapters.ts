@@ -28,9 +28,14 @@ export function registerMcpTool<TName extends string, TShape extends z.ZodRawSha
         def.name,
         { description: def.description, inputSchema: def.inputSchema.shape as z.ZodRawShape },
         async (input) => {
-            const parsed = def.inputSchema.parse(input);
-            const result = await def.execute(parsed);
-            return { content: [{ type: "text" as const, text: result.output }] };
+            try {
+                const parsed = def.inputSchema.parse(input);
+                const result = await def.execute(parsed);
+                return { content: [{ type: "text" as const, text: result.output }] };
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                return { content: [{ type: "text" as const, text: `Tool "${def.name}" failed: ${message}` }], isError: true };
+            }
         },
     );
 }

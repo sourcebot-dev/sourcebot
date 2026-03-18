@@ -31,6 +31,10 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
         }
     }, [part, displayQuery]);
 
+    const onCopy = part.state === 'output-available' && !isServiceError(part.output)
+        ? () => { navigator.clipboard.writeText(part.output.output); return true; }
+        : undefined;
+
     return (
         <div className="my-4">
             <ToolHeader
@@ -40,6 +44,7 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
                 label={label}
                 Icon={SearchIcon}
                 onExpand={setIsExpanded}
+                onCopy={onCopy}
             />
             {part.state === 'output-available' && isExpanded && (
                 <>
@@ -58,7 +63,7 @@ export const SearchCodeToolComponent = ({ part }: { part: SearchCodeToolUIPart }
                                             <FileListItem
                                                 key={file.fileName}
                                                 path={file.fileName}
-                                                repoName={file.repository}
+                                                repoName={file.repo}
                                             />
                                         )
                                     })}

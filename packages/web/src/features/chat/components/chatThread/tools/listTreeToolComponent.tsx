@@ -1,27 +1,25 @@
 'use client';
 
-import { FindSymbolReferencesToolUIPart } from "@/features/chat/tools";
+import { ListTreeToolUIPart } from "@/features/chat/tools";
 import { isServiceError } from "@/lib/utils";
 import { useMemo, useState } from "react";
-import { FileListItem, ToolHeader, TreeList } from "./shared";
+import { ToolHeader, TreeList } from "./shared";
 import { CodeSnippet } from "@/app/components/codeSnippet";
 import { Separator } from "@/components/ui/separator";
-import { BookOpenIcon } from "lucide-react";
+import { FileIcon, FolderIcon } from "lucide-react";
 
-
-export const FindSymbolReferencesToolComponent = ({ part }: { part: FindSymbolReferencesToolUIPart }) => {
+export const ListTreeToolComponent = ({ part }: { part: ListTreeToolUIPart }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     const label = useMemo(() => {
         switch (part.state) {
             case 'input-streaming':
-                return 'Resolving references...';
-            case 'input-available':
-                return <span>Resolving references for <CodeSnippet>{part.input.symbol}</CodeSnippet></span>;
+                return 'Listing directory tree...';
             case 'output-error':
-                return '"Find symbol references" tool call failed';
+                return '"List tree" tool call failed';
+            case 'input-available':
             case 'output-available':
-                return <span>Resolved references for <CodeSnippet>{part.input.symbol}</CodeSnippet></span>;
+                return 'Listed directory tree';
         }
     }, [part]);
 
@@ -36,7 +34,7 @@ export const FindSymbolReferencesToolComponent = ({ part }: { part: FindSymbolRe
                 isError={part.state === 'output-error' || (part.state === 'output-available' && isServiceError(part.output))}
                 isExpanded={isExpanded}
                 label={label}
-                Icon={BookOpenIcon}
+                Icon={FolderIcon}
                 onExpand={setIsExpanded}
                 onCopy={onCopy}
             />
@@ -48,19 +46,22 @@ export const FindSymbolReferencesToolComponent = ({ part }: { part: FindSymbolRe
                         </TreeList>
                     ) : (
                         <>
-                            {part.output.metadata.files.length === 0 ? (
-                                <span className="text-sm text-muted-foreground ml-[25px]">No matches found</span>
+                            {part.output.metadata.entries.length === 0 ? (
+                                <span className="text-sm text-muted-foreground ml-[25px]">No entries found</span>
                             ) : (
                                 <TreeList>
-                                    {part.output.metadata.files.map((file) => {
-                                        return (
-                                            <FileListItem
-                                                key={file.fileName}
-                                                path={file.fileName}
-                                                repoName={file.repo}
-                                            />
-                                        )
-                                    })}
+                                    <div className="text-sm text-muted-foreground mb-2">
+                                        {part.output.metadata.repo} - {part.output.metadata.path || '/'} ({part.output.metadata.totalReturned} entries{part.output.metadata.truncated ? ', truncated' : ''})
+                                    </div>
+                                    {part.output.metadata.entries.map((entry, index) => (
+                                        <div key={index} className="flex items-center gap-2 text-sm" style={{ paddingLeft: `${(entry.depth - 1) * 12}px` }}>
+                                            {entry.type === 'tree'
+                                                ? <FolderIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                                : <FileIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                            }
+                                            <span className="truncate">{entry.name}</span>
+                                        </div>
+                                    ))}
                                 </TreeList>
                             )}
                         </>
@@ -69,5 +70,5 @@ export const FindSymbolReferencesToolComponent = ({ part }: { part: FindSymbolRe
                 </>
             )}
         </div>
-    )
-}
+    );
+};

@@ -23,6 +23,10 @@ export const ListCommitsToolComponent = ({ part }: { part: ListCommitsToolUIPart
         }
     }, [part]);
 
+    const onCopy = part.state === 'output-available' && !isServiceError(part.output)
+        ? () => { navigator.clipboard.writeText(part.output.output); return true; }
+        : undefined;
+
     return (
         <div className="my-4">
             <ToolHeader
@@ -32,6 +36,7 @@ export const ListCommitsToolComponent = ({ part }: { part: ListCommitsToolUIPart
                 label={label}
                 Icon={GitCommitVerticalIcon}
                 onExpand={setIsExpanded}
+                onCopy={onCopy}
             />
             {part.state === 'output-available' && isExpanded && (
                 <>

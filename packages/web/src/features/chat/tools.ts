@@ -1,11 +1,12 @@
 import {
-    toVercelAITool, 
+    toVercelAITool,
     readFileDefinition,
     listCommitsDefinition,
     listReposDefinition,
     searchCodeDefinition,
     findSymbolReferencesDefinition,
     findSymbolDefinitionsDefinition,
+    listTreeDefinition,
 } from "@/features/tools";
 import { ToolUIPart } from "ai";
 import { SBChatMessageToolTypes } from "./types";
@@ -17,11 +18,13 @@ export const tools = {
     [searchCodeDefinition.name]: toVercelAITool(searchCodeDefinition),
     [findSymbolReferencesDefinition.name]: toVercelAITool(findSymbolReferencesDefinition),
     [findSymbolDefinitionsDefinition.name]: toVercelAITool(findSymbolDefinitionsDefinition),
+    [listTreeDefinition.name]: toVercelAITool(listTreeDefinition),
 } as const;
 
-export type ReadFileToolUIPart = ToolUIPart<{ readFile: SBChatMessageToolTypes['readFile'] }>;
-export type ListCommitsToolUIPart = ToolUIPart<{ listCommits: SBChatMessageToolTypes['listCommits'] }>;
-export type ListReposToolUIPart = ToolUIPart<{ listRepos: SBChatMessageToolTypes['listRepos'] }>;
-export type SearchCodeToolUIPart = ToolUIPart<{ searchCode: SBChatMessageToolTypes['searchCode'] }>;
-export type FindSymbolReferencesToolUIPart = ToolUIPart<{ findSymbolReferences: SBChatMessageToolTypes['findSymbolReferences'] }>;
-export type FindSymbolDefinitionsToolUIPart = ToolUIPart<{ findSymbolDefinitions: SBChatMessageToolTypes['findSymbolDefinitions'] }>;
+export type ReadFileToolUIPart = ToolUIPart<{ read_file: SBChatMessageToolTypes['read_file'] }>;
+export type ListCommitsToolUIPart = ToolUIPart<{ list_commits: SBChatMessageToolTypes['list_commits'] }>;
+export type ListReposToolUIPart = ToolUIPart<{ list_repos: SBChatMessageToolTypes['list_repos'] }>;
+export type SearchCodeToolUIPart = ToolUIPart<{ search_code: SBChatMessageToolTypes['search_code'] }>;
+export type FindSymbolReferencesToolUIPart = ToolUIPart<{ find_symbol_references: SBChatMessageToolTypes['find_symbol_references'] }>;
+export type FindSymbolDefinitionsToolUIPart = ToolUIPart<{ find_symbol_definitions: SBChatMessageToolTypes['find_symbol_definitions'] }>;
+export type ListTreeToolUIPart = ToolUIPart<{ list_tree: SBChatMessageToolTypes['list_tree'] }>;

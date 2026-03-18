@@ -23,6 +23,10 @@ export const ListReposToolComponent = ({ part }: { part: ListReposToolUIPart }) 
         }
     }, [part]);
 
+    const onCopy = part.state === 'output-available' && !isServiceError(part.output)
+        ? () => { navigator.clipboard.writeText(part.output.output); return true; }
+        : undefined;
+
     return (
         <div className="my-4">
             <ToolHeader
@@ -32,6 +36,7 @@ export const ListReposToolComponent = ({ part }: { part: ListReposToolUIPart }) 
                 label={label}
                 Icon={FolderOpenIcon}
                 onExpand={setIsExpanded}
+                onCopy={onCopy}
             />
             {part.state === 'output-available' && isExpanded && (
                 <>
@@ -46,12 +51,12 @@ export const ListReposToolComponent = ({ part }: { part: ListReposToolUIPart }) 
                             ) : (
                                 <TreeList>
                                     <div className="text-sm text-muted-foreground mb-2">
-                                        Found {part.output.metadata.repos.length} repositories:
+                                        Found {part.output.metadata.repos.length} of {part.output.metadata.totalCount} repositories:
                                     </div>
-                                    {part.output.metadata.repos.map((repoName, index) => (
+                                    {part.output.metadata.repos.map((repo, index) => (
                                         <div key={index} className="flex items-center gap-2 text-sm">
                                             <FolderOpenIcon className="h-4 w-4 text-muted-foreground" />
-                                            <span className="truncate">{repoName}</span>
+                                            <span className="truncate">{repo.name}</span>
                                         </div>
                                     ))}
                                 </TreeList>

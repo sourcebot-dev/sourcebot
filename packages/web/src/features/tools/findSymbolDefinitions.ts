@@ -12,7 +12,7 @@ const logger = createLogger('tool-findSymbolDefinitions');
 const findSymbolDefinitionsShape = {
     symbol: z.string().describe("The symbol to find definitions of"),
     language: z.string().describe("The programming language of the symbol"),
-    repository: z.string().describe("The repository to scope the search to").optional(),
+    repo: z.string().describe("The repository to scope the search to").optional(),
 };
 
 export type FindSymbolDefinitionsMetadata = {
@@ -20,22 +20,22 @@ export type FindSymbolDefinitionsMetadata = {
 };
 
 export const findSymbolDefinitionsDefinition: ToolDefinition<
-    'findSymbolDefinitions',
+    'find_symbol_definitions',
     typeof findSymbolDefinitionsShape,
     FindSymbolDefinitionsMetadata
 > = {
-    name: 'findSymbolDefinitions',
+    name: 'find_symbol_definitions',
     description,
     inputSchema: z.object(findSymbolDefinitionsShape),
-    execute: async ({ symbol, language, repository }) => {
-        logger.debug('findSymbolDefinitions', { symbol, language, repository });
+    execute: async ({ symbol, language, repo }) => {
+        logger.debug('findSymbolDefinitions', { symbol, language, repo });
         const revision = "HEAD";
 
         const response = await findSearchBasedSymbolDefinitions({
             symbolName: symbol,
             language,
             revisionName: revision,
-            repoName: repository,
+            repoName: repo,
         });
 
         if (isServiceError(response)) {
@@ -45,7 +45,7 @@ export const findSymbolDefinitionsDefinition: ToolDefinition<
         const metadata: FindSymbolDefinitionsMetadata = {
             files: response.files.map((file) => ({
                 fileName: file.fileName,
-                repository: file.repository,
+                repo: file.repository,
                 language: file.language,
                 matches: file.matches.map(({ lineContent, range }) => {
                     return addLineNumbers(lineContent, range.start.lineNumber);

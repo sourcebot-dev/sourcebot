@@ -16,6 +16,7 @@ import { ReadFileToolComponent } from './tools/readFileToolComponent';
 import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
 import { ListReposToolComponent } from './tools/listReposToolComponent';
 import { ListCommitsToolComponent } from './tools/listCommitsToolComponent';
+import { ListTreeToolComponent } from './tools/listTreeToolComponent';
 import { SBChatMessageMetadata, SBChatMessagePart } from '../../types';
 import { SearchScopeIcon } from '../searchScopeIcon';
 import isEqual from "fast-deep-equal/react";
@@ -166,44 +167,51 @@ const DetailsCardComponent = ({
                                                         className="text-sm"
                                                     />
                                                 )
-                                            case 'tool-readFile':
+                                            case 'tool-read_file':
                                                 return (
                                                     <ReadFileToolComponent
                                                         key={index}
                                                         part={part}
                                                     />
                                                 )
-                                            case 'tool-searchCode':
+                                            case 'tool-search_code':
                                                 return (
                                                     <SearchCodeToolComponent
                                                         key={index}
                                                         part={part}
                                                     />
                                                 )
-                                            case 'tool-findSymbolDefinitions':
+                                            case 'tool-find_symbol_definitions':
                                                 return (
                                                     <FindSymbolDefinitionsToolComponent
                                                         key={index}
                                                         part={part}
                                                     />
                                                 )
-                                            case 'tool-findSymbolReferences':
+                                            case 'tool-find_symbol_references':
                                                 return (
                                                     <FindSymbolReferencesToolComponent
                                                         key={index}
                                                         part={part}
                                                     />
                                                 )
-                                            case 'tool-listRepos':
+                                            case 'tool-list_repos':
                                                 return (
                                                     <ListReposToolComponent
                                                         key={index}
                                                         part={part}
                                                     />
                                                 )
-                                            case 'tool-listCommits':
+                                            case 'tool-list_commits':
                                                 return (
                                                     <ListCommitsToolComponent
+                                                        key={index}
+                                                        part={part}
+                                                    />
+                                                )
+                                            case 'tool-list_tree':
+                                                return (
+                                                    <ListTreeToolComponent
                                                         key={index}
                                                         part={part}
                                                     />

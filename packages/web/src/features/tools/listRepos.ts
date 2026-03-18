@@ -5,40 +5,53 @@ import { ToolDefinition } from "./types";
 import description from './listRepos.txt';
 
 const listReposShape = {
-    page: z.coerce.number().int().positive().default(1).describe("Page number for pagination"),
-    perPage: z.coerce.number().int().positive().max(100).default(30).describe("Number of repositories per page (max 100)"),
-    sort: z.enum(['name', 'pushed']).default('name').describe("Sort repositories by name or last pushed date"),
-    direction: z.enum(['asc', 'desc']).default('asc').describe("Sort direction"),
-    query: z.string().optional().describe("Filter repositories by name"),
+    query: z.string().describe("Filter repositories by name (case-insensitive)").optional(),
+    page: z.number().int().positive().describe("Page number for pagination (min 1). Default: 1").optional().default(1),
+    perPage: z.number().int().positive().max(100).describe("Results per page for pagination (min 1, max 100). Default: 30").optional().default(30),
+    sort: z.enum(['name', 'pushed']).describe("Sort repositories by 'name' or 'pushed' (most recent commit). Default: 'name'").optional().default('name'),
+    direction: z.enum(['asc', 'desc']).describe("Sort direction: 'asc' or 'desc'. Default: 'asc'").optional().default('asc'),
 };
 
-type ListReposMetadata = {
-    repos: string[];
+export type ListRepo = {
+    name: string;
+    url: string | null;
+    pushedAt: string | null;
+    defaultBranch: string | null;
+    isFork: boolean;
+    isArchived: boolean;
+};
+
+export type ListReposMetadata = {
+    repos: ListRepo[];
+    totalCount: number;
 };
 
 export const listReposDefinition: ToolDefinition<
-    'listRepos',
+    'list_repos',
     typeof listReposShape,
     ListReposMetadata
 > = {
-    name: 'listRepos',
+    name: 'list_repos',
     description,
     inputSchema: z.object(listReposShape),
     execute: async ({ page, perPage, sort, direction, query }) => {
-        const reposResponse = await listRepos({
-            page,
-            perPage,
-            sort,
-            direction,
-            query,
-        });
+        const reposResponse = await listRepos({ page, perPage, sort, direction, query });
 
         if (isServiceError(reposResponse)) {
             throw new Error(reposResponse.message);
         }
 
-        const repos = reposResponse.data.map((repo) => repo.repoName);
-        const metadata: ListReposMetadata = { repos };
+        const metadata: ListReposMetadata = {
+            repos: reposResponse.data.map((repo) => ({
+                name: repo.repoName,
+                url: repo.webUrl ?? null,
+                pushedAt: repo.pushedAt?.toISOString() ?? null,
+                defaultBranch: repo.defaultBranch ?? null,
+                isFork: repo.isFork,
+                isArchived: repo.isArchived,
+            })),
+            totalCount: reposResponse.totalCount,
+        };
 
         return {
             output: JSON.stringify(metadata),
