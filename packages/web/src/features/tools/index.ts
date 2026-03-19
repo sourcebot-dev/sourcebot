@@ -6,3 +6,4 @@ export * from './findSymbolReferences';
 export * from './findSymbolDefinitions';
 export * from './listTree';
 export * from './adapters';
+export * from './types';

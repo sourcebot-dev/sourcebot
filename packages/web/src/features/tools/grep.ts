@@ -84,6 +84,8 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
 
         if (repo) {
             query += ` repo:${escapeStringRegexp(repo)}`;
+        } else if (context.selectedRepos && context.selectedRepos.length > 0) {
+            query += ` reposet:${context.selectedRepos.join(',')}`;
         }
 
         if (ref) {

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export interface ToolContext {
     source?: string;
+    selectedRepos?: string[];
 }
 
 export interface ToolDefinition<

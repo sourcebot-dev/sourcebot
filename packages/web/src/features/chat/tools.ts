@@ -8,18 +8,19 @@ import {
     findSymbolDefinitionsDefinition,
     listTreeDefinition,
 } from "@/features/tools";
+import { ToolContext } from "@/features/tools/types";
 import { ToolUIPart } from "ai";
 import { SBChatMessageToolTypes } from "./types";
 
-export const tools = {
-    [readFileDefinition.name]: toVercelAITool(readFileDefinition),
-    [listCommitsDefinition.name]: toVercelAITool(listCommitsDefinition),
-    [listReposDefinition.name]: toVercelAITool(listReposDefinition),
-    [grepDefinition.name]: toVercelAITool(grepDefinition),
-    [findSymbolReferencesDefinition.name]: toVercelAITool(findSymbolReferencesDefinition),
-    [findSymbolDefinitionsDefinition.name]: toVercelAITool(findSymbolDefinitionsDefinition),
-    [listTreeDefinition.name]: toVercelAITool(listTreeDefinition),
-} as const;
+export const createTools = (context: ToolContext) => ({
+    [readFileDefinition.name]: toVercelAITool(readFileDefinition, context),
+    [listCommitsDefinition.name]: toVercelAITool(listCommitsDefinition, context),
+    [listReposDefinition.name]: toVercelAITool(listReposDefinition, context),
+    [grepDefinition.name]: toVercelAITool(grepDefinition, context),
+    [findSymbolReferencesDefinition.name]: toVercelAITool(findSymbolReferencesDefinition, context),
+    [findSymbolDefinitionsDefinition.name]: toVercelAITool(findSymbolDefinitionsDefinition, context),
+    [listTreeDefinition.name]: toVercelAITool(listTreeDefinition, context),
+});
 
 export type ReadFileToolUIPart = ToolUIPart<{ read_file: SBChatMessageToolTypes['read_file'] }>;
 export type ListCommitsToolUIPart = ToolUIPart<{ list_commits: SBChatMessageToolTypes['list_commits'] }>;

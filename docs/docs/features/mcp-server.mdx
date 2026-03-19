@@ -304,22 +304,19 @@ Pass the key as an `Authorization: Bearer <key>` header when connecting to the M
 
 ## Available Tools
 
-### `search_code`
+### `grep`
 
-Searches for code that matches the provided search query as a substring by default, or as a regular expression if `useRegex` is true.
+Searches for code matching a regular expression pattern across repositories, similar to `grep`/`ripgrep`. Always case-sensitive. Results are grouped by file and include line numbers.
 
 Parameters:
 | Name | Required | Description |
-|:----------------------|:---------|:---------------------------------------------------------------------------------------------------------------------|
-| `query` | yes | The search pattern to match against code contents. Do not escape quotes in your query. |
-| `useRegex` | no | Whether to use regular expression matching. When false, substring matching is used (default: false). |
-| `filterByRepos` | no | Scope the search to specific repositories. |
-| `filterByLanguages` | no | Scope the search to specific languages. |
-| `filterByFilepaths` | no | Scope the search to specific filepaths. |
-| `caseSensitive` | no | Whether the search should be case sensitive (default: false). |
-| `includeCodeSnippets` | no | Whether to include code snippets in the response (default: false). |
+|:----------|:---------|:--------------------------------------------------------------------------------------------------------------|
+| `pattern` | yes | The regex pattern to search for in file contents. |
+| `path` | no | Directory path to scope the search to. Defaults to the repository root. |
+| `include` | no | File glob pattern to include in the search (e.g. `*.ts`, `*.{ts,tsx}`). |
+| `repo` | no | Repository name to search in. If not provided, searches all repositories. Use the full name including host (e.g. `github.com/org/repo`). |
 | `ref` | no | Commit SHA, branch or tag name to search on. If not provided, defaults to the default branch. |
-| `maxTokens` | no | The maximum number of tokens to return (default: 10000). |
+| `limit` | no | Maximum number of matching files to return (default: 100). |
 
 ### `list_repos`
 
@@ -336,18 +333,20 @@ Parameters:
 
 ### `read_file`
 
-Reads the source code for a given file.
+Reads the source code for a given file, with optional line range control for large files.
 
 Parameters:
 | Name | Required | Description |
-|:-------|:---------|:-------------------------------------------------------------------------------------------------------|
+|:---------|:---------|:-------------------------------------------------------------------------------------------------------|
 | `repo` | yes | The repository name. |
 | `path` | yes | The path to the file. |
 | `ref` | no | Commit SHA, branch or tag name to fetch the source code for. If not provided, uses the default branch. |
+| `offset` | no | Line number to start reading from (1-indexed). Omit to start from the beginning. |
+| `limit` | no | Maximum number of lines to read (max: 500). Omit to read up to 500 lines. |
 
 ### `list_tree`
 
-Lists files and directories from a repository path. Can be used as a directory listing tool (`depth: 1`) or a repo-tree tool (`depth > 1`).
+Lists files and directories from a repository path. Directories are shown before files at each level.
 
 Parameters:
 | Name | Required | Description |

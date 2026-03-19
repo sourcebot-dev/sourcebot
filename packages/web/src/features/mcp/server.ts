@@ -18,6 +18,7 @@ import {
     readFileDefinition,
     registerMcpTool,
     grepDefinition,
+    ToolContext,
 } from '../tools';
 
 const dedent = _dedent.withOptions({ alignValues: true });
@@ -28,13 +29,17 @@ export function createMcpServer(): McpServer {
         version: SOURCEBOT_VERSION,
     });
 
-    registerMcpTool(server, grepDefinition);
-    registerMcpTool(server, listCommitsDefinition);
-    registerMcpTool(server, listReposDefinition);
-    registerMcpTool(server, readFileDefinition);
-    registerMcpTool(server, listTreeDefinition);
-    registerMcpTool(server, findSymbolDefinitionsDefinition);
-    registerMcpTool(server, findSymbolReferencesDefinition);
+    const toolContext: ToolContext = {
+        source: 'sourcebot-mcp-server',
+    }
+
+    registerMcpTool(server, grepDefinition, toolContext);
+    registerMcpTool(server, listCommitsDefinition, toolContext);
+    registerMcpTool(server, listReposDefinition, toolContext);
+    registerMcpTool(server, readFileDefinition, toolContext);
+    registerMcpTool(server, listTreeDefinition, toolContext);
+    registerMcpTool(server, findSymbolDefinitionsDefinition, toolContext);
+    registerMcpTool(server, findSymbolReferencesDefinition, toolContext);
 
     server.registerTool(
         "list_language_models",

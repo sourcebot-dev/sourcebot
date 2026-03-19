@@ -21,7 +21,7 @@ import { readFileDefinition } from "@/features/tools/readFile";
 import { grepDefinition } from "@/features/tools/grep";
 import { Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
-import { tools } from "./tools";
+import { createTools } from "./tools";
 import { listTreeDefinition } from "../tools";
 
 const dedent = _dedent.withOptions({ alignValues: true });
@@ -203,7 +203,7 @@ const createAgentStream = async ({
         providerOptions,
         messages: inputMessages,
         system: systemPrompt,
-        tools,
+        tools: createTools({ source: 'sourcebot-ask-agent', selectedRepos }),
         temperature: env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
         stopWhen: [
             stepCountIsGTE(env.SOURCEBOT_CHAT_MAX_STEP_COUNT),
