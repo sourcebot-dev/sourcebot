@@ -338,7 +338,12 @@ export const getAnswerPartFromAssistantMessage = (message: SBChatMessage, isStre
         .findLast((part) => part.type === 'text')
 
     if (lastTextPart?.text.includes(ANSWER_TAG)) {
-        return lastTextPart;
+        const answerIndex = lastTextPart.text.indexOf(ANSWER_TAG);
+        const answer = lastTextPart.text.substring(answerIndex + ANSWER_TAG.length);
+        return {
+            ...lastTextPart,
+            text: answer
+        };
     }
 
     // If the agent did not include the answer tag, then fallback to using the last text part.
