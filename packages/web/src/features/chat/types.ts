@@ -11,7 +11,6 @@ const fileSourceSchema = z.object({
     repo: z.string(),
     path: z.string(),
     name: z.string(),
-    language: z.string(),
     revision: z.string(),
 });
 export type FileSource = z.infer<typeof fileSourceSchema>;

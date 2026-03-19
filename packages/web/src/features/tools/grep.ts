@@ -6,7 +6,6 @@ import escapeStringRegexp from "escape-string-regexp";
 import { ToolDefinition } from "./types";
 import { logger } from "./logger";
 import description from "./grep.txt";
-import { FileSource } from "../chat/types";
 
 const DEFAULT_SEARCH_LIMIT = 100;
 const MAX_LINE_LENGTH = 2000;
@@ -44,8 +43,15 @@ const grepShape = {
         .optional(),
 };
 
+export type GrepFile = {
+    path: string;
+    name: string;
+    repo: string;
+    revision: string;
+};
+
 export type GrepMetadata = {
-    files: FileSource[];
+    files: GrepFile[];
     query: string;
 };
 
@@ -102,13 +108,11 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
 
         const metadata: GrepMetadata = {
             files: response.files.map((file) => ({
-                type: 'file',
                 path: file.fileName.text,
                 name: file.fileName.text.split('/').pop() ?? file.fileName.text,
-                language: file.language,
                 repo: file.repository,
                 revision: ref ?? 'HEAD',
-            })),
+            } satisfies GrepFile)),
             query,
         };
 

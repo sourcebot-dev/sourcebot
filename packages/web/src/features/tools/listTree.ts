@@ -52,12 +52,14 @@ export const listTreeDefinition: ToolDefinition<'list_tree', typeof listTreeShap
 
         if (!includeFiles && !includeDirectories) {
             const metadata: ListTreeMetadata = {
-                repo, ref, path: normalizedPath,
+                repo,
+                ref,
+                path: normalizedPath,
                 entries: [],
                 totalReturned: 0,
                 truncated: false,
             };
-            return { output: JSON.stringify(metadata), metadata };
+            return { output: 'No entries found', metadata };
         }
 
         const queue: Array<{ path: string; depth: number }> = [{ path: normalizedPath, depth: 0 }];
@@ -135,6 +137,38 @@ export const listTreeDefinition: ToolDefinition<'list_tree', typeof listTreeShap
             truncated,
         };
 
-        return { output: JSON.stringify(metadata), metadata };
+        const outputLines = [normalizedPath || '/'];
+
+        const childrenByPath = new Map<string, ListTreeEntry[]>();
+        for (const entry of sortedEntries) {
+            const siblings = childrenByPath.get(entry.parentPath) ?? [];
+            siblings.push(entry);
+            childrenByPath.set(entry.parentPath, siblings);
+        }
+
+        function renderEntries(parentPath: string) {
+            const children = childrenByPath.get(parentPath) ?? [];
+            for (const entry of children) {
+                const indent = '  '.repeat(entry.depth);
+                const label = entry.type === 'tree' ? `${entry.name}/` : entry.name;
+                outputLines.push(`${indent}${label}`);
+                if (entry.type === 'tree') {
+                    renderEntries(entry.path);
+                }
+            }
+        }
+
+        renderEntries(normalizedPath);
+
+        if (sortedEntries.length === 0) {
+            outputLines.push('  (no entries found)');
+        }
+
+        if (truncated) {
+            outputLines.push('');
+            outputLines.push(`(truncated — showing first ${normalizedMaxEntries} entries)`);
+        }
+
+        return { output: outputLines.join('\n'), metadata };
     },
 };

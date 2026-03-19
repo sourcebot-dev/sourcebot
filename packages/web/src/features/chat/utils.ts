@@ -187,7 +187,6 @@ export const createUIMessage = (text: string, mentions: MentionData[], selectedS
                     path: mention.path,
                     repo: mention.repo,
                     name: mention.name,
-                    language: mention.language,
                     revision: mention.revision,
                 }
                 return fileSource;

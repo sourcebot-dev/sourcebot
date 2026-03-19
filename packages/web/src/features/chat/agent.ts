@@ -22,6 +22,7 @@ import { grepDefinition } from "@/features/tools/grep";
 import { Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
 import { tools } from "./tools";
+import { listTreeDefinition } from "../tools";
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -223,7 +224,6 @@ const createAgentStream = async ({
                 if (toolName === readFileDefinition.name) {
                     onWriteSource({
                         type: 'file',
-                        language: output.metadata.language,
                         repo: output.metadata.repo,
                         path: output.metadata.path,
                         revision: output.metadata.revision,
@@ -231,19 +231,36 @@ const createAgentStream = async ({
                     });
                 } else if (toolName === grepDefinition.name) {
                     output.metadata.files.forEach((file) => {
-                        onWriteSource(file);
+                        onWriteSource({
+                            type: 'file',
+                            repo: file.repo,
+                            path: file.path,
+                            revision: file.revision,
+                            name: file.path.split('/').pop() ?? file.path,
+                        });
                     });
                 } else if (toolName === findSymbolDefinitionsDefinition.name || toolName === findSymbolReferencesDefinition.name) {
                     output.metadata.files.forEach((file) => {
                         onWriteSource({
                             type: 'file',
-                            language: file.language,
                             repo: file.repo,
                             path: file.fileName,
                             revision: file.revision,
                             name: file.fileName.split('/').pop() ?? file.fileName,
                         });
                     });
+                } else if (toolName === listTreeDefinition.name) {
+                    output.metadata.entries
+                        .filter((entry) => entry.type === 'blob')
+                        .forEach((entry) => {
+                            onWriteSource({
+                                type: 'file',
+                                repo: output.metadata.repo,
+                                path: entry.path,
+                                revision: output.metadata.ref,
+                                name: entry.name,
+                            });
+                        });
                 }
             });
         },
