@@ -14,6 +14,7 @@ import { DetailsCard } from './detailsCard';
 import { MarkdownRenderer, REFERENCE_PAYLOAD_ATTRIBUTE } from './markdownRenderer';
 import { ReferencedSourcesListView } from './referencedSourcesListView';
 import isEqual from "fast-deep-equal/react";
+import { ANSWER_TAG } from '../../constants';
 
 interface ChatThreadListItemProps {
     userMessage: SBChatMessage;
@@ -94,11 +95,11 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                 (step) => step
                     // First, filter out any parts that are not text
                     .filter((part) => {
-                        if (part.type !== 'text') {
-                            return true;
+                        if (part.type === 'text') {
+                            return !part.text.includes(ANSWER_TAG);
                         }
 
-                        return part.text !== answerPart?.text;
+                        return true;
                     })
                     .filter((part) => {
                         // Only include text, reasoning, and tool parts
@@ -111,7 +112,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
             )
             // Then, filter out any steps that are empty
             .filter(step => step.length > 0);
-    }, [answerPart, assistantMessage?.parts]);
+    }, [assistantMessage?.parts]);
 
     // "thinking" is when the agent is generating output that is not the answer.
     const isThinking = useMemo(() => {
