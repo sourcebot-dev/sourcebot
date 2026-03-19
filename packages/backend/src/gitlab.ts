@@ -189,6 +189,46 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
             }
         }));
 
+        const { validItems: validRepos, warnings } = processPromiseResults(results);
+        allRepos = allRepos.concat(validRepos);
+        allWarnings = allWarnings.concat(warnings);
+    }
+
+    if (config.projectQuery) {
+        const results = await Promise.allSettled(config.projectQuery.map(async (query) => {
+            try {
+                logger.debug(`Fetching projects for query ${query}...`);
+                const { durationMs, data } = await measure(async () => {
+                    const fetchFn = () => api.Projects.all({
+                        perPage: 100,
+                        ...parseQuery(query),
+                    } as any);
+                    return fetchWithRetry(fetchFn, `query ${query}`, logger);
+                });
+                logger.debug(`Found ${data.length} projects for query ${query} in ${durationMs}ms.`);
+                return {
+                    type: 'valid' as const,
+                    data
+                };
+            } catch (e: any) {
+                Sentry.captureException(e);
+                logger.error(`Failed to fetch projects for query ${query}.`, e);
+
+                const status = e?.cause?.response?.status;
+                if (status !== undefined) {
+                    const warning = `GitLab API returned ${status}`
+                    logger.warning(warning);
+                    return {
+                        type: 'warning' as const,
+                        warning
+                    }
+                }
+
+                logger.error("No API response status returned");
+                throw e;
+            }
+        }));
+
         throwIfAnyFailed(results);
         const { validItems: validRepos, warnings } = processPromiseResults(results);
         allRepos = allRepos.concat(validRepos);
@@ -196,6 +236,11 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
     }
 
     let repos = allRepos
+        .filter((project, index, self) =>
+            index === self.findIndex((t) => (
+                t.id === project.id
+            ))
+        )
         .filter((project) => {
             const isExcluded = shouldExcludeProject({
                 project,
@@ -298,6 +343,23 @@ export const getProjectMembers = async (projectId: string, api: InstanceType<typ
         logger.error(`Failed to fetch members for project ${projectId}.`, error);
         throw error;
     }
+}
+
+export const parseQuery = (query: string) => {
+    const params = new URLSearchParams(query.split('?')[1]);
+    const result: Record<string, string | boolean | number> = {};
+    for (const [key, value] of params.entries()) {
+        if (value === 'true') {
+            result[key] = true;
+        } else if (value === 'false') {
+            result[key] = false;
+        } else if (!isNaN(Number(value))) {
+            result[key] = Number(value);
+        } else {
+            result[key] = value;
+        }
+    }
+    return result;
 }
 
 export const getProjectsForAuthenticatedUser = async (visibility: 'private' | 'internal' | 'public' | 'all' = 'all', api: InstanceType<typeof Gitlab>) => {
