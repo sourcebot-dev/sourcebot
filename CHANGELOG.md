@@ -7,9 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Increased `SOURCEBOT_CHAT_MAX_STEP_COUNT` default from 20 to 100 to allow agents to perform more autonomous steps. [#1017](https://github.com/sourcebot-dev/sourcebot/pull/1017)
+
+## [4.15.9] - 2026-03-17
+
+### Added
+- Added read-only annotations to MCP tools for compatibility with Cursor Ask mode and other MCP clients that restrict tool usage based on behavior hints. [#1013](https://github.com/sourcebot-dev/sourcebot/pull/1013)
+
+## [4.15.8] - 2026-03-17
+
+### Added
+- Added support for connecting to Redis over TLS via `REDIS_TLS_ENABLED` and related environment variables. [#1011](https://github.com/sourcebot-dev/sourcebot/pull/1011)
+
+### Changed
+- `filterByFilepaths` in the MCP `search_code` tool now accepts regular expressions matched against the full file path, instead of treating values as escaped literals. [#1008](https://github.com/sourcebot-dev/sourcebot/pull/1008)
+
+### Fixed
+- Connection sync job failures now log the actual error reason instead of a generic message. [#1012](https://github.com/sourcebot-dev/sourcebot/pull/1012)
+
+## [4.15.7] - 2026-03-16
+
 ### Added
 - Added AGENTS.md with Cursor Cloud development environment instructions. [#1001](https://github.com/sourcebot-dev/sourcebot/pull/1001)
 - Added support for configuring SMTP via individual environment variables (SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD) as an alternative to SMTP_CONNECTION_URL. [#1002](https://github.com/sourcebot-dev/sourcebot/pull/1002)
+- Added `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` and `DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS` environment variables to restrict API key creation and usage to organization owners. [#1007](https://github.com/sourcebot-dev/sourcebot/pull/1007)
+
+### Changed
+- Deprecated `EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS` in favour of `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS`. The old variable will continue to work as a fallback. [#1007](https://github.com/sourcebot-dev/sourcebot/pull/1007)
 
 ## [4.15.6] - 2026-03-13
 

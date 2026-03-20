@@ -238,7 +238,7 @@ const options = {
         AWS_REGION: z.string().optional(),
 
         SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.default(0.3),
-        SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(20),
+        SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(100),
 
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
 
@@ -246,9 +246,22 @@ const options = {
 
         SOURCEBOT_DEMO_EXAMPLES_PATH: z.string().optional(),
 
+        DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS: booleanSchema.default('false'),
+
+        DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS: booleanSchema
+            .optional()
+            .transform(value => {
+                return value ?? ((process.env.EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS as 'true' | 'false') ?? 'false');
+            }),
+
+        /**
+         * @deprecated Use `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` instead.
+         */
+        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
+
+
         // Experimental Environment Variables
         // @note: These environment variables are subject to change at any time and are not garunteed to be backwards compatible.
-        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED: booleanSchema.default('false'),
         // @NOTE: Take care to update actions.ts when changing the name of this.
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN: z.string().optional(),
@@ -265,6 +278,19 @@ const options = {
         REDIS_URL: z.string().url().default("redis://localhost:6379"),
         REDIS_REMOVE_ON_COMPLETE: numberSchema.default(0),
         REDIS_REMOVE_ON_FAIL: numberSchema.default(100),
+
+        // Redis TLS
+        REDIS_TLS_ENABLED: booleanSchema.default("false"),
+        REDIS_TLS_CA_PATH: z.string().optional(),
+        REDIS_TLS_CERT_PATH: z.string().optional(),
+        REDIS_TLS_KEY_PATH: z.string().optional(),
+        REDIS_TLS_SERVERNAME: z.string().optional(),
+        REDIS_TLS_REJECT_UNAUTHORIZED: booleanSchema.optional(),
+        REDIS_TLS_CHECK_SERVER_IDENTITY: booleanSchema.optional(),
+        REDIS_TLS_SECURE_PROTOCOL: z.string().optional(),
+        REDIS_TLS_CIPHERS: z.string().optional(),
+        REDIS_TLS_HONOR_CIPHER_ORDER: booleanSchema.optional(),
+        REDIS_TLS_KEY_PASSPHRASE: z.string().optional(),
 
         CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(300000),
         REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),

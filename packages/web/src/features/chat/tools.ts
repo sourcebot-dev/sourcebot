@@ -166,7 +166,7 @@ export const createCodeSearchTool = (selectedRepos: string[]) => tool({
             .optional(),
         filterByFilepaths: z
             .array(z.string())
-            .describe(`Scope the search to the provided filepaths.`)
+            .describe(`Scope the search to the provided filepaths. Each filepath is a regular expression matched against the full file path.`)
             .optional(),
         caseSensitive: z
             .boolean()
@@ -206,7 +206,7 @@ export const createCodeSearchTool = (selectedRepos: string[]) => tool({
         }
 
         if (filepaths.length > 0) {
-            query += ` (file:${filepaths.map(filepath => escapeStringRegexp(filepath)).join(' or file:')})`;
+            query += ` (file:${filepaths.join(' or file:')})`;
         }
 
         if (ref) {

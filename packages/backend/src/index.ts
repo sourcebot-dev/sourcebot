@@ -6,7 +6,6 @@ import { createLogger, env, getConfigSettings, getDBConnectionString, hasEntitle
 import 'express-async-errors';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
-import { Redis } from 'ioredis';
 import { Api } from "./api.js";
 import { ConfigManager } from "./configManager.js";
 import { ConnectionManager } from './connectionManager.js';
@@ -18,6 +17,7 @@ import { RepoPermissionSyncer } from './ee/repoPermissionSyncer.js';
 import { shutdownPosthog } from "./posthog.js";
 import { PromClient } from './promClient.js';
 import { RepoIndexManager } from "./repoIndexManager.js";
+import { redis } from "./redis.js";
 
 const logger = createLogger('backend-entrypoint');
 
@@ -37,10 +37,6 @@ const prisma = new PrismaClient({
             url: getDBConnectionString(),
         },
     },
-});
-
-const redis = new Redis(env.REDIS_URL, {
-    maxRetriesPerRequest: null
 });
 
 try {
@@ -116,7 +112,7 @@ const listenToShutdownSignals = () => {
             await redis.quit();
             await api.dispose();
             await shutdownPosthog();
-            
+
             logger.info('All workers shut down gracefully');
             signals.forEach(sig => process.removeListener(sig, cleanup));
             return 0;

@@ -26,7 +26,14 @@
                                 "pages": [
                                     "docs/deployment/docker-compose",
                                     "docs/deployment/k8s",
-                                    "docs/deployment/sizing-guide"
+                                    "docs/deployment/sizing-guide",
+                                    {
+                                        "group": "Infrastructure",
+                                        "pages": [
+                                            "docs/deployment/infrastructure/architecture",
+                                            "docs/deployment/infrastructure/redis"
+                                        ]
+                                    }
                                 ]
                             }
                         ]
@@ -81,6 +88,7 @@
                         "group": "Configuration",
                         "pages": [
                             "docs/configuration/config-file",
+                            "docs/configuration/environment-variables",
                             {
                                 "group": "Indexing your code",
                                 "pages": [
@@ -110,7 +118,6 @@
                                     "docs/configuration/auth/faq"
                                 ]
                             },
-                            "docs/configuration/environment-variables",
                             "docs/license-key",
                             "docs/configuration/transactional-emails",
                             "docs/configuration/structured-logging",
