@@ -531,6 +531,7 @@ A JumpCloud connection can be used for [authentication](/docs/configuration/auth
 
         When configuring your application:
         - Set the SSO type to "OIDC"
+        - Set the **Token Endpoint Authentication Method** to `client_secret_basic`. JumpCloud defaults to `client_secret_post`, but Sourcebot requires `client_secret_basic`.
         - Add `<sourcebot_url>/api/auth/callback/jumpcloud` to the redirect URIs (ex. https://sourcebot.coolcorp.com/api/auth/callback/jumpcloud)
         - Set the login URL to `<sourcebot_url>/login`
 
@@ -539,6 +540,8 @@ A JumpCloud connection can be used for [authentication](/docs/configuration/auth
     <Step title="Define environment variables">
         The client id, secret, and issuer URL are provided to Sourcebot via environment variables. These can be named whatever you like
         (ex. `JUMPCLOUD_IDENTITY_PROVIDER_CLIENT_ID`, `JUMPCLOUD_IDENTITY_PROVIDER_CLIENT_SECRET`, and `JUMPCLOUD_IDENTITY_PROVIDER_ISSUER`)
+
+        You must also set the `AUTH_SECRET` environment variable. Generate one with `openssl rand -base64 33` and pass it to your Sourcebot deployment. While `AUTH_SECRET` is auto-generated if not provided, it must be explicitly set for SSO to work reliably across restarts.
     </Step>
     <Step title="Define the identity provider config">
         Create a `identityProvider` object in the [config file](/docs/configuration/config-file) with the following fields:
