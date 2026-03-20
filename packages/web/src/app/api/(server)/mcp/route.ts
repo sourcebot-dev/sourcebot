@@ -79,7 +79,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 },
             });
 
-            const mcpServer = createMcpServer();
+            const mcpServer = await createMcpServer();
             await mcpServer.connect(transport);
 
             return transport.handleRequest(request);
