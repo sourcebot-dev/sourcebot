@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.15.11] - 2026-03-20
+
 ### Changed
 - Updated JumpCloud SSO documentation to clarify token endpoint authentication method requirement and AUTH_SECRET configuration. [#1022](https://github.com/sourcebot-dev/sourcebot/pull/1022)
 - The `ask_codebase` MCP tool is now hidden when no language model providers are configured. [#1018](https://github.com/sourcebot-dev/sourcebot/pull/1018)
