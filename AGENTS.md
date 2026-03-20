@@ -51,3 +51,4 @@ Standard dev commands are documented in `CONTRIBUTING.md` and `package.json`. Ke
 ### Pull Request Workflow
 
 - **CHANGELOG entry required:** Every PR must include a follow-up commit adding an entry to `CHANGELOG.md` under `[Unreleased]`. The entry must be a single sentence describing the change, followed by a link to the PR in the format `[#<id>](https://github.com/sourcebot-dev/sourcebot/pull/<id>)`. Place new entries at the bottom of the appropriate section (`Added`, `Changed`, `Fixed`, etc.). See `CLAUDE.md` and existing entries in `CHANGELOG.md` for the exact conventions.
+- **IMPORTANT:** NEVER add changelog entries to existing releases (e.g., `[4.15.9]`). ALWAYS add them to the `[Unreleased]` section only.
