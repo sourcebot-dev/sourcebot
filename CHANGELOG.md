@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.15.10] - 2026-03-20
+
 ### Changed
 - Increased `SOURCEBOT_CHAT_MAX_STEP_COUNT` default from 20 to 100 to allow agents to perform more autonomous steps. [#1017](https://github.com/sourcebot-dev/sourcebot/pull/1017)
 
