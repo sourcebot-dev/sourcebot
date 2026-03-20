@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Increased `SOURCEBOT_CHAT_MAX_STEP_COUNT` default from 20 to 100 to allow agents to perform more autonomous steps. [#1017](https://github.com/sourcebot-dev/sourcebot/pull/1017)
+- The `ask_codebase` MCP tool is now hidden when no language model providers are configured. [#1018](https://github.com/sourcebot-dev/sourcebot/pull/1018)
 
 ## [4.15.9] - 2026-03-17
 
