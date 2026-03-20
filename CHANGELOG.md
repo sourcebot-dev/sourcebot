@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Updated JumpCloud SSO documentation to clarify token endpoint authentication method requirement and AUTH_SECRET configuration. [#1022](https://github.com/sourcebot-dev/sourcebot/pull/1022)
+
 ## [4.15.10] - 2026-03-20
 
 ### Changed
