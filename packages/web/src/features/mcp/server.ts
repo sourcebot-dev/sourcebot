@@ -1,5 +1,5 @@
 import { listRepos } from '@/app/api/(server)/repos/listReposApi';
-import { getConfiguredLanguageModelsInfo } from "../chat/utils.server";
+import { getConfiguredLanguageModels, getConfiguredLanguageModelsInfo } from "../chat/utils.server";
 import { askCodebase } from '@/features/mcp/askCodebase';
 import {
     languageModelInfoSchema,
@@ -66,11 +66,14 @@ const TOOL_DESCRIPTIONS = {
         `,
 };
 
-export function createMcpServer(): McpServer {
+export async function createMcpServer(): Promise<McpServer> {
     const server = new McpServer({
         name: 'sourcebot-mcp-server',
         version: SOURCEBOT_VERSION,
     });
+
+    const configuredModels = await getConfiguredLanguageModels();
+    const hasLanguageModels = configuredModels.length > 0;
 
     server.registerTool(
         "search_code",
@@ -493,43 +496,45 @@ export function createMcpServer(): McpServer {
         }
     );
 
-    server.registerTool(
-        "ask_codebase",
-        {
-            description: TOOL_DESCRIPTIONS.ask_codebase,
-            annotations: { readOnlyHint: true },
-            inputSchema: z.object({
-                query: z.string().describe("The query to ask about the codebase."),
-                repos: z.array(z.string()).optional().describe("The repositories accessible to the agent. If not provided, all repositories are accessible."),
-                languageModel: languageModelInfoSchema.optional().describe("The language model to use. If not provided, defaults to the first model in the config."),
-                visibility: z.enum(['PRIVATE', 'PUBLIC']).optional().describe("The visibility of the chat session. Defaults to PRIVATE for authenticated users."),
-            }),
-        },
-        async (request) => {
-            const result = await askCodebase({
-                query: request.query,
-                repos: request.repos,
-                languageModel: request.languageModel,
-                visibility: request.visibility as ChatVisibility | undefined,
-                source: 'mcp',
-            });
+    if (hasLanguageModels) {
+        server.registerTool(
+            "ask_codebase",
+            {
+                description: TOOL_DESCRIPTIONS.ask_codebase,
+                annotations: { readOnlyHint: true },
+                inputSchema: z.object({
+                    query: z.string().describe("The query to ask about the codebase."),
+                    repos: z.array(z.string()).optional().describe("The repositories accessible to the agent. If not provided, all repositories are accessible."),
+                    languageModel: languageModelInfoSchema.optional().describe("The language model to use. If not provided, defaults to the first model in the config."),
+                    visibility: z.enum(['PRIVATE', 'PUBLIC']).optional().describe("The visibility of the chat session. Defaults to PRIVATE for authenticated users."),
+                }),
+            },
+            async (request) => {
+                const result = await askCodebase({
+                    query: request.query,
+                    repos: request.repos,
+                    languageModel: request.languageModel,
+                    visibility: request.visibility as ChatVisibility | undefined,
+                    source: 'mcp',
+                });
 
-            if (isServiceError(result)) {
-                return {
-                    content: [{ type: "text", text: `Failed to ask codebase: ${result.message}` }],
-                };
+                if (isServiceError(result)) {
+                    return {
+                        content: [{ type: "text", text: `Failed to ask codebase: ${result.message}` }],
+                    };
+                }
+
+                const formattedResponse = dedent`
+                ${result.answer}
+
+                ---
+                **View full research session:** ${result.chatUrl}
+                **Model used:** ${result.languageModel.model}
+                `;
+                return { content: [{ type: "text", text: formattedResponse }] };
             }
-
-            const formattedResponse = dedent`
-            ${result.answer}
-
-            ---
-            **View full research session:** ${result.chatUrl}
-            **Model used:** ${result.languageModel.model}
-            `;
-            return { content: [{ type: "text", text: formattedResponse }] };
-        }
-    );
+        );
+    }
 
     return server;
 }

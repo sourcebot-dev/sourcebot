@@ -14,14 +14,8 @@ import { buildTreeNodeIndex, joinTreePath, normalizeTreePath, sortTreeEntries } 
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
-// Create MCP server
-const server = new McpServer({
-    name: 'sourcebot-mcp-server',
-    version: '0.1.0',
-});
-
-
-server.tool(
+function registerTools(server: McpServer, hasLanguageModels: boolean) {
+    server.tool(
     "search_code",
     dedent`
     Searches for code that matches the provided search query as a substring by default, or as a regular expression if useRegex is true. Useful for exploring remote repositories by searching for exact symbols, functions, variables, or specific code patterns. To determine if a repository is indexed, use the \`list_repos\` tool. By default, searches are global and will search the default branch of all repositories. Searches can be scoped to specific repositories, languages, and branches. When referencing code outputted by this tool, always include the file's external URL as a link. This makes it easier for the user to view the file, even if they don't have it locally checked out.
@@ -413,46 +407,58 @@ server.tool(
     }
 );
 
-server.tool(
-    "ask_codebase",
-    dedent`
-    Ask a natural language question about the codebase. This tool uses an AI agent to autonomously search code, read files, and find symbol references/definitions to answer your question.
+    if (hasLanguageModels) {
+        server.tool(
+            "ask_codebase",
+            dedent`
+            Ask a natural language question about the codebase. This tool uses an AI agent to autonomously search code, read files, and find symbol references/definitions to answer your question.
 
-    The agent will:
-    - Analyze your question and determine what context it needs
-    - Search the codebase using multiple strategies (code search, symbol lookup, file reading)
-    - Synthesize findings into a comprehensive answer with code references
+            The agent will:
+            - Analyze your question and determine what context it needs
+            - Search the codebase using multiple strategies (code search, symbol lookup, file reading)
+            - Synthesize findings into a comprehensive answer with code references
 
-    Returns a detailed answer in markdown format with code references, plus a link to view the full research session (including all tool calls and reasoning) in the Sourcebot web UI.
+            Returns a detailed answer in markdown format with code references, plus a link to view the full research session (including all tool calls and reasoning) in the Sourcebot web UI.
 
-    When using this in shared environments (e.g., Slack), you can set the visibility parameter to 'PUBLIC' to ensure everyone can access the chat link.
+            When using this in shared environments (e.g., Slack), you can set the visibility parameter to 'PUBLIC' to ensure everyone can access the chat link.
 
-    This is a blocking operation that may take 30-60+ seconds for complex questions as the agent researches the codebase.
-    `,
-    askCodebaseRequestSchema.shape,
-    { readOnlyHint: true },
-    async (request: AskCodebaseRequest) => {
-        const response = await askCodebase(request);
+            This is a blocking operation that may take 30-60+ seconds for complex questions as the agent researches the codebase.
+            `,
+            askCodebaseRequestSchema.shape,
+            { readOnlyHint: true },
+            async (request: AskCodebaseRequest) => {
+                const response = await askCodebase(request);
 
-        // Format the response with the answer and a link to the chat
-        const formattedResponse = dedent`
-        ${response.answer}
+                // Format the response with the answer and a link to the chat
+                const formattedResponse = dedent`
+                ${response.answer}
 
-        ---
-        **View full research session:** ${response.chatUrl}
-        **Model used:** ${response.languageModel.model}
-        `;
+                ---
+                **View full research session:** ${response.chatUrl}
+                **Model used:** ${response.languageModel.model}
+                `;
 
-        return {
-            content: [{
-                type: "text",
-                text: formattedResponse,
-            }],
-        };
+                return {
+                    content: [{
+                        type: "text",
+                        text: formattedResponse,
+                    }],
+                };
+            }
+        );
     }
-);
+}
 
 const runServer = async () => {
+    const server = new McpServer({
+        name: 'sourcebot-mcp-server',
+        version: '0.1.0',
+    });
+
+    const models = await listLanguageModels();
+    const hasLanguageModels = models.length > 0;
+    registerTools(server, hasLanguageModels);
+
     const transport = new StdioServerTransport();
     await server.connect(transport);
 }
