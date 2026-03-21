@@ -10,6 +10,7 @@ export function toVercelAITool<TName extends string, TShape extends z.ZodRawShap
     return tool({
         description: def.description,
         inputSchema: def.inputSchema,
+        title: def.title,
         execute: (input) => def.execute(input, context),
         toModelOutput: ({ output }) => ({
             type: "content",

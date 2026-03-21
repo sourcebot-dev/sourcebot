@@ -30,6 +30,7 @@ export const findSymbolReferencesDefinition: ToolDefinition<
     FindSymbolReferencesMetadata
 > = {
     name: 'find_symbol_references',
+    title: 'Find symbol references',
     isReadOnly: true,
     isIdempotent: true,
     description,

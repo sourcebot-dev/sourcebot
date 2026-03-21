@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed issue where ask responses would sometimes appear in the details panel while generating. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 
+### Changed
+- Changed the `webUrl` property of the `/api/repos` api to return a URL rather than just a path. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+
 ## [4.15.9] - 2026-03-17
 
 ### Added

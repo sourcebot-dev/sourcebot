@@ -25,7 +25,7 @@ export const FindSymbolDefinitionsToolComponent = ({ part }: { part: FindSymbolD
     }, [part]);
 
     return (
-        <div className="my-4">
+        <div>
             <ToolHeader
                 isLoading={part.state !== 'output-available' && part.state !== 'output-error'}
                 isError={part.state === 'output-error'}

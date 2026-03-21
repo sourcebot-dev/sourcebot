@@ -1,53 +1,48 @@
 'use client';
 
+import { ReadFileMetadata, ToolResult } from "@/features/tools";
+import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
+import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { Separator } from "@/components/ui/separator";
-import { ReadFileToolUIPart } from "@/features/chat/tools";
-import { EyeIcon } from "lucide-react";
-import { useMemo, useState } from "react";
-import { FileListItem, ToolHeader, TreeList } from "./shared";
+import Link from "next/link";
+import { RepoBadge } from "./repoBadge";
 
-export const ReadFileToolComponent = ({ part }: { part: ReadFileToolUIPart }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
+export const ReadFileToolComponent = ({ metadata }: ToolResult<ReadFileMetadata>) => {
+    const fileName = metadata.path.split('/').pop() ?? metadata.path;
+    const href = getBrowsePath({
+        repoName: metadata.repo,
+        revisionName: metadata.revision,
+        path: metadata.path,
+        pathType: 'blob',
+        domain: SINGLE_TENANT_ORG_DOMAIN,
+        highlightRange: (metadata.isTruncated || metadata.startLine > 1) ? {
+            start: { lineNumber: metadata.startLine },
+            end: { lineNumber: metadata.endLine },
+        } : undefined,
+    });
 
-    const label = useMemo(() => {
-        switch (part.state) {
-            case 'input-streaming':
-                return 'Reading...';
-            case 'input-available':
-                return `Reading ${part.input.path}...`;
-            case 'output-error':
-                return 'Tool call failed';
-            case 'output-available':
-                if (part.output.metadata.isTruncated || part.output.metadata.startLine > 1) {
-                    return `Read ${part.output.metadata.path} (lines ${part.output.metadata.startLine}–${part.output.metadata.endLine})`;
-                }
-                return `Read ${part.output.metadata.path}`;
-        }
-    }, [part]);
+    const linesRead = metadata.endLine - metadata.startLine + 1;
 
     return (
-        <div className="my-4">
-            <ToolHeader
-                isLoading={part.state !== 'output-available' && part.state !== 'output-error'}
-                isError={part.state === 'output-error'}
-                isExpanded={isExpanded}
-                label={label}
-                Icon={EyeIcon}
-                onExpand={setIsExpanded}
-                input={part.state !== 'input-streaming' ? JSON.stringify(part.input) : undefined}
-                output={part.state === 'output-available' ? part.output.output : undefined}
-            />
-            {part.state === 'output-available' && isExpanded && (
-                <>
-                    <TreeList>
-                        <FileListItem
-                            path={part.output.metadata.path}
-                            repoName={part.output.metadata.repo}
-                        />
-                    </TreeList>
-                    <Separator className='ml-[7px] my-2' />
-                </>
-            )}
+        <div className="flex items-center gap-2 select-none text-sm text-muted-foreground">
+            <span className="flex-shrink-0">Read</span>
+            <Link
+                href={href}
+                className="inline-flex items-center gap-1 text-xs bg-muted hover:bg-accent px-1.5 py-0.5 rounded transition-colors flex-shrink-0"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <VscodeFileIcon fileName={fileName} className="flex-shrink-0" />
+                <span className="font-medium text-foreground">{fileName}</span>
+                {(metadata.isTruncated || metadata.startLine > 1) && (
+                    <span className="text-muted-foreground">L{metadata.startLine}-{metadata.endLine}</span>
+                )}
+            </Link>
+            <span className="flex-shrink-0">in</span>
+            <RepoBadge repo={metadata.repoInfo} />
+            <span className="flex-1" />
+            <span className="text-xs flex-shrink-0">{linesRead} {linesRead === 1 ? 'line' : 'lines'}</span>
+            <Separator orientation="vertical" className="h-3 flex-shrink-0" />
         </div>
-    )
+    );
 }

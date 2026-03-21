@@ -4,7 +4,7 @@ import { HistoryEditor } from "slate-history";
 import { ReactEditor, RenderElementProps } from "slate-react";
 import { z } from "zod";
 import { LanguageModel } from "@sourcebot/schemas/v3/index.type";
-import { tools } from "./tools";
+import { createTools } from "./tools";
 
 const fileSourceSchema = z.object({
     type: z.literal('file'),
@@ -77,7 +77,7 @@ export const sbChatMessageMetadataSchema = z.object({
 export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;
 
 export type SBChatMessageToolTypes = {
-    [K in keyof typeof tools]: InferUITool<typeof tools[K]>;
+    [K in keyof ReturnType<typeof createTools>]: InferUITool<ReturnType<typeof createTools>[K]>;
 };
 
 export type SBChatMessageDataParts = {

@@ -33,6 +33,7 @@ export const listReposDefinition: ToolDefinition<
     ListReposMetadata
 > = {
     name: 'list_repos',
+    title: 'List repositories',
     isReadOnly: true,
     isIdempotent: true,
     description,

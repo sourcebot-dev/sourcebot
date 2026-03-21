@@ -11,6 +11,7 @@ export interface ToolDefinition<
     TMetadata = Record<string, unknown>,
 > {
     name: TName;
+    title: string;
     description: string;
     inputSchema: z.ZodObject<TShape>;
     isReadOnly: boolean;

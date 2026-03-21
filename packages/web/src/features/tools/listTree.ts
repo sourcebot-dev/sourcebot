@@ -5,6 +5,8 @@ import { buildTreeNodeIndex, joinTreePath, normalizeTreePath, sortTreeEntries } 
 import { ToolDefinition } from "./types";
 import { logger } from "./logger";
 import description from "./listTree.txt";
+import { CodeHostType } from "@sourcebot/db";
+import { getRepoInfoByName } from "@/actions";
 
 const DEFAULT_TREE_DEPTH = 1;
 const MAX_TREE_DEPTH = 10;
@@ -29,8 +31,15 @@ export type ListTreeEntry = {
     depth: number;
 };
 
+export type ListTreeRepoInfo = {
+    name: string;
+    displayName: string;
+    codeHostType: CodeHostType;
+};
+
 export type ListTreeMetadata = {
     repo: string;
+    repoInfo: ListTreeRepoInfo;
     ref: string;
     path: string;
     entries: ListTreeEntry[];
@@ -40,6 +49,7 @@ export type ListTreeMetadata = {
 
 export const listTreeDefinition: ToolDefinition<'list_tree', typeof listTreeShape, ListTreeMetadata> = {
     name: 'list_tree',
+    title: 'List directory tree',
     isReadOnly: true,
     isIdempotent: true,
     description,
@@ -50,9 +60,20 @@ export const listTreeDefinition: ToolDefinition<'list_tree', typeof listTreeShap
         const normalizedDepth = Math.min(depth, MAX_TREE_DEPTH);
         const normalizedMaxEntries = Math.min(maxEntries, MAX_MAX_TREE_ENTRIES);
 
+        const repoInfoResult = await getRepoInfoByName(repo);
+        if (isServiceError(repoInfoResult) || !repoInfoResult) {
+            throw new Error(`Repository "${repo}" not found.`);
+        }
+        const repoInfo: ListTreeRepoInfo = {
+            name: repoInfoResult.name,
+            displayName: repoInfoResult.displayName ?? repoInfoResult.name,
+            codeHostType: repoInfoResult.codeHostType,
+        };
+
         if (!includeFiles && !includeDirectories) {
             const metadata: ListTreeMetadata = {
                 repo,
+                repoInfo,
                 ref,
                 path: normalizedPath,
                 entries: [],
@@ -131,7 +152,7 @@ export const listTreeDefinition: ToolDefinition<'list_tree', typeof listTreeShap
 
         const sortedEntries = sortTreeEntries(entries);
         const metadata: ListTreeMetadata = {
-            repo, ref, path: normalizedPath,
+            repo, repoInfo, ref, path: normalizedPath,
             entries: sortedEntries,
             totalReturned: sortedEntries.length,
             truncated,

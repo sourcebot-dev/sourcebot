@@ -23,6 +23,7 @@ export const findSymbolDefinitionsDefinition: ToolDefinition<
     FindSymbolDefinitionsMetadata
 > = {
     name: 'find_symbol_definitions',
+    title: 'Find symbol definitions',
     isReadOnly: true,
     isIdempotent: true,
     description,

@@ -86,38 +86,17 @@ interface ToolHeaderProps {
     input?: string;
     output?: string;
     className?: string;
+    rightContent?: React.ReactNode;
 }
 
-export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpand, input, output, className }: ToolHeaderProps) => {
-    const onCopy = output !== undefined
-        ? () => {
-            const text = [
-                input !== undefined ? `Input:\n${input}` : null,
-                `Output:\n${output}`,
-            ].filter(Boolean).join('\n\n');
-            navigator.clipboard.writeText(text);
-            return true;
-        }
-        : undefined;
+export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpand, input, output, className, rightContent }: ToolHeaderProps) => {
     return (
         <div
             tabIndex={0}
             className={cn(
                 "flex flex-row items-center gap-2 group/header select-none",
-                {
-                    'hover:text-foreground cursor-pointer': !isLoading,
-                },
                 className,
             )}
-            onClick={() => {
-                onExpand(!isExpanded)
-            }}
-            onKeyDown={(e) => {
-                if (e.key !== "Enter") {
-                    return;
-                }
-                onExpand(!isExpanded);
-            }}
         >
             {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
@@ -125,7 +104,7 @@ export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpa
                 <Icon className="h-4 w-4 flex-shrink-0" />
             )}
             <span
-                className={cn("text-sm font-medium line-clamp-2 flex-1",
+                className={cn("text-sm line-clamp-2 flex-1",
                 {
                     'animate-pulse': isLoading,
                     'text-destructive': isError,
@@ -134,22 +113,8 @@ export const ToolHeader = ({ isLoading, isError, isExpanded, label, Icon, onExpa
             >
                 {label}
             </span>
-            {onCopy && (
-                <div onClick={(e) => e.stopPropagation()}>
-                    <CopyIconButton
-                        onCopy={onCopy}
-                        className="opacity-0 group-hover/header:opacity-100 transition-opacity"
-                    />
-                </div>
-            )}
-            {!isLoading && (
-                <div className="opacity-0 group-hover/header:opacity-100 transition-opacity">
-                    {isExpanded ? (
-                        <ChevronDown className="h-3 w-3" />
-                    ) : (
-                        <ChevronRight className="h-3 w-3" />
-                    )}
-                </div>
+            {rightContent && (
+                <span className="text-xs text-muted-foreground">{rightContent}</span>
             )}
         </div>
     )

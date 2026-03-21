@@ -6,6 +6,7 @@ import escapeStringRegexp from "escape-string-regexp";
 import { ToolDefinition } from "./types";
 import { logger } from "./logger";
 import description from "./grep.txt";
+import { CodeHostType } from "@sourcebot/db";
 
 const DEFAULT_SEARCH_LIMIT = 100;
 const MAX_LINE_LENGTH = 2000;
@@ -50,13 +51,24 @@ export type GrepFile = {
     revision: string;
 };
 
+export type GrepRepoInfo = {
+    name: string;
+    displayName: string;
+    codeHostType: CodeHostType;
+};
+
 export type GrepMetadata = {
     files: GrepFile[];
+    pattern: string;
     query: string;
+    matchCount: number;
+    repoCount: number;
+    repoInfoMap: Record<string, GrepRepoInfo>;
 };
 
 export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetadata> = {
     name: 'grep',
+    title: 'Search code',
     isReadOnly: true,
     isIdempotent: true,
     description,
@@ -108,14 +120,28 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
             throw new Error(response.message);
         }
 
+        const files = response.files.map((file) => ({
+            path: file.fileName.text,
+            name: file.fileName.text.split('/').pop() ?? file.fileName.text,
+            repo: file.repository,
+            revision: ref ?? 'HEAD',
+        } satisfies GrepFile));
+
+        const repoInfoMap = Object.fromEntries(
+            response.repositoryInfo.map((info) => [info.name, {
+                name: info.name,
+                displayName: info.displayName ?? info.name,
+                codeHostType: info.codeHostType,
+            }])
+        );
+
         const metadata: GrepMetadata = {
-            files: response.files.map((file) => ({
-                path: file.fileName.text,
-                name: file.fileName.text.split('/').pop() ?? file.fileName.text,
-                repo: file.repository,
-                revision: ref ?? 'HEAD',
-            } satisfies GrepFile)),
+            files,
+            pattern,
             query,
+            matchCount: response.stats.actualMatchCount,
+            repoCount: new Set(files.map((f) => f.repo)).size,
+            repoInfoMap,
         };
 
         const totalFiles = response.files.length;
@@ -137,7 +163,9 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
             outputLines.push(`[${file.repository}] ${file.fileName.text}:`);
             for (const chunk of file.chunks) {
                 chunk.content.split('\n').forEach((content, i) => {
-                    if (!content.trim()) return;
+                    if (!content.trim()) {
+                        return;
+                    }
                     const lineNum = chunk.contentStart.lineNumber + i;
                     const line = content.length > MAX_LINE_LENGTH
                         ? content.substring(0, MAX_LINE_LENGTH) + MAX_LINE_SUFFIX

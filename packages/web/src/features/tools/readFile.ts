@@ -4,6 +4,8 @@ import { getFileSource } from "@/features/git";
 import { ToolDefinition } from "./types";
 import { logger } from "./logger";
 import description from "./readFile.txt";
+import { CodeHostType } from "@sourcebot/db";
+import { getRepoInfoByName } from "@/actions";
 
 // NOTE: if you change these values, update readFile.txt to match.
 const READ_FILES_MAX_LINES = 500;
@@ -23,9 +25,16 @@ const readFileShape = {
         .describe(`Maximum number of lines to read (max: ${READ_FILES_MAX_LINES}). Omit to read up to ${READ_FILES_MAX_LINES} lines.`),
 };
 
+export type ReadFileRepoInfo = {
+    name: string;
+    displayName: string;
+    codeHostType: CodeHostType;
+};
+
 export type ReadFileMetadata = {
     path: string;
     repo: string;
+    repoInfo: ReadFileRepoInfo;
     language: string;
     startLine: number;
     endLine: number;
@@ -35,6 +44,7 @@ export type ReadFileMetadata = {
 
 export const readFileDefinition: ToolDefinition<"read_file", typeof readFileShape, ReadFileMetadata> = {
     name: "read_file",
+    title: "Read file",
     isReadOnly: true,
     isIdempotent: true,
     description,
@@ -80,7 +90,7 @@ export const readFileDefinition: ToolDefinition<"read_file", typeof readFileShap
         let output = [
             `<repo>${fileSource.repo}</repo>`,
             `<path>${fileSource.path}</path>`,
-            `<url>${fileSource.webUrl}</url>`,
+            `<url>${fileSource.externalWebUrl}</url>`,
             '<content>\n'
         ].join('\n');
 
@@ -96,9 +106,20 @@ export const readFileDefinition: ToolDefinition<"read_file", typeof readFileShap
 
         output += `\n</content>`;
 
+        const repoInfoResult = await getRepoInfoByName(fileSource.repo);
+        if (isServiceError(repoInfoResult) || !repoInfoResult) {
+            throw new Error(`Repository "${fileSource.repo}" not found.`);
+        }
+        const repoInfo: ReadFileRepoInfo = {
+            name: repoInfoResult.name,
+            displayName: repoInfoResult.displayName ?? repoInfoResult.name,
+            codeHostType: repoInfoResult.codeHostType,
+        };
+
         const metadata: ReadFileMetadata = {
             path: fileSource.path,
             repo: fileSource.repo,
+            repoInfo,
             language: fileSource.language,
             startLine,
             endLine: lastReadLine,
