@@ -1,58 +1,18 @@
 'use client';
 
-import { ListReposToolUIPart } from "@/features/chat/tools";
-import { useMemo, useState } from "react";
-import { ToolHeader, TreeList } from "./shared";
+import { ListReposMetadata, ToolResult } from "@/features/tools";
 import { Separator } from "@/components/ui/separator";
-import { FolderOpenIcon } from "lucide-react";
 
-export const ListReposToolComponent = ({ part }: { part: ListReposToolUIPart }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    const label = useMemo(() => {
-        switch (part.state) {
-            case 'input-streaming':
-                return 'Listing repositories...';
-            case 'output-error':
-                return '"List repositories" tool call failed';
-            case 'input-available':
-            case 'output-available':
-                return 'Listed repositories';
-        }
-    }, [part]);
+export const ListReposToolComponent = ({ metadata }: ToolResult<ListReposMetadata>) => {
+    const count = metadata.repos.length;
+    const label = `${count}${metadata.totalCount > count ? ` of ${metadata.totalCount}` : ''} ${count === 1 ? 'repo' : 'repos'}`;
 
     return (
-        <div>
-            <ToolHeader
-                isLoading={part.state !== 'output-available' && part.state !== 'output-error'}
-                isError={part.state === 'output-error'}
-                isExpanded={isExpanded}
-                label={label}
-                Icon={FolderOpenIcon}
-                onExpand={setIsExpanded}
-                input={part.state !== 'input-streaming' ? JSON.stringify(part.input) : undefined}
-                output={part.state === 'output-available' ? part.output.output : undefined}
-            />
-            {part.state === 'output-available' && isExpanded && (
-                <>
-                    {part.output.metadata.repos.length === 0 ? (
-                        <span className="text-sm text-muted-foreground ml-[25px]">No repositories found</span>
-                    ) : (
-                        <TreeList>
-                            <div className="text-sm text-muted-foreground mb-2">
-                                Found {part.output.metadata.repos.length} of {part.output.metadata.totalCount} repositories:
-                            </div>
-                            {part.output.metadata.repos.map((repo, index) => (
-                                <div key={index} className="flex items-center gap-2 text-sm">
-                                    <FolderOpenIcon className="h-4 w-4 text-muted-foreground" />
-                                    <span className="truncate">{repo.name}</span>
-                                </div>
-                            ))}
-                        </TreeList>
-                    )}
-                    <Separator className='ml-[7px] my-2' />
-                </>
-            )}
+        <div className="flex items-center gap-2 select-none cursor-default text-sm text-muted-foreground">
+            <span className="flex-shrink-0">Listed repositories</span>
+            <span className="flex-1" />
+            <span className="text-xs flex-shrink-0">{label}</span>
+            <Separator orientation="vertical" className="h-3 flex-shrink-0" />
         </div>
-    )
-} 
+    );
+};
