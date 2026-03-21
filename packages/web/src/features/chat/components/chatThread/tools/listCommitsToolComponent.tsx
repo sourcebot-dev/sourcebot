@@ -1,80 +1,20 @@
 'use client';
 
-import { ListCommitsToolUIPart } from "@/features/chat/tools";
-import { useMemo, useState } from "react";
-import { ToolHeader, TreeList } from "./shared";
-import { CodeSnippet } from "@/app/components/codeSnippet";
+import { ListCommitsMetadata, ToolResult } from "@/features/tools";
+import { RepoBadge } from "./repoBadge";
 import { Separator } from "@/components/ui/separator";
-import { GitCommitVerticalIcon } from "lucide-react";
 
-export const ListCommitsToolComponent = ({ part }: { part: ListCommitsToolUIPart }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    const label = useMemo(() => {
-        switch (part.state) {
-            case 'input-streaming':
-                return 'Listing commits...';
-            case 'output-error':
-                return '"List commits" tool call failed';
-            case 'input-available':
-            case 'output-available':
-                return 'Listed commits';
-        }
-    }, [part]);
+export const ListCommitsToolComponent = ({ metadata }: ToolResult<ListCommitsMetadata>) => {
+    const count = metadata.commits.length;
+    const label = `${count} ${count === 1 ? 'commit' : 'commits'}`;
 
     return (
-        <div>
-            <ToolHeader
-                isLoading={part.state !== 'output-available' && part.state !== 'output-error'}
-                isError={part.state === 'output-error'}
-                isExpanded={isExpanded}
-                label={label}
-                Icon={GitCommitVerticalIcon}
-                onExpand={setIsExpanded}
-                input={part.state !== 'input-streaming' ? JSON.stringify(part.input) : undefined}
-                output={part.state === 'output-available' ? part.output.output : undefined}
-            />
-            {part.state === 'output-available' && isExpanded && (
-                <>
-                    {part.output.metadata.commits.length === 0 ? (
-                        <span className="text-sm text-muted-foreground ml-[25px]">No commits found</span>
-                    ) : (
-                        <TreeList>
-                            <div className="text-sm text-muted-foreground mb-2">
-                                Found {part.output.metadata.commits.length} of {part.output.metadata.totalCount} total commits:
-                            </div>
-                            {part.output.metadata.commits.map((commit) => (
-                                <div key={commit.hash} className="mb-3 last:mb-0">
-                                    <div className="flex items-start gap-2 text-sm">
-                                        <GitCommitVerticalIcon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <CodeSnippet className="text-xs font-mono">
-                                                    {commit.hash.substring(0, 7)}
-                                                </CodeSnippet>
-                                                {commit.refs && (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {commit.refs}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="mt-1 font-medium">
-                                                {commit.message}
-                                            </div>
-                                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                                                <span>{commit.author_name}</span>
-                                                <span>•</span>
-                                                <span>{new Date(commit.date).toLocaleString()}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </TreeList>
-                    )}
-                    <Separator className='ml-[7px] my-2' />
-                </>
-            )}
+        <div className="flex items-center gap-2 select-none cursor-default text-sm text-muted-foreground">
+            <span className="flex-shrink-0">Listed commits in</span>
+            <RepoBadge repo={metadata.repoInfo} />
+            <span className="flex-1" />
+            <span className="text-xs flex-shrink-0">{label}</span>
+            <Separator orientation="vertical" className="h-3 flex-shrink-0" />
         </div>
-    )
-}
+    );
+};

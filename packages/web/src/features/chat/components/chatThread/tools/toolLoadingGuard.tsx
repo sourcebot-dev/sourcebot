@@ -24,7 +24,14 @@ export const ToolLoadingGuard = <T extends ToolUIPart<{ [K in keyof SBChatMessag
 
     const requestText = hasInput ? JSON.stringify(part.input, null, 2) : '';
     const responseText = part.state === 'output-available'
-        ? (part.output as { output: string }).output
+        ? (() => {
+            const raw = (part.output as { output: string }).output;
+            try {
+                return JSON.stringify(JSON.parse(raw), null, 2);
+            } catch {
+                return raw;
+            }
+        })()
         : part.state === 'output-error'
         ? (part.errorText ?? '')
         : undefined;

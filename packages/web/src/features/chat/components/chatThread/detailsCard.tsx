@@ -255,9 +255,12 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
             )
         case 'tool-list_commits':
             return (
-                <ListCommitsToolComponent
+                <ToolLoadingGuard
                     part={part}
-                />
+                    loadingText="Listing commits..."
+                >
+                    {(output) => <ListCommitsToolComponent {...output} />}
+                </ToolLoadingGuard>
             )
         case 'tool-list_tree':
             return (
