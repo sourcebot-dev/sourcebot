@@ -35,43 +35,6 @@ interface DetailsCardProps {
     metadata?: SBChatMessageMetadata;
 }
 
-const ThinkingStepsScroller = ({ thinkingSteps, isStreaming, isThinking }: { thinkingSteps: SBChatMessagePart[][], isStreaming: boolean, isThinking: boolean }) => {
-    const { scrollRef, contentRef, scrollToBottom } = useStickToBottom();
-    const [shouldStick, setShouldStick] = useState(isThinking);
-    const prevIsThinking = usePrevious(isThinking);
-
-    useEffect(() => {
-        if (prevIsThinking && !isThinking) {
-            scrollToBottom();
-            setShouldStick(false);
-        } else if (!prevIsThinking && isThinking) {
-            setShouldStick(true);
-        }
-    }, [isThinking, prevIsThinking, scrollToBottom]);
-
-    return (
-        <div ref={scrollRef} className="max-h-[300px] overflow-y-auto px-6 py-2">
-            <div ref={shouldStick ? contentRef : undefined}>
-                {thinkingSteps.length === 0 ? (
-                    isStreaming ? (
-                        <Skeleton className="h-24 w-full" />
-                    ) : (
-                        <p className="text-sm text-muted-foreground">No thinking steps</p>
-                    )
-                ) : thinkingSteps.map((step, index) => (
-                    <div key={index}>
-                        {step.map((part, index) => (
-                            <div key={index} className="mb-2">
-                                <StepPartRenderer part={part} />
-                            </div>
-                        ))}
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
 const DetailsCardComponent = ({
     chatId,
     isExpanded,
@@ -191,7 +154,7 @@ const DetailsCardComponent = ({
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                     <CardContent className="mt-2 p-0">
-                        <ThinkingStepsScroller
+                        <ThinkingSteps
                             thinkingSteps={thinkingSteps}
                             isStreaming={isStreaming}
                             isThinking={isThinking}
@@ -204,6 +167,44 @@ const DetailsCardComponent = ({
 }
 
 export const DetailsCard = memo(DetailsCardComponent, isEqual);
+
+
+const ThinkingSteps = ({ thinkingSteps, isStreaming, isThinking }: { thinkingSteps: SBChatMessagePart[][], isStreaming: boolean, isThinking: boolean }) => {
+    const { scrollRef, contentRef, scrollToBottom } = useStickToBottom();
+    const [shouldStick, setShouldStick] = useState(isThinking);
+    const prevIsThinking = usePrevious(isThinking);
+
+    useEffect(() => {
+        if (prevIsThinking && !isThinking) {
+            scrollToBottom();
+            setShouldStick(false);
+        } else if (!prevIsThinking && isThinking) {
+            setShouldStick(true);
+        }
+    }, [isThinking, prevIsThinking, scrollToBottom]);
+
+    return (
+        <div ref={scrollRef} className="max-h-[350px] overflow-y-auto px-6 py-2">
+            <div ref={shouldStick ? contentRef : undefined}>
+                {thinkingSteps.length === 0 ? (
+                    isStreaming ? (
+                        <Skeleton className="h-24 w-full" />
+                    ) : (
+                        <p className="text-sm text-muted-foreground">No thinking steps</p>
+                    )
+                ) : thinkingSteps.map((step, index) => (
+                    <div key={index}>
+                        {step.map((part, index) => (
+                            <div key={index} className="mb-2">
+                                <StepPartRenderer part={part} />
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
 
 
 export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
