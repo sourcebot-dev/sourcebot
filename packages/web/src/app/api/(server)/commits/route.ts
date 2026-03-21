@@ -13,6 +13,7 @@ const listCommitsQueryParamsSchema = z.object({
     until: z.string().optional(),
     author: z.string().optional(),
     ref: z.string().optional(),
+    path: z.string().optional(),
     page: z.coerce.number().int().positive().default(1),
     perPage: z.coerce.number().int().positive().max(100).default(50),
 });
@@ -57,6 +58,7 @@ export const GET = apiHandler(async (request: NextRequest): Promise<Response> =>
             ...(searchParams.until ? { until: searchParams.until } : {}),
             ...(searchParams.author ? { author: searchParams.author } : {}),
             ...(searchParams.ref ? { ref: searchParams.ref } : {}),
+            ...(searchParams.path ? { path: searchParams.path } : {}),
         },
     });
     if (linkHeader) headers.set('Link', linkHeader);
