@@ -21,7 +21,7 @@ export const ListTreeToolComponent = ({ metadata }: ToolResult<ListTreeMetadata>
                     domain: SINGLE_TENANT_ORG_DOMAIN,
                 })}
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 text-xs bg-muted hover:bg-accent px-1.5 py-0.5 rounded truncate text-foreground font-medium transition-colors"
+                className="inline-flex items-center gap-1 text-xs bg-muted hover:bg-accent px-1.5 py-0.5 rounded truncate text-foreground font-medium transition-colors min-w-0"
             >
                 <FolderIcon className="h-3 w-3 flex-shrink-0" />
                 {metadata.path || '/'}

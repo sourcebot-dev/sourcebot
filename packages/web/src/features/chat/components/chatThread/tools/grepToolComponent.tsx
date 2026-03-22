@@ -7,7 +7,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
-import { getCodeHostIcon } from "@/lib/utils";
+import { cn, getCodeHostIcon } from "@/lib/utils";
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
@@ -16,6 +16,9 @@ export const GrepToolComponent = (output: ToolResult<GrepMetadata>) => {
     const stats = useMemo(() => {
         const { matchCount, repoCount } = output.metadata;
         const matchLabel = `${matchCount} ${matchCount === 1 ? 'match' : 'matches'}`;
+        if (matchCount === 0 || repoCount === 1) {
+            return matchLabel;
+        }
         const repoLabel = `${repoCount} ${repoCount === 1 ? 'repo' : 'repos'}`;
         return `${matchLabel} · ${repoLabel}`;
     }, [output]);
@@ -40,9 +43,9 @@ export const GrepToolComponent = (output: ToolResult<GrepMetadata>) => {
             <div className="flex items-center gap-2 select-none cursor-default">
                 <div className="flex-1 min-w-0">
                     <HoverCardTrigger asChild>
-                        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground min-w-0">
+                        <span className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0 overflow-hidden">
                             <span className="flex-shrink-0">Searched</span>
-                            <code className="text-xs bg-muted px-1 py-0.5 rounded truncate text-foreground">{output.metadata.pattern}</code>
+                            <code className="text-xs bg-muted px-1 py-0.5 rounded truncate text-foreground max-w-[300px]">{output.metadata.pattern}</code>
                             {singleRepo && <><span className="flex-shrink-0">in</span><RepoBadge repo={singleRepo} /></>}
                         </span>
                     </HoverCardTrigger>
@@ -53,14 +56,29 @@ export const GrepToolComponent = (output: ToolResult<GrepMetadata>) => {
             {output.metadata.files.length > 0 && (
                 <HoverCardContent align="start" className="w-96 p-0">
                     <div className="overflow-y-auto max-h-72">
-                        {Array.from(filesByRepo.entries()).map(([repo, files]) => (
-                            <div key={repo}>
-                                <RepoHeader repo={output.metadata.repoInfoMap[repo]} repoName={repo} />
-                                {files.map((file) => (
-                                    <FileRow key={`${file.repo}:${file.path}`} file={file} />
-                                ))}
-                            </div>
-                        ))}
+                        {output.metadata.groupByRepo ? (
+                            Array.from(filesByRepo.keys()).map((repo) => (
+                                <RepoHeader
+                                    key={repo}
+                                    repo={output.metadata.repoInfoMap[repo]}
+                                    repoName={repo}
+                                    isPrimary={true}
+                                />
+                            ))
+                        ) : (
+                            Array.from(filesByRepo.entries()).map(([repo, files]) => (
+                                <div key={repo}>
+                                    <RepoHeader
+                                        repo={output.metadata.repoInfoMap[repo]}
+                                        repoName={repo}
+                                        isPrimary={false}
+                                    />
+                                    {files.map((file) => (
+                                        <FileRow key={`${file.repo}:${file.path}`} file={file} />
+                                    ))}
+                                </div>
+                            ))
+                        )}
                     </div>
                 </HoverCardContent>
             )}
@@ -68,18 +86,49 @@ export const GrepToolComponent = (output: ToolResult<GrepMetadata>) => {
     );
 }
 
-const RepoHeader = ({ repo, repoName }: { repo: GrepRepoInfo | undefined; repoName: string }) => {
+const RepoHeader = ({ repo, repoName, isPrimary }: { repo: GrepRepoInfo | undefined; repoName: string; isPrimary: boolean }) => {
     const displayName = repo?.displayName ?? repoName.split('/').slice(1).join('/');
     const icon = repo ? getCodeHostIcon(repo.codeHostType) : null;
 
-    return (
-        <div className="sticky top-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground bg-popover border-b border-border">
+    const href = getBrowsePath({
+        repoName: repoName,
+        path: '',
+        pathType: 'tree',
+        domain: SINGLE_TENANT_ORG_DOMAIN,
+    });
+
+    const className = cn("top-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-popover border-b border-border",
+        {
+            'sticky text-muted-foreground': !isPrimary,
+            'text-foreground cursor-pointer hover:bg-accent transition-colors': isPrimary,
+        }
+    )
+
+    const Content = (
+        <>
             {icon && (
                 <Image src={icon.src} alt={repo!.codeHostType} width={12} height={12} className={icon.className} />
             )}
             <span>{displayName}</span>
-        </div>
-    );
+        </>
+    )
+
+    if (isPrimary) {
+        return (
+            <Link
+                className={className}
+                href={href}
+            >
+                {Content}
+            </Link>
+        )
+    } else {
+        return (
+            <div className={className}>
+                {Content}
+            </div>
+        )
+    }
 }
 
 const FileRow = ({ file }: { file: GrepFile }) => {

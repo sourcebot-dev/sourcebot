@@ -5,3 +5,4 @@
 - Returns file paths and line numbers with at least one match
 - Use this tool when you need to find files containing specific patterns
 - When using the `repo` param, if the repository name is not known, use `list_repos` first to discover the correct name.
+- Use `groupByRepo: true` when searching across many repositories and you want to identify which repos are most relevant before drilling in. This returns a per-repository summary (match and file counts) instead of individual file results, and automatically uses a higher match limit for accuracy.

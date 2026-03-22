@@ -11,7 +11,7 @@ export const FindSymbolDefinitionsToolComponent = ({ metadata }: ToolResult<Find
     return (
         <div className="flex items-center gap-2 select-none cursor-default text-sm text-muted-foreground">
             <span className="flex-shrink-0">Resolved</span>
-            <code className="inline-flex items-center gap-1 text-xs bg-muted px-1 py-0.5 rounded truncate text-foreground"><VscSymbolMisc className="flex-shrink-0" />{metadata.symbol}</code>
+            <code className="inline-flex items-center gap-1 text-xs bg-muted px-1 py-0.5 rounded truncate text-foreground max-w-[300px]"><VscSymbolMisc className="flex-shrink-0" />{metadata.symbol}</code>
             <span className="flex-shrink-0">in</span>
             <RepoBadge repo={metadata.repoInfo} />
             <span className="flex-1" />

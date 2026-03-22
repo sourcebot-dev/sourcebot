@@ -8,9 +8,11 @@ import { logger } from "./logger";
 import description from "./grep.txt";
 import { CodeHostType } from "@sourcebot/db";
 
-const DEFAULT_SEARCH_LIMIT = 100;
+const DEFAULT_LIMIT = 100;
+const DEFAULT_GROUP_BY_REPO_LIMIT = 10_000;
 const MAX_LINE_LENGTH = 2000;
 const MAX_LINE_SUFFIX = `... (line truncated to ${MAX_LINE_LENGTH} chars)`;
+const TRUNCATION_MESSAGE = `(Results truncated. Consider using a more specific path or pattern, specifying a repo, or increasing the limit.)`;
 
 function globToFileRegexp(glob: string): string {
     const re = globToRegexp(glob, { extended: true, globstar: true });
@@ -39,9 +41,12 @@ const grepShape = {
         .optional(),
     limit: z
         .number()
-        .default(DEFAULT_SEARCH_LIMIT)
-        .describe(`The maximum number of matches to return (default: ${DEFAULT_SEARCH_LIMIT})`)
+        .describe(`The maximum number of matches to return (default: ${DEFAULT_LIMIT} when groupByRepo=false, ${DEFAULT_GROUP_BY_REPO_LIMIT} when groupByRepo=true)`)
         .optional(),
+    groupByRepo: z
+        .boolean()
+        .optional()
+        .describe(`If true, returns a summary of match counts grouped by repository instead of individual file results.`),
 };
 
 export type GrepFile = {
@@ -64,6 +69,7 @@ export type GrepMetadata = {
     matchCount: number;
     repoCount: number;
     repoInfoMap: Record<string, GrepRepoInfo>;
+    groupByRepo: boolean;
 };
 
 export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetadata> = {
@@ -79,9 +85,13 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
         include,
         repo,
         ref,
-        limit = DEFAULT_SEARCH_LIMIT,
+        limit: _limit,
+        groupByRepo = false,
     }, context) => {
-        logger.debug('grep', { pattern, path, include, repo, ref, limit });
+
+        const limit = _limit ?? (groupByRepo ? DEFAULT_GROUP_BY_REPO_LIMIT : DEFAULT_LIMIT);
+
+        logger.debug('grep', { pattern, path, include, repo, ref, limit, groupByRepo });
 
         const quotedPattern = `"${pattern.replace(/"/g, '\\"')}"`;
         let query = quotedPattern;
@@ -142,6 +152,7 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
             matchCount: response.stats.actualMatchCount,
             repoCount: new Set(files.map((f) => f.repo)).size,
             repoInfoMap,
+            groupByRepo,
         };
 
         const totalFiles = response.files.length;
@@ -150,6 +161,33 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
         if (totalFiles === 0) {
             return {
                 output: 'No files found',
+                metadata,
+            };
+        }
+
+        if (groupByRepo) {
+            const repoCounts = new Map<string, { matches: number; files: number }>();
+            for (const file of response.files) {
+                const repo = file.repository;
+                const matchCount = file.chunks.reduce((acc, chunk) => acc + chunk.matchRanges.length, 0);
+                const existing = repoCounts.get(repo) ?? { matches: 0, files: 0 };
+                repoCounts.set(repo, { matches: existing.matches + matchCount, files: existing.files + 1 });
+            }
+
+            const outputLines: string[] = [
+                `Found matches in ${repoCounts.size} ${repoCounts.size === 1 ? 'repository' : 'repositories'}:`,
+            ];
+            for (const [repoName, { matches, files }] of repoCounts) {
+                outputLines.push(`  ${repoName}: ${matches} ${matches === 1 ? 'match' : 'matches'} in ${files} ${files === 1 ? 'file' : 'files'}`);
+            }
+
+            if (!response.isSearchExhaustive) {
+                outputLines.push('');
+                outputLines.push(TRUNCATION_MESSAGE);
+            }
+
+            return {
+                output: outputLines.join('\n'),
                 metadata,
             };
         }
@@ -177,7 +215,7 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
 
         if (!response.isSearchExhaustive) {
             outputLines.push('');
-            outputLines.push(`(Results truncated. Consider using a more specific path or pattern, specifying a repo, or increasing the limit.)`);
+            outputLines.push(TRUNCATION_MESSAGE);
         }
 
         return {

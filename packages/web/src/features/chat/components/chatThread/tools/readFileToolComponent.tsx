@@ -29,11 +29,11 @@ export const ReadFileToolComponent = ({ metadata }: ToolResult<ReadFileMetadata>
             <span className="flex-shrink-0">Read</span>
             <Link
                 href={href}
-                className="inline-flex items-center gap-1 text-xs bg-muted hover:bg-accent px-1.5 py-0.5 rounded transition-colors flex-shrink-0"
+                className="inline-flex items-center gap-1 text-xs bg-muted hover:bg-accent px-1.5 py-0.5 rounded transition-colors min-w-0"
                 onClick={(e) => e.stopPropagation()}
             >
                 <VscodeFileIcon fileName={fileName} className="flex-shrink-0" />
-                <span className="font-medium text-foreground">{fileName}</span>
+                <span className="font-medium text-foreground truncate">{fileName}</span>
                 {(metadata.isTruncated || metadata.startLine > 1) && (
                     <span className="text-muted-foreground">L{metadata.startLine}-{metadata.endLine}</span>
                 )}
