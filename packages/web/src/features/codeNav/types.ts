@@ -3,7 +3,7 @@ import { rangeSchema, repositoryInfoSchema } from "../search/types";
 
 export const findRelatedSymbolsRequestSchema = z.object({
     symbolName: z.string(),
-    language: z.string(),
+    language: z.string().optional(),
     /**
      * Optional revision name to scope search to.
      * If not provided, the search will be scoped to HEAD.

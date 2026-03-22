@@ -1,61 +1,22 @@
 'use client';
 
-import { FindSymbolReferencesToolUIPart } from "@/features/chat/tools";
-import { useMemo, useState } from "react";
-import { FileListItem, ToolHeader, TreeList } from "./shared";
-import { CodeSnippet } from "@/app/components/codeSnippet";
+import { FindSymbolReferencesMetadata, ToolResult } from "@/features/tools";
 import { Separator } from "@/components/ui/separator";
-import { BookOpenIcon } from "lucide-react";
+import { VscSymbolMisc } from "react-icons/vsc";
+import { RepoBadge } from "./repoBadge";
 
-
-export const FindSymbolReferencesToolComponent = ({ part }: { part: FindSymbolReferencesToolUIPart }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    const label = useMemo(() => {
-        switch (part.state) {
-            case 'input-streaming':
-                return 'Resolving references...';
-            case 'input-available':
-                return <span>Resolving references for <CodeSnippet>{part.input.symbol}</CodeSnippet></span>;
-            case 'output-error':
-                return '"Find symbol references" tool call failed';
-            case 'output-available':
-                return <span>Resolved references for <CodeSnippet>{part.input.symbol}</CodeSnippet></span>;
-        }
-    }, [part]);
+export const FindSymbolReferencesToolComponent = ({ metadata }: ToolResult<FindSymbolReferencesMetadata>) => {
+    const label = `${metadata.matchCount} ${metadata.matchCount === 1 ? 'reference' : 'references'}`;
 
     return (
-        <div>
-            <ToolHeader
-                isLoading={part.state !== 'output-available' && part.state !== 'output-error'}
-                isError={part.state === 'output-error'}
-                isExpanded={isExpanded}
-                label={label}
-                Icon={BookOpenIcon}
-                onExpand={setIsExpanded}
-                input={part.state !== 'input-streaming' ? JSON.stringify(part.input) : undefined}
-                output={part.state === 'output-available' ? part.output.output : undefined}
-            />
-            {part.state === 'output-available' && isExpanded && (
-                <>
-                    {part.output.metadata.files.length === 0 ? (
-                        <span className="text-sm text-muted-foreground ml-[25px]">No matches found</span>
-                    ) : (
-                        <TreeList>
-                            {part.output.metadata.files.map((file) => {
-                                return (
-                                    <FileListItem
-                                        key={file.fileName}
-                                        path={file.fileName}
-                                        repoName={file.repo}
-                                    />
-                                )
-                            })}
-                        </TreeList>
-                    )}
-                    <Separator className='ml-[7px] my-2' />
-                </>
-            )}
+        <div className="flex items-center gap-2 select-none cursor-default text-sm text-muted-foreground">
+            <span className="flex-shrink-0">Resolved</span>
+            <code className="inline-flex items-center gap-1 text-xs bg-muted px-1 py-0.5 rounded truncate text-foreground"><VscSymbolMisc className="flex-shrink-0" />{metadata.symbol}</code>
+            <span className="flex-shrink-0">in</span>
+            <RepoBadge repo={metadata.repoInfo} />
+            <span className="flex-1" />
+            <span className="text-xs flex-shrink-0">{label}</span>
+            <Separator orientation="vertical" className="h-3 flex-shrink-0" />
         </div>
-    )
-}
+    );
+};

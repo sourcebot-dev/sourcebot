@@ -237,15 +237,21 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
             )
         case 'tool-find_symbol_definitions':
             return (
-                <FindSymbolDefinitionsToolComponent
+                <ToolLoadingGuard
                     part={part}
-                />
+                    loadingText="Resolving definitions..."
+                >
+                    {(output) => <FindSymbolDefinitionsToolComponent {...output} />}
+                </ToolLoadingGuard>
             )
         case 'tool-find_symbol_references':
             return (
-                <FindSymbolReferencesToolComponent
+                <ToolLoadingGuard
                     part={part}
-                />
+                    loadingText="Resolving references..."
+                >
+                    {(output) => <FindSymbolReferencesToolComponent {...output} />}
+                </ToolLoadingGuard>
             )
         case 'tool-list_repos':
             return (
