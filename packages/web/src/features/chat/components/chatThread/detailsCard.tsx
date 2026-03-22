@@ -22,7 +22,7 @@ import { ListCommitsToolComponent } from './tools/listCommitsToolComponent';
 import { ListReposToolComponent } from './tools/listReposToolComponent';
 import { ListTreeToolComponent } from './tools/listTreeToolComponent';
 import { ReadFileToolComponent } from './tools/readFileToolComponent';
-import { ToolLoadingGuard } from './tools/toolLoadingGuard';
+import { ToolOutputGuard } from './tools/toolOutputGuard';
 
 
 interface DetailsCardProps {
@@ -219,66 +219,66 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
             )
         case 'tool-read_file':
             return (
-                <ToolLoadingGuard
+                <ToolOutputGuard
                     part={part}
                     loadingText="Reading file..."
                 >
                     {(output) => <ReadFileToolComponent {...output} />}
-                </ToolLoadingGuard>
+                </ToolOutputGuard>
             )
         case 'tool-grep':
             return (
-                <ToolLoadingGuard
+                <ToolOutputGuard
                     part={part}
                     loadingText={'Searching...'}
                 >
                     {(output) => <GrepToolComponent {...output} />}
-                </ToolLoadingGuard>
+                </ToolOutputGuard>
             )
         case 'tool-find_symbol_definitions':
             return (
-                <ToolLoadingGuard
+                <ToolOutputGuard
                     part={part}
                     loadingText="Resolving definitions..."
                 >
                     {(output) => <FindSymbolDefinitionsToolComponent {...output} />}
-                </ToolLoadingGuard>
+                </ToolOutputGuard>
             )
         case 'tool-find_symbol_references':
             return (
-                <ToolLoadingGuard
+                <ToolOutputGuard
                     part={part}
                     loadingText="Resolving references..."
                 >
                     {(output) => <FindSymbolReferencesToolComponent {...output} />}
-                </ToolLoadingGuard>
+                </ToolOutputGuard>
             )
         case 'tool-list_repos':
             return (
-                <ToolLoadingGuard
+                <ToolOutputGuard
                     part={part}
                     loadingText="Listing repositories..."
                 >
                     {(output) => <ListReposToolComponent {...output} />}
-                </ToolLoadingGuard>
+                </ToolOutputGuard>
             )
         case 'tool-list_commits':
             return (
-                <ToolLoadingGuard
+                <ToolOutputGuard
                     part={part}
                     loadingText="Listing commits..."
                 >
                     {(output) => <ListCommitsToolComponent {...output} />}
-                </ToolLoadingGuard>
+                </ToolOutputGuard>
             )
         case 'tool-list_tree':
             return (
-                <ToolLoadingGuard
+                <ToolOutputGuard
                     part={part}
                     loadingText="Listing tree..."
                 >
                     {(output) => <ListTreeToolComponent {...output} />}
-                </ToolLoadingGuard>
+                </ToolOutputGuard>
             )
         case 'data-source':
         case 'dynamic-tool':

@@ -7,7 +7,7 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCallback, useState } from "react";
 
-export const ToolLoadingGuard = <T extends ToolUIPart<{ [K in keyof SBChatMessageToolTypes]: SBChatMessageToolTypes[K] }>>({
+export const ToolOutputGuard = <T extends ToolUIPart<{ [K in keyof SBChatMessageToolTypes]: SBChatMessageToolTypes[K] }>>({
     part,
     loadingText,
     children,
