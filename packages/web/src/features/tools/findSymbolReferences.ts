@@ -109,9 +109,18 @@ export const findSymbolReferencesDefinition: ToolDefinition<
             }
         }
 
+        const sources = metadata.files.map((file) => ({
+            type: 'file' as const,
+            repo: file.repo,
+            path: file.fileName,
+            name: file.fileName.split('/').pop() ?? file.fileName,
+            revision: file.revision,
+        }));
+
         return {
             output: outputLines.join('\n'),
             metadata,
+            sources,
         };
     },
 };

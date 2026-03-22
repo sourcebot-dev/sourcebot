@@ -35,7 +35,6 @@ export type ReadFileMetadata = {
     path: string;
     repo: string;
     repoInfo: ReadFileRepoInfo;
-    language: string;
     startLine: number;
     endLine: number;
     isTruncated: boolean;
@@ -120,13 +119,22 @@ export const readFileDefinition: ToolDefinition<"read_file", typeof readFileShap
             path: fileSource.path,
             repo: fileSource.repo,
             repoInfo,
-            language: fileSource.language,
             startLine,
             endLine: lastReadLine,
             isTruncated: truncatedByBytes || truncatedByLines,
             revision,
         };
 
-        return { output, metadata };
+        return {
+            output,
+            metadata,
+            sources: [{
+                type: 'file',
+                repo: fileSource.repo,
+                path: fileSource.path,
+                name: fileSource.path.split('/').pop() ?? fileSource.path,
+                revision,
+            }],
+        };
     },
 };

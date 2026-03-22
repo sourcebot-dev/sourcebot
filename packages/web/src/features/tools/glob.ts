@@ -184,9 +184,18 @@ export const globDefinition: ToolDefinition<'glob', typeof globShape, GlobMetada
             outputLines.push(TRUNCATION_MESSAGE);
         }
 
+        const sources = files.map((file) => ({
+            type: 'file' as const,
+            repo: file.repo,
+            path: file.path,
+            name: file.name,
+            revision: file.revision,
+        }));
+
         return {
             output: outputLines.join('\n'),
             metadata,
+            sources,
         };
     },
 };

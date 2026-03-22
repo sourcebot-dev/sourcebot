@@ -221,57 +221,7 @@ const createAgentStream = async ({
                     return;
                 }
 
-                if (toolName === readFileDefinition.name) {
-                    onWriteSource({
-                        type: 'file',
-                        repo: output.metadata.repo,
-                        path: output.metadata.path,
-                        revision: output.metadata.revision,
-                        name: output.metadata.path.split('/').pop() ?? output.metadata.path,
-                    });
-                } else if (toolName === grepDefinition.name) {
-                    output.metadata.files.forEach((file) => {
-                        onWriteSource({
-                            type: 'file',
-                            repo: file.repo,
-                            path: file.path,
-                            revision: file.revision,
-                            name: file.path.split('/').pop() ?? file.path,
-                        });
-                    });
-                } else if (toolName === findSymbolDefinitionsDefinition.name || toolName === findSymbolReferencesDefinition.name) {
-                    output.metadata.files.forEach((file) => {
-                        onWriteSource({
-                            type: 'file',
-                            repo: file.repo,
-                            path: file.fileName,
-                            revision: file.revision,
-                            name: file.fileName.split('/').pop() ?? file.fileName,
-                        });
-                    });
-                } else if (toolName === listTreeDefinition.name) {
-                    output.metadata.entries
-                        .filter((entry) => entry.type === 'blob')
-                        .forEach((entry) => {
-                            onWriteSource({
-                                type: 'file',
-                                repo: output.metadata.repo,
-                                path: entry.path,
-                                revision: output.metadata.ref,
-                                name: entry.name,
-                            });
-                        });
-                } else if (toolName === globDefinition.name) {
-                    output.metadata.files.forEach((file) => {
-                        onWriteSource({
-                            type: 'file',
-                            repo: file.repo,
-                            path: file.path,
-                            revision: file.revision,
-                            name: file.path.split('/').pop() ?? file.path,
-                        });
-                    });
-                }
+                output.sources?.forEach(onWriteSource);
             });
         },
         experimental_telemetry: {

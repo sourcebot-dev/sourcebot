@@ -1,12 +1,11 @@
-import { z } from "zod";
-import { isServiceError } from "@/lib/utils";
-import { getTree } from "@/features/git";
-import { buildTreeNodeIndex, joinTreePath, normalizeTreePath, sortTreeEntries } from "@/features/mcp/utils";
-import { ToolDefinition } from "./types";
-import { logger } from "./logger";
-import description from "./listTree.txt";
-import { CodeHostType } from "@sourcebot/db";
 import { getRepoInfoByName } from "@/actions";
+import { FileTreeNode, getTree } from "@/features/git";
+import { isServiceError } from "@/lib/utils";
+import { CodeHostType } from "@sourcebot/db";
+import { z } from "zod";
+import description from "./listTree.txt";
+import { logger } from "./logger";
+import { ToolDefinition } from "./types";
 
 const DEFAULT_TREE_DEPTH = 1;
 const MAX_TREE_DEPTH = 10;
@@ -42,7 +41,6 @@ export type ListTreeMetadata = {
     repoInfo: ListTreeRepoInfo;
     ref: string;
     path: string;
-    entries: ListTreeEntry[];
     totalReturned: number;
     truncated: boolean;
 };
@@ -152,8 +150,10 @@ export const listTreeDefinition: ToolDefinition<'list_tree', typeof listTreeShap
 
         const sortedEntries = sortTreeEntries(entries);
         const metadata: ListTreeMetadata = {
-            repo, repoInfo, ref, path: normalizedPath,
-            entries: sortedEntries,
+            repo,
+            repoInfo,
+            ref,
+            path: normalizedPath,
             totalReturned: sortedEntries.length,
             truncated,
         };
@@ -190,6 +190,60 @@ export const listTreeDefinition: ToolDefinition<'list_tree', typeof listTreeShap
             outputLines.push(`(truncated — showing first ${normalizedMaxEntries} entries)`);
         }
 
-        return { output: outputLines.join('\n'), metadata };
+        const sources = sortedEntries
+            .filter((entry) => entry.type === 'blob')
+            .map((entry) => ({
+                type: 'file' as const,
+                repo,
+                path: entry.path,
+                name: entry.name,
+                revision: ref,
+            }));
+
+        return { output: outputLines.join('\n'), metadata, sources };
     },
 };
+
+const normalizeTreePath = (path: string): string => {
+    const withoutLeading = path.replace(/^\/+/, '');
+    return withoutLeading.replace(/\/+$/, '');
+}
+
+const joinTreePath = (parentPath: string, name: string): string => {
+    if (!parentPath) {
+        return name;
+    }
+    return `${parentPath}/${name}`;
+}
+
+const buildTreeNodeIndex = (root: FileTreeNode): Map<string, FileTreeNode> => {
+    const nodeIndex = new Map<string, FileTreeNode>();
+
+    const visit = (node: FileTreeNode, currentPath: string) => {
+        nodeIndex.set(currentPath, node);
+        for (const child of node.children) {
+            visit(child, joinTreePath(currentPath, child.name));
+        }
+    };
+
+    visit(root, '');
+    return nodeIndex;
+}
+
+const sortTreeEntries = (entries: ListTreeEntry[]): ListTreeEntry[] => {
+    const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
+
+    return [...entries].sort((a, b) => {
+        const parentCompare = collator.compare(a.parentPath, b.parentPath);
+        if (parentCompare !== 0) return parentCompare;
+
+        if (a.type !== b.type) {
+            return a.type === 'tree' ? -1 : 1;
+        }
+
+        const nameCompare = collator.compare(a.name, b.name);
+        if (nameCompare !== 0) return nameCompare;
+
+        return collator.compare(a.path, b.path);
+    });
+}

@@ -5,20 +5,9 @@ import { ReactEditor, RenderElementProps } from "slate-react";
 import { z } from "zod";
 import { LanguageModel } from "@sourcebot/schemas/v3/index.type";
 import { createTools } from "./tools";
-
-const fileSourceSchema = z.object({
-    type: z.literal('file'),
-    repo: z.string(),
-    path: z.string(),
-    name: z.string(),
-    revision: z.string(),
-});
-export type FileSource = z.infer<typeof fileSourceSchema>;
-
-export const sourceSchema = z.discriminatedUnion('type', [
-    fileSourceSchema,
-]);
-export type Source = z.infer<typeof sourceSchema>;
+export { sourceSchema } from "@/features/tools/types";
+export type { FileSource, Source } from "@/features/tools/types";
+import type { Source } from "@/features/tools/types";
 
 const fileReferenceSchema = z.object({
     type: z.literal('file'),

@@ -179,6 +179,14 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
             };
         }
 
+        const sources = files.map((file) => ({
+            type: 'file' as const,
+            repo: file.repo,
+            path: file.path,
+            name: file.path.split('/').pop() ?? file.path,
+            revision: file.revision,
+        }));
+
         if (groupByRepo) {
             const repoCounts = new Map<string, { matches: number; files: number }>();
             for (const file of response.files) {
@@ -203,6 +211,7 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
             return {
                 output: outputLines.join('\n'),
                 metadata,
+                sources,
             };
         } else {
             const outputLines: string[] = [
@@ -234,6 +243,7 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
             return {
                 output: outputLines.join('\n'),
                 metadata,
+                sources,
             };
         }
     },
