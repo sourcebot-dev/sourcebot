@@ -94,22 +94,23 @@ export function createMcpServer(): McpServer {
                 source: 'mcp',
             });
 
-            if (isServiceError(result)) {
-                return {
-                    content: [{ type: "text", text: `Failed to ask codebase: ${result.message}` }],
-                };
+                if (isServiceError(result)) {
+                    return {
+                        content: [{ type: "text", text: `Failed to ask codebase: ${result.message}` }],
+                    };
+                }
+
+                const formattedResponse = dedent`
+                ${result.answer}
+
+                ---
+                **View full research session:** ${result.chatUrl}
+                **Model used:** ${result.languageModel.model}
+                `;
+                return { content: [{ type: "text", text: formattedResponse }] };
             }
-
-            const formattedResponse = dedent`
-            ${result.answer}
-
-            ---
-            **View full research session:** ${result.chatUrl}
-            **Model used:** ${result.languageModel.model}
-            `;
-            return { content: [{ type: "text", text: formattedResponse }] };
-        }
-    );
+        );
+    }
 
     return server;
 }

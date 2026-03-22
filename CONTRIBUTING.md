@@ -36,14 +36,24 @@ Want to take on an issue? Leave a comment and a maintainer may assign it to you 
 
 1. Install <a href="https://go.dev/doc/install"><img src="https://go.dev/favicon.ico" width="16" height="16"> go</a>, <a href="https://docs.docker.com/get-started/get-docker/"><img src="https://www.docker.com/favicon.ico" width="16" height="16"> docker</a>, and <a href="https://nodejs.org/"><img src="https://nodejs.org/favicon.ico" width="16" height="16"> NodeJS</a>. Note that a NodeJS version of at least `24` is required.
 
-2. Install [ctags](https://github.com/universal-ctags/ctags) (required by zoekt)
-    ```sh
-    // macOS:
-    brew install universal-ctags
+2. Install [universal-ctags](https://github.com/universal-ctags/ctags) v6.1.0 (required by zoekt). Version 6.1.0 is required — newer versions have a known incompatibility with zoekt.
 
-    // Linux:
-    snap install universal-ctags
+    **macOS:** Run the provided install script:
+    ```sh
+    ./install-ctags-macos.sh
     ```
+
+    **Linux and other platforms:** Build from source:
+    ```sh
+    curl https://codeload.github.com/universal-ctags/ctags/tar.gz/v6.1.0 | tar xz -C /tmp
+    cd /tmp/ctags-6.1.0
+    ./autogen.sh
+    ./configure --program-prefix=universal- --enable-json
+    make -j$(nproc)
+    sudo make install
+    ```
+
+    After installing, set `CTAGS_COMMAND` in your `.env.development.local` to the path of the installed binary (e.g. `/usr/local/bin/universal-ctags`).
 
 3. Install corepack:
     ```sh

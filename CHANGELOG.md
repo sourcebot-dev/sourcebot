@@ -17,7 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed issue where ask responses would sometimes appear in the details panel while generating. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 
 ### Changed
+- Changed language detection to resolve file extensions with multiple language resolutions (e.g., .md) to the most common resolution. [#1026](https://github.com/sourcebot-dev/sourcebot/pull/1026)
 - Changed the `webUrl` property of the `/api/repos` api to return a URL rather than just a path. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+
+## [4.15.11] - 2026-03-20
+
+### Changed
+- Updated JumpCloud SSO documentation to clarify token endpoint authentication method requirement and AUTH_SECRET configuration. [#1022](https://github.com/sourcebot-dev/sourcebot/pull/1022)
+- The `ask_codebase` MCP tool is now hidden when no language model providers are configured. [#1018](https://github.com/sourcebot-dev/sourcebot/pull/1018)
+
+## [4.15.10] - 2026-03-20
+
+### Changed
+- Increased `SOURCEBOT_CHAT_MAX_STEP_COUNT` default from 20 to 100 to allow agents to perform more autonomous steps. [#1017](https://github.com/sourcebot-dev/sourcebot/pull/1017)
+- [EE] Fix error with Jumpcloud SSO state param [#1020](https://github.com/sourcebot-dev/sourcebot/pull/1020)
 
 ## [4.15.9] - 2026-03-17
 
@@ -45,10 +58,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Deprecated `EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS` in favour of `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS`. The old variable will continue to work as a fallback. [#1007](https://github.com/sourcebot-dev/sourcebot/pull/1007)
 
+### Modified
+- Made OSS license audit runnable locally [#1021](https://github.com/sourcebot-dev/sourcebot/pull/1021)
+
+
 ## [4.15.6] - 2026-03-13
 
 ### Added
 - Added generated OpenAPI documentation for the public search, repo, and file browsing API surface. [#996](https://github.com/sourcebot-dev/sourcebot/pull/996)
+- Added OSS license audit github action. [#1003](https://github.com/sourcebot-dev/sourcebot/pull/1003)
 
 ### Fixed
 - [EE] Fixed account-driven permission sync silently wiping all Bitbucket Server repository permissions when the OAuth token expires on instances with anonymous access enabled. [#998](https://github.com/sourcebot-dev/sourcebot/pull/998)
