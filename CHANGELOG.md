@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Changed language detection to resolve file extensions with multiple language resolutions (e.g., .md) to the most common resolution. [#1026](https://github.com/sourcebot-dev/sourcebot/pull/1026)
+
 ## [4.15.11] - 2026-03-20
 
 ### Changed
