@@ -9,8 +9,8 @@ import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { cn, getShortenedNumberDisplayString } from '@/lib/utils';
 import isEqual from "fast-deep-equal/react";
 import { useStickToBottom } from 'use-stick-to-bottom';
-import { Brain, ChevronDown, ChevronRight, Clock, InfoIcon, Loader2, ScanSearchIcon, Zap } from 'lucide-react';
-import { memo, useCallback, useEffect, useState } from 'react';
+import { Brain, ChevronDown, ChevronRight, Clock, InfoIcon, Loader2, ScanSearchIcon, Wrench, Zap } from 'lucide-react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { usePrevious } from '@uidotdev/usehooks';
 import { SBChatMessageMetadata, SBChatMessagePart } from '../../types';
 import { SearchScopeIcon } from '../searchScopeIcon';
@@ -45,6 +45,8 @@ const DetailsCardComponent = ({
     thinkingSteps,
 }: DetailsCardProps) => {
     const captureEvent = useCaptureEvent();
+
+    const toolCallCount = useMemo(() => thinkingSteps.flat().filter(part => part.type.startsWith('tool-')).length, [thinkingSteps]);
 
     const handleExpandedChanged = useCallback((next: boolean) => {
         captureEvent('wa_chat_details_card_toggled', { chatId, isExpanded: next });
@@ -138,6 +140,12 @@ const DetailsCardComponent = ({
                                             <div className="flex items-center text-xs">
                                                 <Clock className="w-3 h-3 mr-1 flex-shrink-0" />
                                                 {Math.round(metadata.totalResponseTimeMs / 1000)} seconds
+                                            </div>
+                                        )}
+                                        {toolCallCount > 0 && (
+                                            <div className="flex items-center text-xs">
+                                                <Wrench className="w-3 h-3 mr-1 flex-shrink-0" />
+                                                {toolCallCount} tool call{toolCallCount === 1 ? '' : 's'}
                                             </div>
                                         )}
                                     </>
