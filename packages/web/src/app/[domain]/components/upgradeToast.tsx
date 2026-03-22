@@ -17,7 +17,11 @@ type Version = {
     patch: number;
 };
 
-export const UpgradeToast = () => {
+interface UpgradeToastProps {
+    isOwner: boolean;
+}
+
+export const UpgradeToast = ({ isOwner }: UpgradeToastProps) => {
     const { toast } = useToast();
     const [ upgradeToastLastShownDate, setUpgradeToastLastShownDate ] = useLocalStorage<string>(
         "upgradeToastLastShownDate",
@@ -28,9 +32,14 @@ export const UpgradeToast = () => {
         queryKey: ["version"],
         queryFn: () => getVersion(),
         select: (data) => data.version,
+        enabled: isOwner,
     })
 
     useEffect(() => {
+        if (!isOwner) {
+            return;
+        }
+
         if (!versionString) {
             return;
         }
@@ -82,12 +91,12 @@ export const UpgradeToast = () => {
 
                 setUpgradeToastLastShownDate(new Date().toUTCString());
             });
-    }, [setUpgradeToastLastShownDate, toast, upgradeToastLastShownDate, versionString]);
+    }, [isOwner, setUpgradeToastLastShownDate, toast, upgradeToastLastShownDate, versionString]);
 
     return null;
 }
 
-const getVersionFromString = (version: string): Version | null => {
+export const getVersionFromString = (version: string): Version | null => {
     const match = version.match(SEMVER_REGEX);
     if (!match) {
         return null;
@@ -99,11 +108,11 @@ const getVersionFromString = (version: string): Version | null => {
     } satisfies Version;
 }
 
-const getVersionString = (version: Version) => {
+export const getVersionString = (version: Version) => {
     return `v${version.major}.${version.minor}.${version.patch}`;
 }
 
-const compareVersions = (a: Version, b: Version) => {
+export const compareVersions = (a: Version, b: Version) => {
     if (a.major !== b.major) {
         return a.major - b.major;
     }
