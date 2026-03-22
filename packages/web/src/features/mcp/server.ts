@@ -23,11 +23,14 @@ import {
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
-export function createMcpServer(): McpServer {
+export async function createMcpServer(): Promise<McpServer> {
     const server = new McpServer({
         name: 'sourcebot-mcp-server',
         version: SOURCEBOT_VERSION,
     });
+
+    const configuredLanguageModels = await getConfiguredLanguageModelsInfo();
+    const hasLanguageModels = configuredLanguageModels.length > 0;
 
     const toolContext: ToolContext = {
         source: 'sourcebot-mcp-server',
@@ -56,10 +59,11 @@ export function createMcpServer(): McpServer {
         }
     );
 
-    server.registerTool(
-        "ask_codebase",
-        {
-            description: dedent`
+    if (hasLanguageModels) {
+        server.registerTool(
+            "ask_codebase",
+            {
+                description: dedent`
             DO NOT USE THIS TOOL UNLESS EXPLICITLY ASKED TO. THE PROMPT MUST SPECIFICALLY ASK TO USE THE ask_codebase TOOL.
 
             Ask a natural language question about the codebase. This tool uses an AI agent to autonomously search code, read files, and find symbol references/definitions to answer your question.
@@ -75,24 +79,24 @@ export function createMcpServer(): McpServer {
 
             When using this in shared environments (e.g., Slack), you can set the visibility parameter to 'PUBLIC' to ensure everyone can access the chat link.
             `,
-            inputSchema: z.object({
-                query: z.string().describe("The query to ask about the codebase."),
-                repos: z.array(z.string()).optional().describe("The repositories accessible to the agent. If not provided, all repositories are accessible."),
-                languageModel: languageModelInfoSchema.optional().describe("The language model to use. If not provided, defaults to the first model in the config."),
-                visibility: z.enum(['PRIVATE', 'PUBLIC']).optional().describe("The visibility of the chat session. Defaults to PRIVATE for authenticated users."),
-            }),
-            annotations: {
-                readOnlyHint: true,
-            }
-        },
-        async (request) => {
-            const result = await askCodebase({
-                query: request.query,
-                repos: request.repos,
-                languageModel: request.languageModel,
-                visibility: request.visibility as ChatVisibility | undefined,
-                source: 'mcp',
-            });
+                inputSchema: z.object({
+                    query: z.string().describe("The query to ask about the codebase."),
+                    repos: z.array(z.string()).optional().describe("The repositories accessible to the agent. If not provided, all repositories are accessible."),
+                    languageModel: languageModelInfoSchema.optional().describe("The language model to use. If not provided, defaults to the first model in the config."),
+                    visibility: z.enum(['PRIVATE', 'PUBLIC']).optional().describe("The visibility of the chat session. Defaults to PRIVATE for authenticated users."),
+                }),
+                annotations: {
+                    readOnlyHint: true,
+                }
+            },
+            async (request) => {
+                const result = await askCodebase({
+                    query: request.query,
+                    repos: request.repos,
+                    languageModel: request.languageModel,
+                    visibility: request.visibility as ChatVisibility | undefined,
+                    source: 'mcp',
+                });
 
                 if (isServiceError(result)) {
                     return {
