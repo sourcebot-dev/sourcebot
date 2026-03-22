@@ -17,6 +17,7 @@ import { SearchScopeIcon } from '../searchScopeIcon';
 import { MarkdownRenderer } from './markdownRenderer';
 import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
+import { GlobToolComponent } from './tools/globToolComponent';
 import { GrepToolComponent } from './tools/grepToolComponent';
 import { ListCommitsToolComponent } from './tools/listCommitsToolComponent';
 import { ListReposToolComponent } from './tools/listReposToolComponent';
@@ -241,6 +242,15 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
                     loadingText={'Searching...'}
                 >
                     {(output) => <GrepToolComponent {...output} />}
+                </ToolOutputGuard>
+            )
+        case 'tool-glob':
+            return (
+                <ToolOutputGuard
+                    part={part}
+                    loadingText="Searching files..."
+                >
+                    {(output) => <GlobToolComponent {...output} />}
                 </ToolOutputGuard>
             )
         case 'tool-find_symbol_definitions':

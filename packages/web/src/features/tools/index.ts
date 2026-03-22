@@ -2,6 +2,7 @@ export * from './readFile';
 export * from './listCommits';
 export * from './listRepos';
 export * from './grep';
+export * from './glob';
 export * from './findSymbolReferences';
 export * from './findSymbolDefinitions';
 export * from './listTree';

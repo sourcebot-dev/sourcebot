@@ -7,6 +7,7 @@ import { ToolDefinition } from "./types";
 import { logger } from "./logger";
 import description from "./grep.txt";
 import { CodeHostType } from "@sourcebot/db";
+import { getRepoInfoByName } from "@/actions";
 
 const DEFAULT_LIMIT = 100;
 const DEFAULT_GROUP_BY_REPO_LIMIT = 10_000;
@@ -69,6 +70,7 @@ export type GrepMetadata = {
     matchCount: number;
     repoCount: number;
     repoInfoMap: Record<string, GrepRepoInfo>;
+    inputRepo?: GrepRepoInfo;
     groupByRepo: boolean;
 };
 
@@ -111,7 +113,7 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
         }
 
         if (ref) {
-            query += ` (rev:${ref})`;
+            query += ` rev:${ref}`;
         }
 
         const response = await search({
@@ -145,6 +147,17 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
             }])
         );
 
+        const inputRepoResult = repo ? await getRepoInfoByName(repo) : undefined;
+        if (isServiceError(inputRepoResult)) {
+            throw new Error(`Repository "${repo}" not found.`);
+        }
+
+        const inputRepo = inputRepoResult ? {
+            name: inputRepoResult.name,
+            displayName: inputRepoResult.displayName ?? inputRepoResult.name,
+            codeHostType: inputRepoResult.codeHostType,
+        } : undefined;
+
         const metadata: GrepMetadata = {
             files,
             pattern,
@@ -152,6 +165,7 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
             matchCount: response.stats.actualMatchCount,
             repoCount: new Set(files.map((f) => f.repo)).size,
             repoInfoMap,
+            inputRepo,
             groupByRepo,
         };
 
@@ -190,37 +204,37 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
                 output: outputLines.join('\n'),
                 metadata,
             };
-        }
-
-        const outputLines: string[] = [
-            `Found ${actualMatches} match${actualMatches !== 1 ? 'es' : ''} in ${totalFiles} file${totalFiles !== 1 ? 's' : ''}`,
-        ];
-
-        for (const file of response.files) {
-            outputLines.push('');
-            outputLines.push(`[${file.repository}] ${file.fileName.text}:`);
-            for (const chunk of file.chunks) {
-                chunk.content.split('\n').forEach((content, i) => {
-                    if (!content.trim()) {
-                        return;
-                    }
-                    const lineNum = chunk.contentStart.lineNumber + i;
-                    const line = content.length > MAX_LINE_LENGTH
-                        ? content.substring(0, MAX_LINE_LENGTH) + MAX_LINE_SUFFIX
-                        : content;
-                    outputLines.push(`  ${lineNum}: ${line}`);
-                });
+        } else {
+            const outputLines: string[] = [
+                `Found ${actualMatches} match${actualMatches !== 1 ? 'es' : ''} in ${totalFiles} file${totalFiles !== 1 ? 's' : ''}`,
+            ];
+    
+            for (const file of response.files) {
+                outputLines.push('');
+                outputLines.push(`[${file.repository}] ${file.fileName.text}:`);
+                for (const chunk of file.chunks) {
+                    chunk.content.split('\n').forEach((content, i) => {
+                        if (!content.trim()) {
+                            return;
+                        }
+                        const lineNum = chunk.contentStart.lineNumber + i;
+                        const line = content.length > MAX_LINE_LENGTH
+                            ? content.substring(0, MAX_LINE_LENGTH) + MAX_LINE_SUFFIX
+                            : content;
+                        outputLines.push(`  ${lineNum}: ${line}`);
+                    });
+                }
             }
+    
+            if (!response.isSearchExhaustive) {
+                outputLines.push('');
+                outputLines.push(TRUNCATION_MESSAGE);
+            }
+    
+            return {
+                output: outputLines.join('\n'),
+                metadata,
+            };
         }
-
-        if (!response.isSearchExhaustive) {
-            outputLines.push('');
-            outputLines.push(TRUNCATION_MESSAGE);
-        }
-
-        return {
-            output: outputLines.join('\n'),
-            metadata,
-        };
     },
 };

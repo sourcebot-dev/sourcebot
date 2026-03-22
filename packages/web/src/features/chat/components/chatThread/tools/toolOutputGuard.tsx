@@ -69,7 +69,7 @@ export const ToolOutputGuard = <T extends ToolUIPart<{ [K in keyof SBChatMessage
             </div>
             {hasInput && isExpanded && (
                 <div className="rounded-lg border border-border text-xs overflow-y-auto max-h-72">
-                    <ResultSection label="Request" onCopy={onCopyRequest}>
+                    <ResultSection label={`Request (${part.type})`} onCopy={onCopyRequest}>
                         <pre className="whitespace-pre-wrap break-all font-mono">
                             {requestText}
                         </pre>

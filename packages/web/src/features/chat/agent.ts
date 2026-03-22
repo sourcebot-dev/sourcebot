@@ -22,7 +22,7 @@ import { grepDefinition } from "@/features/tools/grep";
 import { Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
 import { createTools } from "./tools";
-import { listTreeDefinition } from "../tools";
+import { globDefinition, listTreeDefinition } from "../tools";
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -261,6 +261,16 @@ const createAgentStream = async ({
                                 name: entry.name,
                             });
                         });
+                } else if (toolName === globDefinition.name) {
+                    output.metadata.files.forEach((file) => {
+                        onWriteSource({
+                            type: 'file',
+                            repo: file.repo,
+                            path: file.path,
+                            revision: file.revision,
+                            name: file.path.split('/').pop() ?? file.path,
+                        });
+                    });
                 }
             });
         },

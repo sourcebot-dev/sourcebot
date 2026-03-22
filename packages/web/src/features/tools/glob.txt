@@ -1,0 +1,6 @@
+- Find files by name/path pattern using glob syntax (e.g. "**/*.ts", "src/**/*.test.{ts,tsx}")
+- Returns matching file paths only — does NOT search file contents
+- Use this tool when you need to enumerate files by type or naming convention
+- Use grep instead if you need to find files containing specific content
+- Supports standard glob syntax: * matches within a path segment, ** matches across segments, {a,b} matches alternatives
+- When using the repo param, if the repository name is not known, use list_repos first to discover the correct name
