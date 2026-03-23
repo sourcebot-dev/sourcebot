@@ -363,7 +363,7 @@ export const ChatThread = ({
                     <div ref={contentRef}>
                         {
                             messagePairs.length === 0 ? (
-                                <div className="flex items-center justify-center text-center h-full">
+                                <div className="flex items-center justify-center text-center h-full min-h-full">
                                     <p className="text-muted-foreground">no messages</p>
                                 </div>
                             ) : (
