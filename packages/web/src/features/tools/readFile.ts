@@ -17,6 +17,7 @@ const MAX_BYTES_LABEL = `${MAX_BYTES / 1024}KB`;
 const readFileShape = {
     path: z.string().describe("The path to the file"),
     repo: z.string().describe("The repository to read the file from"),
+    ref: z.string().describe("Commit SHA, branch or tag name to read the file from. If not provided, uses the default branch.").optional().default('HEAD'),
     offset: z.number().int().positive()
         .optional()
         .describe("Line number to start reading from (1-indexed). Omit to start from the beginning."),
@@ -38,7 +39,7 @@ export type ReadFileMetadata = {
     startLine: number;
     endLine: number;
     isTruncated: boolean;
-    revision: string;
+    ref: string;
 };
 
 export const readFileDefinition: ToolDefinition<"read_file", typeof readFileShape, ReadFileMetadata> = {
@@ -48,15 +49,13 @@ export const readFileDefinition: ToolDefinition<"read_file", typeof readFileShap
     isIdempotent: true,
     description,
     inputSchema: z.object(readFileShape),
-    execute: async ({ path, repo, offset, limit }, context) => {
-        logger.debug('read_file', { path, repo, offset, limit });
-        // @todo: make revision configurable.
-        const revision = "HEAD";
+    execute: async ({ path, repo, ref = 'HEAD', offset, limit }, context) => {
+        logger.debug('read_file', { path, repo, ref, offset, limit });
 
         const fileSource = await getFileSource({
             path,
             repo,
-            ref: revision,
+            ref,
         }, { source: context.source });
 
         if (isServiceError(fileSource)) {
@@ -122,7 +121,7 @@ export const readFileDefinition: ToolDefinition<"read_file", typeof readFileShap
             startLine,
             endLine: lastReadLine,
             isTruncated: truncatedByBytes || truncatedByLines,
-            revision,
+            ref,
         };
 
         return {
@@ -133,7 +132,7 @@ export const readFileDefinition: ToolDefinition<"read_file", typeof readFileShap
                 repo: fileSource.repo,
                 path: fileSource.path,
                 name: fileSource.path.split('/').pop() ?? fileSource.path,
-                revision,
+                ref,
             }],
         };
     },

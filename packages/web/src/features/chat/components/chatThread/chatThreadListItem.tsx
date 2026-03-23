@@ -299,7 +299,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                 index === self.findIndex((t) =>
                     t?.path === file?.path
                     && t?.repo === file?.repo
-                    && t?.revision === file?.revision
+                    && t?.ref === file?.ref
                 )
             );
     }, [references, sources]);

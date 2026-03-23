@@ -19,6 +19,7 @@ import {
     registerMcpTool,
     grepDefinition,
     ToolContext,
+    globDefinition,
 } from '../tools';
 
 const dedent = _dedent.withOptions({ alignValues: true });
@@ -37,6 +38,7 @@ export async function createMcpServer(): Promise<McpServer> {
     }
 
     registerMcpTool(server, grepDefinition, toolContext);
+    registerMcpTool(server, globDefinition, toolContext);
     registerMcpTool(server, listCommitsDefinition, toolContext);
     registerMcpTool(server, listReposDefinition, toolContext);
     registerMcpTool(server, readFileDefinition, toolContext);

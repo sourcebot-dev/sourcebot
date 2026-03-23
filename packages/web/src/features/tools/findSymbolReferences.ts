@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { isServiceError } from "@/lib/utils";
 import { findSearchBasedSymbolReferences } from "@/features/codeNav/api";
-import { ToolDefinition } from "./types";
+import { Source, ToolDefinition } from "./types";
 import { logger } from "./logger";
 import description from "./findSymbolReferences.txt";
 import { getRepoInfoByName } from "@/actions";
@@ -109,12 +109,12 @@ export const findSymbolReferencesDefinition: ToolDefinition<
             }
         }
 
-        const sources = metadata.files.map((file) => ({
+        const sources: Source[] = metadata.files.map((file) => ({
             type: 'file' as const,
             repo: file.repo,
             path: file.fileName,
             name: file.fileName.split('/').pop() ?? file.fileName,
-            revision: file.revision,
+            ref: file.revision,
         }));
 
         return {

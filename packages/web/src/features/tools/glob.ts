@@ -3,7 +3,7 @@ import globToRegexp from "glob-to-regexp";
 import { isServiceError } from "@/lib/utils";
 import { search } from "@/features/search";
 import escapeStringRegexp from "escape-string-regexp";
-import { ToolDefinition } from "./types";
+import { Source, ToolDefinition } from "./types";
 import { logger } from "./logger";
 import description from "./glob.txt";
 import { CodeHostType } from "@sourcebot/db";
@@ -184,12 +184,12 @@ export const globDefinition: ToolDefinition<'glob', typeof globShape, GlobMetada
             outputLines.push(TRUNCATION_MESSAGE);
         }
 
-        const sources = files.map((file) => ({
+        const sources: Source[] = files.map((file) => ({
             type: 'file' as const,
             repo: file.repo,
             path: file.path,
             name: file.name,
-            revision: file.revision,
+            ref: file.revision,
         }));
 
         return {

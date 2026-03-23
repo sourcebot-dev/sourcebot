@@ -12,7 +12,7 @@ export const ReadFileToolComponent = ({ metadata }: ToolResult<ReadFileMetadata>
     const fileName = metadata.path.split('/').pop() ?? metadata.path;
     const href = getBrowsePath({
         repoName: metadata.repo,
-        revisionName: metadata.revision,
+        revisionName: metadata.ref,
         path: metadata.path,
         pathType: 'blob',
         domain: SINGLE_TENANT_ORG_DOMAIN,

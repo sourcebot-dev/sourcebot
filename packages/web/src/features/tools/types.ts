@@ -5,7 +5,7 @@ const fileSourceSchema = z.object({
     repo: z.string(),
     path: z.string(),
     name: z.string(),
-    revision: z.string(),
+    ref: z.string(),
 });
 export type FileSource = z.infer<typeof fileSourceSchema>;
 

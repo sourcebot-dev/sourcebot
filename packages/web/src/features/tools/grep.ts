@@ -3,7 +3,7 @@ import globToRegexp from "glob-to-regexp";
 import { isServiceError } from "@/lib/utils";
 import { search } from "@/features/search";
 import escapeStringRegexp from "escape-string-regexp";
-import { ToolDefinition } from "./types";
+import { Source, ToolDefinition } from "./types";
 import { logger } from "./logger";
 import description from "./grep.txt";
 import { CodeHostType } from "@sourcebot/db";
@@ -179,12 +179,12 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
             };
         }
 
-        const sources = files.map((file) => ({
+        const sources: Source[] = files.map((file) => ({
             type: 'file' as const,
             repo: file.repo,
             path: file.path,
             name: file.path.split('/').pop() ?? file.path,
-            revision: file.revision,
+            ref: file.revision,
         }));
 
         if (groupByRepo) {

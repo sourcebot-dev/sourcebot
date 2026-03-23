@@ -5,7 +5,7 @@ import { CodeHostType } from "@sourcebot/db";
 import { z } from "zod";
 import description from "./listTree.txt";
 import { logger } from "./logger";
-import { ToolDefinition } from "./types";
+import { Source, ToolDefinition } from "./types";
 
 const DEFAULT_TREE_DEPTH = 1;
 const MAX_TREE_DEPTH = 10;
@@ -74,7 +74,6 @@ export const listTreeDefinition: ToolDefinition<'list_tree', typeof listTreeShap
                 repoInfo,
                 ref,
                 path: normalizedPath,
-                entries: [],
                 totalReturned: 0,
                 truncated: false,
             };
@@ -190,14 +189,14 @@ export const listTreeDefinition: ToolDefinition<'list_tree', typeof listTreeShap
             outputLines.push(`(truncated — showing first ${normalizedMaxEntries} entries)`);
         }
 
-        const sources = sortedEntries
+        const sources: Source[] = sortedEntries
             .filter((entry) => entry.type === 'blob')
             .map((entry) => ({
                 type: 'file' as const,
                 repo,
                 path: entry.path,
                 name: entry.name,
-                revision: ref,
+                ref,
             }));
 
         return { output: outputLines.join('\n'), metadata, sources };

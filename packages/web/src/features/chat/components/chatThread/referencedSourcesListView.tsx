@@ -74,11 +74,11 @@ const ReferencedSourcesListViewComponent = ({
 
     const fileSourceQueries = useQueries({
         queries: sources.map((file) => ({
-            queryKey: ['fileSource', file.path, file.repo, file.revision],
+            queryKey: ['fileSource', file.path, file.repo, file.ref],
             queryFn: () => unwrapServiceError(getFileSource({
                 path: file.path,
                 repo: file.repo,
-                ref: file.revision,
+                ref: file.ref,
             })),
             staleTime: Infinity,
         })),
@@ -233,7 +233,7 @@ const ReferencedSourcesListViewComponent = ({
                             id={fileId}
                             code={fileData.source}
                             language={fileData.language}
-                            revision={fileSource.revision}
+                            revision={fileSource.ref}
                             repoName={fileSource.repo}
                             repoCodeHostType={fileData.repoCodeHostType}
                             repoDisplayName={fileData.repoDisplayName}

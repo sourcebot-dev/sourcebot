@@ -5,7 +5,7 @@ import { z } from "zod";
 import description from "./findSymbolDefinitions.txt";
 import { FindSymbolFile, FindSymbolRepoInfo } from "./findSymbolReferences";
 import { logger } from "./logger";
-import { ToolDefinition } from "./types";
+import { Source, ToolDefinition } from "./types";
 
 
 const MAX_LINE_LENGTH = 2000;
@@ -99,12 +99,12 @@ export const findSymbolDefinitionsDefinition: ToolDefinition<
             }
         }
 
-        const sources = metadata.files.map((file) => ({
+        const sources: Source[] = metadata.files.map((file) => ({
             type: 'file' as const,
             repo: file.repo,
             path: file.fileName,
             name: file.fileName.split('/').pop() ?? file.fileName,
-            revision: file.revision,
+            ref: file.revision,
         }));
 
         return {
