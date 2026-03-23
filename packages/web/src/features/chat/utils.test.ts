@@ -167,7 +167,7 @@ test('getAnswerPartFromAssistantMessage returns text part when it starts with AN
 
     expect(result).toEqual({
         type: 'text',
-        text: `${ANSWER_TAG}This is the answer to your question.`
+        text: `This is the answer to your question.`
     });
 });
 
@@ -190,7 +190,7 @@ test('getAnswerPartFromAssistantMessage returns text part when it starts with AN
 
     expect(result).toEqual({
         type: 'text',
-        text: `${ANSWER_TAG}This is the answer to your question.`
+        text: `This is the answer to your question.`
     });
 });
 
