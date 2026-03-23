@@ -1,1 +1,8 @@
-Finds definitions of a symbol in the codebase.
+Finds where a symbol (function, class, variable, method, type, etc.) is defined in a repository.
+
+Usage:
+- Use this to answer "where is X defined/implemented?" questions.
+- Results include file paths and line numbers for each definition site, grouped by file.
+- Symbol matching is exact — use the precise identifier name, not a description (e.g., "UserService" not "user service class").
+- Prefer this over `grep` for symbol lookups: it understands symbol boundaries and won't match partial strings or comments.
+- If the repository name is not known, use `list_repos` first to discover the correct name.

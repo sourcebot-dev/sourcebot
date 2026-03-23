@@ -1,1 +1,8 @@
-Finds references to a symbol in the codebase.
+Finds all usages of a symbol (function, class, variable, method, type, etc.) across a repository.
+
+Usage:
+- Use this to answer "where is X used/called?" questions.
+- Results include file paths and line numbers for each reference, grouped by file.
+- Symbol matching is exact — use the precise identifier name, not a description (e.g., "getUserById" not "get user by id").
+- Prefer this over `grep` for symbol lookups: it understands symbol boundaries and won't match partial strings or comments.
+- If the repository name is not known, use `list_repos` first to discover the correct name.
