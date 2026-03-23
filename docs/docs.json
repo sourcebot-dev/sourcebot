@@ -1,6 +1,6 @@
 {
     "$schema": "https://mintlify.com/docs.json",
-    "theme": "willow",
+    "theme": "almond",
     "name": "Sourcebot",
     "colors": {
         "primary": "#851EE7",
