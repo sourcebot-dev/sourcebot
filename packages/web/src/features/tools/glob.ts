@@ -189,7 +189,7 @@ export const globDefinition: ToolDefinition<'glob', typeof globShape, GlobMetada
             repo: file.repo,
             path: file.path,
             name: file.name,
-            ref: file.revision,
+            revision: file.revision,
         }));
 
         return {

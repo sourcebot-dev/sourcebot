@@ -196,7 +196,7 @@ export const listTreeDefinition: ToolDefinition<'list_tree', typeof listTreeShap
                 repo,
                 path: entry.path,
                 name: entry.name,
-                ref,
+                revision: ref,
             }));
 
         return { output: outputLines.join('\n'), metadata, sources };

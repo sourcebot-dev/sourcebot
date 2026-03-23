@@ -184,7 +184,7 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
             repo: file.repo,
             path: file.path,
             name: file.path.split('/').pop() ?? file.path,
-            ref: file.revision,
+            revision: file.revision,
         }));
 
         if (groupByRepo) {

@@ -104,7 +104,7 @@ export const findSymbolDefinitionsDefinition: ToolDefinition<
             repo: file.repo,
             path: file.fileName,
             name: file.fileName.split('/').pop() ?? file.fileName,
-            ref: file.revision,
+            revision: file.revision,
         }));
 
         return {

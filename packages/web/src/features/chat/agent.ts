@@ -170,7 +170,7 @@ const createAgentStream = async ({
             const fileSource = await getFileSource({
                 path: source.path,
                 repo: source.repo,
-                ref: source.ref,
+                ref: source.revision,
             }, { source: 'sourcebot-ask-agent' });
 
             if (isServiceError(fileSource)) {
@@ -183,7 +183,7 @@ const createAgentStream = async ({
                 source: fileSource.source,
                 repo: fileSource.repo,
                 language: fileSource.language,
-                revision: source.ref,
+                revision: source.revision,
             };
         }))
     ).filter((source) => source !== undefined);
