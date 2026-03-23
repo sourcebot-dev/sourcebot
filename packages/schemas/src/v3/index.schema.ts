@@ -340,7 +340,7 @@ const schema = {
             },
             "includeTopics": {
               "type": "array",
-              "description": "List of GitLab topics to include in the search context. Only repositories matching at least one topic are included. Glob patterns are supported.",
+              "description": "List of repository topics to include in the search context. Only repositories matching at least one topic are included. Glob patterns are supported.",
               "items": {
                 "type": "string"
               },
@@ -353,7 +353,7 @@ const schema = {
             },
             "excludeTopics": {
               "type": "array",
-              "description": "List of GitLab topics to exclude from the search context. Repositories matching any of these topics are excluded. Glob patterns are supported.",
+              "description": "List of repository topics to exclude from the search context. Repositories matching any of these topics are excluded. Glob patterns are supported.",
               "items": {
                 "type": "string"
               },
