@@ -7,19 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Changed language detection to resolve file extensions with multiple language resolutions (e.g., .md) to the most common resolution. [#1026](https://github.com/sourcebot-dev/sourcebot/pull/1026)
+- Changed the `webUrl` property of the `/api/repos` api to return a URL rather than just a path. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Changed the ask search scope selector to allow submitting questions with no search scope selected. When no selection is made, the agent will be able to search over all repos the user has access to. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Renamed the `search_code` tool to `grep` for ask and mcp. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+
 ### Added
-- Added `find_symbol_definitions`, and `find_symbol_references` tools to the MCP server. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Added `glob`, `find_symbol_definitions`, and `find_symbol_references` tools to the ask agent and MCP server. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 - Added `list_tree` tool to the ask agent. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 - Added input & output token breakdown in ask details card. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 - Added `path` parameter to the `/api/commits` api to allow filtering commits by paths. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 
 ### Fixed
 - Fixed issue where ask responses would sometimes appear in the details panel while generating. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
-
-### Changed
-- Changed language detection to resolve file extensions with multiple language resolutions (e.g., .md) to the most common resolution. [#1026](https://github.com/sourcebot-dev/sourcebot/pull/1026)
-- Changed the `webUrl` property of the `/api/repos` api to return a URL rather than just a path. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
-- Changed the ask search scope selector to allow submitting questions with no search scope selected. When no selection is made, the agent will be able to search over all repos the user has access to. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Fixed reference panel overflow issue in the ask UI. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Fixed homepage scrolling issue in the ask UI. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 
 ## [4.15.11] - 2026-03-20
 
