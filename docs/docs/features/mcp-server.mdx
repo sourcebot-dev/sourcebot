@@ -375,6 +375,39 @@ Parameters:
 | `page` | no | Page number for pagination (min 1, default: 1). |
 | `perPage` | no | Results per page for pagination (min 1, max 100, default: 50). |
 
+### `glob`
+
+Finds files whose paths match a glob pattern across repositories (e.g. `**/*.ts`, `src/**/*.test.{ts,tsx}`). Results are grouped by repository.
+
+Parameters:
+| Name | Required | Description |
+|:----------|:---------|:------------|
+| `pattern` | yes | Glob pattern to match file paths against (e.g. `**/*.ts`, `src/**/*.test.{ts,tsx}`). |
+| `path` | no | Restrict results to files under this subdirectory. |
+| `repo` | no | Repository name to search in. If not provided, searches all repositories. Use the full name including host (e.g. `github.com/org/repo`). |
+| `ref` | no | Commit SHA, branch or tag name to search on. If not provided, defaults to the default branch. |
+| `limit` | no | Maximum number of files to return (default: 100). |
+
+### `find_symbol_definitions`
+
+Finds where a symbol (function, class, variable, etc.) is defined in a repository.
+
+Parameters:
+| Name | Required | Description |
+|:---------|:---------|:------------|
+| `symbol` | yes | The symbol name to find definitions of. |
+| `repo` | yes | Repository name to scope the search to. Use the full name including host (e.g. `github.com/org/repo`). |
+
+### `find_symbol_references`
+
+Finds all usages of a symbol (function, class, variable, etc.) across a repository.
+
+Parameters:
+| Name | Required | Description |
+|:---------|:---------|:------------|
+| `symbol` | yes | The symbol name to find references to. |
+| `repo` | yes | Repository name to scope the search to. Use the full name including host (e.g. `github.com/org/repo`). |
+
 ### `list_language_models`
 
 Lists the available language models configured on the Sourcebot instance. Use this to discover which models can be specified when calling `ask_codebase`.
