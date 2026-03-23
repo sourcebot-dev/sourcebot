@@ -2,7 +2,6 @@
 
 import { useToast } from '@/components/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
 import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, SearchScope, Source } from '@/features/chat/types';
@@ -12,6 +11,7 @@ import { CreateUIMessage, DefaultChatTransport } from 'ai';
 import { ArrowDownIcon, CopyIcon } from 'lucide-react';
 import { useNavigationGuard } from 'next-navigation-guard';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { useStickToBottom } from 'use-stick-to-bottom';
 import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
 import { useSelectedLanguageModel } from '../../useSelectedLanguageModel';
@@ -67,10 +67,8 @@ export const ChatThread = ({
     chatName,
 }: ChatThreadProps) => {
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
-    const scrollAreaRef = useRef<HTMLDivElement>(null);
-    const latestMessagePairRef = useRef<HTMLDivElement>(null);
     const hasSubmittedInputMessage = useRef(false);
-    const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(false);
+    const { scrollRef, contentRef, scrollToBottom, isAtBottom } = useStickToBottom({ initial: false });
     const { toast } = useToast();
     const router = useRouter();
     const params = useParams<{ domain: string }>();
@@ -204,9 +202,9 @@ export const ChatThread = ({
         }
 
         sendMessage(inputMessage);
-        setIsAutoScrollEnabled(true);
+        scrollToBottom();
         hasSubmittedInputMessage.current = true;
-    }, [inputMessage, sendMessage]);
+    }, [inputMessage, scrollToBottom, sendMessage]);
 
     // Restore pending message after OAuth redirect (askgh login wall)
     useEffect(() => {
@@ -234,28 +232,24 @@ export const ChatThread = ({
             const mentions = getAllMentionElements(children);
             const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes);
             sendMessage(message);
-            setIsAutoScrollEnabled(true);
+            scrollToBottom();
         } catch (error) {
             console.error('Failed to restore pending message:', error);
         }
-    }, [isAuthenticated, isOwner, chatId, sendMessage, selectedSearchScopes]);
+    }, [isAuthenticated, isOwner, chatId, sendMessage, selectedSearchScopes, scrollToBottom]);
 
-    // Track scroll position changes.
+    // Track scroll position for history state restoration.
     useEffect(() => {
-        const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-        if (!scrollElement) return;
+        const scrollElement = scrollRef.current;
+        if (!scrollElement) {
+            return;
+        }
 
         let timeout: NodeJS.Timeout | null = null;
 
         const handleScroll = () => {
             const scrollOffset = scrollElement.scrollTop;
 
-            const threshold = 50; // pixels from bottom to consider "at bottom"
-            const { scrollHeight, clientHeight } = scrollElement;
-            const isAtBottom = scrollHeight - scrollOffset - clientHeight <= threshold;
-            setIsAutoScrollEnabled(isAtBottom);
-
-            // Debounce the history state update
             if (timeout) {
                 clearTimeout(timeout);
             }
@@ -279,10 +273,11 @@ export const ChatThread = ({
                 clearTimeout(timeout);
             }
         };
-    }, []);
+    }, [scrollRef]);
 
+    // Restore scroll position from history state on mount.
     useEffect(() => {
-        const scrollElement = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+        const scrollElement = scrollRef.current;
         if (!scrollElement) {
             return;
         }
@@ -298,26 +293,7 @@ export const ChatThread = ({
                 behavior: 'instant',
             });
         }, 10);
-    }, []);
-
-    // When messages are being streamed, scroll to the latest message
-    // assuming auto scrolling is enabled.
-    useEffect(() => {
-        if (
-            !latestMessagePairRef.current ||
-            !isAutoScrollEnabled ||
-            messages.length === 0
-        ) {
-            return;
-        }
-
-        latestMessagePairRef.current.scrollIntoView({
-            behavior: 'smooth',
-            block: 'end',
-            inline: 'nearest',
-        });
-
-    }, [isAutoScrollEnabled, messages]);
+    }, [scrollRef]);
 
 
     // Keep the error state & banner visibility in sync.
@@ -345,10 +321,10 @@ export const ChatThread = ({
         const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes);
         sendMessage(message);
 
-        setIsAutoScrollEnabled(true);
+        scrollToBottom();
 
         resetEditor(editor);
-    }, [sendMessage, selectedSearchScopes, isAuthenticated, captureEvent, chatId]);
+    }, [sendMessage, selectedSearchScopes, isAuthenticated, captureEvent, chatId, scrollToBottom]);
 
     const onDuplicate = useCallback(async (newName: string): Promise<string | null> => {
         if (!defaultChatId) {
@@ -379,64 +355,61 @@ export const ChatThread = ({
                 />
             )}
 
-            <ScrollArea
-                ref={scrollAreaRef}
-                className="flex flex-col h-full w-full p-4 overflow-hidden"
-            >
-                {
-                    messagePairs.length === 0 ? (
-                        <div className="flex items-center justify-center text-center h-full">
-                            <p className="text-muted-foreground">no messages</p>
-                        </div>
-                    ) : (
-                        <>
-                            {messagePairs.map(([userMessage, assistantMessage], index) => {
-                                const isLastPair = index === messagePairs.length - 1;
-                                const isStreaming = isLastPair && (status === "streaming" || status === "submitted");
-                                // Use a stable key based on user message ID
-                                const key = userMessage.id;
+            <div className="relative h-full w-full p-4 overflow-hidden min-h-0">
+                <div
+                    ref={scrollRef}
+                    className="h-full w-full overflow-y-auto overflow-x-hidden"
+                >
+                    <div ref={contentRef}>
+                        {
+                            messagePairs.length === 0 ? (
+                                <div className="flex items-center justify-center text-center h-full">
+                                    <p className="text-muted-foreground">no messages</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {messagePairs.map(([userMessage, assistantMessage], index) => {
+                                        const isLastPair = index === messagePairs.length - 1;
+                                        const isStreaming = isLastPair && (status === "streaming" || status === "submitted");
+                                        // Use a stable key based on user message ID
+                                        const key = userMessage.id;
 
-                                return (
-                                    <Fragment key={key}>
-                                        <ChatThreadListItem
-                                            index={index}
-                                            chatId={chatId}
-                                            userMessage={userMessage}
-                                            assistantMessage={assistantMessage}
-                                            isStreaming={isStreaming}
-                                            sources={sources}
-                                            ref={isLastPair ? latestMessagePairRef : undefined}
-                                        />
-                                        {index !== messagePairs.length - 1 && (
-                                            <Separator className="my-12" />
-                                        )}
-                                    </Fragment>
-                                );
-                            })}
-                        </>
-                    )
-                }
+                                        return (
+                                            <Fragment key={key}>
+                                                <ChatThreadListItem
+                                                    index={index}
+                                                    chatId={chatId}
+                                                    userMessage={userMessage}
+                                                    assistantMessage={assistantMessage}
+                                                    isStreaming={isStreaming}
+                                                    sources={sources}
+                                                />
+                                                {index !== messagePairs.length - 1 && (
+                                                    <Separator className="my-12" />
+                                                )}
+                                            </Fragment>
+                                        );
+                                    })}
+                                </>
+                            )
+                        }
+                    </div>
+                </div>
                 {
-                    (!isAutoScrollEnabled && status === "streaming") && (
+                    (!isAtBottom && status === "streaming") && (
                         <div className="absolute bottom-5 left-0 right-0 h-10 flex flex-row items-center justify-center">
                             <Button
                                 variant="outline"
                                 size="icon"
                                 className="rounded-full animate-bounce-slow h-8 w-8"
-                                onClick={() => {
-                                    latestMessagePairRef.current?.scrollIntoView({
-                                        behavior: 'instant',
-                                        block: 'end',
-                                        inline: 'nearest',
-                                    });
-                                }}
+                                onClick={() => scrollToBottom('instant')}
                             >
                                 <ArrowDownIcon className="w-4 h-4" />
                             </Button>
                         </div>
                     )
                 }
-            </ScrollArea>
+            </div>
             <div className="w-full max-w-3xl mx-auto mb-8">
                 <SignInPromptBanner
                     chatId={chatId}
