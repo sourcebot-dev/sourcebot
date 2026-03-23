@@ -146,6 +146,11 @@ export const createGitHubRepoRecord = ({
             },
             branches,
             tags,
+            codeHostMetadata: {
+                github: {
+                    topics: repo.topics ?? [],
+                },
+            },
         } satisfies RepoMetadata,
     };
 
@@ -222,6 +227,11 @@ export const compileGitlabConfig = async (
                 },
                 branches: config.revisions?.branches ?? undefined,
                 tags: config.revisions?.tags ?? undefined,
+                codeHostMetadata: {
+                    gitlab: {
+                        topics: project.topics ?? [],
+                    },
+                },
             } satisfies RepoMetadata,
         };
 

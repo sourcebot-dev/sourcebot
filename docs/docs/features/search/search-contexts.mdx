@@ -106,6 +106,38 @@ Like other prefixes, contexts can be negated using `-` or combined using `or`:
 
 See [this doc](/docs/features/search/syntax-reference) for more details on the search query syntax.
 
+## Filtering by topic
+
+If your repositories are tagged with topics on [GitHub](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics) or [GitLab](https://docs.gitlab.com/ee/user/project/topics.html), you can use `includeTopics` and `excludeTopics` to filter repositories by topic instead of (or in addition to) specifying individual repo URLs. Glob patterns are supported.
+
+```json
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "contexts": {
+        "backend": {
+            "includeTopics": ["backend", "core-*"],
+            "excludeTopics": ["deprecated", "archived-*"],
+            "description": "Active backend services."
+        }
+    },
+    "connections": {
+        /* ...connection definitions... */
+    }
+}
+```
+
+`includeTopics` and `excludeTopics` follow the same additive semantics as `include` and `exclude`:
+
+- `includeTopics` adds all repos tagged with a matching topic to the context.
+- `excludeTopics` removes repos tagged with a matching topic from the context.
+- Both can be freely combined with `include`, `includeConnections`, `exclude`, and `excludeConnections`.
+
+Topic matching is case-insensitive, so `"Backend"` matches the pattern `"backend"`.
+
+<Note>
+Topics are populated when a connection syncs. If you add topics to your repositories after the last sync, trigger a re-sync for the new topics to take effect.
+</Note>
+
 ## Schema reference
 
 <Accordion title="Reference">
