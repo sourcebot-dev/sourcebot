@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed issue where ask responses would sometimes appear in the details panel while generating. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 - Fixed reference panel overflow issue in the ask UI. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 - Fixed homepage scrolling issue in the ask UI. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Fixed UI freeze when the `grep` tool returns a large number of results with `groupByRepo=true`. [#1032](https://github.com/sourcebot-dev/sourcebot/pull/1032)
 
 ## [4.15.11] - 2026-03-20
 
