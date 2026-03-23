@@ -15,14 +15,9 @@ import {
 import { randomUUID } from "crypto";
 import _dedent from "dedent";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX } from "./constants";
-import { findSymbolReferencesDefinition } from "@/features/tools/findSymbolReferences";
-import { findSymbolDefinitionsDefinition } from "@/features/tools/findSymbolDefinitions";
-import { readFileDefinition } from "@/features/tools/readFile";
-import { grepDefinition } from "@/features/tools/grep";
 import { Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
 import { createTools } from "./tools";
-import { globDefinition, listTreeDefinition } from "../tools";
 
 const dedent = _dedent.withOptions({ alignValues: true });
 

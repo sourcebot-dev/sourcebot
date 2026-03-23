@@ -103,15 +103,6 @@ export const SearchScopeSelector = forwardRef<
             })
         }, [onSelectedSearchScopesChange]);
 
-        const handleSelectAll = useCallback(() => {
-            onSelectedSearchScopesChange(allSearchScopeItems);
-            requestAnimationFrame(() => {
-                if (scrollContainerRef.current) {
-                    scrollContainerRef.current.scrollTop = 0;
-                }
-            });
-        }, [onSelectedSearchScopesChange, allSearchScopeItems]);
-
         const handleTogglePopover = useCallback(() => {
             onOpenChanged(!isOpen);
         }, [onOpenChanged, isOpen]);
@@ -241,7 +232,7 @@ export const SearchScopeSelector = forwardRef<
                                         className={cn("text-sm text-muted-foreground mx-1 font-medium")}
                                     >
                                         {
-                                            selectedSearchScopes.length === 0 ? `Search scopes` :
+                                            selectedSearchScopes.length === 0 ? `All repos` :
                                                 selectedSearchScopes.length === 1 ? selectedSearchScopes[0].name :
                                                     `${selectedSearchScopes.length} selected`
                                         }
@@ -279,14 +270,6 @@ export const SearchScopeSelector = forwardRef<
                                     </div>
                                 ) : (
                                     <div className="p-1">
-                                        {!searchQuery && (
-                                            <div
-                                                onClick={handleSelectAll}
-                                                className="flex items-center px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors rounded-sm hover:bg-accent"
-                                            >
-                                                <span className="text-xs">Select all</span>
-                                            </div>
-                                        )}
                                         <div
                                             style={{
                                                 height: `${virtualizer.getTotalSize()}px`,
