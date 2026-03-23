@@ -11,7 +11,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { FileReference, FileSource, Reference } from "../../types";
 import { tryResolveFileReference } from '../../utils';
-import ReferencedFileSourceListItem from "./referencedFileSourceListItem";
+import { ReferencedFileSourceListItem } from "./referencedFileSourceListItem";
 import isEqual from 'fast-deep-equal/react';
 
 interface ReferencedSourcesListViewProps {

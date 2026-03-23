@@ -384,8 +384,9 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                     maxSize={70}
                     defaultSize={50}
                     style={{
-                        overflow: 'visible',
-                        position: 'relative',
+                        overflow: 'clip',
+                        maxHeight: '100%',
+                        minWidth: 0,
                     }}
                 >
                     <div
