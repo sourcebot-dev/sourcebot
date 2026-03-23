@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Changed language detection to resolve file extensions with multiple language resolutions (e.g., .md) to the most common resolution. [#1026](https://github.com/sourcebot-dev/sourcebot/pull/1026)
 - Changed the `webUrl` property of the `/api/repos` api to return a URL rather than just a path. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Changed the ask search scope selector to allow submitting questions with no search scope selected. When no selection is made, the agent will be able to search over all repos the user has access to. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 
 ## [4.15.11] - 2026-03-20
 

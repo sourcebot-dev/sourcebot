@@ -232,7 +232,7 @@ export const SearchScopeSelector = forwardRef<
                                         className={cn("text-sm text-muted-foreground mx-1 font-medium")}
                                     >
                                         {
-                                            selectedSearchScopes.length === 0 ? `All repos` :
+                                            selectedSearchScopes.length === 0 ? `All repositories` :
                                                 selectedSearchScopes.length === 1 ? selectedSearchScopes[0].name :
                                                     `${selectedSearchScopes.length} selected`
                                         }
