@@ -179,14 +179,6 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
             };
         }
 
-        const sources: Source[] = files.map((file) => ({
-            type: 'file' as const,
-            repo: file.repo,
-            path: file.path,
-            name: file.path.split('/').pop() ?? file.path,
-            revision: file.revision,
-        }));
-
         if (groupByRepo) {
             const repoCounts = new Map<string, { matches: number; files: number }>();
             for (const file of response.files) {
@@ -211,13 +203,16 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
             return {
                 output: outputLines.join('\n'),
                 metadata,
-                sources,
+                // @note: we explicitly do not include sources here because `output` does not
+                // contain any file sources. We previously _did_ include sources here, but it
+                // was causing performance issues when a search returned a large (1k+) matches.
+                sources: undefined,
             };
         } else {
             const outputLines: string[] = [
                 `Found ${actualMatches} match${actualMatches !== 1 ? 'es' : ''} in ${totalFiles} file${totalFiles !== 1 ? 's' : ''}`,
             ];
-    
+
             for (const file of response.files) {
                 outputLines.push('');
                 outputLines.push(`[${file.repository}] ${file.fileName.text}:`);
@@ -234,12 +229,20 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
                     });
                 }
             }
-    
+
             if (!response.isSearchExhaustive) {
                 outputLines.push('');
                 outputLines.push(TRUNCATION_MESSAGE);
             }
-    
+
+            const sources: Source[] = files.map((file) => ({
+                type: 'file' as const,
+                repo: file.repo,
+                path: file.path,
+                name: file.path.split('/').pop() ?? file.path,
+                revision: file.revision,
+            }));
+
             return {
                 output: outputLines.join('\n'),
                 metadata,
