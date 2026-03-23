@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `list_tree` tool to the ask agent. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 - Added input & output token breakdown in ask details card. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 - Added `path` parameter to the `/api/commits` api to allow filtering commits by paths. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Search contexts now support topic-based filtering with new `includeTopics` and `excludeTopics` fields, enabling repository filtering by GitHub/GitLab topics with glob pattern support and case-insensitive matching.[#1028](https://github.com/sourcebot-dev/sourcebot/pull/1028)
 
 ### Fixed
 - Fixed issue where ask responses would sometimes appear in the details panel while generating. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
