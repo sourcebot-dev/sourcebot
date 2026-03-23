@@ -63,7 +63,14 @@ const nextConfig = {
         ]
     },
 
-    turbopack: {},
+    turbopack: {
+        rules: {
+            '*.txt': {
+                loaders: ['raw-loader'],
+                as: '*.js',
+            },
+        },
+    },
 
     // @see: https://github.com/vercel/next.js/issues/58019#issuecomment-1910531929
     ...(process.env.NODE_ENV === 'development' ? {

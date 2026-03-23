@@ -50,7 +50,7 @@ interface ReferencedFileSourceListItemProps {
     onExpandedChanged: (isExpanded: boolean) => void;
 }
 
-const ReferencedFileSourceListItem = ({
+const ReferencedFileSourceListItemComponent = ({
     id,
     code,
     language,
@@ -271,6 +271,6 @@ const ReferencedFileSourceListItem = ({
     )
 }
 
-export default memo(forwardRef(ReferencedFileSourceListItem), isEqual) as (
+export const ReferencedFileSourceListItem = memo(forwardRef(ReferencedFileSourceListItemComponent), isEqual) as (
     props: ReferencedFileSourceListItemProps & { ref?: Ref<ReactCodeMirrorRef> },
-) => ReturnType<typeof ReferencedFileSourceListItem>;
+) => ReturnType<typeof ReferencedFileSourceListItemComponent>;

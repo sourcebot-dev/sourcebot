@@ -22,8 +22,6 @@ export const findSearchBasedSymbolReferences = async (props: FindRelatedSymbolsR
             repoName,
         } = props;
 
-        const languageFilter = getExpandedLanguageFilter(language);
-
         const query: QueryIR = {
             and: {
                 children: [
@@ -41,7 +39,7 @@ export const findSearchBasedSymbolReferences = async (props: FindRelatedSymbolsR
                             exact: true,
                         }
                     },
-                    languageFilter,
+                    ...(language ? [getExpandedLanguageFilter(language)] : []),
                     ...(repoName ? [{
                         repo: {
                             regexp: `^${escapeStringRegexp(repoName)}$`,
@@ -78,8 +76,6 @@ export const findSearchBasedSymbolDefinitions = async (props: FindRelatedSymbols
             repoName
         } = props;
 
-        const languageFilter = getExpandedLanguageFilter(language);
-
         const query: QueryIR = {
             and: {
                 children: [
@@ -101,7 +97,7 @@ export const findSearchBasedSymbolDefinitions = async (props: FindRelatedSymbols
                             exact: true,
                         }
                     },
-                    languageFilter,
+                    ...(language ? [getExpandedLanguageFilter(language)] : []),
                     ...(repoName ? [{
                         repo: {
                             regexp: `^${escapeStringRegexp(repoName)}$`,

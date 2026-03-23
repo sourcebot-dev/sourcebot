@@ -42,7 +42,6 @@ export const LandingPageChatBox = ({
                     languageModels={languageModels}
                     selectedSearchScopes={selectedSearchScopes}
                     searchContexts={searchContexts}
-                    onContextSelectorOpenChanged={setIsContextSelectorOpen}
                     isDisabled={isChatBoxDisabled}
                 />
                 <Separator />

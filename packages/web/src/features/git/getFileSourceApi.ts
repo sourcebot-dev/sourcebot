@@ -6,7 +6,7 @@ import { detectLanguageFromFilename } from '@/lib/languageDetection';
 import { ServiceError, notFound, fileNotFound, invalidGitRef, unexpectedError } from '@/lib/serviceError';
 import { getCodeHostBrowseFileAtBranchUrl } from '@/lib/utils';
 import { withOptionalAuthV2 } from '@/withAuthV2';
-import { getRepoPath } from '@sourcebot/shared';
+import { env, getRepoPath } from '@sourcebot/shared';
 import { headers } from 'next/headers';
 import simpleGit from 'simple-git';
 import type z from 'zod';
@@ -66,19 +66,21 @@ export const getFileSource = async ({ path: filePath, repo: repoName, ref }: Fil
     }
 
     const language = detectLanguageFromFilename(filePath);
-    const webUrl = getBrowsePath({
-        repoName: repo.name,
-        revisionName: ref,
-        path: filePath,
-        pathType: 'blob',
-        domain: SINGLE_TENANT_ORG_DOMAIN,
-    });
     const externalWebUrl = getCodeHostBrowseFileAtBranchUrl({
         webUrl: repo.webUrl,
         codeHostType: repo.external_codeHostType,
         branchName: gitRef,
         filePath,
     });
+
+    const baseUrl = env.AUTH_URL;
+    const webUrl = `${baseUrl}${getBrowsePath({
+        repoName: repo.name,
+        revisionName: ref,
+        path: filePath,
+        pathType: 'blob',
+        domain: SINGLE_TENANT_ORG_DOMAIN,
+    })}`;
 
     return {
         source: fileContent,

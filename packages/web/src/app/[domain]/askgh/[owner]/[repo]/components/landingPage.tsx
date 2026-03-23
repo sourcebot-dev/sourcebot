@@ -77,7 +77,6 @@ export const LandingPage = ({
                             languageModels={languageModels}
                             selectedSearchScopes={selectedSearchScopes}
                             searchContexts={[]}
-                            onContextSelectorOpenChanged={setIsContextSelectorOpen}
                             isDisabled={isChatBoxDisabled}
                         />
                         <Separator />

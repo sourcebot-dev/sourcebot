@@ -14,10 +14,10 @@ import {
 } from "ai";
 import { randomUUID } from "crypto";
 import _dedent from "dedent";
-import { ANSWER_TAG, FILE_REFERENCE_PREFIX, toolNames } from "./constants";
-import { createCodeSearchTool, findSymbolDefinitionsTool, findSymbolReferencesTool, listCommitsTool, listReposTool, readFilesTool } from "./tools";
+import { ANSWER_TAG, FILE_REFERENCE_PREFIX } from "./constants";
 import { Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
+import { createTools } from "./tools";
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -198,14 +198,7 @@ const createAgentStream = async ({
         providerOptions,
         messages: inputMessages,
         system: systemPrompt,
-        tools: {
-            [toolNames.searchCode]: createCodeSearchTool(selectedRepos),
-            [toolNames.readFiles]: readFilesTool,
-            [toolNames.findSymbolReferences]: findSymbolReferencesTool,
-            [toolNames.findSymbolDefinitions]: findSymbolDefinitionsTool,
-            [toolNames.listRepos]: listReposTool,
-            [toolNames.listCommits]: listCommitsTool,
-        },
+        tools: createTools({ source: 'sourcebot-ask-agent', selectedRepos }),
         temperature: env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
         stopWhen: [
             stepCountIsGTE(env.SOURCEBOT_CHAT_MAX_STEP_COUNT),
@@ -223,40 +216,7 @@ const createAgentStream = async ({
                     return;
                 }
 
-                if (toolName === toolNames.readFiles) {
-                    output.forEach((file) => {
-                        onWriteSource({
-                            type: 'file',
-                            language: file.language,
-                            repo: file.repository,
-                            path: file.path,
-                            revision: file.revision,
-                            name: file.path.split('/').pop() ?? file.path,
-                        });
-                    });
-                } else if (toolName === toolNames.searchCode) {
-                    output.files.forEach((file) => {
-                        onWriteSource({
-                            type: 'file',
-                            language: file.language,
-                            repo: file.repository,
-                            path: file.fileName,
-                            revision: file.revision,
-                            name: file.fileName.split('/').pop() ?? file.fileName,
-                        });
-                    });
-                } else if (toolName === toolNames.findSymbolDefinitions || toolName === toolNames.findSymbolReferences) {
-                    output.forEach((file) => {
-                        onWriteSource({
-                            type: 'file',
-                            language: file.language,
-                            repo: file.repository,
-                            path: file.fileName,
-                            revision: file.revision,
-                            name: file.fileName.split('/').pop() ?? file.fileName,
-                        });
-                    });
-                }
+                output.sources?.forEach(onWriteSource);
             });
         },
         experimental_telemetry: {
@@ -312,6 +272,10 @@ const createPrompt = ({
         <selected_repositories>
         The user has explicitly selected the following repositories for analysis:
         ${repos.map(repo => `- ${repo}`).join('\n')}
+
+        When calling tools that accept a \`repo\` parameter (e.g. \`read_file\`, \`list_commits\`, \`list_tree\`, \`grep\`), use these repository names exactly as listed above, including the full host prefix (e.g. \`github.com/org/repo\`).
+
+        When using \`grep\` to search across ALL selected repositories (e.g. "which repos have X?"), omit the \`repo\` parameter entirely — the tool will automatically search across all selected repositories in a single call. Do NOT call \`grep\` once per repository when a single broad search would suffice.
         </selected_repositories>
     ` : ''}
 

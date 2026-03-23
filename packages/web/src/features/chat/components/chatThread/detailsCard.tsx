@@ -5,20 +5,25 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import { Brain, ChevronDown, ChevronRight, Clock, InfoIcon, Loader2, List, ScanSearchIcon, Zap } from 'lucide-react';
-import { memo, useCallback } from 'react';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
+import { cn, getShortenedNumberDisplayString } from '@/lib/utils';
+import isEqual from "fast-deep-equal/react";
+import { useStickToBottom } from 'use-stick-to-bottom';
+import { Brain, ChevronDown, ChevronRight, Clock, InfoIcon, Loader2, ScanSearchIcon, Wrench, Zap } from 'lucide-react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { usePrevious } from '@uidotdev/usehooks';
+import { SBChatMessageMetadata, SBChatMessagePart } from '../../types';
+import { SearchScopeIcon } from '../searchScopeIcon';
 import { MarkdownRenderer } from './markdownRenderer';
 import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
-import { ReadFilesToolComponent } from './tools/readFilesToolComponent';
-import { SearchCodeToolComponent } from './tools/searchCodeToolComponent';
-import { ListReposToolComponent } from './tools/listReposToolComponent';
+import { GlobToolComponent } from './tools/globToolComponent';
+import { GrepToolComponent } from './tools/grepToolComponent';
 import { ListCommitsToolComponent } from './tools/listCommitsToolComponent';
-import { SBChatMessageMetadata, SBChatMessagePart } from '../../types';
-import { SearchScopeIcon } from '../searchScopeIcon';
-import isEqual from "fast-deep-equal/react";
+import { ListReposToolComponent } from './tools/listReposToolComponent';
+import { ListTreeToolComponent } from './tools/listTreeToolComponent';
+import { ReadFileToolComponent } from './tools/readFileToolComponent';
+import { ToolOutputGuard } from './tools/toolOutputGuard';
 
 
 interface DetailsCardProps {
@@ -41,6 +46,8 @@ const DetailsCardComponent = ({
     thinkingSteps,
 }: DetailsCardProps) => {
     const captureEvent = useCaptureEvent();
+
+    const toolCallCount = useMemo(() => thinkingSteps.flat().filter(part => part.type.startsWith('tool-')).length, [thinkingSteps]);
 
     const handleExpandedChanged = useCallback((next: boolean) => {
         captureEvent('wa_chat_details_card_toggled', { chatId, isExpanded: next });
@@ -105,21 +112,43 @@ const DetailsCardComponent = ({
                                             </div>
                                         )}
                                         {metadata?.totalTokens && (
-                                            <div className="flex items-center text-xs">
-                                                <Zap className="w-3 h-3 mr-1 flex-shrink-0" />
-                                                {metadata?.totalTokens} tokens
-                                            </div>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="flex items-center text-xs cursor-help">
+                                                        <Zap className="w-3 h-3 mr-1 flex-shrink-0" />
+                                                        {getShortenedNumberDisplayString(metadata.totalTokens, 0)} tokens
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom">
+                                                    <div className="space-y-1 text-xs">
+                                                        <div className="flex justify-between gap-4">
+                                                            <span className="text-muted-foreground">Input</span>
+                                                            <span>{metadata.totalInputTokens?.toLocaleString() ?? '—'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between gap-4">
+                                                            <span className="text-muted-foreground">Output</span>
+                                                            <span>{metadata.totalOutputTokens?.toLocaleString() ?? '—'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between gap-4 border-t border-border pt-1">
+                                                            <span className="text-muted-foreground">Total</span>
+                                                            <span>{metadata.totalTokens.toLocaleString()}</span>
+                                                        </div>
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
                                         )}
                                         {metadata?.totalResponseTimeMs && (
                                             <div className="flex items-center text-xs">
                                                 <Clock className="w-3 h-3 mr-1 flex-shrink-0" />
-                                                {metadata?.totalResponseTimeMs / 1000} seconds
+                                                {Math.round(metadata.totalResponseTimeMs / 1000)} seconds
                                             </div>
                                         )}
-                                        <div className="flex items-center text-xs">
-                                            <List className="w-3 h-3 mr-1 flex-shrink-0" />
-                                            {`${thinkingSteps.length} step${thinkingSteps.length === 1 ? '' : 's'}`}
-                                        </div>
+                                        {toolCallCount > 0 && (
+                                            <div className="flex items-center text-xs">
+                                                <Wrench className="w-3 h-3 mr-1 flex-shrink-0" />
+                                                {toolCallCount} tool call{toolCallCount === 1 ? '' : 's'}
+                                            </div>
+                                        )}
                                     </>
                                 )}
                             </div>
@@ -133,88 +162,12 @@ const DetailsCardComponent = ({
                     </CardContent>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                    <CardContent className="mt-2 space-y-6">
-                        {thinkingSteps.length === 0 ? (
-                            isStreaming ? (
-                                <Skeleton className="h-24 w-full" />
-                            ) : (
-                                <p className="text-sm text-muted-foreground">No thinking steps</p>
-                            )
-                        ) : thinkingSteps.map((step, index) => {
-                            return (
-                                <div
-                                    key={index}
-                                    className="border-l-2 pl-4 relative border-muted"
-                                >
-                                    <div
-                                        className={`absolute left-[-9px] top-1 w-4 h-4 rounded-full flex items-center justify-center bg-muted`}
-                                    >
-                                        <span
-                                            className={`text-xs font-semibold`}
-                                        >
-                                            {index + 1}
-                                        </span>
-                                    </div>
-                                    {step.map((part, index) => {
-                                        switch (part.type) {
-                                            case 'reasoning':
-                                            case 'text':
-                                                return (
-                                                    <MarkdownRenderer
-                                                        key={index}
-                                                        content={part.text}
-                                                        className="text-sm"
-                                                    />
-                                                )
-                                            case 'tool-readFiles':
-                                                return (
-                                                    <ReadFilesToolComponent
-                                                        key={index}
-                                                        part={part}
-                                                    />
-                                                )
-                                            case 'tool-searchCode':
-                                                return (
-                                                    <SearchCodeToolComponent
-                                                        key={index}
-                                                        part={part}
-                                                    />
-                                                )
-                                            case 'tool-findSymbolDefinitions':
-                                                return (
-                                                    <FindSymbolDefinitionsToolComponent
-                                                        key={index}
-                                                        part={part}
-                                                    />
-                                                )
-                                            case 'tool-findSymbolReferences':
-                                                return (
-                                                    <FindSymbolReferencesToolComponent
-                                                        key={index}
-                                                        part={part}
-                                                    />
-                                                )
-                                            case 'tool-listRepos':
-                                                return (
-                                                    <ListReposToolComponent
-                                                        key={index}
-                                                        part={part}
-                                                    />
-                                                )
-                                            case 'tool-listCommits':
-                                                return (
-                                                    <ListCommitsToolComponent
-                                                        key={index}
-                                                        part={part}
-                                                    />
-                                                )
-                                            default:
-                                                return null;
-                                        }
-                                    })}
-                                </div>
-                            )
-                        })}
+                    <CardContent className="mt-2 p-0">
+                        <ThinkingSteps
+                            thinkingSteps={thinkingSteps}
+                            isStreaming={isStreaming}
+                            isThinking={isThinking}
+                        />
                     </CardContent>
                 </CollapsibleContent>
             </Collapsible>
@@ -223,3 +176,138 @@ const DetailsCardComponent = ({
 }
 
 export const DetailsCard = memo(DetailsCardComponent, isEqual);
+
+
+const ThinkingSteps = ({ thinkingSteps, isStreaming, isThinking }: { thinkingSteps: SBChatMessagePart[][], isStreaming: boolean, isThinking: boolean }) => {
+    const { scrollRef, contentRef, scrollToBottom } = useStickToBottom();
+    const [shouldStick, setShouldStick] = useState(isThinking);
+    const prevIsThinking = usePrevious(isThinking);
+
+    useEffect(() => {
+        if (prevIsThinking && !isThinking) {
+            scrollToBottom();
+            setShouldStick(false);
+        } else if (!prevIsThinking && isThinking) {
+            setShouldStick(true);
+        }
+    }, [isThinking, prevIsThinking, scrollToBottom]);
+
+    return (
+        <div ref={scrollRef} className="max-h-[350px] overflow-y-auto px-6 py-2">
+            <div ref={shouldStick ? contentRef : undefined}>
+                {thinkingSteps.length === 0 ? (
+                    isStreaming ? (
+                        <Skeleton className="h-24 w-full" />
+                    ) : (
+                        <p className="text-sm text-muted-foreground">No thinking steps</p>
+                    )
+                ) : thinkingSteps.map((step, index) => (
+                    <div key={index}>
+                        {step.map((part, index) => (
+                            <div key={index} className="mb-2">
+                                <StepPartRenderer part={part} />
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+
+export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
+    switch (part.type) {
+        case 'reasoning':
+        case 'text':
+            return (
+                <MarkdownRenderer
+                    content={part.text}
+                    className="text-sm prose-p:m-0 prose-code:text-xs"
+                />
+            )
+        case 'tool-read_file':
+            return (
+                <ToolOutputGuard
+                    part={part}
+                    loadingText="Reading file..."
+                >
+                    {(output) => <ReadFileToolComponent {...output} />}
+                </ToolOutputGuard>
+            )
+        case 'tool-grep':
+            return (
+                <ToolOutputGuard
+                    part={part}
+                    loadingText={'Searching...'}
+                >
+                    {(output) => <GrepToolComponent {...output} />}
+                </ToolOutputGuard>
+            )
+        case 'tool-glob':
+            return (
+                <ToolOutputGuard
+                    part={part}
+                    loadingText="Searching files..."
+                >
+                    {(output) => <GlobToolComponent {...output} />}
+                </ToolOutputGuard>
+            )
+        case 'tool-find_symbol_definitions':
+            return (
+                <ToolOutputGuard
+                    part={part}
+                    loadingText="Resolving definitions..."
+                >
+                    {(output) => <FindSymbolDefinitionsToolComponent {...output} />}
+                </ToolOutputGuard>
+            )
+        case 'tool-find_symbol_references':
+            return (
+                <ToolOutputGuard
+                    part={part}
+                    loadingText="Resolving references..."
+                >
+                    {(output) => <FindSymbolReferencesToolComponent {...output} />}
+                </ToolOutputGuard>
+            )
+        case 'tool-list_repos':
+            return (
+                <ToolOutputGuard
+                    part={part}
+                    loadingText="Listing repositories..."
+                >
+                    {(output) => <ListReposToolComponent {...output} />}
+                </ToolOutputGuard>
+            )
+        case 'tool-list_commits':
+            return (
+                <ToolOutputGuard
+                    part={part}
+                    loadingText="Listing commits..."
+                >
+                    {(output) => <ListCommitsToolComponent {...output} />}
+                </ToolOutputGuard>
+            )
+        case 'tool-list_tree':
+            return (
+                <ToolOutputGuard
+                    part={part}
+                    loadingText="Listing tree..."
+                >
+                    {(output) => <ListTreeToolComponent {...output} />}
+                </ToolOutputGuard>
+            )
+        case 'data-source':
+        case 'dynamic-tool':
+        case 'file':
+        case 'source-document':
+        case 'source-url':
+        case 'step-start':
+            return null;
+        default:
+            // Guarantees this switch-case to be exhaustive
+            part satisfies never;
+            return null;
+    }
+}

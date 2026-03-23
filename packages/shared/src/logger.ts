@@ -32,12 +32,11 @@ const datadogFormat = format((info) => {
     return info;
 });
 
-const humanReadableFormat = printf(({ level, message, timestamp, stack, label: _label }) => {
+const humanReadableFormat = printf(({ level, message, timestamp, stack, label: _label, ...rest }) => {
     const label = `[${_label}] `;
-    if (stack) {
-        return `${timestamp} ${level}: ${label}${message}\n${stack}`;
-    }
-    return `${timestamp} ${level}: ${label}${message}`;
+    const extras = Object.keys(rest).length > 0 ? ` ${JSON.stringify(rest)}` : '';
+    const base = `${timestamp} ${level}: ${label}${message}${extras}`;
+    return stack ? `${base}\n${stack}` : base;
 });
 
 const createLogger = (label: string) => {

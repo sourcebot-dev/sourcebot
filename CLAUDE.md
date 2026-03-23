@@ -38,6 +38,25 @@ Exceptions:
 - Special files like `README.md`, `CHANGELOG.md`, `LICENSE`
 - Next.js conventions: `page.tsx`, `layout.tsx`, `loading.tsx`, etc.
 
+## Code Style
+
+Always use curly braces for `if` statements, with the body on a new line — even for single-line bodies:
+
+```ts
+// Correct
+if (!value) {
+    return;
+}
+if (condition) {
+    doSomething();
+}
+
+// Incorrect
+if (!value) return;
+if (!value) { return; }
+if (condition) doSomething();
+```
+
 ## Tailwind CSS
 
 Use Tailwind color classes directly instead of CSS variable syntax:

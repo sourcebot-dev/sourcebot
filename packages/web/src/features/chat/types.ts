@@ -1,26 +1,13 @@
-import { CreateUIMessage, UIMessage, UIMessagePart } from "ai";
+import { CreateUIMessage, InferUITool, UIMessage, UIMessagePart } from "ai";
 import { BaseEditor, Descendant } from "slate";
 import { HistoryEditor } from "slate-history";
 import { ReactEditor, RenderElementProps } from "slate-react";
 import { z } from "zod";
-import { FindSymbolDefinitionsTool, FindSymbolReferencesTool, ReadFilesTool, SearchCodeTool, ListReposTool, ListCommitsTool } from "./tools";
-import { toolNames } from "./constants";
 import { LanguageModel } from "@sourcebot/schemas/v3/index.type";
-
-const fileSourceSchema = z.object({
-    type: z.literal('file'),
-    repo: z.string(),
-    path: z.string(),
-    name: z.string(),
-    language: z.string(),
-    revision: z.string(),
-});
-export type FileSource = z.infer<typeof fileSourceSchema>;
-
-export const sourceSchema = z.discriminatedUnion('type', [
-    fileSourceSchema,
-]);
-export type Source = z.infer<typeof sourceSchema>;
+import { createTools } from "./tools";
+export { sourceSchema } from "@/features/tools/types";
+export type { FileSource, Source } from "@/features/tools/types";
+import type { Source } from "@/features/tools/types";
 
 const fileReferenceSchema = z.object({
     type: z.literal('file'),
@@ -79,13 +66,8 @@ export const sbChatMessageMetadataSchema = z.object({
 export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;
 
 export type SBChatMessageToolTypes = {
-    [toolNames.searchCode]: SearchCodeTool,
-    [toolNames.readFiles]: ReadFilesTool,
-    [toolNames.findSymbolReferences]: FindSymbolReferencesTool,
-    [toolNames.findSymbolDefinitions]: FindSymbolDefinitionsTool,
-    [toolNames.listRepos]: ListReposTool,
-    [toolNames.listCommits]: ListCommitsTool,
-}
+    [K in keyof ReturnType<typeof createTools>]: InferUITool<ReturnType<typeof createTools>[K]>;
+};
 
 export type SBChatMessageDataParts = {
     // The `source` data type allows us to know what sources the LLM saw

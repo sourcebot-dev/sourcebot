@@ -462,7 +462,6 @@ export const ChatThread = ({
                                     languageModels={languageModels}
                                     selectedSearchScopes={selectedSearchScopes}
                                     searchContexts={searchContexts}
-                                    onContextSelectorOpenChanged={setIsContextSelectorOpen}
                                     isDisabled={languageModels.length === 0}
                                 />
                                 <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
