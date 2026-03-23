@@ -13,7 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed the ask search scope selector to allow submitting questions with no search scope selected. When no selection is made, the agent will be able to search over all repos the user has access to. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 - Renamed the `search_code` tool to `grep` for ask and mcp. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 - Improved auto-scroll behavior in the ask chat thread. [#1031](https://github.com/sourcebot-dev/sourcebot/pull/1031)
-- Cleared the search scope selection on the ask landing page after a new thread is created. [#1033](https://github.com/sourcebot-dev/sourcebot/pull/1033)
 
 ### Added
 - Added `glob`, `find_symbol_definitions`, and `find_symbol_references` tools to the ask agent and MCP server. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
@@ -27,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed reference panel overflow issue in the ask UI. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 - Fixed homepage scrolling issue in the ask UI. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 - Fixed UI freeze when the `grep` tool returns a large number of results with `groupByRepo=true`. [#1032](https://github.com/sourcebot-dev/sourcebot/pull/1032)
+- Fixed issue where the search scope selection persisted after a new thread is created. [#1033](https://github.com/sourcebot-dev/sourcebot/pull/1033)
 
 ## [4.15.11] - 2026-03-20
 
