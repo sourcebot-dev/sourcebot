@@ -241,6 +241,7 @@ const options = {
         SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(100),
 
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
+        DEBUG_ENABLE_REACT_SCAN: booleanSchema.default('false'),
 
         LANGFUSE_SECRET_KEY: z.string().optional(),
 
