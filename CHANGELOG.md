@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed homepage scrolling issue in the ask UI. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
 - Fixed UI freeze when the `grep` tool returns a large number of results with `groupByRepo=true`. [#1032](https://github.com/sourcebot-dev/sourcebot/pull/1032)
 - Fixed issue where the search scope selection persisted after a new thread is created. [#1033](https://github.com/sourcebot-dev/sourcebot/pull/1033)
+- Fixed inaccurate scroll position when selecting a chat reference in the ask UI. [#1035](https://github.com/sourcebot-dev/sourcebot/pull/1035)
 
 ## [4.15.11] - 2026-03-20
 
