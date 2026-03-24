@@ -36,14 +36,22 @@ export default function RootLayout({
             suppressHydrationWarning
         >
       <head>
-        {process.env.NODE_ENV === "development" && (
+        {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_SCAN === 'true' && (
+          <Script
+            src="//unpkg.com/react-scan/dist/auto.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
+
+        {env.NODE_ENV === "development" && (
           <Script
             src="//unpkg.com/react-grab/dist/index.global.js"
             crossOrigin="anonymous"
             strategy="beforeInteractive"
           />
         )}
-        {process.env.NODE_ENV === "development" && (
+        {env.NODE_ENV === "development" && (
           <Script
             src="//unpkg.com/@react-grab/mcp/dist/client.global.js"
             strategy="lazyOnload"

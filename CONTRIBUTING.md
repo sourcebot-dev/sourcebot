@@ -103,6 +103,20 @@ Want to take on an issue? Leave a comment and a maintainer may assign it to you 
 
 10. Start searching at `http://localhost:3000`.
 
+## Debugging
+
+### React Scan
+
+[React Scan](https://react-scan.com) highlights components that are re-rendering, which is useful for diagnosing unnecessary renders and performance issues. It only runs in development mode.
+
+To enable it, set the following in your `.env.development.local`:
+
+```sh
+DEBUG_ENABLE_REACT_SCAN=true
+```
+
+Then restart the dev server. Components that re-render will be highlighted in the browser.
+
 ## Pull Request Expectations
 
 ### Issue First Policy
