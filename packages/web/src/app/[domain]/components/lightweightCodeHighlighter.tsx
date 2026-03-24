@@ -145,6 +145,7 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
                                 textAlign: 'left',
                                 paddingLeft: '5px',
                                 userSelect: 'none',
+                                WebkitUserSelect: 'none',
                                 fontFamily: tailwind.theme.fontFamily.editor,
                                 color: tailwind.theme.colors.editor.gutterForeground,
                             }}
