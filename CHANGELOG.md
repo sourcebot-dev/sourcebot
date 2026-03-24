@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.16.1] - 2026-03-24
+
 ### Fixed
 - Fixed scroll position when selecting chat references that point to lines further down in a file. [#1036](https://github.com/sourcebot-dev/sourcebot/pull/1036)
 
