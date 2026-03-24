@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.16.0] - 2026-03-24
+
 ### Changed
 - Changed language detection to resolve file extensions with multiple language resolutions (e.g., .md) to the most common resolution. [#1026](https://github.com/sourcebot-dev/sourcebot/pull/1026)
 - Changed the `webUrl` property of the `/api/repos` api to return a URL rather than just a path. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
