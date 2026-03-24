@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed line numbers being selectable in Safari in the lightweight code highlighter. [#1037](https://github.com/sourcebot-dev/sourcebot/pull/1037)
+
+### Added
+- Added optional copy button to the lightweight code highlighter (`isCopyButtonVisible` prop), shown on hover. [#1037](https://github.com/sourcebot-dev/sourcebot/pull/1037)
+
 ## [4.16.1] - 2026-03-24
 
 ### Fixed
