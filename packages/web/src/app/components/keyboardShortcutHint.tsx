@@ -1,7 +1,8 @@
 'use client';
 
-import { cn, IS_MAC } from '@/lib/utils'
-import React, { useMemo } from 'react'
+import { cn } from '@/lib/utils'
+import { useIsMac } from '@/hooks/useIsMac'
+import { useMemo } from 'react'
 
 interface KeyboardShortcutHintProps {
     shortcut: string
@@ -81,16 +82,17 @@ function mapKey(key: string, keyMap: Record<string, string>): string {
  * Converts react-hotkeys syntax to platform-appropriate keyboard shortcut display.
  * Accepts formats like: "mod+b", "alt+shift+f12", "ctrl enter"
  */
-function getPlatformShortcut(shortcut: string): string {
+function getPlatformShortcut(shortcut: string, isMac: boolean): string {
     // Split by + or space to handle both "mod+b" and "⌘ B" formats
     const keys = shortcut.split(/[+\s]+/).filter(Boolean);
-    const keyMap = IS_MAC ? MAC_KEY_MAP : WINDOWS_KEY_MAP;
-    
+    const keyMap = isMac ? MAC_KEY_MAP : WINDOWS_KEY_MAP;
+
     return keys.map(key => mapKey(key, keyMap)).join(' ');
 }
 
 export function KeyboardShortcutHint({ shortcut, label, className }: KeyboardShortcutHintProps) {
-    const platformShortcut = useMemo(() => getPlatformShortcut(shortcut), [shortcut]);
+    const isMac = useIsMac();
+    const platformShortcut = useMemo(() => getPlatformShortcut(shortcut, isMac), [shortcut, isMac]);
 
     return (
         <div className={cn("inline-flex items-center", className)} aria-label={label || `Keyboard shortcut: ${platformShortcut}`}>

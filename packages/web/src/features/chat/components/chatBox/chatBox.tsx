@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CustomEditor, LanguageModelInfo, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
-import { cn, IS_MAC } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { useIsMac } from "@/hooks/useIsMac";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
 import { ArrowUp, Loader2, StopCircleIcon } from "lucide-react";
 import { Fragment, KeyboardEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -367,6 +368,7 @@ const MentionComponent = ({
 }: RenderElementPropsFor<MentionElement>) => {
     const selected = useSelected();
     const focused = useFocused();
+    const isMac = useIsMac();
 
     if (data.type === 'file') {
         return (
@@ -384,7 +386,7 @@ const MentionComponent = ({
                     >
                         <span contentEditable={false} className="flex flex-row items-center select-none">
                             {/* @see: https://github.com/ianstormtaylor/slate/issues/3490 */}
-                            {IS_MAC ? (
+                            {isMac ? (
                                 <Fragment>
                                     {children}
                                     <VscodeFileIcon fileName={data.name} className="w-3 h-3 mr-1" />
