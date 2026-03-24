@@ -114,11 +114,6 @@ const ReferencedSourcesListViewComponent = ({
             scrollAreaViewport &&
             selectedReference.range.startLine <= editorRef.view.state.doc.lines
         ) {
-            const view = editorRef.view;
-            const lineNumber = selectedReference.range.startLine;
-
-            const pos = view.state.doc.line(lineNumber).from;
-
             // Expand the file if it's collapsed.
             setCollapsedFileIds((collapsedFileIds) => collapsedFileIds.filter((id) => id !== fileId));
 
@@ -139,15 +134,26 @@ const ReferencedSourcesListViewComponent = ({
                 behavior: 'instant',
             });
 
-            requestAnimationFrame(() => {
-                const coords = view.coordsAtPos(pos);
-                if (!coords) {
-                    return;
-                }
+            const view = editorRef.view;
+            const lineNumber = selectedReference.range.startLine;
 
+            requestAnimationFrame(() => {
+                // Get the line's position within the CodeMirror document
+                const pos = view.state.doc.line(lineNumber).from;
+                const blockInfo = view.lineBlockAt(pos);
+                const lineTopInCodeMirror = blockInfo.top;
+
+                // Get the bounds of both elements
                 const viewportRect = scrollAreaViewport.getBoundingClientRect();
-                const lineTopRelativeToScrollArea = coords.top - viewportRect.top + scrollAreaViewport.scrollTop;
+                const codeMirrorRect = view.dom.getBoundingClientRect();
+
+                // Calculate the line's position relative to the ScrollArea content
+                const lineTopRelativeToScrollArea = lineTopInCodeMirror + (codeMirrorRect.top - viewportRect.top) + scrollAreaViewport.scrollTop;
+
+                // Get the height of the visible ScrollArea
                 const scrollAreaHeight = scrollAreaViewport.clientHeight;
+
+                // Calculate the target scroll position to center the line
                 const targetScrollTop = lineTopRelativeToScrollArea - (scrollAreaHeight / 3);
 
                 scrollAreaViewport.scrollTo({
