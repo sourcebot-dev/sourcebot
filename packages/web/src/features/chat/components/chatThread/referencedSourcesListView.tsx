@@ -117,34 +117,42 @@ const ReferencedSourcesListViewComponent = ({
             const view = editorRef.view;
             const lineNumber = selectedReference.range.startLine;
 
-            // Get the line's position within the CodeMirror document
             const pos = view.state.doc.line(lineNumber).from;
-            const blockInfo = view.lineBlockAt(pos);
-            const lineTopInCodeMirror = blockInfo.top;
-
-            // Get the bounds of both elements
-            const viewportRect = scrollAreaViewport.getBoundingClientRect();
-            const codeMirrorRect = view.dom.getBoundingClientRect();
-
-            // Calculate the line's position relative to the ScrollArea content
-            const lineTopRelativeToScrollArea = lineTopInCodeMirror + (codeMirrorRect.top - viewportRect.top) + scrollAreaViewport.scrollTop;
-
-            // Get the height of the visible ScrollArea
-            const scrollAreaHeight = scrollAreaViewport.clientHeight;
-
-            // Calculate the target scroll position to center the line
-            const targetScrollTop = lineTopRelativeToScrollArea - (scrollAreaHeight / 3);
 
             // Expand the file if it's collapsed.
             setCollapsedFileIds((collapsedFileIds) => collapsedFileIds.filter((id) => id !== fileId));
 
-            // Scroll to the calculated position
-            // @NOTE: Using requestAnimationFrame is a bit of a hack to ensure
-            // that the collapsed file ids state has updated before scrolling.
+            // @hack: CodeMirror 6 virtualizes line rendering — it only renders lines near the
+            // browser viewport and uses estimated heights for everything else. This means
+            // coordsAtPos() returns inaccurate positions for lines that are off-screen,
+            // causing the scroll to land at the wrong position on the first click.
+            //
+            // To work around this, we use a two-step scroll:
+            //   Step 1: Instantly bring the file element into the browser viewport. This
+            //           forces CodeMirror to render and measure the target lines.
+            //   Step 2: In the next frame (after CodeMirror has measured), coordsAtPos()
+            //           returns accurate screen coordinates which we use to scroll precisely
+            //           to the target line.
+            scrollIntoView(fileSourceElement, {
+                scrollMode: 'if-needed',
+                block: 'start',
+                behavior: 'instant',
+            });
+
             requestAnimationFrame(() => {
+                const coords = view.coordsAtPos(pos);
+                if (!coords) {
+                    return;
+                }
+
+                const viewportRect = scrollAreaViewport.getBoundingClientRect();
+                const lineTopRelativeToScrollArea = coords.top - viewportRect.top + scrollAreaViewport.scrollTop;
+                const scrollAreaHeight = scrollAreaViewport.clientHeight;
+                const targetScrollTop = lineTopRelativeToScrollArea - (scrollAreaHeight / 3);
+
                 scrollAreaViewport.scrollTo({
                     top: Math.max(0, targetScrollTop),
-                    behavior: 'smooth',
+                    behavior: 'instant',
                 });
             });
         }
@@ -154,7 +162,7 @@ const ReferencedSourcesListViewComponent = ({
             scrollIntoView(fileSourceElement, {
                 scrollMode: 'if-needed',
                 block: 'start',
-                behavior: 'smooth',
+                behavior: 'instant',
             });
         }
     }, [getFileId, sources, selectedReference]);

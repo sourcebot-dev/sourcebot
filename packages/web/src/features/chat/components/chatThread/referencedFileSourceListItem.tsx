@@ -214,6 +214,10 @@ const ReferencedFileSourceListItemComponent = ({
         return isExpanded ? ChevronDown : ChevronRight;
     }, [isExpanded]);
 
+    const isSelectedWithoutRange = useMemo(() => {
+        return references.some(r => r.id === selectedReference?.id && !selectedReference?.range);
+    }, [references, selectedReference?.id, selectedReference?.range]);
+
     return (
         <div className="relative" id={id}>
             {/* Sentinel element to scroll to when collapsing a file */}
@@ -221,6 +225,7 @@ const ReferencedFileSourceListItemComponent = ({
             {/* Sticky header outside the bordered container */}
             <div className={cn("sticky top-0 z-10 flex flex-row items-center bg-accent py-1 px-3 gap-1.5 border-l border-r border-t rounded-t-md", {
                 'rounded-b-md border-b': !isExpanded,
+                'border-chat-reference-selected-border border-b': isSelectedWithoutRange,
             })}>
                 <ExpandCollapseIcon className={`h-3 w-3 cursor-pointer mt-0.5`} onClick={() => onExpandedChanged(!isExpanded)} />
                 <PathHeader
