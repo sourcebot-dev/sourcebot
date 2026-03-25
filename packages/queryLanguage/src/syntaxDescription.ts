@@ -22,12 +22,14 @@ Narrow searches with prefix:value syntax:
 
   file:<value>      — filter by file path
   lang:<value>      — filter by language. Uses linguist language definitions (e.g. TypeScript, Python, Go, Rust, Java)
-  repo:<value>      — filter by repository name
+  repo:<value>      — filter by repository name (use ONLY to limit WHICH repositories are searched, NOT for content within files)
   sym:<value>       — filter by symbol name
   rev:<value>       — filter by git branch or tag
 
 All filter values are interpreted as case-sensitive regular expressions.
 A plain word matches as a substring. No forward slashes around values.
+
+IMPORTANT: When users want to search for content or keywords INSIDE files, use bare search terms or quoted phrases, NOT the repo: filter. The repo: filter only controls which repositories to search, it does not search file content.
 
 ## Boolean logic
 
@@ -96,4 +98,13 @@ Output: lang:TypeScript "from \"(react|react-dom)\""
 
 Input: find files with password reset logic, excluding tests
 Output: "password reset" -file:test
+
+Input: find Terraform files that reference glennbot or glenn-bot deployments
+Output: lang:Terraform (glennbot|glenn-bot)
+
+Input: find all files mentioning the myapp-api service
+Output: myapp-api
+
+Input: find Python files in the backend repo that use requests library
+Output: lang:Python repo:backend import requests
 `.trim();
