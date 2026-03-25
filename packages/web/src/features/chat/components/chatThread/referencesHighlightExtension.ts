@@ -76,7 +76,7 @@ function buildDecorations(state: EditorState, references: FileReference[], hover
 
         for (let line = range.startLine; line <= range.endLine; line++) {
             // Skip lines that are outside the document bounds.
-            if (line > state.doc.lines) {
+            if (line < 1 || line > state.doc.lines) {
                 continue;
             }
 
