@@ -68,7 +68,7 @@ const ReferencedFileSourceListItemContainerComponent = ({
         );
     }
 
-    if (isError || isServiceError(data)) {
+    if (isError || isServiceError(data) || !data) {
         return (
             <div className="space-y-2">
                 <div className="flex items-center gap-2 p-2">
@@ -82,19 +82,17 @@ const ReferencedFileSourceListItemContainerComponent = ({
         );
     }
 
-    const fileData = data!;
-
     return (
         <ReferencedFileSourceListItem
             id={fileId}
-            code={fileData.source}
-            language={fileData.language}
+            code={data.source}
+            language={data.language}
             revision={fileSource.revision}
             repoName={fileSource.repo}
-            repoCodeHostType={fileData.repoCodeHostType}
-            repoDisplayName={fileData.repoDisplayName}
-            repoWebUrl={fileData.repoExternalWebUrl}
-            fileName={fileData.path}
+            repoCodeHostType={data.repoCodeHostType}
+            repoDisplayName={data.repoDisplayName}
+            repoWebUrl={data.repoExternalWebUrl}
+            fileName={data.path}
             references={references}
             ref={handleRef}
             onSelectedReferenceChanged={onSelectedReferenceChanged}
