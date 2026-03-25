@@ -46,9 +46,10 @@ export const LandingPage = ({
     const displayName = repoDisplayName ?? repoName;
 
     return (
-        <div className="min-h-screen flex flex-col justify-between p-4">
-            {/* Center Section - Repository Info */}
-            <div className="flex-1 flex items-center justify-center">
+        <div className="min-h-screen flex flex-col items-center justify-center p-4">
+            {/* Centered Content - Repository Info + ChatBox */}
+            <div className="flex flex-col items-center gap-8 w-full max-w-[800px]">
+                {/* Repository Info */}
                 <div className="flex items-center gap-4">
                     {imageSrc && (
                         <Image
@@ -62,11 +63,9 @@ export const LandingPage = ({
                     )}
                     <h1 className="text-2xl font-bold">{displayName}</h1>
                 </div>
-            </div>
 
-            {/* Bottom Section - ChatBox */}
-            <div className="flex justify-center pb-8">
-                <div className="w-full max-w-[800px]">
+                {/* ChatBox */}
+                <div className="w-full">
                     <div className="border rounded-md w-full shadow-sm">
                         <ChatBox
                             onSubmit={(children) => {
