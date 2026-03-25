@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed AI Search Assist incorrectly using the `repo:` filter when searching for content within files. [#1045](https://github.com/sourcebot-dev/sourcebot/pull/1045)
+
 ## [4.16.2] - 2026-03-25
 
 ### Fixed
