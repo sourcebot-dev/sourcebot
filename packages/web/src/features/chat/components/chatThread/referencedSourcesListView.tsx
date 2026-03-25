@@ -5,7 +5,7 @@ import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isServiceError, unwrapServiceError } from "@/lib/utils";
-import { useQueries } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import scrollIntoView from 'scroll-into-view-if-needed';
@@ -71,19 +71,6 @@ const ReferencedSourcesListViewComponent = ({
 
         return groupedReferences;
     }, [references, sources, getFileId]);
-
-    const fileSourceQueries = useQueries({
-        queries: sources.map((file) => ({
-            queryKey: ['fileSource', file.path, file.repo, file.revision],
-            queryFn: () => unwrapServiceError(getFileSource({
-                path: file.path,
-                repo: file.repo,
-                ref: file.revision,
-            })),
-            staleTime: Infinity,
-        })),
-    });
-
 
     useEffect(() => {
         if (!selectedReference || selectedReference.type !== 'file') {
@@ -206,63 +193,25 @@ const ReferencedSourcesListViewComponent = ({
             style={style}
         >
             <div className="space-y-4 pr-2">
-                {fileSourceQueries.map((query, index) => {
-                    const fileSource = sources[index];
-                    const fileName = fileSource.path.split('/').pop() ?? fileSource.path;
-
-                    if (query.isLoading) {
-                        return (
-                            <div key={`${fileSource.repo}/${fileSource.path}`} className="space-y-2">
-                                <div className="flex items-center gap-2 p-2">
-                                    <VscodeFileIcon fileName={fileName} className="w-4 h-4" />
-                                    <span className="text-sm font-medium">{fileName}</span>
-                                </div>
-                                <Skeleton className="h-48 w-full" />
-                            </div>
-                        );
-                    }
-
-                    if (query.isError || isServiceError(query.data)) {
-                        return (
-                            <div key={`${fileSource.repo}/${fileSource.path}`} className="space-y-2">
-                                <div className="flex items-center gap-2 p-2">
-                                    <VscodeFileIcon fileName={fileName} className="w-4 h-4" />
-                                    <span className="text-sm font-medium">{fileName}</span>
-                                </div>
-                                <div className="p-4 text-sm text-destructive bg-destructive/10 rounded border">
-                                    Failed to load file: {isServiceError(query.data) ? query.data.message : query.error?.message ?? 'Unknown error'}
-                                </div>
-                            </div>
-                        );
-                    }
-
-                    const fileData = query.data!;
-
+                {sources.map((fileSource) => {
                     const fileId = getFileId(fileSource);
                     const referencesInFile = referencesGroupedByFile.get(fileId) || [];
+                    const hoveredReferenceInFile = referencesInFile.some(r => r.id === hoveredReference?.id) ? hoveredReference : undefined;
+                    const selectedReferenceInFile = referencesInFile.some(r => r.id === selectedReference?.id) ? selectedReference : undefined;
 
                     return (
-                        <ReferencedFileSourceListItem
+                        <FileSourceItem
                             key={fileId}
-                            id={fileId}
-                            code={fileData.source}
-                            language={fileData.language}
-                            revision={fileSource.revision}
-                            repoName={fileSource.repo}
-                            repoCodeHostType={fileData.repoCodeHostType}
-                            repoDisplayName={fileData.repoDisplayName}
-                            repoWebUrl={fileData.repoExternalWebUrl}
-                            fileName={fileData.path}
+                            fileId={fileId}
+                            fileSource={fileSource}
                             references={referencesInFile}
-                            ref={ref => {
-                                setEditorRef(fileId, ref);
-                            }}
-                            onSelectedReferenceChanged={onSelectedReferenceChanged}
+                            hoveredReference={hoveredReferenceInFile}
+                            selectedReference={selectedReferenceInFile}
                             onHoveredReferenceChanged={onHoveredReferenceChanged}
-                            selectedReference={selectedReference}
-                            hoveredReference={hoveredReference}
+                            onSelectedReferenceChanged={onSelectedReferenceChanged}
                             isExpanded={!collapsedFileIds.includes(fileId)}
-                            onExpandedChanged={(isExpanded) => onExpandedChanged(fileId, isExpanded)}
+                            onExpandedChanged={onExpandedChanged}
+                            onEditorRef={setEditorRef}
                         />
                     );
                 })}
@@ -273,3 +222,101 @@ const ReferencedSourcesListViewComponent = ({
 
 // Memoize to prevent unnecessary re-renders
 export const ReferencedSourcesListView = memo(ReferencedSourcesListViewComponent, isEqual);
+
+interface FileSourceItemProps {
+    fileId: string;
+    fileSource: FileSource;
+    references: FileReference[];
+    hoveredReference?: Reference;
+    selectedReference?: Reference;
+    onHoveredReferenceChanged: (reference?: Reference) => void;
+    onSelectedReferenceChanged: (reference?: Reference) => void;
+    isExpanded: boolean;
+    onExpandedChanged: (fileId: string, isExpanded: boolean) => void;
+    onEditorRef: (fileId: string, ref: ReactCodeMirrorRef | null) => void;
+}
+
+const FileSourceItemComponent = ({
+    fileId,
+    fileSource,
+    references,
+    hoveredReference,
+    selectedReference,
+    onHoveredReferenceChanged,
+    onSelectedReferenceChanged,
+    isExpanded,
+    onExpandedChanged,
+    onEditorRef,
+}: FileSourceItemProps) => {
+    const fileName = fileSource.path.split('/').pop() ?? fileSource.path;
+
+    const { data, isLoading, isError, error } = useQuery({
+        queryKey: ['fileSource', fileSource.path, fileSource.repo, fileSource.revision],
+        queryFn: () => unwrapServiceError(getFileSource({
+            path: fileSource.path,
+            repo: fileSource.repo,
+            ref: fileSource.revision,
+        })),
+        staleTime: Infinity,
+    });
+
+    const handleRef = useCallback((ref: ReactCodeMirrorRef | null) => {
+        onEditorRef(fileId, ref);
+    }, [fileId, onEditorRef]);
+
+    const handleExpandedChanged = useCallback((isExpanded: boolean) => {
+        onExpandedChanged(fileId, isExpanded);
+    }, [fileId, onExpandedChanged]);
+
+    if (isLoading) {
+        return (
+            <div className="space-y-2">
+                <div className="flex items-center gap-2 p-2">
+                    <VscodeFileIcon fileName={fileName} className="w-4 h-4" />
+                    <span className="text-sm font-medium">{fileName}</span>
+                </div>
+                <Skeleton className="h-48 w-full" />
+            </div>
+        );
+    }
+
+    if (isError || isServiceError(data)) {
+        return (
+            <div className="space-y-2">
+                <div className="flex items-center gap-2 p-2">
+                    <VscodeFileIcon fileName={fileName} className="w-4 h-4" />
+                    <span className="text-sm font-medium">{fileName}</span>
+                </div>
+                <div className="p-4 text-sm text-destructive bg-destructive/10 rounded border">
+                    Failed to load file: {isServiceError(data) ? data.message : error?.message ?? 'Unknown error'}
+                </div>
+            </div>
+        );
+    }
+
+    const fileData = data!;
+
+    return (
+        <ReferencedFileSourceListItem
+            id={fileId}
+            code={fileData.source}
+            language={fileData.language}
+            revision={fileSource.revision}
+            repoName={fileSource.repo}
+            repoCodeHostType={fileData.repoCodeHostType}
+            repoDisplayName={fileData.repoDisplayName}
+            repoWebUrl={fileData.repoExternalWebUrl}
+            fileName={fileData.path}
+            references={references}
+            ref={handleRef}
+            onSelectedReferenceChanged={onSelectedReferenceChanged}
+            onHoveredReferenceChanged={onHoveredReferenceChanged}
+            selectedReference={selectedReference}
+            hoveredReference={hoveredReference}
+            isExpanded={isExpanded}
+            onExpandedChanged={handleExpandedChanged}
+        />
+    );
+};
+
+const FileSourceItem = memo(FileSourceItemComponent, isEqual);
