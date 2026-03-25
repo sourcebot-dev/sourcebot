@@ -6,30 +6,25 @@ import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/sy
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { useCodeMirrorLanguageExtension } from "@/hooks/useCodeMirrorLanguageExtension";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
+import { useExtensionWithDependency } from "@/hooks/useExtensionWithDependency";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { cn } from "@/lib/utils";
-import { Range } from "@codemirror/state";
-import { Decoration, DecorationSet, EditorView } from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
 import { CodeHostType } from "@sourcebot/db";
-import CodeMirror, { ReactCodeMirrorRef, StateField } from '@uiw/react-codemirror';
+import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import isEqual from "fast-deep-equal/react";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { forwardRef, memo, Ref, useCallback, useImperativeHandle, useMemo, useState } from "react";
+import { forwardRef, memo, Ref, useEffect, useImperativeHandle, useMemo, useState } from "react";
 import { FileReference } from "../../types";
 import { createCodeFoldingExtension } from "./codeFoldingExtension";
+import { createReferencesHighlightExtension, setHoveredIdEffect, setSelectedIdEffect } from "./referencesHighlightExtension";
 
-const lineDecoration = Decoration.line({
-    attributes: { class: "cm-range-border-radius chat-lineHighlight" },
-});
-
-const selectedLineDecoration = Decoration.line({
-    attributes: { class: "cm-range-border-radius cm-range-border-shadow chat-lineHighlight-selected" },
-});
-
-const hoverLineDecoration = Decoration.line({
-    attributes: { class: "chat-lineHighlight-hover" },
-});
-
+const CODEMIRROR_BASIC_SETUP = {
+    highlightActiveLine: false,
+    highlightActiveLineGutter: false,
+    foldGutter: false,
+    foldKeymap: false,
+} as const;
 
 interface ReferencedFileSourceListItemProps {
     id: string;
@@ -75,47 +70,32 @@ const ReferencedFileSourceListItemComponent = ({
         forwardedRef,
         () => editorRef as ReactCodeMirrorRef
     );
+
     const keymapExtension = useKeymapExtension(editorRef?.view);
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
-
     const languageExtension = useCodeMirrorLanguageExtension(language, editorRef?.view);
-
-    const getReferenceAtPos = useCallback((x: number, y: number, view: EditorView): FileReference | undefined => {
-        const pos = view.posAtCoords({ x, y });
-        if (pos === null) return undefined;
-
-        // Check if position is within the main editor content area
-        const rect = view.contentDOM.getBoundingClientRect();
-        if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-            return undefined;
-        }
-
-        const line = view.state.doc.lineAt(pos);
-        const lineNumber = line.number;
-
-        // Check if this line is part of any highlighted range
-        const matchingRanges = references.filter(({ range }) =>
-            range && lineNumber >= range.startLine && lineNumber <= range.endLine
-        );
-
-        // Sort by the length of the range.
-        // Shorter ranges are more specific, so we want to prioritize them.
-        matchingRanges.sort((a, b) => {
-            const aLength = (a.range!.endLine) - (a.range!.startLine);
-            const bLength = (b.range!.endLine) - (b.range!.startLine);
-            return aLength - bLength;
-        });
-
-        if (matchingRanges.length > 0) {
-            return matchingRanges[0];
-        }
-
-        return undefined;
-    }, [references]);
 
     const codeFoldingExtension = useMemo(() => {
         return createCodeFoldingExtension(references, 3);
     }, [references]);
+
+    const referencesHighlightExtension = useExtensionWithDependency(
+        editorRef?.view ?? null,
+        () => createReferencesHighlightExtension(references, onHoveredReferenceChanged, onSelectedReferenceChanged),
+        [references],
+    );
+
+    useEffect(() => {
+        if (editorRef?.view) {
+            editorRef.view.dispatch({ effects: setHoveredIdEffect.of(hoveredReference?.id) });
+        }
+    }, [hoveredReference?.id, editorRef?.view]);
+
+    useEffect(() => {
+        if (editorRef?.view) {
+            editorRef.view.dispatch({ effects: setSelectedIdEffect.of(selectedReference?.id) });
+        }
+    }, [selectedReference?.id, editorRef?.view]);
 
     const extensions = useMemo(() => {
         return [
@@ -126,88 +106,14 @@ const ReferencedFileSourceListItemComponent = ({
                 symbolHoverTargetsExtension,
             ] : []),
             codeFoldingExtension,
-            StateField.define<DecorationSet>({
-                create(state) {
-                    const decorations: Range<Decoration>[] = [];
-
-                    for (const { range, id } of references) {
-                        if (!range) {
-                            continue;
-                        }
-
-                        const isHovered = id === hoveredReference?.id;
-                        const isSelected = id === selectedReference?.id;
-
-                        for (let line = range.startLine; line <= range.endLine; line++) {
-                            // Skip lines that are outside the document bounds.
-                            if (line > state.doc.lines) {
-                                continue;
-                            }
-
-                            if (isSelected) {
-                                decorations.push(selectedLineDecoration.range(state.doc.line(line).from));
-                            } else {
-                                decorations.push(lineDecoration.range(state.doc.line(line).from));
-                                if (isHovered) {
-                                    decorations.push(hoverLineDecoration.range(state.doc.line(line).from));
-                                }
-                            }
-
-                        }
-                    }
-
-                    return Decoration.set(decorations, /* sort = */ true);
-                },
-                update(deco, tr) {
-                    return deco.map(tr.changes);
-                },
-                provide: (field) => EditorView.decorations.from(field),
-            }),
-            EditorView.domEventHandlers({
-                click: (event, view) => {
-                    const reference = getReferenceAtPos(event.clientX, event.clientY, view);
-
-                    if (reference) {
-                        onSelectedReferenceChanged(reference.id === selectedReference?.id ? undefined : reference);
-                        return true; // prevent default handling
-                    }
-                    return false;
-                },
-                mouseover: (event, view) => {
-                    const reference = getReferenceAtPos(event.clientX, event.clientY, view);
-                    if (!reference) {
-                        return false;
-                    }
-
-                    if (reference.id === selectedReference?.id || reference.id === hoveredReference?.id) {
-                        return false;
-                    }
-
-                    onHoveredReferenceChanged(reference);
-                    return true;
-                },
-                mouseout: (event, view) => {
-                    const reference = getReferenceAtPos(event.clientX, event.clientY, view);
-                    if (reference) {
-                        return false;
-                    }
-
-                    onHoveredReferenceChanged(undefined);
-                    return true;
-                }
-            })
+            referencesHighlightExtension,
         ];
     }, [
         languageExtension,
         keymapExtension,
         hasCodeNavEntitlement,
-        references,
-        hoveredReference?.id,
-        selectedReference?.id,
-        getReferenceAtPos,
-        onSelectedReferenceChanged,
-        onHoveredReferenceChanged,
         codeFoldingExtension,
+        referencesHighlightExtension,
     ]);
 
     const ExpandCollapseIcon = useMemo(() => {
@@ -253,12 +159,7 @@ const ReferencedFileSourceListItemComponent = ({
                     extensions={extensions}
                     readOnly={true}
                     theme={theme}
-                    basicSetup={{
-                        highlightActiveLine: false,
-                        highlightActiveLineGutter: false,
-                        foldGutter: false,
-                        foldKeymap: false,
-                    }}
+                    basicSetup={CODEMIRROR_BASIC_SETUP}
                 >
                     {editorRef && hasCodeNavEntitlement && (
                         <SymbolHoverPopup

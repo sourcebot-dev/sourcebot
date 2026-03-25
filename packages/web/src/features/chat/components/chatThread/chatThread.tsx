@@ -31,7 +31,7 @@ import { DuplicateChatDialog } from '@/app/[domain]/chat/components/duplicateCha
 import { LoginModal } from '@/app/components/loginModal';
 import type { IdentityProviderMetadata } from '@/lib/identityProviders';
 import { getAskGhLoginWallData } from '../../actions';
-import { useParams } from 'next/navigation';
+import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -71,7 +71,6 @@ export const ChatThread = ({
     const { scrollRef, contentRef, scrollToBottom, isAtBottom } = useStickToBottom({ initial: false });
     const { toast } = useToast();
     const router = useRouter();
-    const params = useParams<{ domain: string }>();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
     const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -341,9 +340,9 @@ export const ChatThread = ({
         }
 
         captureEvent('wa_chat_duplicated', { chatId: defaultChatId });
-        router.push(`/${params.domain}/chat/${result.id}`);
+        router.push(`/${SINGLE_TENANT_ORG_DOMAIN}/chat/${result.id}`);
         return result.id;
-    }, [defaultChatId, toast, router, params.domain, captureEvent]);
+    }, [defaultChatId, toast, router, captureEvent]);
 
     return (
         <>

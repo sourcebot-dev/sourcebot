@@ -13,7 +13,11 @@ export function useExtensionWithDependency(
     deps: unknown[],
 ) {
     const compartment = useMemo(() => new Compartment(), []);
-    const extension = useMemo(() => compartment.of(extensionFactory()), [compartment, extensionFactory]);
+    // extensionFactory is intentionally excluded from deps — it only computes the
+    // initial value. Subsequent updates are handled by compartment.reconfigure() in
+    // the effect below, keeping the returned extension reference stable across renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const extension = useMemo(() => compartment.of(extensionFactory()), [compartment]);
 
     useEffect(() => {
         if (view) {
