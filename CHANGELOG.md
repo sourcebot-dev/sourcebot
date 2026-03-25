@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed Ask GitHub landing page chat box placement to be centered on the page instead of at the bottom. [#1046](https://github.com/sourcebot-dev/sourcebot/pull/1046)
+
 ## [4.16.2] - 2026-03-25
 
 ### Fixed
