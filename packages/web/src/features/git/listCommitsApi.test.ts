@@ -191,10 +191,10 @@ describe('searchCommits', () => {
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    '--since': '2024-01-01',
-                    '--until': '2024-12-31',
-                })
+                expect.arrayContaining([
+                    '--since=2024-01-01',
+                    '--until=2024-12-31',
+                ])
             );
         });
     });
@@ -211,10 +211,10 @@ describe('searchCommits', () => {
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    maxCount: 50,
-                    HEAD: null,
-                })
+                expect.arrayContaining([
+                    '--max-count=50',
+                    'HEAD',
+                ])
             );
         });
 
@@ -225,10 +225,10 @@ describe('searchCommits', () => {
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    maxCount: 100,
-                    HEAD: null,
-                })
+                expect.arrayContaining([
+                    '--max-count=100',
+                    'HEAD',
+                ])
             );
         });
 
@@ -239,10 +239,10 @@ describe('searchCommits', () => {
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    '--since': '30 days ago',
-                    HEAD: null,
-                })
+                expect.arrayContaining([
+                    '--since=30 days ago',
+                    'HEAD',
+                ])
             );
         });
 
@@ -253,10 +253,10 @@ describe('searchCommits', () => {
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    '--until': 'yesterday',
-                    HEAD: null,
-                })
+                expect.arrayContaining([
+                    '--until=yesterday',
+                    'HEAD',
+                ])
             );
         });
 
@@ -267,11 +267,11 @@ describe('searchCommits', () => {
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    '--author': 'john@example.com',
-                    '--regexp-ignore-case': null,
-                    HEAD: null,
-                })
+                expect.arrayContaining([
+                    '--author=john@example.com',
+                    '--regexp-ignore-case',
+                    'HEAD',
+                ])
             );
         });
 
@@ -282,11 +282,11 @@ describe('searchCommits', () => {
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    '--grep': 'fix bug',
-                    '--regexp-ignore-case': null,
-                    HEAD: null,
-                })
+                expect.arrayContaining([
+                    '--grep=fix bug',
+                    '--regexp-ignore-case',
+                    'HEAD',
+                ])
             );
         });
 
@@ -300,15 +300,15 @@ describe('searchCommits', () => {
                 maxCount: 25,
             });
 
-            expect(mockGitLog).toHaveBeenCalledWith({
-                maxCount: 25,
-                HEAD: null,
-                '--since': '2024-01-01',
-                '--until': '2024-12-31',
-                '--author': 'jane@example.com',
-                '--regexp-ignore-case': null,
-                '--grep': 'feature',
-            });
+            expect(mockGitLog).toHaveBeenCalledWith([
+                '--max-count=25',
+                '--since=2024-01-01',
+                '--until=2024-12-31',
+                '--author=jane@example.com',
+                '--regexp-ignore-case',
+                '--grep=feature',
+                'HEAD',
+            ]);
         });
     });
 
@@ -478,15 +478,15 @@ describe('searchCommits', () => {
             });
 
             expect(result).toEqual({ commits: mockCommits, totalCount: 1 });
-            expect(mockGitLog).toHaveBeenCalledWith({
-                maxCount: 20,
-                HEAD: null,
-                '--since': '30 days ago',
-                '--until': 'yesterday',
-                '--author': 'security',
-                '--regexp-ignore-case': null,
-                '--grep': 'authentication',
-            });
+            expect(mockGitLog).toHaveBeenCalledWith([
+                '--max-count=20',
+                '--since=30 days ago',
+                '--until=yesterday',
+                '--author=security',
+                '--regexp-ignore-case',
+                '--grep=authentication',
+                'HEAD',
+            ]);
         });
 
         it('should handle repository not found in database', async () => {

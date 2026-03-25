@@ -1,0 +1,10 @@
+Lists commits in a repository with optional filtering by message, date range, author, branch, and path.
+
+Usage:
+- Use `query` to search commit messages (case-insensitive). Supports substrings and simple patterns.
+- Use `since`/`until` for date filtering. Both ISO 8601 dates (e.g., "2024-01-01") and relative formats (e.g., "30 days ago", "last week", "yesterday") are supported.
+- Use `author` to filter by author name or email (case-insensitive, partial match).
+- Use `path` to limit results to commits that touched a specific file or directory.
+- Use `ref` to list commits on a specific branch, tag, or from a specific commit SHA. Defaults to the default branch.
+- Use `page`/`perPage` to paginate through large result sets. Check `totalCount` in the response to know if more pages exist.
+- If the repository name is not known, use `list_repos` first to discover the correct name.

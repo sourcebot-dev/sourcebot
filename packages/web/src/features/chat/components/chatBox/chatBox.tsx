@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CustomEditor, LanguageModelInfo, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
-import { cn, IS_MAC } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { useIsMac } from "@/hooks/useIsMac";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
-import { ArrowUp, Loader2, StopCircleIcon, TriangleAlertIcon } from "lucide-react";
+import { ArrowUp, Loader2, StopCircleIcon } from "lucide-react";
 import { Fragment, KeyboardEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Descendant, insertText } from "slate";
@@ -32,7 +33,6 @@ interface ChatBoxProps {
     languageModels: LanguageModelInfo[];
     selectedSearchScopes: SearchScope[];
     searchContexts: SearchContextQuery[];
-    onContextSelectorOpenChanged: (isOpen: boolean) => void;
 }
 
 const ChatBoxComponent = ({
@@ -46,7 +46,6 @@ const ChatBoxComponent = ({
     languageModels,
     selectedSearchScopes,
     searchContexts,
-    onContextSelectorOpenChanged,
 }: ChatBoxProps) => {
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
@@ -106,7 +105,7 @@ const ChatBoxComponent = ({
 
     const { isSubmitDisabled, isSubmitDisabledReason } = useMemo((): {
         isSubmitDisabled: true,
-        isSubmitDisabledReason: "empty" | "redirecting" | "generating" | "no-repos-selected" | "no-language-model-selected"
+        isSubmitDisabledReason: "empty" | "redirecting" | "generating" | "no-language-model-selected"
     } | {
         isSubmitDisabled: false,
         isSubmitDisabledReason: undefined,
@@ -132,13 +131,6 @@ const ChatBoxComponent = ({
             }
         }
 
-        if (selectedSearchScopes.length === 0) {
-            return {
-                isSubmitDisabled: true,
-                isSubmitDisabledReason: "no-repos-selected",
-            }
-        }
-
         if (selectedLanguageModel === undefined) {
 
             return {
@@ -152,24 +144,10 @@ const ChatBoxComponent = ({
             isSubmitDisabledReason: undefined,
         }
 
-    }, [
-        editor.children,
-        isRedirecting,
-        isGenerating,
-        selectedSearchScopes.length,
-        selectedLanguageModel,
-    ])
+    }, [editor.children, isRedirecting, isGenerating, selectedLanguageModel])
 
     const onSubmit = useCallback(() => {
         if (isSubmitDisabled) {
-            if (isSubmitDisabledReason === "no-repos-selected") {
-                toast({
-                    description: "⚠️ You must select at least one search scope",
-                    variant: "destructive",
-                });
-                onContextSelectorOpenChanged(true);
-            }
-
             if (isSubmitDisabledReason === "no-language-model-selected") {
                 toast({
                     description: "⚠️ You must select a language model",
@@ -181,7 +159,7 @@ const ChatBoxComponent = ({
         }
 
         _onSubmit(editor.children, editor);
-    }, [_onSubmit, editor, isSubmitDisabled, isSubmitDisabledReason, toast, onContextSelectorOpenChanged]);
+    }, [_onSubmit, editor, isSubmitDisabled, isSubmitDisabledReason, toast]);
 
     const onInsertSuggestion = useCallback((suggestion: Suggestion) => {
         switch (suggestion.type) {
@@ -351,14 +329,6 @@ const ChatBoxComponent = ({
                                     </Button>
                                 </div>
                             </TooltipTrigger>
-                            {(isSubmitDisabled && isSubmitDisabledReason === "no-repos-selected") && (
-                                <TooltipContent>
-                                    <div className="flex flex-row items-center">
-                                        <TriangleAlertIcon className="h-4 w-4 text-warning mr-1" />
-                                        <span className="text-destructive">You must select at least one search scope</span>
-                                    </div>
-                                </TooltipContent>
-                            )}
                         </Tooltip>
                     )}
             </div>
@@ -398,6 +368,7 @@ const MentionComponent = ({
 }: RenderElementPropsFor<MentionElement>) => {
     const selected = useSelected();
     const focused = useFocused();
+    const isMac = useIsMac();
 
     if (data.type === 'file') {
         return (
@@ -415,7 +386,7 @@ const MentionComponent = ({
                     >
                         <span contentEditable={false} className="flex flex-row items-center select-none">
                             {/* @see: https://github.com/ianstormtaylor/slate/issues/3490 */}
-                            {IS_MAC ? (
+                            {isMac ? (
                                 <Fragment>
                                     {children}
                                     <VscodeFileIcon fileName={data.name} className="w-3 h-3 mr-1" />

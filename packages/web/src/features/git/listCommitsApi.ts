@@ -28,6 +28,7 @@ type ListCommitsRequest = {
     until?: string;
     author?: string;
     ref?: string;
+    path?: string;
     maxCount?: number;
     skip?: number;
 }
@@ -46,6 +47,7 @@ export const listCommits = async ({
     until,
     author,
     ref = 'HEAD',
+    path,
     maxCount = 50,
     skip = 0,
 }: ListCommitsRequest): Promise<SearchCommitsResult | ServiceError> => sew(() =>
@@ -93,18 +95,30 @@ export const listCommits = async ({
                 } : {}),
             };
 
+            // Build args array directly to ensure correct ordering:
+            // git log [flags] <ref> [-- <path>]
+            const logArgs: string[] = [`--max-count=${maxCount}`];
+            if (skip > 0) {
+                logArgs.push(`--skip=${skip}`);
+            }
+            for (const [key, value] of Object.entries(sharedOptions)) {
+                logArgs.push(value !== null ? `${key}=${value}` : key);
+            }
+            logArgs.push(ref);
+            if (path) {
+                logArgs.push('--', path);
+            }
+
             // First, get the commits
-            const log = await git.log({
-                [ref]: null,
-                maxCount,
-                ...(skip > 0 ? { '--skip': skip } : {}),
-                ...sharedOptions,
-            });
+            const log = await git.log(logArgs);
 
             // Then, use rev-list to get the total count of commits
             const countArgs = ['rev-list', '--count', ref];
             for (const [key, value] of Object.entries(sharedOptions)) {
                 countArgs.push(value !== null ? `${key}=${value}` : key);
+            }
+            if (path) {
+                countArgs.push('--', path);
             }
 
             const totalCount = parseInt((await git.raw(countArgs)).trim(), 10);

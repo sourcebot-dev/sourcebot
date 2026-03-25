@@ -1,17 +1,12 @@
 'use client';
 
-import { getFileSource } from "@/app/api/(client)/client";
-import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
-import { isServiceError, unwrapServiceError } from "@/lib/utils";
-import { useQueries } from "@tanstack/react-query";
-import { ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { FileReference, FileSource, Reference } from "../../types";
 import { tryResolveFileReference } from '../../utils';
-import ReferencedFileSourceListItem from "./referencedFileSourceListItem";
+import { ReferencedFileSourceListItemContainer } from "./referencedFileSourceListItemContainer";
 import isEqual from 'fast-deep-equal/react';
 
 interface ReferencedSourcesListViewProps {
@@ -72,19 +67,6 @@ const ReferencedSourcesListViewComponent = ({
         return groupedReferences;
     }, [references, sources, getFileId]);
 
-    const fileSourceQueries = useQueries({
-        queries: sources.map((file) => ({
-            queryKey: ['fileSource', file.path, file.repo, file.revision],
-            queryFn: () => unwrapServiceError(getFileSource({
-                path: file.path,
-                repo: file.repo,
-                ref: file.revision,
-            })),
-            staleTime: Infinity,
-        })),
-    });
-
-
     useEffect(() => {
         if (!selectedReference || selectedReference.type !== 'file') {
             return;
@@ -114,37 +96,51 @@ const ReferencedSourcesListViewComponent = ({
             scrollAreaViewport &&
             selectedReference.range.startLine <= editorRef.view.state.doc.lines
         ) {
-            const view = editorRef.view;
-            const lineNumber = selectedReference.range.startLine;
-
-            // Get the line's position within the CodeMirror document
-            const pos = view.state.doc.line(lineNumber).from;
-            const blockInfo = view.lineBlockAt(pos);
-            const lineTopInCodeMirror = blockInfo.top;
-
-            // Get the bounds of both elements
-            const viewportRect = scrollAreaViewport.getBoundingClientRect();
-            const codeMirrorRect = view.dom.getBoundingClientRect();
-
-            // Calculate the line's position relative to the ScrollArea content
-            const lineTopRelativeToScrollArea = lineTopInCodeMirror + (codeMirrorRect.top - viewportRect.top) + scrollAreaViewport.scrollTop;
-
-            // Get the height of the visible ScrollArea
-            const scrollAreaHeight = scrollAreaViewport.clientHeight;
-
-            // Calculate the target scroll position to center the line
-            const targetScrollTop = lineTopRelativeToScrollArea - (scrollAreaHeight / 3);
-
             // Expand the file if it's collapsed.
             setCollapsedFileIds((collapsedFileIds) => collapsedFileIds.filter((id) => id !== fileId));
 
-            // Scroll to the calculated position
-            // @NOTE: Using requestAnimationFrame is a bit of a hack to ensure
-            // that the collapsed file ids state has updated before scrolling.
+            // @hack: CodeMirror 6 virtualizes line rendering — it only renders lines near the
+            // browser viewport and uses estimated heights for everything else. This means
+            // coordsAtPos() returns inaccurate positions for lines that are off-screen,
+            // causing the scroll to land at the wrong position on the first click.
+            //
+            // To work around this, we use a two-step scroll:
+            //   Step 1: Instantly bring the file element into the browser viewport. This
+            //           forces CodeMirror to render and measure the target lines.
+            //   Step 2: In the next frame (after CodeMirror has measured), coordsAtPos()
+            //           returns accurate screen coordinates which we use to scroll precisely
+            //           to the target line.
+            scrollIntoView(fileSourceElement, {
+                scrollMode: 'if-needed',
+                block: 'start',
+                behavior: 'instant',
+            });
+
+            const view = editorRef.view;
+            const lineNumber = selectedReference.range.startLine;
+
             requestAnimationFrame(() => {
+                // Get the line's position within the CodeMirror document
+                const pos = view.state.doc.line(lineNumber).from;
+                const blockInfo = view.lineBlockAt(pos);
+                const lineTopInCodeMirror = blockInfo.top;
+
+                // Get the bounds of both elements
+                const viewportRect = scrollAreaViewport.getBoundingClientRect();
+                const codeMirrorRect = view.dom.getBoundingClientRect();
+
+                // Calculate the line's position relative to the ScrollArea content
+                const lineTopRelativeToScrollArea = lineTopInCodeMirror + (codeMirrorRect.top - viewportRect.top) + scrollAreaViewport.scrollTop;
+
+                // Get the height of the visible ScrollArea
+                const scrollAreaHeight = scrollAreaViewport.clientHeight;
+
+                // Calculate the target scroll position to center the line
+                const targetScrollTop = lineTopRelativeToScrollArea - (scrollAreaHeight / 3);
+
                 scrollAreaViewport.scrollTo({
                     top: Math.max(0, targetScrollTop),
-                    behavior: 'smooth',
+                    behavior: 'instant',
                 });
             });
         }
@@ -154,7 +150,7 @@ const ReferencedSourcesListViewComponent = ({
             scrollIntoView(fileSourceElement, {
                 scrollMode: 'if-needed',
                 block: 'start',
-                behavior: 'smooth',
+                behavior: 'instant',
             });
         }
     }, [getFileId, sources, selectedReference]);
@@ -192,63 +188,25 @@ const ReferencedSourcesListViewComponent = ({
             style={style}
         >
             <div className="space-y-4 pr-2">
-                {fileSourceQueries.map((query, index) => {
-                    const fileSource = sources[index];
-                    const fileName = fileSource.path.split('/').pop() ?? fileSource.path;
-
-                    if (query.isLoading) {
-                        return (
-                            <div key={`${fileSource.repo}/${fileSource.path}`} className="space-y-2">
-                                <div className="flex items-center gap-2 p-2">
-                                    <VscodeFileIcon fileName={fileName} className="w-4 h-4" />
-                                    <span className="text-sm font-medium">{fileName}</span>
-                                </div>
-                                <Skeleton className="h-48 w-full" />
-                            </div>
-                        );
-                    }
-
-                    if (query.isError || isServiceError(query.data)) {
-                        return (
-                            <div key={`${fileSource.repo}/${fileSource.path}`} className="space-y-2">
-                                <div className="flex items-center gap-2 p-2">
-                                    <VscodeFileIcon fileName={fileName} className="w-4 h-4" />
-                                    <span className="text-sm font-medium">{fileName}</span>
-                                </div>
-                                <div className="p-4 text-sm text-destructive bg-destructive/10 rounded border">
-                                    Failed to load file: {isServiceError(query.data) ? query.data.message : query.error?.message ?? 'Unknown error'}
-                                </div>
-                            </div>
-                        );
-                    }
-
-                    const fileData = query.data!;
-
+                {sources.map((fileSource) => {
                     const fileId = getFileId(fileSource);
                     const referencesInFile = referencesGroupedByFile.get(fileId) || [];
+                    const hoveredReferenceInFile = referencesInFile.some(r => r.id === hoveredReference?.id) ? hoveredReference : undefined;
+                    const selectedReferenceInFile = referencesInFile.some(r => r.id === selectedReference?.id) ? selectedReference : undefined;
 
                     return (
-                        <ReferencedFileSourceListItem
+                        <ReferencedFileSourceListItemContainer
                             key={fileId}
-                            id={fileId}
-                            code={fileData.source}
-                            language={fileData.language}
-                            revision={fileSource.revision}
-                            repoName={fileSource.repo}
-                            repoCodeHostType={fileData.repoCodeHostType}
-                            repoDisplayName={fileData.repoDisplayName}
-                            repoWebUrl={fileData.repoExternalWebUrl}
-                            fileName={fileData.path}
+                            fileId={fileId}
+                            fileSource={fileSource}
                             references={referencesInFile}
-                            ref={ref => {
-                                setEditorRef(fileId, ref);
-                            }}
-                            onSelectedReferenceChanged={onSelectedReferenceChanged}
+                            hoveredReference={hoveredReferenceInFile}
+                            selectedReference={selectedReferenceInFile}
                             onHoveredReferenceChanged={onHoveredReferenceChanged}
-                            selectedReference={selectedReference}
-                            hoveredReference={hoveredReference}
+                            onSelectedReferenceChanged={onSelectedReferenceChanged}
                             isExpanded={!collapsedFileIds.includes(fileId)}
-                            onExpandedChanged={(isExpanded) => onExpandedChanged(fileId, isExpanded)}
+                            onExpandedChanged={onExpandedChanged}
+                            onEditorRef={setEditorRef}
                         />
                     );
                 })}

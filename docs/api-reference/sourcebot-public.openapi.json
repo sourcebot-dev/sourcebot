@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Sourcebot Public API",
-    "version": "v4.15.6",
+    "version": "v4.16.1",
     "description": "OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing. Authentication is instance-dependent: API keys are the standard integration mechanism, OAuth bearer tokens are EE-only, and some instances may allow anonymous access."
   },
   "security": [

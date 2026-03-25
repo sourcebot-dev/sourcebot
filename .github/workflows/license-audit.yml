@@ -1,0 +1,197 @@
+name: License Audit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "yarn.lock"
+      - "package.json"
+      - "packages/*/package.json"
+      - "scripts/fetchLicenses.mjs"
+      - "scripts/summarizeLicenses.mjs"
+      - "scripts/npmLicenseMap.json"
+      - "scripts/licenseAuditPrompt.txt"
+      - "scripts/runLicenseAudit.sh"
+  workflow_dispatch:
+
+jobs:
+  license-audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Fetch licenses
+        run: node scripts/fetchLicenses.mjs
+
+      - name: Summarize licenses
+        run: node scripts/summarizeLicenses.mjs
+
+      - name: Read audit prompt
+        id: read-prompt
+        run: |
+          {
+            echo 'PROMPT<<PROMPT_EOF'
+            cat scripts/licenseAuditPrompt.txt
+            echo 'PROMPT_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Audit licenses with Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: '--allowedTools "Bash,Read,Write,Glob,Grep,WebFetch"'
+          prompt: ${{ steps.read-prompt.outputs.PROMPT }}
+
+      - name: Validate audit result
+        run: |
+          if [ ! -f license-audit-result.json ]; then
+            echo "::error::license-audit-result.json was not created by the audit step"
+            exit 1
+          fi
+
+          STATUS=$(node -e "const r = require('./license-audit-result.json'); console.log(r.status)")
+          UNRESOLVED=$(node -e "const r = require('./license-audit-result.json'); console.log(r.summary.unresolvedCount)")
+          STRONG=$(node -e "const r = require('./license-audit-result.json'); console.log(r.summary.strongCopyleftCount)")
+          WEAK=$(node -e "const r = require('./license-audit-result.json'); console.log(r.summary.weakCopyleftCount)")
+          RESOLVED=$(node -e "const r = require('./license-audit-result.json'); console.log(r.summary.resolvedCount)")
+
+          echo "## License Audit Result: $STATUS"
+          echo ""
+          echo "- Resolved: $RESOLVED"
+          echo "- Unresolved: $UNRESOLVED"
+          echo "- Strong copyleft: $STRONG"
+          echo "- Weak copyleft: $WEAK"
+
+          if [ "$STATUS" = "FAIL" ]; then
+            echo ""
+            echo "::error::License audit failed. See details below:"
+            node -e "const r = require('./license-audit-result.json'); r.failReasons.forEach(r => console.log('  - ' + r))"
+            exit 1
+          fi
+
+      - name: Comment on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const resultPath = 'license-audit-result.json';
+
+            // Determine if we should comment
+            let shouldComment = false;
+            let body = '';
+
+            if (!fs.existsSync(resultPath)) {
+              shouldComment = true;
+              body = `## License Audit\n\n:x: Audit failed to produce results. Check the workflow logs for details.`;
+            } else {
+              const result = JSON.parse(fs.readFileSync(resultPath, 'utf-8'));
+              const hasWeakCopyleft = result.summary.weakCopyleftCount > 0;
+              const isFail = result.status === 'FAIL';
+
+              if (!isFail && !hasWeakCopyleft) {
+                return;
+              }
+
+              shouldComment = true;
+              const icon = isFail ? ':x:' : ':warning:';
+
+              body = `## License Audit\n\n`;
+              body += `${icon} **Status: ${result.status}**\n\n`;
+              body += `| Metric | Count |\n|---|---|\n`;
+              body += `| Total packages | ${result.summary.totalPackages} |\n`;
+              body += `| Resolved (non-standard) | ${result.summary.resolvedCount} |\n`;
+              body += `| Unresolved | ${result.summary.unresolvedCount} |\n`;
+              body += `| Strong copyleft | ${result.summary.strongCopyleftCount} |\n`;
+              body += `| Weak copyleft | ${result.summary.weakCopyleftCount} |\n`;
+
+              if (result.failReasons && result.failReasons.length > 0) {
+                body += `\n### Fail Reasons\n\n`;
+                for (const reason of result.failReasons) {
+                  body += `- ${reason}\n`;
+                }
+              }
+
+              if (result.unresolved && result.unresolved.length > 0) {
+                body += `\n### Unresolved Packages\n\n`;
+                body += `| Package | Version | License | Reason |\n|---|---|---|---|\n`;
+                for (const pkg of result.unresolved) {
+                  body += `| ${pkg.name} | ${pkg.version} | \`${pkg.license}\` | ${pkg.reason} |\n`;
+                }
+              }
+
+              if (result.copyleft && result.copyleft.strong && result.copyleft.strong.length > 0) {
+                body += `\n### Strong Copyleft Packages\n\n`;
+                body += `| Package | Version | License |\n|---|---|---|\n`;
+                for (const pkg of result.copyleft.strong) {
+                  body += `| ${pkg.name} | ${pkg.version} | \`${pkg.license}\` |\n`;
+                }
+              }
+
+              if (result.copyleft && result.copyleft.weak && result.copyleft.weak.length > 0) {
+                body += `\n### Weak Copyleft Packages (informational)\n\n`;
+                body += `| Package | Version | License |\n|---|---|---|\n`;
+                for (const pkg of result.copyleft.weak) {
+                  body += `| ${pkg.name} | ${pkg.version} | \`${pkg.license}\` |\n`;
+                }
+              }
+
+              if (result.resolved && result.resolved.length > 0) {
+                body += `\n<details><summary>Resolved Packages (${result.resolved.length})</summary>\n\n`;
+                body += `| Package | Version | Original | Resolved | Source |\n|---|---|---|---|---|\n`;
+                for (const pkg of result.resolved) {
+                  body += `| ${pkg.name} | ${pkg.version} | \`${pkg.originalLicense}\` | \`${pkg.resolvedLicense}\` | ${pkg.source} |\n`;
+                }
+                body += `\n</details>\n`;
+              }
+            }
+
+            if (!shouldComment) return;
+
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.data.find(c => c.body.startsWith('## License Audit'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-audit
+          path: |
+            oss-licenses.json
+            oss-license-summary.json
+            license-audit-result.json

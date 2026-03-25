@@ -96,17 +96,15 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 Sentry.captureException(e);
                 logger.error(`Failed to fetch projects for group ${group}.`, e);
 
-                const status = e?.cause?.response?.status;
-                if (status !== undefined) {
-                    const warning = `GitLab API returned ${status}`
+                if (e?.cause?.response?.status === 404) {
+                    const warning = `Group ${group} not found or no access`;
                     logger.warn(warning);
                     return {
                         type: 'warning' as const,
                         warning
-                    }
+                    };
                 }
 
-                logger.error("No API response status returned");
                 throw e;
             }
         }));
@@ -136,17 +134,15 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 Sentry.captureException(e);
                 logger.error(`Failed to fetch projects for user ${user}.`, e);
 
-                const status = e?.cause?.response?.status;
-                if (status !== undefined) {
-                    const warning = `GitLab API returned ${status}`
+                if (e?.cause?.response?.status === 404) {
+                    const warning = `User ${user} not found or no access`;
                     logger.warn(warning);
                     return {
                         type: 'warning' as const,
                         warning
-                    }
+                    };
                 }
 
-                logger.error("No API response status returned");
                 throw e;
             }
         }));
@@ -174,17 +170,15 @@ export const getGitLabReposFromConfig = async (config: GitlabConnectionConfig) =
                 Sentry.captureException(e);
                 logger.error(`Failed to fetch project ${project}.`, e);
 
-                const status = e?.cause?.response?.status;
-                if (status !== undefined) {
-                    const warning = `GitLab API returned ${status}`
+                if (e?.cause?.response?.status === 404) {
+                    const warning = `Project ${project} not found or no access`;
                     logger.warn(warning);
                     return {
                         type: 'warning' as const,
                         warning
-                    }
+                    };
                 }
 
-                logger.error("No API response status returned");
                 throw e;
             }
         }));

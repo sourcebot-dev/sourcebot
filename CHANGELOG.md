@@ -7,10 +7,91 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed line numbers being selectable in Safari in the lightweight code highlighter. [#1037](https://github.com/sourcebot-dev/sourcebot/pull/1037)
+- Fixed GitLab sync deleting repos when the API returns a non-404 error (e.g. 500) during group/user/project fetch. [#1039](https://github.com/sourcebot-dev/sourcebot/pull/1039)
+- Fixed React hydration mismatch in `KeyboardShortcutHint` caused by platform detection running at module load time during SSR. [#1041](https://github.com/sourcebot-dev/sourcebot/pull/1041)
+- Fixed rendering performance for ask threads, especially when hovering or selecting citations. [#1042](https://github.com/sourcebot-dev/sourcebot/pull/1042)
+
+### Added
+- Added optional copy button to the lightweight code highlighter (`isCopyButtonVisible` prop), shown on hover. [#1037](https://github.com/sourcebot-dev/sourcebot/pull/1037)
+
+## [4.16.1] - 2026-03-24
+
+### Fixed
+- Fixed scroll position when selecting chat references that point to lines further down in a file. [#1036](https://github.com/sourcebot-dev/sourcebot/pull/1036)
+
+## [4.16.0] - 2026-03-24
+
+### Changed
+- Changed language detection to resolve file extensions with multiple language resolutions (e.g., .md) to the most common resolution. [#1026](https://github.com/sourcebot-dev/sourcebot/pull/1026)
+- Changed the `webUrl` property of the `/api/repos` api to return a URL rather than just a path. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Changed the ask search scope selector to allow submitting questions with no search scope selected. When no selection is made, the agent will be able to search over all repos the user has access to. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Renamed the `search_code` tool to `grep` for ask and mcp. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Improved auto-scroll behavior in the ask chat thread. [#1031](https://github.com/sourcebot-dev/sourcebot/pull/1031)
+
+### Added
+- Added `glob`, `find_symbol_definitions`, and `find_symbol_references` tools to the ask agent and MCP server. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Added `list_tree` tool to the ask agent. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Added input & output token breakdown in ask details card. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Added `path` parameter to the `/api/commits` api to allow filtering commits by paths. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Search contexts now support topic-based filtering with new `includeTopics` and `excludeTopics` fields, enabling repository filtering by GitHub/GitLab topics with glob pattern support and case-insensitive matching.[#1028](https://github.com/sourcebot-dev/sourcebot/pull/1028)
+
+### Fixed
+- Fixed issue where ask responses would sometimes appear in the details panel while generating. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Fixed reference panel overflow issue in the ask UI. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Fixed homepage scrolling issue in the ask UI. [#1014](https://github.com/sourcebot-dev/sourcebot/pull/1014)
+- Fixed UI freeze when the `grep` tool returns a large number of results with `groupByRepo=true`. [#1032](https://github.com/sourcebot-dev/sourcebot/pull/1032)
+- Fixed issue where the search scope selection persisted after a new thread is created. [#1033](https://github.com/sourcebot-dev/sourcebot/pull/1033)
+- Fixed inaccurate scroll position when selecting a chat reference in the ask UI. [#1035](https://github.com/sourcebot-dev/sourcebot/pull/1035)
+
+## [4.15.11] - 2026-03-20
+
+### Changed
+- Updated JumpCloud SSO documentation to clarify token endpoint authentication method requirement and AUTH_SECRET configuration. [#1022](https://github.com/sourcebot-dev/sourcebot/pull/1022)
+- The `ask_codebase` MCP tool is now hidden when no language model providers are configured. [#1018](https://github.com/sourcebot-dev/sourcebot/pull/1018)
+
+## [4.15.10] - 2026-03-20
+
+### Changed
+- Increased `SOURCEBOT_CHAT_MAX_STEP_COUNT` default from 20 to 100 to allow agents to perform more autonomous steps. [#1017](https://github.com/sourcebot-dev/sourcebot/pull/1017)
+- [EE] Fix error with Jumpcloud SSO state param [#1020](https://github.com/sourcebot-dev/sourcebot/pull/1020)
+
+## [4.15.9] - 2026-03-17
+
+### Added
+- Added read-only annotations to MCP tools for compatibility with Cursor Ask mode and other MCP clients that restrict tool usage based on behavior hints. [#1013](https://github.com/sourcebot-dev/sourcebot/pull/1013)
+
+## [4.15.8] - 2026-03-17
+
+### Added
+- Added support for connecting to Redis over TLS via `REDIS_TLS_ENABLED` and related environment variables. [#1011](https://github.com/sourcebot-dev/sourcebot/pull/1011)
+
+### Changed
+- `filterByFilepaths` in the MCP `search_code` tool now accepts regular expressions matched against the full file path, instead of treating values as escaped literals. [#1008](https://github.com/sourcebot-dev/sourcebot/pull/1008)
+
+### Fixed
+- Connection sync job failures now log the actual error reason instead of a generic message. [#1012](https://github.com/sourcebot-dev/sourcebot/pull/1012)
+
+## [4.15.7] - 2026-03-16
+
+### Added
+- Added AGENTS.md with Cursor Cloud development environment instructions. [#1001](https://github.com/sourcebot-dev/sourcebot/pull/1001)
+- Added support for configuring SMTP via individual environment variables (SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD) as an alternative to SMTP_CONNECTION_URL. [#1002](https://github.com/sourcebot-dev/sourcebot/pull/1002)
+- Added `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` and `DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS` environment variables to restrict API key creation and usage to organization owners. [#1007](https://github.com/sourcebot-dev/sourcebot/pull/1007)
+
+### Changed
+- Deprecated `EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS` in favour of `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS`. The old variable will continue to work as a fallback. [#1007](https://github.com/sourcebot-dev/sourcebot/pull/1007)
+
+### Modified
+- Made OSS license audit runnable locally [#1021](https://github.com/sourcebot-dev/sourcebot/pull/1021)
+
+
 ## [4.15.6] - 2026-03-13
 
 ### Added
 - Added generated OpenAPI documentation for the public search, repo, and file browsing API surface. [#996](https://github.com/sourcebot-dev/sourcebot/pull/996)
+- Added OSS license audit github action. [#1003](https://github.com/sourcebot-dev/sourcebot/pull/1003)
 
 ### Fixed
 - [EE] Fixed account-driven permission sync silently wiping all Bitbucket Server repository permissions when the OAuth token expires on instances with anonymous access enabled. [#998](https://github.com/sourcebot-dev/sourcebot/pull/998)
