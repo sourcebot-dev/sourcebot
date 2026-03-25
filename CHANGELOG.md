@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.16.2] - 2026-03-25
+
 ### Fixed
 - Fixed line numbers being selectable in Safari in the lightweight code highlighter. [#1037](https://github.com/sourcebot-dev/sourcebot/pull/1037)
 - Fixed GitLab sync deleting repos when the API returns a non-404 error (e.g. 500) during group/user/project fetch. [#1039](https://github.com/sourcebot-dev/sourcebot/pull/1039)
