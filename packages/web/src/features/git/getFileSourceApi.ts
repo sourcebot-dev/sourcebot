@@ -2,6 +2,7 @@ import { sew } from '@/actions';
 import { getBrowsePath } from '@/app/[domain]/browse/hooks/utils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
+import { parseGitAttributes, resolveLanguageFromGitAttributes } from '@/lib/gitattributes';
 import { detectLanguageFromFilename } from '@/lib/languageDetection';
 import { ServiceError, notFound, fileNotFound, invalidGitRef, unexpectedError } from '@/lib/serviceError';
 import { getCodeHostBrowseFileAtBranchUrl } from '@/lib/utils';
@@ -65,7 +66,17 @@ export const getFileSource = async ({ path: filePath, repo: repoName, ref }: Fil
         throw error;
     }
 
-    const language = detectLanguageFromFilename(filePath);
+    let gitattributesContent: string | undefined;
+    try {
+        gitattributesContent = await git.raw(['show', `${gitRef}:.gitattributes`]);
+    } catch {
+        // No .gitattributes in this repo/ref, that's fine
+    }
+
+    const language = gitattributesContent
+        ? (resolveLanguageFromGitAttributes(filePath, parseGitAttributes(gitattributesContent)) ?? detectLanguageFromFilename(filePath))
+        : detectLanguageFromFilename(filePath);
+
     const externalWebUrl = getCodeHostBrowseFileAtBranchUrl({
         webUrl: repo.webUrl,
         codeHostType: repo.external_codeHostType,
