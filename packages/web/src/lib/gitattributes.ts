@@ -64,7 +64,7 @@ export function parseGitAttributes(content: string): GitAttributes {
 export function resolveLanguageFromGitAttributes(filePath: string, gitAttributes: GitAttributes): string | undefined {
     let language: string | undefined;
     for (const rule of gitAttributes.rules) {
-        if (micromatch.isMatch(filePath, rule.pattern) && rule.attrs['linguist-language']) {
+        if (micromatch.isMatch(filePath, rule.pattern, { matchBase: true }) && rule.attrs['linguist-language']) {
             language = rule.attrs['linguist-language'];
         }
     }
