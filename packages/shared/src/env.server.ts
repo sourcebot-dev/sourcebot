@@ -107,7 +107,18 @@ export const loadConfig = async (configPath?: string): Promise<SourcebotConfig> 
     const config = JSON.parse(stripJsonComments(configContent)) as SourcebotConfig;
     const isValidConfig = ajv.validate(indexSchema, config);
     if (!isValidConfig) {
-        throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}`);
+        const fileUrlConnections = Object.entries((config as any)?.connections ?? {})
+            .filter(([, conn]: [string, any]) => conn?.url?.startsWith('file://'))
+            .map(([name]) => name);
+
+        const hint = fileUrlConnections.length > 0
+            ? ` Hint: connection(s) [${fileUrlConnections.join(', ')}] use a file:// URL. ` +
+              `Make sure the local repository is mounted into the Docker container and ` +
+              `the URL reflects the container-internal path (e.g. file:///repos/my-repo), ` +
+              `not the host machine path.`
+            : '';
+
+        throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}.${hint}`);
     }
     return config;
 }
