@@ -570,4 +570,47 @@ A JumpCloud connection can be used for [authentication](/docs/configuration/auth
 </Steps>
 </Accordion>
 
+### Google Cloud IAP
+
+[Google Cloud IAP Documentation](https://cloud.google.com/iap/docs)
+
+Google Cloud Identity-Aware Proxy (IAP) can be used for [authentication](/docs/configuration/auth). IAP provides a layer of security for applications deployed on Google Cloud, allowing you to control access based on user identity and context.
+
+<Note>
+GCP IAP works differently from other identity providers. Instead of redirecting users to an OAuth flow, IAP intercepts requests at the infrastructure level and adds a signed JWT header that Sourcebot validates. This means users are automatically authenticated when accessing Sourcebot through an IAP-protected endpoint.
+</Note>
+
+<Accordion title="instructions">
+<Steps>
+    <Step title="Enable IAP for your application">
+        Your Sourcebot deployment must be behind Google Cloud IAP. Follow [this guide](https://cloud.google.com/iap/docs/enabling-on-premises-howto) by Google to enable IAP for your application.
+
+        After enabling IAP, note the **Signed Header JWT Audience**. You can find this in the Google Cloud Console under **Security → Identity-Aware Proxy → (your application) → Edit OAuth Client → Application settings**.
+
+        The audience will be in the format: `/projects/<project-number>/global/backendServices/<service-id>` or `/projects/<project-number>/apps/<project-id>`.
+    </Step>
+    <Step title="Define environment variables">
+        Set the IAP audience as an environment variable. This can be named whatever you like (ex. `GCP_IAP_AUDIENCE`).
+    </Step>
+    <Step title="Define the identity provider config">
+        Create a `identityProvider` object in the [config file](/docs/configuration/config-file) with the following fields:
+
+       ```json wrap icon="code"
+        {
+            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+            "identityProviders": [
+                {
+                    "provider": "gcp-iap",
+                    "purpose": "sso",
+                    "audience": {
+                        "env": "GCP_IAP_AUDIENCE"
+                    }
+                }
+            ]
+        }
+        ```
+    </Step>
+</Steps>
+</Accordion>
+
 
