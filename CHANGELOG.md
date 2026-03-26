@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added documentation for public API authentication in the generated OpenAPI spec and docs. [#101](https://github.com/sourcebot-dev/sourcebot/issues/101)
 
+### Added
+- Added support for `.gitattributes` `linguist-language` overrides in the file viewer ([#1048](https://github.com/sourcebot-dev/sourcebot/pull/1048))
+
+### Fixed
+- Fixed Ask GitHub landing page chat box placement to be centered on the page instead of at the bottom. [#1046](https://github.com/sourcebot-dev/sourcebot/pull/1046)
+- Fixed issue where local git connections (`file://`) would fail when matching a file instead of a directory. [#1049](https://github.com/sourcebot-dev/sourcebot/pull/1049)
+- Fixed regex queries containing parentheses (e.g. `(test|render)<`) being incorrectly split into multiple search terms instead of treated as a single regex pattern. [#1050](https://github.com/sourcebot-dev/sourcebot/pull/1050)
+
 ## [4.16.2] - 2026-03-25
 
 ### Fixed
