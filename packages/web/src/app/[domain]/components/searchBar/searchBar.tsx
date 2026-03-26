@@ -26,8 +26,6 @@ import {
     selectLineBoundaryBackward,
     selectLineBoundaryForward
 } from "@codemirror/commands";
-import { tags as t } from '@lezer/highlight';
-import { createTheme } from '@uiw/codemirror-themes';
 import CodeMirror, { Annotation, EditorView, KeyBinding, keymap, ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { cva } from "class-variance-authority";
 import { useRouter } from "next/navigation";
@@ -42,12 +40,12 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Toggle } from "@/components/ui/toggle";
 import { useDomain } from "@/hooks/useDomain";
-import tailwind from "@/tailwind";
 import React from "react";
 import Link from "next/link";
 import { CaseSensitiveIcon, RegexIcon, Wand2Icon } from "lucide-react";
 import { SearchAssistBox } from "./searchAssistBox";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 
 const LANGUAGE_MODEL_DOCS_URL = "https://docs.sourcebot.dev/docs/configuration/language-model-providers"; 
 
@@ -155,40 +153,13 @@ export const SearchBar = ({
         suggestionQuery,
     });
 
-    const theme = useMemo(() => {
-        return createTheme({
-            theme: 'light',
-            settings: {
-                background: tailwind.theme.colors.background,
-                foreground: tailwind.theme.colors.foreground,
-                caret: '#AEAFAD',
-            },
-            styles: [
-                {
-                    tag: t.keyword,
-                    color: tailwind.theme.colors.highlight,
-                },
-                {
-                    tag: t.string,
-                    color: '#2aa198',
-                },
-                {
-                    tag: t.operator,
-                    color: '#d33682',
-                },
-                {
-                    tag: t.paren,
-                    color: tailwind.theme.colors.highlight,
-                },
-            ],
-        });
-    }, []);
+    const theme = useCodeMirrorTheme();
 
     const extensions = useMemo(() => {
         return [
+            zoekt(),
             keymap.of(searchBarKeymap),
             history(),
-            zoekt(),
             EditorView.lineWrapping,
             EditorView.updateListener.of(update => {
                 if (update.selectionSet) {

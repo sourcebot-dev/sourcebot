@@ -31,6 +31,7 @@
     "resolutions": {
         "prettier": "3.5.3",
         "@lezer/common": "1.3.0",
+        "@lezer/lr": "1.4.3",
         "qs": "^6.14.2",
         "rollup": "^4.59.0",
         "cacache/glob": "^10.5.0",

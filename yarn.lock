@@ -3677,25 +3677,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@lezer/lr@npm:^0.15.0":
-  version: 0.15.8
-  resolution: "@lezer/lr@npm:0.15.8"
-  dependencies:
-    "@lezer/common": "npm:^0.15.0"
-  checksum: 10c0/5cd5123aca5cb2f268d265b6c21922ba3426ba60b9bbc1df85f4bfeed48097a444c656e642557fa93de8a8eb00d3254f502ce2796ae9edc1d186f14fa540a863
-  languageName: node
-  linkType: hard
-
-"@lezer/lr@npm:^1.0.0, @lezer/lr@npm:^1.1.0, @lezer/lr@npm:^1.3.0, @lezer/lr@npm:^1.3.1, @lezer/lr@npm:^1.3.10, @lezer/lr@npm:^1.3.3, @lezer/lr@npm:^1.3.7, @lezer/lr@npm:^1.4.0, @lezer/lr@npm:^1.4.2, @lezer/lr@npm:^1.x":
-  version: 1.4.2
-  resolution: "@lezer/lr@npm:1.4.2"
-  dependencies:
-    "@lezer/common": "npm:^1.0.0"
-  checksum: 10c0/22bb5d0d4b33d0de5eb0706b7e5b5f2d20f570e112d9110009bd35b62ff10f2eb4eff8da4cf373dd4ddf5e06a304120b8f039add7ed9997c981c13945d5329cd
-  languageName: node
-  linkType: hard
-
-"@lezer/lr@npm:^1.4.3":
+"@lezer/lr@npm:1.4.3":
   version: 1.4.3
   resolution: "@lezer/lr@npm:1.4.3"
   dependencies:
@@ -8833,6 +8815,7 @@ __metadata:
   dependencies:
     "@lezer/common": "npm:^1.3.0"
     "@lezer/generator": "npm:^1.8.0"
+    "@lezer/highlight": "npm:^1.2.1"
     "@lezer/lr": "npm:^1.4.3"
     tsx: "npm:^4.19.1"
     typescript: "npm:^5.7.3"
