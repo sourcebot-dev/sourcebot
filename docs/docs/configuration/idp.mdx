@@ -580,9 +580,9 @@ A JumpCloud connection can be used for [authentication](/docs/configuration/auth
 
 Google Cloud Identity-Aware Proxy (IAP) can be used for [authentication](/docs/configuration/auth). IAP provides a layer of security for applications deployed on Google Cloud, allowing you to control access based on user identity and context.
 
-<Note>
+<Info>
 GCP IAP works differently from other identity providers. Instead of redirecting users to an OAuth flow, IAP intercepts requests at the infrastructure level and adds a signed JWT header that Sourcebot validates. This means users are automatically authenticated when accessing Sourcebot through an IAP-protected endpoint.
-</Note>
+</Info>
 
 <Accordion title="instructions">
 <Steps>
