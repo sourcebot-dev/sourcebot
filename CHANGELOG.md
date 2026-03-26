@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed Ask GitHub landing page chat box placement to be centered on the page instead of at the bottom. [#1046](https://github.com/sourcebot-dev/sourcebot/pull/1046)
+- Fixed `file://` connections crashing when a glob pattern matches a file instead of a directory. [#1049](https://github.com/sourcebot-dev/sourcebot/pull/1049)
 
 ## [4.16.2] - 2026-03-25
 
