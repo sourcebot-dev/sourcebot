@@ -14,6 +14,7 @@ import { createLogger } from '@sourcebot/shared';
 import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GitlabConnectionConfig, GenericGitHostConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { ProjectVisibility } from "azure-devops-node-api/interfaces/CoreInterfaces.js";
 import path from 'path';
+import fs from 'fs/promises';
 import { glob } from 'glob';
 import { getLocalDefaultBranch, getOriginUrl, isPathAValidGitRepoRoot, isUrlAValidGitRepo } from './git.js';
 import assert from 'assert';
@@ -611,6 +612,14 @@ export const compileGenericGitHostConfig_file = async (
     logger.info(`Found ${repoPaths.length} path(s) matching pattern '${configUrl.pathname}'`);
 
     await Promise.all(repoPaths.map((repoPath) => gitOperationLimit(async () => {
+        const stat = await fs.stat(repoPath).catch(() => null);
+        if (!stat || !stat.isDirectory()) {
+            const warning = `Skipping ${repoPath} - path is not a directory.`;
+            logger.warn(warning);
+            warnings.push(warning);
+            return;
+        }
+
         const isGitRepo = await isPathAValidGitRepoRoot({
             path: repoPath,
         });
