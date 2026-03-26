@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added support for `.gitattributes` `linguist-language` overrides in the file viewer ([#1048](https://github.com/sourcebot-dev/sourcebot/pull/1048))
+
 ## [4.16.2] - 2026-03-25
 
 ### Fixed
