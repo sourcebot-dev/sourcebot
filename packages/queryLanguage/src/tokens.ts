@@ -1,5 +1,5 @@
 import { ExternalTokenizer, InputStream, Stack } from "@lezer/lr";
-import { negate, openParen, closeParen, word, or, ParenExpr } from "./parser.terms";
+import { negate, openParen, closeParen, word, or, Dialect_regex } from "./parser.terms";
 
 // Character codes
 const SPACE = 32;
@@ -243,9 +243,14 @@ function isInsideParenExpr(input: InputStream, stack: Stack): boolean {
  * This allows words like "(pr" or "func(arg)" to be parsed as single terms
  * while "(foo bar)" is parsed as a ParenExpr.
  */
-export const parenToken = new ExternalTokenizer((input) => {
+export const parenToken = new ExternalTokenizer((input, stack) => {
     if (input.next !== OPEN_PAREN) return;
-    
+
+    // In regex mode, parens are just word characters — don't emit openParen
+    if (stack.dialectEnabled(Dialect_regex)) {
+        return;
+    }
+
     if (hasBalancedParensAt(input, 0)) {
         // Found balanced parens - emit openParen (just the '(')
         input.advance();
@@ -262,6 +267,11 @@ export const parenToken = new ExternalTokenizer((input) => {
  */
 export const closeParenToken = new ExternalTokenizer((input, stack) => {
     if (input.next !== CLOSE_PAREN) return;
+
+    // In regex mode, parens are just word characters — don't emit closeParen
+    if (stack.dialectEnabled(Dialect_regex)) {
+        return;
+    }
 
     // Check if we should emit closeParen (when inside a ParenExpr)
     if (isInsideParenExpr(input, stack)) {
@@ -312,7 +322,20 @@ export const wordToken = new ExternalTokenizer((input, stack) => {
     if (startsWithPrefix(input)) {
         return;
     }
-    
+
+    // In regex mode: consume all non-whitespace characters as a single word.
+    // Parens and | are valid regex metacharacters, not query syntax in this mode.
+    if (stack.dialectEnabled(Dialect_regex)) {
+        const startPos = input.pos;
+        while (input.next !== EOF && !isWhitespace(input.next)) {
+            input.advance();
+        }
+        if (input.pos > startPos) {
+            input.acceptToken(word);
+        }
+        return;
+    }
+
     // If starts with '(' and has balanced parens, determine whether this is a
     // regex alternation value (e.g. file:(test|spec)) or a ParenExpr grouping.
     // We're in a value context when the immediately preceding non-whitespace char
@@ -419,24 +442,28 @@ export const orToken = new ExternalTokenizer((input) => {
  * External tokenizer for negation.
  * Only tokenizes `-` as negate when followed by a prefix keyword or balanced `(`.
  */
-export const negateToken = new ExternalTokenizer((input) => {
+export const negateToken = new ExternalTokenizer((input, stack) => {
     if (input.next !== DASH) return;
-    
+
     // Look ahead using peek to see what follows the dash (skipping whitespace)
     let offset = 1;
     while (isWhitespace(input.peek(offset))) {
         offset++;
     }
-    
+
     const chAfterDash = input.peek(offset);
-    
-    // Check if followed by opening paren that starts a balanced ParenExpr
-    if (chAfterDash === OPEN_PAREN && hasBalancedParensAt(input, offset)) {
-        input.advance();
-        input.acceptToken(negate);
-        return;
+
+    // In normal mode: also check for balanced paren (negated group e.g. -(foo bar))
+    // In regex mode: skip this — parens are not query grouping operators, so emitting
+    // negate before a '(' would leave the parser without a matching ParenExpr to parse.
+    if (!stack.dialectEnabled(Dialect_regex)) {
+        if (chAfterDash === OPEN_PAREN && hasBalancedParensAt(input, offset)) {
+            input.advance();
+            input.acceptToken(negate);
+            return;
+        }
     }
-    
+
     // Check if followed by a prefix keyword (by checking for keyword followed by colon)
     let foundColon = false;
     let peekOffset = offset;

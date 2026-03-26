@@ -35,6 +35,13 @@ const parser = _parser.configure({
     strict: true,
 });
 
+// In regex mode, parens and | are regex metacharacters, not query grouping operators.
+// The "regex" dialect makes the tokenizer treat them as plain word characters.
+const regexParser = _parser.configure({
+    strict: true,
+    dialect: "regex",
+});
+
 type ArchivedValue = 'yes' | 'no' | 'only';
 type VisibilityValue = 'public' | 'private' | 'any';
 type ForkValue = 'yes' | 'no' | 'only';
@@ -82,7 +89,9 @@ export const parseQuerySyntaxIntoIR = async ({
 
     try {
         // First parse the query into a Lezer tree.
-        const tree = parser.parse(query);
+        // In regex mode, use the regex dialect so parens/| are treated as word characters.
+        const activeParser = (options.isRegexEnabled ?? false) ? regexParser : parser;
+        const tree = activeParser.parse(query);
 
         // Then transform the tree into the intermediate representation.
         return transformTreeToIR({
