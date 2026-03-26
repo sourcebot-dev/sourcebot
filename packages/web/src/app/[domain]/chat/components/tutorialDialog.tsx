@@ -109,7 +109,7 @@ const tutorialSteps = [
         ),
         rightContent: (
             <video
-                src="https://storage.googleapis.com/sourcebot-assets/hero_final.mp4"
+                src="https://www.dropbox.com/scl/fi/htbvyj0u7qjr0j78tyqiq/ask_tutorial_hero.mp4?rlkey=1e2a69njwtzt632pwqky9fen9&st=juaf8qq6&raw=1"
                 autoPlay
                 loop
                 muted
