@@ -16,6 +16,7 @@ const ambiguousExtensionOverrides: Record<string, string> = {
     '.txt': 'Text',     // Not Adblock Filter List, Vim Help File
     '.yaml': 'YAML',    // Not MiniYAML, OASv2-yaml, OASv3-yaml
     '.yml': 'YAML',
+    '.bas': 'BASIC'
 };
 
 const extensionToLanguage = new Map<string, string>();
