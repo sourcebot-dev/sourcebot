@@ -190,7 +190,7 @@ export const languageMetadataMap: LanguageMetadataMap = {
    },
    "BASIC": {
       "iconify": "devicon:visualbasic",
-      "codemirrorLanguage": null,
+      "codemirrorLanguage": 'basic',
    },
    "BQN": {
       "iconify": null,

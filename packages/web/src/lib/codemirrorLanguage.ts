@@ -169,6 +169,7 @@ export const codemirrorLanguageMap = {
     "xml": xml(),
     "yaml": yaml(),
     "zig": zig(),
+    "basic": StreamLanguage.define(vb),
     // Legacy CodeMirror 5 modes
     "apl": StreamLanguage.define(apl),
     "ceylon": StreamLanguage.define(ceylon),
