@@ -7,7 +7,7 @@ import { useCallback } from "react";
 import { ReactEditor, useSlate } from "slate-react";
 import { AtMentionInfoCard } from "./atMentionInfoCard";
 
-// @note: we have this as a seperate component to avoid having to re-render the
+// @note: we have this as a separate component to avoid having to re-render the
 // entire toolbar whenever the user types (since we are using the useSlate hook
 // here).
 export const AtMentionButton = () => {

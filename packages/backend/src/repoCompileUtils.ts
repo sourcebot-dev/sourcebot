@@ -359,7 +359,7 @@ export const compileGerritConfig = async (
             webUrl: webUrl,
             name: repoName,
             displayName: repoDisplayName,
-            // @note: the gerrit api doesn't return the default branch (without a seperate query).
+            // @note: the gerrit api doesn't return the default branch (without a separate query).
             // Instead, the default branch will be set once the repo is cloned.
             // @see: repoIndexManager.ts
             defaultBranch: undefined,

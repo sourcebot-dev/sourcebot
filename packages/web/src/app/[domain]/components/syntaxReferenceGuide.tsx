@@ -250,7 +250,7 @@ export const SyntaxReferenceGuide = () => {
                 <div>
                     <h3 className="text-lg font-semibold mt-4 mb-0">Boolean operators &amp; grouping</h3>
                     <p className="text-sm mb-2 mt-0">
-                        By default, space-seperated expressions are and&apos;d together. Using the <CodeSnippet>or</CodeSnippet> keyword as well as parantheses <CodeSnippet>()</CodeSnippet> can be used to create more complex boolean logic. Parantheses can be negated using the <CodeSnippet>-</CodeSnippet> prefix.
+                        By default, space-separated expressions are and&apos;d together. Using the <CodeSnippet>or</CodeSnippet> keyword as well as parentheses <CodeSnippet>()</CodeSnippet> can be used to create more complex boolean logic. Parentheses can be negated using the <CodeSnippet>-</CodeSnippet> prefix.
                     </p>
                     <Table>
                         <TableHeader>

@@ -7,7 +7,7 @@ import type { Long } from '@grpc/proto-loader';
  */
 export interface RepoStats {
   /**
-   * repos is used for aggregrating the number of repositories.
+   * repos is used for aggregating the number of repositories.
    */
   'repos'?: (number | string | Long);
   /**
@@ -54,7 +54,7 @@ export interface RepoStats {
  */
 export interface RepoStats__Output {
   /**
-   * repos is used for aggregrating the number of repositories.
+   * repos is used for aggregating the number of repositories.
    */
   'repos': (number);
   /**
