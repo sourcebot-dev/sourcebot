@@ -36,11 +36,13 @@ export const ChatThreadPanel = ({
     const [inputMessage, setInputMessage] = useState<CreateUIMessage<SBChatMessage> | undefined>(undefined);
     const [chatState, setChatState] = useSessionStorage<SetChatStatePayload | null>(SET_CHAT_STATE_SESSION_STORAGE_KEY, null);
     
-    // Use the last user's last message to determine what repos and contexts we should select by default.
+    // Use the last user message to determine what repos, contexts, and MCP state we should select by default.
     const lastUserMessage = messages.findLast((message) => message.role === "user");
     const defaultSelectedSearchScopes = lastUserMessage?.metadata?.selectedSearchScopes ?? [];
+    const defaultDisabledMcpServerIds = lastUserMessage?.metadata?.disabledMcpServerIds ?? [];
     const [selectedSearchScopes, setSelectedSearchScopes] = useState<SearchScope[]>(defaultSelectedSearchScopes);
-    
+    const [disabledMcpServerIds, setDisabledMcpServerIds] = useState<string[]>(defaultDisabledMcpServerIds);
+
     useEffect(() => {
         if (!chatState) {
             return;
@@ -49,6 +51,7 @@ export const ChatThreadPanel = ({
         try {
             setInputMessage(chatState.inputMessage);
             setSelectedSearchScopes(chatState.selectedSearchScopes);
+            setDisabledMcpServerIds(chatState.disabledMcpServerIds);
         } catch {
             console.error('Invalid chat state in session storage');
         } finally {
@@ -73,6 +76,8 @@ export const ChatThreadPanel = ({
                     searchContexts={searchContexts}
                     selectedSearchScopes={selectedSearchScopes}
                     onSelectedSearchScopesChange={setSelectedSearchScopes}
+                    disabledMcpServerIds={disabledMcpServerIds}
+                    onDisabledMcpServerIdsChange={setDisabledMcpServerIds}
                     isOwner={isOwner}
                     isAuthenticated={isAuthenticated}
                     chatName={chatName}

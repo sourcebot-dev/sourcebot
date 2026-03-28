@@ -6,11 +6,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { CSSProperties, forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import scrollIntoView from 'scroll-into-view-if-needed';
+import { DynamicToolUIPart } from "ai";
 import { Reference, referenceSchema, SBChatMessage, Source } from "../../types";
 import { useExtractReferences } from '../../useExtractReferences';
 import { getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences, tryResolveFileReference } from '../../utils';
 import { AnswerCard } from './answerCard';
 import { DetailsCard } from './detailsCard';
+import { ToolApprovalBanner } from './toolApprovalBanner';
 import { MarkdownRenderer, REFERENCE_PAYLOAD_ATTRIBUTE } from './markdownRenderer';
 import { ReferencedSourcesListView } from './referencedSourcesListView';
 import isEqual from "fast-deep-equal/react";
@@ -106,7 +108,8 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                         return (
                             part.type === 'text' ||
                             part.type === 'reasoning' ||
-                            part.type.startsWith('tool-')
+                            part.type.startsWith('tool-') ||
+                            part.type === 'dynamic-tool'
                         )
                     })
             )
@@ -118,6 +121,16 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     const isThinking = useMemo(() => {
         return isStreaming && !answerPart
     }, [answerPart, isStreaming]);
+
+    // Extract MCP tool parts that are waiting for user approval.
+    const approvalRequestedParts = useMemo((): DynamicToolUIPart[] => {
+        if (!assistantMessage) {
+            return [];
+        }
+        return assistantMessage.parts.filter(
+            (part): part is DynamicToolUIPart => part.type === 'dynamic-tool' && part.state === 'approval-requested'
+        );
+    }, [assistantMessage]);
 
 
     // Auto-collapse when answer first appears, but only once and respect user preference
@@ -364,6 +377,10 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                             metadata={assistantMessage?.metadata}
                         />
 
+                        {approvalRequestedParts.length > 0 && (
+                            <ToolApprovalBanner parts={approvalRequestedParts} />
+                        )}
+
                         {(answerPart && assistantMessage) ? (
                             <AnswerCard
                                 ref={answerRef}
@@ -372,7 +389,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                                 messageId={assistantMessage.id}
                                 traceId={assistantMessage.metadata?.traceId}
                             />
-                        ) : !isStreaming && (
+                        ) : !isStreaming && approvalRequestedParts.length === 0 && (
                             <p className="text-destructive">Error: No answer response was provided</p>
                         )}
                     </div>

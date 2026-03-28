@@ -33,7 +33,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
         return serviceErrorResponse(requestBodySchemaValidationError(parsed.error));
     }
 
-    const { messages, id, selectedSearchScopes, languageModel: _languageModel } = parsed.data;
+    const { messages, id, selectedSearchScopes, disabledMcpServerIds, languageModel: _languageModel } = parsed.data;
     // @note: a bit of type massaging is required here since the
     // zod schema does not enum on `model` or `provider`.
     // @see: chat/types.ts
@@ -105,9 +105,12 @@ export const POST = apiHandler(async (req: NextRequest) => {
                     selectedSearchScopes,
                 },
                 selectedRepos: expandedRepos,
+                disabledMcpServerIds,
                 model,
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                 modelProviderOptions: providerOptions,
+                userId: user?.id,
+                orgId: org.id,
                 onFinish: async ({ messages }) => {
                     await updateChatMessages({ chatId: id, messages, prisma });
                 },

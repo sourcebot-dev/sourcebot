@@ -114,6 +114,12 @@ export default async function SettingsLayout(
                 href: `/${domain}/settings/linked-accounts`,
             }
         ] : []),
+        ...(hasEntitlement("oauth") ? [
+            {
+                title: "MCP Servers",
+                href: `/${domain}/settings/mcpServers`,
+            }
+        ] : []),
         {
             title: "License",
             href: `/${domain}/settings/license`,

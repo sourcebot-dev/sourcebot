@@ -6,6 +6,7 @@ import { ToolUIPart } from "ai";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCallback, useState } from "react";
+import { JsonHighlighter, unescapeJsonStrings } from "./jsonHighlighter";
 
 export const ToolOutputGuard = <T extends ToolUIPart<{ [K in keyof SBChatMessageToolTypes]: SBChatMessageToolTypes[K] }>>({
     part,
@@ -27,7 +28,7 @@ export const ToolOutputGuard = <T extends ToolUIPart<{ [K in keyof SBChatMessage
         ? (() => {
             const raw = (part.output as { output: string }).output;
             try {
-                return JSON.stringify(JSON.parse(raw), null, 2);
+                return JSON.stringify(unescapeJsonStrings(JSON.parse(raw)), null, 2);
             } catch {
                 return raw;
             }
@@ -70,17 +71,15 @@ export const ToolOutputGuard = <T extends ToolUIPart<{ [K in keyof SBChatMessage
             {hasInput && isExpanded && (
                 <div className="rounded-lg border border-border text-xs overflow-y-auto max-h-72">
                     <ResultSection label={`Request (${part.type})`} onCopy={onCopyRequest}>
-                        <pre className="whitespace-pre-wrap break-all font-mono">
-                            {requestText}
-                        </pre>
+                        <JsonHighlighter text={requestText} />
                     </ResultSection>
                     {responseText !== undefined && (
                         <>
                             <div className="border-t border-border" />
                             <ResultSection label="Response" onCopy={onCopyResponse}>
-                                <pre className={cn("whitespace-pre-wrap break-all font-mono", part.state === 'output-error' && "text-destructive")}>
-                                    {responseText}
-                                </pre>
+                                <div className={cn(part.state === 'output-error' && "text-destructive")}>
+                                    <JsonHighlighter text={responseText} />
+                                </div>
                             </ResultSection>
                         </>
                     )}

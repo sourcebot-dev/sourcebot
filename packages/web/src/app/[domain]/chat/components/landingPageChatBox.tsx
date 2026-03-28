@@ -27,6 +27,7 @@ export const LandingPageChatBox = ({
 }: LandingPageChatBox) => {
     const { createNewChatThread, isLoading, loginWall } = useCreateNewChatThread({ isAuthenticated });
     const [selectedSearchScopes, setSelectedSearchScopes] = useLocalStorage<SearchScope[]>("selectedSearchScopes", [], { initializeWithValue: false });
+    const [disabledMcpServerIds, setDisabledMcpServerIds] = useLocalStorage<string[]>("disabledMcpServerIds", [], { initializeWithValue: false });
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
     const isChatBoxDisabled = languageModels.length === 0;
 
@@ -35,7 +36,7 @@ export const LandingPageChatBox = ({
             <div className="border rounded-md w-full shadow-sm">
                 <ChatBox
                     onSubmit={(children) => {
-                        createNewChatThread(children, selectedSearchScopes);
+                        createNewChatThread(children, selectedSearchScopes, disabledMcpServerIds);
                     }}
                     className="min-h-[50px]"
                     isRedirecting={isLoading}
@@ -55,6 +56,8 @@ export const LandingPageChatBox = ({
                             onSelectedSearchScopesChange={setSelectedSearchScopes}
                             isContextSelectorOpen={isContextSelectorOpen}
                             onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                            disabledMcpServerIds={disabledMcpServerIds}
+                            onDisabledMcpServerIdsChange={setDisabledMcpServerIds}
                         />
                         <SearchModeSelector
                             searchMode="agentic"

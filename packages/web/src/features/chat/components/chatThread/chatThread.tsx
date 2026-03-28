@@ -8,10 +8,10 @@ import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
 import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, SearchScope, Source } from '@/features/chat/types';
 import { createUIMessage, getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useChat } from '@ai-sdk/react';
-import { CreateUIMessage, DefaultChatTransport } from 'ai';
+import { CreateUIMessage, DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
 import { ArrowDownIcon, CopyIcon } from 'lucide-react';
 import { useNavigationGuard } from 'next-navigation-guard';
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
 import { useSelectedLanguageModel } from '../../useSelectedLanguageModel';
@@ -19,12 +19,15 @@ import { ChatBox } from '../chatBox';
 import { ChatBoxToolbar } from '../chatBox/chatBoxToolbar';
 import { ChatThreadListItem } from './chatThreadListItem';
 import { ErrorBanner } from './errorBanner';
+import { McpFailedServersBanner } from './mcpFailedServersBanner';
 import { useRouter } from 'next/navigation';
 import { usePrevious } from '@uidotdev/usehooks';
 import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
 import { duplicateChat, generateAndUpdateChatNameFromMessage } from '../../actions';
 import { isServiceError } from '@/lib/utils';
 import { NotConfiguredErrorBanner } from '../notConfiguredErrorBanner';
+import { McpServerIconContext, McpServerIconMap } from '../../mcpServerIconContext';
+import { ToolApprovalProvider } from '../../toolApprovalContext';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { SignInPromptBanner } from './signInPromptBanner';
 import { DuplicateChatDialog } from '@/app/[domain]/chat/components/duplicateChatDialog';
@@ -48,6 +51,8 @@ interface ChatThreadProps {
     searchContexts: SearchContextQuery[];
     selectedSearchScopes: SearchScope[];
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
+    disabledMcpServerIds: string[];
+    onDisabledMcpServerIdsChange: (ids: string[]) => void;
     isOwner?: boolean;
     isAuthenticated?: boolean;
     chatName?: string;
@@ -62,6 +67,8 @@ export const ChatThread = ({
     searchContexts,
     selectedSearchScopes,
     onSelectedSearchScopesChange,
+    disabledMcpServerIds,
+    onDisabledMcpServerIdsChange,
     isOwner = true,
     isAuthenticated = false,
     chatName,
@@ -90,13 +97,63 @@ export const ChatThread = ({
         ) ?? []
     );
 
+    const [mcpServerIconMap, setMcpServerIconMap] = useState<McpServerIconMap>(() => {
+        const map: McpServerIconMap = {};
+        initialMessages?.forEach((message) => {
+            message.parts
+                .filter((part) => part.type === 'data-mcp-server')
+                .forEach((part) => {
+                    map[part.data.sanitizedName] = part.data.faviconUrl;
+                });
+        });
+        return map;
+    });
+
+    const [failedMcpServers, setFailedMcpServers] = useState<string[]>(() => {
+        const names: string[] = [];
+        initialMessages?.forEach((message) => {
+            message.parts
+                .filter((part) => part.type === 'data-mcp-failed-server')
+                .forEach((part) => {
+                    if (!names.includes(part.data.serverName)) {
+                        names.push(part.data.serverName);
+                    }
+                });
+        });
+        return names;
+    });
+    const [isFailedMcpBannerVisible, setIsFailedMcpBannerVisible] = useState(false);
+
     const { selectedLanguageModel } = useSelectedLanguageModel({
         languageModels,
     });
 
+    // Refs to capture the latest request params for the transport body.
+    // The transport is created once (useMemo) but params change over time,
+    // so refs ensure the dynamic body function always reads current values.
+    const searchScopesRef = useRef(selectedSearchScopes);
+    const modelRef = useRef(selectedLanguageModel);
+    const disabledMcpRef = useRef(disabledMcpServerIds);
+
+    useEffect(() => { searchScopesRef.current = selectedSearchScopes; }, [selectedSearchScopes]);
+    useEffect(() => { modelRef.current = selectedLanguageModel; }, [selectedLanguageModel]);
+    useEffect(() => { disabledMcpRef.current = disabledMcpServerIds; }, [disabledMcpServerIds]);
+
+    // Transport with dynamic body — resolved on every request (including auto-resends
+    // triggered by sendAutomaticallyWhen after tool approval).
+    const transport = useMemo(() => new DefaultChatTransport({
+        api: '/api/chat',
+        body: () => ({
+            selectedSearchScopes: searchScopesRef.current,
+            languageModel: modelRef.current,
+            disabledMcpServerIds: disabledMcpRef.current,
+        }),
+    }), []);
+
     const {
         messages,
         sendMessage: _sendMessage,
+        addToolApprovalResponse,
         error,
         status,
         stop,
@@ -104,13 +161,27 @@ export const ChatThread = ({
     } = useChat<SBChatMessage>({
         id: defaultChatId,
         messages: initialMessages,
-        transport: new DefaultChatTransport({
-            api: '/api/chat',
-        }),
+        transport,
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
         onData: (dataPart) => {
             // Keeps sources added by the assistant in sync.
             if (dataPart.type === 'data-source') {
                 setSources((prev) => [...prev, dataPart.data]);
+            }
+            if (dataPart.type === 'data-mcp-server') {
+                setMcpServerIconMap((prev) => ({
+                    ...prev,
+                    [dataPart.data.sanitizedName]: dataPart.data.faviconUrl,
+                }));
+            }
+            if (dataPart.type === 'data-mcp-failed-server') {
+                setFailedMcpServers((prev) => {
+                    if (prev.includes(dataPart.data.serverName)) {
+                        return prev;
+                    }
+                    return [...prev, dataPart.data.serverName];
+                });
+                setIsFailedMcpBannerVisible(true);
             }
         }
     });
@@ -134,6 +205,7 @@ export const ChatThread = ({
             body: {
                 selectedSearchScopes,
                 languageModel: selectedLanguageModel,
+                disabledMcpServerIds,
             } satisfies AdditionalChatRequestParams,
         });
 
@@ -163,6 +235,7 @@ export const ChatThread = ({
         selectedLanguageModel,
         _sendMessage,
         selectedSearchScopes,
+        disabledMcpServerIds,
         messages.length,
         toast,
         chatId,
@@ -232,13 +305,13 @@ export const ChatThread = ({
 
             const text = slateContentToString(children);
             const mentions = getAllMentionElements(children);
-            const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes);
+            const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes, disabledMcpServerIds);
             sendMessage(message);
             setIsAutoScrollEnabled(true);
         } catch (error) {
             console.error('Failed to restore pending message:', error);
         }
-    }, [isAuthenticated, isOwner, chatId, sendMessage, selectedSearchScopes]);
+    }, [isAuthenticated, isOwner, chatId, sendMessage, selectedSearchScopes, disabledMcpServerIds]);
 
     // Track scroll position changes.
     useEffect(() => {
@@ -342,13 +415,13 @@ export const ChatThread = ({
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
-        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes);
+        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes, disabledMcpServerIds);
         sendMessage(message);
 
         setIsAutoScrollEnabled(true);
 
         resetEditor(editor);
-    }, [sendMessage, selectedSearchScopes, isAuthenticated, captureEvent, chatId]);
+    }, [sendMessage, selectedSearchScopes, disabledMcpServerIds, isAuthenticated, captureEvent, chatId]);
 
     const onDuplicate = useCallback(async (newName: string): Promise<string | null> => {
         if (!defaultChatId) {
@@ -370,7 +443,8 @@ export const ChatThread = ({
     }, [defaultChatId, toast, router, params.domain, captureEvent]);
 
     return (
-        <>
+        <ToolApprovalProvider value={addToolApprovalResponse}>
+        <McpServerIconContext.Provider value={mcpServerIconMap}>
             {error && (
                 <ErrorBanner
                     error={error}
@@ -378,6 +452,11 @@ export const ChatThread = ({
                     onClose={() => setIsErrorBannerVisible(false)}
                 />
             )}
+            <McpFailedServersBanner
+                serverNames={failedMcpServers}
+                isVisible={isFailedMcpBannerVisible}
+                onClose={() => setIsFailedMcpBannerVisible(false)}
+            />
 
             <ScrollArea
                 ref={scrollAreaRef}
@@ -473,6 +552,8 @@ export const ChatThread = ({
                                         onSelectedSearchScopesChange={onSelectedSearchScopesChange}
                                         isContextSelectorOpen={isContextSelectorOpen}
                                         onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                                        disabledMcpServerIds={disabledMcpServerIds}
+                                        onDisabledMcpServerIdsChange={onDisabledMcpServerIdsChange}
                                     />
                                 </div>
                             </CustomSlateEditor>
@@ -506,6 +587,7 @@ export const ChatThread = ({
                 providers={loginWallProviders}
                 callbackUrl={typeof window !== 'undefined' ? window.location.href : ''}
             />
-        </>
+        </McpServerIconContext.Provider>
+        </ToolApprovalProvider>
     );
 }

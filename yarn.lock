@@ -98,6 +98,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ai-sdk/mcp@npm:^2.0.0-beta.11":
+  version: 2.0.0-beta.11
+  resolution: "@ai-sdk/mcp@npm:2.0.0-beta.11"
+  dependencies:
+    "@ai-sdk/provider": "npm:4.0.0-beta.5"
+    "@ai-sdk/provider-utils": "npm:5.0.0-beta.7"
+    pkce-challenge: "npm:^5.0.0"
+  peerDependencies:
+    zod: ^3.25.76 || ^4.1.8
+  checksum: 10c0/efcc9b9f5f8b20b78b2d0ee6d83b34466b2ec456c3b40b5b8b10af226e7d3f6144f964d87a20c5fc54c24b21f3610cb75cc246c30833b99fb501438a206c9933
+  languageName: node
+  linkType: hard
+
 "@ai-sdk/mistral@npm:^3.0.21":
   version: 3.0.21
   resolution: "@ai-sdk/mistral@npm:3.0.21"
@@ -147,12 +160,34 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ai-sdk/provider-utils@npm:5.0.0-beta.7":
+  version: 5.0.0-beta.7
+  resolution: "@ai-sdk/provider-utils@npm:5.0.0-beta.7"
+  dependencies:
+    "@ai-sdk/provider": "npm:4.0.0-beta.5"
+    "@standard-schema/spec": "npm:^1.1.0"
+    eventsource-parser: "npm:^3.0.6"
+  peerDependencies:
+    zod: ^3.25.76 || ^4.1.8
+  checksum: 10c0/440825f7b599da6a0bd830c905f9ba4f21defcf7068bc98154ea38158c1134b049cb2815047013668f48b679a23de1d3c19eb072a65115dc860070168104c99e
+  languageName: node
+  linkType: hard
+
 "@ai-sdk/provider@npm:3.0.8":
   version: 3.0.8
   resolution: "@ai-sdk/provider@npm:3.0.8"
   dependencies:
     json-schema: "npm:^0.4.0"
   checksum: 10c0/c68637c0139a6ce8af17bac1d7d539f531860026237c5c971dcecda2daa8b1e42d8c05e1e664ece60c15edb325c0253fd5b091ee54d32f870a750a493acbb0b7
+  languageName: node
+  linkType: hard
+
+"@ai-sdk/provider@npm:4.0.0-beta.5":
+  version: 4.0.0-beta.5
+  resolution: "@ai-sdk/provider@npm:4.0.0-beta.5"
+  dependencies:
+    json-schema: "npm:^0.4.0"
+  checksum: 10c0/886f5892268cc3425130c9b019a9eb1e2acdb5efd05d920b05d1ac1ab49603393d8e509e6e0a3c46dee533a411a51a2af2c6fa0a173b41130f5175a615add7fb
   languageName: node
   linkType: hard
 
@@ -8855,6 +8890,7 @@ __metadata:
     "@ai-sdk/deepseek": "npm:^2.0.21"
     "@ai-sdk/google": "npm:^3.0.34"
     "@ai-sdk/google-vertex": "npm:^4.0.68"
+    "@ai-sdk/mcp": "npm:^2.0.0-beta.11"
     "@ai-sdk/mistral": "npm:^3.0.21"
     "@ai-sdk/openai": "npm:^3.0.37"
     "@ai-sdk/openai-compatible": "npm:^2.0.31"
@@ -9061,7 +9097,7 @@ __metadata:
     vitest: "npm:^2.1.5"
     vitest-mock-extended: "npm:^3.1.0"
     vscode-icons-js: "npm:^11.6.1"
-    zod: "npm:^3.25.74"
+    zod: "npm:^3.25.76"
     zod-to-json-schema: "npm:^3.24.5"
   languageName: unknown
   linkType: soft
@@ -22957,7 +22993,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.25.0":
+"zod@npm:^3.25.0, zod@npm:^3.25.76":
   version: 3.25.76
   resolution: "zod@npm:3.25.76"
   checksum: 10c0/5718ec35e3c40b600316c5b4c5e4976f7fee68151bc8f8d90ec18a469be9571f072e1bbaace10f1e85cf8892ea12d90821b200e980ab46916a6166a4260a983c

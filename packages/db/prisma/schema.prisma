@@ -301,6 +301,8 @@ model Org {
   searchContexts SearchContext[]
 
   chats Chat[]
+
+  mcpServers McpServer[]
 }
 
 enum OrgRole {
@@ -384,6 +386,9 @@ model User {
   oauthTokens        OAuthToken[]
   oauthAuthCodes     OAuthAuthorizationCode[]
   oauthRefreshTokens OAuthRefreshToken[]
+
+  mcpServerCredentials McpServerCredential[]
+  userMcpServers       UserMcpServer[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -578,4 +583,73 @@ model OAuthToken {
   expiresAt  DateTime
   createdAt  DateTime    @default(now())
   lastUsedAt DateTime?
+}
+
+/// An external MCP server endpoint, unique per org.
+/// Stores the dynamic client registration (client_id/client_secret) once per org.
+model McpServer {
+  id        String   @id @default(cuid())
+  serverUrl String   /// MCP server endpoint (e.g., "https://mcp.linear.app/mcp")
+
+  /// Dynamic client registration result (RFC 7591).
+  /// Encrypted JSON of OAuthClientInformation: { client_id, client_secret, client_id_issued_at, client_secret_expires_at }
+  /// Null until first user in the org triggers registration.
+  clientInfo String?
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  credentials McpServerCredential[]
+  userMcpServers UserMcpServer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([serverUrl, orgId])
+}
+
+/// Junction table: a user's personal reference to an MCP server with their chosen display name.
+model UserMcpServer {
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+
+  server   McpServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverId String
+
+  name     String    /// User-chosen display name (e.g., "Linear")
+
+  createdAt DateTime @default(now())
+
+  @@id([userId, serverId])
+}
+
+/// Per-user OAuth credentials for an external MCP server.
+/// Stores tokens (long-lived) and ephemeral auth-flow state separately.
+model McpServerCredential {
+  id String @id @default(cuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  server   McpServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverId String
+
+  /// OAuth tokens (access_token, refresh_token, etc.) — encrypted JSON of OAuthTokens.
+  tokens String?
+
+  /// Absolute expiry time of the access token, computed at issuance from expires_in.
+  /// Null when no tokens are stored or the provider did not include expires_in.
+  tokensExpiresAt DateTime?
+
+  /// PKCE code verifier — ephemeral, only used between redirect and callback.
+  codeVerifier String?
+
+  /// OAuth state parameter — ephemeral, for CSRF protection during auth flow.
+  state String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, serverId])
+  @@index([state])
 }

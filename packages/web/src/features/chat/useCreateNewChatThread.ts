@@ -30,11 +30,11 @@ export const useCreateNewChatThread = ({ isAuthenticated = false }: UseCreateNew
     const hasRestoredPendingMessage = useRef(false);
     const captureEvent = useCaptureEvent();
 
-    const doCreateChat = useCallback(async (children: Descendant[], selectedSearchScopes: SearchScope[]) => {
+    const doCreateChat = useCallback(async (children: Descendant[], selectedSearchScopes: SearchScope[], disabledMcpServerIds: string[]) => {
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
-        const inputMessage = createUIMessage(text, mentions.map((mention) => mention.data), selectedSearchScopes);
+        const inputMessage = createUIMessage(text, mentions.map((mention) => mention.data), selectedSearchScopes, disabledMcpServerIds);
 
         setIsLoading(true);
         const response = await createChat({ source: 'sourcebot-web-client' });
@@ -49,6 +49,7 @@ export const useCreateNewChatThread = ({ isAuthenticated = false }: UseCreateNew
         setChatState({
             inputMessage,
             selectedSearchScopes,
+            disabledMcpServerIds,
         });
 
         const url = createPathWithQueryParams(`/${SINGLE_TENANT_ORG_DOMAIN}/chat/${response.id}`);
@@ -56,18 +57,18 @@ export const useCreateNewChatThread = ({ isAuthenticated = false }: UseCreateNew
         router.push(url);
     }, [router, toast, setChatState]);
 
-    const createNewChatThread = useCallback(async (children: Descendant[], selectedSearchScopes: SearchScope[]) => {
+    const createNewChatThread = useCallback(async (children: Descendant[], selectedSearchScopes: SearchScope[], disabledMcpServerIds: string[]) => {
         if (!isAuthenticated) {
             const result = await getAskGhLoginWallData();
             if (!isServiceError(result) && result.isEnabled) {
                 captureEvent('wa_askgh_login_wall_prompted', {});
-                sessionStorage.setItem(PENDING_NEW_CHAT_KEY, JSON.stringify({ children, selectedSearchScopes }));
+                sessionStorage.setItem(PENDING_NEW_CHAT_KEY, JSON.stringify({ children, selectedSearchScopes, disabledMcpServerIds }));
                 setLoginWallState({ isOpen: true, providers: result.providers });
                 return;
             }
         }
 
-        doCreateChat(children, selectedSearchScopes);
+        doCreateChat(children, selectedSearchScopes, disabledMcpServerIds);
     }, [isAuthenticated, captureEvent, doCreateChat]);
 
     // Restore pending message after OAuth redirect
@@ -85,11 +86,12 @@ export const useCreateNewChatThread = ({ isAuthenticated = false }: UseCreateNew
         sessionStorage.removeItem(PENDING_NEW_CHAT_KEY);
 
         try {
-            const { children, selectedSearchScopes } = JSON.parse(stored) as {
+            const { children, selectedSearchScopes, disabledMcpServerIds } = JSON.parse(stored) as {
                 children: Descendant[];
                 selectedSearchScopes: SearchScope[];
+                disabledMcpServerIds: string[];
             };
-            doCreateChat(children, selectedSearchScopes);
+            doCreateChat(children, selectedSearchScopes, disabledMcpServerIds ?? []);
         } catch (error) {
             console.error('Failed to restore pending message:', error);
         }

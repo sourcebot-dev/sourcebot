@@ -24,6 +24,8 @@ import { ListReposToolComponent } from './tools/listReposToolComponent';
 import { ListTreeToolComponent } from './tools/listTreeToolComponent';
 import { ReadFileToolComponent } from './tools/readFileToolComponent';
 import { ToolOutputGuard } from './tools/toolOutputGuard';
+import { McpToolComponent } from './tools/mcpToolComponent';
+import { ToolSearchToolComponent } from './tools/toolSearchToolComponent';
 
 
 interface DetailsCardProps {
@@ -47,7 +49,10 @@ const DetailsCardComponent = ({
 }: DetailsCardProps) => {
     const captureEvent = useCaptureEvent();
 
-    const toolCallCount = useMemo(() => thinkingSteps.flat().filter(part => part.type.startsWith('tool-')).length, [thinkingSteps]);
+    const toolCallCount = useMemo(() => thinkingSteps.flat().filter(part =>
+        part.type.startsWith('tool-') ||
+        (part.type === 'dynamic-tool' && part.toolName.startsWith('mcp_'))
+    ).length, [thinkingSteps]);
 
     const handleExpandedChanged = useCallback((next: boolean) => {
         captureEvent('wa_chat_details_card_toggled', { chatId, isExpanded: next });
@@ -298,8 +303,18 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
                     {(output) => <ListTreeToolComponent {...output} />}
                 </ToolOutputGuard>
             )
-        case 'data-source':
+        case 'tool-tool_request_activation':
+            if (part.state !== 'output-available') {
+                return <span className="text-sm text-muted-foreground animate-pulse">Activating tool...</span>;
+            }
+            return <ToolSearchToolComponent query={part.input.tool_to_activate_name} results={part.output.results ?? []} />;
         case 'dynamic-tool':
+            if (part.toolName.startsWith('mcp_')) {
+                return <McpToolComponent part={part} />;
+            }
+            return null;
+        case 'data-source':
+        case 'data-mcp-server':
         case 'file':
         case 'source-document':
         case 'source-url':

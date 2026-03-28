@@ -70,7 +70,7 @@ export const LandingPage = ({
                     <div className="border rounded-md w-full shadow-sm">
                         <ChatBox
                             onSubmit={(children) => {
-                                createNewChatThread(children, selectedSearchScopes);
+                                createNewChatThread(children, selectedSearchScopes, []);
                             }}
                             className="min-h-[50px]"
                             isRedirecting={isLoading}
