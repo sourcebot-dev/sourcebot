@@ -296,6 +296,12 @@ const options = {
         CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(300000),
         REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),
 
+        // Repo sync interval settings (override config file settings)
+        REINDEX_INTERVAL_MS: z.coerce.number().int().positive().optional(),
+        RESYNC_CONNECTION_INTERVAL_MS: z.coerce.number().int().positive().optional(),
+        REINDEX_REPO_POLLING_INTERVAL_MS: z.coerce.number().int().positive().optional(),
+        RESYNC_CONNECTION_POLLING_INTERVAL_MS: z.coerce.number().int().positive().optional(),
+
         GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS: numberSchema.default(60 * 10),
 
         SOURCEBOT_LOG_LEVEL: z.enum(["info", "debug", "warn", "error"]).default("info"),

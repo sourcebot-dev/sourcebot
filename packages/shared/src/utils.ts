@@ -75,24 +75,27 @@ export const loadJsonFile = async <T>(
 
 
 export const getConfigSettings = async (configPath?: string): Promise<ConfigSettings> => {
-    if (!configPath) {
-        return DEFAULT_CONFIG_SETTINGS;
-    }
+    const config = configPath ? await loadConfig(configPath) : undefined;
 
-    const config = await loadConfig(configPath);
-
+    // Merge settings: env vars > config file > defaults
+    // Priority order: env var > config file `settings` block > hardcoded default
     return {
         ...DEFAULT_CONFIG_SETTINGS,
-        ...config.settings,
+        ...config?.settings,
         // Fall back to deprecated experiment_ variants if new keys are not set.
         repoDrivenPermissionSyncIntervalMs:
-            config.settings?.repoDrivenPermissionSyncIntervalMs
-            ?? config.settings?.experiment_repoDrivenPermissionSyncIntervalMs
+            config?.settings?.repoDrivenPermissionSyncIntervalMs
+            ?? config?.settings?.experiment_repoDrivenPermissionSyncIntervalMs
             ?? DEFAULT_CONFIG_SETTINGS.repoDrivenPermissionSyncIntervalMs,
         userDrivenPermissionSyncIntervalMs:
-            config.settings?.userDrivenPermissionSyncIntervalMs
-            ?? config.settings?.experiment_userDrivenPermissionSyncIntervalMs
+            config?.settings?.userDrivenPermissionSyncIntervalMs
+            ?? config?.settings?.experiment_userDrivenPermissionSyncIntervalMs
             ?? DEFAULT_CONFIG_SETTINGS.userDrivenPermissionSyncIntervalMs,
+        // Env var overrides (highest priority)
+        ...(env.REINDEX_INTERVAL_MS !== undefined && { reindexIntervalMs: env.REINDEX_INTERVAL_MS }),
+        ...(env.RESYNC_CONNECTION_INTERVAL_MS !== undefined && { resyncConnectionIntervalMs: env.RESYNC_CONNECTION_INTERVAL_MS }),
+        ...(env.REINDEX_REPO_POLLING_INTERVAL_MS !== undefined && { reindexRepoPollingIntervalMs: env.REINDEX_REPO_POLLING_INTERVAL_MS }),
+        ...(env.RESYNC_CONNECTION_POLLING_INTERVAL_MS !== undefined && { resyncConnectionPollingIntervalMs: env.RESYNC_CONNECTION_POLLING_INTERVAL_MS }),
     }
 }
 

@@ -28,6 +28,10 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `REDIS_REMOVE_ON_FAIL` | `100` | <p>Controls how many failed jobs are allowed to remain in Redis queues</p> |
 | `REPO_SYNC_RETRY_BASE_SLEEP_SECONDS` | `60` | <p>The base sleep duration (in seconds) for exponential backoff when retrying repository sync operations that fail</p> |
 | `GITLAB_CLIENT_QUERY_TIMEOUT_SECONDS` | `600` | <p>The timeout duration (in seconds) for GitLab client queries</p> |
+| `REINDEX_INTERVAL_MS` | `3600000` (1 hour) | <p>The interval (in milliseconds) at which all repositories are re-indexed. Overrides `settings.reindexIntervalMs` from the config file.</p> |
+| `RESYNC_CONNECTION_INTERVAL_MS` | `86400000` (24 hours) | <p>The interval (in milliseconds) for checking connections that need re-syncing. Overrides `settings.resyncConnectionIntervalMs` from the config file.</p> |
+| `REINDEX_REPO_POLLING_INTERVAL_MS` | `1000` (1 second) | <p>The polling rate (in milliseconds) at which the database should be checked for repos that need re-indexing. Overrides `settings.reindexRepoPollingIntervalMs` from the config file.</p> |
+| `RESYNC_CONNECTION_POLLING_INTERVAL_MS` | `1000` (1 second) | <p>The polling rate (in milliseconds) at which the database should be checked for connections that need re-syncing. Overrides `settings.resyncConnectionPollingIntervalMs` from the config file.</p> |
 | `SMTP_CONNECTION_URL` | `-` | <p>The url to the SMTP service used for sending transactional emails. See [this doc](/docs/configuration/transactional-emails) for more info.</p><p>You can also use `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, and `SMTP_PASSWORD` to construct the SMTP connection url.</p> |
 | `SMTP_HOST` | `-` | <p>The hostname of the SMTP server. Used to construct `SMTP_CONNECTION_URL` when individual SMTP variables are provided.</p> |
 | `SMTP_PORT` | `-` | <p>The port of the SMTP server.</p> |

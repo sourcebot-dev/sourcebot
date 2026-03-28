@@ -40,10 +40,10 @@ The following are settings that can be provided in your config file to modify So
 |-------------------------------------------------|---------|------------|---------|----------------------------------------------------------------------------------------|
 | `maxFileSize`                                   | number  | 2 MB       | 1       | Maximum size (bytes) of a file to index. Files exceeding this are skipped.             |
 | `maxTrigramCount`                               | number  | 20 000     | 1       | Maximum trigrams per document. Larger files are skipped.                               |
-| `reindexIntervalMs`                             | number  | 1 hour     | 1       | Interval at which all repositories are re‑indexed.                                     |
-| `resyncConnectionIntervalMs`                    | number  | 24 hours   | 1       | Interval for checking connections that need re‑syncing.                                |
-| `resyncConnectionPollingIntervalMs`             | number  | 1 second   | 1       | DB polling rate for connections that need re‑syncing.                                  |
-| `reindexRepoPollingIntervalMs`                  | number  | 1 second   | 1       | DB polling rate for repos that should be re‑indexed.                                   |
+| `reindexIntervalMs`                             | number  | 1 hour     | 1       | Interval at which all repositories are re‑indexed. Can be overridden with `REINDEX_INTERVAL_MS` env var. |
+| `resyncConnectionIntervalMs`                    | number  | 24 hours   | 1       | Interval for checking connections that need re‑syncing. Can be overridden with `RESYNC_CONNECTION_INTERVAL_MS` env var. |
+| `resyncConnectionPollingIntervalMs`             | number  | 1 second   | 1       | DB polling rate for connections that need re‑syncing. Can be overridden with `RESYNC_CONNECTION_POLLING_INTERVAL_MS` env var. |
+| `reindexRepoPollingIntervalMs`                  | number  | 1 second   | 1       | DB polling rate for repos that should be re‑indexed. Can be overridden with `REINDEX_REPO_POLLING_INTERVAL_MS` env var. |
 | `maxConnectionSyncJobConcurrency`               | number  | 8          | 1       | Concurrent connection‑sync jobs.                                                       |
 | `maxRepoIndexingJobConcurrency`                 | number  | 8          | 1       | Concurrent repo‑indexing jobs.                                                         |
 | `maxRepoGarbageCollectionJobConcurrency`        | number  | 8          | 1       | Concurrent repo‑garbage‑collection jobs.                                               |
