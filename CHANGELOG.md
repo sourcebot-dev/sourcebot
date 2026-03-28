@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Links in Ask Sourcebot chat responses now open in a new tab with a subtle external link icon indicator. [#1059](https://github.com/sourcebot-dev/sourcebot/pull/1059)
+
 ## [4.16.3] - 2026-03-27
 
 ### Added
