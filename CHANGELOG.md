@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added environment variable support for repo sync interval settings (`REINDEX_INTERVAL_MS`, `RESYNC_CONNECTION_INTERVAL_MS`, `REINDEX_REPO_POLLING_INTERVAL_MS`, `RESYNC_CONNECTION_POLLING_INTERVAL_MS`). [#1057](https://github.com/sourcebot-dev/sourcebot/pull/1057)
+
 ## [4.16.3] - 2026-03-27
 
 ### Added
