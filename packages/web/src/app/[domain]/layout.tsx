@@ -23,6 +23,7 @@ import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { GitHubStarToast } from "./components/githubStarToast";
 import { UpgradeToast } from "./components/upgradeToast";
+import { OrgRole } from "@sourcebot/db";
 import { getLinkedAccounts } from "@/ee/features/sso/actions";
 import { PermissionSyncBanner } from "./components/permissionSyncBanner";
 import { getPermissionSyncStatus } from "../api/(server)/ee/permissionSyncStatus/api";
@@ -66,19 +67,19 @@ export default async function Layout(props: LayoutProps) {
     })();
 
     // If the user is authenticated, we must check if they're a member of the org
-    if (session) {
-        const membership = await prisma.userToOrg.findUnique({
-            where: {
-                orgId_userId: {
-                    orgId: org.id,
-                    userId: session.user.id
-                }
-            },
-            include: {
-                user: true
+    const membership = session ? await prisma.userToOrg.findUnique({
+        where: {
+            orgId_userId: {
+                orgId: org.id,
+                userId: session.user.id
             }
-        });
+        },
+        include: {
+            user: true
+        }
+    }) : null;
 
+    if (session) {
         // There's two reasons why a user might not be a member of an org:
         // 1. The org doesn't require member approval, but the org was at max capacity when the user registered. In this case, we show them
         // the join organization card to allow them to join the org if seat capacity is freed up. This card handles checking if the org has available seats.
@@ -197,7 +198,7 @@ export default async function Layout(props: LayoutProps) {
             {children}
             <SyntaxReferenceGuide />
             <GitHubStarToast />
-            {env.EXPERIMENT_ASK_GH_ENABLED !== 'true' && <UpgradeToast />}
+            {env.EXPERIMENT_ASK_GH_ENABLED !== 'true' && <UpgradeToast isOwner={membership?.role === OrgRole.OWNER} />}
         </SyntaxGuideProvider>
     )
 }
