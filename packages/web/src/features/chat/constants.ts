@@ -9,3 +9,4 @@ export const ANSWER_TAG = '<!--answer-->';
 
 export const SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY = 'selectedSearchScopes';
 export const SET_CHAT_STATE_SESSION_STORAGE_KEY = 'setChatState';
+export const DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY = 'disabledMcpServerIds';

@@ -5,6 +5,7 @@ import { LanguageModelInfo, SearchScope } from "@/features/chat/types";
 import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 import { AtMentionButton } from "./atMentionButton";
+import { ChatBoxPlusButton } from "./chatBoxPlusButton";
 import { LanguageModelSelector } from "./languageModelSelector";
 import { SearchScopeSelector } from "./searchScopeSelector";
 
@@ -16,6 +17,10 @@ export interface ChatBoxToolbarProps {
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     isContextSelectorOpen: boolean;
     onContextSelectorOpenChanged: (isOpen: boolean) => void;
+    // TODO_Jack_MakeLinearTask: Make the plus button available on simplified toolbar usages (e.g. askgh)
+    // once additional features (beyond MCP server toggling) are added to it.
+    disabledMcpServerIds?: string[];
+    onDisabledMcpServerIdsChange?: (ids: string[]) => void;
 }
 
 export const ChatBoxToolbar = ({
@@ -26,6 +31,8 @@ export const ChatBoxToolbar = ({
     onSelectedSearchScopesChange,
     isContextSelectorOpen,
     onContextSelectorOpenChanged,
+    disabledMcpServerIds,
+    onDisabledMcpServerIdsChange,
 }: ChatBoxToolbarProps) => {
     const { selectedLanguageModel, setSelectedLanguageModel } = useSelectedLanguageModel({
         languageModels,
@@ -33,6 +40,15 @@ export const ChatBoxToolbar = ({
 
     return (
         <>
+            {disabledMcpServerIds !== undefined && onDisabledMcpServerIdsChange !== undefined && (
+                <>
+                    <ChatBoxPlusButton
+                        disabledMcpServerIds={disabledMcpServerIds}
+                        onDisabledMcpServerIdsChange={onDisabledMcpServerIdsChange}
+                    />
+                    <Separator orientation="vertical" className="h-3 mx-1" />
+                </>
+            )}
             <AtMentionButton />
             <Separator orientation="vertical" className="h-3 mx-1" />
             <SearchScopeSelector

@@ -8,7 +8,7 @@ import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
 import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
-import { SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY } from "@/features/chat/constants";
+import { DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY, SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY } from "@/features/chat/constants";
 import { SearchModeSelector } from "../../components/searchModeSelector";
 import { NotConfiguredErrorBanner } from "@/features/chat/components/notConfiguredErrorBanner";
 import { LoginModal } from "@/app/components/loginModal";
@@ -28,6 +28,7 @@ export const LandingPageChatBox = ({
 }: LandingPageChatBox) => {
     const { createNewChatThread, isLoading, loginWall } = useCreateNewChatThread({ isAuthenticated });
     const [selectedSearchScopes, setSelectedSearchScopes] = useLocalStorage<SearchScope[]>(SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY, [], { initializeWithValue: false });
+    const [disabledMcpServerIds, setDisabledMcpServerIds] = useLocalStorage<string[]>(DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY, [], { initializeWithValue: false });
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
     const isChatBoxDisabled = languageModels.length === 0;
 
@@ -36,7 +37,7 @@ export const LandingPageChatBox = ({
             <div className="border rounded-md w-full shadow-sm">
                 <ChatBox
                     onSubmit={(children) => {
-                        createNewChatThread(children, selectedSearchScopes);
+                        createNewChatThread(children, selectedSearchScopes, disabledMcpServerIds);
                     }}
                     className="min-h-[50px]"
                     isRedirecting={isLoading}
@@ -56,6 +57,8 @@ export const LandingPageChatBox = ({
                             onSelectedSearchScopesChange={setSelectedSearchScopes}
                             isContextSelectorOpen={isContextSelectorOpen}
                             onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                            disabledMcpServerIds={disabledMcpServerIds}
+                            onDisabledMcpServerIdsChange={setDisabledMcpServerIds}
                         />
                         <SearchModeSelector
                             searchMode="agentic"
