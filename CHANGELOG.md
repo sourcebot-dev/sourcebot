@@ -9,8 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added documentation for public API authentication in the generated OpenAPI spec and docs. [#101](https://github.com/sourcebot-dev/sourcebot/issues/101)
 
+## [4.16.3] - 2026-03-27
+
 ### Added
 - Added support for `.gitattributes` `linguist-language` overrides in the file viewer ([#1048](https://github.com/sourcebot-dev/sourcebot/pull/1048))
+- Added Basic language syntax highlighting in the file viewer ([#1054](https://github.com/sourcebot-dev/sourcebot/pull/1054))
 
 ### Fixed
 - Fixed Ask GitHub landing page chat box placement to be centered on the page instead of at the bottom. [#1046](https://github.com/sourcebot-dev/sourcebot/pull/1046)
