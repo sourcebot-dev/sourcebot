@@ -31,6 +31,8 @@ import type {
     SearchChatShareableMembersResponse,
 } from "../(server)/ee/chat/[chatId]/searchMembers/route";
 import { OffersResponse } from "@/ee/features/lighthouse/types";
+import { ConnectMcpResponse } from "../(server)/ee/askmcp/connect/types";
+import type { GetMcpServersResponse } from "../(server)/ee/askmcp/servers/route";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -240,4 +242,33 @@ export const getOffers = async (): Promise<OffersResponse | ServiceError> => {
     }).then(response => response.json());
 
     return result as OffersResponse | ServiceError;
+}
+
+export const connectMcpToAsk = async (body: { serverId: string }): Promise<ConnectMcpResponse | ServiceError> => {
+    const result = await fetch('/api/ee/askmcp/connect', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Sourcebot-Client-Source': 'sourcebot-web-client',
+        },
+        body: JSON.stringify(body),
+    }).then(response => response.json());
+
+    if (isServiceError(result)) {
+        return result;
+    }
+
+    return result as ConnectMcpResponse;
+}
+
+export const getMcpServersWithStatus = async (): Promise<GetMcpServersResponse | ServiceError> => {
+    const result = await fetch('/api/ee/askmcp/servers', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Sourcebot-Client-Source': 'sourcebot-web-client',
+        },
+    }).then(response => response.json());
+
+    return result as GetMcpServersResponse | ServiceError;
 }
