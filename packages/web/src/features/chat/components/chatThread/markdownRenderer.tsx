@@ -5,7 +5,7 @@ import { SearchQueryParams } from '@/lib/types';
 import { cn, createPathWithQueryParams } from '@/lib/utils';
 import type { Element, Root } from "hast";
 import { Schema as SanitizeSchema } from 'hast-util-sanitize';
-import { CopyIcon, SearchIcon } from 'lucide-react';
+import { CopyIcon, ExternalLinkIcon, SearchIcon } from 'lucide-react';
 import type { Heading, Nodes } from "mdast";
 import { findAndReplace } from 'mdast-util-find-and-replace';
 import { useRouter } from 'next/navigation';
@@ -171,6 +171,21 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
         )
     }, []);
 
+    const renderAnchor = useCallback(({ href, children, ...rest }: React.JSX.IntrinsicElements['a']) => {
+        return (
+            <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-0.5"
+                {...rest}
+            >
+                {children}
+                <ExternalLinkIcon className="inline w-3 h-3 mb-0.5 opacity-60" />
+            </a>
+        );
+    }, []);
+
     const renderCode = useCallback(({ className, children, node, ...rest }: React.JSX.IntrinsicElements['code'] & { node?: Element }) => {
         const text = children?.toString().trimEnd() ?? '';
 
@@ -239,6 +254,7 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
                 components={{
                     pre: renderPre,
                     code: renderCode,
+                    a: renderAnchor,
                 }}
             >
                 {content}
