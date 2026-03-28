@@ -36,7 +36,7 @@ export const getBrowseParamsFromPathParam = (pathParam: string) => {
         const path = pathParam.substring(sentinelIndex + '/-/'.length);
         const pathType = path.startsWith('tree') ? 'tree' : 'blob';
 
-        // @note: decodedURIComponent is needed here incase the path contains a space.
+        // @note: decodedURIComponent is needed here in case the path contains a space.
         switch (pathType) {
             case 'tree':
                 return {

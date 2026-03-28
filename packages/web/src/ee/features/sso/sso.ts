@@ -159,7 +159,7 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
         }
     }
 
-    // @deprecate in favor of defining identity providers throught the identityProvider object in the config file. This was done to allow for more control over
+    // @deprecate in favor of defining identity providers through the identityProvider object in the config file. This was done to allow for more control over
     // which identity providers are defined and their purpose. We've left this logic here to support backwards compat with deployments that expect these env vars,
     // but this logic will be removed in the future
     // We only go through this path if no identityProviders are defined in the config to prevent accidental duplication of providers
