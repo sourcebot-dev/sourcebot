@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Linear issue links in chat responses now render as a rich card-style UI showing the Linear logo, issue identifier, and title instead of plain hyperlinks. [#1060](https://github.com/sourcebot-dev/sourcebot/pull/1060)
+
 ## [4.16.3] - 2026-03-27
 
 ### Added
