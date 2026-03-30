@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed AI Search Assist incorrectly using the `repo:` filter when searching for content within files. [#1045](https://github.com/sourcebot-dev/sourcebot/pull/1045)
 
+## [4.16.3] - 2026-03-27
+
+### Added
+- Added support for `.gitattributes` `linguist-language` overrides in the file viewer ([#1048](https://github.com/sourcebot-dev/sourcebot/pull/1048))
+- Added Basic language syntax highlighting in the file viewer ([#1054](https://github.com/sourcebot-dev/sourcebot/pull/1054))
+
+### Fixed
+- Fixed Ask GitHub landing page chat box placement to be centered on the page instead of at the bottom. [#1046](https://github.com/sourcebot-dev/sourcebot/pull/1046)
+- Fixed issue where local git connections (`file://`) would fail when matching a file instead of a directory. [#1049](https://github.com/sourcebot-dev/sourcebot/pull/1049)
+- Fixed regex queries containing parentheses (e.g. `(test|render)<`) being incorrectly split into multiple search terms instead of treated as a single regex pattern. [#1050](https://github.com/sourcebot-dev/sourcebot/pull/1050)
+
 ## [4.16.2] - 2026-03-25
 
 ### Fixed

@@ -23,4 +23,5 @@ export const
   RepoSetExpr = 16,
   ParenExpr = 17,
   QuotedTerm = 18,
-  Term = 19
+  Term = 19,
+  Dialect_regex = 0

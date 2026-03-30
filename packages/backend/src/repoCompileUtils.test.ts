@@ -14,17 +14,29 @@ vi.mock('glob', () => ({
     glob: vi.fn(),
 }));
 
+// Mock fs/promises so tests don't touch the real filesystem.
+// By default, stat resolves as a directory; individual tests can override this.
+vi.mock('fs/promises', () => ({
+    default: {
+        stat: vi.fn().mockResolvedValue({ isDirectory: () => true }),
+    },
+}));
+
 import { isPathAValidGitRepoRoot, getOriginUrl, isUrlAValidGitRepo } from './git.js';
 import { glob } from 'glob';
+import fs from 'fs/promises';
 
 const mockedGlob = vi.mocked(glob);
 const mockedIsPathAValidGitRepoRoot = vi.mocked(isPathAValidGitRepoRoot);
 const mockedGetOriginUrl = vi.mocked(getOriginUrl);
 const mockedIsUrlAValidGitRepo = vi.mocked(isUrlAValidGitRepo);
+const mockedFsStat = vi.mocked(fs.stat);
 
 describe('compileGenericGitHostConfig_file', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        // Default: all paths exist and are directories. Override per-test as needed.
+        mockedFsStat.mockResolvedValue({ isDirectory: () => true } as any);
     });
 
     afterEach(() => {
@@ -45,6 +57,22 @@ describe('compileGenericGitHostConfig_file', () => {
         expect(result.warnings).toHaveLength(1);
         expect(result.warnings[0]).toContain('No paths matched the pattern');
         expect(result.warnings[0]).toContain('/path/to/nonexistent/repo');
+    });
+
+    test('should return warning when path is a file, not a directory', async () => {
+        mockedGlob.mockResolvedValue(['/path/to/a-file.txt']);
+        mockedFsStat.mockResolvedValue({ isDirectory: () => false } as any);
+
+        const config = {
+            type: 'git' as const,
+            url: 'file:///path/to/a-file.txt',
+        };
+
+        const result = await compileGenericGitHostConfig_file(config, 1);
+
+        expect(result.repoData).toHaveLength(0);
+        expect(result.warnings.length).toBeGreaterThanOrEqual(1);
+        expect(result.warnings.some(w => w.includes('not a directory'))).toBe(true);
     });
 
     test('should return warning when path is not a valid git repo', async () => {

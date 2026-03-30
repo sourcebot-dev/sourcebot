@@ -1,0 +1,84 @@
+# Regex alternation in parens followed by literal char
+(test|render)<
+==>
+Program(Term)
+
+# Pipe character in a term (no parens)
+test|render
+==>
+Program(Term)
+
+# Parens with alternation — no trailing char
+(foo|bar)
+==>
+Program(Term)
+
+# Parens with alternation and trailing chars
+(foo|bar)baz
+==>
+Program(Term)
+
+# Complex regex: quantifiers, anchors, character classes
+^foo.*bar$
+==>
+Program(Term)
+
+# Character class
+[abc]+
+==>
+Program(Term)
+
+# Regex with escaped paren
+func\(arg\)
+==>
+Program(Term)
+
+# Two regex terms joined with OR keyword
+(test|render) or (foo|bar)
+==>
+Program(OrExpr(Term,Term))
+
+# Two regex terms implicitly ANDed
+(test|render) (foo|bar)
+==>
+Program(AndExpr(Term,Term))
+
+# File prefix still works in regex mode
+file:test.js
+==>
+Program(PrefixExpr(FileExpr))
+
+# Prefix filter combined with regex term
+file:test.js (test|render)<
+==>
+Program(AndExpr(PrefixExpr(FileExpr),Term))
+
+# Negation of prefix still works in regex mode
+-file:test.js
+==>
+Program(NegateExpr(PrefixExpr(FileExpr)))
+
+# Quoted string still works in regex mode
+"(test|render)"
+==>
+Program(QuotedTerm)
+
+# Multiple prefix filters with regex term
+file:test.js lang:TypeScript (render|mount)
+==>
+Program(AndExpr(PrefixExpr(FileExpr),PrefixExpr(LangExpr),Term))
+
+# Dash without prefix is a plain word (not negation)
+-pattern
+==>
+Program(Term)
+
+# 'or' at start of input is a plain word
+or
+==>
+Program(Term)
+
+# Regex with pipe at top level between prefix and term
+repo:myorg (init|setup)
+==>
+Program(AndExpr(PrefixExpr(RepoExpr),Term))
