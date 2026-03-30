@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Updated MCP OAuth consent screen to use Sourcebot branded logo with dark/light mode support. [#1062](https://github.com/sourcebot-dev/sourcebot/pull/1062)
+
 ## [4.16.3] - 2026-03-27
 
 ### Added
