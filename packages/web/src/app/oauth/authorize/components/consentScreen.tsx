@@ -5,7 +5,8 @@ import { LoadingButton } from '@/components/ui/loading-button';
 import { isServiceError } from '@/lib/utils';
 import { ClientIcon } from './clientIcon';
 import Image from 'next/image';
-import logo from '@/public/logo_512.png';
+import logoDark from '@/public/sb_logo_dark_small.png';
+import logoLight from '@/public/sb_logo_light_small.png';
 import { useEffect, useState } from 'react';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { useToast } from '@/components/hooks/use-toast';
@@ -77,11 +78,18 @@ export function ConsentScreen({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h8m0 0-3-3m3 3-3 3M16 17H8m0 0 3 3m-3-3 3-3" />
                 </svg>
                 <Image
-                    src={logo}
+                    src={logoDark}
                     alt="Sourcebot"
                     width={70}
                     height={70}
-                    className="shrink-0 rounded-xl object-cover"
+                    className="shrink-0 rounded-xl object-cover hidden dark:block"
+                />
+                <Image
+                    src={logoLight}
+                    alt="Sourcebot"
+                    width={70}
+                    height={70}
+                    className="shrink-0 rounded-xl object-cover block dark:hidden"
                 />
             </div>
 
