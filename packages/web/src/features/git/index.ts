@@ -1,3 +1,4 @@
+export * from './getDiffApi';
 export * from './getFilesApi';
 export * from './getFolderContentsApi';
 export * from './getTreeApi';
