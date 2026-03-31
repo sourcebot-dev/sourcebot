@@ -252,6 +252,7 @@ export function createPublicOpenApiDocument(version: string) {
     registry.registerPath({
         method: 'get',
         path: '/api/diff',
+        operationId: 'getDiff',
         tags: [gitTag.name],
         summary: 'Get diff between two commits',
         description: 'Returns a structured diff between two git refs (branches, tags, or commit SHAs) using a two-dot comparison. See [git-diff](https://git-scm.com/docs/git-diff) for details.',
