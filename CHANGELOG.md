@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added `GET /api/diff` endpoint for retrieving structured diffs between two git refs ([#1063](https://github.com/sourcebot-dev/sourcebot/pull/1063))
 
+### Fixed
+- Fixed `GET /api/mcp` hanging with zero bytes by returning `405 Method Not Allowed` per the MCP Streamable HTTP spec ([#1064](https://github.com/sourcebot-dev/sourcebot/pull/1064))
+
 ## [4.16.3] - 2026-03-27
 
 ### Added
