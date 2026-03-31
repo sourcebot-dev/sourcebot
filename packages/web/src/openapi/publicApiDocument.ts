@@ -1,6 +1,6 @@
 import { OpenAPIRegistry, OpenApiGeneratorV3 } from '@asteasolutions/zod-to-openapi';
 import type { ZodTypeAny } from 'zod';
-import type { SchemaObject } from 'openapi3-ts/oas30';
+import type { ComponentsObject, SchemaObject, SecuritySchemeObject } from 'openapi3-ts/oas30';
 import {
     publicFileSourceRequestSchema,
     publicFileSourceResponseSchema,
@@ -45,6 +45,20 @@ const publicGetTreeResponseSchema: SchemaObject = {
     additionalProperties: false,
 };
 
+const securitySchemes: Record<string, SecuritySchemeObject> = {
+    bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        description: 'Send either a Sourcebot API key (`sbk_...` or legacy `sourcebot-...`) or, on EE instances with OAuth enabled, an OAuth access token (`sboa_...`) in the Authorization header.',
+    },
+    sourcebotApiKey: {
+        type: 'apiKey',
+        in: 'header',
+        name: 'X-Sourcebot-Api-Key',
+        description: 'Send a Sourcebot API key (`sbk_...` or legacy `sourcebot-...`) in the X-Sourcebot-Api-Key header.',
+    },
+};
+
 function jsonContent(schema: ZodTypeAny | SchemaObject) {
     return {
         'application/json': {
@@ -66,6 +80,7 @@ export function createPublicOpenApiDocument(version: string) {
     registry.registerPath({
         method: 'post',
         path: '/api/search',
+        operationId: 'search',
         tags: [searchTag.name],
         summary: 'Run a blocking code search',
         request: {
@@ -87,6 +102,7 @@ export function createPublicOpenApiDocument(version: string) {
     registry.registerPath({
         method: 'post',
         path: '/api/stream_search',
+        operationId: 'streamSearch',
         tags: [searchTag.name],
         summary: 'Run a streaming code search',
         description: 'Returns a server-sent event stream. Each event data payload is a JSON object describing either a chunk, final summary, or error.',
@@ -113,6 +129,7 @@ export function createPublicOpenApiDocument(version: string) {
     registry.registerPath({
         method: 'get',
         path: '/api/repos',
+        operationId: 'listRepositories',
         tags: [reposTag.name],
         summary: 'List repositories',
         request: {
@@ -147,6 +164,7 @@ export function createPublicOpenApiDocument(version: string) {
     registry.registerPath({
         method: 'get',
         path: '/api/version',
+        operationId: 'getVersion',
         tags: [miscTag.name],
         summary: 'Get Sourcebot version',
         responses: {
@@ -160,6 +178,7 @@ export function createPublicOpenApiDocument(version: string) {
     registry.registerPath({
         method: 'get',
         path: '/api/source',
+        operationId: 'getFileSource',
         tags: [filesTag.name],
         summary: 'Get file contents',
         request: {
@@ -179,6 +198,7 @@ export function createPublicOpenApiDocument(version: string) {
     registry.registerPath({
         method: 'post',
         path: '/api/tree',
+        operationId: 'getFileTree',
         tags: [filesTag.name],
         summary: 'Get a file tree',
         request: {
@@ -201,6 +221,7 @@ export function createPublicOpenApiDocument(version: string) {
     registry.registerPath({
         method: 'post',
         path: '/api/files',
+        operationId: 'listFiles',
         tags: [filesTag.name],
         summary: 'List files in a repository revision',
         request: {
@@ -227,16 +248,26 @@ export function createPublicOpenApiDocument(version: string) {
         info: {
             title: 'Sourcebot Public API',
             version,
-            description: 'OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing.',
+            description: 'OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing. Authentication is instance-dependent: API keys are the standard integration mechanism, OAuth bearer tokens are EE-only, and some instances may allow anonymous access.',
         },
+        security: [
+            { bearerAuth: [] },
+            { sourcebotApiKey: [] },
+            {},
+        ],
         tags: [searchTag, reposTag, filesTag, miscTag],
     });
 
-    document.components = document.components ?? {};
-    document.components.schemas = {
-        ...(document.components.schemas ?? {}),
+    const components: ComponentsObject = document.components ?? {};
+    components.schemas = {
+        ...(components.schemas ?? {}),
         PublicFileTreeNode: publicFileTreeNodeSchema,
     };
+    components.securitySchemes = {
+        ...(components.securitySchemes ?? {}),
+        ...securitySchemes,
+    };
+    document.components = components;
 
     return document;
 }

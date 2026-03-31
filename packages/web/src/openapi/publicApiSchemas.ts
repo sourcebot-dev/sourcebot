@@ -41,7 +41,6 @@ export const publicFileSourceResponseSchema = fileSourceResponseSchema.openapi('
 export const publicVersionResponseSchema = z.object({
     version: z.string().openapi({
         description: 'Running Sourcebot version.',
-        example: 'v4.15.2',
     }),
 }).openapi('PublicVersionResponse');
 
