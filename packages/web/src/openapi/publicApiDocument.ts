@@ -48,17 +48,22 @@ const publicGetTreeResponseSchema: SchemaObject = {
     additionalProperties: false,
 };
 
-const securitySchemes: Record<string, SecuritySchemeObject> = {
-    bearerAuth: {
+const securitySchemeNames = {
+    bearerToken: 'bearerToken',
+    apiKeyHeader: 'apiKeyHeader',
+} as const;
+
+const securitySchemes: Record<keyof typeof securitySchemeNames, SecuritySchemeObject> = {
+    [securitySchemeNames.bearerToken]: {
         type: 'http',
         scheme: 'bearer',
-        description: 'Send either a Sourcebot API key (`sbk_...` or legacy `sourcebot-...`) or, on EE instances with OAuth enabled, an OAuth access token (`sboa_...`) in the Authorization header.',
+        description: 'Send either a Sourcebot API key (`sbk_...`) or, on EE instances with OAuth enabled, an OAuth access token (`sboa_...`) in the Authorization header.',
     },
-    sourcebotApiKey: {
+    [securitySchemeNames.apiKeyHeader]: {
         type: 'apiKey',
         in: 'header',
         name: 'X-Sourcebot-Api-Key',
-        description: 'Send a Sourcebot API key (`sbk_...` or legacy `sourcebot-...`) in the X-Sourcebot-Api-Key header.',
+        description: 'Send a Sourcebot API key (`sbk_...`) in the X-Sourcebot-Api-Key header.',
     },
 };
 
@@ -275,8 +280,8 @@ export function createPublicOpenApiDocument(version: string) {
         },
         tags: [searchTag, reposTag, filesTag, gitTag, miscTag],
         security: [
-            { bearerAuth: [] },
-            { sourcebotApiKey: [] },
+            { [securitySchemeNames.bearerToken]: [] },
+            { [securitySchemeNames.apiKeyHeader]: [] },
             {},
         ],
     });

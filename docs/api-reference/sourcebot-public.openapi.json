@@ -29,10 +29,10 @@
   ],
   "security": [
     {
-      "bearerAuth": []
+      "bearerToken": []
     },
     {
-      "sourcebotApiKey": []
+      "apiKeyHeader": []
     },
     {}
   ],
@@ -759,16 +759,16 @@
     },
     "parameters": {},
     "securitySchemes": {
-      "bearerAuth": {
+      "bearerToken": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Send either a Sourcebot API key (`sbk_...` or legacy `sourcebot-...`) or, on EE instances with OAuth enabled, an OAuth access token (`sboa_...`) in the Authorization header."
+        "description": "Send either a Sourcebot API key (`sbk_...`) or, on EE instances with OAuth enabled, an OAuth access token (`sboa_...`) in the Authorization header."
       },
-      "sourcebotApiKey": {
+      "apiKeyHeader": {
         "type": "apiKey",
         "in": "header",
         "name": "X-Sourcebot-Api-Key",
-        "description": "Send a Sourcebot API key (`sbk_...` or legacy `sourcebot-...`) in the X-Sourcebot-Api-Key header."
+        "description": "Send a Sourcebot API key (`sbk_...`) in the X-Sourcebot-Api-Key header."
       }
     }
   },
