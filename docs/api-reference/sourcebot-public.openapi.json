@@ -19,6 +19,10 @@
       "description": "File tree, file listing, and file content endpoints."
     },
     {
+      "name": "Git",
+      "description": "Git history and diff endpoints."
+    },
+    {
       "name": "Misc",
       "description": "Miscellaneous public API endpoints."
     }
@@ -629,6 +633,94 @@
           "revisionName"
         ]
       },
+      "PublicGetDiffResponse": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "oldPath": {
+                  "type": "string",
+                  "description": "The file path before the change. `/dev/null` for added files."
+                },
+                "newPath": {
+                  "type": "string",
+                  "description": "The file path after the change. `/dev/null` for deleted files."
+                },
+                "hunks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "oldRange": {
+                        "type": "object",
+                        "properties": {
+                          "start": {
+                            "type": "integer",
+                            "description": "The 1-based line number where the range starts."
+                          },
+                          "lines": {
+                            "type": "integer",
+                            "description": "The number of lines the range spans."
+                          }
+                        },
+                        "required": [
+                          "start",
+                          "lines"
+                        ],
+                        "description": "The line range in the old file."
+                      },
+                      "newRange": {
+                        "type": "object",
+                        "properties": {
+                          "start": {
+                            "type": "integer",
+                            "description": "The 1-based line number where the range starts."
+                          },
+                          "lines": {
+                            "type": "integer",
+                            "description": "The number of lines the range spans."
+                          }
+                        },
+                        "required": [
+                          "start",
+                          "lines"
+                        ],
+                        "description": "The line range in the new file."
+                      },
+                      "heading": {
+                        "type": "string",
+                        "description": "Optional context heading extracted from the @@ line, typically the enclosing function or class name."
+                      },
+                      "body": {
+                        "type": "string",
+                        "description": "The diff content, with each line prefixed by a space (context), + (addition), or - (deletion)."
+                      }
+                    },
+                    "required": [
+                      "oldRange",
+                      "newRange",
+                      "body"
+                    ]
+                  },
+                  "description": "The list of changed regions within the file."
+                }
+              },
+              "required": [
+                "oldPath",
+                "newPath",
+                "hunks"
+              ]
+            },
+            "description": "The list of changed files."
+          }
+        },
+        "required": [
+          "files"
+        ]
+      },
       "PublicFileTreeNode": {
         "type": "object",
         "properties": {
@@ -1090,6 +1182,89 @@
           },
           "500": {
             "description": "Unexpected file listing failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/diff": {
+      "get": {
+        "tags": [
+          "Git"
+        ],
+        "summary": "Get diff between two commits",
+        "description": "Returns a structured diff between two git refs (branches, tags, or commit SHAs) using a two-dot comparison. See [git-diff](https://git-scm.com/docs/git-diff) for details.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "The fully-qualified repository name."
+            },
+            "required": true,
+            "description": "The fully-qualified repository name.",
+            "name": "repo",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The base git ref (branch, tag, or commit SHA) to diff from."
+            },
+            "required": true,
+            "description": "The base git ref (branch, tag, or commit SHA) to diff from.",
+            "name": "base",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The head git ref (branch, tag, or commit SHA) to diff to."
+            },
+            "required": true,
+            "description": "The head git ref (branch, tag, or commit SHA) to diff to.",
+            "name": "head",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Structured diff between the two refs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicGetDiffResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters or git ref.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Repository not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected diff failure.",
             "content": {
               "application/json": {
                 "schema": {

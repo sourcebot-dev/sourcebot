@@ -4,6 +4,8 @@ import type { SchemaObject } from 'openapi3-ts/oas30';
 import {
     publicFileSourceRequestSchema,
     publicFileSourceResponseSchema,
+    publicGetDiffRequestSchema,
+    publicGetDiffResponseSchema,
     publicGetFilesRequestSchema,
     publicGetFilesResponseSchema,
     publicGetTreeRequestSchema,
@@ -19,6 +21,7 @@ import {
 const searchTag = { name: 'Search', description: 'Code search endpoints.' };
 const reposTag = { name: 'Repositories', description: 'Repository listing and metadata endpoints.' };
 const filesTag = { name: 'Files', description: 'File tree, file listing, and file content endpoints.' };
+const gitTag = { name: 'Git', description: 'Git history and diff endpoints.' };
 const miscTag = { name: 'Misc', description: 'Miscellaneous public API endpoints.' };
 
 const publicFileTreeNodeSchema: SchemaObject = {
@@ -220,6 +223,26 @@ export function createPublicOpenApiDocument(version: string) {
         },
     });
 
+    registry.registerPath({
+        method: 'get',
+        path: '/api/diff',
+        tags: [gitTag.name],
+        summary: 'Get diff between two commits',
+        description: 'Returns a structured diff between two git refs (branches, tags, or commit SHAs) using a two-dot comparison. See [git-diff](https://git-scm.com/docs/git-diff) for details.',
+        request: {
+            query: publicGetDiffRequestSchema,
+        },
+        responses: {
+            200: {
+                description: 'Structured diff between the two refs.',
+                content: jsonContent(publicGetDiffResponseSchema),
+            },
+            400: errorJson('Invalid query parameters or git ref.'),
+            404: errorJson('Repository not found.'),
+            500: errorJson('Unexpected diff failure.'),
+        },
+    });
+
     const generator = new OpenApiGeneratorV3(registry.definitions);
 
     const document = generator.generateDocument({
@@ -229,7 +252,7 @@ export function createPublicOpenApiDocument(version: string) {
             version,
             description: 'OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing.',
         },
-        tags: [searchTag, reposTag, filesTag, miscTag],
+        tags: [searchTag, reposTag, filesTag, gitTag, miscTag],
     });
 
     document.components = document.components ?? {};

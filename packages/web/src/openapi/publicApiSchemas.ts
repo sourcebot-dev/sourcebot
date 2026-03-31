@@ -4,6 +4,8 @@ import z from 'zod';
 import {
     fileSourceRequestSchema,
     fileSourceResponseSchema,
+    getDiffRequestSchema,
+    getDiffResponseSchema,
     getFilesRequestSchema,
     getFilesResponseSchema,
     getTreeRequestSchema,
@@ -69,6 +71,9 @@ export const publicListReposQuerySchema = z.object({
 }).openapi('PublicListReposQuery');
 
 export const publicListReposResponseSchema = z.array(publicRepositorySchema).openapi('PublicListReposResponse');
+
+export const publicGetDiffRequestSchema = getDiffRequestSchema.openapi('PublicGetDiffRequest');
+export const publicGetDiffResponseSchema = getDiffResponseSchema.openapi('PublicGetDiffResponse');
 
 export const publicStreamSearchSseSchema = z.string().openapi('PublicStreamSearchSse', {
     description: 'Server-sent event stream. Each data frame contains one JSON object representing either a chunk update, a final summary, or an error.',

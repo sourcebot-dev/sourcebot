@@ -36,3 +36,31 @@ export const fileSourceResponseSchema = z.object({
     webUrl: z.string(),
     externalWebUrl: z.string().optional(),
 });
+
+export const getDiffRequestSchema = z.object({
+    repo: z.string().describe('The fully-qualified repository name.'),
+    base: z.string().describe('The base git ref (branch, tag, or commit SHA) to diff from.'),
+    head: z.string().describe('The head git ref (branch, tag, or commit SHA) to diff to.'),
+});
+
+const hunkRangeSchema = z.object({
+    start: z.number().int().describe('The 1-based line number where the range starts.'),
+    lines: z.number().int().describe('The number of lines the range spans.'),
+});
+
+const diffHunkSchema = z.object({
+    oldRange: hunkRangeSchema.describe('The line range in the old file.'),
+    newRange: hunkRangeSchema.describe('The line range in the new file.'),
+    heading: z.string().optional().describe('Optional context heading extracted from the @@ line, typically the enclosing function or class name.'),
+    body: z.string().describe('The diff content, with each line prefixed by a space (context), + (addition), or - (deletion).'),
+});
+
+const fileDiffSchema = z.object({
+    oldPath: z.string().describe('The file path before the change. `/dev/null` for added files.'),
+    newPath: z.string().describe('The file path after the change. `/dev/null` for deleted files.'),
+    hunks: z.array(diffHunkSchema).describe('The list of changed regions within the file.'),
+});
+
+export const getDiffResponseSchema = z.object({
+    files: z.array(fileDiffSchema).describe('The list of changed files.'),
+});
