@@ -7,6 +7,13 @@ You can fetch the OpenAPI document for your Sourcebot instance from `/api/openap
 
 This API reference is generated from the web app's Zod schemas and OpenAPI registry. Mintlify renders it from the checked-in spec at [`/api-reference/sourcebot-public.openapi.json`](/api-reference/sourcebot-public.openapi.json).
 
+For authenticated access, create an API key in Sourcebot from **Settings -> API Keys** and send it with either:
+
+- `X-Sourcebot-Api-Key: sbk_...`
+- `Authorization: Bearer sbk_...`
+
+Some instances may also allow anonymous access for these endpoints. On EE instances with OAuth enabled, bearer tokens with the `sboa_...` prefix are also accepted.
+
 The first documented endpoints include:
 
 - `/api/search`
