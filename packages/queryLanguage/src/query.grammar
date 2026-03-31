@@ -4,6 +4,8 @@
 @external tokens closeParenToken from "./tokens" { closeParen }
 @external tokens orToken from "./tokens" { or }
 
+@external propSource highlight from "./highlight"
+
 @dialects { regex }
 
 @top Program { query }
@@ -52,19 +54,31 @@ PrefixExpr {
   RepoSetExpr
 }
 
-RevisionExpr { revisionKw value }
-ContentExpr { contentKw value }
-ContextExpr { contextKw value }
-FileExpr { fileKw value }
-RepoExpr { repoKw value }
-LangExpr { langKw value }
-SymExpr { symKw value }
-RepoSetExpr { reposetKw value }
+RevisionExpr { revisionFilterKw value }
+ContentExpr { contentFilterKw value }
+ContextExpr { contextFilterKw value }
+FileExpr { fileFilterKw value }
+RepoExpr { repoFilterKw value }
+LangExpr { langFilterKw value }
+SymExpr { symFilterKw value }
+RepoSetExpr { reposetFilterKw value }
 
 // Modifiers
-ArchivedExpr { archivedKw archivedValue }
-ForkExpr { forkKw forkValue }
-VisibilityExpr { visibilityKw visibilityValue }
+ArchivedExpr { archivedFilterKw archivedValue }
+ForkExpr { forkFilterKw forkValue }
+VisibilityExpr { visibilityFilterKw visibilityValue }
+
+revisionFilterKw[@name=FilterKeyword] { revisionKw }
+contentFilterKw[@name=FilterKeyword] { contentKw }
+contextFilterKw[@name=FilterKeyword] { contextKw }
+fileFilterKw[@name=FilterKeyword] { fileKw }
+repoFilterKw[@name=FilterKeyword] { repoKw }
+langFilterKw[@name=FilterKeyword] { langKw }
+symFilterKw[@name=FilterKeyword] { symKw }
+reposetFilterKw[@name=FilterKeyword] { reposetKw }
+archivedFilterKw[@name=FilterKeyword] { archivedKw }
+forkFilterKw[@name=FilterKeyword] { forkKw }
+visibilityFilterKw[@name=FilterKeyword] { visibilityKw }
 
 archivedValue { "yes" | "no" | "only" }
 forkValue { "yes" | "no" | "only" }
