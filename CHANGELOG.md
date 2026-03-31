@@ -6,8 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-### Added
-- Added documentation for public API authentication in the generated OpenAPI spec and docs. [#101](https://github.com/sourcebot-dev/sourcebot/issues/101)
 
 ## [4.16.3] - 2026-03-27
 
