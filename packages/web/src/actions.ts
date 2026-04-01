@@ -26,7 +26,7 @@ import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { ApiKeyPayload, RepositoryQuery } from "./lib/types";
-import { withAuthV2, withOptionalAuthV2, withMinimumOrgRole } from "./withAuthV2";
+import { withAuthV2, withOptionalAuthV2, withMinimumOrgRole, withAuthV2_skipOrgMembershipCheck } from "./withAuthV2";
 import { getBrowsePath } from "./app/[domain]/browse/hooks/utils";
 
 const logger = createLogger('web-actions');
@@ -834,7 +834,7 @@ export const getMe = async () => sew(() =>
     }));
 
 export const redeemInvite = async (inviteId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuthV2(async ({ user, prisma }) => {
+    withAuthV2_skipOrgMembershipCheck(async ({ user, prisma }) => {
         const invite = await prisma.invite.findUnique({
             where: {
                 id: inviteId,
@@ -908,7 +908,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
     }));
 
 export const getInviteInfo = async (inviteId: string) => sew(() =>
-    withAuthV2(async ({ user, prisma }) => {
+    withAuthV2_skipOrgMembershipCheck(async ({ user, prisma }) => {
         const invite = await prisma.invite.findUnique({
             where: {
                 id: inviteId,
