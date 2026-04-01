@@ -31,8 +31,13 @@ const searchTag = { name: 'Search & Navigation', description: 'Code search and s
 const reposTag = { name: 'Repositories', description: 'Repository listing and metadata endpoints.' };
 const gitTag = { name: 'Git', description: 'Git history, diff, and file content endpoints.' };
 const systemTag = { name: 'System', description: 'System health and version endpoints.' };
-const eeUserManagementTag = { name: 'User Management (EE)', description: 'User management endpoints. Requires the `org-management` entitlement and OWNER role.' };
-const eeAuditTag = { name: 'Audit (EE)', description: 'Audit log endpoints. Requires the `audit` entitlement and OWNER role.' };
+const eeTag = { name: 'Enterprise (EE)', description: 'Enterprise endpoints for user management and audit logging.' };
+
+const EE_LICENSE_KEY_NOTE = dedent`
+<Note>
+This API is only available with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.
+</Note>
+`;
 
 const publicFileTreeNodeSchema: SchemaObject = {
     type: 'object',
@@ -67,13 +72,13 @@ const securitySchemes: Record<keyof typeof securitySchemeNames, SecuritySchemeOb
     [securitySchemeNames.bearerToken]: {
         type: 'http',
         scheme: 'bearer',
-        description: 'Send either a Sourcebot API key (`sbk_...`) or, on EE instances with OAuth enabled, an OAuth access token (`sboa_...`) in the Authorization header.',
+        description: 'Bearer authentication header of the form `Bearer <token>`, where `<token>` is your API key.',
     },
     [securitySchemeNames.apiKeyHeader]: {
         type: 'apiKey',
         in: 'header',
         name: 'X-Sourcebot-Api-Key',
-        description: 'Send a Sourcebot API key (`sbk_...`) in the X-Sourcebot-Api-Key header.',
+        description: 'Header of the form `X-Sourcebot-Api-Key: <token>`, where `<token>` is your API key.',
     },
 };
 
@@ -339,7 +344,7 @@ export function createPublicOpenApiDocument(version: string) {
         method: 'get',
         path: '/api/ee/user',
         operationId: 'getUser',
-        tags: [eeUserManagementTag.name],
+        tags: [eeTag.name],
         summary: 'Get a user',
         description: 'Fetches profile details for a single organization member by `userId`. Only organization owners can access this endpoint.',
         request: {
@@ -357,13 +362,16 @@ export function createPublicOpenApiDocument(version: string) {
             404: errorJson('User not found.'),
             500: errorJson('Unexpected failure.'),
         },
+        'x-mint': {
+            content: EE_LICENSE_KEY_NOTE,
+        },
     });
 
     registry.registerPath({
         method: 'delete',
         path: '/api/ee/user',
         operationId: 'deleteUser',
-        tags: [eeUserManagementTag.name],
+        tags: [eeTag.name],
         summary: 'Delete a user',
         description: 'Permanently deletes a user and all associated records. Only organization owners can delete other users.',
         request: {
@@ -381,13 +389,16 @@ export function createPublicOpenApiDocument(version: string) {
             404: errorJson('User not found.'),
             500: errorJson('Unexpected failure.'),
         },
+        'x-mint': {
+            content: EE_LICENSE_KEY_NOTE,
+        },
     });
 
     registry.registerPath({
         method: 'get',
         path: '/api/ee/users',
         operationId: 'listUsers',
-        tags: [eeUserManagementTag.name],
+        tags: [eeTag.name],
         summary: 'List users',
         description: 'Returns all members of the organization. Only organization owners can access this endpoint.',
         responses: {
@@ -398,6 +409,9 @@ export function createPublicOpenApiDocument(version: string) {
             403: errorJson('Insufficient permissions or entitlement not enabled.'),
             500: errorJson('Unexpected failure.'),
         },
+        'x-mint': {
+            content: EE_LICENSE_KEY_NOTE,
+        },
     });
 
     // EE: Audit
@@ -405,7 +419,7 @@ export function createPublicOpenApiDocument(version: string) {
         method: 'get',
         path: '/api/ee/audit',
         operationId: 'listAuditRecords',
-        tags: [eeAuditTag.name],
+        tags: [eeTag.name],
         summary: 'List audit records',
         description: 'Returns a paginated list of audit log entries. Only organization owners can access this endpoint.',
         request: {
@@ -430,6 +444,9 @@ export function createPublicOpenApiDocument(version: string) {
             403: errorJson('Insufficient permissions or entitlement not enabled.'),
             500: errorJson('Unexpected failure.'),
         },
+        'x-mint': {
+            content: EE_LICENSE_KEY_NOTE,
+        },
     });
 
     const generator = new OpenApiGeneratorV3(registry.definitions);
@@ -441,7 +458,7 @@ export function createPublicOpenApiDocument(version: string) {
             version,
             description: 'OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing. Authentication is instance-dependent: API keys are the standard integration mechanism, OAuth bearer tokens are EE-only, and some instances may allow anonymous access.',
         },
-        tags: [searchTag, reposTag, gitTag, systemTag, eeUserManagementTag, eeAuditTag],
+        tags: [searchTag, reposTag, gitTag, systemTag, eeTag],
         security: [
             { [securitySchemeNames.bearerToken]: [] },
             { [securitySchemeNames.apiKeyHeader]: [] },

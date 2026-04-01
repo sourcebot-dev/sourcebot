@@ -71,6 +71,13 @@ className="border-[var(--border)] bg-[var(--card)] text-[var(--foreground)]"
 
 ## API Route Handlers
 
+When implementing a new API route, ask the user whether it should be part of the public API. If yes:
+
+1. Add the request/response Zod schemas to `packages/web/src/openapi/publicApiSchemas.ts`, calling `.openapi('SchemaName')` on each schema to register it with a name.
+2. Register the route in `packages/web/src/openapi/publicApiDocument.ts` using `registry.registerPath(...)`, assigning it to the appropriate tag.
+3. Add the endpoint to the relevant group in the `API Reference` tab of `docs/docs.json`.
+4. Regenerate the OpenAPI spec by running `yarn workspace @sourcebot/web openapi:generate`.
+
 Route handlers should validate inputs using Zod schemas.
 
 **Query parameters** (GET requests):

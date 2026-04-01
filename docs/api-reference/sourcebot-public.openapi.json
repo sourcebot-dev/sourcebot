@@ -23,12 +23,8 @@
       "description": "System health and version endpoints."
     },
     {
-      "name": "User Management (EE)",
-      "description": "User management endpoints. Requires the `org-management` entitlement and OWNER role."
-    },
-    {
-      "name": "Audit (EE)",
-      "description": "Audit log endpoints. Requires the `audit` entitlement and OWNER role."
+      "name": "Enterprise (EE)",
+      "description": "Enterprise endpoints for user management and audit logging."
     }
   ],
   "security": [
@@ -1100,13 +1096,13 @@
       "bearerToken": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Send either a Sourcebot API key (`sbk_...`) or, on EE instances with OAuth enabled, an OAuth access token (`sboa_...`) in the Authorization header."
+        "description": "Bearer authentication header of the form `Bearer <token>`, where `<token>` is your API key."
       },
       "apiKeyHeader": {
         "type": "apiKey",
         "in": "header",
         "name": "X-Sourcebot-Api-Key",
-        "description": "Send a Sourcebot API key (`sbk_...`) in the X-Sourcebot-Api-Key header."
+        "description": "Header of the form `X-Sourcebot-Api-Key: <token>`, where `<token>` is your API key."
       }
     }
   },
@@ -1828,10 +1824,13 @@
       "get": {
         "operationId": "getUser",
         "tags": [
-          "User Management (EE)"
+          "Enterprise (EE)"
         ],
         "summary": "Get a user",
         "description": "Fetches profile details for a single organization member by `userId`. Only organization owners can access this endpoint.",
+        "x-mint": {
+          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.\n</Note>"
+        },
         "parameters": [
           {
             "schema": {
@@ -1900,10 +1899,13 @@
       "delete": {
         "operationId": "deleteUser",
         "tags": [
-          "User Management (EE)"
+          "Enterprise (EE)"
         ],
         "summary": "Delete a user",
         "description": "Permanently deletes a user and all associated records. Only organization owners can delete other users.",
+        "x-mint": {
+          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.\n</Note>"
+        },
         "parameters": [
           {
             "schema": {
@@ -1974,10 +1976,13 @@
       "get": {
         "operationId": "listUsers",
         "tags": [
-          "User Management (EE)"
+          "Enterprise (EE)"
         ],
         "summary": "List users",
         "description": "Returns all members of the organization. Only organization owners can access this endpoint.",
+        "x-mint": {
+          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.\n</Note>"
+        },
         "responses": {
           "200": {
             "description": "List of organization members.",
@@ -2016,10 +2021,13 @@
       "get": {
         "operationId": "listAuditRecords",
         "tags": [
-          "Audit (EE)"
+          "Enterprise (EE)"
         ],
         "summary": "List audit records",
         "description": "Returns a paginated list of audit log entries. Only organization owners can access this endpoint.",
+        "x-mint": {
+          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.\n</Note>"
+        },
         "parameters": [
           {
             "schema": {

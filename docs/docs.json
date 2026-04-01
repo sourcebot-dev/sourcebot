@@ -146,6 +146,13 @@
                 "openapi": "api-reference/sourcebot-public.openapi.json",
                 "groups": [
                     {
+                        "group": "Overview",
+                        "icon": "book-open",
+                        "pages": [
+                            "docs/api-reference/authentication"
+                        ]
+                    },
+                    {
                         "group": "Search & Navigation",
                         "icon": "magnifying-glass",
                         "pages": [
