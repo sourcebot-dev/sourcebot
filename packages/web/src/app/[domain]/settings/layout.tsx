@@ -2,7 +2,6 @@ import React from "react"
 import { Metadata } from "next"
 import { SidebarNav } from "./components/sidebar-nav"
 import { NavigationMenu } from "../components/navigationMenu"
-import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { isServiceError } from "@/lib/utils";
@@ -84,12 +83,6 @@ export const getSidebarNavItems = async () =>
         }
 
         return [
-            ...(IS_BILLING_ENABLED ? [
-                {
-                    title: "Billing",
-                    href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/billing`,
-                }
-            ] : []),
             ...(role === OrgRole.OWNER ? [
                 {
                     title: "Access",

@@ -3,12 +3,9 @@
 import { sew } from "@/actions";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, ServiceError } from "@/lib/serviceError";
-import { isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
 import { OrgRole, Prisma } from "@sourcebot/db";
-import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
-import { decrementOrgSeatCount } from "@/ee/features/billing/serverUtils";
 import { StatusCodes } from "http-status-codes";
 
 export const removeMemberFromOrg = async (memberId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
@@ -54,13 +51,6 @@ export const removeMemberFromOrg = async (memberId: string): Promise<{ success: 
                     }
                 });
 
-                if (IS_BILLING_ENABLED) {
-                    const result = await decrementOrgSeatCount(org.id, tx);
-                    if (isServiceError(result)) {
-                        throw result;
-                    }
-                }
-
                 return null;
             }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
@@ -100,13 +90,6 @@ export const leaveOrg = async (): Promise<{ success: boolean } | ServiceError> =
                     }
                 }
             });
-
-            if (IS_BILLING_ENABLED) {
-                const result = await decrementOrgSeatCount(org.id, tx);
-                if (isServiceError(result)) {
-                    throw result;
-                }
-            }
 
             return null;
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

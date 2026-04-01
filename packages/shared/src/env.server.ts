@@ -163,12 +163,6 @@ const options = {
         SMTP_PASSWORD: z.string().optional(),
         EMAIL_FROM_ADDRESS: z.string().email().optional(),
 
-        // Stripe
-        STRIPE_SECRET_KEY: z.string().optional(),
-        STRIPE_PRODUCT_ID: z.string().optional(),
-        STRIPE_WEBHOOK_SECRET: z.string().optional(),
-        STRIPE_ENABLE_TEST_CLOCKS: booleanSchema.default('false'),
-
         LOGTAIL_TOKEN: z.string().optional(),
         LOGTAIL_HOST: z.string().url().optional(),
 

@@ -4,8 +4,6 @@ import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { NavigationMenu as NavigationMenuBase } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
-import { getSubscriptionInfo } from "@/ee/features/billing/actions";
-import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { env } from "@sourcebot/shared";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
@@ -16,7 +14,6 @@ import { MeControlDropdownMenu } from "../meControlDropdownMenu";
 import WhatsNewIndicator from "../whatsNewIndicator";
 import { NavigationItems } from "./navigationItems";
 import { ProgressIndicator } from "./progressIndicator";
-import { TrialIndicator } from "./trialIndicator";
 import { redirect } from "next/navigation";
 import { AppearanceDropdownMenu } from "../appearanceDropdownMenu";
 
@@ -28,7 +25,6 @@ interface NavigationMenuProps {
 export const NavigationMenu = async ({
     domain,
 }: NavigationMenuProps) => {
-    const subscription = IS_BILLING_ENABLED ? await getSubscriptionInfo(domain) : null;
     const session = await auth();
     const isAuthenticated = session?.user !== undefined;
 
@@ -134,7 +130,6 @@ export const NavigationMenu = async ({
                         numberOfReposWithFirstTimeIndexingJobsInProgress={numberOfReposWithFirstTimeIndexingJobsInProgress}
                         sampleRepos={sampleRepos}
                     />
-                    <TrialIndicator subscription={subscription} />
                     <WhatsNewIndicator />
                     {session ? (
                         <MeControlDropdownMenu
