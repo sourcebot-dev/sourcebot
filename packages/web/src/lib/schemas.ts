@@ -1,15 +1,6 @@
 import { z } from "zod";
 import { CodeHostType } from "@sourcebot/db";
 
-export const secretCreateRequestSchema = z.object({
-    key: z.string(),
-    value: z.string(),
-});
-
-export const secreteDeleteRequestSchema = z.object({
-    key: z.string(),
-});
-
 export const repositoryQuerySchema = z.object({
     codeHostType: z.nativeEnum(CodeHostType),
     repoId: z.number(),

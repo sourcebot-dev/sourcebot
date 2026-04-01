@@ -53,25 +53,6 @@ export const queryParamsSchemaValidationError = (error: ZodError): ServiceError 
     };
 }
 
-export const invalidZoektResponse = async (zoektResponse: Response): Promise<ServiceError> => {
-    const zoektMessage = await (async () => {
-        try {
-            const zoektResponseBody = await zoektResponse.json();
-            if (zoektResponseBody.Error) {
-                return zoektResponseBody.Error;
-            }
-        } catch (_e) {
-            return "Unknown error";
-        }
-    })();
-
-    return {
-        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-        errorCode: ErrorCode.INVALID_REQUEST_BODY,
-        message: `Zoekt request failed with status code ${zoektResponse.status} and message: "${zoektMessage}"`,
-    };
-}
-
 export const fileNotFound = (fileName: string, repository: string): ServiceError => {
     return {
         statusCode: StatusCodes.NOT_FOUND,
@@ -117,22 +98,6 @@ export const orgNotFound = (): ServiceError => {
         statusCode: StatusCodes.NOT_FOUND,
         errorCode: ErrorCode.ORG_NOT_FOUND,
         message: "Organization not found",
-    }
-}
-
-export const orgDomainExists = (): ServiceError => {
-    return {
-        statusCode: StatusCodes.CONFLICT,
-        errorCode: ErrorCode.ORG_DOMAIN_ALREADY_EXISTS,
-        message: "Organization domain already exists, please try a different one.",
-    }
-}
-
-export const secretAlreadyExists = (): ServiceError => {
-    return {
-        statusCode: StatusCodes.CONFLICT,
-        errorCode: ErrorCode.SECRET_ALREADY_EXISTS,
-        message: "Secret already exists",
     }
 }
 
