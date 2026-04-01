@@ -28,7 +28,6 @@ import InviteUserEmail from "./emails/inviteUserEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
-import { orgDomainSchema, orgNameSchema } from "./lib/schemas";
 import { ApiKeyPayload, RepositoryQuery, TenancyMode } from "./lib/types";
 import { withAuthV2, withOptionalAuthV2 } from "./withAuthV2";
 import { getBrowsePath } from "./app/[domain]/browse/hooks/utils";
@@ -186,54 +185,6 @@ export const withTenancyModeEnforcement = async<T>(mode: TenancyMode, fn: () => 
 }
 
 ////// Actions ///////
-
-export const updateOrgName = async (name: string, domain: string) => sew(() =>
-    withAuth((userId) =>
-        withOrgMembership(userId, domain, async ({ org }) => {
-            const { success } = orgNameSchema.safeParse(name);
-            if (!success) {
-                return {
-                    statusCode: StatusCodes.BAD_REQUEST,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: "Invalid organization url",
-                } satisfies ServiceError;
-            }
-
-            await prisma.org.update({
-                where: { id: org.id },
-                data: { name },
-            });
-
-            return {
-                success: true,
-            }
-        }, /* minRequiredRole = */ OrgRole.OWNER)
-    ));
-
-export const updateOrgDomain = async (newDomain: string, existingDomain: string) => sew(() =>
-    withTenancyModeEnforcement('multi', () =>
-        withAuth((userId) =>
-            withOrgMembership(userId, existingDomain, async ({ org }) => {
-                const { success } = await orgDomainSchema.safeParseAsync(newDomain);
-                if (!success) {
-                    return {
-                        statusCode: StatusCodes.BAD_REQUEST,
-                        errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                        message: "Invalid organization url",
-                    } satisfies ServiceError;
-                }
-
-                await prisma.org.update({
-                    where: { id: org.id },
-                    data: { domain: newDomain },
-                });
-
-                return {
-                    success: true,
-                }
-            }, /* minRequiredRole = */ OrgRole.OWNER)
-        )));
-
 export const completeOnboarding = async (domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
@@ -1163,18 +1114,6 @@ export const getInviteInfo = async (inviteId: string) => sew(() =>
             }
         }
     }));
-
-export const checkIfOrgDomainExists = async (domain: string): Promise<boolean | ServiceError> => sew(() =>
-    withAuth(async () => {
-        const org = await prisma.org.findFirst({
-            where: {
-                domain,
-            }
-        });
-
-        return !!org;
-    }));
-
 
 export const getOrgMembers = async (domain: string) => sew(() =>
     withAuth(async (userId) =>
