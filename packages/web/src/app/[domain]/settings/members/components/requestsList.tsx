@@ -13,7 +13,6 @@ import { CheckCircle, Search, XCircle } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { approveAccountRequest, rejectAccountRequest } from "@/actions";
 import { useRouter } from "next/navigation";
-import { useDomain } from "@/hooks/useDomain";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface Request {
@@ -36,7 +35,6 @@ export const RequestsList = ({ requests, currentUserRole }: RequestsListProps) =
     const [requestToAction, setRequestToAction] = useState<Request | null>(null)
     const { toast } = useToast();
     const router = useRouter();
-    const domain = useDomain();
     const captureEvent = useCaptureEvent();
 
     const filteredRequests = useMemo(() => {
@@ -56,7 +54,7 @@ export const RequestsList = ({ requests, currentUserRole }: RequestsListProps) =
     }, [requests, searchQuery, dateSort]);
 
     const onApproveRequest = useCallback((requestId: string) => {
-        approveAccountRequest(requestId, domain)
+        approveAccountRequest(requestId)
             .then((response) => {
                 if (isServiceError(response)) {
                     toast({
@@ -73,10 +71,10 @@ export const RequestsList = ({ requests, currentUserRole }: RequestsListProps) =
                     router.refresh();
                 }
             });
-    }, [domain, toast, router, captureEvent]);
+    }, [toast, router, captureEvent]);
 
     const onRejectRequest = useCallback((requestId: string) => {
-        rejectAccountRequest(requestId, domain)
+        rejectAccountRequest(requestId)
             .then((response) => {
                 if (isServiceError(response)) {
                     toast({
@@ -93,7 +91,7 @@ export const RequestsList = ({ requests, currentUserRole }: RequestsListProps) =
                     router.refresh();
                 }
             });
-    }, [domain, toast, router, captureEvent]);
+    }, [toast, router, captureEvent]);
 
     return (
         <div className="w-full mx-auto space-y-6">

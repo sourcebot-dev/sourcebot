@@ -52,7 +52,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
 
     const repoMetadata = repoMetadataSchema.parse(repo.metadata);
 
-    const userRole = await getCurrentUserRole(SINGLE_TENANT_ORG_DOMAIN);
+    const userRole = await getCurrentUserRole();
     if (isServiceError(userRole)) {
         throw new ServiceErrorException(userRole);
     }

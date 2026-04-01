@@ -14,7 +14,6 @@ import { Copy, MoreVertical, Search } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { cancelInvite } from "@/actions";
 import { useRouter } from "next/navigation";
-import { useDomain } from "@/hooks/useDomain";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 interface Invite {
     id: string;
@@ -34,7 +33,6 @@ export const InvitesList = ({ invites, currentUserRole }: InviteListProps) => {
     const [inviteToCancel, setInviteToCancel] = useState<Invite | null>(null)
     const { toast } = useToast();
     const router = useRouter();
-    const domain = useDomain();
     const captureEvent = useCaptureEvent();
 
     const filteredInvites = useMemo(() => {
@@ -53,7 +51,7 @@ export const InvitesList = ({ invites, currentUserRole }: InviteListProps) => {
     }, [invites, searchQuery, dateSort]);
 
     const onCancelInvite = useCallback((inviteId: string) => {
-        cancelInvite(inviteId, domain)
+        cancelInvite(inviteId)
             .then((response) => {
                 if (isServiceError(response)) {
                     toast({
@@ -70,7 +68,7 @@ export const InvitesList = ({ invites, currentUserRole }: InviteListProps) => {
                     router.refresh();
                 }
             });
-    }, [domain, toast, router, captureEvent]);
+    }, [toast, router, captureEvent]);
 
     return (
         <div className="w-full mx-auto space-y-6">
