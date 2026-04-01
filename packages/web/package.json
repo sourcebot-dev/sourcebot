@@ -11,7 +11,6 @@
     "openapi:generate": "tsx tools/generateOpenApi.ts",
     "generate:protos": "proto-loader-gen-types --includeComments --longs=Number --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js --keepCase --includeDirs=../../vendor/zoekt/grpc/protos --outDir=src/proto zoekt/webserver/v1/webserver.proto zoekt/webserver/v1/query.proto",
     "dev:emails": "email dev --dir ./src/emails",
-    "stripe:listen": "stripe listen --forward-to http://localhost:3000/api/stripe",
     "tool:decrypt-jwe": "tsx tools/decryptJWE.ts"
   },
   "dependencies": {
@@ -102,8 +101,6 @@
     "@sourcebot/schemas": "workspace:*",
     "@sourcebot/shared": "workspace:*",
     "@ssddanbrown/codemirror-lang-twig": "^1.0.0",
-    "@stripe/react-stripe-js": "^3.1.1",
-    "@stripe/stripe-js": "^5.6.0",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/react-query": "^5.53.3",
     "@tanstack/react-table": "^8.20.5",
@@ -187,7 +184,6 @@
     "slate-history": "^0.113.1",
     "slate-react": "^0.117.1",
     "strip-json-comments": "^5.0.1",
-    "stripe": "^17.6.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "use-stick-to-bottom": "^1.1.3",

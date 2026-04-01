@@ -19,9 +19,6 @@ export const MOCK_ORG: Org = {
     imageUrl: null,
     metadata: null,
     memberApprovalRequired: false,
-    stripeCustomerId: null,
-    stripeSubscriptionStatus: null,
-    stripeLastUpdatedAt: null,
     inviteLinkEnabled: false,
     inviteLinkId: null
 }

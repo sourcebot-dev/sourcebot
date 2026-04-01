@@ -10,7 +10,7 @@ import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
 import * as Sentry from '@sentry/nextjs';
 import { generateApiKey, getTokenFromConfig, hashSecret } from "@sourcebot/shared";
-import { ApiKey, ConnectionSyncJobStatus, Org, OrgRole, Prisma, RepoIndexingJobStatus, RepoIndexingJobType, StripeSubscriptionStatus } from "@sourcebot/db";
+import { ApiKey, ConnectionSyncJobStatus, Org, OrgRole, Prisma, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/shared";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
@@ -22,8 +22,6 @@ import { createTransport } from "nodemailer";
 import { Octokit } from "octokit";
 import { auth } from "./auth";
 import { getOrgFromDomain } from "./data/org";
-import { getSubscriptionForOrg } from "./ee/features/billing/serverUtils";
-import { IS_BILLING_ENABLED } from "./ee/features/billing/stripe";
 import InviteUserEmail from "./emails/inviteUserEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
@@ -188,31 +186,12 @@ export const withTenancyModeEnforcement = async<T>(mode: TenancyMode, fn: () => 
 export const completeOnboarding = async (domain: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth((userId) =>
         withOrgMembership(userId, domain, async ({ org }) => {
-            // If billing is not enabled, we can just mark the org as onboarded.
-            if (!IS_BILLING_ENABLED) {
-                await prisma.org.update({
-                    where: { id: org.id },
-                    data: {
-                        isOnboarded: true,
-                    }
-                });
-
-                // Else, validate that the org has an active subscription.
-            } else {
-                const subscriptionOrError = await getSubscriptionForOrg(org.id, prisma);
-                if (isServiceError(subscriptionOrError)) {
-                    return subscriptionOrError;
+            await prisma.org.update({
+                where: { id: org.id },
+                data: {
+                    isOnboarded: true,
                 }
-
-                await prisma.org.update({
-                    where: { id: org.id },
-                    data: {
-                        isOnboarded: true,
-                        stripeSubscriptionStatus: StripeSubscriptionStatus.ACTIVE,
-                        stripeLastUpdatedAt: new Date(),
-                    }
-                });
-            }
+            });
 
             return {
                 success: true,

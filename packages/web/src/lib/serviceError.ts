@@ -128,14 +128,6 @@ export const orgDomainExists = (): ServiceError => {
     }
 }
 
-export const orgInvalidSubscription = (): ServiceError => {
-    return {
-        statusCode: StatusCodes.BAD_REQUEST,
-        errorCode: ErrorCode.ORG_INVALID_SUBSCRIPTION,
-        message: "Invalid subscription",
-    }
-}
-
 export const secretAlreadyExists = (): ServiceError => {
     return {
         statusCode: StatusCodes.CONFLICT,
@@ -152,10 +144,3 @@ export const invalidGitRef = (ref: string): ServiceError => {
     };
 }
 
-export const stripeClientNotInitialized = (): ServiceError => {
-    return {
-        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-        errorCode: ErrorCode.STRIPE_CLIENT_NOT_INITIALIZED,
-        message: "Stripe client is not initialized.",
-    }
-}
