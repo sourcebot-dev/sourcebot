@@ -70,7 +70,7 @@ export const getSidebarNavItems = async () =>
     withAuthV2(async ({ role }) => {
         let numJoinRequests: number | undefined;
         if (role === OrgRole.OWNER) {
-            const requests = await getOrgAccountRequests(SINGLE_TENANT_ORG_DOMAIN);
+            const requests = await getOrgAccountRequests();
             if (isServiceError(requests)) {
                 throw new ServiceErrorException(requests);
             }

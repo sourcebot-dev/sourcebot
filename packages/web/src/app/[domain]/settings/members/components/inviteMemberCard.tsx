@@ -12,7 +12,6 @@ import { PlusCircleIcon, Loader2, AlertCircle } from "lucide-react";
 import { OrgRole } from "@prisma/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { createInvites } from "@/actions";
-import { useDomain } from "@/hooks/useDomain";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -35,8 +34,7 @@ interface InviteMemberCardProps {
 export const InviteMemberCard = ({ currentUserRole, seatsAvailable = true }: InviteMemberCardProps) => {
     const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const domain = useDomain();
-    const { toast } = useToast();   
+    const { toast } = useToast();
     const router = useRouter();
     const captureEvent = useCaptureEvent();
 
@@ -54,7 +52,7 @@ export const InviteMemberCard = ({ currentUserRole, seatsAvailable = true }: Inv
 
     const onSubmit = useCallback((data: z.infer<typeof inviteMemberFormSchema>) => {
         setIsLoading(true);
-        createInvites(data.emails.map(e => e.email), domain)
+        createInvites(data.emails.map(e => e.email))
             .then((res) => {
                 if (isServiceError(res)) {
                     toast({
@@ -78,7 +76,7 @@ export const InviteMemberCard = ({ currentUserRole, seatsAvailable = true }: Inv
             .finally(() => {
                 setIsLoading(false);
             });
-    }, [domain, form, toast, router, captureEvent]);
+    }, [form, toast, router, captureEvent]);
 
     const isDisabled = !seatsAvailable || currentUserRole !== OrgRole.OWNER || isLoading;
 

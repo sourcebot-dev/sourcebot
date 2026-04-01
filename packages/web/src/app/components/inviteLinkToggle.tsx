@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Copy, Check } from "lucide-react"
 import { useToast } from "@/components/hooks/use-toast"
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { setInviteLinkEnabled } from "@/actions"
 import { isServiceError } from "@/lib/utils"
 
@@ -25,7 +24,7 @@ export function InviteLinkToggle({ inviteLinkEnabled, inviteLink }: InviteLinkTo
     const handleToggle = async (checked: boolean) => {
         setIsLoading(true)
         try {
-            const result = await setInviteLinkEnabled(SINGLE_TENANT_ORG_DOMAIN, checked)
+            const result = await setInviteLinkEnabled(checked)
             
             if (isServiceError(result)) {
                 toast({

@@ -1,26 +1,26 @@
 'use server';
 
-import { sew, withAuth, withOrgMembership } from "@/actions";
-import { OrgRole } from "@sourcebot/db";
-import { prisma } from "@/prisma";
+import { sew } from "@/actions";
+import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
 import { ServiceError } from "@/lib/serviceError";
 import { AnalyticsResponse, AnalyticsRow } from "./types";
 import { env, hasEntitlement } from "@sourcebot/shared";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
+import { OrgRole } from "@sourcebot/db";
 
-export const getAnalytics = async (domain: string, apiKey: string | undefined = undefined): Promise<AnalyticsResponse | ServiceError> => sew(() =>
-  withAuth((userId, _apiKeyHash) =>
-    withOrgMembership(userId, domain, async ({ org }) => {
-      if (!hasEntitlement("analytics")) {
-        return {
-          statusCode: StatusCodes.FORBIDDEN,
-          errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
-          message: "Analytics is not available in your current plan",
-        } satisfies ServiceError;
-      }
+export const getAnalytics = async (): Promise<AnalyticsResponse | ServiceError> => sew(() =>
+  withAuthV2(async ({ org, role, prisma }) =>
+    withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+    if (!hasEntitlement("analytics")) {
+      return {
+        statusCode: StatusCodes.FORBIDDEN,
+        errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+        message: "Analytics is not available in your current plan",
+      } satisfies ServiceError;
+    }
 
-      const rows = await prisma.$queryRaw<AnalyticsRow[]>`
+    const rows = await prisma.$queryRaw<AnalyticsRow[]>`
       WITH core AS (
         SELECT
           date_trunc('day',   "timestamp") AS day,
@@ -171,10 +171,10 @@ export const getAnalytics = async (domain: string, apiKey: string | undefined = 
         select: { timestamp: true },
       });
 
-      return {
-        rows,
-        retentionDays: env.SOURCEBOT_EE_AUDIT_RETENTION_DAYS,
-        oldestRecordDate: oldestRecord?.timestamp ?? null,
-      };
-    }, /* minRequiredRole = */ OrgRole.MEMBER), /* allowAnonymousAccess = */ true, apiKey ? { apiKey, domain } : undefined)
-); 
+    return {
+      rows,
+      retentionDays: env.SOURCEBOT_EE_AUDIT_RETENTION_DAYS,
+      oldestRecordDate: oldestRecord?.timestamp ?? null,
+    };
+  }))
+);

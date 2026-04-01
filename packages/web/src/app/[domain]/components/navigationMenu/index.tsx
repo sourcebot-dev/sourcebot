@@ -33,7 +33,7 @@ export const NavigationMenu = async ({
         throw new ServiceErrorException(repoStats);
     }
 
-    const role = isAuthenticated ? await getCurrentUserRole(domain) : null;
+    const role = isAuthenticated ? await getCurrentUserRole() : null;
     if (isServiceError(role)) {
         throw new ServiceErrorException(role);
     }
@@ -43,7 +43,7 @@ export const NavigationMenu = async ({
             return null;
         }
 
-        const joinRequests = await getOrgAccountRequests(domain);
+        const joinRequests = await getOrgAccountRequests();
         if (isServiceError(joinRequests)) {
             throw new ServiceErrorException(joinRequests);
         }
