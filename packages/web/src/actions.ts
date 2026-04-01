@@ -26,7 +26,7 @@ import InviteUserEmail from "./emails/inviteUserEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_DOMAIN, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
-import { ApiKeyPayload, RepositoryQuery, TenancyMode } from "./lib/types";
+import { ApiKeyPayload, RepositoryQuery } from "./lib/types";
 import { withAuthV2, withOptionalAuthV2 } from "./withAuthV2";
 import { getBrowsePath } from "./app/[domain]/browse/hooks/utils";
 
@@ -169,17 +169,6 @@ export const withOrgMembership = async <T>(userId: string, domain: string, fn: (
         org: org,
         userRole: membership.role,
     });
-}
-
-export const withTenancyModeEnforcement = async<T>(mode: TenancyMode, fn: () => Promise<T>) => {
-    if (env.SOURCEBOT_TENANCY_MODE !== mode) {
-        return {
-            statusCode: StatusCodes.FORBIDDEN,
-            errorCode: ErrorCode.ACTION_DISALLOWED_IN_TENANCY_MODE,
-            message: "This action is not allowed in the current tenancy mode.",
-        } satisfies ServiceError;
-    }
-    return fn();
 }
 
 ////// Actions ///////

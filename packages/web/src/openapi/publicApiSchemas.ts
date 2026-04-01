@@ -10,8 +10,6 @@ import {
     fileSourceResponseSchema,
     getDiffRequestSchema,
     getDiffResponseSchema,
-    getFilesRequestSchema,
-    getFilesResponseSchema,
     getTreeRequestSchema,
     listCommitsQueryParamsSchema,
 } from '../features/git/schemas.js';
@@ -36,8 +34,6 @@ export const publicServiceErrorSchema = serviceErrorSchema.openapi('PublicApiSer
 export const publicSearchRequestSchema = searchRequestSchema.openapi('PublicSearchRequest');
 export const publicSearchResponseSchema = searchResponseSchema.openapi('PublicSearchResponse');
 export const publicGetTreeRequestSchema = getTreeRequestSchema.openapi('PublicGetTreeRequest');
-export const publicGetFilesRequestSchema = getFilesRequestSchema.openapi('PublicGetFilesRequest');
-export const publicGetFilesResponseSchema = getFilesResponseSchema.openapi('PublicGetFilesResponse');
 export const publicFileSourceRequestSchema = fileSourceRequestSchema.openapi('PublicFileSourceRequest');
 export const publicFileSourceResponseSchema = fileSourceResponseSchema.openapi('PublicFileSourceResponse');
 export const publicVersionResponseSchema = getVersionResponseSchema.openapi('PublicVersionResponse');
