@@ -1210,7 +1210,7 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
                     from: env.EMAIL_FROM_ADDRESS,
                     subject: `Your request to join ${org.name} has been approved`,
                     html,
-                    text: `Your request to join ${org.name} on Sourcebot has been approved. You can now access the organization at ${origin}/${org.domain}`,
+                    text: `Your request to join ${org.name} on Sourcebot has been approved. You can now access the organization at ${env.AUTH_URL}/${org.domain}`,
                 });
 
                 const failed = result.rejected.concat(result.pending).filter(Boolean);
