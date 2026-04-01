@@ -115,19 +115,23 @@ export const getSidebarNavItems = async () =>
                     href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/apiKeys`,
                 }
             ] : []),
-            {
-                title: "Analytics",
-                href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/analytics`,
-            },
+            ...(role === OrgRole.OWNER ? [
+                {
+                    title: "Analytics",
+                    href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/analytics`,
+                },
+            ] : []),
             ...(hasEntitlement("sso") ? [
                 {
                     title: "Linked Accounts",
                     href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/linked-accounts`,
                 }
             ] : []),
-            {
-                title: "License",
-                href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/license`,
-            }
+            ...(role === OrgRole.OWNER ? [
+                {
+                    title: "License",
+                    href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/license`,
+                }
+            ] : []),
         ]
     });

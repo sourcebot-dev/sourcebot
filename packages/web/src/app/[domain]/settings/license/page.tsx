@@ -1,9 +1,12 @@
 import { getLicenseKey, getEntitlements, getPlan, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { Button } from "@/components/ui/button";
 import { Info, Mail } from "lucide-react";
-import { getOrgMembers } from "@/actions";
+import { getMe, getOrgMembers } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
+import { getOrgFromDomain } from "@/data/org";
+import { OrgRole } from "@sourcebot/db";
+import { redirect } from "next/navigation";
 
 interface LicensePageProps {
     params: Promise<{
@@ -17,6 +20,25 @@ export default async function LicensePage(props: LicensePageProps) {
     const {
         domain
     } = params;
+
+    const org = await getOrgFromDomain(domain);
+    if (!org) {
+        throw new Error("Organization not found");
+    }
+
+    const me = await getMe();
+    if (isServiceError(me)) {
+        throw new ServiceErrorException(me);
+    }
+
+    const userRoleInOrg = me.memberships.find((membership) => membership.id === org.id)?.role;
+    if (!userRoleInOrg) {
+        throw new Error("User role not found");
+    }
+
+    if (userRoleInOrg !== OrgRole.OWNER) {
+        redirect(`/${domain}/settings`);
+    }
 
     const licenseKey = getLicenseKey();
     const entitlements = getEntitlements();
