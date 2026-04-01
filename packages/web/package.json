@@ -151,6 +151,7 @@
     "linguist-languages": "^9.3.1",
     "lucide-react": "^0.517.0",
     "micromatch": "^4.0.8",
+    "minidenticons": "^4.2.1",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",
     "next-navigation-guard": "^0.2.0",

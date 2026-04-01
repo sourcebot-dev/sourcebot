@@ -2,7 +2,6 @@
 
 import { SessionUser } from "@/auth";
 import { useToast } from "@/components/hooks/use-toast";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
     Select,
@@ -13,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import placeholderAvatar from "@/public/placeholder_avatar.png";
+import { UserAvatar } from "@/components/userAvatar";
 import { ChatVisibility } from "@sourcebot/db";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info, Link2Icon, Loader2, Lock, X } from "lucide-react";
@@ -69,16 +68,6 @@ export const ShareSettings = ({
         }
     }, [chatId, visibility, toast]);
 
-    const getInitials = (name?: string | null, email?: string | null) => {
-        if (name) {
-            return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
-        }
-        if (email) {
-            return email[0].toUpperCase();
-        }
-        return '?';
-    };
-
     return (
         <div className="flex flex-col py-3 px-4">
             <p className="text-sm font-medium">Share</p>
@@ -113,10 +102,11 @@ export const ShareSettings = ({
                             {currentUser && (
                                 <div className="flex items-center justify-between py-2">
                                     <div className="flex items-center gap-3">
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarImage src={currentUser.image ?? placeholderAvatar.src} />
-                                            <AvatarFallback>{getInitials(currentUser.name, currentUser.email)}</AvatarFallback>
-                                        </Avatar>
+                                        <UserAvatar
+                                            email={currentUser.email}
+                                            imageUrl={currentUser.image}
+                                            className="h-8 w-8"
+                                        />
                                         <div className="flex flex-col">
                                             <span className="text-sm font-medium">
                                                 {currentUser.name || currentUser.email}
@@ -134,10 +124,11 @@ export const ShareSettings = ({
                             {sharedWithUsers.map((user) => (
                                 <div key={user.id} className="flex items-center justify-between py-2">
                                     <div className="flex items-center gap-3">
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarImage src={user.image ?? placeholderAvatar.src} />
-                                            <AvatarFallback>{getInitials(user.name, user.email)}</AvatarFallback>
-                                        </Avatar>
+                                        <UserAvatar
+                                            email={user.email}
+                                            imageUrl={user.image}
+                                            className="h-8 w-8"
+                                        />
                                         <div className="flex flex-col">
                                             <span className="text-sm font-medium">{user.name || user.email}</span>
                                             {user.name && (

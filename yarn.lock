@@ -9042,6 +9042,7 @@ __metadata:
     linguist-languages: "npm:^9.3.1"
     lucide-react: "npm:^0.517.0"
     micromatch: "npm:^4.0.8"
+    minidenticons: "npm:^4.2.1"
     next: "npm:16.1.6"
     next-auth: "npm:^5.0.0-beta.30"
     next-navigation-guard: "npm:^0.2.0"
@@ -17295,6 +17296,13 @@ __metadata:
   version: 5.0.1
   resolution: "mimic-function@npm:5.0.1"
   checksum: 10c0/f3d9464dd1816ecf6bdf2aec6ba32c0728022039d992f178237d8e289b48764fee4131319e72eedd4f7f094e22ded0af836c3187a7edc4595d28dd74368fd81d
+  languageName: node
+  linkType: hard
+
+"minidenticons@npm:^4.2.1":
+  version: 4.2.1
+  resolution: "minidenticons@npm:4.2.1"
+  checksum: 10c0/086f78ce0fa36030275a206c66e8c228dc5c035b4909ea42e298c0595b305f178733230d9d11d9ff8411d6d4a1a390f07fe75871bfb82c1afdaeca4ae253bf1a
   languageName: node
   linkType: hard
 
