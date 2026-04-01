@@ -7,9 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Removed
-- [EE] Removed Stripe billing integration, including subscription management, billing UI, and related database schema [#1069](https://github.com/sourcebot-dev/sourcebot/pull/1069)
-
 ## [4.16.4] - 2026-04-01
 
 ### Added
