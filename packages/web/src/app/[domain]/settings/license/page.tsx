@@ -75,7 +75,7 @@ export default async function LicensePage(props: LicensePageProps) {
         )
     }
 
-    const members = await getOrgMembers(domain);
+    const members = await getOrgMembers();
     if (isServiceError(members)) {
         throw new ServiceErrorException(members);
     }

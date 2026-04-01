@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { Switch } from "@/components/ui/switch"
 import { setMemberApprovalRequired } from "@/actions"
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { isServiceError } from "@/lib/utils"
 import { useToast } from "@/components/hooks/use-toast"
 
@@ -21,7 +20,7 @@ export function MemberApprovalRequiredToggle({ memberApprovalRequired, onToggleC
     const handleToggle = async (checked: boolean) => {
         setIsLoading(true)
         try {
-            const result = await setMemberApprovalRequired(SINGLE_TENANT_ORG_DOMAIN, checked)
+            const result = await setMemberApprovalRequired(checked)
             
             if (isServiceError(result)) {
                 toast({
