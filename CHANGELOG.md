@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed `GET /api/mcp` hanging with zero bytes by returning `405 Method Not Allowed` per the MCP Streamable HTTP spec [#1064](https://github.com/sourcebot-dev/sourcebot/pull/1064)
-- Fixed tokens with trailing newlines (common with env vars and cloud secrets) breaking git clone URLs by adding `.trim()` in `getTokenFromConfig()` [#1067](https://github.com/sourcebot-dev/sourcebot/pull/1067)
+- Fixed tokens with trailing newlines breaking git clone URLs by adding `.trim()` in `getTokenFromConfig()` [#1067](https://github.com/sourcebot-dev/sourcebot/pull/1067)
 
 ### Removed
 - Removed "general" settings page with options to change organization name and domain. [#1065](https://github.com/sourcebot-dev/sourcebot/pull/1065)
