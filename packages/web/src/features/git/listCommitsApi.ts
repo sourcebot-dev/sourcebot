@@ -2,19 +2,13 @@ import { sew } from '@/actions';
 import { invalidGitRef, notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuthV2 } from '@/withAuthV2';
 import { getRepoPath } from '@sourcebot/shared';
+import { z } from 'zod';
 import { simpleGit } from 'simple-git';
 import { toGitDate, validateDateRange } from './dateUtils';
+import { commitSchema } from './schemas';
 import { isGitRefValid } from './utils';
 
-export interface Commit {
-    hash: string;
-    date: string;
-    message: string;
-    refs: string;
-    body: string;
-    author_name: string;
-    author_email: string;
-}
+export type Commit = z.infer<typeof commitSchema>;
 
 export interface SearchCommitsResult {
     commits: Commit[];
