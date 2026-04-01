@@ -1,16 +1,17 @@
 import React from "react"
 import { Metadata } from "next"
-import { SidebarNav, SidebarNavItem } from "./components/sidebar-nav"
+import { SidebarNav } from "./components/sidebar-nav"
 import { NavigationMenu } from "../components/navigationMenu"
 import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { isServiceError } from "@/lib/utils";
-import { getConnectionStats, getMe, getOrgAccountRequests } from "@/actions";
+import { getConnectionStats, getOrgAccountRequests } from "@/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
-import { getOrgFromDomain } from "@/data/org";
 import { OrgRole } from "@prisma/client";
 import { env, hasEntitlement } from "@sourcebot/shared";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
+import { withAuthV2 } from "@/withAuthV2";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -39,86 +40,10 @@ export default async function SettingsLayout(
         return redirect(`/${domain}`);
     }
 
-    const org = await getOrgFromDomain(domain);
-    if (!org) {
-        throw new Error("Organization not found");
+    const sidebarNavItems = await getSidebarNavItems();
+    if (isServiceError(sidebarNavItems)) {
+        throw new ServiceErrorException(sidebarNavItems);
     }
-
-    const me = await getMe();
-    if (isServiceError(me)) {
-        throw new ServiceErrorException(me);
-    }
-
-    const userRoleInOrg = me.memberships.find((membership) => membership.id === org.id)?.role;
-    if (!userRoleInOrg) {
-        throw new Error("User role not found");
-    }
-
-    let numJoinRequests: number | undefined;
-    if (userRoleInOrg === OrgRole.OWNER) {
-        const requests = await getOrgAccountRequests(domain);
-        if (isServiceError(requests)) {
-            throw new ServiceErrorException(requests);
-        }
-        numJoinRequests = requests.length;
-    }
-
-    const connectionStats = await getConnectionStats();
-    if (isServiceError(connectionStats)) {
-        throw new ServiceErrorException(connectionStats);
-    }
-
-    const sidebarNavItems: SidebarNavItem[] = [
-        {
-            title: "General",
-            href: `/${domain}/settings`,
-        },
-        ...(IS_BILLING_ENABLED ? [
-            {
-                title: "Billing",
-                href: `/${domain}/settings/billing`,
-            }
-        ] : []),
-        ...(userRoleInOrg === OrgRole.OWNER ? [
-            {
-                title: "Access",
-                href: `/${domain}/settings/access`,
-            }
-        ] : []),
-        ...(userRoleInOrg === OrgRole.OWNER ? [{
-            title: "Members",
-            isNotificationDotVisible: numJoinRequests !== undefined && numJoinRequests > 0,
-            href: `/${domain}/settings/members`,
-        }] : []),
-        ...(userRoleInOrg === OrgRole.OWNER ? [
-            {
-                title: "Connections",
-                href: `/${domain}/settings/connections`,
-                hrefRegex: `/${domain}/settings/connections(/[^/]+)?$`,
-                isNotificationDotVisible: connectionStats.numberOfConnectionsWithFirstTimeSyncJobsInProgress > 0,
-            }
-        ] : []),
-        ...(env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'false' || userRoleInOrg === OrgRole.OWNER ? [
-            {
-                title: "API Keys",
-                href: `/${domain}/settings/apiKeys`,
-            }
-        ] : []),
-        {
-            title: "Analytics",
-            href: `/${domain}/settings/analytics`,
-        },
-        ...(hasEntitlement("sso") ? [
-            {
-                title: "Linked Accounts",
-                href: `/${domain}/settings/linked-accounts`,
-            }
-        ] : []),
-        {
-            title: "License",
-            href: `/${domain}/settings/license`,
-        }
-    ]
 
     return (
         <div className="min-h-screen flex flex-col">
@@ -142,3 +67,67 @@ export default async function SettingsLayout(
     )
 }
 
+export const getSidebarNavItems = async () =>
+    withAuthV2(async ({ role }) => {
+        let numJoinRequests: number | undefined;
+        if (role === OrgRole.OWNER) {
+            const requests = await getOrgAccountRequests(SINGLE_TENANT_ORG_DOMAIN);
+            if (isServiceError(requests)) {
+                throw new ServiceErrorException(requests);
+            }
+            numJoinRequests = requests.length;
+        }
+
+        const connectionStats = await getConnectionStats();
+        if (isServiceError(connectionStats)) {
+            throw new ServiceErrorException(connectionStats);
+        }
+
+        return [
+            ...(IS_BILLING_ENABLED ? [
+                {
+                    title: "Billing",
+                    href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/billing`,
+                }
+            ] : []),
+            ...(role === OrgRole.OWNER ? [
+                {
+                    title: "Access",
+                    href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/access`,
+                }
+            ] : []),
+            ...(role === OrgRole.OWNER ? [{
+                title: "Members",
+                isNotificationDotVisible: numJoinRequests !== undefined && numJoinRequests > 0,
+                href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/members`,
+            }] : []),
+            ...(role === OrgRole.OWNER ? [
+                {
+                    title: "Connections",
+                    href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/connections`,
+                    hrefRegex: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/connections(/[^/]+)?$`,
+                    isNotificationDotVisible: connectionStats.numberOfConnectionsWithFirstTimeSyncJobsInProgress > 0,
+                }
+            ] : []),
+            ...(env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'false' || role === OrgRole.OWNER ? [
+                {
+                    title: "API Keys",
+                    href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/apiKeys`,
+                }
+            ] : []),
+            {
+                title: "Analytics",
+                href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/analytics`,
+            },
+            ...(hasEntitlement("sso") ? [
+                {
+                    title: "Linked Accounts",
+                    href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/linked-accounts`,
+                }
+            ] : []),
+            {
+                title: "License",
+                href: `/${SINGLE_TENANT_ORG_DOMAIN}/settings/license`,
+            }
+        ]
+    });
