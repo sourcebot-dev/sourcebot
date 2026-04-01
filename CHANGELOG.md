@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.16.4] - 2026-04-01
+
 ### Added
 - Added `GET /api/diff` endpoint for retrieving structured diffs between two git refs [#1063](https://github.com/sourcebot-dev/sourcebot/pull/1063)
 
