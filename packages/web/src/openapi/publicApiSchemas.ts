@@ -1,7 +1,11 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
-import { CodeHostType } from '@sourcebot/db';
 import z from 'zod';
 import {
+    findRelatedSymbolsRequestSchema,
+    findRelatedSymbolsResponseSchema,
+} from '../features/codeNav/types.js';
+import {
+    commitSchema,
     fileSourceRequestSchema,
     fileSourceResponseSchema,
     getDiffRequestSchema,
@@ -9,13 +13,14 @@ import {
     getFilesRequestSchema,
     getFilesResponseSchema,
     getTreeRequestSchema,
+    listCommitsQueryParamsSchema,
 } from '../features/git/schemas.js';
 import {
     searchRequestSchema,
     searchResponseSchema,
-    streamedSearchResponseSchema,
 } from '../features/search/types.js';
 import { serviceErrorSchema } from '../lib/serviceError.js';
+import { getVersionResponseSchema, listReposQueryParamsSchema, listReposResponseSchema } from '../lib/schemas.js';
 
 let hasExtendedZod = false;
 
@@ -30,51 +35,70 @@ export const publicServiceErrorSchema = serviceErrorSchema.openapi('PublicApiSer
 
 export const publicSearchRequestSchema = searchRequestSchema.openapi('PublicSearchRequest');
 export const publicSearchResponseSchema = searchResponseSchema.openapi('PublicSearchResponse');
-export const publicStreamedSearchEventSchema = streamedSearchResponseSchema.openapi('PublicStreamedSearchEvent');
-
 export const publicGetTreeRequestSchema = getTreeRequestSchema.openapi('PublicGetTreeRequest');
-
 export const publicGetFilesRequestSchema = getFilesRequestSchema.openapi('PublicGetFilesRequest');
 export const publicGetFilesResponseSchema = getFilesResponseSchema.openapi('PublicGetFilesResponse');
-
 export const publicFileSourceRequestSchema = fileSourceRequestSchema.openapi('PublicFileSourceRequest');
 export const publicFileSourceResponseSchema = fileSourceResponseSchema.openapi('PublicFileSourceResponse');
-
-export const publicVersionResponseSchema = z.object({
-    version: z.string().openapi({
-        description: 'Running Sourcebot version.',
-    }),
-}).openapi('PublicVersionResponse');
-
-export const publicRepositorySchema = z.object({
-    codeHostType: z.nativeEnum(CodeHostType),
-    repoId: z.number(),
-    repoName: z.string(),
-    webUrl: z.string(),
-    repoDisplayName: z.string().optional(),
-    externalWebUrl: z.string().optional(),
-    imageUrl: z.string().optional(),
-    indexedAt: z.string().datetime().optional(),
-    pushedAt: z.string().datetime().optional(),
-    defaultBranch: z.string().optional(),
-    isFork: z.boolean(),
-    isArchived: z.boolean(),
-}).openapi('PublicRepository');
-
-export const publicListReposQuerySchema = z.object({
-    page: z.coerce.number().int().positive().default(1),
-    perPage: z.coerce.number().int().positive().max(100).default(30),
-    sort: z.enum(['name', 'pushed']).default('name'),
-    direction: z.enum(['asc', 'desc']).default('asc'),
-    query: z.string().optional(),
-}).openapi('PublicListReposQuery');
-
-export const publicListReposResponseSchema = z.array(publicRepositorySchema).openapi('PublicListReposResponse');
-
+export const publicVersionResponseSchema = getVersionResponseSchema.openapi('PublicVersionResponse');
+export const publicListReposQueryParamsSchema = listReposQueryParamsSchema.openapi('PublicListReposQuery');
+export const publicListReposResponseSchema = listReposResponseSchema.openapi('PublicListReposResponse');
 export const publicGetDiffRequestSchema = getDiffRequestSchema.openapi('PublicGetDiffRequest');
 export const publicGetDiffResponseSchema = getDiffResponseSchema.openapi('PublicGetDiffResponse');
+export const publicFindSymbolsRequestSchema = findRelatedSymbolsRequestSchema.openapi('PublicFindSymbolsRequest');
+export const publicFindSymbolsResponseSchema = findRelatedSymbolsResponseSchema.openapi('PublicFindSymbolsResponse');
+export const publicListCommitsQuerySchema = listCommitsQueryParamsSchema.openapi('PublicListCommitsQuery');
+export const publicCommitSchema = commitSchema.openapi('PublicCommit');
+export const publicListCommitsResponseSchema = z.array(publicCommitSchema).openapi('PublicListCommitsResponse');
 
-export const publicStreamSearchSseSchema = z.string().openapi('PublicStreamSearchSse', {
-    description: 'Server-sent event stream. Each data frame contains one JSON object representing either a chunk update, a final summary, or an error.',
-    example: 'data: {"type":"chunk","stats":{"actualMatchCount":1}}\n\n',
-});
+export const publicHealthResponseSchema = z.object({
+    status: z.enum(['ok']),
+}).openapi('PublicHealthResponse');
+
+// EE: User Management
+export const publicEeUserSchema = z.object({
+    name: z.string().nullable(),
+    email: z.string().nullable(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+}).openapi('PublicEeUser');
+
+export const publicEeUserListItemSchema = z.object({
+    id: z.string(),
+    name: z.string().nullable(),
+    email: z.string().nullable(),
+    role: z.enum(['OWNER', 'MEMBER', 'GUEST']),
+    createdAt: z.string().datetime(),
+    lastActivityAt: z.string().datetime().nullable(),
+}).openapi('PublicEeUserListItem');
+
+export const publicEeUsersResponseSchema = z.array(publicEeUserListItemSchema).openapi('PublicEeUsersResponse');
+
+export const publicEeDeleteUserResponseSchema = z.object({
+    success: z.boolean(),
+    message: z.string(),
+}).openapi('PublicEeDeleteUserResponse');
+
+// EE: Audit
+export const publicEeAuditQuerySchema = z.object({
+    since: z.string().datetime().optional().describe('Return records at or after this timestamp (ISO 8601).'),
+    until: z.string().datetime().optional().describe('Return records at or before this timestamp (ISO 8601).'),
+    page: z.coerce.number().int().positive().default(1),
+    perPage: z.coerce.number().int().positive().max(100).default(50),
+}).openapi('PublicEeAuditQuery');
+
+export const publicEeAuditRecordSchema = z.object({
+    id: z.string(),
+    timestamp: z.string().datetime(),
+    action: z.string().describe('The audited action (e.g. `user.read`, `user.delete`, `audit.fetch`).'),
+    actorId: z.string(),
+    actorType: z.string(),
+    targetId: z.string(),
+    targetType: z.string(),
+    sourcebotVersion: z.string(),
+    metadata: z.record(z.unknown()).nullable(),
+    orgId: z.number(),
+}).openapi('PublicEeAuditRecord');
+
+export const publicEeAuditResponseSchema = z.array(publicEeAuditRecordSchema).openapi('PublicEeAuditResponse');
+
