@@ -172,6 +172,7 @@
                         "group": "Git",
                         "icon": "code-branch",
                         "pages": [
+                            "GET /api/commit",
                             "GET /api/diff",
                             "GET /api/commits",
                             "GET /api/source",
