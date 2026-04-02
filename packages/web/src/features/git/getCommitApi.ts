@@ -63,7 +63,14 @@ export const getCommit = async ({
                 return unexpectedError(`Failed to parse commit data for revision "${ref}".`);
             }
 
-            const [hash, date, message, refs, body, authorName, authorEmail, parentStr] = fields;
+            const hash = fields[0];
+            const date = fields[1];
+            const message = fields[2];
+            const refs = fields[3];
+            const body = fields.slice(4, fields.length - 3).join(FIELD_SEP);
+            const authorName = fields[fields.length - 3];
+            const authorEmail = fields[fields.length - 2];
+            const parentStr = fields[fields.length - 1];
             const parents = parentStr.trim() === '' ? [] : parentStr.trim().split(' ');
 
             return {
