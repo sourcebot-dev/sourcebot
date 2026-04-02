@@ -2,7 +2,7 @@
 
 import { minidenticon } from 'minidenticons';
 import { ComponentPropsWithoutRef, forwardRef, useMemo } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 interface UserAvatarProps extends ComponentPropsWithoutRef<typeof Avatar> {
@@ -20,13 +20,8 @@ export const UserAvatar = forwardRef<HTMLSpanElement, UserAvatarProps>(
         }, [email]);
 
         return (
-            <Avatar ref={ref} className={cn(className)} {...rest}>
-                <AvatarImage src={imageUrl ?? undefined} />
-                <AvatarFallback className="bg-muted">
-                    {identiconUri ? (
-                        <img src={identiconUri} alt={email ?? 'avatar'} className="h-full w-full" />
-                    ) : null}
-                </AvatarFallback>
+            <Avatar ref={ref} className={cn("bg-muted", className)} {...rest}>
+                <AvatarImage src={imageUrl ?? identiconUri} />
             </Avatar>
         );
     }

@@ -723,6 +723,7 @@ export const createInvites = async (emails: string[]): Promise<{ success: boolea
                     const inviteLink = `${env.AUTH_URL}/redeem?invite_id=${invite.id}`;
                     const transport = createTransport(smtpConnectionUrl);
                     const html = await render(InviteUserEmail({
+                        baseUrl: env.AUTH_URL,
                         host: {
                             name: user.name ?? undefined,
                             email: user.email!,
