@@ -5,9 +5,11 @@ import {
     findRelatedSymbolsResponseSchema,
 } from '../features/codeNav/types.js';
 import {
+    commitDetailSchema,
     commitSchema,
     fileSourceRequestSchema,
     fileSourceResponseSchema,
+    getCommitQueryParamsSchema,
     getDiffRequestSchema,
     getDiffResponseSchema,
     getTreeRequestSchema,
@@ -46,6 +48,8 @@ export const publicFindSymbolsResponseSchema = findRelatedSymbolsResponseSchema.
 export const publicListCommitsQuerySchema = listCommitsQueryParamsSchema.openapi('PublicListCommitsQuery');
 export const publicCommitSchema = commitSchema.openapi('PublicCommit');
 export const publicListCommitsResponseSchema = z.array(publicCommitSchema).openapi('PublicListCommitsResponse');
+export const publicGetCommitQuerySchema = getCommitQueryParamsSchema.openapi('PublicGetCommitQuery');
+export const publicCommitDetailSchema = commitDetailSchema.openapi('PublicCommitDetail');
 
 export const publicHealthResponseSchema = z.object({
     status: z.enum(['ok']),

@@ -314,7 +314,7 @@ describe('searchCommits', () => {
 
     describe('successful responses', () => {
         it('should return commits and totalCount from git log', async () => {
-            const mockCommits = [
+            const gitLogOutput = [
                 {
                     hash: 'abc123',
                     date: '2024-06-15',
@@ -335,14 +335,35 @@ describe('searchCommits', () => {
                 },
             ];
 
-            mockGitLog.mockResolvedValue({ all: mockCommits });
+            const expectedCommits = [
+                {
+                    hash: 'abc123',
+                    date: '2024-06-15',
+                    message: 'feat: add feature',
+                    refs: 'HEAD -> main',
+                    body: '',
+                    authorName: 'John Doe',
+                    authorEmail: 'john@example.com',
+                },
+                {
+                    hash: 'def456',
+                    date: '2024-06-14',
+                    message: 'fix: bug fix',
+                    refs: '',
+                    body: '',
+                    authorName: 'Jane Smith',
+                    authorEmail: 'jane@example.com',
+                },
+            ];
+
+            mockGitLog.mockResolvedValue({ all: gitLogOutput });
             mockGitRaw.mockResolvedValue('2');
 
             const result = await listCommits({
                 repo: 'github.com/test/repo',
             });
 
-            expect(result).toEqual({ commits: mockCommits, totalCount: 2 });
+            expect(result).toEqual({ commits: expectedCommits, totalCount: 2 });
         });
 
         it('should return empty commits array when no commits match', async () => {
@@ -451,7 +472,7 @@ describe('searchCommits', () => {
 
     describe('integration scenarios', () => {
         it('should handle a typical commit search with filters', async () => {
-            const mockCommits = [
+            const gitLogOutput = [
                 {
                     hash: 'abc123',
                     date: '2024-06-10T14:30:00Z',
@@ -463,9 +484,21 @@ describe('searchCommits', () => {
                 },
             ];
 
+            const expectedCommits = [
+                {
+                    hash: 'abc123',
+                    date: '2024-06-10T14:30:00Z',
+                    message: 'fix: resolve authentication bug',
+                    refs: 'HEAD -> main',
+                    body: 'Fixed issue with JWT token validation',
+                    authorName: 'Security Team',
+                    authorEmail: 'security@example.com',
+                },
+            ];
+
             vi.spyOn(dateUtils, 'validateDateRange').mockReturnValue(null);
             vi.spyOn(dateUtils, 'toGitDate').mockImplementation((date) => date);
-            mockGitLog.mockResolvedValue({ all: mockCommits });
+            mockGitLog.mockResolvedValue({ all: gitLogOutput });
             mockGitRaw.mockResolvedValue('1');
 
             const result = await listCommits({
@@ -477,7 +510,7 @@ describe('searchCommits', () => {
                 maxCount: 20,
             });
 
-            expect(result).toEqual({ commits: mockCommits, totalCount: 1 });
+            expect(result).toEqual({ commits: expectedCommits, totalCount: 1 });
             expect(mockGitLog).toHaveBeenCalledWith([
                 '--max-count=20',
                 '--since=30 days ago',
@@ -555,7 +588,7 @@ describe('searchCommits', () => {
         });
 
         it('should work end-to-end with repository lookup', async () => {
-            const mockCommits = [
+            const gitLogOutput = [
                 {
                     hash: 'xyz789',
                     date: '2024-06-20T10:00:00Z',
@@ -567,10 +600,22 @@ describe('searchCommits', () => {
                 },
             ];
 
+            const expectedCommits = [
+                {
+                    hash: 'xyz789',
+                    date: '2024-06-20T10:00:00Z',
+                    message: 'feat: new feature',
+                    refs: 'main',
+                    body: 'Added new functionality',
+                    authorName: 'Developer',
+                    authorEmail: 'dev@example.com',
+                },
+            ];
+
             mockFindFirst.mockResolvedValue({ id: 555, name: 'github.com/test/repository' });
             vi.spyOn(dateUtils, 'validateDateRange').mockReturnValue(null);
             vi.spyOn(dateUtils, 'toGitDate').mockImplementation((date) => date);
-            mockGitLog.mockResolvedValue({ all: mockCommits });
+            mockGitLog.mockResolvedValue({ all: gitLogOutput });
             mockGitRaw.mockResolvedValue('1');
 
             const result = await listCommits({
@@ -580,7 +625,7 @@ describe('searchCommits', () => {
                 author: 'Developer',
             });
 
-            expect(result).toEqual({ commits: mockCommits, totalCount: 1 });
+            expect(result).toEqual({ commits: expectedCommits, totalCount: 1 });
             expect(mockCwd).toHaveBeenCalledWith('/mock/cache/dir/555');
         });
     });

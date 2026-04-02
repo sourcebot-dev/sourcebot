@@ -16,6 +16,8 @@ import {
     publicGetDiffResponseSchema,
     publicGetTreeRequestSchema,
     publicHealthResponseSchema,
+    publicCommitDetailSchema,
+    publicGetCommitQuerySchema,
     publicListCommitsQuerySchema,
     publicListCommitsResponseSchema,
     publicListReposQueryParamsSchema,
@@ -335,6 +337,27 @@ export function createPublicOpenApiDocument(version: string) {
             },
             400: errorJson('Invalid query parameters.'),
             404: errorJson('Repository not found.'),
+            500: errorJson('Unexpected failure.'),
+        },
+    });
+
+    registry.registerPath({
+        method: 'get',
+        path: '/api/commit',
+        operationId: 'getCommit',
+        tags: [gitTag.name],
+        summary: 'Get commit details',
+        description: 'Returns details for a single commit, including parent commit SHAs.',
+        request: {
+            query: publicGetCommitQuerySchema,
+        },
+        responses: {
+            200: {
+                description: 'Commit details.',
+                content: jsonContent(publicCommitDetailSchema),
+            },
+            400: errorJson('Invalid query parameters or git ref.'),
+            404: errorJson('Repository or revision not found.'),
             500: errorJson('Unexpected failure.'),
         },
     });

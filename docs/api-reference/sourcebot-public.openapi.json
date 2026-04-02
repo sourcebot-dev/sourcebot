@@ -619,11 +619,13 @@
               "properties": {
                 "oldPath": {
                   "type": "string",
-                  "description": "The file path before the change. `/dev/null` for added files."
+                  "nullable": true,
+                  "description": "The file path before the change. `null` for added files."
                 },
                 "newPath": {
                   "type": "string",
-                  "description": "The file path after the change. `/dev/null` for deleted files."
+                  "nullable": true,
+                  "description": "The file path after the change. `null` for deleted files."
                 },
                 "hunks": {
                   "type": "array",
@@ -892,10 +894,10 @@
             "type": "string",
             "description": "The commit body (everything after the subject line)."
           },
-          "author_name": {
+          "authorName": {
             "type": "string"
           },
-          "author_email": {
+          "authorEmail": {
             "type": "string"
           }
         },
@@ -905,8 +907,8 @@
           "message",
           "refs",
           "body",
-          "author_name",
-          "author_email"
+          "authorName",
+          "authorEmail"
         ]
       },
       "PublicListCommitsResponse": {
@@ -914,6 +916,54 @@
         "items": {
           "$ref": "#/components/schemas/PublicCommit"
         }
+      },
+      "PublicCommitDetail": {
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "The full commit SHA."
+          },
+          "date": {
+            "type": "string",
+            "description": "The commit date in ISO 8601 format."
+          },
+          "message": {
+            "type": "string",
+            "description": "The commit subject line."
+          },
+          "refs": {
+            "type": "string",
+            "description": "Refs pointing to this commit (e.g. branch or tag names)."
+          },
+          "body": {
+            "type": "string",
+            "description": "The commit body (everything after the subject line)."
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "authorEmail": {
+            "type": "string"
+          },
+          "parents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The parent commit SHAs."
+          }
+        },
+        "required": [
+          "hash",
+          "date",
+          "message",
+          "refs",
+          "body",
+          "authorName",
+          "authorEmail",
+          "parents"
+        ]
       },
       "PublicEeUser": {
         "type": "object",
@@ -1799,6 +1849,80 @@
           },
           "404": {
             "description": "Repository not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/commit": {
+      "get": {
+        "operationId": "getCommit",
+        "tags": [
+          "Git"
+        ],
+        "summary": "Get commit details",
+        "description": "Returns details for a single commit, including parent commit SHAs.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "The fully-qualified repository name."
+            },
+            "required": true,
+            "description": "The fully-qualified repository name.",
+            "name": "repo",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The git ref (commit SHA, branch, or tag)."
+            },
+            "required": true,
+            "description": "The git ref (commit SHA, branch, or tag).",
+            "name": "ref",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Commit details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicCommitDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters or git ref.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Repository or revision not found.",
             "content": {
               "application/json": {
                 "schema": {

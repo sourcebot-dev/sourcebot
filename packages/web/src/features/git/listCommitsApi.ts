@@ -10,10 +10,10 @@ import { isGitRefValid } from './utils';
 
 export type Commit = z.infer<typeof commitSchema>;
 
-export interface SearchCommitsResult {
+export type ListCommitsResponse = {
     commits: Commit[];
     totalCount: number;
-}
+};
 
 type ListCommitsRequest = {
     repo: string;
@@ -44,7 +44,7 @@ export const listCommits = async ({
     path,
     maxCount = 50,
     skip = 0,
-}: ListCommitsRequest): Promise<SearchCommitsResult | ServiceError> => sew(() =>
+}: ListCommitsRequest): Promise<ListCommitsResponse | ServiceError> => sew(() =>
     withOptionalAuth(async ({ org, prisma }) => {
         const repo = await prisma.repo.findFirst({
             where: {
@@ -117,7 +117,17 @@ export const listCommits = async ({
 
             const totalCount = parseInt((await git.raw(countArgs)).trim(), 10);
 
-            return { commits: log.all as unknown as Commit[], totalCount };
+            const commits: Commit[] = log.all.map((c) => ({
+                hash: c.hash,
+                date: c.date,
+                message: c.message,
+                refs: c.refs,
+                body: c.body,
+                authorName: c.author_name,
+                authorEmail: c.author_email,
+            }));
+
+            return { commits, totalCount };
         } catch (error: unknown) {
             // Provide detailed error messages for common git errors
             const errorMessage = error instanceof Error ? error.message : String(error);
