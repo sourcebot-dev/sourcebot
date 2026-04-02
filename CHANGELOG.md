@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `GET /api/commit` endpoint for retrieving details about a single commit, including parent commit SHAs [#1077](https://github.com/sourcebot-dev/sourcebot/pull/1077)
+
 ### Changed
 - Replaced placeholder avatars with deterministic minidenticon-based avatars generated from email addresses [#1072](https://github.com/sourcebot-dev/sourcebot/pull/1072)
+- Changed `author_name` and `author_email` fields to `authorName` and `authorEmail` in `GET /api/commits` response [#1077](https://github.com/sourcebot-dev/sourcebot/pull/1077)
+- Changed `oldPath` and `newPath` in `GET /api/diff` response from `"/dev/null"` to `null` for added/deleted files [#1077](https://github.com/sourcebot-dev/sourcebot/pull/1077)
 
 ## [4.16.4] - 2026-04-01
 
