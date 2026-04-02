@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed `GET /api/commit` parsing for commit bodies containing control-character separators so author and parent fields are returned correctly. [#1081](https://github.com/sourcebot-dev/sourcebot/pull/1081)
+
 ## [4.16.5] - 2026-04-02
 
 ### Added
