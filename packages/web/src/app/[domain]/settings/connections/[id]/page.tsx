@@ -1,4 +1,4 @@
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { BackButton } from "@/app/[domain]/components/backButton";
 import { DisplayDate } from "@/app/[domain]/components/DisplayDate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { notFound as notFoundServiceError, ServiceErrorException } from "@/lib/serviceError";
 import { notFound } from "next/navigation";
 import { isServiceError } from "@/lib/utils";
-import { withAuthV2 } from "@/withAuthV2";
+import { withAuth } from "@/middleware/withAuth";
 import { AzureDevOpsConnectionConfig, BitbucketConnectionConfig, GenericGitHostConnectionConfig, GerritConnectionConfig, GiteaConnectionConfig, GithubConnectionConfig, GitlabConnectionConfig } from "@sourcebot/schemas/v3/index.type";
 import { env, getConfigSettings } from "@sourcebot/shared";
 import { Info } from "lucide-react";
@@ -188,7 +188,7 @@ export default async function ConnectionDetailPage(props: ConnectionDetailPagePr
 }
 
 const getConnectionWithJobs = async (id: number) => sew(() =>
-    withAuthV2(async ({ prisma, org }) => {
+    withAuth(async ({ prisma, org }) => {
         const connection = await prisma.connection.findUnique({
             where: {
                 id,

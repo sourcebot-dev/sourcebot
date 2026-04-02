@@ -1,0 +1,68 @@
+You are a license compliance auditor. Your job is to review the OSS dependency
+licenses in this repository and produce a structured audit result.
+
+## Steps
+
+1. Read the file `oss-licenses.json` in the repo root.
+
+2. Identify every package whose `license` field is:
+   - `"UNKNOWN"`
+   - A non-standard SPDX string (e.g., `"SEE LICENSE IN LICENSE"`, `"UNLICENSED"`,
+     `"SEE LICENSE IN ..."`, or any value that is not a recognized SPDX identifier)
+   - An object instead of a string (e.g., `{"type":"MIT","url":"..."}`)
+
+3. For each such package, try to resolve the actual license:
+   - Use WebFetch to visit `https://www.npmjs.com/package/<package-name>` and look
+     for license information on the npm page.
+   - If the npm page is inconclusive, check the package's `repository` or `homepage`
+     URL (from oss-licenses.json) via WebFetch to find a LICENSE file.
+   - If the license field is an object like `{"type":"MIT","url":"..."}`, extract the
+     `type` field as the resolved license.
+
+4. Identify all copyleft-licensed packages. Classify them as:
+   - **Strong copyleft**: GPL-2.0, GPL-3.0, AGPL-1.0, AGPL-3.0, SSPL-1.0, EUPL-1.1,
+     EUPL-1.2, CPAL-1.0, OSL-3.0 (and any `-only` or `-or-later` variants)
+   - **Weak copyleft**: LGPL-2.0, LGPL-2.1, LGPL-3.0, MPL-2.0, CC-BY-SA-3.0,
+     CC-BY-SA-4.0 (and any `-only` or `-or-later` variants)
+
+5. Write a file called `license-audit-result.json` in the repo root with this structure:
+   ```json
+   {
+     "status": "PASS or FAIL",
+     "failReasons": ["list of reasons if FAIL, empty array if PASS"],
+     "summary": {
+       "totalPackages": 0,
+       "resolvedCount": 0,
+       "unresolvedCount": 0,
+       "strongCopyleftCount": 0,
+       "weakCopyleftCount": 0
+     },
+     "resolved": [
+       { "name": "pkg-name", "version": "1.0.0", "originalLicense": "...", "resolvedLicense": "MIT", "source": "npm page / GitHub repo / extracted from object" }
+     ],
+     "unresolved": [
+       { "name": "pkg-name", "version": "1.0.0", "license": "UNKNOWN", "reason": "why it could not be resolved" }
+     ],
+     "copyleft": {
+       "strong": [
+         { "name": "pkg-name", "version": "1.0.0", "license": "GPL-3.0" }
+       ],
+       "weak": [
+         { "name": "pkg-name", "version": "1.0.0", "license": "MPL-2.0" }
+       ]
+     }
+   }
+   ```
+
+6. Set `status` to `"FAIL"` if `unresolvedCount > 0` OR `strongCopyleftCount > 0`.
+   Otherwise set it to `"PASS"`.
+
+7. If the status is FAIL, populate `failReasons` with human-readable explanations, e.g.:
+   - "2 packages have unresolvable licenses: pkg-a, pkg-b"
+   - "1 package uses strong copyleft license: pkg-c (GPL-3.0)"
+
+## Important Notes
+- Do NOT modify any source files. Only write `license-audit-result.json`.
+- Be thorough: check every non-standard license, not just a sample.
+- If a package's license object has a `type` field, that counts as resolved.
+- Weak copyleft licenses (LGPL, MPL) are flagged but do NOT cause a FAIL.

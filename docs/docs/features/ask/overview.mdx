@@ -2,31 +2,35 @@
 title: Overview
 ---
 
-Ask Sourcebot gives you the ability to ask complex questions about your codebase in natural language. 
+Ask Sourcebot gives you the ability to ask complex questions about your entire codebase in natural language. 
 
 It uses Sourcebot’s existing [code search](/docs/features/search/overview) and [navigation](/docs/features/code-navigation) tools to allow reasoning models to search your code, 
 follow code nav references, and provide an answer that’s rich with inline citations and navigable code snippets.
 
+Ask Sourcebot **uses an LLM provider you configure with Sourcebot**, ensuring you have full control over where your data is sent. 
+
+<Columns cols={2}>
 <Card title="Deployment guide" icon="server" href="/docs/deployment/docker-compose" horizontal="true">
   Learn how to self-host Sourcebot in a few simple steps.
 </Card>
-<CardGroup>
+<Card title="Public demo" icon="globe" href="https://app.sourcebot.dev/~/chat" horizontal="true">
+  Try it out for free in our public demo.
+</Card>
 <Card title="Configure language models" icon="robot" href="/docs/configuration/language-model-providers" horizontal="true">
     Learn how to connect your language model to Sourcebot
 </Card>
 <Card title="Index repos" icon="book" href="/docs/connections/overview" horizontal="true">
     Learn how to index your repos so you can ask questions about them
 </Card>
-</CardGroup>
+</Columns>
 
-<video
-  autoPlay
-  muted
-  loop
-  playsInline
-  className="w-full aspect-video"
-  src="/images/ask_sourcebot_low_res.mp4"
-></video>
+<iframe
+  className="w-full aspect-video rounded-xl"
+  src="https://www.youtube.com/embed/0com8JD1AwY"
+  title="Ask Sourcebot demo"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowFullScreen
+></iframe>
 
 # Why do we need another AI dev tool?
 

@@ -6,7 +6,6 @@ import React, { useCallback, useMemo, useRef } from "react";
 import { FileTreeItemComponent } from "./fileTreeItemComponent";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { useBrowseParams } from "@/app/[domain]/browse/hooks/useBrowseParams";
-import { useDomain } from "@/hooks/useDomain";
 
 const renderLoadingSkeleton = (depth: number) => {
     return (
@@ -28,7 +27,6 @@ interface PureFileTreePanelProps {
 export const PureFileTreePanel = ({ tree, openPaths, path, onTreeNodeClicked }: PureFileTreePanelProps) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { repoName, revisionName } = useBrowseParams();
-    const domain = useDomain();
 
     const renderTree = useCallback((nodes: FileTreeNode, depth = 0): React.ReactNode => {
         return (
@@ -42,7 +40,6 @@ export const PureFileTreePanel = ({ tree, openPaths, path, onTreeNodeClicked }: 
                                     revisionName,
                                     path: node.path,
                                     pathType: node.type === 'tree' ? 'tree' : 'blob',
-                                    domain,
                                 })}
                                 key={node.path}
                                 node={node}
@@ -80,7 +77,7 @@ export const PureFileTreePanel = ({ tree, openPaths, path, onTreeNodeClicked }: 
                 })}
             </>
         );
-    }, [domain, onTreeNodeClicked, path, repoName, revisionName, openPaths]);
+    }, [onTreeNodeClicked, path, repoName, revisionName, openPaths]);
 
     const renderedTree = useMemo(() => renderTree(tree), [tree, renderTree]);
 

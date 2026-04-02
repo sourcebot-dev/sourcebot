@@ -1,7 +1,7 @@
-import { sew } from '@/actions';
+import { sew } from "@/middleware/sew";
 import { FileTreeItem } from "./types";
 import { notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
-import { withOptionalAuthV2 } from "@/withAuthV2";
+import { withOptionalAuth } from "@/middleware/withAuth";
 import { getRepoPath } from '@sourcebot/shared';
 import simpleGit from 'simple-git';
 import type z from 'zod';
@@ -13,7 +13,7 @@ export type GetFilesRequest = z.infer<typeof getFilesRequestSchema>;
 export type GetFilesResponse = z.infer<typeof getFilesResponseSchema>;
 
 export const getFiles = async ({ repoName, revisionName }: GetFilesRequest): Promise<GetFilesResponse | ServiceError> => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma }) => {
+    withOptionalAuth(async ({ org, prisma }) => {
         const repo = await prisma.repo.findFirst({
             where: {
                 name: repoName,

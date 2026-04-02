@@ -1,0 +1,248 @@
+import { getRepoInfoByName } from "@/actions";
+import { FileTreeNode, getTree } from "@/features/git";
+import { isServiceError } from "@/lib/utils";
+import { CodeHostType } from "@sourcebot/db";
+import { z } from "zod";
+import description from "./listTree.txt";
+import { logger } from "./logger";
+import { Source, ToolDefinition } from "./types";
+
+const DEFAULT_TREE_DEPTH = 1;
+const MAX_TREE_DEPTH = 10;
+const DEFAULT_MAX_TREE_ENTRIES = 1000;
+const MAX_MAX_TREE_ENTRIES = 10000;
+
+const listTreeShape = {
+    repo: z.string().describe("The name of the repository to list files from."),
+    path: z.string().describe("Directory path (relative to repo root). If omitted, the repo root is used.").optional().default(''),
+    ref: z.string().describe("Commit SHA, branch or tag name to list files from. If not provided, uses the default branch.").optional().default('HEAD'),
+    depth: z.number().int().positive().max(MAX_TREE_DEPTH).describe(`How many directory levels to traverse below \`path\` (min 1, max ${MAX_TREE_DEPTH}, default ${DEFAULT_TREE_DEPTH}).`).optional().default(DEFAULT_TREE_DEPTH),
+    includeFiles: z.boolean().describe("Whether to include files in the output (default: true).").optional().default(true),
+    includeDirectories: z.boolean().describe("Whether to include directories in the output (default: true).").optional().default(true),
+    maxEntries: z.number().int().positive().max(MAX_MAX_TREE_ENTRIES).describe(`Maximum number of entries to return (min 1, max ${MAX_MAX_TREE_ENTRIES}, default ${DEFAULT_MAX_TREE_ENTRIES}).`).optional().default(DEFAULT_MAX_TREE_ENTRIES),
+};
+
+export type ListTreeEntry = {
+    type: 'tree' | 'blob';
+    path: string;
+    name: string;
+    parentPath: string;
+    depth: number;
+};
+
+export type ListTreeRepoInfo = {
+    name: string;
+    displayName: string;
+    codeHostType: CodeHostType;
+};
+
+export type ListTreeMetadata = {
+    repo: string;
+    repoInfo: ListTreeRepoInfo;
+    ref: string;
+    path: string;
+    totalReturned: number;
+    truncated: boolean;
+};
+
+export const listTreeDefinition: ToolDefinition<'list_tree', typeof listTreeShape, ListTreeMetadata> = {
+    name: 'list_tree',
+    title: 'List directory tree',
+    isReadOnly: true,
+    isIdempotent: true,
+    description,
+    inputSchema: z.object(listTreeShape),
+    execute: async ({ repo, path = '', ref = 'HEAD', depth = DEFAULT_TREE_DEPTH, includeFiles = true, includeDirectories = true, maxEntries = DEFAULT_MAX_TREE_ENTRIES }, context) => {
+        logger.debug('list_tree', { repo, path, ref, depth, includeFiles, includeDirectories, maxEntries });
+        const normalizedPath = normalizeTreePath(path);
+        const normalizedDepth = Math.min(depth, MAX_TREE_DEPTH);
+        const normalizedMaxEntries = Math.min(maxEntries, MAX_MAX_TREE_ENTRIES);
+
+        const repoInfoResult = await getRepoInfoByName(repo);
+        if (isServiceError(repoInfoResult) || !repoInfoResult) {
+            throw new Error(`Repository "${repo}" not found.`);
+        }
+        const repoInfo: ListTreeRepoInfo = {
+            name: repoInfoResult.name,
+            displayName: repoInfoResult.displayName ?? repoInfoResult.name,
+            codeHostType: repoInfoResult.codeHostType,
+        };
+
+        if (!includeFiles && !includeDirectories) {
+            const metadata: ListTreeMetadata = {
+                repo,
+                repoInfo,
+                ref,
+                path: normalizedPath,
+                totalReturned: 0,
+                truncated: false,
+            };
+            return { output: 'No entries found', metadata };
+        }
+
+        const queue: Array<{ path: string; depth: number }> = [{ path: normalizedPath, depth: 0 }];
+        const queuedPaths = new Set<string>([normalizedPath]);
+        const seenEntries = new Set<string>();
+        const entries: ListTreeEntry[] = [];
+        let truncated = false;
+
+        while (queue.length > 0 && !truncated) {
+            const currentDepth = queue[0]!.depth;
+            const currentLevelPaths: string[] = [];
+
+            while (queue.length > 0 && queue[0]!.depth === currentDepth) {
+                currentLevelPaths.push(queue.shift()!.path);
+            }
+
+            const treeResult = await getTree({
+                repoName: repo,
+                revisionName: ref,
+                paths: currentLevelPaths.filter(Boolean),
+            }, { source: context.source });
+
+            if (isServiceError(treeResult)) {
+                throw new Error(treeResult.message);
+            }
+
+            const treeNodeIndex = buildTreeNodeIndex(treeResult.tree);
+
+            for (const currentPath of currentLevelPaths) {
+                const currentNode = currentPath === '' ? treeResult.tree : treeNodeIndex.get(currentPath);
+                if (!currentNode || currentNode.type !== 'tree') continue;
+
+                for (const child of currentNode.children) {
+                    if (child.type !== 'tree' && child.type !== 'blob') continue;
+
+                    const childPath = joinTreePath(currentPath, child.name);
+                    const childDepth = currentDepth + 1;
+
+                    if (child.type === 'tree' && childDepth < normalizedDepth && !queuedPaths.has(childPath)) {
+                        queue.push({ path: childPath, depth: childDepth });
+                        queuedPaths.add(childPath);
+                    }
+
+                    if ((child.type === 'blob' && !includeFiles) || (child.type === 'tree' && !includeDirectories)) {
+                        continue;
+                    }
+
+                    const key = `${child.type}:${childPath}`;
+                    if (seenEntries.has(key)) continue;
+                    seenEntries.add(key);
+
+                    if (entries.length >= normalizedMaxEntries) {
+                        truncated = true;
+                        break;
+                    }
+
+                    entries.push({
+                        type: child.type as 'tree' | 'blob',
+                        path: childPath,
+                        name: child.name,
+                        parentPath: currentPath,
+                        depth: childDepth,
+                    });
+                }
+
+                if (truncated) break;
+            }
+        }
+
+        const sortedEntries = sortTreeEntries(entries);
+        const metadata: ListTreeMetadata = {
+            repo,
+            repoInfo,
+            ref,
+            path: normalizedPath,
+            totalReturned: sortedEntries.length,
+            truncated,
+        };
+
+        const outputLines = [normalizedPath || '/'];
+
+        const childrenByPath = new Map<string, ListTreeEntry[]>();
+        for (const entry of sortedEntries) {
+            const siblings = childrenByPath.get(entry.parentPath) ?? [];
+            siblings.push(entry);
+            childrenByPath.set(entry.parentPath, siblings);
+        }
+
+        function renderEntries(parentPath: string) {
+            const children = childrenByPath.get(parentPath) ?? [];
+            for (const entry of children) {
+                const indent = '  '.repeat(entry.depth);
+                const label = entry.type === 'tree' ? `${entry.name}/` : entry.name;
+                outputLines.push(`${indent}${label}`);
+                if (entry.type === 'tree') {
+                    renderEntries(entry.path);
+                }
+            }
+        }
+
+        renderEntries(normalizedPath);
+
+        if (sortedEntries.length === 0) {
+            outputLines.push('  (no entries found)');
+        }
+
+        if (truncated) {
+            outputLines.push('');
+            outputLines.push(`(truncated — showing first ${normalizedMaxEntries} entries)`);
+        }
+
+        const sources: Source[] = sortedEntries
+            .filter((entry) => entry.type === 'blob')
+            .map((entry) => ({
+                type: 'file' as const,
+                repo,
+                path: entry.path,
+                name: entry.name,
+                revision: ref,
+            }));
+
+        return { output: outputLines.join('\n'), metadata, sources };
+    },
+};
+
+const normalizeTreePath = (path: string): string => {
+    const withoutLeading = path.replace(/^\/+/, '');
+    return withoutLeading.replace(/\/+$/, '');
+}
+
+const joinTreePath = (parentPath: string, name: string): string => {
+    if (!parentPath) {
+        return name;
+    }
+    return `${parentPath}/${name}`;
+}
+
+const buildTreeNodeIndex = (root: FileTreeNode): Map<string, FileTreeNode> => {
+    const nodeIndex = new Map<string, FileTreeNode>();
+
+    const visit = (node: FileTreeNode, currentPath: string) => {
+        nodeIndex.set(currentPath, node);
+        for (const child of node.children) {
+            visit(child, joinTreePath(currentPath, child.name));
+        }
+    };
+
+    visit(root, '');
+    return nodeIndex;
+}
+
+const sortTreeEntries = (entries: ListTreeEntry[]): ListTreeEntry[] => {
+    const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
+
+    return [...entries].sort((a, b) => {
+        const parentCompare = collator.compare(a.parentPath, b.parentPath);
+        if (parentCompare !== 0) return parentCompare;
+
+        if (a.type !== b.type) {
+            return a.type === 'tree' ? -1 : 1;
+        }
+
+        const nameCompare = collator.compare(a.name, b.name);
+        if (nameCompare !== 0) return nameCompare;
+
+        return collator.compare(a.path, b.path);
+    });
+}

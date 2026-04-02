@@ -27,7 +27,7 @@ interface PageProps {
 export default async function Page(props: PageProps) {
     const params = await props.params;
     const languageModels = await getConfiguredLanguageModelsInfo();
-    const searchContexts = await getSearchContexts(params.domain);
+    const searchContexts = await getSearchContexts();
     const allRepos = await getRepos();
     const session = await auth();
     const chatHistory = session ? await getUserChatHistory() : [];
@@ -73,7 +73,7 @@ export default async function Page(props: PageProps) {
     })() : undefined;
 
     return (
-        <div className="flex flex-col items-center min-h-screen overflow-hidden">
+        <div className="flex flex-col items-center h-screen overflow-hidden">
             <NavigationMenu
                 domain={params.domain}
             />
@@ -88,12 +88,13 @@ export default async function Page(props: PageProps) {
                     isCollapsedInitially={true}
                 />
                 <AnimatedResizableHandle />
-                <ResizablePanel 
+                <ResizablePanel
                     order={2}
                     id="chat-home-panel"
                     defaultSize={85}
+                    className="overflow-hidden"
                 >
-                <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-16 w-full px-5">
+                <div className="flex flex-col items-center h-full overflow-y-auto pt-8 pb-8 md:pt-16 w-full px-5">
                     <div className="max-h-44 w-auto">
                         <SourcebotLogo
                             className="h-18 md:h-40 w-auto"

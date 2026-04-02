@@ -1,21 +1,10 @@
 import { listCommits } from "@/features/git";
+import { listCommitsQueryParamsSchema } from "@/features/git/schemas";
 import { apiHandler } from "@/lib/apiHandler";
 import { buildLinkHeader } from "@/lib/pagination";
 import { serviceErrorResponse, queryParamsSchemaValidationError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
-import { z } from "zod";
-
-const listCommitsQueryParamsSchema = z.object({
-    repo: z.string(),
-    query: z.string().optional(),
-    since: z.string().optional(),
-    until: z.string().optional(),
-    author: z.string().optional(),
-    ref: z.string().optional(),
-    page: z.coerce.number().int().positive().default(1),
-    perPage: z.coerce.number().int().positive().max(100).default(50),
-});
 
 export const GET = apiHandler(async (request: NextRequest): Promise<Response> => {
     const rawParams = Object.fromEntries(
@@ -57,6 +46,7 @@ export const GET = apiHandler(async (request: NextRequest): Promise<Response> =>
             ...(searchParams.until ? { until: searchParams.until } : {}),
             ...(searchParams.author ? { author: searchParams.author } : {}),
             ...(searchParams.ref ? { ref: searchParams.ref } : {}),
+            ...(searchParams.path ? { path: searchParams.path } : {}),
         },
     });
     if (linkHeader) headers.set('Link', linkHeader);

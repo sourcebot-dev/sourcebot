@@ -38,7 +38,7 @@ if [ -n "$CONFIG_PATH" ]; then
     fi
 fi
 
-# Descontruct the database URL from the individual variables if DATABASE_URL is not set
+# Construct the database URL from the individual variables if DATABASE_URL is not set
 if [ -z "$DATABASE_URL" ] && [ -n "$DATABASE_HOST" ] && [ -n "$DATABASE_USERNAME" ] && [ -n "$DATABASE_PASSWORD" ]  && [ -n "$DATABASE_NAME" ]; then
     DATABASE_URL="postgresql://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@${DATABASE_HOST}/${DATABASE_NAME}"
 

@@ -17,7 +17,6 @@ export type {
 export {
     repoMetadataSchema,
     repoIndexingJobMetadataSchema,
-    tenancyModeSchema,
 } from "./types.js";
 export {
     base64Decode,
@@ -54,6 +53,9 @@ export {
 export {
     getDBConnectionString,
 } from "./db.js";
+export {
+    getSMTPConnectionURL,
+} from "./smtp.js";
 export {
     SOURCEBOT_VERSION,
 } from "./version.js";

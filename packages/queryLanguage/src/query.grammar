@@ -4,6 +4,8 @@
 @external tokens closeParenToken from "./tokens" { closeParen }
 @external tokens orToken from "./tokens" { or }
 
+@dialects { regex }
+
 @top Program { query }
 
 @precedence {

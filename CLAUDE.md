@@ -38,6 +38,25 @@ Exceptions:
 - Special files like `README.md`, `CHANGELOG.md`, `LICENSE`
 - Next.js conventions: `page.tsx`, `layout.tsx`, `loading.tsx`, etc.
 
+## Code Style
+
+Always use curly braces for `if` statements, with the body on a new line — even for single-line bodies:
+
+```ts
+// Correct
+if (!value) {
+    return;
+}
+if (condition) {
+    doSomething();
+}
+
+// Incorrect
+if (!value) return;
+if (!value) { return; }
+if (condition) doSomething();
+```
+
 ## Tailwind CSS
 
 Use Tailwind color classes directly instead of CSS variable syntax:
@@ -51,6 +70,13 @@ className="border-[var(--border)] bg-[var(--card)] text-[var(--foreground)]"
 ```
 
 ## API Route Handlers
+
+When implementing a new API route, ask the user whether it should be part of the public API. If yes:
+
+1. Add the request/response Zod schemas to `packages/web/src/openapi/publicApiSchemas.ts`, calling `.openapi('SchemaName')` on each schema to register it with a name.
+2. Register the route in `packages/web/src/openapi/publicApiDocument.ts` using `registry.registerPath(...)`, assigning it to the appropriate tag.
+3. Add the endpoint to the relevant group in the `API Reference` tab of `docs/docs.json`.
+4. Regenerate the OpenAPI spec by running `yarn workspace @sourcebot/web openapi:generate`.
 
 Route handlers should validate inputs using Zod schemas.
 
@@ -129,11 +155,11 @@ Server actions should be used for mutations (POST/PUT/DELETE operations), not fo
 
 ## Authentication
 
-Use `withAuthV2` or `withOptionalAuthV2` from `@/withAuthV2` to protect server actions and API routes.
+Use `withAuth` or `withOptionalAuth` from `@/middleware/withAuth` to protect server actions and API routes.
 
-- **`withAuthV2`** - Requires authentication. Returns `notAuthenticated()` if user is not logged in.
-- **`withOptionalAuthV2`** - Allows anonymous access if the org has anonymous access enabled. `user` may be `undefined`.
-- **`withMinimumOrgRole`** - Wrap inside auth context to require a minimum role (e.g., `OrgRole.OWNER`).
+- **`withAuth`** - Requires authentication. Returns `notAuthenticated()` if user is not logged in.
+- **`withOptionalAuth`** - Allows anonymous access if the org has anonymous access enabled. `user` may be `undefined`.
+- **`withMinimumOrgRole`** - Wrap inside auth context to require a minimum role (e.g., `OrgRole.OWNER`). Import from `@/middleware/withMinimumOrgRole`.
 
 **Important:** Always use the `prisma` instance provided by the auth context. This instance has `userScopedPrismaClientExtension` applied, which enforces repository visibility rules (e.g., filtering repos based on user permissions). Do NOT import `prisma` directly from `@/prisma` in actions or routes that return data to the client.
 
@@ -142,11 +168,11 @@ Use `withAuthV2` or `withOptionalAuthV2` from `@/withAuthV2` to protect server a
 ```ts
 'use server';
 
-import { sew } from "@/actions";
-import { withAuthV2 } from "@/withAuthV2";
+import { sew } from "@/middleware/sew";
+import { withAuth } from "@/middleware/withAuth";
 
 export const myProtectedAction = async ({ id }: { id: string }) => sew(() =>
-    withAuthV2(async ({ org, user, prisma }) => {
+    withAuth(async ({ org, user, prisma }) => {
         // user is guaranteed to be defined
         // prisma is scoped to the user
         return { success: true };
@@ -154,7 +180,7 @@ export const myProtectedAction = async ({ id }: { id: string }) => sew(() =>
 );
 
 export const myPublicAction = async ({ id }: { id: string }) => sew(() =>
-    withOptionalAuthV2(async ({ org, user, prisma }) => {
+    withOptionalAuth(async ({ org, user, prisma }) => {
         // user may be undefined for anonymous access
         return { success: true };
     })
@@ -166,10 +192,10 @@ export const myPublicAction = async ({ id }: { id: string }) => sew(() =>
 ```ts
 import { serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { withAuthV2 } from "@/withAuthV2";
+import { withAuth } from "@/middleware/withAuth";
 
 export const GET = apiHandler(async (request: NextRequest) => {
-    const result = await withAuthV2(async ({ org, user, prisma }) => {
+    const result = await withAuth(async ({ org, user, prisma }) => {
         // ... your logic
         return data;
     });
@@ -247,6 +273,5 @@ PR description:
 
 After the PR is created:
 - Update CHANGELOG.md with an entry under `[Unreleased]` linking to the new PR. New entries should be placed at the bottom of their section.
-- If the change touches `packages/mcp`, update `packages/mcp/CHANGELOG.md` instead
 - Do NOT add a CHANGELOG entry for documentation-only changes (e.g., changes only in `docs/`)
 - Enterprise-only features (gated by an entitlement) should be prefixed with `[EE]` in the CHANGELOG entry (e.g., `- [EE] Added support for ...`)

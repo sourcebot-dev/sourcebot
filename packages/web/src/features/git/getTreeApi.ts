@@ -1,7 +1,7 @@
-import { sew } from '@/actions';
+import { sew } from "@/middleware/sew";
 import { getAuditService } from '@/ee/features/audit/factory';
 import { invalidGitRef, notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
-import { withOptionalAuthV2 } from "@/withAuthV2";
+import { withOptionalAuth } from "@/middleware/withAuth";
 import { getRepoPath } from '@sourcebot/shared';
 import { headers } from 'next/headers';
 import simpleGit from 'simple-git';
@@ -19,7 +19,7 @@ export type GetTreeResponse = z.infer<typeof getTreeResponseSchema>;
  * into a single tree.
  */
 export const getTree = async ({ repoName, revisionName, paths }: GetTreeRequest, { source }: { source?: string } = {}): Promise<GetTreeResponse | ServiceError> => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma, user }) => {
+    withOptionalAuth(async ({ org, prisma, user }) => {
         if (user) {
             const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
             getAuditService().createAudit({

@@ -3,7 +3,7 @@ import NextAuth, { DefaultSession, User as AuthJsUser } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/nodemailer";
 import { prisma } from "@/prisma";
-import { env } from "@sourcebot/shared";
+import { env, getSMTPConnectionURL } from "@sourcebot/shared";
 import { User } from '@sourcebot/db';
 import 'next-auth/jwt';
 import type { Provider } from "next-auth/providers";
@@ -50,10 +50,11 @@ declare module 'next-auth/jwt' {
 export const getProviders = () => {
     const providers: IdentityProvider[] = [...eeIdentityProviders];
 
-    if (env.SMTP_CONNECTION_URL && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
+    const smtpConnectionUrl = getSMTPConnectionURL();
+    if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
         providers.push({
             provider: EmailProvider({
-                server: env.SMTP_CONNECTION_URL,
+                server: smtpConnectionUrl,
                 from: env.EMAIL_FROM_ADDRESS,
                 maxAge: 60 * 10,
                 generateVerificationToken: async () => {

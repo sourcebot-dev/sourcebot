@@ -2,11 +2,12 @@ import { Parser } from '@lezer/common'
 import { LanguageDescription, StreamLanguage } from '@codemirror/language'
 import { Highlighter, highlightTree } from '@lezer/highlight'
 import { languages as builtinLanguages } from '@codemirror/language-data'
-import { memo, useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { useCodeMirrorHighlighter } from '@/hooks/useCodeMirrorHighlighter'
 import tailwind from '@/tailwind'
 import { measure } from '@/lib/utils'
 import { SourceRange } from '@/features/search'
+import { CopyIconButton } from './copyIconButton'
 
 // Define a plain text language
 const plainTextLanguage = StreamLanguage.define({
@@ -25,6 +26,7 @@ interface LightweightCodeHighlighter {
     /* 1-based line number offset */
     lineNumbersOffset?: number;
     renderWhitespace?: boolean;
+    isCopyButtonVisible?: boolean;
 }
 
 // The maximum number of characters per line that we will display in the preview.
@@ -46,6 +48,7 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
         lineNumbers = false,
         lineNumbersOffset = 1,
         renderWhitespace = false,
+        isCopyButtonVisible = false,
     } = props;
 
     const unhighlightedLines = useMemo(() => {
@@ -110,6 +113,15 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
         isFileTooLargeToDisplay,
     ]);
 
+    const onCopy = useCallback(() => {
+        try {
+            navigator.clipboard.writeText(code);
+            return true;
+        } catch {
+            return false;
+        }
+    }, [code]);
+
     const lineCount = (highlightedLines ?? unhighlightedLines).length + lineNumbersOffset;
     const lineNumberDigits = String(lineCount).length;
     const lineNumberWidth = `${lineNumberDigits + 2}ch`; // +2 for padding
@@ -123,46 +135,55 @@ export const LightweightCodeHighlighter = memo<LightweightCodeHighlighter>((prop
     }
 
     return (
-        <div
-            style={{
-                fontFamily: tailwind.theme.fontFamily.editor,
-                fontSize: tailwind.theme.fontSize.editor,
-                whiteSpace: renderWhitespace ? 'pre-wrap' : 'none',
-                wordBreak: 'break-all',
-            }}
-        >
-            {(highlightedLines ?? unhighlightedLines).map((line, index) => (
-                <div
-                    key={index}
-                    className="flex"
-                >
-                    {lineNumbers && (
+        <div className="relative group">
+            {isCopyButtonVisible && (
+                <CopyIconButton
+                    onCopy={onCopy}
+                    className="absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity group-hover:bg-background"
+                />
+            )}
+            <div
+                style={{
+                    fontFamily: tailwind.theme.fontFamily.editor,
+                    fontSize: tailwind.theme.fontSize.editor,
+                    whiteSpace: renderWhitespace ? 'pre-wrap' : 'none',
+                    wordBreak: 'break-all',
+                }}
+            >
+                {(highlightedLines ?? unhighlightedLines).map((line, index) => (
+                    <div
+                        key={index}
+                        className="flex"
+                    >
+                        {lineNumbers && (
+                            <span
+                                style={{
+                                    width: lineNumberWidth,
+                                    minWidth: lineNumberWidth,
+                                    display: 'inline-block',
+                                    textAlign: 'left',
+                                    paddingLeft: '5px',
+                                    userSelect: 'none',
+                                    WebkitUserSelect: 'none',
+                                    fontFamily: tailwind.theme.fontFamily.editor,
+                                    color: tailwind.theme.colors.editor.gutterForeground,
+                                }}
+                            >
+                                {index + lineNumbersOffset}
+                            </span>
+                        )}
                         <span
                             style={{
-                                width: lineNumberWidth,
-                                minWidth: lineNumberWidth,
-                                display: 'inline-block',
-                                textAlign: 'left',
-                                paddingLeft: '5px',
-                                userSelect: 'none',
-                                fontFamily: tailwind.theme.fontFamily.editor,
-                                color: tailwind.theme.colors.editor.gutterForeground,
+                                flex: 1,
+                                paddingLeft: '6px',
+                                paddingRight: '2px',
                             }}
                         >
-                            {index + lineNumbersOffset}
+                            {line}
                         </span>
-                    )}
-                    <span
-                        style={{
-                            flex: 1,
-                            paddingLeft: '6px',
-                            paddingRight: '2px',
-                        }}
-                    >
-                        {line}
-                    </span>
-                </div>
-            ))}
+                    </div>
+                ))}
+            </div>
         </div>
     )
 })
@@ -184,7 +205,7 @@ async function getCodeParser(
                 return null;
             }
 
-            if (!found.support) { 
+            if (!found.support) {
                 await found.load();
             }
             return found.support ? found.support.language.parser : null;

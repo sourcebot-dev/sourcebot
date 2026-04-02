@@ -442,6 +442,7 @@ const createJumpCloudProvider = (clientId: string, clientSecret: string, issuer:
         clientId: clientId,
         clientSecret: clientSecret,
         issuer: issuer,
+        checks: ["pkce", "state"],
         allowDangerousEmailAccountLinking: env.AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING === 'true',
     } as Provider;
 }

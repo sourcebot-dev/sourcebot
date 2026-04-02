@@ -1,13 +1,13 @@
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { ListReposQueryParams, RepositoryQuery } from "@/lib/types";
-import { withOptionalAuthV2 } from "@/withAuthV2";
+import { withOptionalAuth } from "@/middleware/withAuth";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
 import { env } from "@sourcebot/shared";
 import { headers } from "next/headers";
 
 export const listRepos = async ({ query, page, perPage, sort, direction, source }: ListReposQueryParams & { source?: string }) => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma, user }) => {
+    withOptionalAuth(async ({ org, prisma, user }) => {
         if (user) {
             const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
             getAuditService().createAudit({
@@ -54,7 +54,6 @@ export const listRepos = async ({ query, page, perPage, sort, direction, source 
                     repoName: repo.name,
                     path: '',
                     pathType: 'tree',
-                    domain: org.domain,
                 })}`,
                 repoDisplayName: repo.displayName ?? undefined,
                 externalWebUrl: repo.webUrl ?? undefined,

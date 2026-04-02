@@ -1,5 +1,4 @@
 import { BrowseHighlightRange, getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { CreateUIMessage, TextUIPart, UIMessagePart } from "ai";
 import { Descendant, Editor, Point, Range, Transforms } from "slate";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
@@ -174,7 +173,7 @@ export const resetEditor = (editor: CustomEditor) => {
 }
 
 export const addLineNumbers = (source: string, lineOffset = 1) => {
-    return source.split('\n').map((line, index) => `${index + lineOffset}:${line}`).join('\n');
+    return source.split('\n').map((line, index) => `${index + lineOffset}: ${line}`).join('\n');
 }
 
 export const createUIMessage = (text: string, mentions: MentionData[], selectedSearchScopes: SearchScope[]): CreateUIMessage<SBChatMessage> => {
@@ -187,7 +186,6 @@ export const createUIMessage = (text: string, mentions: MentionData[], selectedS
                     path: mention.path,
                     repo: mention.repo,
                     name: mention.name,
-                    language: mention.language,
                     revision: mention.revision,
                 }
                 return fileSource;
@@ -272,7 +270,6 @@ export const convertLLMOutputToPortableMarkdown = (text: string, baseUrl: string
                 repoName: repo,
                 path: fileName,
                 pathType: 'blob',
-                domain: SINGLE_TENANT_ORG_DOMAIN,
                 highlightRange,
             });
 
@@ -338,8 +335,13 @@ export const getAnswerPartFromAssistantMessage = (message: SBChatMessage, isStre
     const lastTextPart = message.parts
         .findLast((part) => part.type === 'text')
 
-    if (lastTextPart?.text.startsWith(ANSWER_TAG)) {
-        return lastTextPart;
+    if (lastTextPart?.text.includes(ANSWER_TAG)) {
+        const answerIndex = lastTextPart.text.indexOf(ANSWER_TAG);
+        const answer = lastTextPart.text.substring(answerIndex + ANSWER_TAG.length);
+        return {
+            ...lastTextPart,
+            text: answer
+        };
     }
 
     // If the agent did not include the answer tag, then fallback to using the last text part.

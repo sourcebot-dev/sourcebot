@@ -33,6 +33,10 @@ Standard dev commands are documented in `CONTRIBUTING.md` and `package.json`. Ke
 - **Build deps only:** `yarn build:deps` (builds shared packages: schemas, db, shared, query-language)
 - **DB migrations:** `yarn dev:prisma:migrate:dev`
 
+### Deprecated Packages
+
+- **`packages/mcp`** - This standalone MCP package is deprecated. Do NOT modify it. MCP functionality is now handled by the web package at `packages/web/src/features/mcp/`.
+
 ### Non-obvious Caveats
 
 - **Docker must be running** before `yarn dev`. Start it with `docker compose -f docker-compose-dev.yml up -d`. The backend will fail to connect to Redis/PostgreSQL otherwise.

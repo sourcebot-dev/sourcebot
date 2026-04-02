@@ -41,6 +41,7 @@ export const CodeBlock = ({
                     language={language}
                     lineNumbers={true}
                     renderWhitespace={true}
+                    isCopyButtonVisible={true}
                 >
                     {code}
                 </LightweightCodeHighlighter>

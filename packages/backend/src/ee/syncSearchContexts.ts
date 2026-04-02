@@ -1,7 +1,7 @@
 import micromatch from "micromatch";
 import { createLogger } from "@sourcebot/shared";
 import { PrismaClient } from "@sourcebot/db";
-import { getPlan, hasEntitlement, SOURCEBOT_SUPPORT_EMAIL } from "@sourcebot/shared";
+import { getPlan, hasEntitlement, repoMetadataSchema, SOURCEBOT_SUPPORT_EMAIL } from "@sourcebot/shared";
 import { SearchContext } from "@sourcebot/schemas/v3/index.type";
 
 const logger = createLogger('sync-search-contexts');
@@ -32,10 +32,11 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
                 select: {
                     id: true,
                     name: true,
+                    metadata: true,
                 }
             });
 
-            let newReposInContext: { id: number, name: string }[] = [];
+            let newReposInContext: { id: number, name: string, metadata: unknown }[] = [];
             if(newContextConfig.include) {
                 newReposInContext = allRepos.filter(repo => {
                     return micromatch.isMatch(repo.name, newContextConfig.include!);
@@ -57,6 +58,7 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
                                     select: {
                                         id: true,
                                         name: true,
+                                        metadata: true,
                                     }
                                 }
                             }
@@ -66,6 +68,28 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
 
                 for (const connection of connections) {
                     newReposInContext = newReposInContext.concat(connection.repos.map(repo => repo.repo));
+                }
+            }
+
+            if (newContextConfig.includeTopics) {
+                const topicPatterns = newContextConfig.includeTopics.map(t => t.toLowerCase());
+                const matching = allRepos.filter(repo => {
+                    const parsed = repoMetadataSchema.safeParse(repo.metadata);
+                    if (!parsed.success) {
+                        return false;
+                    }
+                    const repoTopics = [
+                        ...(parsed.data.codeHostMetadata?.gitlab?.topics ?? []),
+                        ...(parsed.data.codeHostMetadata?.github?.topics ?? []),
+                    ];
+                    return repoTopics.some(t => micromatch.isMatch(t.toLowerCase(), topicPatterns));
+                });
+                const seen = new Set(newReposInContext.map(r => r.id));
+                for (const repo of matching) {
+                    if (!seen.has(repo.id)) {
+                        newReposInContext.push(repo);
+                        seen.add(repo.id);
+                    }
                 }
             }
 
@@ -91,6 +115,7 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
                                     select: {
                                         id: true,
                                         name: true,
+                                        metadata: true,
                                     }
                                 }
                             }
@@ -103,6 +128,21 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
                         return !connection.repos.map(r => r.repo.id).includes(repo.id);
                     });
                 }
+            }
+
+            if (newContextConfig.excludeTopics) {
+                const topicPatterns = newContextConfig.excludeTopics.map(t => t.toLowerCase());
+                newReposInContext = newReposInContext.filter(repo => {
+                    const parsed = repoMetadataSchema.safeParse(repo.metadata);
+                    if (!parsed.success) {
+                        return true;
+                    }
+                    const repoTopics = [
+                        ...(parsed.data.codeHostMetadata?.gitlab?.topics ?? []),
+                        ...(parsed.data.codeHostMetadata?.github?.topics ?? []),
+                    ];
+                    return !repoTopics.some(t => micromatch.isMatch(t.toLowerCase(), topicPatterns));
+                });
             }
 
             const currentReposInContext = (await db.searchContext.findUnique({

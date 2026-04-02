@@ -6,7 +6,6 @@ import { readFile } from 'fs/promises';
 import stripJsonComments from "strip-json-comments";
 import { z } from "zod";
 import { getTokenFromConfig } from "./crypto.js";
-import { tenancyModeSchema } from "./types.js";
 
 // Booleans are specified as 'true' or 'false' strings.
 const booleanSchema = z.enum(["true", "false"]);
@@ -154,14 +153,14 @@ const options = {
         SOURCEBOT_PUBLIC_KEY_PATH: z.string(),
 
         // Email
+        // Either SMTP_CONNECTION_URL or SMTP_HOST must be set to enable transactional emails.
+        // @see: shared/src/smtp.ts for more details.
         SMTP_CONNECTION_URL: z.string().url().optional(),
+        SMTP_HOST: z.string().optional(),
+        SMTP_PORT: z.coerce.number().optional(),
+        SMTP_USERNAME: z.string().optional(),
+        SMTP_PASSWORD: z.string().optional(),
         EMAIL_FROM_ADDRESS: z.string().email().optional(),
-
-        // Stripe
-        STRIPE_SECRET_KEY: z.string().optional(),
-        STRIPE_PRODUCT_ID: z.string().optional(),
-        STRIPE_WEBHOOK_SECRET: z.string().optional(),
-        STRIPE_ENABLE_TEST_CLOCKS: booleanSchema.default('false'),
 
         LOGTAIL_TOKEN: z.string().optional(),
         LOGTAIL_HOST: z.string().url().optional(),
@@ -182,7 +181,6 @@ const options = {
         DATABASE_NAME: z.string().optional(),
         DATABASE_ARGS: z.string().optional(),
 
-        SOURCEBOT_TENANCY_MODE: tenancyModeSchema.default("single"),
         CONFIG_PATH: z.string(),
 
         // Misc UI flags
@@ -232,17 +230,31 @@ const options = {
         AWS_REGION: z.string().optional(),
 
         SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.default(0.3),
-        SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(20),
+        SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(100),
 
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
+        DEBUG_ENABLE_REACT_SCAN: booleanSchema.default('false'),
 
         LANGFUSE_SECRET_KEY: z.string().optional(),
 
         SOURCEBOT_DEMO_EXAMPLES_PATH: z.string().optional(),
 
+        DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS: booleanSchema.default('false'),
+
+        DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS: booleanSchema
+            .optional()
+            .transform(value => {
+                return value ?? ((process.env.EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS as 'true' | 'false') ?? 'false');
+            }),
+
+        /**
+         * @deprecated Use `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` instead.
+         */
+        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
+
+
         // Experimental Environment Variables
         // @note: These environment variables are subject to change at any time and are not garunteed to be backwards compatible.
-        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED: booleanSchema.default('false'),
         // @NOTE: Take care to update actions.ts when changing the name of this.
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN: z.string().optional(),
@@ -259,6 +271,19 @@ const options = {
         REDIS_URL: z.string().url().default("redis://localhost:6379"),
         REDIS_REMOVE_ON_COMPLETE: numberSchema.default(0),
         REDIS_REMOVE_ON_FAIL: numberSchema.default(100),
+
+        // Redis TLS
+        REDIS_TLS_ENABLED: booleanSchema.default("false"),
+        REDIS_TLS_CA_PATH: z.string().optional(),
+        REDIS_TLS_CERT_PATH: z.string().optional(),
+        REDIS_TLS_KEY_PATH: z.string().optional(),
+        REDIS_TLS_SERVERNAME: z.string().optional(),
+        REDIS_TLS_REJECT_UNAUTHORIZED: booleanSchema.optional(),
+        REDIS_TLS_CHECK_SERVER_IDENTITY: booleanSchema.optional(),
+        REDIS_TLS_SECURE_PROTOCOL: z.string().optional(),
+        REDIS_TLS_CIPHERS: z.string().optional(),
+        REDIS_TLS_HONOR_CIPHER_ORDER: booleanSchema.optional(),
+        REDIS_TLS_KEY_PASSPHRASE: z.string().optional(),
 
         CONNECTION_MANAGER_UPSERT_TIMEOUT_MS: numberSchema.default(300000),
         REPO_SYNC_RETRY_BASE_SLEEP_SECONDS: numberSchema.default(60),

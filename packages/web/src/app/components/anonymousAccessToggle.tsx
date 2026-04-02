@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { Switch } from "@/components/ui/switch"
 import { setAnonymousAccessStatus } from "@/actions"
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { isServiceError } from "@/lib/utils"
 import { useToast } from "@/components/hooks/use-toast"
 
@@ -22,7 +21,7 @@ export function AnonymousAccessToggle({ hasAnonymousAccessEntitlement, anonymous
     const handleToggle = async (checked: boolean) => {
         setIsLoading(true)
         try {
-            const result = await setAnonymousAccessStatus(SINGLE_TENANT_ORG_DOMAIN, checked)
+            const result = await setAnonymousAccessStatus(checked)
             
             if (isServiceError(result)) {
                 toast({

@@ -178,6 +178,14 @@ export interface SearchContext {
    */
   excludeConnections?: string[];
   /**
+   * List of repository topics to include in the search context. Only repositories matching at least one topic are included. Glob patterns are supported.
+   */
+  includeTopics?: string[];
+  /**
+   * List of repository topics to exclude from the search context. Repositories matching any of these topics are excluded. Glob patterns are supported.
+   */
+  excludeTopics?: string[];
+  /**
    * Optional description of the search context that surfaces in the UI.
    */
   description?: string;

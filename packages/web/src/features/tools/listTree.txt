@@ -1,0 +1,9 @@
+Lists files and directories from a repository path. This can be used as a repo tree tool or directory listing tool. Returns a flat list of entries with path metadata and depth relative to the requested path.
+
+Usage:
+- If the repository name is not known, use `list_repos` first to discover the correct name.
+- Start with a shallow depth (default: 1) to get a high-level overview, then drill into specific subdirectories as needed.
+- Use `path` to scope the listing to a subdirectory rather than fetching the entire tree at once.
+- Set `includeFiles: false` to list only directories when you only need the directory structure.
+- Set `includeDirectories: false` to list only files when you only need leaf nodes.
+- Call this tool in parallel when you need to explore multiple directories simultaneously.

@@ -1,7 +1,7 @@
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { withOptionalAuthV2 } from "@/withAuthV2";
+import { withOptionalAuth } from "@/middleware/withAuth";
 import { ReposTable } from "./components/reposTable";
 import { RepoIndexingJobStatus, Prisma } from "@sourcebot/db";
 import z from "zod";
@@ -96,7 +96,7 @@ interface GetReposParams {
 }
 
 const getRepos = async ({ skip, take, search, status, sortBy, sortOrder }: GetReposParams) => sew(() =>
-    withOptionalAuthV2(async ({ prisma }) => {
+    withOptionalAuth(async ({ prisma }) => {
         const whereClause: Prisma.RepoWhereInput = {
             ...(search ? {
                 displayName: { contains: search, mode: 'insensitive' },

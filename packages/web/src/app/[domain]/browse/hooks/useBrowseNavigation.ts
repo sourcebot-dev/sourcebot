@@ -1,13 +1,11 @@
 'use client';
 
 import { useRouter } from "next/navigation";
-import { useDomain } from "@/hooks/useDomain";
 import { useCallback } from "react";
 import { getBrowsePath, GetBrowsePathProps } from "./utils";
 
 export const useBrowseNavigation = () => {
     const router = useRouter();
-    const domain = useDomain();
 
     const navigateToPath = useCallback(({
         repoName,
@@ -16,7 +14,7 @@ export const useBrowseNavigation = () => {
         pathType,
         highlightRange,
         setBrowseState,
-    }: Omit<GetBrowsePathProps, 'domain'>) => {
+    }: GetBrowsePathProps) => {
         const browsePath = getBrowsePath({
             repoName,
             revisionName,
@@ -24,13 +22,12 @@ export const useBrowseNavigation = () => {
             pathType,
             highlightRange,
             setBrowseState,
-            domain,
         });
 
         router.push(browsePath);
-    }, [domain, router]);
+    }, [router]);
 
     return {
         navigateToPath,
     };
-}; 
+};

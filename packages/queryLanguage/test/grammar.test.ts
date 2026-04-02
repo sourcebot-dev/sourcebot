@@ -11,6 +11,10 @@ for (const file of fs.readdirSync(caseDir)) {
     if (!/\.txt$/.test(file)) {
         continue;
     }
+    // regex.txt is tested separately in grammar.regex.test.ts using the regex dialect parser
+    if (file === "regex.txt") {
+        continue;
+    }
 
     let name = /^[^\.]*/.exec(file)?.[0];
     describe(name ?? "unknown", () => {

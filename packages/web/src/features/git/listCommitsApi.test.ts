@@ -31,7 +31,7 @@ vi.mock('@/lib/serviceError', () => ({
         message: `Invalid git reference: "${ref}". Git refs cannot start with '-'.`,
     }),
 }));
-vi.mock('@/actions', () => ({
+vi.mock('@/middleware/sew', () => ({
     sew: async <T>(fn: () => Promise<T> | T): Promise<T> => {
         try {
             return await fn();
@@ -47,9 +47,9 @@ vi.mock('@/actions', () => ({
 // Create a mock findFirst function that we can configure per-test
 const mockFindFirst = vi.fn();
 
-vi.mock('@/withAuthV2', () => ({
-    withOptionalAuthV2: async <T>(fn: (args: { org: { id: number; name: string }; prisma: unknown }) => Promise<T>): Promise<T> => {
-        // Mock withOptionalAuthV2 to provide org and prisma context
+vi.mock('@/middleware/withAuth', () => ({
+    withOptionalAuth: async <T>(fn: (args: { org: { id: number; name: string }; prisma: unknown }) => Promise<T>): Promise<T> => {
+        // Mock withOptionalAuth to provide org and prisma context
         const mockOrg = { id: 1, name: 'test-org' };
         const mockPrisma = {
             repo: {
@@ -191,10 +191,10 @@ describe('searchCommits', () => {
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    '--since': '2024-01-01',
-                    '--until': '2024-12-31',
-                })
+                expect.arrayContaining([
+                    '--since=2024-01-01',
+                    '--until=2024-12-31',
+                ])
             );
         });
     });
@@ -211,10 +211,10 @@ describe('searchCommits', () => {
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    maxCount: 50,
-                    HEAD: null,
-                })
+                expect.arrayContaining([
+                    '--max-count=50',
+                    'HEAD',
+                ])
             );
         });
 
@@ -225,10 +225,10 @@ describe('searchCommits', () => {
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    maxCount: 100,
-                    HEAD: null,
-                })
+                expect.arrayContaining([
+                    '--max-count=100',
+                    'HEAD',
+                ])
             );
         });
 
@@ -239,10 +239,10 @@ describe('searchCommits', () => {
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    '--since': '30 days ago',
-                    HEAD: null,
-                })
+                expect.arrayContaining([
+                    '--since=30 days ago',
+                    'HEAD',
+                ])
             );
         });
 
@@ -253,10 +253,10 @@ describe('searchCommits', () => {
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    '--until': 'yesterday',
-                    HEAD: null,
-                })
+                expect.arrayContaining([
+                    '--until=yesterday',
+                    'HEAD',
+                ])
             );
         });
 
@@ -267,11 +267,11 @@ describe('searchCommits', () => {
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    '--author': 'john@example.com',
-                    '--regexp-ignore-case': null,
-                    HEAD: null,
-                })
+                expect.arrayContaining([
+                    '--author=john@example.com',
+                    '--regexp-ignore-case',
+                    'HEAD',
+                ])
             );
         });
 
@@ -282,11 +282,11 @@ describe('searchCommits', () => {
             });
 
             expect(mockGitLog).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    '--grep': 'fix bug',
-                    '--regexp-ignore-case': null,
-                    HEAD: null,
-                })
+                expect.arrayContaining([
+                    '--grep=fix bug',
+                    '--regexp-ignore-case',
+                    'HEAD',
+                ])
             );
         });
 
@@ -300,21 +300,21 @@ describe('searchCommits', () => {
                 maxCount: 25,
             });
 
-            expect(mockGitLog).toHaveBeenCalledWith({
-                maxCount: 25,
-                HEAD: null,
-                '--since': '2024-01-01',
-                '--until': '2024-12-31',
-                '--author': 'jane@example.com',
-                '--regexp-ignore-case': null,
-                '--grep': 'feature',
-            });
+            expect(mockGitLog).toHaveBeenCalledWith([
+                '--max-count=25',
+                '--since=2024-01-01',
+                '--until=2024-12-31',
+                '--author=jane@example.com',
+                '--regexp-ignore-case',
+                '--grep=feature',
+                'HEAD',
+            ]);
         });
     });
 
     describe('successful responses', () => {
         it('should return commits and totalCount from git log', async () => {
-            const mockCommits = [
+            const gitLogOutput = [
                 {
                     hash: 'abc123',
                     date: '2024-06-15',
@@ -335,14 +335,35 @@ describe('searchCommits', () => {
                 },
             ];
 
-            mockGitLog.mockResolvedValue({ all: mockCommits });
+            const expectedCommits = [
+                {
+                    hash: 'abc123',
+                    date: '2024-06-15',
+                    message: 'feat: add feature',
+                    refs: 'HEAD -> main',
+                    body: '',
+                    authorName: 'John Doe',
+                    authorEmail: 'john@example.com',
+                },
+                {
+                    hash: 'def456',
+                    date: '2024-06-14',
+                    message: 'fix: bug fix',
+                    refs: '',
+                    body: '',
+                    authorName: 'Jane Smith',
+                    authorEmail: 'jane@example.com',
+                },
+            ];
+
+            mockGitLog.mockResolvedValue({ all: gitLogOutput });
             mockGitRaw.mockResolvedValue('2');
 
             const result = await listCommits({
                 repo: 'github.com/test/repo',
             });
 
-            expect(result).toEqual({ commits: mockCommits, totalCount: 2 });
+            expect(result).toEqual({ commits: expectedCommits, totalCount: 2 });
         });
 
         it('should return empty commits array when no commits match', async () => {
@@ -451,7 +472,7 @@ describe('searchCommits', () => {
 
     describe('integration scenarios', () => {
         it('should handle a typical commit search with filters', async () => {
-            const mockCommits = [
+            const gitLogOutput = [
                 {
                     hash: 'abc123',
                     date: '2024-06-10T14:30:00Z',
@@ -463,9 +484,21 @@ describe('searchCommits', () => {
                 },
             ];
 
+            const expectedCommits = [
+                {
+                    hash: 'abc123',
+                    date: '2024-06-10T14:30:00Z',
+                    message: 'fix: resolve authentication bug',
+                    refs: 'HEAD -> main',
+                    body: 'Fixed issue with JWT token validation',
+                    authorName: 'Security Team',
+                    authorEmail: 'security@example.com',
+                },
+            ];
+
             vi.spyOn(dateUtils, 'validateDateRange').mockReturnValue(null);
             vi.spyOn(dateUtils, 'toGitDate').mockImplementation((date) => date);
-            mockGitLog.mockResolvedValue({ all: mockCommits });
+            mockGitLog.mockResolvedValue({ all: gitLogOutput });
             mockGitRaw.mockResolvedValue('1');
 
             const result = await listCommits({
@@ -477,16 +510,16 @@ describe('searchCommits', () => {
                 maxCount: 20,
             });
 
-            expect(result).toEqual({ commits: mockCommits, totalCount: 1 });
-            expect(mockGitLog).toHaveBeenCalledWith({
-                maxCount: 20,
-                HEAD: null,
-                '--since': '30 days ago',
-                '--until': 'yesterday',
-                '--author': 'security',
-                '--regexp-ignore-case': null,
-                '--grep': 'authentication',
-            });
+            expect(result).toEqual({ commits: expectedCommits, totalCount: 1 });
+            expect(mockGitLog).toHaveBeenCalledWith([
+                '--max-count=20',
+                '--since=30 days ago',
+                '--until=yesterday',
+                '--author=security',
+                '--regexp-ignore-case',
+                '--grep=authentication',
+                'HEAD',
+            ]);
         });
 
         it('should handle repository not found in database', async () => {
@@ -555,7 +588,7 @@ describe('searchCommits', () => {
         });
 
         it('should work end-to-end with repository lookup', async () => {
-            const mockCommits = [
+            const gitLogOutput = [
                 {
                     hash: 'xyz789',
                     date: '2024-06-20T10:00:00Z',
@@ -567,10 +600,22 @@ describe('searchCommits', () => {
                 },
             ];
 
+            const expectedCommits = [
+                {
+                    hash: 'xyz789',
+                    date: '2024-06-20T10:00:00Z',
+                    message: 'feat: new feature',
+                    refs: 'main',
+                    body: 'Added new functionality',
+                    authorName: 'Developer',
+                    authorEmail: 'dev@example.com',
+                },
+            ];
+
             mockFindFirst.mockResolvedValue({ id: 555, name: 'github.com/test/repository' });
             vi.spyOn(dateUtils, 'validateDateRange').mockReturnValue(null);
             vi.spyOn(dateUtils, 'toGitDate').mockImplementation((date) => date);
-            mockGitLog.mockResolvedValue({ all: mockCommits });
+            mockGitLog.mockResolvedValue({ all: gitLogOutput });
             mockGitRaw.mockResolvedValue('1');
 
             const result = await listCommits({
@@ -580,7 +625,7 @@ describe('searchCommits', () => {
                 author: 'Developer',
             });
 
-            expect(result).toEqual({ commits: mockCommits, totalCount: 1 });
+            expect(result).toEqual({ commits: expectedCommits, totalCount: 1 });
             expect(mockCwd).toHaveBeenCalledWith('/mock/cache/dir/555');
         });
     });

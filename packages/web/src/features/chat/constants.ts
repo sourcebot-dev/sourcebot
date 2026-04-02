@@ -1,5 +1,3 @@
-import { SBChatMessagePart } from "./types";
-
 export const FILE_REFERENCE_PREFIX = '@file:';
 export const FILE_REFERENCE_REGEX = new RegExp(
     // @file:{repoName::fileName:startLine-endLine}
@@ -9,23 +7,5 @@ export const FILE_REFERENCE_REGEX = new RegExp(
 
 export const ANSWER_TAG = '<!--answer-->';
 
-export const toolNames = {
-    searchCode: 'searchCode',
-    readFiles: 'readFiles',
-    findSymbolReferences: 'findSymbolReferences',
-    findSymbolDefinitions: 'findSymbolDefinitions',
-    listRepos: 'listRepos',
-    listCommits: 'listCommits',
-} as const;
-
-// These part types are visible in the UI.
-export const uiVisiblePartTypes: SBChatMessagePart['type'][] = [
-    'reasoning',
-    'text',
-    'tool-searchCode',
-    'tool-readFiles',
-    'tool-findSymbolDefinitions',
-    'tool-findSymbolReferences',
-    'tool-listRepos',
-    'tool-listCommits',
-] as const;
+export const SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY = 'selectedSearchScopes';
+export const SET_CHAT_STATE_SESSION_STORAGE_KEY = 'setChatState';

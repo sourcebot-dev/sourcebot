@@ -69,7 +69,7 @@ export const JoinRequestSubmittedEmail = ({
                                 <Column align="right">
                                     <Img
                                         className="rounded-full"
-                                        src={requestor.avatarUrl ? requestor.avatarUrl : SOURCEBOT_PLACEHOLDER_AVATAR_URL}
+                                        src={requestor.avatarUrl ?? `${baseUrl}/api/minidenticon?email=${encodeURIComponent(requestor.email)}`}
                                         width="64"
                                         height="64"
                                         alt="Requestor avatar"
@@ -127,15 +127,13 @@ const RequestorInfo = ({ email, name }: { email: string, name?: string }) => {
 }
 
 JoinRequestSubmittedEmail.PreviewProps = {
-    baseUrl: 'https://sourcebot.example.com',
+    baseUrl: 'http://localhost:3000',
     requestor: {
         name: 'Alan Turing',
         email: 'alan.turing@example.com',
-        avatarUrl: SOURCEBOT_PLACEHOLDER_AVATAR_URL,
     },
     orgName: 'Enigma',
     orgDomain: '~',
-    orgImageUrl: SOURCEBOT_PLACEHOLDER_AVATAR_URL,
 } satisfies JoinRequestSubmittedEmailProps;
 
 export default JoinRequestSubmittedEmail;

@@ -44,6 +44,12 @@ export const repoMetadataSchema = z.object({
             projectKey: z.string(),
             repoSlug: z.string(),
         }).optional(),
+        gitlab: z.object({
+            topics: z.array(z.string()),
+        }).optional(),
+        github: z.object({
+            topics: z.array(z.string()),
+        }).optional(),
     }).optional(),
 });
 
@@ -57,7 +63,5 @@ export const repoIndexingJobMetadataSchema = z.object({
 });
 
 export type RepoIndexingJobMetadata = z.infer<typeof repoIndexingJobMetadataSchema>;
-
-export const tenancyModeSchema = z.enum(["multi", "single"]);
 
 export type IdentityProviderType = IdentityProviderConfig['provider'];

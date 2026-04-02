@@ -1,0 +1,24 @@
+---
+title: Redis
+sidebarTitle: Redis
+---
+
+Sourcebot uses Redis as a job queue for background indexing work.
+
+## TLS
+
+To enable TLS for your Redis connection, set `REDIS_TLS_ENABLED=true`. You can also enable TLS implicitly by using a `rediss://` connection string in `REDIS_URL`.
+
+| Variable | Default | Description |
+| :------- | :------ | :---------- |
+| `REDIS_TLS_ENABLED` | `false` | Enable TLS for the Redis connection. Alternatively, enable tls via `rediss://` connection string. |
+| `REDIS_TLS_CA_PATH` | - | Path to the CA certificate for the Redis connection. |
+| `REDIS_TLS_CERT_PATH` | - | Path to the certificate for the Redis connection. |
+| `REDIS_TLS_KEY_PATH` | - | Path to the private key for the Redis connection. |
+| `REDIS_TLS_KEY_PASSPHRASE` | - | Passphrase for encrypted private keys. Required if your TLS private key is password-protected. |
+| `REDIS_TLS_SERVERNAME` | - | Server name for SNI (Server Name Indication). Useful when connecting to Redis through a proxy or with custom certificates. |
+| `REDIS_TLS_REJECT_UNAUTHORIZED` | `true` | Set to `false` to disable certificate validation. Not recommended for production. When not set, defaults to Node.js secure behavior. |
+| `REDIS_TLS_CHECK_SERVER_IDENTITY` | - | Set to `false` to bypass server identity checking. Use with caution in enterprise environments with custom certificate setups. |
+| `REDIS_TLS_SECURE_PROTOCOL` | - | TLS protocol version (e.g., `TLSv1_2_method`, `TLSv1_3_method`). Uses Node.js defaults when not set. |
+| `REDIS_TLS_CIPHERS` | - | Custom cipher suite configuration. Allows specification of allowed TLS ciphers for enhanced security requirements. |
+| `REDIS_TLS_HONOR_CIPHER_ORDER` | - | Set to `true` to use server’s cipher order preference instead of client’s. Useful for enforcing security policies. |

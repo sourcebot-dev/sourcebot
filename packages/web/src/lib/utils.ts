@@ -14,9 +14,6 @@ import microsoftLogo from "@/public/microsoft_entra.svg";
 import authentikLogo from "@/public/authentik.svg";
 import jumpcloudLogo from "@/public/jumpcloud.svg";
 import { ServiceError } from "./serviceError";
-import { StatusCodes } from "http-status-codes";
-import { ErrorCode } from "./errorCodes";
-import { NextRequest } from "next/server";
 import { ConnectionType, Org } from "@sourcebot/db";
 import { OrgMetadata, orgMetadataSchema } from "@/types";
 import { SINGLE_TENANT_ORG_DOMAIN } from "./constants";
@@ -441,32 +438,12 @@ export const getCodeHostBrowseFileAtBranchUrl = ({
     }
 }
 
-export const isAuthSupportedForCodeHost = (codeHostType: CodeHostType): boolean => {
-    switch (codeHostType) {
-        case "github":
-        case "gitlab":
-        case "gitea":
-        case "bitbucketCloud":
-        case "bitbucketServer":
-        case "azuredevops":
-            return true;
-        case "genericGitHost":
-        case "gerrit":
-            return false;
-    }
-}
-
 export const isServiceError = (data: unknown): data is ServiceError => {
     return typeof data === 'object' &&
         data !== null &&
         'statusCode' in data &&
         'errorCode' in data &&
         'message' in data;
-}
-
-// @see: https://stackoverflow.com/a/65959350/23221295
-export const isDefined = <T>(arg: T | null | undefined): arg is T extends null | undefined ? never : T => {
-    return arg !== null && arg !== undefined;
 }
 
 export const getFormattedDate = (date: Date) => {
@@ -507,13 +484,13 @@ export const getFormattedDate = (date: Date) => {
 /**
  * Converts a number to a string
  */
-export const getShortenedNumberDisplayString = (number: number) => {
+export const getShortenedNumberDisplayString = (number: number, fractionDigits: number = 1) => {
     if (number < 1000) {
         return number.toString();
     } else if (number < 1000000) {
-        return `${(number / 1000).toFixed(1)}k`;
+        return `${(number / 1000).toFixed(fractionDigits)}k`;
     } else {
-        return `${(number / 1000000).toFixed(1)}m`;
+        return `${(number / 1000000).toFixed(fractionDigits)}m`;
     }
 }
 
@@ -574,18 +551,6 @@ export const unwrapServiceError = async <T>(promise: Promise<ServiceError | T>):
     return data;
 }
 
-export const requiredQueryParamGuard = (request: NextRequest, param: string): ServiceError | string => {
-    const value = request.nextUrl.searchParams.get(param);
-    if (!value) {
-        return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.MISSING_REQUIRED_QUERY_PARAMETER,
-            message: `Missing required query param: ${param}`,
-        };
-    }
-    return value;
-}
-
 export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number): string | undefined => {
     if (!imageUrl) return undefined;
 
@@ -618,8 +583,6 @@ export const getOrgMetadata = (org: Org): OrgMetadata | null => {
     const currentMetadata = orgMetadataSchema.safeParse(org.metadata);
     return currentMetadata.success ? currentMetadata.data : null;
 }
-
-export const IS_MAC = typeof navigator !== 'undefined' && /Mac OS X/.test(navigator.userAgent);
 
 
 export const isHttpError = (error: unknown, status: number): boolean => {
