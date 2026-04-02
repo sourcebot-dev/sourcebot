@@ -100,15 +100,6 @@ export const NavigationMenu = async ({
                         />
                     </Link>
 
-                    {env.SOURCEBOT_TENANCY_MODE === 'multi' && (
-                        <>
-                            <OrgSelector
-                                domain={domain}
-                            />
-                            <Separator orientation="vertical" className="h-6 mx-2" />
-                        </>
-                    )}
-
                     <NavigationMenuBase>
                         <NavigationItems
                             domain={domain}

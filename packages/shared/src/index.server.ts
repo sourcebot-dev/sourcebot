@@ -17,7 +17,6 @@ export type {
 export {
     repoMetadataSchema,
     repoIndexingJobMetadataSchema,
-    tenancyModeSchema,
 } from "./types.js";
 export {
     base64Decode,
