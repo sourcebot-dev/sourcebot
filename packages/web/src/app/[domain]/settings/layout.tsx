@@ -10,7 +10,7 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { OrgRole } from "@prisma/client";
 import { env, hasEntitlement } from "@sourcebot/shared";
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
-import { withAuthV2 } from "@/withAuthV2";
+import { withAuth } from "@/middleware/withAuth";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -67,7 +67,7 @@ export default async function SettingsLayout(
 }
 
 export const getSidebarNavItems = async () =>
-    withAuthV2(async ({ role }) => {
+    withAuth(async ({ role }) => {
         let numJoinRequests: number | undefined;
         if (role === OrgRole.OWNER) {
             const requests = await getOrgAccountRequests();

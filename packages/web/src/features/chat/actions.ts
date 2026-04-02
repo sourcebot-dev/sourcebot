@@ -1,12 +1,12 @@
 'use server';
 
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { getAnonymousId, getOrCreateAnonymousId } from "@/lib/anonymousId";
 import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
 import { notFound, ServiceError } from "@/lib/serviceError";
-import { withAuthV2, withOptionalAuthV2 } from "@/withAuthV2";
+import { withAuth, withOptionalAuth } from "@/middleware/withAuth";
 import { ChatVisibility, Prisma } from "@sourcebot/db";
 import { env } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
@@ -16,7 +16,7 @@ import { generateChatNameFromMessage, getConfiguredLanguageModels, isChatSharedW
 const auditService = getAuditService();
 
 export const createChat = async ({ source }: { source?: string } = {}) => sew(() =>
-    withOptionalAuthV2(async ({ org, user, prisma }) => {
+    withOptionalAuth(async ({ org, user, prisma }) => {
         const isGuestUser = user === undefined;
 
         // For anonymous users, get or create an anonymous ID to track ownership
@@ -62,7 +62,7 @@ export const createChat = async ({ source }: { source?: string } = {}) => sew(()
 );
 
 export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
-    withOptionalAuthV2(async ({ org, user, prisma }) => {
+    withOptionalAuth(async ({ org, user, prisma }) => {
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,
@@ -93,7 +93,7 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
 );
 
 export const getUserChatHistory = async () => sew(() =>
-    withAuthV2(async ({ org, user, prisma }) => {
+    withAuth(async ({ org, user, prisma }) => {
         const chats = await prisma.chat.findMany({
             where: {
                 orgId: org.id,
@@ -114,7 +114,7 @@ export const getUserChatHistory = async () => sew(() =>
 );
 
 export const updateChatName = async ({ chatId, name }: { chatId: string, name: string }) => sew(() =>
-    withOptionalAuthV2(async ({ org, user, prisma }) => {
+    withOptionalAuth(async ({ org, user, prisma }) => {
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,
@@ -150,7 +150,7 @@ export const updateChatName = async ({ chatId, name }: { chatId: string, name: s
 );
 
 export const updateChatVisibility = async ({ chatId, visibility }: { chatId: string, visibility: ChatVisibility }) => sew(() =>
-    withAuthV2(async ({ org, user, prisma }) => {
+    withAuth(async ({ org, user, prisma }) => {
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,
@@ -192,7 +192,7 @@ export const updateChatVisibility = async ({ chatId, visibility }: { chatId: str
 );
 
 export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageModelId, message }: { chatId: string, languageModelId: string, message: string }) => sew(() =>
-    withOptionalAuthV2(async ({ prisma, user, org }) => {
+    withOptionalAuth(async ({ prisma, user, org }) => {
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,
@@ -240,7 +240,7 @@ export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageMod
 )
 
 export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
-    withAuthV2(async ({ org, user, prisma }) => {
+    withAuth(async ({ org, user, prisma }) => {
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,
@@ -283,7 +283,7 @@ export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
  * Visibility is preserved so shared links continue to work.
  */
 export const claimAnonymousChats = async () => sew(() =>
-    withAuthV2(async ({ org, user, prisma }) => {
+    withAuth(async ({ org, user, prisma }) => {
         const anonymousId = await getAnonymousId();
 
         if (!anonymousId) {
@@ -317,7 +317,7 @@ export const claimAnonymousChats = async () => sew(() =>
  * The new chat will be owned by the current user (authenticated or anonymous).
  */
 export const duplicateChat = async ({ chatId, newName }: { chatId: string, newName: string }) => sew(() =>
-    withOptionalAuthV2(async ({ org, user, prisma }) => {
+    withOptionalAuth(async ({ org, user, prisma }) => {
         const originalChat = await prisma.chat.findUnique({
             where: {
                 id: chatId,
@@ -360,7 +360,7 @@ export const duplicateChat = async ({ chatId, newName }: { chatId: string, newNa
  * Returns the users that have been explicitly shared access to a chat.
  */
 export const getSharedWithUsersForChat = async ({ chatId }: { chatId: string }) => sew(() =>
-    withAuthV2(async ({ org, user, prisma }) => {
+    withAuth(async ({ org, user, prisma }) => {
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,
@@ -399,7 +399,7 @@ export const getSharedWithUsersForChat = async ({ chatId }: { chatId: string }) 
  * Shares the chat with a list of users.
  */
 export const shareChatWithUsers = async ({ chatId, userIds }: { chatId: string, userIds: string[] }) => sew(() =>
-    withAuthV2(async ({ org, user, prisma }) => {
+    withAuth(async ({ org, user, prisma }) => {
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,
@@ -454,7 +454,7 @@ export const shareChatWithUsers = async ({ chatId, userIds }: { chatId: string, 
  * Revokes access to a chat for a particular user.
  */
 export const unshareChatWithUser = async ({ chatId, userId }: { chatId: string, userId: string }) => sew(() =>
-    withAuthV2(async ({ org, user, prisma }) => {
+    withAuth(async ({ org, user, prisma }) => {
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,
@@ -499,7 +499,7 @@ export const submitFeedback = async ({
     messageId: string,
     feedbackType: 'like' | 'dislike'
 }) => sew(() =>
-    withOptionalAuthV2(async ({ org, user, prisma }) => {
+    withOptionalAuth(async ({ org, user, prisma }) => {
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,

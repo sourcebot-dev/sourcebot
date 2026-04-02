@@ -1,6 +1,6 @@
-import { sew } from '@/actions';
+import { sew } from "@/middleware/sew";
 import { invalidGitRef, notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
-import { withOptionalAuthV2 } from '@/withAuthV2';
+import { withOptionalAuth } from '@/middleware/withAuth';
 import { getRepoPath } from '@sourcebot/shared';
 import { z } from 'zod';
 import { simpleGit } from 'simple-git';
@@ -45,7 +45,7 @@ export const listCommits = async ({
     maxCount = 50,
     skip = 0,
 }: ListCommitsRequest): Promise<SearchCommitsResult | ServiceError> => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma }) => {
+    withOptionalAuth(async ({ org, prisma }) => {
         const repo = await prisma.repo.findFirst({
             where: {
                 name: repoName,

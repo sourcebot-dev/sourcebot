@@ -1,7 +1,8 @@
 'use server';
 
-import { sew } from "@/actions";
-import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
+import { sew } from "@/middleware/sew";
+import { withAuth } from "@/middleware/withAuth";
+import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { ServiceError } from "@/lib/serviceError";
 import { AnalyticsResponse, AnalyticsRow } from "./types";
 import { env, hasEntitlement } from "@sourcebot/shared";
@@ -10,7 +11,7 @@ import { StatusCodes } from "http-status-codes";
 import { OrgRole } from "@sourcebot/db";
 
 export const getAnalytics = async (): Promise<AnalyticsResponse | ServiceError> => sew(() =>
-  withAuthV2(async ({ org, role, prisma }) =>
+  withAuth(async ({ org, role, prisma }) =>
     withMinimumOrgRole(role, OrgRole.OWNER, async () => {
     if (!hasEntitlement("analytics")) {
       return {

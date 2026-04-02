@@ -1,10 +1,10 @@
 'use server';
 
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { getConfiguredLanguageModels, getAISDKLanguageModelAndOptions } from "../chat/utils.server";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError } from "@/lib/serviceError";
-import { withOptionalAuthV2 } from "@/withAuthV2";
+import { withOptionalAuth } from "@/middleware/withAuth";
 import { SEARCH_SYNTAX_DESCRIPTION } from "@sourcebot/query-language";
 import { generateObject } from "ai";
 import { z } from "zod";
@@ -25,7 +25,7 @@ ${SEARCH_SYNTAX_DESCRIPTION}
 `;
 
 export const translateSearchQuery = async ({ prompt }: { prompt: string }) => sew(() =>
-    withOptionalAuthV2(async () => {
+    withOptionalAuth(async () => {
         const models = await getConfiguredLanguageModels();
 
         if (models.length === 0) {
