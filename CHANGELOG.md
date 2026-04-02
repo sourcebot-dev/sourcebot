@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Updated AGENTS.md config file docs to reflect auto-created config.json with Anthropic Claude Sonnet LLM provider. [#1080](https://github.com/sourcebot-dev/sourcebot/pull/1080)
+
 ## [4.16.5] - 2026-04-02
 
 ### Added
