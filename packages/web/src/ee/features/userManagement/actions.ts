@@ -4,7 +4,6 @@ import { sew } from "@/middleware/sew";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, ServiceError } from "@/lib/serviceError";
-import { prisma } from "@/prisma";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole, Prisma } from "@sourcebot/db";
@@ -20,7 +19,7 @@ const orgManagementNotAvailable = (): ServiceError => ({
 });
 
 export const promoteToOwner = async (memberId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth(async ({ user, org, role }) =>
+    withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             if (!hasEntitlement('org-management')) {
                 return orgManagementNotAvailable();
@@ -82,7 +81,7 @@ export const promoteToOwner = async (memberId: string): Promise<{ success: boole
 );
 
 export const demoteToMember = async (memberId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth(async ({ user, org, role }) =>
+    withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             if (!hasEntitlement('org-management')) {
                 return orgManagementNotAvailable();

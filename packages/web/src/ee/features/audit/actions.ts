@@ -4,7 +4,6 @@ import { sew } from "@/middleware/sew";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError } from "@/lib/serviceError";
-import { prisma } from "@/prisma";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { createLogger } from "@sourcebot/shared";
@@ -34,7 +33,7 @@ export interface FetchAuditRecordsParams {
 }
 
 export const fetchAuditRecords = async (params: FetchAuditRecordsParams) => sew(() =>
-    withAuth(async ({ user, org, role }) =>
+    withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             try {
                 const where = {
