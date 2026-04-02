@@ -30,7 +30,6 @@ export type Plan = keyof typeof planLabels;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const entitlements = [
     "search-contexts",
-    "billing",
     "anonymous-access",
     "multi-tenancy",
     "sso",

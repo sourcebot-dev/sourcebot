@@ -396,7 +396,7 @@ export function AnalyticsContent() {
         error
     } = useQuery({
         queryKey: ["analytics", domain],
-        queryFn: () => unwrapServiceError(getAnalytics(domain)),
+        queryFn: () => unwrapServiceError(getAnalytics()),
     })
 
     const chartColors = useMemo(() => ({

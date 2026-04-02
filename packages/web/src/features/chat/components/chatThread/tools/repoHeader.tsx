@@ -1,7 +1,6 @@
 'use client';
 
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { cn, getCodeHostIcon } from "@/lib/utils";
 import { CodeHostType } from "@sourcebot/db";
 import Image from "next/image";
@@ -20,7 +19,6 @@ export const RepoHeader = ({ repo, repoName, isPrimary }: { repo: RepoInfo | und
         repoName: repoName,
         path: '',
         pathType: 'tree',
-        domain: SINGLE_TENANT_ORG_DOMAIN,
     });
 
     const className = cn("top-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-popover border-b border-border",

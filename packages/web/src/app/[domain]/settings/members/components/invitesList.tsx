@@ -3,18 +3,16 @@
 import { OrgRole } from "@sourcebot/db";
 import { useToast } from "@/components/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createPathWithQueryParams, isServiceError } from "@/lib/utils";
-import placeholderAvatar from "@/public/placeholder_avatar.png";
+import { UserAvatar } from "@/components/userAvatar";
 import { Copy, MoreVertical, Search } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { cancelInvite } from "@/actions";
 import { useRouter } from "next/navigation";
-import { useDomain } from "@/hooks/useDomain";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 interface Invite {
     id: string;
@@ -34,7 +32,6 @@ export const InvitesList = ({ invites, currentUserRole }: InviteListProps) => {
     const [inviteToCancel, setInviteToCancel] = useState<Invite | null>(null)
     const { toast } = useToast();
     const router = useRouter();
-    const domain = useDomain();
     const captureEvent = useCaptureEvent();
 
     const filteredInvites = useMemo(() => {
@@ -53,7 +50,7 @@ export const InvitesList = ({ invites, currentUserRole }: InviteListProps) => {
     }, [invites, searchQuery, dateSort]);
 
     const onCancelInvite = useCallback((inviteId: string) => {
-        cancelInvite(inviteId, domain)
+        cancelInvite(inviteId)
             .then((response) => {
                 if (isServiceError(response)) {
                     toast({
@@ -70,7 +67,7 @@ export const InvitesList = ({ invites, currentUserRole }: InviteListProps) => {
                     router.refresh();
                 }
             });
-    }, [domain, toast, router, captureEvent]);
+    }, [toast, router, captureEvent]);
 
     return (
         <div className="w-full mx-auto space-y-6">
@@ -109,9 +106,7 @@ export const InvitesList = ({ invites, currentUserRole }: InviteListProps) => {
                         filteredInvites.map((invite) => (
                             <div key={invite.id} className="p-4 flex items-center justify-between bg-background">
                                 <div className="flex items-center gap-3">
-                                    <Avatar>
-                                        <AvatarImage src={placeholderAvatar.src} />
-                                    </Avatar>
+                                    <UserAvatar email={invite.email} />
                                     <div>
                                         <div className="text-sm text-muted-foreground">{invite.email}</div>
                                     </div>

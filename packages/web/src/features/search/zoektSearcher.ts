@@ -19,7 +19,6 @@ import { isBranchQuery, QueryIR, someInQueryIR } from './ir';
 import { RepositoryInfo, SearchResponse, SearchResultFile, SearchStats, SourceRange, StreamedSearchErrorResponse, StreamedSearchResponse } from "./types";
 import { captureEvent } from "@/lib/posthog";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
 const logger = createLogger("zoekt-searcher");
 
@@ -430,7 +429,6 @@ const transformZoektSearchResponse = async (response: ZoektGrpcSearchResponse, r
                 repoName: repo.name,
                 path: fileName,
                 pathType: 'blob',
-                domain: SINGLE_TENANT_ORG_DOMAIN,
                 revisionName: branchName,
             })}`,
             externalWebUrl: getCodeHostBrowseFileAtBranchUrl({

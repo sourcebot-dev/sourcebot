@@ -1,4 +1,5 @@
-import { getCurrentUserRole, sew } from "@/actions"
+import { getCurrentUserRole } from "@/actions"
+import { sew } from "@/middleware/sew"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,7 +9,7 @@ import { env } from "@sourcebot/shared"
 import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { ServiceErrorException } from "@/lib/serviceError"
 import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils"
-import { withOptionalAuthV2 } from "@/withAuthV2"
+import { withOptionalAuth } from "@/middleware/withAuth"
 import { getConfigSettings, repoMetadataSchema } from "@sourcebot/shared"
 import { ExternalLink, Info } from "lucide-react"
 import Image from "next/image"
@@ -52,7 +53,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
 
     const repoMetadata = repoMetadataSchema.parse(repo.metadata);
 
-    const userRole = await getCurrentUserRole(SINGLE_TENANT_ORG_DOMAIN);
+    const userRole = await getCurrentUserRole();
     if (isServiceError(userRole)) {
         throw new ServiceErrorException(userRole);
     }
@@ -190,7 +191,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
 }
 
 const getRepoWithJobs = async (repoId: number) => sew(() =>
-    withOptionalAuthV2(async ({ prisma, org }) => {
+    withOptionalAuth(async ({ prisma, org }) => {
 
         const repo = await prisma.repo.findUnique({
             where: {

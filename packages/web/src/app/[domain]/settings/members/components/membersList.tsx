@@ -3,12 +3,11 @@
 import { Input } from "@/components/ui/input";
 import { Search, MoreVertical } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useCallback, useMemo, useState } from "react";
 import { OrgRole } from "@prisma/client";
-import placeholderAvatar from "@/public/placeholder_avatar.png";
+import { UserAvatar } from "@/components/userAvatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { promoteToOwner, demoteToMember } from "@/ee/features/userManagement/actions";
 import { leaveOrg, removeMemberFromOrg } from "@/features/userManagement/actions";
@@ -200,9 +199,10 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName, 
                             filteredMembers.map((member) => (
                                 <div key={member.id} className="p-4 flex items-center justify-between bg-background">
                                     <div className="flex items-center gap-3">
-                                        <Avatar>
-                                            <AvatarImage src={member.avatarUrl ?? placeholderAvatar.src} />
-                                        </Avatar>
+                                        <UserAvatar
+                                            email={member.email}
+                                            imageUrl={member.avatarUrl}
+                                        />
                                         <div>
                                             <div className="font-medium">{member.name}</div>
                                             <div className="text-sm text-muted-foreground">{member.email}</div>

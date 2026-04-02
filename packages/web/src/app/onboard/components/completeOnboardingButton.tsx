@@ -4,7 +4,6 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { completeOnboarding } from "@/actions"
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants"
 import { isServiceError } from "@/lib/utils"
 import { useToast } from "@/components/hooks/use-toast"
 
@@ -17,7 +16,7 @@ export function CompleteOnboardingButton() {
         setIsLoading(true)
         
         try {
-            const result = await completeOnboarding(SINGLE_TENANT_ORG_DOMAIN)
+            const result = await completeOnboarding()
             
             if (isServiceError(result)) {
                 toast({

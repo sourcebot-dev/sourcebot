@@ -24,7 +24,7 @@ export default async function Layout(
         throw new ServiceErrorException(repoStats);
     }
 
-    const userRoleInOrg = await getCurrentUserRole(domain);
+    const userRoleInOrg = await getCurrentUserRole();
 
     return (
         <div className="min-h-screen flex flex-col">

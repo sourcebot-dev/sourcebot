@@ -1,7 +1,7 @@
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { withAuthV2 } from "@/withAuthV2";
+import { withAuth } from "@/middleware/withAuth";
 import Link from "next/link";
 import { ConnectionsTable } from "./components/connectionsTable";
 import { ConnectionSyncJobStatus } from "@prisma/client";
@@ -50,7 +50,7 @@ export default async function ConnectionsPage() {
 }
 
 const getConnectionsWithLatestJob = async () => sew(() =>
-    withAuthV2(async ({ prisma, org }) => {
+    withAuth(async ({ prisma, org }) => {
         const connections = await prisma.connection.findMany({
             where: {
                 orgId: org.id,

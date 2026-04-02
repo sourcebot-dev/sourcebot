@@ -3,16 +3,13 @@ import { auth } from "@/auth";
 import { getOrgFromDomain } from "@/data/org";
 import { isServiceError } from "@/lib/utils";
 import { OnboardGuard } from "./components/onboardGuard";
-import { UpgradeGuard } from "./components/upgradeGuard";
 import { cookies, headers } from "next/headers";
 import { getSelectorsByUserAgent } from "react-device-detect";
 import { MobileUnsupportedSplashScreen } from "./components/mobileUnsupportedSplashScreen";
 import { MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME } from "@/lib/constants";
 import { SyntaxReferenceGuide } from "./components/syntaxReferenceGuide";
 import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
-import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { notFound, redirect } from "next/navigation";
-import { getSubscriptionInfo } from "@/ee/features/billing/actions";
 import { PendingApprovalCard } from "./components/pendingApproval";
 import { SubmitJoinRequest } from "./components/submitJoinRequest";
 import { hasEntitlement } from "@sourcebot/shared";
@@ -149,23 +146,6 @@ export default async function Layout(props: LayoutProps) {
                     </div>
                 )
             }
-        }
-    }
-
-    if (IS_BILLING_ENABLED) {
-        const subscription = await getSubscriptionInfo(domain);
-        if (
-            subscription &&
-            (
-                isServiceError(subscription) ||
-                (subscription.status !== "active" && subscription.status !== "trialing")
-            )
-        ) {
-            return (
-                <UpgradeGuard>
-                    {children}
-                </UpgradeGuard>
-            )
         }
     }
 

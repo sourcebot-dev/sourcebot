@@ -4,7 +4,6 @@ import { ColumnDef } from "@tanstack/react-table"
 import { ArrowUpDown, Key, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { deleteApiKey } from "@/actions"
-import { useParams } from "next/navigation"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -27,14 +26,13 @@ export type ApiKeyColumnInfo = {
 
 // Component for the actions cell to properly use React hooks
 function ApiKeyActions({ apiKey }: { apiKey: ApiKeyColumnInfo }) {
-    const params = useParams<{ domain: string }>()
     const [isPending, setIsPending] = useState(false)
     const { toast } = useToast()
     
     const handleDelete = async () => {
         setIsPending(true)
         try {
-            await deleteApiKey(apiKey.name, params.domain)
+            await deleteApiKey(apiKey.name)
             window.location.reload()
         } catch (error) {
             console.error("Failed to delete API key", error)

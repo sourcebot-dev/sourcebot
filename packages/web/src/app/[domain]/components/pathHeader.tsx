@@ -15,7 +15,6 @@ import {
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { CopyIconButton } from "./copyIconButton";
 import Link from "next/link";
-import { useDomain } from "@/hooks/useDomain";
 import { CodeHostType } from "@sourcebot/db";
 
 interface FileHeaderProps {
@@ -74,8 +73,6 @@ export const PathHeader = ({
     const containerRef = useRef<HTMLDivElement>(null);
     const breadcrumbsRef = useRef<HTMLDivElement>(null);
     const [visibleSegmentCount, setVisibleSegmentCount] = useState<number | null>(null);
-    const domain = useDomain();
-
     // Create breadcrumb segments from file path
     const breadcrumbSegments = useMemo(() => {
         const pathParts = path.split('/').filter(Boolean);
@@ -223,7 +220,6 @@ export const PathHeader = ({
                     path: '/',
                     pathType: 'tree',
                     revisionName,
-                    domain,
                 })}
             >
                 {info?.displayName}
@@ -262,7 +258,6 @@ export const PathHeader = ({
                                                 path: segment.fullPath,
                                                 pathType: segment.isLastSegment ? pathType : 'tree',
                                                 revisionName,
-                                                domain,
                                             })}
                                             className="font-mono text-sm hover:cursor cursor-pointer"
                                             key={segment.fullPath}
@@ -291,7 +286,6 @@ export const PathHeader = ({
                                     path: segment.fullPath,
                                     pathType: segment.isLastSegment ? pathType : 'tree',
                                     revisionName,
-                                    domain,
                                 })}
                             >
                                 {renderSegmentWithHighlight(segment)}
