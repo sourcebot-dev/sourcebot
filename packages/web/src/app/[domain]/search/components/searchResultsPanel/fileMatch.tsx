@@ -4,7 +4,6 @@ import { SearchResultFile, SearchResultChunk } from "@/features/search";
 import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
 import Link from "next/link";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
-import { useDomain } from "@/hooks/useDomain";
 
 
 interface FileMatchProps {
@@ -16,8 +15,6 @@ export const FileMatch = ({
     match,
     file,
 }: FileMatchProps) => {
-    const domain = useDomain();
-
     // If it's just the title, don't show a code preview
     if (match.matchRanges.length === 0) {
         return null;
@@ -32,7 +29,6 @@ export const FileMatch = ({
                 revisionName: file.branches?.[0] ?? 'HEAD',
                 path: file.fileName.text,
                 pathType: 'blob',
-                domain,
                 highlightRange: {
                     start: {
                         lineNumber: match.contentStart.lineNumber,

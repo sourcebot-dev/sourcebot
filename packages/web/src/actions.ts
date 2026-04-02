@@ -277,7 +277,6 @@ export const getRepos = async ({
                 repoName: repo.name,
                 path: '',
                 pathType: 'tree',
-                domain: org.domain,
             })}`,
             externalWebUrl: repo.webUrl ?? undefined,
             imageUrl: repo.imageUrl ?? undefined,

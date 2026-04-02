@@ -1,7 +1,6 @@
 import { sew } from "@/middleware/sew";
 import { getBrowsePath } from '@/app/[domain]/browse/hooks/utils';
 import { getAuditService } from '@/ee/features/audit/factory';
-import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
 import { parseGitAttributes, resolveLanguageFromGitAttributes } from '@/lib/gitattributes';
 import { detectLanguageFromFilename } from '@/lib/languageDetection';
 import { ServiceError, notFound, fileNotFound, invalidGitRef, unexpectedError } from '@/lib/serviceError';
@@ -90,7 +89,6 @@ export const getFileSource = async ({ path: filePath, repo: repoName, ref }: Fil
         revisionName: ref,
         path: filePath,
         pathType: 'blob',
-        domain: SINGLE_TENANT_ORG_DOMAIN,
     })}`;
 
     return {
