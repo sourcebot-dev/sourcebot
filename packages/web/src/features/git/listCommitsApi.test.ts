@@ -321,8 +321,8 @@ describe('searchCommits', () => {
                     message: 'feat: add feature',
                     refs: 'HEAD -> main',
                     body: '',
-                    author_name: 'John Doe',
-                    author_email: 'john@example.com',
+                    authorName: 'John Doe',
+                    authorEmail: 'john@example.com',
                 },
                 {
                     hash: 'def456',
@@ -330,8 +330,8 @@ describe('searchCommits', () => {
                     message: 'fix: bug fix',
                     refs: '',
                     body: '',
-                    author_name: 'Jane Smith',
-                    author_email: 'jane@example.com',
+                    authorName: 'Jane Smith',
+                    authorEmail: 'jane@example.com',
                 },
             ];
 
@@ -458,8 +458,8 @@ describe('searchCommits', () => {
                     message: 'fix: resolve authentication bug',
                     refs: 'HEAD -> main',
                     body: 'Fixed issue with JWT token validation',
-                    author_name: 'Security Team',
-                    author_email: 'security@example.com',
+                    authorName: 'Security Team',
+                    authorEmail: 'security@example.com',
                 },
             ];
 
@@ -562,8 +562,8 @@ describe('searchCommits', () => {
                     message: 'feat: new feature',
                     refs: 'main',
                     body: 'Added new functionality',
-                    author_name: 'Developer',
-                    author_email: 'dev@example.com',
+                    authorName: 'Developer',
+                    authorEmail: 'dev@example.com',
                 },
             ];
 

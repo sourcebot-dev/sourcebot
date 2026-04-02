@@ -360,8 +360,8 @@ export const listCommitsResponseSchema = z.array(z.object({
     message: z.string(),
     refs: z.string(),
     body: z.string(),
-    author_name: z.string(),
-    author_email: z.string(),
+    authorName: z.string(),
+    authorEmail: z.string(),
 }));
 
 export const languageModelInfoSchema = z.object({
