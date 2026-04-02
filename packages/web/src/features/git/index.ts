@@ -1,3 +1,4 @@
+export * from './getCommitApi';
 export * from './getDiffApi';
 export * from './getFilesApi';
 export * from './getFolderContentsApi';

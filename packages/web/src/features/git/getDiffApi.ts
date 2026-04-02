@@ -19,8 +19,8 @@ export interface DiffHunk {
 }
 
 export interface FileDiff {
-    oldPath: string;
-    newPath: string;
+    oldPath: string | null;
+    newPath: string | null;
     hunks: DiffHunk[];
 }
 
@@ -67,8 +67,8 @@ export const getDiff = async ({
             const files = parseDiff(rawDiff);
 
             const nodes: FileDiff[] = files.map((file) => ({
-                oldPath: file.from ?? '/dev/null',
-                newPath: file.to ?? '/dev/null',
+                oldPath: file.from && file.from !== '/dev/null' ? file.from : null,
+                newPath: file.to && file.to !== '/dev/null' ? file.to : null,
                 hunks: file.chunks.map((chunk) => {
                     // chunk.content is the full @@ header line, e.g.:
                     // "@@ -7,6 +7,8 @@ some heading text"

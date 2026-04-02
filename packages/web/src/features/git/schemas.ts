@@ -56,8 +56,8 @@ const diffHunkSchema = z.object({
 });
 
 const fileDiffSchema = z.object({
-    oldPath: z.string().describe('The file path before the change. `/dev/null` for added files.'),
-    newPath: z.string().describe('The file path after the change. `/dev/null` for deleted files.'),
+    oldPath: z.string().nullable().describe('The file path before the change. `null` for added files.'),
+    newPath: z.string().nullable().describe('The file path after the change. `null` for deleted files.'),
     hunks: z.array(diffHunkSchema).describe('The list of changed regions within the file.'),
 });
 
@@ -83,6 +83,15 @@ export const commitSchema = z.object({
     message: z.string().describe('The commit subject line.'),
     refs: z.string().describe('Refs pointing to this commit (e.g. branch or tag names).'),
     body: z.string().describe('The commit body (everything after the subject line).'),
-    author_name: z.string(),
-    author_email: z.string(),
+    authorName: z.string(),
+    authorEmail: z.string(),
+});
+
+export const getCommitQueryParamsSchema = z.object({
+    repo: z.string().describe('The fully-qualified repository name.'),
+    ref: z.string().describe('The git ref (commit SHA, branch, or tag).'),
+});
+
+export const commitDetailSchema = commitSchema.extend({
+    parents: z.array(z.string()).describe('The parent commit SHAs.'),
 });
