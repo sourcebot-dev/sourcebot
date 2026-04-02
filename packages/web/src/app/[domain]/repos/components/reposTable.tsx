@@ -138,7 +138,6 @@ export const getColumns = (context: ColumnsContext): ColumnDef<Repo>[] => [
                             repoName: repo.name,
                             path: '/',
                             pathType: 'tree',
-                            domain: SINGLE_TENANT_ORG_DOMAIN,
                         })}
                         className="font-medium hover:underline"
                     >

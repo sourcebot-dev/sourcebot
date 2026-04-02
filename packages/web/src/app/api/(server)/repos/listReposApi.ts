@@ -54,7 +54,6 @@ export const listRepos = async ({ query, page, perPage, sort, direction, source 
                     repoName: repo.name,
                     path: '',
                     pathType: 'tree',
-                    domain: org.domain,
                 })}`,
                 repoDisplayName: repo.displayName ?? undefined,
                 externalWebUrl: repo.webUrl ?? undefined,
