@@ -179,7 +179,7 @@
     "scroll-into-view-if-needed": "^3.1.0",
     "server-only": "^0.0.1",
     "sharp": "^0.33.5",
-    "simple-git": "^3.27.0",
+    "simple-git": "^3.32.3",
     "slate": "^0.117.0",
     "slate-dom": "^0.116.0",
     "slate-history": "^0.113.1",
