@@ -4,12 +4,10 @@ import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { NavigationMenu as NavigationMenuBase } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
-import { env } from "@sourcebot/shared";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { OrgRole, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
 import Link from "next/link";
-import { OrgSelector } from "../orgSelector";
 import { MeControlDropdownMenu } from "../meControlDropdownMenu";
 import WhatsNewIndicator from "../whatsNewIndicator";
 import { NavigationItems } from "./navigationItems";
@@ -99,15 +97,6 @@ export const NavigationMenu = async ({
                             size="small"
                         />
                     </Link>
-
-                    {env.SOURCEBOT_TENANCY_MODE === 'multi' && (
-                        <>
-                            <OrgSelector
-                                domain={domain}
-                            />
-                            <Separator orientation="vertical" className="h-6 mx-2" />
-                        </>
-                    )}
 
                     <NavigationMenuBase>
                         <NavigationItems

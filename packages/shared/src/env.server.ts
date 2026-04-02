@@ -6,7 +6,6 @@ import { readFile } from 'fs/promises';
 import stripJsonComments from "strip-json-comments";
 import { z } from "zod";
 import { getTokenFromConfig } from "./crypto.js";
-import { tenancyModeSchema } from "./types.js";
 
 // Booleans are specified as 'true' or 'false' strings.
 const booleanSchema = z.enum(["true", "false"]);
@@ -182,7 +181,6 @@ const options = {
         DATABASE_NAME: z.string().optional(),
         DATABASE_ARGS: z.string().optional(),
 
-        SOURCEBOT_TENANCY_MODE: tenancyModeSchema.default("single"),
         CONFIG_PATH: z.string(),
 
         // Misc UI flags
