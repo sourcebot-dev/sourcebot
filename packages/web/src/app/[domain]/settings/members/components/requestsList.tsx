@@ -19,6 +19,7 @@ interface Request {
     email: string;
     createdAt: Date;
     name?: string;
+    image?: string;
 }
 
 interface RequestsListProps {
@@ -129,7 +130,7 @@ export const RequestsList = ({ requests, currentUserRole }: RequestsListProps) =
                         filteredRequests.map((request) => (
                             <div key={request.id} className="p-4 flex items-center justify-between bg-background">
                                 <div className="flex items-center gap-3">
-                                    <UserAvatar email={request.email} />
+                                    <UserAvatar email={request.email} imageUrl={request.image} />
                                     <div>
                                         <div className="font-medium">{request.name || request.email}</div>
                                         <div className="text-sm text-muted-foreground">{request.email}</div>

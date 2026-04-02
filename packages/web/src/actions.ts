@@ -1000,6 +1000,7 @@ export const getOrgAccountRequests = async () => sew(() =>
             email: request.requestedBy.email!,
             createdAt: request.createdAt,
             name: request.requestedBy.name ?? undefined,
+            image: request.requestedBy.image ?? undefined,
         }));
     }));
 
