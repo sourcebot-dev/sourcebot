@@ -31,7 +31,7 @@ vi.mock('@/lib/serviceError', () => ({
         message: `Invalid git reference: "${ref}". Git refs cannot start with '-'.`,
     }),
 }));
-vi.mock('@/actions', () => ({
+vi.mock('@/middleware/sew', () => ({
     sew: async <T>(fn: () => Promise<T> | T): Promise<T> => {
         try {
             return await fn();
@@ -47,8 +47,8 @@ vi.mock('@/actions', () => ({
 // Create a mock findFirst function that we can configure per-test
 const mockFindFirst = vi.fn();
 
-vi.mock('@/withAuthV2', () => ({
-    withOptionalAuthV2: async <T>(fn: (args: { org: { id: number; name: string }; prisma: unknown }) => Promise<T>): Promise<T> => {
+vi.mock('@/middleware/withAuth', () => ({
+    withOptionalAuth: async <T>(fn: (args: { org: { id: number; name: string }; prisma: unknown }) => Promise<T>): Promise<T> => {
         // Mock withOptionalAuthV2 to provide org and prisma context
         const mockOrg = { id: 1, name: 'test-org' };
         const mockPrisma = {
