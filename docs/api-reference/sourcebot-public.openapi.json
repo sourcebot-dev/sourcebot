@@ -2,26 +2,39 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Sourcebot Public API",
-    "version": "v4.16.3",
-    "description": "OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing."
+    "version": "v4.16.5",
+    "description": "OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing. Authentication is instance-dependent: API keys are the standard integration mechanism, OAuth bearer tokens are EE-only, and some instances may allow anonymous access."
   },
   "tags": [
     {
-      "name": "Search",
-      "description": "Code search endpoints."
+      "name": "Search & Navigation",
+      "description": "Code search and symbol navigation endpoints."
     },
     {
       "name": "Repositories",
       "description": "Repository listing and metadata endpoints."
     },
     {
-      "name": "Files",
-      "description": "File tree, file listing, and file content endpoints."
+      "name": "Git",
+      "description": "Git history, diff, and file content endpoints."
     },
     {
-      "name": "Misc",
-      "description": "Miscellaneous public API endpoints."
+      "name": "System",
+      "description": "System health and version endpoints."
+    },
+    {
+      "name": "Enterprise (EE)",
+      "description": "Enterprise endpoints for user management and audit logging."
     }
+  ],
+  "security": [
+    {
+      "bearerToken": []
+    },
+    {
+      "apiKeyHeader": []
+    },
+    {}
   ],
   "components": {
     "schemas": {
@@ -435,89 +448,93 @@
           "matches"
         ]
       },
-      "PublicStreamSearchSse": {
-        "type": "string",
-        "description": "Server-sent event stream. Each data frame contains one JSON object representing either a chunk update, a final summary, or an error.",
-        "example": "data: {\"type\":\"chunk\",\"stats\":{\"actualMatchCount\":1}}\n\n"
-      },
-      "PublicRepository": {
-        "type": "object",
-        "properties": {
-          "codeHostType": {
-            "type": "string",
-            "enum": [
-              "github",
-              "gitlab",
-              "gitea",
-              "gerrit",
-              "bitbucketServer",
-              "bitbucketCloud",
-              "genericGitHost",
-              "azuredevops"
-            ]
-          },
-          "repoId": {
-            "type": "number"
-          },
-          "repoName": {
-            "type": "string"
-          },
-          "webUrl": {
-            "type": "string"
-          },
-          "repoDisplayName": {
-            "type": "string"
-          },
-          "externalWebUrl": {
-            "type": "string"
-          },
-          "imageUrl": {
-            "type": "string"
-          },
-          "indexedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "pushedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "defaultBranch": {
-            "type": "string"
-          },
-          "isFork": {
-            "type": "boolean"
-          },
-          "isArchived": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "codeHostType",
-          "repoId",
-          "repoName",
-          "webUrl",
-          "isFork",
-          "isArchived"
-        ]
-      },
       "PublicListReposResponse": {
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/PublicRepository"
+          "type": "object",
+          "properties": {
+            "codeHostType": {
+              "type": "string",
+              "enum": [
+                "github",
+                "gitlab",
+                "gitea",
+                "gerrit",
+                "bitbucketServer",
+                "bitbucketCloud",
+                "genericGitHost",
+                "azuredevops"
+              ]
+            },
+            "repoId": {
+              "type": "number"
+            },
+            "repoName": {
+              "type": "string"
+            },
+            "webUrl": {
+              "type": "string"
+            },
+            "repoDisplayName": {
+              "type": "string"
+            },
+            "externalWebUrl": {
+              "type": "string"
+            },
+            "imageUrl": {
+              "type": "string"
+            },
+            "indexedAt": {
+              "type": "string",
+              "nullable": true
+            },
+            "pushedAt": {
+              "type": "string",
+              "nullable": true
+            },
+            "defaultBranch": {
+              "type": "string"
+            },
+            "isFork": {
+              "type": "boolean"
+            },
+            "isArchived": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "codeHostType",
+            "repoId",
+            "repoName",
+            "webUrl",
+            "isFork",
+            "isArchived"
+          ]
         }
       },
       "PublicVersionResponse": {
         "type": "object",
         "properties": {
           "version": {
-            "type": "string",
-            "description": "Running Sourcebot version.",
-            "example": "v4.15.2"
+            "type": "string"
           }
         },
         "required": [
           "version"
+        ]
+      },
+      "PublicHealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          }
+        },
+        "required": [
+          "status"
         ]
       },
       "PublicFileSourceResponse": {
@@ -592,42 +609,509 @@
           "paths"
         ]
       },
-      "PublicGetFilesResponse": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string"
-            },
-            "path": {
-              "type": "string"
-            },
-            "name": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "type",
-            "path",
-            "name"
-          ]
-        }
-      },
-      "PublicGetFilesRequest": {
+      "PublicGetDiffResponse": {
         "type": "object",
         "properties": {
-          "repoName": {
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "oldPath": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "The file path before the change. `null` for added files."
+                },
+                "newPath": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "The file path after the change. `null` for deleted files."
+                },
+                "hunks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "oldRange": {
+                        "type": "object",
+                        "properties": {
+                          "start": {
+                            "type": "integer",
+                            "description": "The 1-based line number where the range starts."
+                          },
+                          "lines": {
+                            "type": "integer",
+                            "description": "The number of lines the range spans."
+                          }
+                        },
+                        "required": [
+                          "start",
+                          "lines"
+                        ],
+                        "description": "The line range in the old file."
+                      },
+                      "newRange": {
+                        "type": "object",
+                        "properties": {
+                          "start": {
+                            "type": "integer",
+                            "description": "The 1-based line number where the range starts."
+                          },
+                          "lines": {
+                            "type": "integer",
+                            "description": "The number of lines the range spans."
+                          }
+                        },
+                        "required": [
+                          "start",
+                          "lines"
+                        ],
+                        "description": "The line range in the new file."
+                      },
+                      "heading": {
+                        "type": "string",
+                        "description": "Optional context heading extracted from the @@ line, typically the enclosing function or class name."
+                      },
+                      "body": {
+                        "type": "string",
+                        "description": "The diff content, with each line prefixed by a space (context), + (addition), or - (deletion)."
+                      }
+                    },
+                    "required": [
+                      "oldRange",
+                      "newRange",
+                      "body"
+                    ]
+                  },
+                  "description": "The list of changed regions within the file."
+                }
+              },
+              "required": [
+                "oldPath",
+                "newPath",
+                "hunks"
+              ]
+            },
+            "description": "The list of changed files."
+          }
+        },
+        "required": [
+          "files"
+        ]
+      },
+      "PublicFindSymbolsResponse": {
+        "type": "object",
+        "properties": {
+          "stats": {
+            "type": "object",
+            "properties": {
+              "matchCount": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "matchCount"
+            ]
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fileName": {
+                  "type": "string"
+                },
+                "repository": {
+                  "type": "string"
+                },
+                "repositoryId": {
+                  "type": "number"
+                },
+                "webUrl": {
+                  "type": "string"
+                },
+                "language": {
+                  "type": "string"
+                },
+                "matches": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "lineContent": {
+                        "type": "string"
+                      },
+                      "range": {
+                        "type": "object",
+                        "properties": {
+                          "start": {
+                            "type": "object",
+                            "properties": {
+                              "byteOffset": {
+                                "type": "number"
+                              },
+                              "lineNumber": {
+                                "type": "number"
+                              },
+                              "column": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "byteOffset",
+                              "lineNumber",
+                              "column"
+                            ]
+                          },
+                          "end": {
+                            "type": "object",
+                            "properties": {
+                              "byteOffset": {
+                                "type": "number"
+                              },
+                              "lineNumber": {
+                                "type": "number"
+                              },
+                              "column": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "byteOffset",
+                              "lineNumber",
+                              "column"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "start",
+                          "end"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "lineContent",
+                      "range"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "fileName",
+                "repository",
+                "repositoryId",
+                "webUrl",
+                "language",
+                "matches"
+              ]
+            }
+          },
+          "repositoryInfo": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "number"
+                },
+                "codeHostType": {
+                  "type": "string",
+                  "enum": [
+                    "github",
+                    "gitlab",
+                    "gitea",
+                    "gerrit",
+                    "bitbucketServer",
+                    "bitbucketCloud",
+                    "genericGitHost",
+                    "azuredevops"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                },
+                "webUrl": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "codeHostType",
+                "name"
+              ]
+            }
+          }
+        },
+        "required": [
+          "stats",
+          "files",
+          "repositoryInfo"
+        ]
+      },
+      "PublicFindSymbolsRequest": {
+        "type": "object",
+        "properties": {
+          "symbolName": {
+            "type": "string"
+          },
+          "language": {
             "type": "string"
           },
           "revisionName": {
             "type": "string"
+          },
+          "repoName": {
+            "type": "string"
           }
         },
         "required": [
-          "repoName",
-          "revisionName"
+          "symbolName"
         ]
+      },
+      "PublicCommit": {
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "The full commit SHA."
+          },
+          "date": {
+            "type": "string",
+            "description": "The commit date in ISO 8601 format."
+          },
+          "message": {
+            "type": "string",
+            "description": "The commit subject line."
+          },
+          "refs": {
+            "type": "string",
+            "description": "Refs pointing to this commit (e.g. branch or tag names)."
+          },
+          "body": {
+            "type": "string",
+            "description": "The commit body (everything after the subject line)."
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "authorEmail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "hash",
+          "date",
+          "message",
+          "refs",
+          "body",
+          "authorName",
+          "authorEmail"
+        ]
+      },
+      "PublicListCommitsResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/PublicCommit"
+        }
+      },
+      "PublicCommitDetail": {
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "The full commit SHA."
+          },
+          "date": {
+            "type": "string",
+            "description": "The commit date in ISO 8601 format."
+          },
+          "message": {
+            "type": "string",
+            "description": "The commit subject line."
+          },
+          "refs": {
+            "type": "string",
+            "description": "Refs pointing to this commit (e.g. branch or tag names)."
+          },
+          "body": {
+            "type": "string",
+            "description": "The commit body (everything after the subject line)."
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "authorEmail": {
+            "type": "string"
+          },
+          "parents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The parent commit SHAs."
+          }
+        },
+        "required": [
+          "hash",
+          "date",
+          "message",
+          "refs",
+          "body",
+          "authorName",
+          "authorEmail",
+          "parents"
+        ]
+      },
+      "PublicEeUser": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PublicEeDeleteUserResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ]
+      },
+      "PublicEeUserListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "OWNER",
+              "MEMBER",
+              "GUEST"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastActivityAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role",
+          "createdAt",
+          "lastActivityAt"
+        ]
+      },
+      "PublicEeUsersResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/PublicEeUserListItem"
+        }
+      },
+      "PublicEeAuditRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "action": {
+            "type": "string",
+            "description": "The audited action (e.g. `user.read`, `user.delete`, `audit.fetch`)."
+          },
+          "actorId": {
+            "type": "string"
+          },
+          "actorType": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "sourcebotVersion": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "orgId": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "timestamp",
+          "action",
+          "actorId",
+          "actorType",
+          "targetId",
+          "targetType",
+          "sourcebotVersion",
+          "metadata",
+          "orgId"
+        ]
+      },
+      "PublicEeAuditResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/PublicEeAuditRecord"
+        }
       },
       "PublicFileTreeNode": {
         "type": "object",
@@ -657,15 +1141,33 @@
         "additionalProperties": false
       }
     },
-    "parameters": {}
+    "parameters": {},
+    "securitySchemes": {
+      "bearerToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Bearer authentication header of the form `Bearer <token>`, where `<token>` is your API key."
+      },
+      "apiKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Sourcebot-Api-Key",
+        "description": "Header of the form `X-Sourcebot-Api-Key: <token>`, where `<token>` is your API key."
+      }
+    }
   },
   "paths": {
     "/api/search": {
       "post": {
+        "operationId": "search",
         "tags": [
-          "Search"
+          "Search & Navigation"
         ],
-        "summary": "Run a blocking code search",
+        "summary": "Search code",
+        "description": "Executes a blocking code search and returns all matching file chunks.",
+        "x-mint": {
+          "content": "## Usage\n\nThe `query` field supports literal, regexp, and symbol searches with filters for repository, file, language, branch, and more. See the [search syntax reference](https://docs.sourcebot.dev/docs/features/search/syntax-reference) for the full query language."
+        },
         "requestBody": {
           "required": true,
           "content": {
@@ -710,63 +1212,14 @@
         }
       }
     },
-    "/api/stream_search": {
-      "post": {
-        "tags": [
-          "Search"
-        ],
-        "summary": "Run a streaming code search",
-        "description": "Returns a server-sent event stream. Each event data payload is a JSON object describing either a chunk, final summary, or error.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PublicSearchRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "SSE stream of search results.",
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublicStreamSearchSse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request body.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublicApiServiceError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected search failure.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublicApiServiceError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/repos": {
       "get": {
+        "operationId": "listRepositories",
         "tags": [
           "Repositories"
         ],
         "summary": "List repositories",
+        "description": "Returns a paginated list of repositories indexed by this Sourcebot instance.",
         "parameters": [
           {
             "schema": {
@@ -878,10 +1331,12 @@
     },
     "/api/version": {
       "get": {
+        "operationId": "getVersion",
         "tags": [
-          "Misc"
+          "System"
         ],
         "summary": "Get Sourcebot version",
+        "description": "Returns the currently running Sourcebot version string.",
         "responses": {
           "200": {
             "description": "Current Sourcebot version.",
@@ -896,12 +1351,35 @@
         }
       }
     },
+    "/api/health": {
+      "get": {
+        "operationId": "getHealth",
+        "tags": [
+          "System"
+        ],
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Service is healthy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicHealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/source": {
       "get": {
+        "operationId": "getFileSource",
         "tags": [
-          "Files"
+          "Git"
         ],
         "summary": "Get file contents",
+        "description": "Returns the raw source content of a file at a given repository path and optional git ref.",
         "parameters": [
           {
             "schema": {
@@ -974,10 +1452,12 @@
     },
     "/api/tree": {
       "post": {
+        "operationId": "getFileTree",
         "tags": [
-          "Files"
+          "Git"
         ],
         "summary": "Get a file tree",
+        "description": "Returns the file tree for a repository at a given revision.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1041,35 +1521,59 @@
         }
       }
     },
-    "/api/files": {
-      "post": {
+    "/api/diff": {
+      "get": {
+        "operationId": "getDiff",
         "tags": [
-          "Files"
+          "Git"
         ],
-        "summary": "List files in a repository revision",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PublicGetFilesRequest"
-              }
-            }
+        "summary": "Get diff between two commits",
+        "description": "Returns a structured diff between two git refs using a two-dot comparison. See [git-diff](https://git-scm.com/docs/git-diff) for details.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "The fully-qualified repository name."
+            },
+            "required": true,
+            "description": "The fully-qualified repository name.",
+            "name": "repo",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The base git ref (branch, tag, or commit SHA) to diff from."
+            },
+            "required": true,
+            "description": "The base git ref (branch, tag, or commit SHA) to diff from.",
+            "name": "base",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The head git ref (branch, tag, or commit SHA) to diff to."
+            },
+            "required": true,
+            "description": "The head git ref (branch, tag, or commit SHA) to diff to.",
+            "name": "head",
+            "in": "query"
           }
-        },
+        ],
         "responses": {
           "200": {
-            "description": "Flat list of files in the requested repository revision.",
+            "description": "Structured diff between the two refs.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PublicGetFilesResponse"
+                  "$ref": "#/components/schemas/PublicGetDiffResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid request body.",
+            "description": "Invalid query parameters or git ref.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1089,7 +1593,659 @@
             }
           },
           "500": {
-            "description": "Unexpected file listing failure.",
+            "description": "Unexpected diff failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/find_definitions": {
+      "post": {
+        "operationId": "findDefinitions",
+        "tags": [
+          "Search & Navigation"
+        ],
+        "summary": "Find symbol definitions",
+        "description": "Returns all locations in the codebase where the given symbol is defined.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicFindSymbolsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Symbol definition locations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicFindSymbolsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/find_references": {
+      "post": {
+        "operationId": "findReferences",
+        "tags": [
+          "Search & Navigation"
+        ],
+        "summary": "Find symbol references",
+        "description": "Returns all locations in the codebase where the given symbol is referenced.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicFindSymbolsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Symbol reference locations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicFindSymbolsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/commits": {
+      "get": {
+        "operationId": "listCommits",
+        "tags": [
+          "Git"
+        ],
+        "summary": "List commits",
+        "description": "Returns a paginated list of commits for a repository.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "The fully-qualified repository name."
+            },
+            "required": true,
+            "description": "The fully-qualified repository name.",
+            "name": "repo",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter commits by message content (case-insensitive)."
+            },
+            "required": false,
+            "description": "Filter commits by message content (case-insensitive).",
+            "name": "query",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Return commits after this date. Accepts ISO 8601 or relative formats (e.g. `30 days ago`)."
+            },
+            "required": false,
+            "description": "Return commits after this date. Accepts ISO 8601 or relative formats (e.g. `30 days ago`).",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Return commits before this date. Accepts ISO 8601 or relative formats."
+            },
+            "required": false,
+            "description": "Return commits before this date. Accepts ISO 8601 or relative formats.",
+            "name": "until",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter commits by author name or email (case-insensitive)."
+            },
+            "required": false,
+            "description": "Filter commits by author name or email (case-insensitive).",
+            "name": "author",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The git ref (branch, tag, or commit SHA) to list commits from. Defaults to `HEAD`."
+            },
+            "required": false,
+            "description": "The git ref (branch, tag, or commit SHA) to list commits from. Defaults to `HEAD`.",
+            "name": "ref",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Restrict commits to those that touch this file path."
+            },
+            "required": false,
+            "description": "Restrict commits to those that touch this file path.",
+            "name": "path",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "maximum": 100,
+              "default": 50
+            },
+            "required": false,
+            "name": "perPage",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated commit list.",
+            "headers": {
+              "X-Total-Count": {
+                "description": "Total number of commits matching the query across all pages.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "Link": {
+                "description": "Pagination links formatted per RFC 8288.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicListCommitsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Repository not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/commit": {
+      "get": {
+        "operationId": "getCommit",
+        "tags": [
+          "Git"
+        ],
+        "summary": "Get commit details",
+        "description": "Returns details for a single commit, including parent commit SHAs.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "The fully-qualified repository name."
+            },
+            "required": true,
+            "description": "The fully-qualified repository name.",
+            "name": "repo",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The git ref (commit SHA, branch, or tag)."
+            },
+            "required": true,
+            "description": "The git ref (commit SHA, branch, or tag).",
+            "name": "ref",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Commit details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicCommitDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters or git ref.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Repository or revision not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ee/user": {
+      "get": {
+        "operationId": "getUser",
+        "tags": [
+          "Enterprise (EE)"
+        ],
+        "summary": "Get a user",
+        "description": "Fetches profile details for a single organization member by `userId`. Only organization owners can access this endpoint.",
+        "x-mint": {
+          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.\n</Note>"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "The ID of the user to retrieve."
+            },
+            "required": true,
+            "description": "The ID of the user to retrieve.",
+            "name": "userId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicEeUser"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing userId parameter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions or entitlement not enabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteUser",
+        "tags": [
+          "Enterprise (EE)"
+        ],
+        "summary": "Delete a user",
+        "description": "Permanently deletes a user and all associated records. Only organization owners can delete other users.",
+        "x-mint": {
+          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.\n</Note>"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "The ID of the user to delete."
+            },
+            "required": true,
+            "description": "The ID of the user to delete.",
+            "name": "userId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicEeDeleteUserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing userId parameter or attempting to delete own account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ee/users": {
+      "get": {
+        "operationId": "listUsers",
+        "tags": [
+          "Enterprise (EE)"
+        ],
+        "summary": "List users",
+        "description": "Returns all members of the organization. Only organization owners can access this endpoint.",
+        "x-mint": {
+          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.\n</Note>"
+        },
+        "responses": {
+          "200": {
+            "description": "List of organization members.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicEeUsersResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions or entitlement not enabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ee/audit": {
+      "get": {
+        "operationId": "listAuditRecords",
+        "tags": [
+          "Enterprise (EE)"
+        ],
+        "summary": "List audit records",
+        "description": "Returns a paginated list of audit log entries. Only organization owners can access this endpoint.",
+        "x-mint": {
+          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.\n</Note>"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Return records at or after this timestamp (ISO 8601)."
+            },
+            "required": false,
+            "description": "Return records at or after this timestamp (ISO 8601).",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Return records at or before this timestamp (ISO 8601)."
+            },
+            "required": false,
+            "description": "Return records at or before this timestamp (ISO 8601).",
+            "name": "until",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "maximum": 100,
+              "default": 50
+            },
+            "required": false,
+            "name": "perPage",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated audit log.",
+            "headers": {
+              "X-Total-Count": {
+                "description": "Total number of audit records matching the query across all pages.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "Link": {
+                "description": "Pagination links formatted per RFC 8288.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicEeAuditResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions or entitlement not enabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
             "content": {
               "application/json": {
                 "schema": {

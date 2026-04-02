@@ -4,7 +4,6 @@ import { ListTreeMetadata, ToolResult } from "@/features/tools";
 import { RepoBadge } from "./repoBadge";
 import { Separator } from "@/components/ui/separator";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { FolderIcon } from "lucide-react";
 import Link from "next/link";
 
@@ -18,7 +17,6 @@ export const ListTreeToolComponent = ({ metadata }: ToolResult<ListTreeMetadata>
                     revisionName: metadata.ref,
                     path: metadata.path,
                     pathType: 'tree',
-                    domain: SINGLE_TENANT_ORG_DOMAIN,
                 })}
                 onClick={(e) => e.stopPropagation()}
                 className="inline-flex items-center gap-1 text-xs bg-muted hover:bg-accent px-1.5 py-0.5 rounded truncate text-foreground font-medium transition-colors min-w-0"

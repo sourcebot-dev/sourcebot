@@ -5,7 +5,7 @@ import * as Sentry from "@sentry/nextjs";
 import { PosthogEvent, PosthogEventMap } from './posthogEvents';
 import { cookies, headers } from 'next/headers';
 import { auth } from '@/auth';
-import { getVerifiedApiObject } from '@/withAuthV2';
+import { getVerifiedApiObject } from '@/middleware/withAuth';
 
 /**
  * @note: This is a subset of the properties stored in the

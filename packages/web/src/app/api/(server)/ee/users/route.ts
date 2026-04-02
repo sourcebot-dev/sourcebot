@@ -4,7 +4,8 @@ import { getAuditService } from "@/ee/features/audit/factory";
 import { apiHandler } from "@/lib/apiHandler";
 import { serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
+import { withAuth } from "@/middleware/withAuth";
+import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
 import { createLogger, hasEntitlement } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
@@ -22,7 +23,7 @@ export const GET = apiHandler(async () => {
         });
     }
 
-    const result = await withAuthV2(async ({ prisma, org, role, user }) => {
+    const result = await withAuth(async ({ prisma, org, role, user }) => {
         return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             try {
                 const memberships = await prisma.userToOrg.findMany({

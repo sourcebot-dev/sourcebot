@@ -9,7 +9,6 @@ import { useMemo, useRef } from "react";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import Link from "next/link";
-import { useDomain } from "@/hooks/useDomain";
 
 interface ReferenceListProps {
     data: FindRelatedSymbolsResponse;
@@ -23,7 +22,6 @@ export const ReferenceList = ({
     data,
     revisionName,
 }: ReferenceListProps) => {
-    const domain = useDomain();
     const repoInfoMap = useMemo(() => {
         return data.repositoryInfo.reduce((acc, repo) => {
             acc[repo.id] = repo;
@@ -112,7 +110,6 @@ export const ReferenceList = ({
                                                 path: file.fileName,
                                                 pathType: 'blob',
                                                 highlightRange: match.range,
-                                                domain,
                                             })}
                                             onClick={() => {
                                                 captureEvent('wa_explore_menu_reference_clicked', {});

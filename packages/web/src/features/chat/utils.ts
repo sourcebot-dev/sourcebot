@@ -1,5 +1,4 @@
 import { BrowseHighlightRange, getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { CreateUIMessage, TextUIPart, UIMessagePart } from "ai";
 import { Descendant, Editor, Point, Range, Transforms } from "slate";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
@@ -271,7 +270,6 @@ export const convertLLMOutputToPortableMarkdown = (text: string, baseUrl: string
                 repoName: repo,
                 path: fileName,
                 pathType: 'blob',
-                domain: SINGLE_TENANT_ORG_DOMAIN,
                 highlightRange,
             });
 

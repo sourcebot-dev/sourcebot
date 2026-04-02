@@ -1,7 +1,6 @@
 'use client';
 
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { getCodeHostIcon } from "@/lib/utils";
 import { CodeHostType } from "@sourcebot/db";
 import Image from "next/image";
@@ -13,7 +12,6 @@ export const RepoBadge = ({ repo }: { repo: { name: string; displayName: string;
         repoName: repo.name,
         path: '',
         pathType: 'tree',
-        domain: SINGLE_TENANT_ORG_DOMAIN,
     });
 
     return (

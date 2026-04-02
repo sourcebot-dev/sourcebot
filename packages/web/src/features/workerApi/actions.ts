@@ -1,15 +1,16 @@
 'use server';
 
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { unexpectedError } from "@/lib/serviceError";
-import { withAuthV2, withMinimumOrgRole, withOptionalAuthV2 } from "@/withAuthV2";
+import { withAuth, withOptionalAuth } from "@/middleware/withAuth";
+import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
 import z from "zod";
 
 const WORKER_API_URL = 'http://localhost:3060';
 
 export const syncConnection = async (connectionId: number) => sew(() =>
-    withAuthV2(({ role }) =>
+    withAuth(({ role }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const response = await fetch(`${WORKER_API_URL}/api/sync-connection`, {
                 method: 'POST',
@@ -35,7 +36,7 @@ export const syncConnection = async (connectionId: number) => sew(() =>
 );
 
 export const indexRepo = async (repoId: number) => sew(() =>
-    withAuthV2(({ role }) =>
+    withAuth(({ role }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const response = await fetch(`${WORKER_API_URL}/api/index-repo`, {
                 method: 'POST',
@@ -59,7 +60,7 @@ export const indexRepo = async (repoId: number) => sew(() =>
 );
 
 export const triggerAccountPermissionSync = async (accountId: string) => sew(() =>
-    withAuthV2(({ role }) =>
+    withAuth(({ role }) =>
         withMinimumOrgRole(role, OrgRole.MEMBER, async () => {
             const response = await fetch(`${WORKER_API_URL}/api/trigger-account-permission-sync`, {
                 method: 'POST',
@@ -83,7 +84,7 @@ export const triggerAccountPermissionSync = async (accountId: string) => sew(() 
 );
 
 export const addGithubRepo = async (owner: string, repo: string) => sew(() =>
-    withOptionalAuthV2(async () => {
+    withOptionalAuth(async () => {
         const response = await fetch(`${WORKER_API_URL}/api/experimental/add-github-repo`, {
             method: 'POST',
             body: JSON.stringify({ owner, repo }),

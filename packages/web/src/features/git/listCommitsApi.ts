@@ -1,25 +1,19 @@
-import { sew } from '@/actions';
+import { sew } from "@/middleware/sew";
 import { invalidGitRef, notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
-import { withOptionalAuthV2 } from '@/withAuthV2';
+import { withOptionalAuth } from '@/middleware/withAuth';
 import { getRepoPath } from '@sourcebot/shared';
+import { z } from 'zod';
 import { simpleGit } from 'simple-git';
 import { toGitDate, validateDateRange } from './dateUtils';
+import { commitSchema } from './schemas';
 import { isGitRefValid } from './utils';
 
-export interface Commit {
-    hash: string;
-    date: string;
-    message: string;
-    refs: string;
-    body: string;
-    author_name: string;
-    author_email: string;
-}
+export type Commit = z.infer<typeof commitSchema>;
 
-export interface SearchCommitsResult {
+export type ListCommitsResponse = {
     commits: Commit[];
     totalCount: number;
-}
+};
 
 type ListCommitsRequest = {
     repo: string;
@@ -50,8 +44,8 @@ export const listCommits = async ({
     path,
     maxCount = 50,
     skip = 0,
-}: ListCommitsRequest): Promise<SearchCommitsResult | ServiceError> => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma }) => {
+}: ListCommitsRequest): Promise<ListCommitsResponse | ServiceError> => sew(() =>
+    withOptionalAuth(async ({ org, prisma }) => {
         const repo = await prisma.repo.findFirst({
             where: {
                 name: repoName,
@@ -123,7 +117,17 @@ export const listCommits = async ({
 
             const totalCount = parseInt((await git.raw(countArgs)).trim(), 10);
 
-            return { commits: log.all as unknown as Commit[], totalCount };
+            const commits: Commit[] = log.all.map((c) => ({
+                hash: c.hash,
+                date: c.date,
+                message: c.message,
+                refs: c.refs,
+                body: c.body,
+                authorName: c.author_name,
+                authorEmail: c.author_email,
+            }));
+
+            return { commits, totalCount };
         } catch (error: unknown) {
             // Provide detailed error messages for common git errors
             const errorMessage = error instanceof Error ? error.message : String(error);

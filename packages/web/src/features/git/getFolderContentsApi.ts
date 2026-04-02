@@ -1,7 +1,7 @@
-import { sew } from '@/actions';
+import { sew } from "@/middleware/sew";
 import { FileTreeItem } from "./types";
 import { notFound, unexpectedError } from '@/lib/serviceError';
-import { withOptionalAuthV2 } from "@/withAuthV2";
+import { withOptionalAuth } from "@/middleware/withAuth";
 import { getRepoPath } from '@sourcebot/shared';
 import simpleGit from 'simple-git';
 import z from 'zod';
@@ -19,7 +19,7 @@ export type GetFolderContentsRequest = z.infer<typeof getFolderContentsRequestSc
  * at a given revision.
  */
 export const getFolderContents = async ({ repoName, revisionName, path }: GetFolderContentsRequest) => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma }) => {
+    withOptionalAuth(async ({ org, prisma }) => {
         const repo = await prisma.repo.findFirst({
             where: {
                 name: repoName,

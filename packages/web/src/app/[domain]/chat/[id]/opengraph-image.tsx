@@ -4,6 +4,7 @@ import { prisma } from '@/prisma';
 import { getOrgFromDomain } from '@/data/org';
 import { ChatVisibility } from '@sourcebot/db';
 import { env } from "@sourcebot/shared";
+import { minidenticon } from 'minidenticons';
 
 export const runtime = 'nodejs';
 export const alt = 'Sourcebot Chat';
@@ -37,6 +38,7 @@ export default async function Image({ params }: ImageProps) {
             createdBy: {
                 select: {
                     name: true,
+                    email: true,
                     image: true,
                 },
             },
@@ -53,7 +55,9 @@ export default async function Image({ params }: ImageProps) {
     const chatName = rawChatName.length > MAX_CHAT_NAME_LENGTH
         ? rawChatName.substring(0, MAX_CHAT_NAME_LENGTH).trim() + '...'
         : rawChatName;
-    const creatorImage = chat.createdBy?.image;
+    const creatorEmail = chat.createdBy?.email;
+    const creatorImage = chat.createdBy?.image
+        ?? (creatorEmail ? 'data:image/svg+xml;utf8,' + encodeURIComponent(minidenticon(creatorEmail, 50, 50)) : undefined);
 
     return new ImageResponse(
         (
