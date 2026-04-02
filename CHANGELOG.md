@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.16.5] - 2026-04-02
+
 ### Added
 - Added `GET /api/commit` endpoint for retrieving details about a single commit, including parent commit SHAs [#1077](https://github.com/sourcebot-dev/sourcebot/pull/1077)
 
