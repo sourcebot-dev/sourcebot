@@ -2,29 +2,50 @@ import { prisma as __unsafePrisma, userScopedPrismaClientExtension } from "@/pri
 import { hashSecret, OAUTH_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX, LEGACY_API_KEY_PREFIX, env } from "@sourcebot/shared";
 import { ApiKey, Org, OrgRole, PrismaClient, UserWithAccounts } from "@sourcebot/db";
 import { headers } from "next/headers";
-import { auth } from "./auth";
-import { notAuthenticated, notFound, ServiceError } from "./lib/serviceError";
-import { SINGLE_TENANT_ORG_ID } from "./lib/constants";
+import { auth } from "../auth";
+import { notAuthenticated, notFound, ServiceError } from "../lib/serviceError";
+import { SINGLE_TENANT_ORG_ID } from "../lib/constants";
 import { StatusCodes } from "http-status-codes";
-import { ErrorCode } from "./lib/errorCodes";
-import { getOrgMetadata, isServiceError } from "./lib/utils";
+import { ErrorCode } from "../lib/errorCodes";
+import { getOrgMetadata, isServiceError } from "../lib/utils";
 import { hasEntitlement } from "@sourcebot/shared";
 
-interface OptionalAuthContext {
+type OptionalAuthContext = {
     user?: UserWithAccounts;
     org: Org;
     role: OrgRole;
     prisma: PrismaClient;
 }
 
-interface RequiredAuthContext {
+type RequiredAuthContext = {
     user: UserWithAccounts;
     org: Org;
     role: Exclude<OrgRole, 'GUEST'>;
     prisma: PrismaClient;
 }
 
-export const withAuthV2 = async <T>(fn: (params: RequiredAuthContext) => Promise<T>) => {
+/**
+ * Requires a logged-in user but does NOT check org membership.
+ * Use this for actions where the user may not yet be a member
+ * of the org (e.g. joining an org, redeeming an invite).
+ */
+export const withAuth_skipOrgMembershipCheck = async <T>(fn: (params: Omit<RequiredAuthContext, 'role'> & { role: OrgRole; }) => Promise<T>) => {
+    const authContext = await getAuthContext();
+
+    if (isServiceError(authContext)) {
+        return authContext;
+    }
+
+    const { user, prisma, org, role } = authContext;
+
+    if (!user) {
+        return notAuthenticated();
+    }
+
+    return fn({ user, prisma, org, role });
+};
+
+export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T>) => {
     const authContext = await getAuthContext();
 
     if (isServiceError(authContext)) {
@@ -40,7 +61,7 @@ export const withAuthV2 = async <T>(fn: (params: RequiredAuthContext) => Promise
     return fn({ user, org, role, prisma });
 };
 
-export const withOptionalAuthV2 = async <T>(fn: (params: OptionalAuthContext) => Promise<T>) => {
+export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => Promise<T>) => {
     const authContext = await getAuthContext();
     if (isServiceError(authContext)) {
         return authContext;
@@ -249,32 +270,4 @@ export const getVerifiedApiObject = async (apiKeyString: string): Promise<ApiKey
     return apiKey;
 }
 
-export const withMinimumOrgRole = async <T>(
-    userRole: OrgRole,
-    minRequiredRole: OrgRole = OrgRole.MEMBER,
-    fn: () => Promise<T>,
-): Promise<T | ServiceError> => {
 
-    const getAuthorizationPrecedence = (role: OrgRole): number => {
-        switch (role) {
-            case OrgRole.GUEST:
-                return 0;
-            case OrgRole.MEMBER:
-                return 1;
-            case OrgRole.OWNER:
-                return 2;
-        }
-    };
-
-    if (
-        getAuthorizationPrecedence(userRole) < getAuthorizationPrecedence(minRequiredRole)
-    ) {
-        return {
-            statusCode: StatusCodes.FORBIDDEN,
-            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
-            message: "You do not have sufficient permissions to perform this action.",
-        } satisfies ServiceError;
-    }
-
-    return fn();
-}

@@ -3,7 +3,7 @@ import { SOURCEBOT_GUEST_USER_ID } from "@/lib/constants";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { withAuthV2 } from "@/withAuthV2";
+import { withAuth } from "@/middleware/withAuth";
 import { env, hasEntitlement } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
@@ -68,7 +68,7 @@ export const GET = apiHandler(async (
     const { query } = parsed.data;
 
 
-    const result = await withAuthV2(async ({ org, user, prisma }) => {
+    const result = await withAuth(async ({ org, user, prisma }) => {
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,

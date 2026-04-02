@@ -1,11 +1,11 @@
 "use server";
 
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError } from "@/lib/serviceError";
-import { prisma } from "@/prisma";
-import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
+import { withAuth } from "@/middleware/withAuth";
+import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { createLogger } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
 import { AuditEvent } from "./types";
@@ -15,7 +15,7 @@ const auditService = getAuditService();
 const logger = createLogger('audit-utils');
 
 export const createAuditAction = async (event: Omit<AuditEvent, 'sourcebotVersion' | 'orgId' | 'actor' | 'target'>) => sew(async () =>
-    withAuthV2(async ({ user, org }) => {
+    withAuth(async ({ user, org }) => {
         await auditService.createAudit({
             ...event,
             orgId: org.id,
@@ -33,7 +33,7 @@ export interface FetchAuditRecordsParams {
 }
 
 export const fetchAuditRecords = async (params: FetchAuditRecordsParams) => sew(() =>
-    withAuthV2(async ({ user, org, role }) =>
+    withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             try {
                 const where = {

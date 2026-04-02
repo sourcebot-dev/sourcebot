@@ -1,10 +1,10 @@
 import { expect, test, vi, beforeEach, describe } from 'vitest';
 import { Session } from 'next-auth';
-import { notAuthenticated } from './lib/serviceError';
-import { getAuthContext, getAuthenticatedUser, withAuthV2, withOptionalAuthV2 } from './withAuthV2';
-import { MOCK_API_KEY, MOCK_OAUTH_TOKEN, MOCK_ORG, MOCK_USER_WITH_ACCOUNTS, prisma } from './__mocks__/prisma';
+import { notAuthenticated } from '../lib/serviceError';
+import { getAuthContext, getAuthenticatedUser, withAuth, withOptionalAuth } from './withAuth';
+import { MOCK_API_KEY, MOCK_OAUTH_TOKEN, MOCK_ORG, MOCK_USER_WITH_ACCOUNTS, prisma } from '../__mocks__/prisma';
 import { OrgRole } from '@sourcebot/db';
-import { ErrorCode } from './lib/errorCodes';
+import { ErrorCode } from '../lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
 
 const mocks = vi.hoisted(() => {
@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => {
     }
 });
 
-vi.mock('./auth', () => ({
+vi.mock('../auth', () => ({
     auth: mocks.auth,
 }));
 
@@ -461,7 +461,7 @@ describe('getAuthContext', () => {
     });
 });
 
-describe('withAuthV2', () => {
+describe('withAuth', () => {
     test('should call the callback with the auth context object if a valid session is present and the user is a member of the organization', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
@@ -480,7 +480,7 @@ describe('withAuthV2', () => {
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
 
         const cb = vi.fn();
-        const result = await withAuthV2(cb);
+        const result = await withAuth(cb);
         expect(cb).toHaveBeenCalledWith({
             user: {
                 ...MOCK_USER_WITH_ACCOUNTS,
@@ -510,7 +510,7 @@ describe('withAuthV2', () => {
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
 
         const cb = vi.fn();
-        const result = await withAuthV2(cb);
+        const result = await withAuth(cb);
         expect(cb).toHaveBeenCalledWith({
             user: {
                 ...MOCK_USER_WITH_ACCOUNTS,
@@ -545,7 +545,7 @@ describe('withAuthV2', () => {
         setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));
 
         const cb = vi.fn();
-        const result = await withAuthV2(cb);
+        const result = await withAuth(cb);
         expect(cb).toHaveBeenCalledWith({
             user: {
                 ...MOCK_USER_WITH_ACCOUNTS,
@@ -580,7 +580,7 @@ describe('withAuthV2', () => {
         setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));
 
         const cb = vi.fn();
-        const result = await withAuthV2(cb);
+        const result = await withAuth(cb);
         expect(cb).toHaveBeenCalledWith({
             user: {
                 ...MOCK_USER_WITH_ACCOUNTS,
@@ -615,7 +615,7 @@ describe('withAuthV2', () => {
         setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-apikey' }));
 
         const cb = vi.fn();
-        const result = await withAuthV2(cb);
+        const result = await withAuth(cb);
         expect(cb).toHaveBeenCalledWith({
             user: {
                 ...MOCK_USER_WITH_ACCOUNTS,
@@ -650,7 +650,7 @@ describe('withAuthV2', () => {
         setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-apikey' }));
 
         const cb = vi.fn();
-        const result = await withAuthV2(cb);
+        const result = await withAuth(cb);
         expect(cb).toHaveBeenCalledWith({
             user: {
                 ...MOCK_USER_WITH_ACCOUNTS,
@@ -680,7 +680,7 @@ describe('withAuthV2', () => {
         setMockSession(null);
 
         const cb = vi.fn();
-        const result = await withAuthV2(cb);
+        const result = await withAuth(cb);
         expect(cb).not.toHaveBeenCalled();
         expect(result).toStrictEqual(notAuthenticated());
     });
@@ -703,7 +703,7 @@ describe('withAuthV2', () => {
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
 
         const cb = vi.fn();
-        const result = await withAuthV2(cb);
+        const result = await withAuth(cb);
         expect(cb).not.toHaveBeenCalled();
         expect(result).toStrictEqual(notAuthenticated());
     });
@@ -722,13 +722,13 @@ describe('withAuthV2', () => {
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
 
         const cb = vi.fn();
-        const result = await withAuthV2(cb);
+        const result = await withAuth(cb);
         expect(cb).not.toHaveBeenCalled();
         expect(result).toStrictEqual(notAuthenticated());
     });
 });
 
-describe('withOptionalAuthV2', () => {
+describe('withOptionalAuth', () => {
     test('should call the callback with the auth context object if a valid session is present and the user is a member of the organization', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
@@ -747,7 +747,7 @@ describe('withOptionalAuthV2', () => {
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
 
         const cb = vi.fn();
-        const result = await withOptionalAuthV2(cb);
+        const result = await withOptionalAuth(cb);
         expect(cb).toHaveBeenCalledWith({
             user: {
                 ...MOCK_USER_WITH_ACCOUNTS,
@@ -777,7 +777,7 @@ describe('withOptionalAuthV2', () => {
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
 
         const cb = vi.fn();
-        const result = await withOptionalAuthV2(cb);
+        const result = await withOptionalAuth(cb);
         expect(cb).toHaveBeenCalledWith({
             user: {
                 ...MOCK_USER_WITH_ACCOUNTS,
@@ -812,7 +812,7 @@ describe('withOptionalAuthV2', () => {
         setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));
 
         const cb = vi.fn();
-        const result = await withOptionalAuthV2(cb);
+        const result = await withOptionalAuth(cb);
         expect(cb).toHaveBeenCalledWith({
             user: {
                 ...MOCK_USER_WITH_ACCOUNTS,
@@ -847,7 +847,7 @@ describe('withOptionalAuthV2', () => {
         setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));
 
         const cb = vi.fn();
-        const result = await withOptionalAuthV2(cb);
+        const result = await withOptionalAuth(cb);
         expect(cb).toHaveBeenCalledWith({
             user: {
                 ...MOCK_USER_WITH_ACCOUNTS,
@@ -882,7 +882,7 @@ describe('withOptionalAuthV2', () => {
         setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-apikey' }));
 
         const cb = vi.fn();
-        const result = await withOptionalAuthV2(cb);
+        const result = await withOptionalAuth(cb);
         expect(cb).toHaveBeenCalledWith({
             user: {
                 ...MOCK_USER_WITH_ACCOUNTS,
@@ -917,7 +917,7 @@ describe('withOptionalAuthV2', () => {
         setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-apikey' }));
 
         const cb = vi.fn();
-        const result = await withOptionalAuthV2(cb);
+        const result = await withOptionalAuth(cb);
         expect(cb).toHaveBeenCalledWith({
             user: {
                 ...MOCK_USER_WITH_ACCOUNTS,
@@ -947,7 +947,7 @@ describe('withOptionalAuthV2', () => {
         setMockSession(null);
 
         const cb = vi.fn();
-        const result = await withOptionalAuthV2(cb);
+        const result = await withOptionalAuth(cb);
         expect(cb).not.toHaveBeenCalled();
         expect(result).toStrictEqual(notAuthenticated());
     });
@@ -970,7 +970,7 @@ describe('withOptionalAuthV2', () => {
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
 
         const cb = vi.fn();
-        const result = await withOptionalAuthV2(cb);
+        const result = await withOptionalAuth(cb);
         expect(cb).not.toHaveBeenCalled();
         expect(result).toStrictEqual(notAuthenticated());
     });
@@ -989,7 +989,7 @@ describe('withOptionalAuthV2', () => {
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
 
         const cb = vi.fn();
-        const result = await withOptionalAuthV2(cb);
+        const result = await withOptionalAuth(cb);
         expect(cb).not.toHaveBeenCalled();
         expect(result).toStrictEqual(notAuthenticated());
     });
@@ -1011,7 +1011,7 @@ describe('withOptionalAuthV2', () => {
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
 
         const cb = vi.fn();
-        const result = await withOptionalAuthV2(cb);
+        const result = await withOptionalAuth(cb);
         expect(cb).toHaveBeenCalledWith({
             user: {
                 ...MOCK_USER_WITH_ACCOUNTS,
@@ -1045,7 +1045,7 @@ describe('withOptionalAuthV2', () => {
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
 
         const cb = vi.fn();
-        const result = await withOptionalAuthV2(cb);
+        const result = await withOptionalAuth(cb);
         expect(cb).not.toHaveBeenCalled();
         expect(result).toStrictEqual(notAuthenticated());
     });
@@ -1067,7 +1067,7 @@ describe('withOptionalAuthV2', () => {
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
 
         const cb = vi.fn();
-        const result = await withOptionalAuthV2(cb);
+        const result = await withOptionalAuth(cb);
         expect(cb).not.toHaveBeenCalled();
         expect(result).toStrictEqual(notAuthenticated());
     });

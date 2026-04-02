@@ -3,7 +3,6 @@
 import { ReadFileMetadata, ToolResult } from "@/features/tools";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { RepoBadge } from "./repoBadge";
@@ -15,7 +14,6 @@ export const ReadFileToolComponent = ({ metadata }: ToolResult<ReadFileMetadata>
         revisionName: metadata.ref,
         path: metadata.path,
         pathType: 'blob',
-        domain: SINGLE_TENANT_ORG_DOMAIN,
         highlightRange: (metadata.isTruncated || metadata.startLine > 1) ? {
             start: { lineNumber: metadata.startLine },
             end: { lineNumber: metadata.endLine },

@@ -18,6 +18,7 @@ import { EmailFooter } from './emailFooter';
 import { SOURCEBOT_LOGO_LIGHT_LARGE_URL, SOURCEBOT_ARROW_IMAGE_URL, SOURCEBOT_PLACEHOLDER_AVATAR_URL } from './constants';
 
 interface InviteUserEmailProps {
+    baseUrl: string;
     inviteLink: string;
     host: {
         email: string;
@@ -32,6 +33,7 @@ interface InviteUserEmailProps {
 }
 
 export const InviteUserEmail = ({
+    baseUrl,
     host,
     recipient,
     orgName,
@@ -71,7 +73,7 @@ export const InviteUserEmail = ({
                                 <Column align="right">
                                     <Img
                                         className="rounded-full"
-                                        src={host.avatarUrl ? host.avatarUrl : SOURCEBOT_PLACEHOLDER_AVATAR_URL}
+                                        src={host.avatarUrl ?? `${baseUrl}/api/minidenticon?email=${encodeURIComponent(host.email)}`}
                                         width="64"
                                         height="64"
                                     />
@@ -128,17 +130,16 @@ const InvitedByText = ({ email, name }: { email: string, name?: string }) => {
 }
 
 InviteUserEmail.PreviewProps = {
+    baseUrl: 'http://localhost:3000',
     host: {
         name: 'Alan Turing',
         email: 'alan.turing@example.com',
-        avatarUrl: SOURCEBOT_PLACEHOLDER_AVATAR_URL,
     },
     recipient: {
         // name: 'alanturing',
     },
     orgName: 'Enigma',
-    orgImageUrl: SOURCEBOT_PLACEHOLDER_AVATAR_URL,
-    inviteLink: 'https://sourcebot.example.com/redeem?invite_id=1234',
+    inviteLink: 'http://localhost:3000/redeem?invite_id=1234',
 } satisfies InviteUserEmailProps;
 
 export default InviteUserEmail;

@@ -104,7 +104,7 @@ export default async function Page(props: PageProps) {
 
     const languageModels = await getConfiguredLanguageModelsInfo();
     const repos = await getRepos();
-    const searchContexts = await getSearchContexts(params.domain);
+    const searchContexts = await getSearchContexts();
     const chatInfo = await getChatInfo({ chatId: params.id });
     const chatHistory = session ? await getUserChatHistory() : [];
 

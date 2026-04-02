@@ -3,13 +3,12 @@
 import { searchChatShareableMembers } from "@/app/api/(client)/client";
 import { SearchChatShareableMembersResponse } from "@/app/api/(server)/ee/chat/[chatId]/searchMembers/route";
 import { SessionUser } from "@/auth";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Separator } from "@/components/ui/separator";
 import { unwrapServiceError } from "@/lib/utils";
-import placeholderAvatar from "@/public/placeholder_avatar.png";
+import { UserAvatar } from "@/components/userAvatar";
 import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
 import { ChevronLeft, Circle, CircleCheck, Loader2, X } from "lucide-react";
@@ -32,17 +31,6 @@ export const InvitePanel = ({
     const [isInviting, setIsInviting] = useState(false);
     const resultsRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-
-    const getInitials = (name?: string, email?: string) => {
-        if (name) {
-            return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
-        }
-        if (email) {
-            return email[0].toUpperCase();
-        }
-        return '?';
-    };
-
 
     const debouncedSearchQuery = useDebounce(searchQuery, 100);
 
@@ -157,10 +145,11 @@ export const InvitePanel = ({
                                         ) : (
                                             <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
                                         )}
-                                        <Avatar className="h-8 w-8 ml-2">
-                                            <AvatarImage src={user.image ?? placeholderAvatar.src} />
-                                            <AvatarFallback>{getInitials(user.name ?? undefined, user.email ?? undefined)}</AvatarFallback>
-                                        </Avatar>
+                                        <UserAvatar
+                                            email={user.email}
+                                            imageUrl={user.image}
+                                            className="h-8 w-8 ml-2"
+                                        />
                                         <div className="flex flex-col items-start ml-1">
                                             <span className="text-sm font-medium">{user.name || user.email}</span>
                                             {user.name && (

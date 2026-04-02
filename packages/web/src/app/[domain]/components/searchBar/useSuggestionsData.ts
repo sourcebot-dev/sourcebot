@@ -107,7 +107,7 @@ export const useSuggestionsData = ({
 
     const { data: searchContextSuggestions, isLoading: _isLoadingSearchContexts } = useQuery({
         queryKey: ["searchContexts", domain],
-        queryFn: () => getSearchContexts(domain),
+        queryFn: () => getSearchContexts(),
         select: (data): Suggestion[] => {
             if (isServiceError(data)) {
                 return [];

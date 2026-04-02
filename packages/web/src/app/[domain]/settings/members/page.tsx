@@ -7,7 +7,6 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { TabSwitcher } from "@/components/ui/tab-switcher";
 import { InvitesList } from "./components/invitesList";
 import { getOrgInvites, getMe, getOrgAccountRequests } from "@/actions";
-import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getSeats, hasEntitlement, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { RequestsList } from "./components/requestsList";
@@ -57,17 +56,17 @@ export default async function MembersSettingsPage(props: MembersSettingsPageProp
         redirect(`/${domain}/settings`);
     }
 
-    const members = await getOrgMembers(domain);
+    const members = await getOrgMembers();
     if (isServiceError(members)) {
         throw new ServiceErrorException(members);
     }
 
-    const invites = await getOrgInvites(domain);
+    const invites = await getOrgInvites();
     if (isServiceError(invites)) {
         throw new ServiceErrorException(invites);
     }
 
-    const requests = await getOrgAccountRequests(domain);
+    const requests = await getOrgAccountRequests();
     if (isServiceError(requests)) {
         throw new ServiceErrorException(requests);
     }
@@ -99,7 +98,6 @@ export default async function MembersSettingsPage(props: MembersSettingsPageProp
 
             <InviteMemberCard
                 currentUserRole={userRoleInOrg}
-                isBillingEnabled={IS_BILLING_ENABLED}
                 seatsAvailable={seatsAvailable}
             />
 

@@ -1,6 +1,6 @@
 {
     "$schema": "https://mintlify.com/docs.json",
-    "theme": "almond",
+    "theme": "aspen",
     "name": "Sourcebot",
     "colors": {
         "primary": "#851EE7",
@@ -12,10 +12,28 @@
         "eyebrows": "section"
     },
     "navigation": {
-        "anchors": [
+        "global": {
+            "anchors": [
+                {
+                    "anchor": "Changelog",
+                    "href": "https://sourcebot.dev/changelog",
+                    "icon": "list-check"
+                },
+                {
+                    "anchor": "Roadmap",
+                    "href": "https://github.com/sourcebot-dev/sourcebot/issues/459",
+                    "icon": "map"
+                },
+                {
+                    "anchor": "Support",
+                    "href": "https://github.com/sourcebot-dev/sourcebot/issues/new?template=get_help.md",
+                    "icon": "life-ring"
+                }
+            ]
+        },
+        "tabs": [
             {
-                "anchor": "Docs",
-                "icon": "books",
+                "tab": "Documentation",
                 "groups": [
                     {
                         "group": "Getting Started",
@@ -74,17 +92,6 @@
                         ]
                     },
                     {
-                        "group": "API Reference",
-                        "pages": [
-                            "docs/api-reference/overview",
-                            {
-                                "group": "Public API",
-                                "openapi": "api-reference/sourcebot-public.openapi.json",
-                                "directory": "docs/api-reference/public-api"
-                            }
-                        ]
-                    },
-                    {
                         "group": "Configuration",
                         "pages": [
                             "docs/configuration/config-file",
@@ -134,19 +141,63 @@
                 ]
             },
             {
-                "anchor": "Changelog",
-                "href": "https://sourcebot.dev/changelog",
-                "icon": "list-check"
-            },
-            {
-                "anchor": "Roadmap",
-                "href": "https://github.com/sourcebot-dev/sourcebot/issues/459",
-                "icon": "map"
-            },
-            {
-                "anchor": "Support",
-                "href": "https://github.com/sourcebot-dev/sourcebot/issues/new?template=get_help.md",
-                "icon": "life-ring"
+                "tab": "API Reference",
+                "icon": "code",
+                "openapi": "api-reference/sourcebot-public.openapi.json",
+                "groups": [
+                    {
+                        "group": "Overview",
+                        "icon": "book-open",
+                        "pages": [
+                            "docs/api-reference/authentication"
+                        ]
+                    },
+                    {
+                        "group": "Search & Navigation",
+                        "icon": "magnifying-glass",
+                        "pages": [
+                            "POST /api/search",
+                            "POST /api/find_definitions",
+                            "POST /api/find_references"
+                        ]
+                    },
+                    {
+                        "group": "Repositories",
+                        "icon": "database",
+                        "pages": [
+                            "GET /api/repos"
+                        ]
+                    },
+                    {
+                        "group": "Git",
+                        "icon": "code-branch",
+                        "pages": [
+                            "GET /api/commit",
+                            "GET /api/diff",
+                            "GET /api/commits",
+                            "GET /api/source",
+                            "POST /api/tree"
+                        ]
+                    },
+                    {
+                        "group": "Enterprise Management",
+                        "icon": "building-columns",
+                        "pages": [
+                            "GET /api/ee/user",
+                            "DELETE /api/ee/user",
+                            "GET /api/ee/users",
+                            "GET /api/ee/audit"
+                        ]
+                    },
+                    {
+                        "group": "System",
+                        "icon": "server",
+                        "pages": [
+                            "GET /api/version",
+                            "GET /api/health"
+                        ]
+                    }
+                ]
             }
         ]
     },

@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { isServiceError } from "@/lib/utils";
 import { Copy, Check, AlertTriangle, Loader2, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useDomain } from "@/hooks/useDomain";
 import { useToast } from "@/components/hooks/use-toast";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { DataTable } from "@/components/ui/data-table";
@@ -16,7 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function ApiKeysPage({ canCreateApiKey }: { canCreateApiKey: boolean }) {
-    const domain = useDomain();
     const { toast } = useToast();
     const captureEvent = useCaptureEvent();
 
@@ -33,7 +31,7 @@ export function ApiKeysPage({ canCreateApiKey }: { canCreateApiKey: boolean }) {
         setIsLoading(true);
         setError(null);
         try {
-            const keys = await getUserApiKeys(domain);
+            const keys = await getUserApiKeys();
             if (isServiceError(keys)) {
                 setError("Failed to load API keys");
                 toast({
@@ -55,7 +53,7 @@ export function ApiKeysPage({ canCreateApiKey }: { canCreateApiKey: boolean }) {
         } finally {
             setIsLoading(false);
         }
-    }, [domain, toast]);
+    }, [toast]);
 
     useEffect(() => {
         loadApiKeys();
@@ -73,7 +71,7 @@ export function ApiKeysPage({ canCreateApiKey }: { canCreateApiKey: boolean }) {
 
         setIsCreatingKey(true);
         try {
-            const result = await createApiKey(newKeyName.trim(), domain);
+            const result = await createApiKey(newKeyName.trim());
             if (isServiceError(result)) {
                 toast({
                     title: "Error",

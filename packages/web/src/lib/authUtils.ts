@@ -9,8 +9,6 @@ import { createLogger } from "@sourcebot/shared";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
-import { IS_BILLING_ENABLED } from "@/ee/features/billing/stripe";
-import { incrementOrgSeatCount } from "@/ee/features/billing/serverUtils";
 import { getOrgFromDomain } from "@/data/org";
 
 const logger = createLogger('web-auth-utils');
@@ -261,13 +259,6 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
                 role: OrgRole.MEMBER,
             }
         });
-
-        if (IS_BILLING_ENABLED) {
-            const result = await incrementOrgSeatCount(orgId, tx);
-            if (isServiceError(result)) {
-                throw result;
-            }
-        }
 
         // Delete the account request if it exists since we've added the user to the org
         const accountRequest = await tx.accountRequest.findUnique({

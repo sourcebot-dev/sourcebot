@@ -1,12 +1,12 @@
 'use server';
 
 import { ServiceError } from "@/lib/serviceError";
-import { withAuthV2 } from "@/withAuthV2";
+import { withAuth } from "@/middleware/withAuth";
 import { env, getEntitlements } from "@sourcebot/shared";
 import { AccountPermissionSyncJobStatus } from "@sourcebot/db";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 
 export interface PermissionSyncStatusResponse {
     hasPendingFirstSync: boolean;
@@ -17,7 +17,7 @@ export interface PermissionSyncStatusResponse {
  * synced for the first time.
  */
 export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusResponse | ServiceError> => sew(async () =>
-    withAuthV2(async ({ prisma, user }) => {
+    withAuth(async ({ prisma, user }) => {
         const entitlements = getEntitlements();
         if (!entitlements.includes('permission-syncing')) {
             return {

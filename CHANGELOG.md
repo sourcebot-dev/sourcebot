@@ -10,6 +10,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Links in Ask Sourcebot chat responses now open in a new tab with a subtle external link icon indicator. [#1059](https://github.com/sourcebot-dev/sourcebot/pull/1059)
 
+## [4.16.5] - 2026-04-02
+
+### Added
+- Added `GET /api/commit` endpoint for retrieving details about a single commit, including parent commit SHAs [#1077](https://github.com/sourcebot-dev/sourcebot/pull/1077)
+
+### Changed
+- Replaced placeholder avatars with deterministic minidenticon-based avatars generated from email addresses [#1072](https://github.com/sourcebot-dev/sourcebot/pull/1072)
+- Changed `author_name` and `author_email` fields to `authorName` and `authorEmail` in `GET /api/commits` response [#1077](https://github.com/sourcebot-dev/sourcebot/pull/1077)
+- Changed `oldPath` and `newPath` in `GET /api/diff` response from `"/dev/null"` to `null` for added/deleted files [#1077](https://github.com/sourcebot-dev/sourcebot/pull/1077)
+- Bumped `simple-git` to `3.33.0`. [#1078](https://github.com/sourcebot-dev/sourcebot/pull/1078)
+
+## [4.16.4] - 2026-04-01
+
+### Added
+- Added `GET /api/diff` endpoint for retrieving structured diffs between two git refs [#1063](https://github.com/sourcebot-dev/sourcebot/pull/1063)
+
+### Fixed
+- Fixed `GET /api/mcp` hanging with zero bytes by returning `405 Method Not Allowed` per the MCP Streamable HTTP spec [#1064](https://github.com/sourcebot-dev/sourcebot/pull/1064)
+- Fixed tokens with trailing newlines breaking git clone URLs by adding `.trim()` in `getTokenFromConfig()` [#1067](https://github.com/sourcebot-dev/sourcebot/pull/1067)
+
+### Removed
+- Removed "general" settings page with options to change organization name and domain. [#1065](https://github.com/sourcebot-dev/sourcebot/pull/1065)
+
+### Changed
+- Changed the analytics and license settings pages to only be viewable by organization owners. [#1065](https://github.com/sourcebot-dev/sourcebot/pull/1065)
+
 ## [4.16.3] - 2026-03-27
 
 ### Added

@@ -66,13 +66,13 @@ const examples: SearchInput[] = [
     { pattern: 'expect\\(', include: '*.test.ts' },
 
     // Specific subdirectory + extension
-    { pattern: 'withAuthV2', path: 'packages/web/src/app', include: '**/*.ts' },
+    { pattern: 'withAuth', path: 'packages/web/src/app', include: '**/*.ts' },
 
     // Next.js route group — parens in path are regex special chars
-    { pattern: 'withAuthV2', path: 'packages/web/src/app/api/(server)', include: '**/*.ts' },
+    { pattern: 'withAuth', path: 'packages/web/src/app/api/(server)', include: '**/*.ts' },
 
     // Next.js dynamic segment — brackets in path are regex special chars
-    { pattern: 'withOptionalAuthV2', path: 'packages/web/src/app/[domain]', include: '**/*.ts' },
+    { pattern: 'withOptionalAuth', path: 'packages/web/src/app/[domain]', include: '**/*.ts' },
 
     // Pattern with spaces — must be quoted in zoekt query
     { pattern: 'Starting scheduler', include: '**/*.ts' },

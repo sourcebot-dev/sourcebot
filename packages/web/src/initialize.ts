@@ -1,5 +1,4 @@
 import { createGuestUser } from '@/lib/authUtils';
-import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { prisma } from "@/prisma";
 import { OrgRole } from '@sourcebot/db';
 import { createLogger, env, hasEntitlement, loadConfig } from "@sourcebot/shared";
@@ -35,7 +34,7 @@ const pruneOldGuestUser = async () => {
     }
 }
 
-const initSingleTenancy = async () => {
+const init = async () => {
     // This is needed because v4 introduces the GUEST org role as well as making authentication required. 
     // To keep things simple, we'll just delete the old guest user if it exists in the DB
     await pruneOldGuestUser();
@@ -66,7 +65,7 @@ const initSingleTenancy = async () => {
     // search contexts that may be present in the DB. This could happen if a deployment had
     // the entitlement, synced search contexts, and then no longer had the entitlement
     const hasSearchContextEntitlement = hasEntitlement("search-contexts")
-    if(!hasSearchContextEntitlement) {
+    if (!hasSearchContextEntitlement) {
         await prisma.searchContext.deleteMany({
             where: {
                 orgId: SINGLE_TENANT_ORG_ID,
@@ -115,20 +114,6 @@ const initSingleTenancy = async () => {
     }
 }
 
-const initMultiTenancy = async () => {
-    const hasMultiTenancyEntitlement = hasEntitlement("multi-tenancy");
-    if (!hasMultiTenancyEntitlement) {
-        logger.error(`SOURCEBOT_TENANCY_MODE is set to ${env.SOURCEBOT_TENANCY_MODE} but your license doesn't have multi-tenancy entitlement. Please contact ${SOURCEBOT_SUPPORT_EMAIL} to request a license upgrade.`);
-        process.exit(1);
-    }
-}
-
 (async () => {
-    if (env.SOURCEBOT_TENANCY_MODE === 'single') {
-        await initSingleTenancy();
-    } else if (env.SOURCEBOT_TENANCY_MODE === 'multi') {
-        await initMultiTenancy();
-    } else {
-        throw new Error(`Invalid SOURCEBOT_TENANCY_MODE: ${env.SOURCEBOT_TENANCY_MODE}`);
-    }
+    await init();
 })();

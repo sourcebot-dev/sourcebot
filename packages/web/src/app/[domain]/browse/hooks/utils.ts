@@ -1,4 +1,5 @@
 import { BrowseState, SET_BROWSE_STATE_QUERY_PARAM } from "../browseStateProvider";
+import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 
 export const HIGHLIGHT_RANGE_QUERY_PARAM = 'highlightRange';
 
@@ -17,7 +18,6 @@ export interface GetBrowsePathProps {
     pathType: 'blob' | 'tree';
     highlightRange?: BrowseHighlightRange;
     setBrowseState?: Partial<BrowseState>;
-    domain: string;
 }
 
 export const getBrowseParamsFromPathParam = (pathParam: string) => {
@@ -64,8 +64,9 @@ export const getBrowseParamsFromPathParam = (pathParam: string) => {
 };
 
 export const getBrowsePath = ({
-    repoName, revisionName, path, pathType, highlightRange, setBrowseState, domain,
+    repoName, revisionName, path, pathType, highlightRange, setBrowseState,
 }: GetBrowsePathProps) => {
+    const domain = SINGLE_TENANT_ORG_DOMAIN;
     const params = new URLSearchParams();
 
     if (highlightRange) {

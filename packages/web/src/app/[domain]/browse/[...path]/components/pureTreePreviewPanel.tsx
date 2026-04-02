@@ -5,7 +5,6 @@ import { FileTreeItemComponent } from "@/app/[domain]/browse/components/fileTree
 import { getBrowsePath } from "../../hooks/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBrowseParams } from "../../hooks/useBrowseParams";
-import { useDomain } from "@/hooks/useDomain";
 import { FileTreeItem } from "@/features/git";
 
 interface PureTreePreviewPanelProps {
@@ -15,7 +14,6 @@ interface PureTreePreviewPanelProps {
 export const PureTreePreviewPanel = ({ items }: PureTreePreviewPanelProps) => {
     const { repoName, revisionName } = useBrowseParams();
     const scrollAreaRef = useRef<HTMLDivElement>(null);
-    const domain = useDomain();
    
     return (
         <ScrollArea
@@ -35,7 +33,6 @@ export const PureTreePreviewPanel = ({ items }: PureTreePreviewPanelProps) => {
                         revisionName,
                         path: item.path,
                         pathType: item.type === 'tree' ? 'tree' : 'blob',
-                        domain,
                     })}
                 />
             ))}

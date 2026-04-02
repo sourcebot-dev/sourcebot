@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { isServiceError } from "@/lib/utils";
-import { listCommits, SearchCommitsResult } from "@/features/git";
+import { listCommits, ListCommitsResponse } from "@/features/git";
 import { ToolDefinition } from "./types";
 import { logger } from "./logger";
 import description from "./listCommits.txt";
@@ -25,7 +25,7 @@ export type ListCommitsRepoInfo = {
     codeHostType: CodeHostType;
 };
 
-export type ListCommitsMetadata = SearchCommitsResult & {
+export type ListCommitsMetadata = ListCommitsResponse & {
     repo: string;
     repoInfo: ListCommitsRepoInfo;
 };
