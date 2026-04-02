@@ -7,10 +7,11 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { createAuditAction } from "@/ee/features/audit/actions";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { cn } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { useHotkeys } from "react-hotkeys-hook";
 import { SymbolDefinitionPreview } from "./symbolDefinitionPreview";
@@ -36,7 +37,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
     const ref = useRef<HTMLDivElement>(null);
     const [isSticky, setIsSticky] = useState(false);
     const { toast } = useToast();
-    const { navigateToPath } = useBrowseNavigation();
+    const { navigateToPath, createBrowsePath } = useBrowseNavigation();
     const captureEvent = useCaptureEvent();
 
     const symbolInfo = useHoveredOverSymbolInfo({
@@ -106,6 +107,72 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         return symbolInfo.symbolDefinitions[0];
     }, [fileName, repoName, symbolInfo?.symbolDefinitions]);
 
+    const gotoDefinitionHref = useMemo(() => {
+        if (
+            !symbolInfo ||
+            !symbolInfo.symbolDefinitions ||
+            !previewedSymbolDefinition
+        ) {
+            return undefined;
+        }
+
+        const {
+            fileName,
+            repoName,
+            revisionName,
+            language,
+            range: highlightRange,
+        } = previewedSymbolDefinition;
+
+        return createBrowsePath({
+            repoName,
+            revisionName,
+            path: fileName,
+            pathType: 'blob',
+            highlightRange,
+            ...(symbolInfo.symbolDefinitions.length > 1 ? {
+                setBrowseState: {
+                    selectedSymbolInfo: {
+                        symbolName: symbolInfo.symbolName,
+                        repoName,
+                        revisionName,
+                        language,
+                    },
+                    activeExploreMenuTab: "definitions",
+                    isBottomPanelCollapsed: false,
+                }
+            } : {}),
+        });
+    }, [createBrowsePath, previewedSymbolDefinition, symbolInfo]);
+
+    const onGotoDefinitionClick = useCallback((e: MouseEvent<HTMLAnchorElement>) => {
+        if (
+            !symbolInfo ||
+            !symbolInfo.symbolDefinitions ||
+            !previewedSymbolDefinition
+        ) {
+            e.preventDefault();
+            return;
+        }
+
+        captureEvent('wa_goto_definition_pressed', {
+            source,
+        });
+
+        createAuditAction({
+            action: "user.performed_goto_definition",
+            metadata: {
+                message: symbolInfo.symbolName,
+                source: 'sourcebot-web-client',
+            },
+        });
+    }, [
+        captureEvent,
+        previewedSymbolDefinition,
+        source,
+        symbolInfo
+    ]);
+
     const onGotoDefinition = useCallback(() => {
         if (
             !symbolInfo ||
@@ -136,13 +203,11 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         } = previewedSymbolDefinition;
 
         navigateToPath({
-            // Always navigate to the preview symbol definition.
             repoName,
             revisionName,
             path: fileName,
             pathType: 'blob',
             highlightRange,
-            // If there are multiple definitions, we should open the Explore panel with the definitions.
             ...(symbolInfo.symbolDefinitions.length > 1 ? {
                 setBrowseState: {
                     selectedSymbolInfo: {
@@ -163,6 +228,49 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
         source,
         symbolInfo
     ]);
+
+    const findReferencesHref = useMemo(() => {
+        if (!symbolInfo) {
+            return undefined;
+        }
+
+        return createBrowsePath({
+            repoName,
+            revisionName,
+            path: fileName,
+            pathType: 'blob',
+            highlightRange: symbolInfo.range,
+            setBrowseState: {
+                selectedSymbolInfo: {
+                    symbolName: symbolInfo.symbolName,
+                    repoName,
+                    revisionName,
+                    language,
+                },
+                activeExploreMenuTab: "references",
+                isBottomPanelCollapsed: false,
+            }
+        });
+    }, [createBrowsePath, fileName, language, repoName, revisionName, symbolInfo]);
+
+    const onFindReferencesClick = useCallback((e: MouseEvent<HTMLAnchorElement>) => {
+        if (!symbolInfo) {
+            e.preventDefault();
+            return;
+        }
+
+        captureEvent('wa_find_references_pressed', {
+            source,
+        });
+
+        createAuditAction({
+            action: "user.performed_find_references",
+            metadata: {
+                message: symbolInfo.symbolName,
+                source: 'sourcebot-web-client',
+            },
+        });
+    }, [captureEvent, source, symbolInfo]);
 
     const onFindReferences = useCallback(() => {
         if (!symbolInfo) {
@@ -276,13 +384,20 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                             disabled={!previewedSymbolDefinition}
                             variant="outline"
                             size="sm"
-                            onClick={onGotoDefinition}
+                            asChild={!symbolInfo.isSymbolDefinitionsLoading && !!previewedSymbolDefinition}
                         >
-                            {
-                                !symbolInfo.isSymbolDefinitionsLoading && !previewedSymbolDefinition ?
-                                    "No definition found" :
-                                    `Go to ${symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 1 ? "definitions" : "definition"}`
-                            }
+                            {!symbolInfo.isSymbolDefinitionsLoading && previewedSymbolDefinition ? (
+                                <a
+                                    href={gotoDefinitionHref}
+                                    onClick={onGotoDefinitionClick}
+                                >
+                                    {`Go to ${symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 1 ? "definitions" : "definition"}`}
+                                </a>
+                            ) : (
+                                <span>
+                                    {symbolInfo.isSymbolDefinitionsLoading ? "Loading..." : "No definition found"}
+                                </span>
+                            )}
                         </LoadingButton>
                     </TooltipTrigger>
                     <TooltipContent
@@ -299,9 +414,15 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={onFindReferences}
+                            asChild
                         >
-                            Find references
+                            <a
+                                href={findReferencesHref}
+                                onClick={onFindReferencesClick}
+                                className={cn(!symbolInfo && "pointer-events-none opacity-50")}
+                            >
+                                Find references
+                            </a>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent

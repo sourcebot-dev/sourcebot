@@ -27,7 +27,26 @@ export const useBrowseNavigation = () => {
         router.push(browsePath);
     }, [router]);
 
+    const createBrowsePath = useCallback(({
+        repoName,
+        revisionName = 'HEAD',
+        path,
+        pathType,
+        highlightRange,
+        setBrowseState,
+    }: GetBrowsePathProps) => {
+        return getBrowsePath({
+            repoName,
+            revisionName,
+            path,
+            pathType,
+            highlightRange,
+            setBrowseState,
+        });
+    }, []);
+
     return {
         navigateToPath,
+        createBrowsePath,
     };
 };
