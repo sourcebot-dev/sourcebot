@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced placeholder avatars with deterministic minidenticon-based avatars generated from email addresses [#1072](https://github.com/sourcebot-dev/sourcebot/pull/1072)
 - Changed `author_name` and `author_email` fields to `authorName` and `authorEmail` in `GET /api/commits` response [#1077](https://github.com/sourcebot-dev/sourcebot/pull/1077)
 - Changed `oldPath` and `newPath` in `GET /api/diff` response from `"/dev/null"` to `null` for added/deleted files [#1077](https://github.com/sourcebot-dev/sourcebot/pull/1077)
+- Bumped `simple-git` to `3.33.0`. [#1078](https://github.com/sourcebot-dev/sourcebot/pull/1078)
 
 ## [4.16.4] - 2026-04-01
 
