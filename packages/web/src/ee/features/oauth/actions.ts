@@ -1,8 +1,8 @@
 'use server';
 
-import { sew } from '@/actions';
+import { sew } from "@/middleware/sew";
 import { generateAndStoreAuthCode } from '@/ee/features/oauth/server';
-import { withAuthV2 } from '@/withAuthV2';
+import { withAuth } from '@/middleware/withAuth';
 
 /**
  * Resolves the final URL to navigate to after an authorization decision.
@@ -33,7 +33,7 @@ export const approveAuthorization = async ({
     resource: string | null;
     state: string | undefined;
 }) => sew(() =>
-    withAuthV2(async ({ user }) => {
+    withAuth(async ({ user }) => {
         const rawCode = await generateAndStoreAuthCode({
             clientId,
             userId: user.id,
@@ -59,7 +59,7 @@ export const denyAuthorization = async ({
     redirectUri: string;
     state: string | undefined;
 }) => sew(() =>
-    withAuthV2(async () => {
+    withAuth(async () => {
         const callbackUrl = new URL(redirectUri);
         callbackUrl.searchParams.set('error', 'access_denied');
         callbackUrl.searchParams.set('error_description', 'The user denied the authorization request.');

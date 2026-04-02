@@ -1,12 +1,12 @@
 import 'server-only';
 
-import { sew } from '@/actions';
+import { sew } from "@/middleware/sew";
 import { notFound, ServiceError } from '@/lib/serviceError';
-import { withOptionalAuthV2 } from '@/withAuthV2';
+import { withOptionalAuth } from '@/middleware/withAuth';
 import { RepoInfo } from './types';
 
 export const getRepoInfo = async (repoId: number): Promise<RepoInfo | ServiceError> => sew(() =>
-    withOptionalAuthV2(async ({ prisma }) => {
+    withOptionalAuth(async ({ prisma }) => {
         const repo = await prisma.repo.findUnique({
             where: { id: repoId },
             include: {

@@ -1,15 +1,16 @@
 'use server';
 
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, ServiceError } from "@/lib/serviceError";
 import { prisma } from "@/prisma";
-import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
+import { withAuth } from "@/middleware/withAuth";
+import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole, Prisma } from "@sourcebot/db";
 import { StatusCodes } from "http-status-codes";
 
 export const removeMemberFromOrg = async (memberId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuthV2(async ({ org, role }) =>
+    withAuth(async ({ org, role }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const guardError = await prisma.$transaction(async (tx) => {
                 const targetMember = await tx.userToOrg.findUnique({
@@ -63,7 +64,7 @@ export const removeMemberFromOrg = async (memberId: string): Promise<{ success: 
 );
 
 export const leaveOrg = async (): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuthV2(async ({ user, org, role }) => {
+    withAuth(async ({ user, org, role }) => {
         const guardError = await prisma.$transaction(async (tx) => {
             if (role === OrgRole.OWNER) {
                 const ownerCount = await tx.userToOrg.count({

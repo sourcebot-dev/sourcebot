@@ -2,14 +2,14 @@
 
 import { isServiceError } from "@/lib/utils";
 import { orgNotFound, ServiceError } from "@/lib/serviceError";
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { addUserToOrganization } from "@/lib/authUtils";
-import { withAuthV2_skipOrgMembershipCheck } from "@/withAuthV2";
+import { withAuth_skipOrgMembershipCheck } from "@/middleware/withAuth";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 
 export const joinOrganization = async (orgId: number, inviteLinkId?: string) => sew(async () =>
-    withAuthV2_skipOrgMembershipCheck(async ({ user, prisma }) => {
+    withAuth_skipOrgMembershipCheck(async ({ user, prisma }) => {
         const org = await prisma.org.findUnique({
             where: {
                 id: orgId,

@@ -1,8 +1,9 @@
 'use server';
 
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME } from "@/lib/constants";
-import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
+import { withAuth } from "@/middleware/withAuth";
+import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
 import { createLogger, env, hasEntitlement, IdentityProviderType, loadConfig, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
 import { cookies } from "next/headers";
@@ -24,7 +25,7 @@ export type LinkedAccount = {
 };
 
 export const getLinkedAccounts = async () => sew(() =>
-    withAuthV2(async ({ prisma, role, user }) =>
+    withAuth(async ({ prisma, role, user }) =>
         withMinimumOrgRole(role, OrgRole.MEMBER, async () => {
             const accounts = await prisma.account.findMany({
                 where: { userId: user.id },
@@ -83,7 +84,7 @@ export const getLinkedAccounts = async () => sew(() =>
 
 
 export const unlinkLinkedAccountProvider = async (provider: string) => sew(() =>
-    withAuthV2(async ({ prisma, role, user }) =>
+    withAuth(async ({ prisma, role, user }) =>
         withMinimumOrgRole(role, OrgRole.MEMBER, async () => {
             const result = await prisma.account.deleteMany({
                 where: {

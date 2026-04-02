@@ -1,10 +1,10 @@
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { getConfiguredLanguageModels, getAISDKLanguageModelAndOptions, generateChatNameFromMessage, updateChatMessages } from "@/features/chat/utils.server";
 import { LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
-import { withOptionalAuthV2 } from "@/withAuthV2";
+import { withOptionalAuth } from "@/middleware/withAuth";
 import { ChatVisibility, Prisma } from "@sourcebot/db";
 import { createLogger, env } from "@sourcebot/shared";
 import { randomUUID } from "crypto";
@@ -43,7 +43,7 @@ const blockStreamUntilFinish = async <T extends UIMessage<unknown, UIDataTypes, 
 
 export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResult | ServiceError> =>
     sew(() =>
-        withOptionalAuthV2(async ({ org, user, prisma }) => {
+        withOptionalAuth(async ({ org, user, prisma }) => {
             const { query, repos = [], languageModel: requestedLanguageModel, visibility: requestedVisibility, source } = params;
 
             const configuredModels = await getConfiguredLanguageModels();

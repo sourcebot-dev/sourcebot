@@ -1,13 +1,13 @@
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createMcpServer } from '@/features/mcp/server';
-import { withOptionalAuthV2 } from '@/withAuthV2';
+import { withOptionalAuth } from '@/middleware/withAuth';
 import { isServiceError } from '@/lib/utils';
 import { notAuthenticated, serviceErrorResponse, ServiceError } from '@/lib/serviceError';
 import { ErrorCode } from '@/lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
 import { NextRequest } from 'next/server';
-import { sew } from '@/actions';
+import { sew } from "@/middleware/sew";
 import { apiHandler } from '@/lib/apiHandler';
 import { env, hasEntitlement } from '@sourcebot/shared';
 
@@ -43,7 +43,7 @@ const sessions = new Map<string, McpSession>();
 
 export const POST = apiHandler(async (request: NextRequest) => {
     const response = await sew(() =>
-        withOptionalAuthV2(async ({ user }) => {
+        withOptionalAuth(async ({ user }) => {
             if (env.EXPERIMENT_ASK_GH_ENABLED === 'true' && !user) {
                 return notAuthenticated();
             }
@@ -95,7 +95,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
 
 export const DELETE = apiHandler(async (request: NextRequest) => {
     const result = await sew(() =>
-        withOptionalAuthV2(async ({ user }) => {
+        withOptionalAuth(async ({ user }) => {
             if (env.EXPERIMENT_ASK_GH_ENABLED === 'true' && !user) {
                 return notAuthenticated();
             }

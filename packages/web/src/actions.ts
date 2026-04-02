@@ -4,11 +4,10 @@ import { getAuditService } from "@/ee/features/audit/factory";
 import { env, getSMTPConnectionURL } from "@sourcebot/shared";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notFound, orgNotFound, ServiceError, ServiceErrorException, unexpectedError } from "@/lib/serviceError";
+import { notFound, orgNotFound, ServiceError } from "@/lib/serviceError";
 import { getOrgMetadata, isHttpError, isServiceError } from "@/lib/utils";
 import { prisma } from "@/prisma";
 import { render } from "@react-email/components";
-import * as Sentry from '@sentry/nextjs';
 import { generateApiKey, getTokenFromConfig, hashSecret } from "@sourcebot/shared";
 import { ApiKey, ConnectionSyncJobStatus, OrgRole, Prisma, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/shared";
@@ -26,36 +25,17 @@ import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { ApiKeyPayload, RepositoryQuery } from "./lib/types";
-import { withAuthV2, withOptionalAuthV2, withMinimumOrgRole, withAuthV2_skipOrgMembershipCheck } from "./withAuthV2";
+import { withAuth, withOptionalAuth, withAuth_skipOrgMembershipCheck } from "./middleware/withAuth";
+import { withMinimumOrgRole } from "./middleware/withMinimumOrgRole";
 import { getBrowsePath } from "./app/[domain]/browse/hooks/utils";
+import { sew } from "@/middleware/sew";
 
 const logger = createLogger('web-actions');
 const auditService = getAuditService();
 
-/**
- * "Service Error Wrapper".
- * 
- * Captures any thrown exceptions, logs them to the console and Sentry,
- * and returns a generic unexpected service error.
- */
-export const sew = async <T>(fn: () => Promise<T>): Promise<T | ServiceError> => {
-    try {
-        return await fn();
-    } catch (e) {
-        Sentry.captureException(e);
-        logger.error(e);
-
-        if (e instanceof ServiceErrorException) {
-            return e.serviceError;
-        }
-
-        return unexpectedError(`An unexpected error occurred. Please try again later.`);
-    }
-}
-
 ////// Actions ///////
 export const completeOnboarding = async (): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuthV2(async ({ org, prisma }) => {
+    withAuth(async ({ org, prisma }) => {
         await prisma.org.update({
             where: { id: org.id },
             data: {
@@ -122,7 +102,7 @@ export const verifyApiKey = async (apiKeyPayload: ApiKeyPayload): Promise<{ apiK
 
 
 export const createApiKey = async (name: string): Promise<{ key: string } | ServiceError> => sew(() =>
-    withAuthV2(async ({ org, user, role, prisma }) => {
+    withAuth(async ({ org, user, role, prisma }) => {
         if ((env.DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS === 'true' || env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'true') && role !== OrgRole.OWNER) {
            logger.error(`API key creation is disabled for non-admin users. User ${user.id} is not an owner.`);
            return {
@@ -192,7 +172,7 @@ export const createApiKey = async (name: string): Promise<{ key: string } | Serv
     }));
 
 export const deleteApiKey = async (name: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuthV2(async ({ org, user, prisma }) => {
+    withAuth(async ({ org, user, prisma }) => {
         const apiKey = await prisma.apiKey.findFirst({
             where: {
                 name,
@@ -252,7 +232,7 @@ export const deleteApiKey = async (name: string): Promise<{ success: boolean } |
     }));
 
 export const getUserApiKeys = async (): Promise<{ name: string; createdAt: Date; lastUsedAt: Date | null }[] | ServiceError> => sew(() =>
-    withAuthV2(async ({ org, user, prisma }) => {
+    withAuth(async ({ org, user, prisma }) => {
         const apiKeys = await prisma.apiKey.findMany({
             where: {
                 orgId: org.id,
@@ -277,7 +257,7 @@ export const getRepos = async ({
     where?: Prisma.RepoWhereInput,
     take?: number
 } = {}) => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma }) => {
+    withOptionalAuth(async ({ org, prisma }) => {
         const repos = await prisma.repo.findMany({
             where: {
                 orgId: org.id,
@@ -313,7 +293,7 @@ export const getRepos = async ({
  * Returns a set of aggregated stats about the repos in the org
  */
 export const getReposStats = async () => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma }) => {
+    withOptionalAuth(async ({ org, prisma }) => {
         const [
             // Total number of repos.
             numberOfRepos,
@@ -364,7 +344,7 @@ export const getReposStats = async () => sew(() =>
 )
 
 export const getConnectionStats = async () => sew(() =>
-    withAuthV2(async ({ org, prisma }) => {
+    withAuth(async ({ org, prisma }) => {
         const [
             numberOfConnections,
             numberOfConnectionsWithFirstTimeSyncJobsInProgress,
@@ -400,7 +380,7 @@ export const getConnectionStats = async () => sew(() =>
 );
 
 export const getRepoInfoByName = async (repoName: string) => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma }) => {
+    withOptionalAuth(async ({ org, prisma }) => {
         // @note: repo names are represented by their remote url
         // on the code host. E.g.,:
         // - github.com/sourcebot-dev/sourcebot
@@ -459,7 +439,7 @@ export const getRepoInfoByName = async (repoName: string) => sew(() =>
     }));
 
 export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: string): Promise<{ connectionId: number } | ServiceError> => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma }) => {
+    withOptionalAuth(async ({ org, prisma }) => {
         if (env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED !== 'true') {
             return {
                 statusCode: StatusCodes.BAD_REQUEST,
@@ -595,12 +575,12 @@ export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: strin
     }));
 
 export const getCurrentUserRole = async (): Promise<OrgRole | ServiceError> => sew(() =>
-    withOptionalAuthV2(async ({ role }) => {
+    withOptionalAuth(async ({ role }) => {
         return role;
     }));
 
 export const createInvites = async (emails: string[]): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuthV2(async ({ org, user, role, prisma }) =>
+    withAuth(async ({ org, user, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const failAuditCallback = async (error: string) => {
                 await auditService.createAudit({
@@ -776,7 +756,7 @@ export const createInvites = async (emails: string[]): Promise<{ success: boolea
     ));
 
 export const cancelInvite = async (inviteId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuthV2(async ({ org, role, prisma }) =>
+    withAuth(async ({ org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const invite = await prisma.invite.findUnique({
                 where: {
@@ -802,7 +782,7 @@ export const cancelInvite = async (inviteId: string): Promise<{ success: boolean
     ));
 
 export const getMe = async () => sew(() =>
-    withAuthV2(async ({ user, prisma }) => {
+    withAuth(async ({ user, prisma }) => {
         const userWithOrgs = await prisma.user.findUnique({
             where: {
                 id: user.id,
@@ -835,7 +815,7 @@ export const getMe = async () => sew(() =>
     }));
 
 export const redeemInvite = async (inviteId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuthV2_skipOrgMembershipCheck(async ({ user, prisma }) => {
+    withAuth_skipOrgMembershipCheck(async ({ user, prisma }) => {
         const invite = await prisma.invite.findUnique({
             where: {
                 id: inviteId,
@@ -909,7 +889,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
     }));
 
 export const getInviteInfo = async (inviteId: string) => sew(() =>
-    withAuthV2_skipOrgMembershipCheck(async ({ user, prisma }) => {
+    withAuth_skipOrgMembershipCheck(async ({ user, prisma }) => {
         const invite = await prisma.invite.findUnique({
             where: {
                 id: inviteId,
@@ -946,7 +926,7 @@ export const getInviteInfo = async (inviteId: string) => sew(() =>
     }));
 
 export const getOrgMembers = async () => sew(() =>
-    withAuthV2(async ({ org, prisma }) => {
+    withAuth(async ({ org, prisma }) => {
         const members = await prisma.userToOrg.findMany({
             where: {
                 orgId: org.id,
@@ -970,7 +950,7 @@ export const getOrgMembers = async () => sew(() =>
     }));
 
 export const getOrgInvites = async () => sew(() =>
-    withAuthV2(async ({ org, prisma }) => {
+    withAuth(async ({ org, prisma }) => {
         const invites = await prisma.invite.findMany({
             where: {
                 orgId: org.id,
@@ -985,7 +965,7 @@ export const getOrgInvites = async () => sew(() =>
     }));
 
 export const getOrgAccountRequests = async () => sew(() =>
-    withAuthV2(async ({ org, prisma }) => {
+    withAuth(async ({ org, prisma }) => {
         const requests = await prisma.accountRequest.findMany({
             where: {
                 orgId: org.id,
@@ -1122,7 +1102,7 @@ export const getMemberApprovalRequired = async (domain: string): Promise<boolean
 });
 
 export const setMemberApprovalRequired = async (required: boolean): Promise<{ success: boolean } | ServiceError> => sew(async () =>
-    withAuthV2(async ({ org, role, prisma }) =>
+    withAuth(async ({ org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             await prisma.org.update({
                 where: { id: org.id },
@@ -1137,7 +1117,7 @@ export const setMemberApprovalRequired = async (required: boolean): Promise<{ su
 );
 
 export const setInviteLinkEnabled = async (enabled: boolean): Promise<{ success: boolean } | ServiceError> => sew(async () =>
-    withAuthV2(async ({ org, role, prisma }) =>
+    withAuth(async ({ org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             await prisma.org.update({
                 where: { id: org.id },
@@ -1152,7 +1132,7 @@ export const setInviteLinkEnabled = async (enabled: boolean): Promise<{ success:
 );
 
 export const approveAccountRequest = async (requestId: string) => sew(async () =>
-    withAuthV2(async ({ org, user, role, prisma }) =>
+    withAuth(async ({ org, user, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const failAuditCallback = async (error: string) => {
                 await auditService.createAudit({
@@ -1242,7 +1222,7 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
     ));
 
 export const rejectAccountRequest = async (requestId: string) => sew(() =>
-    withAuthV2(async ({ org, role, prisma }) =>
+    withAuth(async ({ org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const request = await prisma.accountRequest.findUnique({
                 where: {
@@ -1268,7 +1248,7 @@ export const rejectAccountRequest = async (requestId: string) => sew(() =>
 
 
 export const getSearchContexts = async () => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma }) => {
+    withOptionalAuth(async ({ org, prisma }) => {
         const searchContexts = await prisma.searchContext.findMany({
             where: {
                 orgId: org.id,
@@ -1287,7 +1267,7 @@ export const getSearchContexts = async () => sew(() =>
     }));
 
 export const getRepoImage = async (repoId: number): Promise<ArrayBuffer | ServiceError> => sew(async () => {
-    return await withOptionalAuthV2(async ({ org, prisma }) => {
+    return await withOptionalAuth(async ({ org, prisma }) => {
         const repo = await prisma.repo.findUnique({
             where: {
                 id: repoId,
@@ -1383,7 +1363,7 @@ export const getAnonymousAccessStatus = async (domain: string): Promise<boolean 
 });
 
 export const setAnonymousAccessStatus = async (enabled: boolean): Promise<ServiceError | boolean> => sew(async () => {
-    return await withAuthV2(async ({ org, role, prisma }) => {
+    return await withAuth(async ({ org, role, prisma }) => {
         return await withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
             if (!hasAnonymousAccessEntitlement) {

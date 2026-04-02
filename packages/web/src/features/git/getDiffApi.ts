@@ -1,6 +1,6 @@
-import { sew } from '@/actions';
+import { sew } from "@/middleware/sew";
 import { invalidGitRef, notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
-import { withOptionalAuthV2 } from '@/withAuthV2';
+import { withOptionalAuth } from '@/middleware/withAuth';
 import { getRepoPath } from '@sourcebot/shared';
 import parseDiff from 'parse-diff';
 import { simpleGit } from 'simple-git';
@@ -39,7 +39,7 @@ export const getDiff = async ({
     base,
     head,
 }: GetDiffRequest): Promise<GetDiffResult | ServiceError> => sew(() =>
-    withOptionalAuthV2(async ({ org, prisma }) => {
+    withOptionalAuth(async ({ org, prisma }) => {
         if (!isGitRefValid(base)) {
             return invalidGitRef(base);
         }

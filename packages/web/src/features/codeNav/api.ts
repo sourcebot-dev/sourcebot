@@ -1,10 +1,10 @@
 import 'server-only';
 
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { search } from "@/features/search";
 import { ServiceError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { withOptionalAuthV2 } from "@/withAuthV2";
+import { withOptionalAuth } from "@/middleware/withAuth";
 import { SearchResponse } from "../search/types";
 import { FindRelatedSymbolsRequest, FindRelatedSymbolsResponse } from "./types";
 import { QueryIR } from '../search/ir';
@@ -14,7 +14,7 @@ import escapeStringRegexp from "escape-string-regexp";
 const MAX_REFERENCE_COUNT = 1000;
 
 export const findSearchBasedSymbolReferences = async (props: FindRelatedSymbolsRequest): Promise<FindRelatedSymbolsResponse | ServiceError> => sew(() =>
-    withOptionalAuthV2(async () => {
+    withOptionalAuth(async () => {
         const {
             symbolName,
             language,
@@ -68,7 +68,7 @@ export const findSearchBasedSymbolReferences = async (props: FindRelatedSymbolsR
 
 
 export const findSearchBasedSymbolDefinitions = async (props: FindRelatedSymbolsRequest): Promise<FindRelatedSymbolsResponse | ServiceError> => sew(() =>
-    withOptionalAuthV2(async () => {
+    withOptionalAuth(async () => {
         const {
             symbolName,
             language,
