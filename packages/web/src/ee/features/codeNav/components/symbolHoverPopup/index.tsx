@@ -1,7 +1,7 @@
 import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { useToast } from "@/components/hooks/use-toast";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -379,26 +380,24 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
             <div className="flex flex-row gap-2 mt-2">
                 <Tooltip delayDuration={500}>
                     <TooltipTrigger asChild>
-                        <LoadingButton
-                            loading={symbolInfo.isSymbolDefinitionsLoading}
-                            disabled={!previewedSymbolDefinition}
-                            variant="outline"
-                            size="sm"
-                            asChild={!symbolInfo.isSymbolDefinitionsLoading && !!previewedSymbolDefinition}
-                        >
-                            {!symbolInfo.isSymbolDefinitionsLoading && previewedSymbolDefinition ? (
-                                <a
-                                    href={gotoDefinitionHref}
-                                    onClick={onGotoDefinitionClick}
-                                >
-                                    {`Go to ${symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 1 ? "definitions" : "definition"}`}
-                                </a>
-                            ) : (
-                                <span>
-                                    {symbolInfo.isSymbolDefinitionsLoading ? "Loading..." : "No definition found"}
-                                </span>
-                            )}
-                        </LoadingButton>
+                        {!symbolInfo.isSymbolDefinitionsLoading && previewedSymbolDefinition && gotoDefinitionHref ? (
+                            <Link
+                                href={gotoDefinitionHref}
+                                onClick={onGotoDefinitionClick}
+                                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                            >
+                                {`Go to ${symbolInfo.symbolDefinitions && symbolInfo.symbolDefinitions.length > 1 ? "definitions" : "definition"}`}
+                            </Link>
+                        ) : (
+                            <LoadingButton
+                                loading={symbolInfo.isSymbolDefinitionsLoading}
+                                disabled={!previewedSymbolDefinition}
+                                variant="outline"
+                                size="sm"
+                            >
+                                {symbolInfo.isSymbolDefinitionsLoading ? "Loading..." : "No definition found"}
+                            </LoadingButton>
+                        )}
                     </TooltipTrigger>
                     <TooltipContent
                         side="bottom"
@@ -411,19 +410,16 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                 </Tooltip>
                 <Tooltip delayDuration={500}>
                     <TooltipTrigger asChild>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
+                        <Link
+                            href={findReferencesHref ?? "#"}
+                            onClick={onFindReferencesClick}
+                            className={cn(
+                                buttonVariants({ variant: "outline", size: "sm" }),
+                                !findReferencesHref && "pointer-events-none opacity-50"
+                            )}
                         >
-                            <a
-                                href={findReferencesHref}
-                                onClick={onFindReferencesClick}
-                                className={cn(!symbolInfo && "pointer-events-none opacity-50")}
-                            >
-                                Find references
-                            </a>
-                        </Button>
+                            Find references
+                        </Link>
                     </TooltipTrigger>
                     <TooltipContent
                         side="bottom"
