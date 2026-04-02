@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import Link from "next/link";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/userAvatar";
 import placeholderAvatar from "@/public/placeholder_avatar.png";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -74,9 +75,11 @@ export const AcceptInviteCard = ({ inviteId, orgName, orgDomain, orgImageUrl, ho
                     <InvitedByText email={host.email} name={host.name} /> invited you to join the <strong>{orgName}</strong> organization.
                 </p>
                 <div className="flex fex-row items-center justify-center gap-2 mt-12">
-                    <Avatar className="w-14 h-14">
-                        <AvatarImage src={host.avatarUrl ?? placeholderAvatar.src} />
-                    </Avatar>
+                    <UserAvatar
+                        email={host.email}
+                        imageUrl={host.avatarUrl}
+                        className="w-14 h-14"
+                    />
                     <ArrowRight className="w-4 h-4 text-muted-foreground" />
                     <Avatar className="w-14 h-14">
                         <AvatarImage src={orgImageUrl ?? placeholderAvatar.src} />

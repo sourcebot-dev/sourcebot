@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Replaced placeholder avatars with deterministic minidenticon-based avatars generated from email addresses [#1072](https://github.com/sourcebot-dev/sourcebot/pull/1072)
+
 ## [4.16.4] - 2026-04-01
 
 ### Added

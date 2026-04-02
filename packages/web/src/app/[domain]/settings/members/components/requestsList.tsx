@@ -3,12 +3,11 @@
 import { OrgRole } from "@sourcebot/db";
 import { useToast } from "@/components/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isServiceError } from "@/lib/utils";
-import placeholderAvatar from "@/public/placeholder_avatar.png";
+import { UserAvatar } from "@/components/userAvatar";
 import { CheckCircle, Search, XCircle } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { approveAccountRequest, rejectAccountRequest } from "@/actions";
@@ -20,6 +19,7 @@ interface Request {
     email: string;
     createdAt: Date;
     name?: string;
+    image?: string;
 }
 
 interface RequestsListProps {
@@ -130,9 +130,7 @@ export const RequestsList = ({ requests, currentUserRole }: RequestsListProps) =
                         filteredRequests.map((request) => (
                             <div key={request.id} className="p-4 flex items-center justify-between bg-background">
                                 <div className="flex items-center gap-3">
-                                    <Avatar>
-                                        <AvatarImage src={placeholderAvatar.src} />
-                                    </Avatar>
+                                    <UserAvatar email={request.email} imageUrl={request.image} />
                                     <div>
                                         <div className="font-medium">{request.name || request.email}</div>
                                         <div className="text-sm text-muted-foreground">{request.email}</div>
