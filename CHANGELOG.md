@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added support for opening code navigation buttons ("Go to definition" and "Find references") in a new tab via Cmd+click / Ctrl+click. [#1079](https://github.com/sourcebot-dev/sourcebot/pull/1079)
+
 ## [4.16.5] - 2026-04-02
 
 ### Added
