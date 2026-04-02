@@ -1,4 +1,4 @@
-import { useBrowseNavigation } from "@/app/[domain]/browse/hooks/useBrowseNavigation";
+import { useBrowseNavigation } from "@/app/(app)/browse/hooks/useBrowseNavigation";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { useToast } from "@/components/hooks/use-toast";
 import { Button } from "@/components/ui/button";

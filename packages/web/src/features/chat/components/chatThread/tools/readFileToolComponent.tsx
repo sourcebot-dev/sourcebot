@@ -2,7 +2,7 @@
 
 import { ReadFileMetadata, ToolResult } from "@/features/tools";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { RepoBadge } from "./repoBadge";

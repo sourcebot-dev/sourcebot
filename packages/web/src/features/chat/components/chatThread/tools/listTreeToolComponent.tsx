@@ -3,7 +3,7 @@
 import { ListTreeMetadata, ToolResult } from "@/features/tools";
 import { RepoBadge } from "./repoBadge";
 import { Separator } from "@/components/ui/separator";
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 import { FolderIcon } from "lucide-react";
 import Link from "next/link";
 

@@ -9,7 +9,6 @@ import { createLogger } from "@sourcebot/shared";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
-import { getOrgFromDomain } from "@/data/org";
 
 const logger = createLogger('web-auth-utils');
 const auditService = getAuditService();
@@ -106,7 +105,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
             }
         });
     } else if (!defaultOrg.memberApprovalRequired) {
-        const hasAvailability = await orgHasAvailability(defaultOrg.domain);
+        const hasAvailability = await orgHasAvailability();
         if (!hasAvailability) {
             logger.warn(`onCreateUser: org ${SINGLE_TENANT_ORG_ID} has reached max capacity. User ${user.id} was not added to the org.`);
             return;
@@ -128,7 +127,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
 };
 
 
-export const createGuestUser = async (domain: string): Promise<ServiceError | boolean> => {
+export const createGuestUser = async (): Promise<ServiceError | boolean> => {
     const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
     if (!hasAnonymousAccessEntitlement) {
         console.error(`Anonymous access isn't supported in your current plan: ${getPlan()}. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
@@ -139,7 +138,9 @@ export const createGuestUser = async (domain: string): Promise<ServiceError | bo
         } satisfies ServiceError;
     }
 
-    const org = await getOrgFromDomain(domain);
+    const org = await prisma.org.findUnique({
+        where: { id: SINGLE_TENANT_ORG_ID },
+    });
     if (!org) {
         return {
             statusCode: StatusCodes.NOT_FOUND,
@@ -188,15 +189,15 @@ export const createGuestUser = async (domain: string): Promise<ServiceError | bo
     return true;
 };
 
-export const orgHasAvailability = async (domain: string): Promise<boolean> => {
+export const orgHasAvailability = async (): Promise<boolean> => {
     const org = await prisma.org.findUnique({
         where: {
-            domain,
+            id: SINGLE_TENANT_ORG_ID,
         },
     });
 
     if (!org) {
-        logger.error(`orgHasAvailability: org not found for domain ${domain}`);
+        logger.error(`orgHasAvailability: org not found for id ${SINGLE_TENANT_ORG_ID}`);
         return false;
     }
     const members = await prisma.userToOrg.findMany({
@@ -242,7 +243,7 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
         return orgNotFound();
     }
 
-    const hasAvailability = await orgHasAvailability(org.domain);
+    const hasAvailability = await orgHasAvailability();
     if (!hasAvailability) {
         return {
             statusCode: StatusCodes.BAD_REQUEST,

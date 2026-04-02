@@ -1,13 +1,12 @@
 'use client';
 
-import { useBrowseState } from "@/app/[domain]/browse/hooks/useBrowseState";
+import { useBrowseState } from "@/app/(app)/browse/hooks/useBrowseState";
 import { findSearchBasedSymbolDefinitions, findSearchBasedSymbolReferences } from "@/app/api/(client)/client";
 import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
 import { Badge } from "@/components/ui/badge";
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useDomain } from "@/hooks/useDomain";
 import { measure, unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
@@ -31,7 +30,6 @@ interface ExploreMenuProps {
 export const ExploreMenu = ({
     selectedSymbolInfo,
 }: ExploreMenuProps) => {
-    const domain = useDomain();
     const captureEvent = useCaptureEvent();
     const {
         state: { activeExploreMenuTab },
@@ -46,7 +44,7 @@ export const ExploreMenu = ({
         isPending: isReferencesResponsePending,
         isLoading: isReferencesResponseLoading,
     } = useQuery({
-        queryKey: ["references", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, selectedSymbolInfo.language, domain, isGlobalSearchEnabled],
+        queryKey: ["references", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, selectedSymbolInfo.language, isGlobalSearchEnabled],
         queryFn: async () => {
             const response = await measure(() => unwrapServiceError(
                 findSearchBasedSymbolReferences({
@@ -72,7 +70,7 @@ export const ExploreMenu = ({
         isPending: isDefinitionsResponsePending,
         isLoading: isDefinitionsResponseLoading,
     } = useQuery({
-        queryKey: ["definitions", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, selectedSymbolInfo.language, domain, isGlobalSearchEnabled],
+        queryKey: ["definitions", selectedSymbolInfo.symbolName, selectedSymbolInfo.repoName, selectedSymbolInfo.revisionName, selectedSymbolInfo.language, isGlobalSearchEnabled],
         queryFn: async () => {
             const response = await measure(() => unwrapServiceError(
                 findSearchBasedSymbolDefinitions({

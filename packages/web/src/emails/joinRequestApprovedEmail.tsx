@@ -23,17 +23,15 @@ interface JoinRequestApprovedEmailProps {
         avatarUrl?: string;
     },
     orgName: string;
-    orgDomain: string;
 }
 
 export const JoinRequestApprovedEmail = ({
     baseUrl,
     user,
     orgName,
-    orgDomain,
 }: JoinRequestApprovedEmailProps) => {
     const previewText = `Your request to join ${orgName} on Sourcebot has been approved`;
-    const orgLink = `${baseUrl}/${orgDomain}`;
+    const orgLink = baseUrl;
 
     return (
         <Html>
@@ -90,7 +88,6 @@ JoinRequestApprovedEmail.PreviewProps = {
         avatarUrl: SOURCEBOT_PLACEHOLDER_AVATAR_URL,
     },
     orgName: 'Enigma',
-    orgDomain: '~',
 } satisfies JoinRequestApprovedEmailProps;
 
 export default JoinRequestApprovedEmail; 

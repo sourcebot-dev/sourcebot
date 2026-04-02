@@ -2,8 +2,7 @@ import { createGuestUser } from '@/lib/authUtils';
 import { prisma } from "@/prisma";
 import { OrgRole } from '@sourcebot/db';
 import { createLogger, env, hasEntitlement, loadConfig } from "@sourcebot/shared";
-import { getOrgFromDomain } from './data/org';
-import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_ID } from './lib/constants';
+import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_ID } from './lib/constants';
 import { ServiceErrorException } from './lib/serviceError';
 import { getOrgMetadata, isServiceError } from './lib/utils';
 
@@ -41,13 +40,13 @@ const init = async () => {
 
     const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
     if (hasAnonymousAccessEntitlement) {
-        const res = await createGuestUser(SINGLE_TENANT_ORG_DOMAIN);
+        const res = await createGuestUser();
         if (isServiceError(res)) {
             throw new ServiceErrorException(res);
         }
     } else {
         // If anonymous access entitlement is not enabled, set the flag to false in the org on init
-        const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+        const org = await prisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
         if (org) {
             const currentMetadata = getOrgMetadata(org);
             const mergedMetadata = {
@@ -81,7 +80,7 @@ const init = async () => {
         if (!hasAnonymousAccessEntitlement) {
             logger.warn(`FORCE_ENABLE_ANONYMOUS_ACCESS env var is set to true but anonymous access entitlement is not available. Setting will be ignored.`);
         } else {
-            const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+            const org = await prisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
             if (org) {
                 const currentMetadata = getOrgMetadata(org);
                 const mergedMetadata = {
@@ -103,7 +102,7 @@ const init = async () => {
     // Sync member approval setting from env var (only if explicitly set)
     if (env.REQUIRE_APPROVAL_NEW_MEMBERS !== undefined) {
         const requireApprovalNewMembers = env.REQUIRE_APPROVAL_NEW_MEMBERS === 'true';
-        const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+        const org = await prisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
         if (org && org.memberApprovalRequired !== requireApprovalNewMembers) {
             await prisma.org.update({
                 where: { id: org.id },

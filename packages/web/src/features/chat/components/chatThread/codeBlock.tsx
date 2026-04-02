@@ -1,6 +1,6 @@
 'use client';
 
-import { LightweightCodeHighlighter } from '@/app/[domain]/components/lightweightCodeHighlighter';
+import { LightweightCodeHighlighter } from '@/app/(app)/components/lightweightCodeHighlighter';
 import { cn } from '@/lib/utils';
 import { DoubleArrowDownIcon, DoubleArrowUpIcon } from '@radix-ui/react-icons';
 import { useMemo, useState } from 'react';

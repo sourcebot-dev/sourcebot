@@ -1,7 +1,6 @@
 import { findSearchBasedSymbolDefinitions } from "@/app/api/(client)/client";
 import { SourceRange } from "@/features/search";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
-import { useDomain } from "@/hooks/useDomain";
 import { measure, unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
@@ -46,7 +45,6 @@ export const useHoveredOverSymbolInfo = ({
     const mouseOverTimerRef = useRef<NodeJS.Timeout | null>(null);
     const mouseOutTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-    const domain = useDomain();
     const [isVisible, setIsVisible] = useState(false);
 
     const [symbolElement, setSymbolElement] = useState<HTMLElement | null>(null);
@@ -57,7 +55,7 @@ export const useHoveredOverSymbolInfo = ({
     const captureEvent = useCaptureEvent();
 
     const { data: symbolDefinitions, isLoading: isSymbolDefinitionsLoading } = useQuery({
-        queryKey: ["definitions", symbolName, revisionName, language, domain, repoName],
+        queryKey: ["definitions", symbolName, revisionName, language, repoName],
         queryFn: async () => {
             const response = await measure(() => unwrapServiceError(
                 findSearchBasedSymbolDefinitions({
@@ -137,7 +135,7 @@ export const useHoveredOverSymbolInfo = ({
             view.dom.removeEventListener("mouseover", handleMouseOver);
             view.dom.removeEventListener("mouseout", handleMouseOut);
         };
-    }, [editorRef, domain, clearTimers]);
+    }, [editorRef, clearTimers]);
 
     // Extract the highlight range of the symbolElement from the editor view.
     const highlightRange = useMemo((): SourceRange | undefined => {

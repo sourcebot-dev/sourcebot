@@ -3,8 +3,8 @@ import { LoginForm } from "./components/loginForm";
 import { redirect } from "next/navigation";
 import { Footer } from "@/app/components/footer";
 import { getIdentityProviderMetadata } from "@/lib/identityProviders";
-import { getOrgFromDomain } from "@/data/org";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
+import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
+import { prisma } from "@/prisma";
 import { getAnonymousAccessStatus } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 import { env } from "@sourcebot/shared";
@@ -23,13 +23,13 @@ export default async function Login(props: LoginProps) {
         return redirect("/");
     }
 
-    const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+    const org = await prisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
     if (!org || !org.isOnboarded) {
         return redirect("/onboard");
     }
 
     const providers = getIdentityProviderMetadata();
-    const anonymousAccessStatus = await getAnonymousAccessStatus(SINGLE_TENANT_ORG_DOMAIN);
+    const anonymousAccessStatus = await getAnonymousAccessStatus();
     const isAnonymousAccessEnabled = !isServiceError(anonymousAccessStatus) && anonymousAccessStatus;
 
     return (

@@ -16,7 +16,6 @@ import jumpcloudLogo from "@/public/jumpcloud.svg";
 import { ServiceError } from "./serviceError";
 import { ConnectionType, Org } from "@sourcebot/db";
 import { OrgMetadata, orgMetadataSchema } from "@/types";
-import { SINGLE_TENANT_ORG_DOMAIN } from "./constants";
 import { CodeHostType } from "@sourcebot/db";
 
 export function cn(...inputs: ClassValue[]) {
@@ -571,7 +570,7 @@ export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number): s
             return imageUrl;
         } else {
             // Use the proxied route for self-hosted instances
-            return `/api/${SINGLE_TENANT_ORG_DOMAIN}/repos/${repoId}/image`;
+            return `/api/repos/${repoId}/image`;
         }
     } catch {
         // If URL parsing fails, use the original URL

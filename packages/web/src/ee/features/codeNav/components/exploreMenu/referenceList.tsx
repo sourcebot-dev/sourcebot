@@ -1,8 +1,8 @@
 'use client';
 
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
-import { PathHeader } from "@/app/[domain]/components/pathHeader";
-import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
+import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
+import { PathHeader } from "@/app/(app)/components/pathHeader";
+import { LightweightCodeHighlighter } from "@/app/(app)/components/lightweightCodeHighlighter";
 import { FindRelatedSymbolsResponse } from "@/features/codeNav/types";
 import { RepositoryInfo, SourceRange } from "@/features/search";
 import { useMemo, useRef } from "react";

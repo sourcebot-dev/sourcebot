@@ -7,7 +7,6 @@ export const OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME = 'sb.optional-provider
 export const SOURCEBOT_GUEST_USER_ID = '1';
 export const SOURCEBOT_GUEST_USER_EMAIL = 'guest@sourcebot.dev';
 export const SINGLE_TENANT_ORG_ID = 1;
-export const SINGLE_TENANT_ORG_DOMAIN = '~';
 export const SINGLE_TENANT_ORG_NAME = 'default';
 
 export { SOURCEBOT_SUPPORT_EMAIL } from "@sourcebot/shared/client";

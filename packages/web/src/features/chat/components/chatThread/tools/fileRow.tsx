@@ -1,7 +1,7 @@
 'use client';
 
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 import Link from "next/link";
 
 type FileInfo = {

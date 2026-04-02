@@ -1,6 +1,6 @@
 'use client';
 
-import { PathHeader } from "@/app/[domain]/components/pathHeader";
+import { PathHeader } from "@/app/(app)/components/pathHeader";
 import { SymbolHoverPopup } from '@/ee/features/codeNav/components/symbolHoverPopup';
 import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";

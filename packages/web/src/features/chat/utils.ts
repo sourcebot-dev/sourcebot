@@ -1,4 +1,4 @@
-import { BrowseHighlightRange, getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { BrowseHighlightRange, getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 import { CreateUIMessage, TextUIPart, UIMessagePart } from "ai";
 import { Descendant, Editor, Point, Range, Transforms } from "slate";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";

@@ -19,7 +19,6 @@ import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
 import { FILE_REFERENCE_REGEX } from '@/features/chat/constants';
 import { createFileReference } from '@/features/chat/utils';
-import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
 import isEqual from "fast-deep-equal/react";
 
 export const REFERENCE_PAYLOAD_ATTRIBUTE = 'data-reference-payload';
@@ -203,7 +202,7 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                const url = createPathWithQueryParams(`/${SINGLE_TENANT_ORG_DOMAIN}/search`, [SearchQueryParams.query, `"${text}"`])
+                                const url = createPathWithQueryParams(`/search`, [SearchQueryParams.query, `"${text}"`])
                                 router.push(url);
                             }}
                             title="Search for snippet"
