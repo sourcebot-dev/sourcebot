@@ -40,7 +40,7 @@ Standard dev commands are documented in `CONTRIBUTING.md` and `package.json`. Ke
 - **Git submodules** must be initialized (`git submodule update --init --recursive`) before building Zoekt.
 - **ctags compatibility:** The installed `ctags` may not support `--_interactive=default` (universal-ctags feature). Zoekt logs a warning but continues to index without symbol data. This does not block functionality.
 - **First run onboarding:** On a fresh database, the web app redirects to `/onboard` where you create an owner account. Credentials login is enabled by default (`AUTH_CREDENTIALS_LOGIN_ENABLED` defaults to `true`).
-- **Config file:** Create a `config.json` at the repo root (referenced by `CONFIG_PATH` in `.env.development`) to configure which repos to index. A minimal example is in `CONTRIBUTING.md`.
+- **Config file:** The update script creates `config.json` at the repo root (referenced by `CONFIG_PATH` in `.env.development`). It indexes `sourcebot-dev/sourcebot` and configures Anthropic Claude Sonnet as the LLM provider using the `ANTHROPIC_API_KEY` environment variable. If you need to customize, edit `config.json` directly (it's gitignored).
 - **Environment variables:** `.env.development` has sensible defaults for local dev. Create `.env.development.local` for overrides (it's gitignored).
 - The backend worker does not expose a health-check endpoint. Verify it's running by checking its logs or that BullMQ jobs are processing.
 
