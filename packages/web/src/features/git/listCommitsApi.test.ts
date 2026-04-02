@@ -49,7 +49,7 @@ const mockFindFirst = vi.fn();
 
 vi.mock('@/middleware/withAuth', () => ({
     withOptionalAuth: async <T>(fn: (args: { org: { id: number; name: string }; prisma: unknown }) => Promise<T>): Promise<T> => {
-        // Mock withOptionalAuthV2 to provide org and prisma context
+        // Mock withOptionalAuth to provide org and prisma context
         const mockOrg = { id: 1, name: 'test-org' };
         const mockPrisma = {
             repo: {

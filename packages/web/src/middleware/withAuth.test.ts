@@ -461,7 +461,7 @@ describe('getAuthContext', () => {
     });
 });
 
-describe('withAuthV2', () => {
+describe('withAuth', () => {
     test('should call the callback with the auth context object if a valid session is present and the user is a member of the organization', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
@@ -728,7 +728,7 @@ describe('withAuthV2', () => {
     });
 });
 
-describe('withOptionalAuthV2', () => {
+describe('withOptionalAuth', () => {
     test('should call the callback with the auth context object if a valid session is present and the user is a member of the organization', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
