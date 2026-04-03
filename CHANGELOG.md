@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.16.7] - 2026-04-03
+
 ### Fixed
 - Fixed "TypeError: pathRegexp is not a function" type error in the worker. [#1093](https://github.com/sourcebot-dev/sourcebot/pull/1093)
 
