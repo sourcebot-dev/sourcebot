@@ -1,7 +1,7 @@
 import { addGithubRepo } from "@/features/workerApi/actions";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
-import { prisma } from "@/prisma";
+import { __unsafePrisma } from "@/prisma";
 import { getRepoInfo } from "./api";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { RepoIndexedGuard } from "./components/repoIndexedGuard";
@@ -21,7 +21,7 @@ export default async function GitHubRepoPage(props: PageProps) {
     const repoId = await (async () => {
         // 1. Look up repo by owner/repo
         const displayName = `${owner}/${repo}`;
-        const existingRepo = await prisma.repo.findFirst({
+        const existingRepo = await __unsafePrisma.repo.findFirst({
             where: {
                 displayName: displayName,
                 external_codeHostType: 'github',

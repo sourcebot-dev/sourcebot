@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { notFound } from 'next/navigation';
-import { prisma } from '@/prisma';
+import { __unsafePrisma } from '@/prisma';
 import { ChatVisibility } from '@sourcebot/db';
 import { env } from "@sourcebot/shared";
 import { minidenticon } from 'minidenticons';
@@ -22,7 +22,7 @@ interface ImageProps {
 export default async function Image({ params }: ImageProps) {
     const { id } = await params;
 
-    const chat = await prisma.chat.findUnique({
+    const chat = await __unsafePrisma.chat.findUnique({
         where: {
             id,
         },

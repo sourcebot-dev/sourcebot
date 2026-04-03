@@ -3,11 +3,11 @@ import { AnonymousAccessToggle } from "./anonymousAccessToggle"
 import { OrganizationAccessSettingsWrapper } from "./organizationAccessSettingsWrapper"
 import { getOrgMetadata } from "@/lib/utils"
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants"
-import { prisma } from "@/prisma"
+import { __unsafePrisma } from "@/prisma"
 import { hasEntitlement, env } from "@sourcebot/shared"
 
 export async function OrganizationAccessSettings() {
-    const org = await prisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
+    const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
     if (!org) {
         return <div>Error loading organization</div>
     }

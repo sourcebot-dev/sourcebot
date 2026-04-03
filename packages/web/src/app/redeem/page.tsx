@@ -6,7 +6,7 @@ import { AcceptInviteCard } from './components/acceptInviteCard';
 import { LogoutEscapeHatch } from '../components/logoutEscapeHatch';
 import { InviteNotFoundCard } from './components/inviteNotFoundCard';
 import { SINGLE_TENANT_ORG_ID } from '@/lib/constants';
-import { prisma } from '@/prisma';
+import { __unsafePrisma } from '@/prisma';
 
 interface RedeemPageProps {
     searchParams: Promise<{
@@ -16,7 +16,7 @@ interface RedeemPageProps {
 
 export default async function RedeemPage(props: RedeemPageProps) {
     const searchParams = await props.searchParams;
-    const org = await prisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
+    const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
     if (!org || !org.isOnboarded) {
         return redirect("/onboard");
     }

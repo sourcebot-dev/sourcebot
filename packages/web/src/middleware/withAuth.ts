@@ -1,4 +1,4 @@
-import { prisma as __unsafePrisma, userScopedPrismaClientExtension } from "@/prisma";
+import { __unsafePrisma, userScopedPrismaClientExtension } from "@/prisma";
 import { hashSecret, OAUTH_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX, LEGACY_API_KEY_PREFIX, env } from "@sourcebot/shared";
 import { ApiKey, Org, OrgRole, PrismaClient, UserWithAccounts } from "@sourcebot/db";
 import { headers } from "next/headers";

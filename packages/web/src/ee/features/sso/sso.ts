@@ -1,6 +1,6 @@
 import type { IdentityProvider } from "@/auth";
 import { onCreateUser } from "@/lib/authUtils";
-import { prisma } from "@/prisma";
+import { __unsafePrisma } from "@/prisma";
 import { AuthentikIdentityProviderConfig, BitbucketCloudIdentityProviderConfig, BitbucketServerIdentityProviderConfig, GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, JumpCloudIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
 import type { IdentityProviderType } from "@sourcebot/shared";
 import { createLogger, env, getTokenFromConfig, hasEntitlement, loadConfig } from "@sourcebot/shared";
@@ -485,12 +485,12 @@ const createGCPIAPProvider = (audience: string): Provider => {
                     return null;
                 }
 
-                const existingUser = await prisma.user.findUnique({
+                const existingUser = await __unsafePrisma.user.findUnique({
                     where: { email }
                 });
 
                 if (!existingUser) {
-                    const newUser = await prisma.user.create({
+                    const newUser = await __unsafePrisma.user.create({
                         data: {
                             email,
                             name,

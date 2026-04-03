@@ -1,7 +1,7 @@
 import { auth } from '@/auth';
 import { LogoutEscapeHatch } from '@/app/components/logoutEscapeHatch';
 import { ConsentScreen } from './components/consentScreen';
-import { prisma } from '@/prisma';
+import { __unsafePrisma } from '@/prisma';
 import { hasEntitlement } from '@sourcebot/shared';
 import { redirect } from 'next/navigation';
 
@@ -47,7 +47,7 @@ export default async function AuthorizePage({ searchParams }: AuthorizePageProps
         return <ErrorPage message={`Unsupported code_challenge_method: ${code_challenge_method}. Only "S256" is supported.`} />;
     }
 
-    const client = await prisma.oAuthClient.findUnique({ where: { id: client_id } });
+    const client = await __unsafePrisma.oAuthClient.findUnique({ where: { id: client_id } });
 
     if (!client) {
         return <ErrorPage message="Unknown client_id. The application has not been registered." />;

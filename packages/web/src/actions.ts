@@ -6,7 +6,7 @@ import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, orgNotFound, ServiceError } from "@/lib/serviceError";
 import { getOrgMetadata, isHttpError, isServiceError } from "@/lib/utils";
-import { prisma } from "@/prisma";
+import { __unsafePrisma } from "@/prisma";
 import { render } from "@react-email/components";
 import { generateApiKey, getTokenFromConfig } from "@sourcebot/shared";
 import { ConnectionSyncJobStatus, OrgRole, Prisma, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
@@ -928,7 +928,7 @@ export const getOrgAccountRequests = async () => sew(() =>
     }));
 
 export const createAccountRequest = async (userId: string) => sew(async () => {
-    const user = await prisma.user.findUnique({
+    const user = await __unsafePrisma.user.findUnique({
         where: {
             id: userId,
         },
@@ -938,7 +938,7 @@ export const createAccountRequest = async (userId: string) => sew(async () => {
         return notFound("User not found");
     }
 
-    const org = await prisma.org.findUnique({
+    const org = await __unsafePrisma.org.findUnique({
         where: {
             id: SINGLE_TENANT_ORG_ID,
         },
@@ -948,7 +948,7 @@ export const createAccountRequest = async (userId: string) => sew(async () => {
         return notFound("Organization not found");
     }
 
-    const existingRequest = await prisma.accountRequest.findUnique({
+    const existingRequest = await __unsafePrisma.accountRequest.findUnique({
         where: {
             requestedById_orgId: {
                 requestedById: userId,
@@ -966,7 +966,7 @@ export const createAccountRequest = async (userId: string) => sew(async () => {
     }
 
     if (!existingRequest) {
-        await prisma.accountRequest.create({
+        await __unsafePrisma.accountRequest.create({
             data: {
                 requestedById: userId,
                 orgId: org.id,
@@ -979,7 +979,7 @@ export const createAccountRequest = async (userId: string) => sew(async () => {
             // on user creation (the header isn't set when next-auth calls onCreateUser for some reason)
             const deploymentUrl = env.AUTH_URL;
 
-            const owner = await prisma.user.findFirst({
+            const owner = await __unsafePrisma.user.findFirst({
                 where: {
                     orgs: {
                         some: {
@@ -1030,7 +1030,7 @@ export const createAccountRequest = async (userId: string) => sew(async () => {
 });
 
 export const getMemberApprovalRequired = async (): Promise<boolean | ServiceError> => sew(async () => {
-    const org = await prisma.org.findUnique({
+    const org = await __unsafePrisma.org.findUnique({
         where: {
             id: SINGLE_TENANT_ORG_ID,
         },
@@ -1277,7 +1277,7 @@ export const getRepoImage = async (repoId: number): Promise<ArrayBuffer | Servic
 });
 
 export const getAnonymousAccessStatus = async (): Promise<boolean | ServiceError> => sew(async () => {
-    const org = await prisma.org.findUnique({
+    const org = await __unsafePrisma.org.findUnique({
         where: { id: SINGLE_TENANT_ORG_ID },
     });
     if (!org) {

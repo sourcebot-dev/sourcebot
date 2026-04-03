@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { prisma } from '@/prisma';
+import { __unsafePrisma } from '@/prisma';
 import { Prisma } from '@prisma/client';
 import {
     generateOAuthRefreshToken,
@@ -35,7 +35,7 @@ export async function generateAndStoreAuthCode({
     const rawCode = crypto.randomBytes(32).toString('hex');
     const codeHash = hashSecret(rawCode);
 
-    await prisma.oAuthAuthorizationCode.create({
+    await __unsafePrisma.oAuthAuthorizationCode.create({
         data: {
             codeHash,
             clientId,
@@ -67,7 +67,7 @@ export async function verifyAndExchangeCode({
 }): Promise<{ token: string; refreshToken: string; expiresIn: number } | { error: string; errorDescription: string }> {
     const codeHash = hashSecret(rawCode);
 
-    const authCode = await prisma.oAuthAuthorizationCode.findUnique({
+    const authCode = await __unsafePrisma.oAuthAuthorizationCode.findUnique({
         where: { codeHash },
     });
 
@@ -76,7 +76,7 @@ export async function verifyAndExchangeCode({
     }
 
     if (authCode.expiresAt < new Date()) {
-        await prisma.oAuthAuthorizationCode.delete({ where: { codeHash } });
+        await __unsafePrisma.oAuthAuthorizationCode.delete({ where: { codeHash } });
         return { error: 'invalid_grant', errorDescription: 'Authorization code has expired.' };
     }
 
@@ -106,7 +106,7 @@ export async function verifyAndExchangeCode({
     // Single-use: delete the auth code before issuing token.
     // Handle concurrent consume attempts gracefully.
     try {
-        await prisma.oAuthAuthorizationCode.delete({ where: { codeHash } });
+        await __unsafePrisma.oAuthAuthorizationCode.delete({ where: { codeHash } });
     } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
             return { error: 'invalid_grant', errorDescription: 'Authorization code has already been used.' };
@@ -117,8 +117,8 @@ export async function verifyAndExchangeCode({
     const { token, hash } = generateOAuthToken();
     const { token: refreshToken, hash: refreshHash } = generateOAuthRefreshToken();
 
-    await prisma.$transaction([
-        prisma.oAuthToken.create({
+    await __unsafePrisma.$transaction([
+        __unsafePrisma.oAuthToken.create({
             data: {
                 hash,
                 clientId,
@@ -127,7 +127,7 @@ export async function verifyAndExchangeCode({
                 expiresAt: new Date(Date.now() + ACCESS_TOKEN_TTL_MS),
             },
         }),
-        prisma.oAuthRefreshToken.create({
+        __unsafePrisma.oAuthRefreshToken.create({
             data: {
                 hash: refreshHash,
                 clientId,
@@ -159,7 +159,7 @@ export async function verifyAndRotateRefreshToken({
 
     const hash = hashSecret(rawRefreshToken.slice(OAUTH_REFRESH_TOKEN_PREFIX.length));
 
-    const existing = await prisma.oAuthRefreshToken.findUnique({ where: { hash } });
+    const existing = await __unsafePrisma.oAuthRefreshToken.findUnique({ where: { hash } });
 
     if (!existing) {
         return { error: 'invalid_grant', errorDescription: 'Refresh token is invalid or has already been used.' };
@@ -170,7 +170,7 @@ export async function verifyAndRotateRefreshToken({
     }
 
     if (existing.expiresAt < new Date()) {
-        await prisma.oAuthRefreshToken.delete({ where: { hash } });
+        await __unsafePrisma.oAuthRefreshToken.delete({ where: { hash } });
         return { error: 'invalid_grant', errorDescription: 'Refresh token has expired.' };
     }
 
@@ -181,9 +181,9 @@ export async function verifyAndRotateRefreshToken({
     const { token, hash: newTokenHash } = generateOAuthToken();
     const { token: refreshToken, hash: newRefreshHash } = generateOAuthRefreshToken();
 
-    await prisma.$transaction([
-        prisma.oAuthRefreshToken.delete({ where: { hash } }),
-        prisma.oAuthToken.create({
+    await __unsafePrisma.$transaction([
+        __unsafePrisma.oAuthRefreshToken.delete({ where: { hash } }),
+        __unsafePrisma.oAuthToken.create({
             data: {
                 hash: newTokenHash,
                 clientId,
@@ -192,7 +192,7 @@ export async function verifyAndRotateRefreshToken({
                 expiresAt: new Date(Date.now() + ACCESS_TOKEN_TTL_MS),
             },
         }),
-        prisma.oAuthRefreshToken.create({
+        __unsafePrisma.oAuthRefreshToken.create({
             data: {
                 hash: newRefreshHash,
                 clientId,
@@ -212,10 +212,10 @@ export async function revokeToken(rawToken: string): Promise<void> {
     if (rawToken.startsWith(OAUTH_ACCESS_TOKEN_PREFIX)) {
         const secret = rawToken.slice(OAUTH_ACCESS_TOKEN_PREFIX.length);
         const hash = hashSecret(secret);
-        await prisma.oAuthToken.deleteMany({ where: { hash } });
+        await __unsafePrisma.oAuthToken.deleteMany({ where: { hash } });
     } else if (rawToken.startsWith(OAUTH_REFRESH_TOKEN_PREFIX)) {
         const secret = rawToken.slice(OAUTH_REFRESH_TOKEN_PREFIX.length);
         const hash = hashSecret(secret);
-        await prisma.oAuthRefreshToken.deleteMany({ where: { hash } });
+        await __unsafePrisma.oAuthRefreshToken.deleteMany({ where: { hash } });
     }
 }

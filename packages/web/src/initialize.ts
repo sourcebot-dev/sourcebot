@@ -1,5 +1,5 @@
 import { createGuestUser } from '@/lib/authUtils';
-import { prisma } from "@/prisma";
+import { __unsafePrisma } from "@/prisma";
 import { OrgRole } from '@sourcebot/db';
 import { createLogger, env, hasEntitlement, loadConfig } from "@sourcebot/shared";
 import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_ID } from './lib/constants';
@@ -10,7 +10,7 @@ const logger = createLogger('web-initialize');
 
 const pruneOldGuestUser = async () => {
     // The old guest user doesn't have the GUEST role
-    const guestUser = await prisma.userToOrg.findUnique({
+    const guestUser = await __unsafePrisma.userToOrg.findUnique({
         where: {
             orgId_userId: {
                 orgId: SINGLE_TENANT_ORG_ID,
@@ -23,7 +23,7 @@ const pruneOldGuestUser = async () => {
     });
 
     if (guestUser) {
-        await prisma.user.delete({
+        await __unsafePrisma.user.delete({
             where: {
                 id: guestUser.userId,
             },
@@ -46,14 +46,14 @@ const init = async () => {
         }
     } else {
         // If anonymous access entitlement is not enabled, set the flag to false in the org on init
-        const org = await prisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
+        const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
         if (org) {
             const currentMetadata = getOrgMetadata(org);
             const mergedMetadata = {
                 ...(currentMetadata ?? {}),
                 anonymousAccessEnabled: false,
             };
-            await prisma.org.update({
+            await __unsafePrisma.org.update({
                 where: { id: org.id },
                 data: { metadata: mergedMetadata },
             });
@@ -65,7 +65,7 @@ const init = async () => {
     // the entitlement, synced search contexts, and then no longer had the entitlement
     const hasSearchContextEntitlement = hasEntitlement("search-contexts")
     if (!hasSearchContextEntitlement) {
-        await prisma.searchContext.deleteMany({
+        await __unsafePrisma.searchContext.deleteMany({
             where: {
                 orgId: SINGLE_TENANT_ORG_ID,
             },
@@ -80,7 +80,7 @@ const init = async () => {
         if (!hasAnonymousAccessEntitlement) {
             logger.warn(`FORCE_ENABLE_ANONYMOUS_ACCESS env var is set to true but anonymous access entitlement is not available. Setting will be ignored.`);
         } else {
-            const org = await prisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
+            const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
             if (org) {
                 const currentMetadata = getOrgMetadata(org);
                 const mergedMetadata = {
@@ -88,7 +88,7 @@ const init = async () => {
                     anonymousAccessEnabled: true,
                 };
 
-                await prisma.org.update({
+                await __unsafePrisma.org.update({
                     where: { id: org.id },
                     data: {
                         metadata: mergedMetadata,
@@ -102,9 +102,9 @@ const init = async () => {
     // Sync member approval setting from env var (only if explicitly set)
     if (env.REQUIRE_APPROVAL_NEW_MEMBERS !== undefined) {
         const requireApprovalNewMembers = env.REQUIRE_APPROVAL_NEW_MEMBERS === 'true';
-        const org = await prisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
+        const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
         if (org && org.memberApprovalRequired !== requireApprovalNewMembers) {
-            await prisma.org.update({
+            await __unsafePrisma.org.update({
                 where: { id: org.id },
                 data: { memberApprovalRequired: requireApprovalNewMembers },
             });

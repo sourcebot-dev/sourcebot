@@ -13,7 +13,7 @@ import { auth } from '@/auth';
 import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle';
 import { ChatSidePanel } from '../components/chatSidePanel';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
-import { prisma } from '@/prisma';
+import { __unsafePrisma } from '@/prisma';
 import { ChatVisibility } from '@sourcebot/db';
 import { Metadata } from 'next';
 import { SBChatMessage } from '@/features/chat/types';
@@ -26,10 +26,10 @@ interface PageProps {
     }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export const generateMetadata = async ({ params }: PageProps): Promise<Metadata> => {
     const { id } = await params;
 
-    const chat = await prisma.chat.findUnique({
+    const chat = await __unsafePrisma.chat.findUnique({
         where: {
             id,
         },

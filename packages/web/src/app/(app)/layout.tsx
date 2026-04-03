@@ -1,4 +1,4 @@
-import { prisma } from "@/prisma";
+import { __unsafePrisma } from "@/prisma";
 import { auth } from "@/auth";
 import { isServiceError } from "@/lib/utils";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
@@ -35,7 +35,7 @@ export default async function Layout(props: LayoutProps) {
         children
     } = props;
 
-    const org = await prisma.org.findUnique({
+    const org = await __unsafePrisma.org.findUnique({
         where: { id: SINGLE_TENANT_ORG_ID },
     });
 
@@ -59,7 +59,7 @@ export default async function Layout(props: LayoutProps) {
 
     // If the user is authenticated, we must check if they're a member of the org
     if (session) {
-        const membership = await prisma.userToOrg.findUnique({
+        const membership = await __unsafePrisma.userToOrg.findUnique({
             where: {
                 orgId_userId: {
                     orgId: org.id,
@@ -85,7 +85,7 @@ export default async function Layout(props: LayoutProps) {
                     </div>
                 )
             } else {
-                const hasPendingApproval = await prisma.accountRequest.findFirst({
+                const hasPendingApproval = await __unsafePrisma.accountRequest.findFirst({
                     where: {
                         orgId: org.id,
                         requestedById: session.user.id

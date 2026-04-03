@@ -5,7 +5,7 @@ import { Footer } from "@/app/components/footer";
 import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 import { createLogger, env } from "@sourcebot/shared";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
-import { prisma } from "@/prisma";
+import { __unsafePrisma } from "@/prisma";
 import { getAnonymousAccessStatus } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 
@@ -26,7 +26,7 @@ export default async function Signup(props: LoginProps) {
         return redirect("/");
     }
 
-    const org = await prisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
+    const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
     if (!org || !org.isOnboarded) {
         return redirect("/onboard");
     }

@@ -1,5 +1,5 @@
 import type { User as AuthJsUser } from "next-auth";
-import { prisma } from "@/prisma";
+import { __unsafePrisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_EMAIL, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { getPlan, getSeats, hasEntitlement, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
@@ -34,7 +34,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
         throw new Error("User ID is undefined on user creation");
     }
 
-    const defaultOrg = await prisma.org.findUnique({
+    const defaultOrg = await __unsafePrisma.org.findUnique({
         where: {
             id: SINGLE_TENANT_ORG_ID,
         },
@@ -72,7 +72,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
     // If this is the first user to sign up, we make them the owner of the default org.
     const isFirstUser = defaultOrg.members.length === 0;
     if (isFirstUser) {
-        await prisma.$transaction(async (tx) => {
+        await __unsafePrisma.$transaction(async (tx) => {
             await tx.org.update({
                 where: {
                     id: SINGLE_TENANT_ORG_ID,
@@ -111,7 +111,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
             return;
         }
 
-        await prisma.userToOrg.create({
+        await __unsafePrisma.userToOrg.create({
             data: {
                 userId: user.id,
                 orgId: SINGLE_TENANT_ORG_ID,
@@ -138,7 +138,7 @@ export const createGuestUser = async (): Promise<ServiceError | boolean> => {
         } satisfies ServiceError;
     }
 
-    const org = await prisma.org.findUnique({
+    const org = await __unsafePrisma.org.findUnique({
         where: { id: SINGLE_TENANT_ORG_ID },
     });
     if (!org) {
@@ -149,7 +149,7 @@ export const createGuestUser = async (): Promise<ServiceError | boolean> => {
         } satisfies ServiceError;
     }
 
-    const user = await prisma.user.upsert({
+    const user = await __unsafePrisma.user.upsert({
         where: {
             id: SOURCEBOT_GUEST_USER_ID,
         },
@@ -161,7 +161,7 @@ export const createGuestUser = async (): Promise<ServiceError | boolean> => {
         },
     });
 
-    await prisma.org.update({
+    await __unsafePrisma.org.update({
         where: {
             id: org.id,
         },
@@ -190,7 +190,7 @@ export const createGuestUser = async (): Promise<ServiceError | boolean> => {
 };
 
 export const orgHasAvailability = async (): Promise<boolean> => {
-    const org = await prisma.org.findUnique({
+    const org = await __unsafePrisma.org.findUnique({
         where: {
             id: SINGLE_TENANT_ORG_ID,
         },
@@ -200,7 +200,7 @@ export const orgHasAvailability = async (): Promise<boolean> => {
         logger.error(`orgHasAvailability: org not found for id ${SINGLE_TENANT_ORG_ID}`);
         return false;
     }
-    const members = await prisma.userToOrg.findMany({
+    const members = await __unsafePrisma.userToOrg.findMany({
         where: {
             orgId: org.id,
             role: {
@@ -221,7 +221,7 @@ export const orgHasAvailability = async (): Promise<boolean> => {
 }
 
 export const addUserToOrganization = async (userId: string, orgId: number): Promise<{ success: boolean } | ServiceError> => {
-    const user = await prisma.user.findUnique({
+    const user = await __unsafePrisma.user.findUnique({
         where: {
             id: userId,
         },
@@ -232,7 +232,7 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
         return userNotFound();
     }
 
-    const org = await prisma.org.findUnique({
+    const org = await __unsafePrisma.org.findUnique({
         where: {
             id: orgId,
         },
@@ -252,7 +252,7 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
         } satisfies ServiceError;
     }
 
-    const res = await prisma.$transaction(async (tx) => {
+    const res = await __unsafePrisma.$transaction(async (tx) => {
         await tx.userToOrg.create({
             data: {
                 userId: user.id,
