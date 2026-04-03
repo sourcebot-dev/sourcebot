@@ -17,10 +17,13 @@ import remarkGfm from 'remark-gfm';
 import type { PluggableList, Plugin } from "unified";
 import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
+import { LinearIssueCard } from './linearIssueCard';
 import { FILE_REFERENCE_REGEX } from '@/features/chat/constants';
 import { createFileReference } from '@/features/chat/utils';
 import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
 import isEqual from "fast-deep-equal/react";
+
+const LINEAR_ISSUE_URL_REGEX = /^https:\/\/linear\.app\/[^/]+\/issue\/([A-Z]+-\d+)\/([^/\s"]+)$/;
 
 export const REFERENCE_PAYLOAD_ATTRIBUTE = 'data-reference-payload';
 
@@ -242,6 +245,19 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
         )
 
     }, [router]);
+
+    const renderAnchor = useCallback(({ href, children, ...rest }: React.JSX.IntrinsicElements['a']) => {
+        if (href) {
+            const match = LINEAR_ISSUE_URL_REGEX.exec(href);
+            if (match) {
+                const identifier = match[1];
+                const titleSlug = match[2];
+                const title = titleSlug.replace(/-/g, ' ');
+                return <LinearIssueCard identifier={identifier} title={title} href={href} />;
+            }
+        }
+        return <a href={href} target="_blank" rel="noopener noreferrer" {...rest}>{children}</a>;
+    }, []);
 
     return (
         <div
