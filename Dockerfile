@@ -44,13 +44,13 @@ COPY ./packages/schemas ./packages/schemas
 COPY ./packages/shared ./packages/shared
 COPY ./packages/queryLanguage ./packages/queryLanguage
 
-RUN --mount=type=cache,id=sourcebot-yarn-cache,target=/app/.yarn/cache \
+RUN --mount=type=cache,id=sourcebot-yarn-cache,sharing=locked,target=/app/.yarn/cache \
     yarn workspace @sourcebot/db install
-RUN --mount=type=cache,id=sourcebot-yarn-cache,target=/app/.yarn/cache \
+RUN --mount=type=cache,id=sourcebot-yarn-cache,sharing=locked,target=/app/.yarn/cache \
     yarn workspace @sourcebot/schemas install
-RUN --mount=type=cache,id=sourcebot-yarn-cache,target=/app/.yarn/cache \
+RUN --mount=type=cache,id=sourcebot-yarn-cache,sharing=locked,target=/app/.yarn/cache \
     yarn workspace @sourcebot/shared install
-RUN --mount=type=cache,id=sourcebot-yarn-cache,target=/app/.yarn/cache \
+RUN --mount=type=cache,id=sourcebot-yarn-cache,sharing=locked,target=/app/.yarn/cache \
     yarn workspace @sourcebot/query-language install
 # ------------------------------------
 
@@ -97,7 +97,7 @@ COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 COPY --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLanguage
 
 # Fixes arm64 timeouts
-RUN --mount=type=cache,id=sourcebot-yarn-cache,target=/app/.yarn/cache \
+RUN --mount=type=cache,id=sourcebot-yarn-cache,sharing=locked,target=/app/.yarn/cache \
     yarn workspace @sourcebot/web install
 
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -135,7 +135,7 @@ COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 COPY --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLanguage
-RUN --mount=type=cache,id=sourcebot-yarn-cache,target=/app/.yarn/cache \
+RUN --mount=type=cache,id=sourcebot-yarn-cache,sharing=locked,target=/app/.yarn/cache \
     yarn workspace @sourcebot/backend install
 RUN yarn workspace @sourcebot/backend build
 
