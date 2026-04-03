@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Bumped dependencies. [#1082](https://github.com/sourcebot-dev/sourcebot/pull/1082) [#1083](https://github.com/sourcebot-dev/sourcebot/pull/1083) [#1084](https://github.com/sourcebot-dev/sourcebot/pull/1084) [#1085](https://github.com/sourcebot-dev/sourcebot/pull/1085) [#1086](https://github.com/sourcebot-dev/sourcebot/pull/1086) [#1087](https://github.com/sourcebot-dev/sourcebot/pull/1087) [#1088](https://github.com/sourcebot-dev/sourcebot/pull/1088) [#1089](https://github.com/sourcebot-dev/sourcebot/pull/1089) [#1090](https://github.com/sourcebot-dev/sourcebot/pull/1090) [#1091](https://github.com/sourcebot-dev/sourcebot/pull/1091) [#1092](https://github.com/sourcebot-dev/sourcebot/pull/1092)
+
 ## [4.16.5] - 2026-04-02
 
 ### Added
