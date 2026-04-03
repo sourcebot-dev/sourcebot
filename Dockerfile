@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.7
 # ------ Global scope variables ------
 
 # Set of global build arguments.
@@ -24,9 +24,13 @@ FROM go-alpine AS zoekt-builder
 RUN apk add --no-cache ca-certificates
 WORKDIR /zoekt
 COPY vendor/zoekt/go.mod vendor/zoekt/go.sum ./
-RUN go mod download
+RUN --mount=type=cache,id=sourcebot-go-mod-cache,target=/go/pkg/mod \
+    --mount=type=cache,id=sourcebot-go-build-cache,target=/root/.cache/go-build \
+    go mod download
 COPY vendor/zoekt ./
-RUN CGO_ENABLED=0 GOOS=linux go build -o /cmd/ ./cmd/...
+RUN --mount=type=cache,id=sourcebot-go-mod-cache,target=/go/pkg/mod \
+    --mount=type=cache,id=sourcebot-go-build-cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -o /cmd/ ./cmd/...
 # -------------------------
 
 # ------ Build shared libraries ------
@@ -40,10 +44,14 @@ COPY ./packages/schemas ./packages/schemas
 COPY ./packages/shared ./packages/shared
 COPY ./packages/queryLanguage ./packages/queryLanguage
 
-RUN yarn workspace @sourcebot/db install
-RUN yarn workspace @sourcebot/schemas install
-RUN yarn workspace @sourcebot/shared install
-RUN yarn workspace @sourcebot/query-language install
+RUN --mount=type=cache,id=sourcebot-yarn-cache,target=/app/.yarn/cache \
+    yarn workspace @sourcebot/db install
+RUN --mount=type=cache,id=sourcebot-yarn-cache,target=/app/.yarn/cache \
+    yarn workspace @sourcebot/schemas install
+RUN --mount=type=cache,id=sourcebot-yarn-cache,target=/app/.yarn/cache \
+    yarn workspace @sourcebot/shared install
+RUN --mount=type=cache,id=sourcebot-yarn-cache,target=/app/.yarn/cache \
+    yarn workspace @sourcebot/query-language install
 # ------------------------------------
 
 # ------ Build Web ------
@@ -89,7 +97,8 @@ COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 COPY --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLanguage
 
 # Fixes arm64 timeouts
-RUN yarn workspace @sourcebot/web install
+RUN --mount=type=cache,id=sourcebot-yarn-cache,target=/app/.yarn/cache \
+    yarn workspace @sourcebot/web install
 
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN yarn workspace @sourcebot/web build
@@ -126,7 +135,8 @@ COPY --from=shared-libs-builder /app/packages/db ./packages/db
 COPY --from=shared-libs-builder /app/packages/schemas ./packages/schemas
 COPY --from=shared-libs-builder /app/packages/shared ./packages/shared
 COPY --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLanguage
-RUN yarn workspace @sourcebot/backend install
+RUN --mount=type=cache,id=sourcebot-yarn-cache,target=/app/.yarn/cache \
+    yarn workspace @sourcebot/backend install
 RUN yarn workspace @sourcebot/backend build
 
 # Upload source maps to Sentry if we have the necessary build-time args.
