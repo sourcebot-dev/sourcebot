@@ -1,8 +1,6 @@
 import { MembersList } from "./components/membersList";
 import { getOrgMembers } from "@/actions";
 import { isServiceError } from "@/lib/utils";
-import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
-import { prisma } from "@/prisma";
 import { InviteMemberCard } from "./components/inviteMemberCard";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { TabSwitcher } from "@/components/ui/tab-switcher";
@@ -11,41 +9,27 @@ import { getOrgInvites, getMe, getOrgAccountRequests } from "@/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { getSeats, hasEntitlement, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
 import { RequestsList } from "./components/requestsList";
-import { OrgRole } from "@prisma/client";
-import { redirect } from "next/navigation";
+import { OrgRole } from "@sourcebot/db";
 import { NotificationDot } from "../../components/notificationDot";
 import { Badge } from "@/components/ui/badge";
+import { authenticatedPage } from "@/middleware/authenticatedPage";
 
-interface MembersSettingsPageProps {
+type MembersSettingsPageProps = {
     searchParams: Promise<{
         tab?: string
     }>
 }
 
-export default async function MembersSettingsPage(props: MembersSettingsPageProps) {
+export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role }, props) => {
     const searchParams = await props.searchParams;
 
     const {
         tab
     } = searchParams;
 
-    const org = await prisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
-    if (!org) {
-        throw new Error("Organization not found");
-    }
-
     const me = await getMe();
     if (isServiceError(me)) {
         throw new ServiceErrorException(me);
-    }
-
-    const userRoleInOrg = me.memberships.find((membership) => membership.id === org.id)?.role;
-    if (!userRoleInOrg) {
-        throw new Error("User role not found");
-    }
-
-    if (userRoleInOrg !== OrgRole.OWNER) {
-        redirect('/settings');
     }
 
     const members = await getOrgMembers();
@@ -89,7 +73,7 @@ export default async function MembersSettingsPage(props: MembersSettingsPageProp
             </div>
 
             <InviteMemberCard
-                currentUserRole={userRoleInOrg}
+                currentUserRole={role}
                 seatsAvailable={seatsAvailable}
             />
 
@@ -109,7 +93,7 @@ export default async function MembersSettingsPage(props: MembersSettingsPageProp
                                 ),
                                 value: "members"
                             },
-                            ...(userRoleInOrg === OrgRole.OWNER ? [
+                            ...(role === OrgRole.OWNER ? [
                                 {
                                     label: (
                                         <div className="flex items-center gap-2">
@@ -148,25 +132,25 @@ export default async function MembersSettingsPage(props: MembersSettingsPageProp
                     <MembersList
                         members={members}
                         currentUserId={me.id}
-                        currentUserRole={userRoleInOrg}
+                        currentUserRole={role}
                         orgName={org.name}
                         hasOrgManagement={hasEntitlement('org-management')}
                     />
                 </TabsContent>
 
-                {userRoleInOrg === OrgRole.OWNER && (
+                {role === OrgRole.OWNER && (
                     <>
                         <TabsContent value="requests">
                             <RequestsList
                                 requests={requests}
-                                currentUserRole={userRoleInOrg}
+                                currentUserRole={role}
                             />
                         </TabsContent>
 
                         <TabsContent value="invites">
                             <InvitesList
                                 invites={invites}
-                                currentUserRole={userRoleInOrg}
+                                currentUserRole={role}
                             />
                         </TabsContent>
                     </>
@@ -174,4 +158,4 @@ export default async function MembersSettingsPage(props: MembersSettingsPageProp
             </Tabs>
         </div>
     )
-}
+}, { minRole: OrgRole.OWNER, redirectTo: '/settings' });
