@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Improved Docker build performance by enabling BuildKit cache mounts for Yarn and Go steps and by reusing Docker layer caches in the PR gate workflow. [#1094](https://github.com/sourcebot-dev/sourcebot/pull/1094)
+
 ## [4.16.7] - 2026-04-03
 
 ### Fixed
