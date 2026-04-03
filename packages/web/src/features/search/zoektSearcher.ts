@@ -89,7 +89,7 @@ export const createZoektSearchRequest = async ({
             //
             //
             // Our challenge is to determine whether or not the search returned all possible matches/
-            // (it was exaustive) or if it was truncated. By setting the `TotalMaxMatchCount` to
+            // (it was exhaustive) or if it was truncated. By setting the `TotalMaxMatchCount` to
             // `MaxMatchDisplayCount + 1`, we can determine which of these occurred by comparing
             // `totalMatchCount` to `MaxMatchDisplayCount`.
             //

@@ -180,7 +180,7 @@ test('completeSuggestion wraps suggestions in quotes when the suggestion contain
     expect(newCursorPosition).toBe(newQuery.length);
 });
 
-test('completeSuggestion completes on query parts that are inbetween other parts', () => {
+test('completeSuggestion completes on query parts that are in between other parts', () => {
     const part1 = String.raw`repo:^github\.com/sourcebot\x2ddev/sourcebot$`;
     const suggestionQuery = 'Type';
     const part2 = String.raw`lang:${suggestionQuery}`;

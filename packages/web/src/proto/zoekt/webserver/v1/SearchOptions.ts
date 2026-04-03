@@ -74,7 +74,7 @@ export interface SearchOptions {
    */
   'use_bm25_scoring'?: (boolean);
   /**
-   * Truncates the number of matchs after collating and sorting the results.
+   * Truncates the number of matches after collating and sorting the results.
    */
   'max_match_display_count'?: (number | string | Long);
 }
@@ -150,7 +150,7 @@ export interface SearchOptions__Output {
    */
   'use_bm25_scoring': (boolean);
   /**
-   * Truncates the number of matchs after collating and sorting the results.
+   * Truncates the number of matches after collating and sorting the results.
    */
   'max_match_display_count': (number);
 }

@@ -114,7 +114,7 @@ export const columns: ColumnDef<Connection>[] = [
     {
         accessorKey: "latestJobStatus",
         size: 150,
-        header: "Lastest status",
+        header: "Latest status",
         cell: ({ row }) => getStatusBadge(row.getValue("latestJobStatus")),
     },
     {

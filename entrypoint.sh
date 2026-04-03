@@ -19,7 +19,7 @@ fi
 
 # If a CONFIG_PATH is set, resolve the environment overrides from the config file.
 # The overrides will be written into variables scopped to the current shell. This is
-# required in case one of the variables used in this entrypoint is overriden (e.g.,
+# required in case one of the variables used in this entrypoint is overridden (e.g.,
 # DATABASE_URL, REDIS_URL, etc.)
 if [ -n "$CONFIG_PATH" ]; then
     echo -e "\e[34m[Info] Resolving environment overrides from $CONFIG_PATH...\e[0m"
@@ -48,7 +48,7 @@ if [ -z "$DATABASE_URL" ] && [ -n "$DATABASE_HOST" ] && [ -n "$DATABASE_USERNAME
 fi
 
 if [ -z "$DATABASE_URL" ]; then
-    echo -e "\e[34m[Info] DATABASE_URL is not set. Using embeded database.\e[0m"
+    echo -e "\e[34m[Info] DATABASE_URL is not set. Using embedded database.\e[0m"
     export DATABASE_EMBEDDED="true"
     export DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
 else
@@ -56,7 +56,7 @@ else
 fi
 
 if [ -z "$REDIS_URL" ]; then
-    echo -e "\e[34m[Info] REDIS_URL is not set. Using embeded redis.\e[0m"
+    echo -e "\e[34m[Info] REDIS_URL is not set. Using embedded redis.\e[0m"
     export REDIS_EMBEDDED="true"
     export REDIS_URL="redis://localhost:6379"
 else

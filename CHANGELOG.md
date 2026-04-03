@@ -586,7 +586,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.10.1] - 2025-12-03
 
 ### Added
-- Added `ALWAYS_INDEX_FILE_PATTERNS` environment variable to allow specifying a comma seperated list of glob patterns matching file paths that should always be indexed, regardless of size or # of trigrams. [#631](https://github.com/sourcebot-dev/sourcebot/pull/631)
+- Added `ALWAYS_INDEX_FILE_PATTERNS` environment variable to allow specifying a comma separated list of glob patterns matching file paths that should always be indexed, regardless of size or # of trigrams. [#631](https://github.com/sourcebot-dev/sourcebot/pull/631)
 - Added button to explore menu to toggle cross-repository search. [#647](https://github.com/sourcebot-dev/sourcebot/pull/647)
 - Added server side telemetry for search metrics. [#652](https://github.com/sourcebot-dev/sourcebot/pull/652)
 
@@ -605,7 +605,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added support for streaming code search results. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
 - Added buttons to toggle case sensitivity and regex patterns. [#623](https://github.com/sourcebot-dev/sourcebot/pull/623)
-- Added counts to members, requets, and invites tabs in the members settings. [#621](https://github.com/sourcebot-dev/sourcebot/pull/621)
+- Added counts to members, requests, and invites tabs in the members settings. [#621](https://github.com/sourcebot-dev/sourcebot/pull/621)
 - [Sourcebot EE] Add support for Authentik as a identity provider. [#627](https://github.com/sourcebot-dev/sourcebot/pull/627)
 
 ### Changed
@@ -679,7 +679,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Implement dynamic tab titles for files and folders in browse tab. [#560](https://github.com/sourcebot-dev/sourcebot/pull/560)
-- Added support for passing db connection url as seperate `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_NAME`, and `DATABASE_ARGS` env vars. [#545](https://github.com/sourcebot-dev/sourcebot/pull/545)
+- Added support for passing db connection url as separate `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_NAME`, and `DATABASE_ARGS` env vars. [#545](https://github.com/sourcebot-dev/sourcebot/pull/545)
 - Added support for GitHub Apps for service auth. [#570](https://github.com/sourcebot-dev/sourcebot/pull/570)
 - Added prometheus metrics for repo index manager. [#571](https://github.com/sourcebot-dev/sourcebot/pull/571)
 - Added experimental environment variable to disable API key creation for non-admin users. [#577](https://github.com/sourcebot-dev/sourcebot/pull/577)
@@ -832,7 +832,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.6.0] - 2025-07-25
 
 ### Added
-- Introducing Ask Sourcebot - ask natural langauge about your codebase. Get back comprehensive Markdown responses with inline citations back to the code. Bring your own LLM api key. [#392](https://github.com/sourcebot-dev/sourcebot/pull/392) 
+- Introducing Ask Sourcebot - ask natural language about your codebase. Get back comprehensive Markdown responses with inline citations back to the code. Bring your own LLM api key. [#392](https://github.com/sourcebot-dev/sourcebot/pull/392) 
 
 ### Fixed 
 - Fixed onboarding infinite loop when GCP IAP Auth is enabled. [#381](https://github.com/sourcebot-dev/sourcebot/pull/381)
@@ -902,7 +902,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.2.0] - 2025-06-09
 
 ### Added
-- Added seperate page for signup. [#311](https://github.com/sourcebot-dev/sourcebot/pull/331)
+- Added separate page for signup. [#311](https://github.com/sourcebot-dev/sourcebot/pull/331)
 - Fix repo images in authed instance case and add manifest json. [#332](https://github.com/sourcebot-dev/sourcebot/pull/332)
 - Added encryption logic for license keys. [#335](https://github.com/sourcebot-dev/sourcebot/pull/335)
 - Added hover tooltip for long repo names in filter panel. [#338](https://github.com/sourcebot-dev/sourcebot/pull/338)
@@ -1054,7 +1054,7 @@ Sourcebot v3 is here and brings a number of structural changes to the tool's fou
 ### Removed
 - [**Breaking Change**] Removed `db.json` in favour of a Postgres database for transactional workloads. See the [architecture overview](https://docs.sourcebot.dev/self-hosting/overview#architecture).
 - [**Breaking Change**] Removed local folder & arbitrary .git repo support. If your deployment depended on these features, please [open a issue](https://github.com/sourcebot-dev/sourcebot/issues/new?template=get_help.md) and let us know.
-- [**Breaking Chnage**] Removed ability to specify a `token` as a string literal from the schema.
+- [**Breaking Change**] Removed ability to specify a `token` as a string literal from the schema.
 - [**Breaking Change**] Removed support for `DOMAIN_SUB_PATH` configuration.
 
 

@@ -84,7 +84,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
 
     // Groups parts into steps that are associated with thinking steps that
     // should be visible to the user. By "steps", we mean parts that originated
-    // from the same LLM invocation. By "visibile", we mean parts that have some
+    // from the same LLM invocation. By "visible", we mean parts that have some
     // visual representation in the UI (e.g., text, reasoning, tool calls, etc.).
     const uiVisibleThinkingSteps = useMemo(() => {
         const steps = groupMessageIntoSteps(assistantMessage?.parts ?? []);

@@ -1,0 +1,10 @@
+[codespell]
+# Ref: https://github.com/codespell-project/codespell#using-a-config-file
+skip = .git,.gitignore,.gitattributes,*.svg,vendor,*.lock,*.css,.codespellrc,.yarn,_typos.toml
+check-hidden = true
+# Ignore camelCase and PascalCase identifiers (common in code)
+ignore-regex = \b[a-z]+[A-Z]\w*\b|\b[A-Z][a-z]+[A-Z]\w*\b
+# pris - prisma datasource name; wast - WebAssembly Text format;
+# ags,abl - abbreviations in language metadata; rouge - syntax highlighter;
+# edn - EDN file format (Clojure); requestor - valid legal term, used as prop name
+ignore-words-list = pris,wast,ags,abl,rouge,edn,requestor

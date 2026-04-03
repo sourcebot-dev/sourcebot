@@ -162,7 +162,7 @@ export const getColumns = (context: ColumnsContext): ColumnDef<Repo>[] => [
     {
         accessorKey: "latestJobStatus",
         size: 150,
-        header: "Lastest status",
+        header: "Latest status",
         cell: ({ row }) => getStatusBadge(row.getValue("latestJobStatus")),
     },
     {

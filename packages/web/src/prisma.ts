@@ -29,7 +29,7 @@ export const prisma = globalForPrisma.prisma || new PrismaClient({
 if (env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
 
 /**
- * Creates a prisma client extension that scopes queries to striclty information
+ * Creates a prisma client extension that scopes queries to strictly information
  * a given user should be able to access.
  */
 export const userScopedPrismaClientExtension = (user?: UserWithAccounts) => {

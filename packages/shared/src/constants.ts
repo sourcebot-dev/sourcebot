@@ -29,7 +29,7 @@ export const DEFAULT_CONFIG_SETTINGS: ConfigSettings = {
     maxRepoGarbageCollectionJobConcurrency: 8,
     repoGarbageCollectionGracePeriodMs: 10 * 1000, // 10 seconds
     repoIndexTimeoutMs: 1000 * 60 * 60 * 2, // 2 hours
-    enablePublicAccess: false, // deprected, use FORCE_ENABLE_ANONYMOUS_ACCESS instead
+    enablePublicAccess: false, // deprecated, use FORCE_ENABLE_ANONYMOUS_ACCESS instead
     repoDrivenPermissionSyncIntervalMs: 1000 * 60 * 60 * 24, // 24 hours
     userDrivenPermissionSyncIntervalMs: 1000 * 60 * 60 * 24, // 24 hours
     experiment_repoDrivenPermissionSyncIntervalMs: 1000 * 60 * 60 * 24, // 24 hours (deprecated)
