@@ -26,7 +26,7 @@
     "@ai-sdk/react": "^3.0.107",
     "@ai-sdk/xai": "^3.0.60",
     "@auth/prisma-adapter": "^2.11.1",
-    "@aws-sdk/credential-providers": "^3.1000.0",
+    "@aws-sdk/credential-providers": "^3.1023.0",
     "@codemirror/commands": "^6.6.0",
     "@codemirror/lang-cpp": "^6.0.2",
     "@codemirror/lang-css": "^6.3.0",
