@@ -175,6 +175,15 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
     }, []);
 
     const renderAnchor = useCallback(({ href, children, ...rest }: React.JSX.IntrinsicElements['a']) => {
+        if (href) {
+            const match = LINEAR_ISSUE_URL_REGEX.exec(href);
+            if (match) {
+                const identifier = match[1];
+                const titleSlug = match[2];
+                const title = titleSlug.replace(/-/g, ' ');
+                return <LinearIssueCard identifier={identifier} title={title} href={href} />;
+            }
+        }
         return (
             <a
                 href={href}
@@ -245,19 +254,6 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
         )
 
     }, [router]);
-
-    const renderAnchor = useCallback(({ href, children, ...rest }: React.JSX.IntrinsicElements['a']) => {
-        if (href) {
-            const match = LINEAR_ISSUE_URL_REGEX.exec(href);
-            if (match) {
-                const identifier = match[1];
-                const titleSlug = match[2];
-                const title = titleSlug.replace(/-/g, ' ');
-                return <LinearIssueCard identifier={identifier} title={title} href={href} />;
-            }
-        }
-        return <a href={href} target="_blank" rel="noopener noreferrer" {...rest}>{children}</a>;
-    }, []);
 
     return (
         <div
