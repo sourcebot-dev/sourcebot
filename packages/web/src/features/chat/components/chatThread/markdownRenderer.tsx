@@ -174,7 +174,7 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
         )
     }, []);
 
-    const renderAnchor = useCallback(({ href, children, ...rest }: React.JSX.IntrinsicElements['a']) => {
+    const renderAnchor = useCallback(({ href, children, className: incomingClassName, ...rest }: React.JSX.IntrinsicElements['a']) => {
         if (href) {
             const match = LINEAR_ISSUE_URL_REGEX.exec(href);
             if (match) {
@@ -186,11 +186,11 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
         }
         return (
             <a
+                {...rest}
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-0.5"
-                {...rest}
+                className={cn(incomingClassName, "inline-flex items-center gap-0.5")}
             >
                 {children}
                 <ExternalLinkIcon className="inline w-3 h-3 mb-0.5 opacity-60" />
