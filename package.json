@@ -37,6 +37,9 @@
         "node-gyp/glob": "^10.5.0",
         "sucrase/glob": "^10.5.0",
         "rimraf@npm:5.0.10/glob": "^10.5.0",
-        "@opentelemetry/resources": "2.5.1"
+        "@opentelemetry/resources": "2.5.1",
+        "path-to-regexp": "^8.4.0",
+        "picomatch@^4": "^4.0.4",
+        "fast-xml-parser": "^5.5.6"
     }
 }
