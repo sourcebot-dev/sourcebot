@@ -1,3 +1,9 @@
+/**
+ * All routes under (app) are dynamic since the layout calls auth() and
+ * accesses headers.
+ */
+export const dynamic = 'force-dynamic';
+
 import { __unsafePrisma } from "@/prisma";
 import { auth } from "@/auth";
 import { isServiceError } from "@/lib/utils";
