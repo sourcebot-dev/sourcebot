@@ -8,6 +8,7 @@ beforeEach(() => {
 });
 
 export const prisma = mockDeep<PrismaClient>();
+export const __unsafePrisma = prisma;
 
 export const MOCK_ORG: Org = {
     id: SINGLE_TENANT_ORG_ID,
