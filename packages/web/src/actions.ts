@@ -4,7 +4,7 @@ import { getAuditService } from "@/ee/features/audit/factory";
 import { env, getSMTPConnectionURL } from "@sourcebot/shared";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notFound, orgNotFound, ServiceError } from "@/lib/serviceError";
+import { notAuthenticated, notFound, orgNotFound, ServiceError } from "@/lib/serviceError";
 import { getOrgMetadata, isHttpError, isServiceError } from "@/lib/utils";
 import { __unsafePrisma } from "@/prisma";
 import { render } from "@react-email/components";
@@ -24,7 +24,7 @@ import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { RepositoryQuery } from "./lib/types";
-import { withAuth, withOptionalAuth } from "./middleware/withAuth";
+import { getAuthenticatedUser, withAuth, withOptionalAuth } from "./middleware/withAuth";
 import { withMinimumOrgRole } from "./middleware/withMinimumOrgRole";
 import { getBrowsePath } from "./app/(app)/browse/hooks/utils";
 import { sew } from "@/middleware/sew";
@@ -817,16 +817,13 @@ export const getOrgAccountRequests = async () => sew(() =>
         }));
     }));
 
-export const createAccountRequest = async (userId: string) => sew(async () => {
-    const user = await __unsafePrisma.user.findUnique({
-        where: {
-            id: userId,
-        },
-    });
-
-    if (!user) {
-        return notFound("User not found");
+export const createAccountRequest = async () => sew(async () => {
+    const authResult = await getAuthenticatedUser();
+    if (!authResult) {
+        return notAuthenticated();
     }
+
+    const { user } = authResult;
 
     const org = await __unsafePrisma.org.findUnique({
         where: {
@@ -841,14 +838,14 @@ export const createAccountRequest = async (userId: string) => sew(async () => {
     const existingRequest = await __unsafePrisma.accountRequest.findUnique({
         where: {
             requestedById_orgId: {
-                requestedById: userId,
+                requestedById: user.id,
                 orgId: org.id,
             },
         },
     });
 
     if (existingRequest) {
-        logger.warn(`User ${userId} already has an account request for org ${org.id}. Skipping account request creation.`);
+        logger.warn(`User ${user.id} already has an account request for org ${org.id}. Skipping account request creation.`);
         return {
             success: true,
             existingRequest: true,
@@ -858,7 +855,7 @@ export const createAccountRequest = async (userId: string) => sew(async () => {
     if (!existingRequest) {
         await __unsafePrisma.accountRequest.create({
             data: {
-                requestedById: userId,
+                requestedById: user.id,
                 orgId: org.id,
             },
         });
@@ -869,7 +866,7 @@ export const createAccountRequest = async (userId: string) => sew(async () => {
             // on user creation (the header isn't set when next-auth calls onCreateUser for some reason)
             const deploymentUrl = env.AUTH_URL;
 
-            const owner = await __unsafePrisma.user.findFirst({
+            const owners = await __unsafePrisma.user.findMany({
                 where: {
                     orgs: {
                         some: {
@@ -880,8 +877,8 @@ export const createAccountRequest = async (userId: string) => sew(async () => {
                 },
             });
 
-            if (!owner) {
-                logger.error(`Failed to find owner for org ${org.id} when drafting email for account request from ${userId}`);
+            if (owners.length === 0) {
+                logger.error(`Failed to find any owners for org ${org.id} when drafting email for account request from ${user.id}`);
             } else {
                 const html = await render(JoinRequestSubmittedEmail({
                     baseUrl: deploymentUrl,
@@ -894,9 +891,13 @@ export const createAccountRequest = async (userId: string) => sew(async () => {
                     orgImageUrl: org.imageUrl ?? undefined,
                 }));
 
+                const ownerEmails = owners
+                    .map((owner) => owner.email)
+                    .filter((email): email is string => email !== null);
+
                 const transport = createTransport(smtpConnectionUrl);
                 const result = await transport.sendMail({
-                    to: owner.email!,
+                    to: ownerEmails,
                     from: env.EMAIL_FROM_ADDRESS,
                     subject: `New account request for ${org.name} on Sourcebot`,
                     html,
@@ -905,7 +906,7 @@ export const createAccountRequest = async (userId: string) => sew(async () => {
 
                 const failed = result.rejected.concat(result.pending).filter(Boolean);
                 if (failed.length > 0) {
-                    logger.error(`Failed to send account request email to ${owner.email}: ${failed}`);
+                    logger.error(`Failed to send account request email to ${ownerEmails.join(', ')}: ${failed}`);
                 }
             }
         } else {

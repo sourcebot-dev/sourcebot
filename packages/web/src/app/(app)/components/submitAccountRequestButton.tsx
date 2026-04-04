@@ -8,18 +8,15 @@ import { createAccountRequest } from "@/actions"
 import { isServiceError } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
-interface SubmitButtonProps {
-    userId: string
-}
 
-export function SubmitAccountRequestButton({ userId }: SubmitButtonProps) {
+export function SubmitAccountRequestButton() {
     const { toast } = useToast()
     const router = useRouter()
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const handleSubmit = async () => {
         setIsSubmitting(true)
-        const result = await createAccountRequest(userId)
+        const result = await createAccountRequest()
         if (!isServiceError(result)) {
             if (result.existingRequest) {
                 toast({
