@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Links in Ask Sourcebot chat responses now open in a new tab with a subtle external link icon indicator. [#1059](https://github.com/sourcebot-dev/sourcebot/pull/1059)
+- Removed `/~` from the root of most app URLs. [#1076](https://github.com/sourcebot-dev/sourcebot/pull/1076)
 
 ## [4.16.7] - 2026-04-03
 
