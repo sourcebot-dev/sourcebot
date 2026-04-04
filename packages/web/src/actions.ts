@@ -24,7 +24,7 @@ import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
 import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
 import { RepositoryQuery } from "./lib/types";
-import { withAuth, withOptionalAuth, withAuth_skipOrgMembershipCheck } from "./middleware/withAuth";
+import { withAuth, withOptionalAuth } from "./middleware/withAuth";
 import { withMinimumOrgRole } from "./middleware/withMinimumOrgRole";
 import { getBrowsePath } from "./app/(app)/browse/hooks/utils";
 import { sew } from "@/middleware/sew";
@@ -755,116 +755,6 @@ export const getMe = async () => sew(() =>
                 role: org.role,
                 name: org.org.name,
             }))
-        }
-    }));
-
-export const redeemInvite = async (inviteId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth_skipOrgMembershipCheck(async ({ user, prisma }) => {
-        const invite = await prisma.invite.findUnique({
-            where: {
-                id: inviteId,
-            },
-            include: {
-                org: true,
-            }
-        });
-
-        if (!invite) {
-            return notFound();
-        }
-
-        const failAuditCallback = async (error: string) => {
-            await auditService.createAudit({
-                action: "user.invite_accept_failed",
-                actor: {
-                    id: user.id,
-                    type: "user"
-                },
-                target: {
-                    id: inviteId,
-                    type: "invite"
-                },
-                orgId: invite.org.id,
-                metadata: {
-                    message: error
-                }
-            });
-        }
-
-
-        const hasAvailability = await orgHasAvailability();
-        if (!hasAvailability) {
-            await failAuditCallback("Organization is at max capacity");
-            return {
-                statusCode: StatusCodes.BAD_REQUEST,
-                errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
-                message: "Organization is at max capacity",
-            } satisfies ServiceError;
-        }
-
-        // Check if the user is the recipient of the invite
-        if (user.email !== invite.recipientEmail) {
-            await failAuditCallback("User is not the recipient of the invite");
-            return notFound();
-        }
-
-        const addUserToOrgRes = await addUserToOrganization(user.id, invite.orgId);
-        if (isServiceError(addUserToOrgRes)) {
-            await failAuditCallback(addUserToOrgRes.message);
-            return addUserToOrgRes;
-        }
-
-        await auditService.createAudit({
-            action: "user.invite_accepted",
-            actor: {
-                id: user.id,
-                type: "user"
-            },
-            orgId: invite.org.id,
-            target: {
-                id: inviteId,
-                type: "invite"
-            }
-        });
-
-        return {
-            success: true,
-        }
-    }));
-
-export const getInviteInfo = async (inviteId: string) => sew(() =>
-    withAuth_skipOrgMembershipCheck(async ({ user, prisma }) => {
-        const invite = await prisma.invite.findUnique({
-            where: {
-                id: inviteId,
-            },
-            include: {
-                org: true,
-                host: true,
-            }
-        });
-
-        if (!invite) {
-            return notFound();
-        }
-
-        if (invite.recipientEmail !== user.email) {
-            return notFound();
-        }
-
-        return {
-            id: invite.id,
-            orgName: invite.org.name,
-            orgImageUrl: invite.org.imageUrl ?? undefined,
-            host: {
-                name: invite.host.name ?? undefined,
-                email: invite.host.email!,
-                avatarUrl: invite.host.image ?? undefined,
-            },
-            recipient: {
-                name: user.name ?? undefined,
-                email: user.email!,
-            }
         }
     }));
 

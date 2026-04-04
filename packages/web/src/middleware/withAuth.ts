@@ -24,27 +24,6 @@ type RequiredAuthContext = {
     prisma: PrismaClient;
 }
 
-/**
- * Requires a logged-in user but does NOT check org membership.
- * Use this for actions where the user may not yet be a member
- * of the org (e.g. joining an org, redeeming an invite).
- */
-export const withAuth_skipOrgMembershipCheck = async <T>(fn: (params: Omit<RequiredAuthContext, 'role'> & { role: OrgRole; }) => Promise<T>) => {
-    const authContext = await getAuthContext();
-
-    if (isServiceError(authContext)) {
-        return authContext;
-    }
-
-    const { user, prisma, org, role } = authContext;
-
-    if (!user) {
-        return notAuthenticated();
-    }
-
-    return fn({ user, prisma, org, role });
-};
-
 export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T>) => {
     const authContext = await getAuthContext();
 

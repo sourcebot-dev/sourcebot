@@ -9,7 +9,7 @@ import placeholderAvatar from "@/public/placeholder_avatar.png";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCallback, useState } from "react";
-import { redeemInvite } from "@/actions";
+import { redeemInvite } from "@/app/invite/actions";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/hooks/use-toast";
 import { isServiceError } from "@/lib/utils";
