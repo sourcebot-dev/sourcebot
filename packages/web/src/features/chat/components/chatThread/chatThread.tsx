@@ -27,11 +27,10 @@ import { isServiceError } from '@/lib/utils';
 import { NotConfiguredErrorBanner } from '../notConfiguredErrorBanner';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { SignInPromptBanner } from './signInPromptBanner';
-import { DuplicateChatDialog } from '@/app/[domain]/chat/components/duplicateChatDialog';
+import { DuplicateChatDialog } from '@/app/(app)/chat/components/duplicateChatDialog';
 import { LoginModal } from '@/app/components/loginModal';
 import type { IdentityProviderMetadata } from '@/lib/identityProviders';
 import { getAskGhLoginWallData } from '../../actions';
-import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -340,7 +339,7 @@ export const ChatThread = ({
         }
 
         captureEvent('wa_chat_duplicated', { chatId: defaultChatId });
-        router.push(`/${SINGLE_TENANT_ORG_DOMAIN}/chat/${result.id}`);
+        router.push(`/chat/${result.id}`);
         return result.id;
     }, [defaultChatId, toast, router, captureEvent]);
 

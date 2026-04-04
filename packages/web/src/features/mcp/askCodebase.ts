@@ -195,7 +195,7 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
 
             const baseUrl = env.AUTH_URL;
             const portableAnswer = convertLLMOutputToPortableMarkdown(answerText, baseUrl);
-            const chatUrl = `${baseUrl}/${org.domain}/chat/${chat.id}`;
+            const chatUrl = `${baseUrl}/chat/${chat.id}`;
 
             logger.debug(`Completed blocking agent for chat ${chat.id}`, { chatId: chat.id });
 

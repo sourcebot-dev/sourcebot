@@ -7,7 +7,6 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { joinOrganization } from "../invite/actions";
 import { isServiceError } from "@/lib/utils";
-import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 
 export function JoinOrganizationButton({ inviteLinkId }: { inviteLinkId?: string }) {
     const [isLoading, setIsLoading] = useState(false);
@@ -18,7 +17,7 @@ export function JoinOrganizationButton({ inviteLinkId }: { inviteLinkId?: string
         setIsLoading(true);
         
         try {
-            const result = await joinOrganization(SINGLE_TENANT_ORG_ID, inviteLinkId);
+            const result = await joinOrganization(inviteLinkId);
             
             if (isServiceError(result)) {
                 toast({

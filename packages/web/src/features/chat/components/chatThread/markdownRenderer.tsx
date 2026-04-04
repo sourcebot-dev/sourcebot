@@ -20,7 +20,6 @@ import { CodeBlock } from './codeBlock';
 import { LinearIssueCard } from './linearIssueCard';
 import { FILE_REFERENCE_REGEX } from '@/features/chat/constants';
 import { createFileReference } from '@/features/chat/utils';
-import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
 import isEqual from "fast-deep-equal/react";
 
 const LINEAR_ISSUE_URL_REGEX = /^https:\/\/linear\.app\/[^/]+\/issue\/([A-Z]+-\d+)\/([^/\s"]+)$/;
@@ -230,7 +229,7 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                const url = createPathWithQueryParams(`/${SINGLE_TENANT_ORG_DOMAIN}/search`, [SearchQueryParams.query, `"${text}"`])
+                                const url = createPathWithQueryParams(`/search`, [SearchQueryParams.query, `"${text}"`])
                                 router.push(url);
                             }}
                             title="Search for snippet"

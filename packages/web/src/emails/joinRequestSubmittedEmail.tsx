@@ -25,7 +25,6 @@ interface JoinRequestSubmittedEmailProps {
         avatarUrl?: string;
     },
     orgName: string;
-    orgDomain: string;
     orgImageUrl?: string;
 }
 
@@ -33,11 +32,10 @@ export const JoinRequestSubmittedEmail = ({
     baseUrl,
     requestor,
     orgName,
-    orgDomain,
     orgImageUrl,
 }: JoinRequestSubmittedEmailProps) => {
     const previewText = `${requestor.name ?? requestor.email} has requested to join ${orgName} on Sourcebot`;
-    const reviewLink = `${baseUrl}/${encodeURIComponent(orgDomain)}/settings/members`;
+    const reviewLink = `${baseUrl}/settings/members?tab=requests`;
 
     return (
         <Html>
@@ -133,7 +131,6 @@ JoinRequestSubmittedEmail.PreviewProps = {
         email: 'alan.turing@example.com',
     },
     orgName: 'Enigma',
-    orgDomain: '~',
 } satisfies JoinRequestSubmittedEmailProps;
 
 export default JoinRequestSubmittedEmail;

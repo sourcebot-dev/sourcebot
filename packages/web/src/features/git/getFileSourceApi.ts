@@ -1,5 +1,5 @@
 import { sew } from "@/middleware/sew";
-import { getBrowsePath } from '@/app/[domain]/browse/hooks/utils';
+import { getBrowsePath } from '@/app/(app)/browse/hooks/utils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { parseGitAttributes, resolveLanguageFromGitAttributes } from '@/lib/gitattributes';
 import { detectLanguageFromFilename } from '@/lib/languageDetection';

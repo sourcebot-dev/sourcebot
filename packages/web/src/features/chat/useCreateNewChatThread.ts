@@ -12,7 +12,6 @@ import { createPathWithQueryParams } from "@/lib/utils";
 import { SearchScope, SetChatStatePayload } from "./types";
 import { SET_CHAT_STATE_SESSION_STORAGE_KEY } from "./constants";
 import { useSessionStorage } from "usehooks-ts";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
 import type { IdentityProviderMetadata } from "@/lib/identityProviders";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 
@@ -52,7 +51,7 @@ export const useCreateNewChatThread = ({ isAuthenticated = false }: UseCreateNew
             selectedSearchScopes,
         });
 
-        const url = createPathWithQueryParams(`/${SINGLE_TENANT_ORG_DOMAIN}/chat/${response.id}`);
+        const url = createPathWithQueryParams(`/chat/${response.id}`);
 
         router.push(url);
     }, [router, toast, setChatState]);

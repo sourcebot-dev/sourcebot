@@ -4,12 +4,12 @@ import { getAuditService } from "@/ee/features/audit/factory";
 import { env, getSMTPConnectionURL } from "@sourcebot/shared";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 import { ErrorCode } from "@/lib/errorCodes";
-import { notFound, orgNotFound, ServiceError } from "@/lib/serviceError";
+import { notAuthenticated, notFound, orgNotFound, ServiceError } from "@/lib/serviceError";
 import { getOrgMetadata, isHttpError, isServiceError } from "@/lib/utils";
-import { prisma } from "@/prisma";
+import { __unsafePrisma } from "@/prisma";
 import { render } from "@react-email/components";
-import { generateApiKey, getTokenFromConfig, hashSecret } from "@sourcebot/shared";
-import { ApiKey, ConnectionSyncJobStatus, OrgRole, Prisma, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
+import { generateApiKey, getTokenFromConfig } from "@sourcebot/shared";
+import { ConnectionSyncJobStatus, OrgRole, Prisma, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/shared";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
@@ -19,15 +19,14 @@ import { StatusCodes } from "http-status-codes";
 import { cookies } from "next/headers";
 import { createTransport } from "nodemailer";
 import { Octokit } from "octokit";
-import { getOrgFromDomain } from "./data/org";
 import InviteUserEmail from "./emails/inviteUserEmail";
 import JoinRequestApprovedEmail from "./emails/joinRequestApprovedEmail";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
-import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
-import { ApiKeyPayload, RepositoryQuery } from "./lib/types";
-import { withAuth, withOptionalAuth, withAuth_skipOrgMembershipCheck } from "./middleware/withAuth";
+import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
+import { RepositoryQuery } from "./lib/types";
+import { getAuthenticatedUser, withAuth, withOptionalAuth } from "./middleware/withAuth";
 import { withMinimumOrgRole } from "./middleware/withMinimumOrgRole";
-import { getBrowsePath } from "./app/[domain]/browse/hooks/utils";
+import { getBrowsePath } from "./app/(app)/browse/hooks/utils";
 import { sew } from "@/middleware/sew";
 
 const logger = createLogger('web-actions');
@@ -47,59 +46,6 @@ export const completeOnboarding = async (): Promise<{ success: boolean } | Servi
             success: true,
         }
     }));
-
-export const verifyApiKey = async (apiKeyPayload: ApiKeyPayload): Promise<{ apiKey: ApiKey } | ServiceError> => sew(async () => {
-    const parts = apiKeyPayload.apiKey.split("-");
-    if (parts.length !== 2 || parts[0] !== "sourcebot") {
-        return {
-            statusCode: StatusCodes.BAD_REQUEST,
-            errorCode: ErrorCode.INVALID_API_KEY,
-            message: "Invalid API key",
-        } satisfies ServiceError;
-    }
-
-    const hash = hashSecret(parts[1])
-    const apiKey = await prisma.apiKey.findUnique({
-        where: {
-            hash,
-        },
-    });
-
-    if (!apiKey) {
-        return {
-            statusCode: StatusCodes.UNAUTHORIZED,
-            errorCode: ErrorCode.INVALID_API_KEY,
-            message: "Invalid API key",
-        } satisfies ServiceError;
-    }
-
-    const apiKeyTargetOrg = await prisma.org.findUnique({
-        where: {
-            domain: apiKeyPayload.domain,
-        },
-    });
-
-    if (!apiKeyTargetOrg) {
-        return {
-            statusCode: StatusCodes.UNAUTHORIZED,
-            errorCode: ErrorCode.INVALID_API_KEY,
-            message: `Invalid API key payload. Provided domain ${apiKeyPayload.domain} does not exist.`,
-        } satisfies ServiceError;
-    }
-
-    if (apiKey.orgId !== apiKeyTargetOrg.id) {
-        return {
-            statusCode: StatusCodes.UNAUTHORIZED,
-            errorCode: ErrorCode.INVALID_API_KEY,
-            message: `Invalid API key payload. Provided domain ${apiKeyPayload.domain} does not match the API key's org.`,
-        } satisfies ServiceError;
-    }
-
-    return {
-        apiKey,
-    }
-});
-
 
 export const createApiKey = async (name: string): Promise<{ key: string } | ServiceError> => sew(() =>
     withAuth(async ({ org, user, role, prisma }) => {
@@ -188,7 +134,7 @@ export const deleteApiKey = async (name: string): Promise<{ success: boolean } |
                     type: "user"
                 },
                 target: {
-                    id: org.domain,
+                    id: org.id.toString(),
                     type: "org"
                 },
                 orgId: org.id,
@@ -600,7 +546,7 @@ export const createInvites = async (emails: string[]): Promise<{ success: boolea
                 });
             }
 
-            const hasAvailability = await orgHasAvailability(org.domain);
+            const hasAvailability = await orgHasAvailability();
             if (!hasAvailability) {
                 await auditService.createAudit({
                     action: "user.invite_failed",
@@ -807,120 +753,8 @@ export const getMe = async () => sew(() =>
             memberships: userWithOrgs.orgs.map((org) => ({
                 id: org.orgId,
                 role: org.role,
-                domain: org.org.domain,
                 name: org.org.name,
             }))
-        }
-    }));
-
-export const redeemInvite = async (inviteId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth_skipOrgMembershipCheck(async ({ user, prisma }) => {
-        const invite = await prisma.invite.findUnique({
-            where: {
-                id: inviteId,
-            },
-            include: {
-                org: true,
-            }
-        });
-
-        if (!invite) {
-            return notFound();
-        }
-
-        const failAuditCallback = async (error: string) => {
-            await auditService.createAudit({
-                action: "user.invite_accept_failed",
-                actor: {
-                    id: user.id,
-                    type: "user"
-                },
-                target: {
-                    id: inviteId,
-                    type: "invite"
-                },
-                orgId: invite.org.id,
-                metadata: {
-                    message: error
-                }
-            });
-        }
-
-
-        const hasAvailability = await orgHasAvailability(invite.org.domain);
-        if (!hasAvailability) {
-            await failAuditCallback("Organization is at max capacity");
-            return {
-                statusCode: StatusCodes.BAD_REQUEST,
-                errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
-                message: "Organization is at max capacity",
-            } satisfies ServiceError;
-        }
-
-        // Check if the user is the recipient of the invite
-        if (user.email !== invite.recipientEmail) {
-            await failAuditCallback("User is not the recipient of the invite");
-            return notFound();
-        }
-
-        const addUserToOrgRes = await addUserToOrganization(user.id, invite.orgId);
-        if (isServiceError(addUserToOrgRes)) {
-            await failAuditCallback(addUserToOrgRes.message);
-            return addUserToOrgRes;
-        }
-
-        await auditService.createAudit({
-            action: "user.invite_accepted",
-            actor: {
-                id: user.id,
-                type: "user"
-            },
-            orgId: invite.org.id,
-            target: {
-                id: inviteId,
-                type: "invite"
-            }
-        });
-
-        return {
-            success: true,
-        }
-    }));
-
-export const getInviteInfo = async (inviteId: string) => sew(() =>
-    withAuth_skipOrgMembershipCheck(async ({ user, prisma }) => {
-        const invite = await prisma.invite.findUnique({
-            where: {
-                id: inviteId,
-            },
-            include: {
-                org: true,
-                host: true,
-            }
-        });
-
-        if (!invite) {
-            return notFound();
-        }
-
-        if (invite.recipientEmail !== user.email) {
-            return notFound();
-        }
-
-        return {
-            id: invite.id,
-            orgName: invite.org.name,
-            orgImageUrl: invite.org.imageUrl ?? undefined,
-            orgDomain: invite.org.domain,
-            host: {
-                name: invite.host.name ?? undefined,
-                email: invite.host.email!,
-                avatarUrl: invite.host.image ?? undefined,
-            },
-            recipient: {
-                name: user.name ?? undefined,
-                email: user.email!,
-            }
         }
     }));
 
@@ -983,20 +817,17 @@ export const getOrgAccountRequests = async () => sew(() =>
         }));
     }));
 
-export const createAccountRequest = async (userId: string, domain: string) => sew(async () => {
-    const user = await prisma.user.findUnique({
-        where: {
-            id: userId,
-        },
-    });
-
-    if (!user) {
-        return notFound("User not found");
+export const createAccountRequest = async () => sew(async () => {
+    const authResult = await getAuthenticatedUser();
+    if (!authResult) {
+        return notAuthenticated();
     }
 
-    const org = await prisma.org.findUnique({
+    const { user } = authResult;
+
+    const org = await __unsafePrisma.org.findUnique({
         where: {
-            domain,
+            id: SINGLE_TENANT_ORG_ID,
         },
     });
 
@@ -1004,17 +835,17 @@ export const createAccountRequest = async (userId: string, domain: string) => se
         return notFound("Organization not found");
     }
 
-    const existingRequest = await prisma.accountRequest.findUnique({
+    const existingRequest = await __unsafePrisma.accountRequest.findUnique({
         where: {
             requestedById_orgId: {
-                requestedById: userId,
+                requestedById: user.id,
                 orgId: org.id,
             },
         },
     });
 
     if (existingRequest) {
-        logger.warn(`User ${userId} already has an account request for org ${org.id}. Skipping account request creation.`);
+        logger.warn(`User ${user.id} already has an account request for org ${org.id}. Skipping account request creation.`);
         return {
             success: true,
             existingRequest: true,
@@ -1022,9 +853,9 @@ export const createAccountRequest = async (userId: string, domain: string) => se
     }
 
     if (!existingRequest) {
-        await prisma.accountRequest.create({
+        await __unsafePrisma.accountRequest.create({
             data: {
-                requestedById: userId,
+                requestedById: user.id,
                 orgId: org.id,
             },
         });
@@ -1035,7 +866,7 @@ export const createAccountRequest = async (userId: string, domain: string) => se
             // on user creation (the header isn't set when next-auth calls onCreateUser for some reason)
             const deploymentUrl = env.AUTH_URL;
 
-            const owner = await prisma.user.findFirst({
+            const owners = await __unsafePrisma.user.findMany({
                 where: {
                     orgs: {
                         some: {
@@ -1046,8 +877,8 @@ export const createAccountRequest = async (userId: string, domain: string) => se
                 },
             });
 
-            if (!owner) {
-                logger.error(`Failed to find owner for org ${org.id} when drafting email for account request from ${userId}`);
+            if (owners.length === 0) {
+                logger.error(`Failed to find any owners for org ${org.id} when drafting email for account request from ${user.id}`);
             } else {
                 const html = await render(JoinRequestSubmittedEmail({
                     baseUrl: deploymentUrl,
@@ -1057,13 +888,16 @@ export const createAccountRequest = async (userId: string, domain: string) => se
                         avatarUrl: user.image ?? undefined,
                     },
                     orgName: org.name,
-                    orgDomain: org.domain,
                     orgImageUrl: org.imageUrl ?? undefined,
                 }));
 
+                const ownerEmails = owners
+                    .map((owner) => owner.email)
+                    .filter((email): email is string => email !== null);
+
                 const transport = createTransport(smtpConnectionUrl);
                 const result = await transport.sendMail({
-                    to: owner.email!,
+                    to: ownerEmails,
                     from: env.EMAIL_FROM_ADDRESS,
                     subject: `New account request for ${org.name} on Sourcebot`,
                     html,
@@ -1072,7 +906,7 @@ export const createAccountRequest = async (userId: string, domain: string) => se
 
                 const failed = result.rejected.concat(result.pending).filter(Boolean);
                 if (failed.length > 0) {
-                    logger.error(`Failed to send account request email to ${owner.email}: ${failed}`);
+                    logger.error(`Failed to send account request email to ${ownerEmails.join(', ')}: ${failed}`);
                 }
             }
         } else {
@@ -1086,10 +920,10 @@ export const createAccountRequest = async (userId: string, domain: string) => se
     }
 });
 
-export const getMemberApprovalRequired = async (domain: string): Promise<boolean | ServiceError> => sew(async () => {
-    const org = await prisma.org.findUnique({
+export const getMemberApprovalRequired = async (): Promise<boolean | ServiceError> => sew(async () => {
+    const org = await __unsafePrisma.org.findUnique({
         where: {
-            domain,
+            id: SINGLE_TENANT_ORG_ID,
         },
     });
 
@@ -1182,7 +1016,6 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
                         avatarUrl: request.requestedBy.image ?? undefined,
                     },
                     orgName: org.name,
-                    orgDomain: org.domain
                 }));
 
                 const transport = createTransport(smtpConnectionUrl);
@@ -1191,7 +1024,7 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
                     from: env.EMAIL_FROM_ADDRESS,
                     subject: `Your request to join ${org.name} has been approved`,
                     html,
-                    text: `Your request to join ${org.name} on Sourcebot has been approved. You can now access the organization at ${env.AUTH_URL}/${org.domain}`,
+                    text: `Your request to join ${org.name} on Sourcebot has been approved. You can now access the organization at ${env.AUTH_URL}`,
                 });
 
                 const failed = result.rejected.concat(result.pending).filter(Boolean);
@@ -1334,8 +1167,10 @@ export const getRepoImage = async (repoId: number): Promise<ArrayBuffer | Servic
     })
 });
 
-export const getAnonymousAccessStatus = async (domain: string): Promise<boolean | ServiceError> => sew(async () => {
-    const org = await getOrgFromDomain(domain);
+export const getAnonymousAccessStatus = async (): Promise<boolean | ServiceError> => sew(async () => {
+    const org = await __unsafePrisma.org.findUnique({
+        where: { id: SINGLE_TENANT_ORG_ID },
+    });
     if (!org) {
         return {
             statusCode: StatusCodes.NOT_FOUND,

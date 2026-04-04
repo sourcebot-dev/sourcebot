@@ -1,5 +1,5 @@
 import type { User as AuthJsUser } from "next-auth";
-import { prisma } from "@/prisma";
+import { __unsafePrisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_EMAIL, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { getPlan, getSeats, hasEntitlement, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
@@ -9,7 +9,6 @@ import { createLogger } from "@sourcebot/shared";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
-import { getOrgFromDomain } from "@/data/org";
 
 const logger = createLogger('web-auth-utils');
 const auditService = getAuditService();
@@ -35,7 +34,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
         throw new Error("User ID is undefined on user creation");
     }
 
-    const defaultOrg = await prisma.org.findUnique({
+    const defaultOrg = await __unsafePrisma.org.findUnique({
         where: {
             id: SINGLE_TENANT_ORG_ID,
         },
@@ -73,7 +72,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
     // If this is the first user to sign up, we make them the owner of the default org.
     const isFirstUser = defaultOrg.members.length === 0;
     if (isFirstUser) {
-        await prisma.$transaction(async (tx) => {
+        await __unsafePrisma.$transaction(async (tx) => {
             await tx.org.update({
                 where: {
                     id: SINGLE_TENANT_ORG_ID,
@@ -106,13 +105,13 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
             }
         });
     } else if (!defaultOrg.memberApprovalRequired) {
-        const hasAvailability = await orgHasAvailability(defaultOrg.domain);
+        const hasAvailability = await orgHasAvailability();
         if (!hasAvailability) {
             logger.warn(`onCreateUser: org ${SINGLE_TENANT_ORG_ID} has reached max capacity. User ${user.id} was not added to the org.`);
             return;
         }
 
-        await prisma.userToOrg.create({
+        await __unsafePrisma.userToOrg.create({
             data: {
                 userId: user.id,
                 orgId: SINGLE_TENANT_ORG_ID,
@@ -128,7 +127,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
 };
 
 
-export const createGuestUser = async (domain: string): Promise<ServiceError | boolean> => {
+export const createGuestUser = async (): Promise<ServiceError | boolean> => {
     const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
     if (!hasAnonymousAccessEntitlement) {
         console.error(`Anonymous access isn't supported in your current plan: ${getPlan()}. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
@@ -139,7 +138,9 @@ export const createGuestUser = async (domain: string): Promise<ServiceError | bo
         } satisfies ServiceError;
     }
 
-    const org = await getOrgFromDomain(domain);
+    const org = await __unsafePrisma.org.findUnique({
+        where: { id: SINGLE_TENANT_ORG_ID },
+    });
     if (!org) {
         return {
             statusCode: StatusCodes.NOT_FOUND,
@@ -148,7 +149,7 @@ export const createGuestUser = async (domain: string): Promise<ServiceError | bo
         } satisfies ServiceError;
     }
 
-    const user = await prisma.user.upsert({
+    const user = await __unsafePrisma.user.upsert({
         where: {
             id: SOURCEBOT_GUEST_USER_ID,
         },
@@ -160,7 +161,7 @@ export const createGuestUser = async (domain: string): Promise<ServiceError | bo
         },
     });
 
-    await prisma.org.update({
+    await __unsafePrisma.org.update({
         where: {
             id: org.id,
         },
@@ -188,18 +189,18 @@ export const createGuestUser = async (domain: string): Promise<ServiceError | bo
     return true;
 };
 
-export const orgHasAvailability = async (domain: string): Promise<boolean> => {
-    const org = await prisma.org.findUnique({
+export const orgHasAvailability = async (): Promise<boolean> => {
+    const org = await __unsafePrisma.org.findUnique({
         where: {
-            domain,
+            id: SINGLE_TENANT_ORG_ID,
         },
     });
 
     if (!org) {
-        logger.error(`orgHasAvailability: org not found for domain ${domain}`);
+        logger.error(`orgHasAvailability: org not found for id ${SINGLE_TENANT_ORG_ID}`);
         return false;
     }
-    const members = await prisma.userToOrg.findMany({
+    const members = await __unsafePrisma.userToOrg.findMany({
         where: {
             orgId: org.id,
             role: {
@@ -220,7 +221,7 @@ export const orgHasAvailability = async (domain: string): Promise<boolean> => {
 }
 
 export const addUserToOrganization = async (userId: string, orgId: number): Promise<{ success: boolean } | ServiceError> => {
-    const user = await prisma.user.findUnique({
+    const user = await __unsafePrisma.user.findUnique({
         where: {
             id: userId,
         },
@@ -231,7 +232,7 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
         return userNotFound();
     }
 
-    const org = await prisma.org.findUnique({
+    const org = await __unsafePrisma.org.findUnique({
         where: {
             id: orgId,
         },
@@ -242,7 +243,7 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
         return orgNotFound();
     }
 
-    const hasAvailability = await orgHasAvailability(org.domain);
+    const hasAvailability = await orgHasAvailability();
     if (!hasAvailability) {
         return {
             statusCode: StatusCodes.BAD_REQUEST,
@@ -251,7 +252,7 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
         } satisfies ServiceError;
     }
 
-    const res = await prisma.$transaction(async (tx) => {
+    const res = await __unsafePrisma.$transaction(async (tx) => {
         await tx.userToOrg.create({
             data: {
                 userId: user.id,

@@ -1,4 +1,4 @@
-import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_NAME } from '@/lib/constants';
+import { SINGLE_TENANT_ORG_ID, SINGLE_TENANT_ORG_NAME } from '@/lib/constants';
 import { Account, ApiKey, OAuthRefreshToken, OAuthToken, Org, PrismaClient, User } from '@prisma/client';
 import { beforeEach, vi } from 'vitest';
 import { mockDeep, mockReset } from 'vitest-mock-extended';
@@ -8,11 +8,11 @@ beforeEach(() => {
 });
 
 export const prisma = mockDeep<PrismaClient>();
+export const __unsafePrisma = prisma;
 
 export const MOCK_ORG: Org = {
     id: SINGLE_TENANT_ORG_ID,
     name: SINGLE_TENANT_ORG_NAME,
-    domain: SINGLE_TENANT_ORG_DOMAIN,
     createdAt: new Date(),
     updatedAt: new Date(),
     isOnboarded: true,

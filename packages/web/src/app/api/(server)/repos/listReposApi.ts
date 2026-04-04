@@ -2,7 +2,7 @@ import { sew } from "@/middleware/sew";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { ListReposQueryParams, RepositoryQuery } from "@/lib/types";
 import { withOptionalAuth } from "@/middleware/withAuth";
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 import { env } from "@sourcebot/shared";
 import { headers } from "next/headers";
 

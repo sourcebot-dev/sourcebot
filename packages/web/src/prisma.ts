@@ -11,11 +11,7 @@ const dbConnectionString = getDBConnectionString();
 // @NOTE: In almost all cases, the userScopedPrismaClientExtension should be used
 // (since actions & queries are scoped to a particular user). There are some exceptions
 // (e.g., in initialize.ts).
-//
-// @todo: we can mark this as `__unsafePrisma` in the future once we've migrated
-// all of the actions & queries to use the userScopedPrismaClientExtension to avoid
-// accidental misuse.
-export const prisma = globalForPrisma.prisma || new PrismaClient({
+export const __unsafePrisma = globalForPrisma.prisma || new PrismaClient({
     // @note: this code is evaluated at build time, and will throw exceptions if these env vars are not set.
     // Here we explicitly check if the DATABASE_URL or the individual database variables are set, and only
     ...(dbConnectionString !== undefined ? {
@@ -26,7 +22,7 @@ export const prisma = globalForPrisma.prisma || new PrismaClient({
         }
     } : {}),
 })
-if (env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
+if (env.NODE_ENV !== "production") globalForPrisma.prisma = __unsafePrisma
 
 /**
  * Creates a prisma client extension that scopes queries to striclty information

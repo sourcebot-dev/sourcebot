@@ -18,7 +18,7 @@ import path from 'path';
 import { isBranchQuery, QueryIR, someInQueryIR } from './ir';
 import { RepositoryInfo, SearchResponse, SearchResultFile, SearchStats, SourceRange, StreamedSearchErrorResponse, StreamedSearchResponse } from "./types";
 import { captureEvent } from "@/lib/posthog";
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 
 const logger = createLogger("zoekt-searcher");
 

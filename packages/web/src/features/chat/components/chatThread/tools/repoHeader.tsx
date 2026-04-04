@@ -1,6 +1,6 @@
 'use client';
 
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
+import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 import { cn, getCodeHostIcon } from "@/lib/utils";
 import { CodeHostType } from "@sourcebot/db";
 import Image from "next/image";

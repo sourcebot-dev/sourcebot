@@ -2,7 +2,7 @@ import 'next-auth/jwt';
 import NextAuth, { DefaultSession, User as AuthJsUser } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/nodemailer";
-import { prisma } from "@/prisma";
+import { __unsafePrisma } from "@/prisma";
 import { env, getSMTPConnectionURL } from "@sourcebot/shared";
 import { User } from '@sourcebot/db';
 import 'next-auth/jwt';
@@ -96,14 +96,14 @@ export const getProviders = () => {
                     }
                     const { email, password } = body.data;
 
-                    const user = await prisma.user.findUnique({
+                    const user = await __unsafePrisma.user.findUnique({
                         where: { email }
                     });
 
                     // The user doesn't exist, so create a new one.
                     if (!user) {
                         const hashedPassword = bcrypt.hashSync(password, 10);
-                        const newUser = await prisma.user.create({
+                        const newUser = await __unsafePrisma.user.create({
                             data: {
                                 email,
                                 hashedPassword,
@@ -145,7 +145,7 @@ export const getProviders = () => {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     secret: env.AUTH_SECRET,
-    adapter: EncryptedPrismaAdapter(prisma),
+    adapter: EncryptedPrismaAdapter(__unsafePrisma),
     session: {
         strategy: "jwt",
     },
@@ -165,7 +165,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             ) {
                 const issuerUrl = await getIssuerUrlForAccount(account);
 
-                await prisma.account.update({
+                await __unsafePrisma.account.update({
                     where: {
                         provider_providerAccountId: {
                             provider: account.provider,
@@ -234,7 +234,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             //
             // @see https://github.com/sourcebot-dev/sourcebot/pull/993
             if (token.userId) {
-                const accountsWithoutIssuerUrl = await prisma.account.findMany({
+                const accountsWithoutIssuerUrl = await __unsafePrisma.account.findMany({
                     where: {
                         userId: token.userId,
                         issuerUrl: null,
@@ -244,7 +244,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 for (const account of accountsWithoutIssuerUrl) {
                     const issuerUrl = await getIssuerUrlForAccount(account);
                     if (issuerUrl) {
-                        await prisma.account.update({
+                        await __unsafePrisma.account.update({
                             where: {
                                 id: account.id,
                             },

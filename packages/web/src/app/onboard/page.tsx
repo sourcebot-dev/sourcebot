@@ -9,16 +9,15 @@ import { auth } from "@/auth";
 import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 import { OrganizationAccessSettings } from "@/app/components/organizationAccessSettings";
 import { CompleteOnboardingButton } from "./components/completeOnboardingButton";
-import { getOrgFromDomain } from "@/data/org";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
-import { prisma } from "@/prisma";
+import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
+import { __unsafePrisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { redirect } from "next/navigation";
 import { BetweenHorizontalStart, Brain, GitBranchIcon, LockIcon } from "lucide-react";
 import { hasEntitlement } from "@sourcebot/shared";
 import { env } from "@sourcebot/shared";
-import { GcpIapAuth } from "@/app/[domain]/components/gcpIapAuth";
+import { GcpIapAuth } from "@/app/(app)/components/gcpIapAuth";
 
 interface OnboardingProps {
     searchParams?: Promise<{ step?: string }>;
@@ -42,7 +41,7 @@ interface ResourceCard {
 export default async function Onboarding(props: OnboardingProps) {
     const searchParams = await props.searchParams;
     const providers = getIdentityProviderMetadata();
-    const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+    const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
     const session = await auth();
 
     if (!org) {
@@ -56,7 +55,7 @@ export default async function Onboarding(props: OnboardingProps) {
     // Check if user is authenticated but not the owner
     if (session?.user) {
         if (org) {
-            const membership = await prisma.userToOrg.findUnique({
+            const membership = await __unsafePrisma.userToOrg.findUnique({
                 where: {
                     orgId_userId: {
                         orgId: org.id,

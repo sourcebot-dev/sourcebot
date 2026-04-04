@@ -1,6 +1,6 @@
 import { apiHandler } from '@/lib/apiHandler';
 import { requestBodySchemaValidationError, serviceErrorResponse } from '@/lib/serviceError';
-import { prisma } from '@/prisma';
+import { __unsafePrisma } from '@/prisma';
 import { hasEntitlement } from '@sourcebot/shared';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
@@ -39,7 +39,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
         );
     }
 
-    const client = await prisma.oAuthClient.create({
+    const client = await __unsafePrisma.oAuthClient.create({
         data: {
             name: client_name,
             logoUri: logo_uri ?? null,
