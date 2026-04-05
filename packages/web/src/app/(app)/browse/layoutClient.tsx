@@ -23,7 +23,7 @@ export function LayoutClient({
     const { repoName, revisionName } = useBrowseParams();
     return (
         <BrowseStateProvider>
-            <div className="flex flex-col h-screen">
+            <div className="flex flex-col h-full">
                 <div className='sticky top-0 left-0 right-0 z-10'>
                     <div className="py-1.5 px-3">
                         <SearchBar

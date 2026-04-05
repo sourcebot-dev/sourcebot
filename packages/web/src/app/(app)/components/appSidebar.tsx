@@ -26,12 +26,14 @@ import {
     SidebarMenuAction,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarRail,
+    useSidebar,
 } from "@/components/ui/sidebar";
 import { UserAvatar } from "@/components/userAvatar";
 import { deleteChat, duplicateChat, updateChatName } from "@/features/chat/actions";
 import { captureEvent } from "@/hooks/useCaptureEvent";
 import { cn, isServiceError } from "@/lib/utils";
-import { BookMarkedIcon, ChevronsUpDown, EllipsisIcon, LogOut, MessageCircleIcon, MessagesSquareIcon, SearchIcon, SettingsIcon } from "lucide-react";
+import { ArrowLeftToLineIcon, ArrowRightToLineIcon, BookMarkedIcon, ChevronsUpDown, EllipsisIcon, LogOut, MessageCircleIcon, MessagesSquareIcon, SearchIcon, SettingsIcon } from "lucide-react";
 import { Session } from "next-auth";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
@@ -232,15 +234,37 @@ export function AppSidebar({ session, chatHistory }: AppSidebarProps) {
                     currentName={chatHistory.find((chat) => chat.id === chatIdToDuplicate)?.name ?? "Untitled chat"}
                 />
             </SidebarContent>
-            <SidebarFooter>
+            <SidebarFooter className="border-t border-sidebar-border">
+                <CollapseSidebarButton />
                 {session && (
                     <MeControlDropdownMenu session={session} />
                 )}
             </SidebarFooter>
+            <SidebarRail />
         </Sidebar>
     );
 }
 
+
+function CollapseSidebarButton() {
+    const { toggleSidebar, state } = useSidebar();
+    return (
+        <SidebarMenu>
+            <SidebarMenuItem>
+                <SidebarMenuButton onClick={toggleSidebar}>
+                    {state === "expanded" ? (
+                        <>
+                            <ArrowLeftToLineIcon />
+                            <span>Collapse sidebar</span>
+                        </>
+                    ) : (
+                        <ArrowRightToLineIcon />
+                    )}
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+        </SidebarMenu>
+    );
+}
 
 interface MeControlDropdownMenuProps {
     session: Session;
