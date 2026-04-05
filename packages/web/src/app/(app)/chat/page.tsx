@@ -1,29 +1,23 @@
 import { getRepos, getReposStats, getSearchContexts } from "@/actions";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
-import { getUserChatHistory } from "@/features/chat/actions";
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError, measure } from "@/lib/utils";
 import { LandingPageChatBox } from "./components/landingPageChatBox";
 import { RepositoryCarousel } from "../components/repositoryCarousel";
-import { NavigationMenu } from "../components/navigationMenu";
 import { Separator } from "@/components/ui/separator";
 import { DemoCards } from "./components/demoCards";
 import { env } from "@sourcebot/shared";
 import { loadJsonFile } from "@sourcebot/shared";
 import { DemoExamples, demoExamplesSchema } from "@/types";
 import { auth } from "@/auth";
-import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { ChatSidePanel } from "./components/chatSidePanel";
-import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
 
 export default async function Page() {
     const languageModels = await getConfiguredLanguageModelsInfo();
     const searchContexts = await getSearchContexts();
     const allRepos = await getRepos();
     const session = await auth();
-    const chatHistory = session ? await getUserChatHistory() : [];
 
     const carouselRepos = await getRepos({
         where: {
@@ -52,10 +46,6 @@ export default async function Page() {
         throw new ServiceErrorException(repoStats);
     }
 
-    if (isServiceError(chatHistory)) {
-        throw new ServiceErrorException(chatHistory);
-    }
-
     const demoExamples = env.SOURCEBOT_DEMO_EXAMPLES_PATH ? await (async () => {
         try {
             return (await measure(() => loadJsonFile<DemoExamples>(env.SOURCEBOT_DEMO_EXAMPLES_PATH!, demoExamplesSchema), 'loadExamplesJsonFile')).data;
@@ -66,25 +56,7 @@ export default async function Page() {
     })() : undefined;
 
     return (
-        <div className="flex flex-col items-center h-screen overflow-hidden">
-            <NavigationMenu />
-            <ResizablePanelGroup
-                direction="horizontal"
-                className="flex-1"
-            >
-                <ChatSidePanel
-                    order={1}
-                    chatHistory={chatHistory}
-                    isAuthenticated={!!session}
-                    isCollapsedInitially={true}
-                />
-                <AnimatedResizableHandle />
-                <ResizablePanel
-                    order={2}
-                    id="chat-home-panel"
-                    defaultSize={85}
-                    className="overflow-hidden"
-                >
+        <div className="flex flex-col items-center h-full overflow-hidden">
                 <div className="flex flex-col items-center h-full overflow-y-auto pt-8 pb-8 md:pt-16 w-full px-5">
                     <div className="max-h-44 w-auto">
                         <SourcebotLogo
@@ -119,8 +91,6 @@ export default async function Page() {
                         </>
                     )}
                 </div>
-                </ResizablePanel>
-            </ResizablePanelGroup>
         </div>
     )
 }

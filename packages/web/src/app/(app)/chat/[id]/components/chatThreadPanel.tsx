@@ -1,6 +1,5 @@
 'use client';
 
-import { ResizablePanel } from '@/components/ui/resizable';
 import { ChatThread } from '@/features/chat/components/chatThread';
 import { LanguageModelInfo, SBChatMessage, SearchScope, SetChatStatePayload } from '@/features/chat/types';
 import { SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY, SET_CHAT_STATE_SESSION_STORAGE_KEY } from '@/features/chat/constants';
@@ -14,7 +13,6 @@ interface ChatThreadPanelProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
-    order: number;
     messages: SBChatMessage[];
     isOwner: boolean;
     isAuthenticated: boolean;
@@ -25,7 +23,6 @@ export const ChatThreadPanel = ({
     languageModels,
     repos,
     searchContexts,
-    order,
     messages,
     isOwner,
     isAuthenticated,
@@ -65,26 +62,20 @@ export const ChatThreadPanel = ({
     }, [chatState, setChatState]);
 
     return (
-        <ResizablePanel
-            order={order}
-            id="chat-thread-panel"
-            defaultSize={85}
-        >
-            <div className="flex flex-col h-full w-full">
-                <ChatThread
-                    id={chatId}
-                    initialMessages={messages}
-                    inputMessage={inputMessage}
-                    languageModels={languageModels}
-                    repos={repos}
-                    searchContexts={searchContexts}
-                    selectedSearchScopes={selectedSearchScopes}
-                    onSelectedSearchScopesChange={setSelectedSearchScopes}
-                    isOwner={isOwner}
-                    isAuthenticated={isAuthenticated}
-                    chatName={chatName}
-                />
-            </div>
-        </ResizablePanel>
+        <div className="flex flex-col h-full w-full">
+            <ChatThread
+                id={chatId}
+                initialMessages={messages}
+                inputMessage={inputMessage}
+                languageModels={languageModels}
+                repos={repos}
+                searchContexts={searchContexts}
+                selectedSearchScopes={selectedSearchScopes}
+                onSelectedSearchScopesChange={setSelectedSearchScopes}
+                isOwner={isOwner}
+                isAuthenticated={isAuthenticated}
+                chatName={chatName}
+            />
+        </div>
     )
 }

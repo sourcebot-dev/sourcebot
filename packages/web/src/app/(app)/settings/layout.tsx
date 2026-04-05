@@ -1,7 +1,6 @@
 import React from "react"
 import { Metadata } from "next"
 import { SidebarNav } from "./components/sidebar-nav"
-import { NavigationMenu } from "../components/navigationMenu"
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { isServiceError } from "@/lib/utils";
@@ -37,9 +36,8 @@ export default async function SettingsLayout(
     }
 
     return (
-        <div className="min-h-screen flex flex-col">
-            <NavigationMenu />
-            <main className="flex-grow flex justify-center p-4 bg-backgroundSecondary relative">
+        <div>
+            <main className="flex justify-center p-4">
                 <div className="w-full max-w-6xl rounded-lg p-6">
                     <div className="container mx-auto">
                         <div className="mb-16">

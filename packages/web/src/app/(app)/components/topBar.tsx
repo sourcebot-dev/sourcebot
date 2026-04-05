@@ -33,7 +33,7 @@ export const TopBar = ({
 
     return (
         <div className='sticky top-0 left-0 right-0 z-10'>
-            <div className="flex flex-row justify-between items-center py-1.5 px-3 gap-4 bg-background">
+            <div className="flex flex-row justify-between items-center py-1.5 px-3 gap-4">
                 <div className="flex-1 flex flex-row gap-4 items-center">
                     <Link
                         href={homePath}

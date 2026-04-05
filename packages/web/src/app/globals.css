@@ -53,6 +53,7 @@
     --sidebar-border: hsl(220 13% 91%);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
     --link: hsl(217, 91%, 60%);
+    --shell: hsl(253, 23%, 92%);
 
     --editor-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
     --editor-font-size: 13px;
@@ -113,7 +114,7 @@
   }
 
   .dark {
-    --background: hsl(222.2 84% 4.9%);
+    --background: hsl(0, 0%, 6%);
     --background-secondary: hsl(222.2 84% 4.9%);
     --foreground: hsl(210 40% 98%);
     --card: hsl(222.2 84% 4.9%);
@@ -140,7 +141,7 @@
     --chart-4: hsl(280 65% 60%);
     --chart-5: hsl(340 75% 55%);
     --highlight: hsl(217 91% 60%);
-    --sidebar-background: hsl(240 5.9% 10%);
+    --sidebar-background: hsl(0, 0%, 3%);
     --sidebar-foreground: hsl(240 4.8% 95.9%);
     --sidebar-primary: hsl(224.3 76.3% 48%);
     --sidebar-primary-foreground: hsl(0 0% 100%);
@@ -149,6 +150,7 @@
     --sidebar-border: hsl(240 3.7% 15.9%);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
     --link: hsl(217, 91%, 60%);
+    --shell: hsl(0, 0%, 3%);
 
     --editor-background: var(--background);
     --editor-foreground: #abb2bf;

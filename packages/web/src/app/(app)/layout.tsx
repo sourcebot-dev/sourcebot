@@ -31,6 +31,9 @@ import { PermissionSyncBanner } from "./components/permissionSyncBanner";
 import { getPermissionSyncStatus } from "../api/(server)/ee/permissionSyncStatus/api";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { ConnectAccountsCard } from "@/ee/features/sso/components/connectAccountsCard";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "./components/appSidebar";
+import { getUserChatHistory } from "@/features/chat/actions";
 
 interface LayoutProps {
     children: React.ReactNode,
@@ -163,6 +166,11 @@ export default async function Layout(props: LayoutProps) {
     const isPermissionSyncBannerVisible = session && hasEntitlement("permission-syncing");
     const hasPendingFirstSync = isPermissionSyncBannerVisible ? (await getPermissionSyncStatus()) : null;
 
+    const chatHistory = session ? await getUserChatHistory() : [];
+    if (isServiceError(chatHistory)) {
+        throw new ServiceErrorException(chatHistory);
+    }
+
     return (
         <SyntaxGuideProvider>
             {
@@ -175,7 +183,18 @@ export default async function Layout(props: LayoutProps) {
                     />
                 ) : null
             }
-            {children}
+            <div className="fixed inset-0 flex bg-shell">
+                <SidebarProvider defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}>
+                    <AppSidebar session={session} chatHistory={chatHistory} />
+                    <div className="flex-1 min-h-0 flex flex-col pt-2 pb-2 pr-2">
+                        <div className="flex-1 min-h-0 bg-background flex flex-col border border-[#1d1d1f] rounded-xl">
+                            <div className="flex-1 min-h-0 overflow-y-auto">
+                                {children}
+                            </div>
+                        </div>
+                    </div>
+                </SidebarProvider>
+            </div>
             <SyntaxReferenceGuide />
             <GitHubStarToast />
             {env.EXPERIMENT_ASK_GH_ENABLED !== 'true' && <UpgradeToast />}

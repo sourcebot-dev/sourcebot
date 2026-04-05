@@ -1,5 +1,5 @@
 import { getRepos, getSearchContexts } from '@/actions';
-import { getUserChatHistory, getChatInfo, claimAnonymousChats, getSharedWithUsersForChat } from '@/features/chat/actions';
+import { getChatInfo, claimAnonymousChats, getSharedWithUsersForChat } from '@/features/chat/actions';
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { ServiceErrorException } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
@@ -10,9 +10,6 @@ import { TopBar } from '../../components/topBar';
 import { ChatName } from '../components/chatName';
 import { ShareChatPopover } from '../components/shareChatPopover';
 import { auth } from '@/auth';
-import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle';
-import { ChatSidePanel } from '../components/chatSidePanel';
-import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { __unsafePrisma } from '@/prisma';
 import { ChatVisibility } from '@sourcebot/db';
 import { Metadata } from 'next';
@@ -96,12 +93,6 @@ export default async function Page(props: PageProps) {
     const repos = await getRepos();
     const searchContexts = await getSearchContexts();
     const chatInfo = await getChatInfo({ chatId: params.id });
-    const chatHistory = session ? await getUserChatHistory() : [];
-
-    if (isServiceError(chatHistory)) {
-        throw new ServiceErrorException(chatHistory);
-    }
-
     if (isServiceError(repos)) {
         throw new ServiceErrorException(repos);
     }
@@ -142,7 +133,7 @@ export default async function Page(props: PageProps) {
     const hasChatSharingEntitlement = hasEntitlement('chat-sharing');
 
     return (
-        <div className="flex flex-col h-screen w-screen">
+        <div className="flex flex-col h-full">
             <TopBar
                 homePath="/chat"
                 session={session}
@@ -167,27 +158,15 @@ export default async function Page(props: PageProps) {
                     />
                 ) : undefined}
             />
-            <ResizablePanelGroup
-                direction="horizontal"
-            >
-                <ChatSidePanel
-                    order={1}
-                    chatHistory={chatHistory}
-                    isAuthenticated={!!session}
-                    isCollapsedInitially={true}
-                />
-                <AnimatedResizableHandle />
-                <ChatThreadPanel
-                    languageModels={languageModels}
-                    repos={indexedRepos}
-                    searchContexts={searchContexts}
-                    messages={messages}
-                    order={2}
-                    isOwner={isOwner}
-                    isAuthenticated={!!session}
-                    chatName={name ?? undefined}
-                />
-            </ResizablePanelGroup>
+            <ChatThreadPanel
+                languageModels={languageModels}
+                repos={indexedRepos}
+                searchContexts={searchContexts}
+                messages={messages}
+                isOwner={isOwner}
+                isAuthenticated={!!session}
+                chatName={name ?? undefined}
+            />
         </div>
     )
 }

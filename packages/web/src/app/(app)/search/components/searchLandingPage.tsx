@@ -1,5 +1,4 @@
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
-import { NavigationMenu } from "../../components/navigationMenu"
 import { RepositoryCarousel } from "../../components/repositoryCarousel"
 import { Separator } from "@/components/ui/separator"
 import { SyntaxReferenceGuideHint } from "../../components/syntaxReferenceGuideHint"
@@ -32,9 +31,7 @@ export const SearchLandingPage = async ({
     if (isServiceError(repoStats)) throw new ServiceErrorException(repoStats);
 
     return (
-        <div className="flex flex-col items-center overflow-hidden min-h-screen">
-            <NavigationMenu />
-
+        <div className="flex flex-col items-center overflow-hidden">
             <div className="flex flex-col justify-center items-center mt-8 mb-8 md:mt-16 w-full px-5">
                 <div className="max-h-44 w-auto">
                     <SourcebotLogo

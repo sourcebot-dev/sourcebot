@@ -5,6 +5,5 @@ interface Props {
 }
 
 export default async function Home(props: Props) {
-    // Default to rendering the search page.
     return <SearchPage {...props} />;
 }

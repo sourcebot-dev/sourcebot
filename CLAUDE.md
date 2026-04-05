@@ -57,6 +57,18 @@ if (!value) { return; }
 if (condition) doSomething();
 ```
 
+## Conditional ClassNames
+
+Use `cn()` from `@/lib/utils` for conditional classNames instead of template literal interpolation:
+
+```tsx
+// Correct
+className={cn("border-b transition-colors", isActive ? "border-foreground" : "border-transparent")}
+
+// Incorrect
+className={`border-b transition-colors ${isActive ? "border-foreground" : "border-transparent"}`}
+```
+
 ## Tailwind CSS
 
 Use Tailwind color classes directly instead of CSS variable syntax:
