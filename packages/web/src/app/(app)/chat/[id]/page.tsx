@@ -6,7 +6,7 @@ import { isServiceError } from '@/lib/utils';
 import { ChatThreadPanel } from './components/chatThreadPanel';
 import { notFound } from 'next/navigation';
 import { StatusCodes } from 'http-status-codes';
-import { TopBar } from '../../components/topBar';
+import { Separator } from '@/components/ui/separator';
 import { ChatName } from '../components/chatName';
 import { ShareChatPopover } from '../components/shareChatPopover';
 import { auth } from '@/auth';
@@ -134,30 +134,33 @@ export default async function Page(props: PageProps) {
 
     return (
         <div className="flex flex-col h-full">
-            <TopBar
-                homePath="/chat"
-                session={session}
-                centerContent={
-                    <ChatName
-                        name={name}
-                        id={params.id}
-                        isOwner={isOwner}
-                        isAuthenticated={!!session}
-                    />
-                }
-                actions={isOwner ? (
-                    <ShareChatPopover
-                        chatId={params.id}
-                        visibility={visibility}
-                        currentUser={session?.user}
-                        sharedWithUsers={sharedWithUsers}
-                        isChatSharingEnabledInCurrentPlan={hasChatSharingEntitlement}
-                        // Disable chat sharing for the askgh experiment since we
-                        // don't want to allow users to search other members.
-                        isChatSharingEnabled={env.EXPERIMENT_ASK_GH_ENABLED === 'false'}
-                    />
-                ) : undefined}
-            />
+            <div className="sticky top-0 left-0 right-0 z-10">
+                <div className="flex flex-row items-center py-1.5 px-3">
+                    <div className="flex-1 flex justify-center">
+                        <ChatName
+                            name={name}
+                            id={params.id}
+                            isOwner={isOwner}
+                            isAuthenticated={!!session}
+                        />
+                    </div>
+                    <div className="shrink-0">
+                        {isOwner && (
+                            <ShareChatPopover
+                                chatId={params.id}
+                                visibility={visibility}
+                                currentUser={session?.user}
+                                sharedWithUsers={sharedWithUsers}
+                                isChatSharingEnabledInCurrentPlan={hasChatSharingEntitlement}
+                                // Disable chat sharing for the askgh experiment since we
+                                // don't want to allow users to search other members.
+                                isChatSharingEnabled={env.EXPERIMENT_ASK_GH_ENABLED === 'false'}
+                            />
+                        )}
+                    </div>
+                </div>
+                <Separator />
+            </div>
             <ChatThreadPanel
                 languageModels={languageModels}
                 repos={indexedRepos}
