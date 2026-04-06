@@ -1,6 +1,5 @@
 "use client";
 
-import { SetSidebarOverride } from "@/app/(app)/components/appSidebar/sidebarOverrideContext";
 import { NotificationDot } from "@/app/(app)/components/notificationDot";
 import {
     SidebarGroup,
@@ -10,51 +9,49 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { ArrowLeftIcon } from "lucide-react";
-import { DynamicIcon, IconName } from "lucide-react/dynamic";
+import {
+    ChartAreaIcon,
+    KeyRoundIcon,
+    LinkIcon,
+    type LucideIcon,
+    PlugIcon,
+    ScrollTextIcon,
+    ShieldIcon,
+    UsersIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
 
-export type SidebarNavItem = {
+const iconMap = {
+    "link": LinkIcon,
+    "key-round": KeyRoundIcon,
+    "shield": ShieldIcon,
+    "users": UsersIcon,
+    "plug": PlugIcon,
+    "chart-area": ChartAreaIcon,
+    "scroll-text": ScrollTextIcon,
+} satisfies Record<string, LucideIcon>;
+
+export type NavIconName = keyof typeof iconMap;
+
+export type NavItem = {
     href: string;
     hrefRegex?: string;
     title: React.ReactNode;
-    icon?: IconName;
+    icon?: NavIconName;
     isNotificationDotVisible?: boolean;
 };
 
-export type SidebarNavGroup = {
+export type NavGroup = {
     label: string;
-    items: SidebarNavItem[];
+    items: NavItem[];
 };
 
-interface SettingsSidebarOverrideProps {
-    groups: SidebarNavGroup[];
+interface NavProps {
+    groups: NavGroup[];
 }
 
-export function SettingsSidebarOverride({ groups }: SettingsSidebarOverrideProps) {
-    return (
-        <SetSidebarOverride
-            header={
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                            <Link href="/">
-                                <ArrowLeftIcon />
-                                <span>Back to app</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            }
-            content={<SettingsSidebarContent groups={groups} />}
-            collapsible="none"
-        />
-    );
-}
-
-function SettingsSidebarContent({ groups }: { groups: SidebarNavGroup[] }) {
+export function Nav({ groups }: NavProps) {
     const pathname = usePathname();
 
     return (
@@ -68,11 +65,12 @@ function SettingsSidebarContent({ groups }: { groups: SidebarNavGroup[] }) {
                                 const isActive = item.hrefRegex
                                     ? new RegExp(item.hrefRegex).test(pathname)
                                     : pathname === item.href;
+                                const Icon = item.icon ? iconMap[item.icon] : undefined;
                                 return (
                                     <SidebarMenuItem key={item.href}>
                                         <SidebarMenuButton asChild isActive={isActive}>
                                             <Link href={item.href}>
-                                                {item.icon && <DynamicIcon name={item.icon} />}
+                                                {Icon && <Icon />}
                                                 <span>{item.title}</span>
                                                 {item.isNotificationDotVisible && <NotificationDot className="ml-1.5" />}
                                             </Link>

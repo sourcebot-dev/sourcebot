@@ -1,6 +1,5 @@
 import React from "react"
 import { Metadata } from "next"
-import { SettingsSidebarOverride, SidebarNavGroup, SidebarNavItem } from "./components/settingsSidebarOverride"
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { isServiceError } from "@/lib/utils";
@@ -9,6 +8,7 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { OrgRole } from "@prisma/client";
 import { env, hasEntitlement } from "@sourcebot/shared";
 import { withAuth } from "@/middleware/withAuth";
+import { NavGroup } from "../@sidebar/components/settingsSidebar/nav";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -30,14 +30,8 @@ export default async function SettingsLayout(
         return redirect('/');
     }
 
-    const sidebarNavGroups = await getSidebarNavGroups();
-    if (isServiceError(sidebarNavGroups)) {
-        throw new ServiceErrorException(sidebarNavGroups);
-    }
-
     return (
         <div>
-            <SettingsSidebarOverride groups={sidebarNavGroups} />
             <main className="flex justify-center p-4">
                 <div className="w-full max-w-6xl rounded-lg p-6">
                     <div className="container mx-auto">
@@ -68,7 +62,7 @@ export const getSidebarNavGroups = async () =>
             throw new ServiceErrorException(connectionStats);
         }
 
-        const groups: SidebarNavGroup[] = [
+        const groups: NavGroup[] = [
             {
                 label: "Account",
                 items: [

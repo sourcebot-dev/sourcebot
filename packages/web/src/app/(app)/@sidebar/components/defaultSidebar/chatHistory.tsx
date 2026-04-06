@@ -28,11 +28,11 @@ export interface ChatHistoryItem {
     createdAt: Date;
 }
 
-interface ChatHistorySidebarGroupProps {
+interface ChatHistoryProps {
     chatHistory: ChatHistoryItem[];
 }
 
-export function ChatHistorySidebarGroup({ chatHistory }: ChatHistorySidebarGroupProps) {
+export function ChatHistory({ chatHistory }: ChatHistoryProps) {
     const pathname = usePathname();
     const router = useRouter();
     const { toast } = useToast();

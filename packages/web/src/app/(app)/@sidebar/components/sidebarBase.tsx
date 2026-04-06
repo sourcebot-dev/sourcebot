@@ -22,37 +22,24 @@ import {
 } from "@/components/ui/sidebar";
 import { UserAvatar } from "@/components/userAvatar";
 import { cn } from "@/lib/utils";
-import { ArrowLeftToLineIcon, ArrowRightToLineIcon, BookMarkedIcon, ChevronsUpDown, LogOut, MessageCircleIcon, MessagesSquareIcon, SearchIcon, SettingsIcon } from "lucide-react";
+import { ArrowLeftToLineIcon, ArrowRightToLineIcon, ChevronsUpDown, LogOut, SettingsIcon } from "lucide-react";
 import { Session } from "next-auth";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import posthog from "posthog-js";
-import { useEffect, useRef, useState } from "react";
-import { AppearanceDropdownMenuGroup } from "../appearanceDropdownMenuGroup";
-import { NotificationDot } from "../notificationDot";
-import { ChatHistoryItem, ChatHistorySidebarGroup } from "./chatHistorySidebarGroup";
-import { useSidebarOverride } from "./sidebarOverrideContext";
+import { ReactNode, useEffect, useRef, useState } from "react";
+import { AppearanceDropdownMenuGroup } from "../../components/appearanceDropdownMenuGroup";
 
-const baseItems = [
-    { title: "Code Search", href: "/search", icon: SearchIcon, key: "search" },
-    { title: "Ask", href: "/chat", icon: MessageCircleIcon, key: "chat" },
-    { title: "Chats", href: "/chats", icon: MessagesSquareIcon, key: "chats" },
-    { title: "Repositories", href: "/repos", icon: BookMarkedIcon, key: "repos" },
-    { title: "Settings", href: "/settings", icon: SettingsIcon, key: "settings" },
-];
-
-interface AppSidebarProps {
+interface SidebarBaseProps {
     session: Session | null;
-    chatHistory: ChatHistoryItem[];
-    isSettingsNotificationVisible?: boolean;
+    collapsible?: "icon" | "offcanvas" | "none";
+    headerContent: ReactNode;
+    children: ReactNode;
 }
 
-export function AppSidebar({ session, chatHistory, isSettingsNotificationVisible }: AppSidebarProps) {
-    const pathname = usePathname();
+export function SidebarBase({ session, collapsible = "icon", headerContent, children }: SidebarBaseProps) {
     const [isScrolled, setIsScrolled] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
-    const sidebarOverride = useSidebarOverride();
 
     useEffect(() => {
         const el = contentRef.current;
@@ -63,19 +50,6 @@ export function AppSidebar({ session, chatHistory, isSettingsNotificationVisible
         el.addEventListener("scroll", handleScroll);
         return () => el.removeEventListener("scroll", handleScroll);
     }, []);
-
-    const isActive = (href: string) => {
-        if (href === "/search") {
-            return pathname === "/" || pathname.startsWith("/search");
-        }
-        if (href === "/chat") {
-            return pathname === "/chat";
-        }
-        return pathname.startsWith(href);
-    };
-
-    const hasOverride = sidebarOverride?.override != null;
-    const collapsible = sidebarOverride?.override?.collapsible ?? "icon";
 
     return (
         <Sidebar
@@ -91,30 +65,10 @@ export function AppSidebar({ session, chatHistory, isSettingsNotificationVisible
                         <SourcebotLogo className="w-fit h-8" size="small" />
                     </div>
                 </Link>
-                {hasOverride ? sidebarOverride.override?.header : (
-                    <SidebarMenu>
-                        {baseItems.map((item) => {
-                            const showNotification =
-                                (item.key === "settings" && isSettingsNotificationVisible);
-                            return (
-                                <SidebarMenuItem key={item.title}>
-                                    <SidebarMenuButton asChild isActive={isActive(item.href)}>
-                                        <a href={item.href}>
-                                            <item.icon />
-                                            <span>{item.title}</span>
-                                            {showNotification && <NotificationDot className="ml-1.5" />}
-                                        </a>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            );
-                        })}
-                    </SidebarMenu>
-                )}
+                {headerContent}
             </SidebarHeader>
             <SidebarContent ref={contentRef}>
-                {hasOverride ? sidebarOverride.override?.content : (
-                    <ChatHistorySidebarGroup chatHistory={chatHistory} />
-                )}
+                {children}
             </SidebarContent>
             <SidebarFooter className="border-t border-sidebar-border">
                 {collapsible !== "none" && <CollapseSidebarButton />}
