@@ -30,23 +30,25 @@ import { usePathname } from "next/navigation";
 import posthog from "posthog-js";
 import { useEffect, useRef, useState } from "react";
 import { AppearanceDropdownMenuGroup } from "../appearanceDropdownMenuGroup";
+import { NotificationDot } from "../notificationDot";
 import { ChatHistoryItem, ChatHistorySidebarGroup } from "./chatHistorySidebarGroup";
 import { useSidebarOverride } from "./sidebarOverrideContext";
 
-const items = [
-    { title: "Code Search", href: "/search", icon: SearchIcon },
-    { title: "Ask", href: "/chat", icon: MessageCircleIcon },
-    { title: "Chats", href: "/chats", icon: MessagesSquareIcon },
-    { title: "Repositories", href: "/repos", icon: BookMarkedIcon },
-    { title: "Settings", href: "/settings", icon: SettingsIcon },
+const baseItems = [
+    { title: "Code Search", href: "/search", icon: SearchIcon, key: "search" },
+    { title: "Ask", href: "/chat", icon: MessageCircleIcon, key: "chat" },
+    { title: "Chats", href: "/chats", icon: MessagesSquareIcon, key: "chats" },
+    { title: "Repositories", href: "/repos", icon: BookMarkedIcon, key: "repos" },
+    { title: "Settings", href: "/settings", icon: SettingsIcon, key: "settings" },
 ];
 
 interface AppSidebarProps {
     session: Session | null;
     chatHistory: ChatHistoryItem[];
+    isSettingsNotificationVisible?: boolean;
 }
 
-export function AppSidebar({ session, chatHistory }: AppSidebarProps) {
+export function AppSidebar({ session, chatHistory, isSettingsNotificationVisible }: AppSidebarProps) {
     const pathname = usePathname();
     const [isScrolled, setIsScrolled] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
@@ -91,16 +93,21 @@ export function AppSidebar({ session, chatHistory }: AppSidebarProps) {
                 </Link>
                 {hasOverride ? sidebarOverride.override?.header : (
                     <SidebarMenu>
-                        {items.map((item) => (
-                            <SidebarMenuItem key={item.title}>
-                                <SidebarMenuButton asChild isActive={isActive(item.href)}>
-                                    <a href={item.href}>
-                                        <item.icon />
-                                        <span>{item.title}</span>
-                                    </a>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        ))}
+                        {baseItems.map((item) => {
+                            const showNotification =
+                                (item.key === "settings" && isSettingsNotificationVisible);
+                            return (
+                                <SidebarMenuItem key={item.title}>
+                                    <SidebarMenuButton asChild isActive={isActive(item.href)}>
+                                        <a href={item.href}>
+                                            <item.icon />
+                                            <span>{item.title}</span>
+                                            {showNotification && <NotificationDot className="ml-1.5" />}
+                                        </a>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            );
+                        })}
                     </SidebarMenu>
                 )}
             </SidebarHeader>

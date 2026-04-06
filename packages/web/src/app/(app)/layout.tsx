@@ -19,9 +19,10 @@ import { notFound, redirect } from "next/navigation";
 import { PendingApprovalCard } from "./components/pendingApproval";
 import { SubmitJoinRequest } from "./components/submitJoinRequest";
 import { hasEntitlement } from "@sourcebot/shared";
+import { OrgRole } from "@sourcebot/db";
 import { env } from "@sourcebot/shared";
 import { GcpIapAuth } from "./components/gcpIapAuth";
-import { getAnonymousAccessStatus, getMemberApprovalRequired } from "@/actions";
+import { getAnonymousAccessStatus, getConnectionStats, getMemberApprovalRequired, getOrgAccountRequests } from "@/actions";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { GitHubStarToast } from "./components/githubStarToast";
@@ -172,6 +173,25 @@ export default async function Layout(props: LayoutProps) {
         throw new ServiceErrorException(chatHistory);
     }
 
+    // Compute sidebar notification flags
+    const isSettingsNotificationVisible = await (async () => {
+        if (!session) {
+            return false;
+        }
+        const membership = await __unsafePrisma.userToOrg.findUnique({
+            where: { orgId_userId: { orgId: org.id, userId: session.user.id } },
+            select: { role: true },
+        });
+        if (membership?.role !== OrgRole.OWNER) {
+            return false;
+        }
+        const connectionStats = await getConnectionStats();
+        const joinRequests = await getOrgAccountRequests();
+        const hasConnectionNotification = !isServiceError(connectionStats) && connectionStats.numberOfConnectionsWithFirstTimeSyncJobsInProgress > 0;
+        const hasJoinRequestNotification = !isServiceError(joinRequests) && joinRequests.length > 0;
+        return hasConnectionNotification || hasJoinRequestNotification;
+    })();
+
     return (
         <SyntaxGuideProvider>
             {
@@ -187,7 +207,11 @@ export default async function Layout(props: LayoutProps) {
             <div className="fixed inset-0 flex bg-shell">
                 <SidebarOverrideProvider>
                     <SidebarProvider defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}>
-                        <AppSidebar session={session} chatHistory={chatHistory} />
+                        <AppSidebar
+                            session={session}
+                            chatHistory={chatHistory}
+                            isSettingsNotificationVisible={isSettingsNotificationVisible}
+                        />
                         <div className="flex-1 min-h-0 flex flex-col pt-2 pb-2 pr-2">
                             <div className="flex-1 min-h-0 bg-background flex flex-col border border-[#1d1d1f] rounded-xl">
                                 <div className="flex-1 min-h-0 overflow-y-auto">
