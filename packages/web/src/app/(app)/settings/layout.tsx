@@ -33,13 +33,8 @@ export default async function SettingsLayout(
     return (
         <div>
             <main className="flex justify-center p-4">
-                <div className="w-full max-w-6xl rounded-lg p-6">
-                    <div className="container mx-auto">
-                        <div className="mb-16">
-                            <h1 className="text-3xl font-semibold">Settings</h1>
-                        </div>
-                        <div className="w-full rounded-lg">{children}</div>
-                    </div>
+                <div className="w-full max-w-3xl rounded-lg p-6">
+                    <div className="w-full rounded-lg">{children}</div>
                 </div>
             </main>
         </div>
