@@ -9,8 +9,8 @@ yarn:
 
 zoekt:
 	mkdir -p bin
-	go build -C vendor/zoekt -o $(PWD)/bin ./cmd/...
-	export PATH="$(PWD)/bin:$(PATH)"
+	go build -C vendor/zoekt -o $(CURDIR)/bin ./cmd/...
+	export PATH="$(CURDIR)/bin:$(PATH)"
 	export CTAGS_COMMANDS=ctags
 
 clean:
