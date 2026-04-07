@@ -89,7 +89,7 @@ export function ChatHistory({ chatHistory }: ChatHistoryProps) {
     return (
         <>
             <SidebarGroup className="group-data-[state=collapsed]:hidden">
-                <SidebarGroupLabel className="text-muted-foreground">Recent Chats</SidebarGroupLabel>
+                <SidebarGroupLabel className="text-muted-foreground whitespace-nowrap">Recent Chats</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
                         {chatHistory.map((chat) => (
