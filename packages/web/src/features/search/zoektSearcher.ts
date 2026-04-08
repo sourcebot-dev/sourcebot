@@ -133,11 +133,21 @@ export const zoektSearch = async (searchRequest: ZoektGrpcSearchRequest, prisma:
                     const reposMapCache = await createReposMapForChunk(response, new Map<string | number, Repo>(), prisma);
                     const { stats, files, repositoryInfo } = await transformZoektSearchResponse(response, reposMapCache);
 
+                    const isSearchExhaustive = stats.totalMatchCount <= stats.actualMatchCount;
+                    if (!isSearchExhaustive) {
+                        logger.info('Zoekt search finished with non-exhaustive results', {
+                            totalMatchCount: stats.totalMatchCount,
+                            actualMatchCount: stats.actualMatchCount,
+                            flushReason: stats.flushReason,
+                            shardsSkipped: stats.shardsSkipped,
+                            filesSkipped: stats.filesSkipped,
+                        });
+                    }
                     resolve({
                         stats,
                         files,
                         repositoryInfo,
-                        isSearchExhaustive: stats.totalMatchCount <= stats.actualMatchCount,
+                        isSearchExhaustive,
                     } satisfies SearchResponse);
                 } catch (err) {
                     reject(err);
@@ -180,10 +190,20 @@ export const zoektStreamSearch = async (searchRequest: ZoektGrpcSearchRequest, p
         async start(controller) {
             const tryCloseController = () => {
                 if (!isStreamActive && pendingChunks === 0) {
+                    const isSearchExhaustive = accumulatedStats.totalMatchCount <= accumulatedStats.actualMatchCount;
+                    if (!isSearchExhaustive) {
+                        logger.info('Zoekt search finished with non-exhaustive results', {
+                            totalMatchCount: accumulatedStats.totalMatchCount,
+                            actualMatchCount: accumulatedStats.actualMatchCount,
+                            flushReason: accumulatedStats.flushReason,
+                            shardsSkipped: accumulatedStats.shardsSkipped,
+                            filesSkipped: accumulatedStats.filesSkipped,
+                        });
+                    }
                     const finalResponse: StreamedSearchResponse = {
                         type: 'final',
                         accumulatedStats,
-                        isSearchExhaustive: accumulatedStats.totalMatchCount <= accumulatedStats.actualMatchCount,
+                        isSearchExhaustive,
                     }
 
                     controller.enqueue(encodeSSEREsponseChunk(finalResponse));
