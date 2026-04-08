@@ -55,7 +55,9 @@ export default async function ReposPage(props: ReposPageProps) {
         <>
             <div className="mb-6">
                 <h1 className="text-3xl font-semibold">Repositories</h1>
-                <p className="text-muted-foreground mt-2">View and manage your code repositories and their indexing status.</p>
+                <p className="text-muted-foreground mt-2">
+                    View and manage your code repositories and their indexing status. Select a repository name to open it in the file explorer.
+                </p>
             </div>
             <ReposTable
                 data={repos.map((repo) => ({

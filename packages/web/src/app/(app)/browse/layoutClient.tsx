@@ -11,6 +11,9 @@ import { FileSearchCommandDialog } from "./components/fileSearchCommandDialog";
 import { SearchBar } from "../components/searchBar";
 import escapeStringRegexp from "escape-string-regexp";
 import { Session } from "next-auth";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { BookMarkedIcon } from "lucide-react";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -29,6 +32,14 @@ export function LayoutClient({
             <div className="flex flex-col h-screen">
                 <TopBar
                     session={session}
+                    actions={
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href="/repos" className="gap-1.5">
+                                <BookMarkedIcon className="h-3.5 w-3.5" />
+                                Repositories
+                            </Link>
+                        </Button>
+                    }
                 >
                     <SearchBar
                         size="sm"

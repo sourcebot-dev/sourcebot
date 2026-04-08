@@ -26,6 +26,9 @@ export const NavigationItems = ({
         if (href === '/') {
             return pathname === '/';
         }
+        if (href === '/repos') {
+            return pathname.startsWith('/repos') || pathname.startsWith('/browse');
+        }
         return pathname.startsWith(href);
     };
 

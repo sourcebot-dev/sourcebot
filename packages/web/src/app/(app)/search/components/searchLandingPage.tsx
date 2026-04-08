@@ -4,6 +4,8 @@ import { RepositoryCarousel } from "../../components/repositoryCarousel"
 import { Separator } from "@/components/ui/separator"
 import { SyntaxReferenceGuideHint } from "../../components/syntaxReferenceGuideHint"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { FolderTreeIcon } from "lucide-react"
 import { SearchBar } from "../../components/searchBar"
 import { SearchModeSelector } from "../../components/searchModeSelector"
 import { getRepos, getReposStats } from "@/actions"
@@ -54,6 +56,18 @@ export const SearchLandingPage = async ({
                             className="ml-auto"
                         />
                     </div>
+                </div>
+
+                <div className="mt-5 flex flex-col items-center gap-1">
+                    <Button variant="outline" asChild>
+                        <Link href="/repos" className="gap-2">
+                            <FolderTreeIcon className="h-4 w-4" />
+                            Browse repositories
+                        </Link>
+                    </Button>
+                    <span className="text-xs text-muted-foreground text-center max-w-sm">
+                        Open the file explorer and pick a repo without running a search first.
+                    </span>
                 </div>
 
                 <div className="mt-8">
