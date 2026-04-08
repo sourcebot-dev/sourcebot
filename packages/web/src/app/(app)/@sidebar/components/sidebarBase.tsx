@@ -40,6 +40,9 @@ import { useTheme } from "next-themes";
 import Link from "next/link";
 import posthog from "posthog-js";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
 
 interface SidebarBaseProps {
     session: Session | null;
@@ -99,16 +102,25 @@ function CollapseSidebarButton() {
     return (
         <SidebarMenu>
             <SidebarMenuItem>
-                <SidebarMenuButton onClick={toggleSidebar}>
-                    {state === "expanded" ? (
-                        <>
-                            <ArrowLeftToLineIcon />
-                            <span>Collapse sidebar</span>
-                        </>
-                    ) : (
-                        <ArrowRightToLineIcon />
-                    )}
-                </SidebarMenuButton>
+                <Tooltip open={state === "expanded" ? false : undefined}>
+                    <TooltipTrigger asChild>
+                        <SidebarMenuButton onClick={toggleSidebar}>
+                            {state === "expanded" ? (
+                                <>
+                                    <ArrowLeftToLineIcon />
+                                    <span>Collapse sidebar</span>
+                                </>
+                            ) : (
+                                <ArrowRightToLineIcon />
+                            )}
+                        </SidebarMenuButton>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="flex items-center gap-2">
+                        <KeyboardShortcutHint shortcut="[" />
+                        <Separator orientation="vertical" className="h-4" />
+                        <span>Expand sidebar</span>
+                    </TooltipContent>
+                </Tooltip>
             </SidebarMenuItem>
         </SidebarMenu>
     );
