@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Linear issue links in chat responses now render as a rich card-style UI showing the Linear logo, issue identifier, and title instead of plain hyperlinks. [#1060](https://github.com/sourcebot-dev/sourcebot/pull/1060)
+- Added a "Browse repositories" entry point on the search landing page, a Repositories shortcut in the file explorer top bar, and clearer repo list copy so users can open the file explorer without running a search first. [#1100](https://github.com/sourcebot-dev/sourcebot/pull/1100)
 
 ### Changed
 - Links in Ask Sourcebot chat responses now open in a new tab with a subtle external link icon indicator. [#1059](https://github.com/sourcebot-dev/sourcebot/pull/1059)

@@ -27,7 +27,12 @@ export const NavigationItems = ({
             return pathname === '/';
         }
         if (href === '/repos') {
-            return pathname.startsWith('/repos') || pathname.startsWith('/browse');
+            return (
+                pathname === '/repos' ||
+                pathname.startsWith('/repos/') ||
+                pathname === '/browse' ||
+                pathname.startsWith('/browse/')
+            );
         }
         return pathname.startsWith(href);
     };
