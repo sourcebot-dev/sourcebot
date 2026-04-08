@@ -6,7 +6,13 @@ import {
     DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
+    DropdownMenuPortal,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
     DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -21,14 +27,19 @@ import {
     useSidebar,
 } from "@/components/ui/sidebar";
 import { UserAvatar } from "@/components/userAvatar";
+import { useKeymapType } from "@/hooks/useKeymapType";
+import { KeymapType } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ArrowLeftToLineIcon, ArrowRightToLineIcon, ChevronsUpDown, LogOut, SettingsIcon } from "lucide-react";
+import {
+    ArrowLeftToLineIcon, ArrowRightToLineIcon, ChevronsUpDown, CodeIcon,
+    Laptop, LogIn, LogOut, Moon, SettingsIcon, Sun, UserIcon
+} from "lucide-react";
 import { Session } from "next-auth";
 import { signOut } from "next-auth/react";
+import { useTheme } from "next-themes";
 import Link from "next/link";
 import posthog from "posthog-js";
-import { ReactNode, useEffect, useRef, useState } from "react";
-import { AppearanceDropdownMenuGroup } from "../../components/appearanceDropdownMenuGroup";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 interface SidebarBaseProps {
     session: Session | null;
@@ -72,8 +83,10 @@ export function SidebarBase({ session, collapsible = "icon", headerContent, chil
             </SidebarContent>
             <SidebarFooter className="border-t border-sidebar-border">
                 {collapsible !== "none" && <CollapseSidebarButton />}
-                {session && (
+                {session ? (
                     <MeControlDropdownMenu session={session} />
+                ) : (
+                    <GuestDropdownMenu />
                 )}
             </SidebarFooter>
             {collapsible !== "none" && <SidebarRail />}
@@ -174,5 +187,108 @@ const MeControlDropdownMenu = ({
                 </DropdownMenu>
             </SidebarMenuItem>
         </SidebarMenu>
+    )
+}
+
+const GuestDropdownMenu = () => {
+    return (
+        <SidebarMenu>
+            <SidebarMenuItem>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuButton
+                            size="lg"
+                            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                        >
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted flex-shrink-0">
+                                <UserIcon className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <div className="grid flex-1 text-left text-sm leading-tight">
+                                <span className="truncate font-semibold">Guest</span>
+                                <span className="truncate text-xs text-muted-foreground">Not signed in</span>
+                            </div>
+                            <ChevronsUpDown className="ml-auto size-4" />
+                        </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-64" side="top" align="start" sideOffset={4}>
+                        <AppearanceDropdownMenuGroup />
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                            <a href="/login">
+                                <LogIn className="h-4 w-4 mr-2" />
+                                <span>Sign in</span>
+                            </a>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </SidebarMenuItem>
+        </SidebarMenu>
+    );
+}
+
+
+const AppearanceDropdownMenuGroup = () => {
+    const { theme: _theme, setTheme } = useTheme();
+    const [keymapType, setKeymapType] = useKeymapType();
+
+    const theme = useMemo(() => {
+        return _theme ?? "light";
+    }, [_theme]);
+
+    const ThemeIcon = useMemo(() => {
+        switch (theme) {
+            case "light":
+                return <Sun className="h-4 w-4 mr-2" />;
+            case "dark":
+                return <Moon className="h-4 w-4 mr-2" />;
+            case "system":
+                return <Laptop className="h-4 w-4 mr-2" />;
+            default:
+                return <Laptop className="h-4 w-4 mr-2" />;
+        }
+    }, [theme]);
+
+    return (
+        <DropdownMenuGroup>
+            <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                    {ThemeIcon}
+                    <span>Theme</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                        <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+                            <DropdownMenuRadioItem value="light">
+                                Light
+                            </DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="dark">
+                                Dark
+                            </DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="system">
+                                System
+                            </DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                    </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                    <CodeIcon className="h-4 w-4 mr-2" />
+                    <span>Code navigation</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                        <DropdownMenuRadioGroup value={keymapType} onValueChange={(value) => setKeymapType(value as KeymapType)}>
+                            <DropdownMenuRadioItem value="default">
+                                Default
+                            </DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="vim">
+                                Vim
+                            </DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                    </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+            </DropdownMenuSub>
+        </DropdownMenuGroup>
     )
 }

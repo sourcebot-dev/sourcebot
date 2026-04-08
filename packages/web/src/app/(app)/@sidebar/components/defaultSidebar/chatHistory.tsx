@@ -67,6 +67,8 @@ export function ChatHistory({ chatHistory, hasMore }: ChatHistoryProps) {
         captureEvent('wa_chat_deleted', { chatId: chatIdToDelete });
         if (pathname === `/chat/${chatIdToDelete}`) {
             router.push("/chat");
+        } else {
+            router.refresh();
         }
         return true;
     }, [pathname, router, toast]);

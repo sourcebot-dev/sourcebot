@@ -1,5 +1,5 @@
 import { getRepos, getSearchContexts } from '@/actions';
-import { getChatInfo, claimAnonymousChats, getSharedWithUsersForChat } from '@/features/chat/actions';
+import { getChatInfo, getSharedWithUsersForChat } from '@/features/chat/actions';
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { ServiceErrorException } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
@@ -79,15 +79,6 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
 export default async function Page(props: PageProps) {
     const params = await props.params;
     const session = await auth();
-
-    // Claim any anonymous chats created by this user before they signed in.
-    // This must happen before getChatInfo so the chat ownership is updated.
-    if (session) {
-        const claimResult = await claimAnonymousChats();
-        if (isServiceError(claimResult)) {
-            throw new ServiceErrorException(claimResult);
-        }
-    }
 
     const languageModels = await getConfiguredLanguageModelsInfo();
     const repos = await getRepos();
