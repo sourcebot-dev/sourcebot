@@ -1,5 +1,4 @@
 import { auth } from "@/auth";
-import { getUserChatHistory } from "@/features/chat/actions";
 import { getConnectionStats, getOrgAccountRequests } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
@@ -9,6 +8,10 @@ import { OrgRole } from "@prisma/client";
 import { SidebarBase } from "@/app/(app)/@sidebar/components/sidebarBase";
 import { Nav } from "./nav";
 import { ChatHistory } from "./chatHistory";
+import { withAuth } from "@/middleware/withAuth";
+import { sew } from "@/middleware/sew";
+
+const SIDEBAR_CHAT_LIMIT = 30;
 
 export async function DefaultSidebar() {
     const session = await auth();
@@ -40,9 +43,34 @@ export async function DefaultSidebar() {
         <SidebarBase
             session={session}
             collapsible="icon"
-            headerContent={<Nav isSettingsNotificationVisible={isSettingsNotificationVisible} />}
+            headerContent={<Nav isSettingsNotificationVisible={isSettingsNotificationVisible} isSignedIn={!!session} />}
         >
-            <ChatHistory chatHistory={chatHistory} />
+            <ChatHistory
+                chatHistory={chatHistory.slice(0, SIDEBAR_CHAT_LIMIT)}
+                hasMore={chatHistory.length > SIDEBAR_CHAT_LIMIT}
+            />
         </SidebarBase>
     );
 }
+
+const getUserChatHistory = async () => sew(() =>
+    withAuth(async ({ org, user, prisma }) => {
+        const chats = await prisma.chat.findMany({
+            where: {
+                orgId: org.id,
+                createdById: user.id,
+            },
+            orderBy: {
+                updatedAt: 'desc',
+            },
+            take: SIDEBAR_CHAT_LIMIT + 1,
+        });
+
+        return chats.map((chat) => ({
+            id: chat.id,
+            createdAt: chat.createdAt,
+            name: chat.name,
+            visibility: chat.visibility,
+        }))
+    })
+);

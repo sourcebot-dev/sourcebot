@@ -92,27 +92,6 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
     })
 );
 
-export const getUserChatHistory = async () => sew(() =>
-    withAuth(async ({ org, user, prisma }) => {
-        const chats = await prisma.chat.findMany({
-            where: {
-                orgId: org.id,
-                createdById: user.id,
-            },
-            orderBy: {
-                updatedAt: 'desc',
-            },
-        });
-
-        return chats.map((chat) => ({
-            id: chat.id,
-            createdAt: chat.createdAt,
-            name: chat.name,
-            visibility: chat.visibility,
-        }))
-    })
-);
-
 export const updateChatName = async ({ chatId, name }: { chatId: string, name: string }) => sew(() =>
     withOptionalAuth(async ({ org, user, prisma }) => {
         const chat = await prisma.chat.findUnique({

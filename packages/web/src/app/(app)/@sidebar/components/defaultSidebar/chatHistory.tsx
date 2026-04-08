@@ -17,7 +17,7 @@ import {
 import { deleteChat, duplicateChat, updateChatName } from "@/features/chat/actions";
 import { captureEvent } from "@/hooks/useCaptureEvent";
 import { isServiceError } from "@/lib/utils";
-import { EllipsisIcon } from "lucide-react";
+import { EllipsisIcon, MessagesSquareIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
@@ -30,9 +30,10 @@ export interface ChatHistoryItem {
 
 interface ChatHistoryProps {
     chatHistory: ChatHistoryItem[];
+    hasMore?: boolean;
 }
 
-export function ChatHistory({ chatHistory }: ChatHistoryProps) {
+export function ChatHistory({ chatHistory, hasMore }: ChatHistoryProps) {
     const pathname = usePathname();
     const router = useRouter();
     const { toast } = useToast();
@@ -122,6 +123,16 @@ export function ChatHistory({ chatHistory }: ChatHistoryProps) {
                                 </ChatActionsDropdown>
                             </SidebarMenuItem>
                         ))}
+                        {hasMore && (
+                            <SidebarMenuItem>
+                                <SidebarMenuButton asChild>
+                                    <Link href="/chats">
+                                        <MessagesSquareIcon className="h-4 w-4" />
+                                        <span>All chats</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )}
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>

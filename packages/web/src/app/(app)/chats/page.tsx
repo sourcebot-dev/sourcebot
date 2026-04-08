@@ -1,6 +1,6 @@
 import { authenticatedPage } from "@/middleware/authenticatedPage";
-import { SettingsSidebar } from "../../components/settingsSidebar";
+import { ChatsPage } from "./chatsPage";
 
 export default authenticatedPage(async () => {
-    return <SettingsSidebar />;
+    return <ChatsPage />;
 });

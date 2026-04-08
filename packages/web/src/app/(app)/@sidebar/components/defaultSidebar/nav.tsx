@@ -5,23 +5,59 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { BookMarkedIcon, MessageCircleIcon, MessagesSquareIcon, SearchIcon, SettingsIcon } from "lucide-react";
+import { BookMarkedIcon, type LucideIcon, MessageCircleIcon, MessagesSquareIcon, SearchIcon, SettingsIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NotificationDot } from "../../../components/notificationDot";
 
-const baseItems = [
-    { title: "Code Search", href: "/search", icon: SearchIcon, key: "search" },
-    { title: "Ask", href: "/chat", icon: MessageCircleIcon, key: "chat" },
-    { title: "Chats", href: "/chats", icon: MessagesSquareIcon, key: "chats" },
-    { title: "Repositories", href: "/repos", icon: BookMarkedIcon, key: "repos" },
-    { title: "Settings", href: "/settings", icon: SettingsIcon, key: "settings" },
+interface NavItem {
+    title: string;
+    href: string;
+    icon: LucideIcon;
+    key: string;
+    requiresAuth?: boolean;
+}
+
+const baseItems: NavItem[] = [
+    {
+        title: "Code Search",
+        href: "/search",
+        icon: SearchIcon,
+        key: "search",
+    },
+    {
+        title: "Ask",
+        href: "/chat",
+        icon: MessageCircleIcon,
+        key: "chat"
+    },
+    {
+        title: "Chats",
+        href: "/chats",
+        icon: MessagesSquareIcon,
+        key: "chats",
+        requiresAuth: true,
+    },
+    {
+        title: "Repositories",
+        href: "/repos",
+        icon: BookMarkedIcon,
+        key: "repos"
+    },
+    {
+        title: "Settings",
+        href: "/settings",
+        icon: SettingsIcon,
+        key: "settings",
+        requiresAuth: true
+    },
 ];
 
 interface NavProps {
     isSettingsNotificationVisible?: boolean;
+    isSignedIn?: boolean;
 }
 
-export function Nav({ isSettingsNotificationVisible }: NavProps) {
+export function Nav({ isSettingsNotificationVisible, isSignedIn }: NavProps) {
     const pathname = usePathname();
 
     const isActive = (href: string) => {
@@ -36,7 +72,7 @@ export function Nav({ isSettingsNotificationVisible }: NavProps) {
 
     return (
         <SidebarMenu>
-            {baseItems.map((item) => {
+            {baseItems.filter((item) => !item.requiresAuth || isSignedIn).map((item) => {
                 const showNotification =
                     (item.key === "settings" && isSettingsNotificationVisible);
                 return (
