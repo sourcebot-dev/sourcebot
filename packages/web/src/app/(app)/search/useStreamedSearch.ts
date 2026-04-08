@@ -1,6 +1,6 @@
 'use client';
 
-import { RepositoryInfo, SearchRequest, SearchResultFile, SearchStats, StreamedSearchResponse } from '@/features/search';
+import type { RepositoryInfo, SearchRequest, SearchResultFile, SearchStats, StreamedSearchResponse } from '@/features/search/types';
 import { ServiceErrorException } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
 import * as Sentry from '@sentry/nextjs';
@@ -116,6 +116,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                 timeToSearchCompletionMs: 0,
                 timeToFirstSearchResultMs: 0,
                 numMatches: 0,
+                stats: undefined,
             });
 
             try {

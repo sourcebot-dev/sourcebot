@@ -56,6 +56,8 @@ export function getSearchLimitExplanation(
         };
     }
 
+    // Defensive fallback: non-exhaustive searches should usually hit a branch above
+    // (e.g. totalMatchCount vs display cap, skipped shards/files, or flush reason).
     return {
         summary: 'More matches may exist than are shown.',
         detail: 'Increase the match limit, narrow your query, or scope to a repository.',

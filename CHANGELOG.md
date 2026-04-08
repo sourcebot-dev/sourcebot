@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Search results show an informational alert when a query may be incomplete (for example due to match limits, skipped index shards, or streaming flush), and non-exhaustive Zoekt searches are logged for operators. [#1098](https://github.com/sourcebot-dev/sourcebot/pull/1098)
 - Linear issue links in chat responses now render as a rich card-style UI showing the Linear logo, issue identifier, and title instead of plain hyperlinks. [#1060](https://github.com/sourcebot-dev/sourcebot/pull/1060)
 
 ### Changed

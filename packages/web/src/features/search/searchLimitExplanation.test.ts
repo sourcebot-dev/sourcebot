@@ -81,3 +81,15 @@ test('flushReason timer when no higher-priority signal', () => {
     );
     expect(out.summary).toContain('streaming timer');
 });
+
+test('flushReason max size when no higher-priority signal', () => {
+    const out = getSearchLimitExplanation(
+        stats({
+            flushReason: 'FLUSH_REASON_MAX_SIZE',
+            totalMatchCount: 10,
+            actualMatchCount: 10,
+        }),
+        100,
+    );
+    expect(out.summary).toContain('size limit');
+});

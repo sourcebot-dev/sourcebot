@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getSearchLimitExplanation, RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search";
+import { getSearchLimitExplanation } from "@/features/search/searchLimitExplanation";
+import type { RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
