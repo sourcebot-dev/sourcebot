@@ -109,6 +109,8 @@ For a detailed description of all the providers, please refer to the [schema](ht
 
 The `model` field should be set to your Azure OpenAI deployment name. Either `resourceName` or `baseUrl` must be set. The `resourceName` is used to construct the URL `https://{resourceName}.openai.azure.com/openai/v1{path}`. If `baseUrl` is provided, `resourceName` is ignored.
 
+The `reasoningSummary` field controls whether the model returns its reasoning process. Set to `auto` for a condensed summary, `detailed` for more comprehensive reasoning, or `none` to disable. Defaults to `auto`.
+
 ```json wrap icon="code" Example config with Azure AI provider
 {
     "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
@@ -123,7 +125,8 @@ The `model` field should be set to your Azure OpenAI deployment name. Either `re
                 "env": "AZURE_API_KEY"
             },
             "baseUrl": "OPTIONAL_BASE_URL", // use instead of resourceName for custom endpoints
-            "reasoningEffort": "OPTIONAL_REASONING_EFFORT" // defaults to "medium"
+            "reasoningEffort": "OPTIONAL_REASONING_EFFORT", // defaults to "medium"
+            "reasoningSummary": "auto" // "auto" | "detailed" | "none". Defaults to "auto"
         }
     ] 
 }
@@ -248,6 +251,8 @@ The `model` field should be set to your Azure OpenAI deployment name. Either `re
 
 [Vercel AI SDK OpenAI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/openai)
 
+The `reasoningSummary` field controls whether the model returns its reasoning process. Set to `auto` for a condensed summary, `detailed` for more comprehensive reasoning, or `none` to disable. Defaults to `auto`.
+
 ```json wrap icon="code" Example config with OpenAI provider
 {
     "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
@@ -260,7 +265,8 @@ The `model` field should be set to your Azure OpenAI deployment name. Either `re
                 "env": "OPENAI_API_KEY"
             },
             "baseUrl": "OPTIONAL_BASE_URL",
-            "reasoningEffort": "OPTIONAL_REASONING_EFFORT" // defaults to "medium"
+            "reasoningEffort": "OPTIONAL_REASONING_EFFORT", // defaults to "medium"
+            "reasoningSummary": "auto" // "auto" | "detailed" | "none". Defaults to "auto"
         }
     ] 
 }
