@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Links in Ask Sourcebot chat responses now open in a new tab with a subtle external link icon indicator. [#1059](https://github.com/sourcebot-dev/sourcebot/pull/1059)
 - Removed `/~` from the root of most app URLs. [#1076](https://github.com/sourcebot-dev/sourcebot/pull/1076)
+- Deprecated `SOURCEBOT_CHAT_MODEL_TEMPERATURE` environment variable in favor of per-model `temperature` config. It no longer defaults to `0.3`; if unset and no per-model temperature is configured, temperature is not sent to the API. [#1103](https://github.com/sourcebot-dev/sourcebot/pull/1103)
 
 ## [4.16.7] - 2026-04-03
 
