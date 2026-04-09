@@ -206,6 +206,10 @@ export interface AzureLanguageModel {
    * The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings
    */
   reasoningEffort?: string;
+  /**
+   * Controls whether the model returns its reasoning process. Set to 'auto' for a condensed summary, 'detailed' for more comprehensive reasoning, or 'none' to disable. Defaults to 'auto'.
+   */
+  reasoningSummary?: string;
   headers?: LanguageModelHeaders;
 }
 export interface DeepSeekLanguageModel {
@@ -436,6 +440,10 @@ export interface OpenAILanguageModel {
    * The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings
    */
   reasoningEffort?: string;
+  /**
+   * Controls whether the model returns its reasoning process. Set to 'auto' for a condensed summary, 'detailed' for more comprehensive reasoning, or 'none' to disable. Defaults to 'auto'.
+   */
+  reasoningSummary?: string;
   headers?: LanguageModelHeaders;
 }
 export interface OpenAICompatibleLanguageModel {

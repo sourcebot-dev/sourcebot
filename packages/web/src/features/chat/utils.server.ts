@@ -232,11 +232,13 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                         : undefined,
                 });
 
+                const reasoningSummary = config.reasoningSummary ?? 'auto';
                 return {
                     model: azure(modelId),
                     providerOptions: {
                         openai: {
                             reasoningEffort: config.reasoningEffort ?? 'medium',
+                            ...(reasoningSummary !== 'none' && { reasoningSummary }),
                         } satisfies OpenAIResponsesProviderOptions,
                     }
                 };
@@ -339,11 +341,13 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                         : undefined,
                 });
 
+                const reasoningSummary = config.reasoningSummary ?? 'auto';
                 return {
                     model: openai(modelId),
                     providerOptions: {
                         openai: {
                             reasoningEffort: config.reasoningEffort ?? 'medium',
+                            ...(reasoningSummary !== 'none' && { reasoningSummary }),
                         } satisfies OpenAIResponsesProviderOptions,
                     },
                 };

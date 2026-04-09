@@ -375,10 +375,20 @@ const schema = {
           "type": "string",
           "description": "The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings",
           "examples": [
+            "none",
             "minimal",
             "low",
             "medium",
             "high"
+          ]
+        },
+        "reasoningSummary": {
+          "type": "string",
+          "description": "Controls whether the model returns its reasoning process. Set to 'auto' for a condensed summary, 'detailed' for more comprehensive reasoning, or 'none' to disable. Defaults to 'auto'.",
+          "examples": [
+            "none",
+            "auto",
+            "detailed"
           ]
         },
         "headers": {
@@ -1043,10 +1053,20 @@ const schema = {
           "type": "string",
           "description": "The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings",
           "examples": [
+            "none",
             "minimal",
             "low",
             "medium",
             "high"
+          ]
+        },
+        "reasoningSummary": {
+          "type": "string",
+          "description": "Controls whether the model returns its reasoning process. Set to 'auto' for a condensed summary, 'detailed' for more comprehensive reasoning, or 'none' to disable. Defaults to 'auto'.",
+          "examples": [
+            "none",
+            "auto",
+            "detailed"
           ]
         },
         "headers": {
@@ -1845,10 +1865,20 @@ const schema = {
           "type": "string",
           "description": "The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings",
           "examples": [
+            "none",
             "minimal",
             "low",
             "medium",
             "high"
+          ]
+        },
+        "reasoningSummary": {
+          "type": "string",
+          "description": "Controls whether the model returns its reasoning process. Set to 'auto' for a condensed summary, 'detailed' for more comprehensive reasoning, or 'none' to disable. Defaults to 'auto'.",
+          "examples": [
+            "none",
+            "auto",
+            "detailed"
           ]
         },
         "headers": {
@@ -2513,10 +2543,20 @@ const schema = {
           "type": "string",
           "description": "The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings",
           "examples": [
+            "none",
             "minimal",
             "low",
             "medium",
             "high"
+          ]
+        },
+        "reasoningSummary": {
+          "type": "string",
+          "description": "Controls whether the model returns its reasoning process. Set to 'auto' for a condensed summary, 'detailed' for more comprehensive reasoning, or 'none' to disable. Defaults to 'auto'.",
+          "examples": [
+            "none",
+            "auto",
+            "detailed"
           ]
         },
         "headers": {
