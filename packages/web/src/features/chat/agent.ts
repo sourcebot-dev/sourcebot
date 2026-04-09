@@ -42,6 +42,7 @@ interface CreateMessageStreamResponseProps {
     onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;
     onError: (error: unknown) => string;
     modelProviderOptions?: Record<string, Record<string, JSONValue>>;
+    modelTemperature?: number;
     metadata?: Partial<SBChatMessageMetadata>;
 }
 
@@ -53,6 +54,7 @@ export const createMessageStream = async ({
     model,
     modelName,
     modelProviderOptions,
+    modelTemperature,
     onFinish,
     onError,
 }: CreateMessageStreamResponseProps) => {
@@ -96,6 +98,7 @@ export const createMessageStream = async ({
             const researchStream = await createAgentStream({
                 model,
                 providerOptions: modelProviderOptions,
+                temperature: modelTemperature,
                 inputMessages: messageHistory,
                 inputSources: sources,
                 selectedRepos,
@@ -145,6 +148,7 @@ export const createMessageStream = async ({
 interface AgentOptions {
     model: LanguageModel;
     providerOptions?: ProviderOptions;
+    temperature?: number;
     selectedRepos: string[];
     inputMessages: ModelMessage[];
     inputSources: Source[];
@@ -156,6 +160,7 @@ interface AgentOptions {
 const createAgentStream = async ({
     model,
     providerOptions,
+    temperature,
     inputMessages,
     inputSources,
     selectedRepos,
@@ -199,7 +204,7 @@ const createAgentStream = async ({
         messages: inputMessages,
         system: systemPrompt,
         tools: createTools({ source: 'sourcebot-ask-agent', selectedRepos }),
-        temperature: env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
+        temperature: temperature ?? env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
         stopWhen: [
             stepCountIsGTE(env.SOURCEBOT_CHAT_MAX_STEP_COUNT),
         ],

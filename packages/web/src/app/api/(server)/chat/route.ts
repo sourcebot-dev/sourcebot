@@ -77,7 +77,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 } satisfies ServiceError;
             }
 
-            const { model, providerOptions } = await getAISDKLanguageModelAndOptions(languageModelConfig);
+            const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
 
             const expandedRepos = (await Promise.all(selectedSearchScopes.map(async (scope) => {
                 if (scope.type === 'repo') return [scope.value];
@@ -108,6 +108,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 model,
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                 modelProviderOptions: providerOptions,
+                modelTemperature: temperature,
                 onFinish: async ({ messages }) => {
                     await updateChatMessages({ chatId: id, messages, prisma });
                 },

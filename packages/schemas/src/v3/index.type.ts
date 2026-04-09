@@ -749,6 +749,10 @@ export interface AmazonBedrockLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  /**
+   * Optional temperature setting to use with the model.
+   */
+  temperature?: number;
   headers?: LanguageModelHeaders;
 }
 /**
@@ -825,6 +829,10 @@ export interface AnthropicLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  /**
+   * Optional temperature setting to use with the model.
+   */
+  temperature?: number;
   headers?: LanguageModelHeaders;
 }
 export interface AzureLanguageModel {
@@ -876,6 +884,10 @@ export interface AzureLanguageModel {
    * Controls whether the model returns its reasoning process. Set to 'auto' for a condensed summary, 'detailed' for more comprehensive reasoning, or 'none' to disable. Defaults to 'auto'.
    */
   reasoningSummary?: string;
+  /**
+   * Optional temperature setting to use with the model.
+   */
+  temperature?: number;
   headers?: LanguageModelHeaders;
 }
 export interface DeepSeekLanguageModel {
@@ -911,6 +923,10 @@ export interface DeepSeekLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  /**
+   * Optional temperature setting to use with the model.
+   */
+  temperature?: number;
   headers?: LanguageModelHeaders;
 }
 export interface GoogleGenerativeAILanguageModel {
@@ -946,6 +962,10 @@ export interface GoogleGenerativeAILanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  /**
+   * Optional temperature setting to use with the model.
+   */
+  temperature?: number;
   headers?: LanguageModelHeaders;
 }
 export interface GoogleVertexAnthropicLanguageModel {
@@ -989,6 +1009,10 @@ export interface GoogleVertexAnthropicLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  /**
+   * Optional temperature setting to use with the model.
+   */
+  temperature?: number;
   headers?: LanguageModelHeaders;
 }
 export interface GoogleVertexLanguageModel {
@@ -1032,6 +1056,10 @@ export interface GoogleVertexLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  /**
+   * Optional temperature setting to use with the model.
+   */
+  temperature?: number;
   headers?: LanguageModelHeaders;
 }
 export interface MistralLanguageModel {
@@ -1067,6 +1095,10 @@ export interface MistralLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  /**
+   * Optional temperature setting to use with the model.
+   */
+  temperature?: number;
   headers?: LanguageModelHeaders;
 }
 export interface OpenAILanguageModel {
@@ -1110,6 +1142,10 @@ export interface OpenAILanguageModel {
    * Controls whether the model returns its reasoning process. Set to 'auto' for a condensed summary, 'detailed' for more comprehensive reasoning, or 'none' to disable. Defaults to 'auto'.
    */
   reasoningSummary?: string;
+  /**
+   * Optional temperature setting to use with the model.
+   */
+  temperature?: number;
   headers?: LanguageModelHeaders;
 }
 export interface OpenAICompatibleLanguageModel {
@@ -1151,6 +1187,10 @@ export interface OpenAICompatibleLanguageModel {
    * The name of the XML tag to extract reasoning from (without angle brackets). Defaults to `think`.
    */
   reasoningTag?: string;
+  /**
+   * Optional temperature setting to use with the model.
+   */
+  temperature?: number;
 }
 /**
  * Optional query parameters to include in the request url.
@@ -1210,6 +1250,10 @@ export interface OpenRouterLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  /**
+   * Optional temperature setting to use with the model.
+   */
+  temperature?: number;
   headers?: LanguageModelHeaders;
 }
 export interface XaiLanguageModel {
@@ -1245,6 +1289,10 @@ export interface XaiLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  /**
+   * Optional temperature setting to use with the model.
+   */
+  temperature?: number;
   headers?: LanguageModelHeaders;
 }
 export interface GitHubAppConfig {

@@ -70,7 +70,7 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 languageModelConfig = matchingModel;
             }
 
-            const { model, providerOptions } = await getAISDKLanguageModelAndOptions(languageModelConfig);
+            const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
             const modelName = languageModelConfig.displayName ?? languageModelConfig.model;
 
             const chatVisibility = (requestedVisibility && user)
@@ -156,6 +156,7 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 model,
                 modelName,
                 modelProviderOptions: providerOptions,
+                modelTemperature: temperature,
                 onFinish: async ({ messages }) => {
                     finalMessages = messages;
                 },
