@@ -126,6 +126,10 @@ const schema = {
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
         },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
+        },
         "headers": {
           "type": "object",
           "description": "Optional headers to use with the model.",
@@ -260,6 +264,10 @@ const schema = {
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
         },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
+        },
         "headers": {
           "type": "object",
           "description": "Optional headers to use with the model.",
@@ -391,6 +399,10 @@ const schema = {
             "detailed"
           ]
         },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
+        },
         "headers": {
           "type": "object",
           "description": "Optional headers to use with the model.",
@@ -494,6 +506,10 @@ const schema = {
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
         },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
+        },
         "headers": {
           "type": "object",
           "description": "Optional headers to use with the model.",
@@ -596,6 +612,10 @@ const schema = {
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
         },
         "headers": {
           "type": "object",
@@ -715,6 +735,10 @@ const schema = {
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
         },
         "headers": {
           "type": "object",
@@ -837,6 +861,10 @@ const schema = {
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
         },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
+        },
         "headers": {
           "type": "object",
           "description": "Optional headers to use with the model.",
@@ -939,6 +967,10 @@ const schema = {
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
         },
         "headers": {
           "type": "object",
@@ -1068,6 +1100,10 @@ const schema = {
             "auto",
             "detailed"
           ]
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
         },
         "headers": {
           "type": "object",
@@ -1272,6 +1308,10 @@ const schema = {
             "thinking",
             "reasoning"
           ]
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
         }
       },
       "required": [
@@ -1332,6 +1372,10 @@ const schema = {
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
         },
         "headers": {
           "type": "object",
@@ -1439,6 +1483,10 @@ const schema = {
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
         },
         "headers": {
           "type": "object",
@@ -1616,6 +1664,10 @@ const schema = {
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
         },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
+        },
         "headers": {
           "type": "object",
           "description": "Optional headers to use with the model.",
@@ -1750,6 +1802,10 @@ const schema = {
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
         },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
+        },
         "headers": {
           "type": "object",
           "description": "Optional headers to use with the model.",
@@ -1881,6 +1937,10 @@ const schema = {
             "detailed"
           ]
         },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
+        },
         "headers": {
           "type": "object",
           "description": "Optional headers to use with the model.",
@@ -1984,6 +2044,10 @@ const schema = {
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
         },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
+        },
         "headers": {
           "type": "object",
           "description": "Optional headers to use with the model.",
@@ -2086,6 +2150,10 @@ const schema = {
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
         },
         "headers": {
           "type": "object",
@@ -2205,6 +2273,10 @@ const schema = {
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
         },
         "headers": {
           "type": "object",
@@ -2327,6 +2399,10 @@ const schema = {
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
         },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
+        },
         "headers": {
           "type": "object",
           "description": "Optional headers to use with the model.",
@@ -2429,6 +2505,10 @@ const schema = {
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
         },
         "headers": {
           "type": "object",
@@ -2558,6 +2638,10 @@ const schema = {
             "auto",
             "detailed"
           ]
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
         },
         "headers": {
           "type": "object",
@@ -2762,6 +2846,10 @@ const schema = {
             "thinking",
             "reasoning"
           ]
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
         }
       },
       "required": [
@@ -2822,6 +2910,10 @@ const schema = {
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
         },
         "headers": {
           "type": "object",
@@ -2929,6 +3021,10 @@ const schema = {
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Optional temperature setting to use with the model."
         },
         "headers": {
           "type": "object",

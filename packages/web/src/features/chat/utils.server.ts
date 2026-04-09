@@ -160,6 +160,7 @@ User question: ${message}`;
 export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Promise<{
     model: AISDKLanguageModelV3,
     providerOptions?: Record<string, Record<string, JSONValue>>,
+    temperature?: number,
 }> => {
     const { provider, model: modelId } = config;
 
@@ -426,6 +427,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
     return {
         model,
         providerOptions,
+        temperature: config.temperature,
     };
 }
 
