@@ -2057,6 +2057,16 @@ const schema = {
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Use a different URL prefix for API calls. Either this or `resourceName` can be used."
               },
+              "reasoningEffort": {
+                "type": "string",
+                "description": "The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings",
+                "examples": [
+                  "minimal",
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
               "headers": {
                 "type": "object",
                 "description": "Optional headers to use with the model.",
@@ -3516,6 +3526,16 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Use a different URL prefix for API calls. Either this or `resourceName` can be used."
+              },
+              "reasoningEffort": {
+                "type": "string",
+                "description": "The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings",
+                "examples": [
+                  "minimal",
+                  "low",
+                  "medium",
+                  "high"
+                ]
               },
               "headers": {
                 "type": "object",

@@ -234,6 +234,11 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
 
                 return {
                     model: azure(modelId),
+                    providerOptions: {
+                        openai: {
+                            reasoningEffort: config.reasoningEffort ?? 'medium',
+                        } satisfies OpenAIResponsesProviderOptions,
+                    }
                 };
             }
             case 'deepseek': {
