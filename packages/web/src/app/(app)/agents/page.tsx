@@ -5,10 +5,17 @@ import { env } from "@sourcebot/shared";
 
 const agents = [
   {
-    id: "review-agent",
-    name: "Review Agent",
-    description: "An AI code review agent that reviews your PRs. Uses the code indexed on Sourcebot to provide codebase-wide context.",
-    requiredEnvVars: ["GITHUB_REVIEW_AGENT_APP_ID", "GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET", "GITHUB_REVIEW_AGENT_APP_PRIVATE_KEY_PATH", "OPENAI_API_KEY"],
+    id: "github-review-agent",
+    name: "GitHub Review Agent",
+    description: "An AI code review agent that reviews your GitHub PRs. Uses the code indexed on Sourcebot to provide codebase-wide context.",
+    requiredEnvVars: ["GITHUB_REVIEW_AGENT_APP_ID", "GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET", "GITHUB_REVIEW_AGENT_APP_PRIVATE_KEY_PATH"],
+    configureUrl: "https://docs.sourcebot.dev/docs/features/agents/review-agent"
+  },
+  {
+    id: "gitlab-review-agent",
+    name: "GitLab Review Agent",
+    description: "An AI code review agent that reviews your GitLab MRs. Uses the code indexed on Sourcebot to provide codebase-wide context.",
+    requiredEnvVars: ["GITLAB_REVIEW_AGENT_WEBHOOK_SECRET", "GITLAB_REVIEW_AGENT_TOKEN"],
     configureUrl: "https://docs.sourcebot.dev/docs/features/agents/review-agent"
   },
 ];

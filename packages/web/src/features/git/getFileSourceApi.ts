@@ -7,6 +7,7 @@ import { ServiceError, notFound, fileNotFound, invalidGitRef, unexpectedError } 
 import { getCodeHostBrowseFileAtBranchUrl } from '@/lib/utils';
 import { withOptionalAuth } from '@/middleware/withAuth';
 import { env, getRepoPath } from '@sourcebot/shared';
+import { Org, PrismaClient } from '@sourcebot/db';
 import { headers } from 'next/headers';
 import simpleGit from 'simple-git';
 import type z from 'zod';
@@ -17,18 +18,15 @@ export { fileSourceRequestSchema, fileSourceResponseSchema } from './schemas';
 export type FileSourceRequest = z.infer<typeof fileSourceRequestSchema>;
 export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
 
-export const getFileSource = async ({ path: filePath, repo: repoName, ref }: FileSourceRequest, { source }: { source?: string } = {}): Promise<FileSourceResponse | ServiceError> => sew(() => withOptionalAuth(async ({ org, prisma, user }) => {
-    if (user) {
-        const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
-        getAuditService().createAudit({
-            action: 'user.fetched_file_source',
-            actor: { id: user.id, type: 'user' },
-            target: { id: org.id.toString(), type: 'org' },
-            orgId: org.id,
-            metadata: { source: resolvedSource },
-        });
-    }
-
+/**
+ * Fetches file source without an auth layer. Intended for privileged server-side
+ * callers (e.g. the review agent webhook handler) that have already been
+ * authenticated via their own mechanism and need direct repo access.
+ */
+export const getFileSourceForRepo = async (
+    { path: filePath, repo: repoName, ref }: FileSourceRequest,
+    { org, prisma }: { org: Org; prisma: PrismaClient },
+): Promise<FileSourceResponse | ServiceError> => {
     const repo = await prisma.repo.findFirst({
         where: { name: repoName, orgId: org.id },
     });
@@ -47,9 +45,7 @@ export const getFileSource = async ({ path: filePath, repo: repoName, ref }: Fil
     const { path: repoPath } = getRepoPath(repo);
     const git = simpleGit().cwd(repoPath);
 
-    const gitRef = ref ??
-        repo.defaultBranch ??
-        'HEAD';
+    const gitRef = ref ?? repo.defaultBranch ?? 'HEAD';
 
     let fileContent: string;
     try {
@@ -102,4 +98,19 @@ export const getFileSource = async ({ path: filePath, repo: repoName, ref }: Fil
         webUrl,
         externalWebUrl,
     } satisfies FileSourceResponse;
+};
+
+export const getFileSource = async ({ path: filePath, repo: repoName, ref }: FileSourceRequest, { source }: { source?: string } = {}): Promise<FileSourceResponse | ServiceError> => sew(() => withOptionalAuth(async ({ org, prisma, user }) => {
+    if (user) {
+        const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
+        getAuditService().createAudit({
+            action: 'user.fetched_file_source',
+            actor: { id: user.id, type: 'user' },
+            target: { id: org.id.toString(), type: 'org' },
+            orgId: org.id,
+            metadata: { source: resolvedSource },
+        });
+    }
+
+    return getFileSourceForRepo({ path: filePath, repo: repoName, ref }, { org, prisma });
 }));

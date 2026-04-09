@@ -195,6 +195,11 @@ const options = {
         GITHUB_REVIEW_AGENT_APP_ID: z.string().optional(),
         GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET: z.string().optional(),
         GITHUB_REVIEW_AGENT_APP_PRIVATE_KEY_PATH: z.string().optional(),
+        // GitLab for review agent
+        GITLAB_REVIEW_AGENT_WEBHOOK_SECRET: z.string().optional(),
+        GITLAB_REVIEW_AGENT_TOKEN: z.string().optional(),
+        GITLAB_REVIEW_AGENT_HOST: z.string().default('gitlab.com'),
+        REVIEW_AGENT_MODEL: z.string().optional(),
         REVIEW_AGENT_API_KEY: z.string().optional(),
         REVIEW_AGENT_LOGGING_ENABLED: booleanSchema.default('true'),
         REVIEW_AGENT_AUTO_REVIEW_ENABLED: booleanSchema.default('false'),

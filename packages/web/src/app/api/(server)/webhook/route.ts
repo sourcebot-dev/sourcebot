@@ -3,14 +3,15 @@
 import { NextRequest } from "next/server";
 import { App, Octokit } from "octokit";
 import { WebhookEventDefinition} from "@octokit/webhooks/types";
+import { Gitlab } from "@gitbeaker/rest";
 import { env } from "@sourcebot/shared";
-import { processGitHubPullRequest } from "@/features/agents/review-agent/app";
+import { processGitHubPullRequest, processGitLabMergeRequest } from "@/features/agents/review-agent/app";
 import { throttling, type ThrottlingOptions } from "@octokit/plugin-throttling";
 import fs from "fs";
-import { GitHubPullRequest } from "@/features/agents/review-agent/types";
+import { GitHubPullRequest, GitLabMergeRequestPayload, GitLabNotePayload } from "@/features/agents/review-agent/types";
 import { createLogger } from "@sourcebot/shared";
 
-const logger = createLogger('github-webhook');
+const logger = createLogger('webhook');
 
 const DEFAULT_GITHUB_API_BASE_URL = "https://api.github.com";
 type GitHubAppBaseOptions = Omit<ConstructorParameters<typeof App>[0], "Octokit"> & { throttle: ThrottlingOptions };
@@ -95,6 +96,40 @@ function isIssueCommentEvent(eventHeader: string, payload: unknown): payload is 
     return eventHeader === "issue_comment" && typeof payload === "object" && payload !== null && "action" in payload && typeof payload.action === "string" && payload.action === "created";
 }
 
+function isGitLabMergeRequestEvent(eventHeader: string, payload: unknown): payload is GitLabMergeRequestPayload {
+    return (
+        eventHeader === "Merge Request Hook" &&
+        typeof payload === "object" &&
+        payload !== null &&
+        "object_attributes" in payload &&
+        typeof (payload as GitLabMergeRequestPayload).object_attributes?.action === "string" &&
+        ["open", "update", "reopen"].includes((payload as GitLabMergeRequestPayload).object_attributes.action)
+    );
+}
+
+function isGitLabNoteEvent(eventHeader: string, payload: unknown): payload is GitLabNotePayload {
+    return (
+        eventHeader === "Note Hook" &&
+        typeof payload === "object" &&
+        payload !== null &&
+        "object_attributes" in payload &&
+        (payload as GitLabNotePayload).object_attributes?.noteable_type === "MergeRequest"
+    );
+}
+
+let gitlabClient: InstanceType<typeof Gitlab> | undefined;
+
+if (env.GITLAB_REVIEW_AGENT_TOKEN) {
+    try {
+        gitlabClient = new Gitlab({
+            host: `https://${env.GITLAB_REVIEW_AGENT_HOST}`,
+            token: env.GITLAB_REVIEW_AGENT_TOKEN,
+        });
+    } catch (error) {
+        logger.error(`Error initializing GitLab client: ${error}`);
+    }
+}
+
 export const POST = async (request: NextRequest) => {
     const body = await request.json();
     const headers = Object.fromEntries(Array.from(request.headers.entries(), ([key, value]) => [key.toLowerCase(), value]));
@@ -157,6 +192,63 @@ export const POST = async (request: NextRequest) => {
                 });
 
                 await processGitHubPullRequest(octokit, pullRequest);
+            }
+        }
+    }
+
+    const gitlabEvent = headers['x-gitlab-event'];
+    if (gitlabEvent) {
+        logger.info('GitLab event received:', gitlabEvent);
+
+        const token = headers['x-gitlab-token'];
+        if (!env.GITLAB_REVIEW_AGENT_WEBHOOK_SECRET || token !== env.GITLAB_REVIEW_AGENT_WEBHOOK_SECRET) {
+            logger.warn('GitLab webhook token is invalid or GITLAB_REVIEW_AGENT_WEBHOOK_SECRET is not set');
+            return Response.json({ status: 'ok' });
+        }
+
+        if (!gitlabClient) {
+            logger.warn('Received GitLab webhook event but GITLAB_REVIEW_AGENT_TOKEN is not set');
+            return Response.json({ status: 'ok' });
+        }
+
+        if (isGitLabMergeRequestEvent(gitlabEvent, body)) {
+            if (env.REVIEW_AGENT_AUTO_REVIEW_ENABLED === "false") {
+                logger.info('Review agent auto review (REVIEW_AGENT_AUTO_REVIEW_ENABLED) is disabled, skipping');
+                return Response.json({ status: 'ok' });
+            }
+
+            await processGitLabMergeRequest(
+                gitlabClient,
+                body.project.id,
+                body,
+                env.GITLAB_REVIEW_AGENT_HOST,
+            );
+        }
+
+        if (isGitLabNoteEvent(gitlabEvent, body)) {
+            const noteBody = body.object_attributes?.note;
+            if (noteBody === `/${env.REVIEW_AGENT_REVIEW_COMMAND}`) {
+                logger.info('Review agent review command received on GitLab MR, processing');
+
+                const mrPayload: GitLabMergeRequestPayload = {
+                    object_kind: "merge_request",
+                    object_attributes: {
+                        iid: body.merge_request.iid,
+                        title: body.merge_request.title,
+                        description: body.merge_request.description,
+                        action: "update",
+                        last_commit: body.merge_request.last_commit,
+                        diff_refs: body.merge_request.diff_refs,
+                    },
+                    project: body.project,
+                };
+
+                await processGitLabMergeRequest(
+                    gitlabClient,
+                    body.project.id,
+                    mrPayload,
+                    env.GITLAB_REVIEW_AGENT_HOST,
+                );
             }
         }
     }

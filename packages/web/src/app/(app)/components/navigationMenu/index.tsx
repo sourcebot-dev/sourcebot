@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { OrgRole, RepoIndexingJobStatus, RepoIndexingJobType } from "@sourcebot/db";
+import { env } from "@sourcebot/shared";
 import Link from "next/link";
 import { MeControlDropdownMenu } from "../meControlDropdownMenu";
 import WhatsNewIndicator from "../whatsNewIndicator";
@@ -103,6 +104,10 @@ export const NavigationMenu = async () => {
                                 ) : false
                             }
                             isAuthenticated={isAuthenticated}
+                            isAgentsVisible={isAuthenticated && (
+                                !!(env.GITHUB_REVIEW_AGENT_APP_ID && env.GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET && env.GITHUB_REVIEW_AGENT_APP_PRIVATE_KEY_PATH) ||
+                                !!(env.GITLAB_REVIEW_AGENT_WEBHOOK_SECRET && env.GITLAB_REVIEW_AGENT_TOKEN)
+                            )}
                         />
                     </NavigationMenuBase>
                 </div>

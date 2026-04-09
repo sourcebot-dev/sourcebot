@@ -1,41 +1,51 @@
-import OpenAI from "openai";
 import { sourcebot_file_diff_review, sourcebot_file_diff_review_schema } from "@/features/agents/review-agent/types";
+import { getAISDKLanguageModelAndOptions, getConfiguredLanguageModels } from "@/features/chat/utils.server";
 import { env } from "@sourcebot/shared";
-import { appendReviewAgentLog } from "@/features/agents/review-agent/lib"
+import { generateText } from "ai";
+import fs from "fs";
 import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('invoke-diff-review-llm');
 
-export const invokeDiffReviewLlm = async (reviewAgentLogFileName: string | undefined, prompt: string): Promise<sourcebot_file_diff_review> => {
+export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined, prompt: string): Promise<sourcebot_file_diff_review> => {
     logger.debug("Executing invoke_diff_review_llm");
-    
-    if (!env.OPENAI_API_KEY) {
-        logger.error("OPENAI_API_KEY is not set, skipping review agent");
-        throw new Error("OPENAI_API_KEY is not set, skipping review agent");
-    }
-    
-    const openai = new OpenAI({
-        apiKey: env.OPENAI_API_KEY,
-    });
 
-    if (reviewAgentLogFileName) {
-        appendReviewAgentLog(reviewAgentLogFileName, `\n\nPrompt:\n${prompt}`);
+    const models = await getConfiguredLanguageModels();
+    if (models.length === 0) {
+        throw new Error("No language models are configured");
+    }
+
+    let selectedModel = models[0];
+    if (env.REVIEW_AGENT_MODEL) {
+        const match = models.find((m) => m.displayName === env.REVIEW_AGENT_MODEL);
+        if (match) {
+            selectedModel = match;
+        } else {
+            logger.warn(`REVIEW_AGENT_MODEL="${env.REVIEW_AGENT_MODEL}" did not match any configured model displayName. Falling back to the first configured model.`);
+        }
+    }
+
+    const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(selectedModel);
+
+    if (reviewAgentLogPath) {
+        fs.appendFileSync(reviewAgentLogPath, `\n\nPrompt:\n${prompt}`);
     }
 
     try {
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4.1-mini",
-          messages: [
-            { role: "system", content: prompt }
-          ]
+        const result = await generateText({
+            model,
+            system: prompt,
+            prompt: "Review the code changes.",
+            providerOptions,
+            temperature,
         });
-    
-        const openaiResponse = completion.choices[0].message.content;
-        if (reviewAgentLogFileName) {
-            appendReviewAgentLog(reviewAgentLogFileName, `\n\nResponse:\n${openaiResponse}`);
+
+        const responseText = result.text;
+        if (reviewAgentLogPath) {
+            fs.appendFileSync(reviewAgentLogPath, `\n\nResponse:\n${responseText}`);
         }
-        
-        const diffReviewJson = JSON.parse(openaiResponse || '{}');
+
+        const diffReviewJson = JSON.parse(responseText || '{}');
         const diffReview = sourcebot_file_diff_review_schema.safeParse(diffReviewJson);
 
         if (!diffReview.success) {
@@ -45,7 +55,7 @@ export const invokeDiffReviewLlm = async (reviewAgentLogFileName: string | undef
         logger.debug("Completed invoke_diff_review_llm");
         return diffReview.data;
     } catch (error) {
-        logger.error('Error calling OpenAI:', error);
+        logger.error('Error invoking language model:', error);
         throw error;
     }
 }
