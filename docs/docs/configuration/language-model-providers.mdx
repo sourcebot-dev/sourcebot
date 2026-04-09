@@ -107,20 +107,23 @@ For a detailed description of all the providers, please refer to the [schema](ht
 
 [Vercel AI SDK Azure OpenAI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/azure)
 
+The `model` field should be set to your Azure OpenAI deployment name. Either `resourceName` or `baseUrl` must be set. The `resourceName` is used to construct the URL `https://{resourceName}.openai.azure.com/openai/v1{path}`. If `baseUrl` is provided, `resourceName` is ignored.
+
 ```json wrap icon="code" Example config with Azure AI provider
 {
     "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
     "models": [
         {
             "provider": "azure",
-            "model": "YOUR_MODEL_HERE",
+            "model": "YOUR_DEPLOYMENT_NAME",
             "displayName": "OPTIONAL_DISPLAY_NAME",
             "resourceName": "YOUR_RESOURCE_NAME", // defaults to the AZURE_RESOURCE_NAME env var if not set
-            "apiVersion": "OPTIONAL_API_VERSION", // defaults to 'preview' if not set
+            "apiVersion": "OPTIONAL_API_VERSION",
             "token": {
                 "env": "AZURE_API_KEY"
             },
-            "baseUrl": "OPTIONAL_BASE_URL"
+            "baseUrl": "OPTIONAL_BASE_URL", // use instead of resourceName for custom endpoints
+            "reasoningEffort": "OPTIONAL_REASONING_EFFORT" // defaults to "medium"
         }
     ] 
 }
