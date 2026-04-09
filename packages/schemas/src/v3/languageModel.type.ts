@@ -202,6 +202,10 @@ export interface AzureLanguageModel {
    * Use a different URL prefix for API calls. Either this or `resourceName` can be used.
    */
   baseUrl?: string;
+  /**
+   * The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings
+   */
+  reasoningEffort?: string;
   headers?: LanguageModelHeaders;
 }
 export interface DeepSeekLanguageModel {
