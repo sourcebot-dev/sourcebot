@@ -43,6 +43,7 @@ import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
+import { WhatsNewSidebarButton } from "./whatsNewSidebarButton";
 
 interface SidebarBaseProps {
     session: Session | null;
@@ -86,6 +87,7 @@ export function SidebarBase({ session, collapsible = "icon", headerContent, chil
             </SidebarContent>
             <SidebarFooter className="border-t border-sidebar-border">
                 {collapsible !== "none" && <CollapseSidebarButton />}
+                <WhatsNewSidebarButton />
                 {session ? (
                     <MeControlDropdownMenu session={session} />
                 ) : (
