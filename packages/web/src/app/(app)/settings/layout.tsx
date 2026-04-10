@@ -62,9 +62,9 @@ export const getSidebarNavGroups = async () =>
                 label: "Account",
                 items: [
                     {
-                        title: "Profile",
-                        href: `/settings/profile`,
-                        icon: "user" as const,
+                        title: "General",
+                        href: `/settings/general`,
+                        icon: "settings" as const,
                     },
                     ...(env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'false' || role === OrgRole.OWNER ? [
                         {

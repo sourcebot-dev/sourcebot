@@ -16,6 +16,7 @@ import {
     type LucideIcon,
     PlugIcon,
     ScrollTextIcon,
+    Settings2Icon,
     ShieldIcon,
     UserIcon,
     UsersIcon,
@@ -31,6 +32,7 @@ const iconMap = {
     "plug": PlugIcon,
     "chart-area": ChartAreaIcon,
     "scroll-text": ScrollTextIcon,
+    "settings": Settings2Icon,
     "user": UserIcon,
 } satisfies Record<string, LucideIcon>;
 
