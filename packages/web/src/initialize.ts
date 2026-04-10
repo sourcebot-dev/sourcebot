@@ -1,5 +1,6 @@
 import { createGuestUser } from '@/lib/authUtils';
 import { __unsafePrisma } from "@/prisma";
+import { startServicePing } from '@/servicePing';
 import { OrgRole } from '@sourcebot/db';
 import { createLogger, env, hasEntitlement, loadConfig } from "@sourcebot/shared";
 import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_ID } from './lib/constants';
@@ -115,4 +116,5 @@ const init = async () => {
 
 (async () => {
     await init();
+    startServicePing();
 })();

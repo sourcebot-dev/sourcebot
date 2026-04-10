@@ -31,7 +31,6 @@ export type Plan = keyof typeof planLabels;
 const entitlements = [
     "search-contexts",
     "anonymous-access",
-    "multi-tenancy",
     "sso",
     "code-nav",
     "audit",

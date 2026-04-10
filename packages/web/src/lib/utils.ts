@@ -590,3 +590,27 @@ export const isHttpError = (error: unknown, status: number): boolean => {
         && 'status' in error
         && error.status === status;
 }
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+export const fetchWithRetry = async (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+    { retries = 3, backoffMs = 1000 }: { retries?: number; backoffMs?: number } = {},
+): Promise<Response> => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            const response = await fetch(input, init);
+            if (response.ok || attempt === retries) {
+                return response;
+            }
+        } catch (error) {
+            if (attempt === retries) {
+                throw error;
+            }
+        }
+        await sleep(backoffMs * Math.pow(2, attempt));
+    }
+    // Unreachable, but TypeScript needs it
+    throw new Error('fetchWithRetry: exhausted retries');
+}
