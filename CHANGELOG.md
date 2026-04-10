@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed Ask view layout becoming unusable in narrow/split window mode by reducing panel minimum sizes to allow better resizing. [#1107](https://github.com/sourcebot-dev/sourcebot/pull/1107)
+
 ## [4.16.8] - 2026-04-09
 
 ### Added

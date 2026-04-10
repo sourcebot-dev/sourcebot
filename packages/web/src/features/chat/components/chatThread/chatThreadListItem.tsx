@@ -319,8 +319,8 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
             >
                 <ResizablePanel
                     order={1}
-                    minSize={30}
-                    maxSize={70}
+                    minSize={20}
+                    maxSize={80}
                     defaultSize={50}
                     style={{
                         overflow: 'visible',
@@ -380,8 +380,8 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                 <AnimatedResizableHandle className='mx-4' />
                 <ResizablePanel
                     order={2}
-                    minSize={30}
-                    maxSize={70}
+                    minSize={20}
+                    maxSize={80}
                     defaultSize={50}
                     style={{
                         overflow: 'clip',
