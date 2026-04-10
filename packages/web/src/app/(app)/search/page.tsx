@@ -1,7 +1,6 @@
 import { env } from "@sourcebot/shared";
 import { SearchLandingPage } from "./components/searchLandingPage";
 import { SearchResultsPage } from "./components/searchResultsPage";
-import { auth } from "@/auth";
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 
 interface SearchPageProps {
@@ -18,7 +17,6 @@ export default async function SearchPage(props: SearchPageProps) {
     const isRegexEnabled = searchParams?.isRegexEnabled === "true";
     const isCaseSensitivityEnabled = searchParams?.isCaseSensitivityEnabled === "true";
 
-    const session = await auth();
     const languageModels = await getConfiguredLanguageModelsInfo();
     const isSearchAssistSupported = languageModels.length > 0;
 
@@ -32,7 +30,6 @@ export default async function SearchPage(props: SearchPageProps) {
             defaultMaxMatchCount={env.DEFAULT_MAX_MATCH_COUNT}
             isRegexEnabled={isRegexEnabled}
             isCaseSensitivityEnabled={isCaseSensitivityEnabled}
-            session={session}
             isSearchAssistSupported={isSearchAssistSupported}
         />
     )

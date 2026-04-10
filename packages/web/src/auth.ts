@@ -18,6 +18,8 @@ import { onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
 import { EncryptedPrismaAdapter, encryptAccountData } from '@/lib/encryptedPrismaAdapter';
+import { getAnonymousId } from '@/lib/anonymousId';
+import { captureEvent } from '@/lib/posthog';
 
 const auditService = getAuditService();
 const eeIdentityProviders = hasEntitlement("sso") ? await getEEIdentityProviders() : [];
@@ -187,6 +189,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
 
             if (user.id) {
+                // Claim any anonymous chats created before sign-in.
+                const anonymousId = await getAnonymousId();
+                if (anonymousId) {
+                    const result = await __unsafePrisma.chat.updateMany({
+                        where: {
+                            orgId: SINGLE_TENANT_ORG_ID,
+                            anonymousCreatorId: anonymousId,
+                            createdById: null,
+                        },
+                        data: {
+                            createdById: user.id,
+                            anonymousCreatorId: null,
+                        },
+                    });
+
+                    if (result.count > 0) {
+                        await captureEvent('wa_anonymous_chats_claimed', {
+                            claimedCount: result.count,
+                        });
+                    }
+                }
+
                 await auditService.createAudit({
                     action: "user.signed_in",
                     actor: {

@@ -4,6 +4,7 @@ import { isServiceError } from "@/lib/utils";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { ShieldCheck } from "lucide-react";
 import { LinkedAccountProviderCard } from "@/ee/features/sso/components/linkedAccountProviderCard";
+import { SettingsCardGroup } from "../components/settingsCard";
 
 export default async function LinkedAccountsPage() {
     const linkedAccounts = await getLinkedAccounts();
@@ -43,7 +44,7 @@ export default async function LinkedAccountsPage() {
                     </CardContent>
                 </Card>
             ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                     {linkedAccounts
                         .sort((a, b) => (b.required ? 1 : 0) - (a.required ? 1 : 0))
                         .map((account) => (

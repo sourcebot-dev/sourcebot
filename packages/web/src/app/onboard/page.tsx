@@ -309,7 +309,7 @@ export default async function Onboarding(props: OnboardingProps) {
                                         </a>{" "}
                                         or{" "}
                                         <a
-                                            href="https://github.com/sourcebot-dev/sourcebot/discussions"
+                                            href="mailto:team@sourcebot.dev"
                                             className="text-primary hover:underline font-medium transition-colors"
                                             target="_blank"
                                             rel="noopener"
