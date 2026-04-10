@@ -3,9 +3,7 @@
 import { AnimatedResizableHandle } from '@/components/ui/animatedResizableHandle';
 import { ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { CheckCircle, Loader2, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { CheckCircle, Loader2 } from 'lucide-react';
 import { CSSProperties, forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { Reference, referenceSchema, SBChatMessage, Source } from "../../types";
@@ -17,9 +15,6 @@ import { MarkdownRenderer, REFERENCE_PAYLOAD_ATTRIBUTE } from './markdownRendere
 import { ReferencedSourcesListView } from './referencedSourcesListView';
 import isEqual from "fast-deep-equal/react";
 import { ANSWER_TAG } from '../../constants';
-
-// Minimum width in pixels for the horizontal layout to work well
-const MIN_HORIZONTAL_LAYOUT_WIDTH = 768;
 
 interface ChatThreadListItemProps {
     userMessage: SBChatMessage;
@@ -38,7 +33,6 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     chatId,
     index,
 }, ref) => {
-    const containerRef = useRef<HTMLDivElement>(null);
     const leftPanelRef = useRef<HTMLDivElement>(null);
     const [leftPanelHeight, setLeftPanelHeight] = useState<number | null>(null);
     const answerRef = useRef<HTMLDivElement>(null);
@@ -48,32 +42,6 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     const [isDetailsPanelExpanded, _setIsDetailsPanelExpanded] = useState(isStreaming);
     const hasAutoCollapsed = useRef(false);
     const userHasManuallyExpanded = useRef(false);
-
-    // Layout state: track container width and user preference
-    const [containerWidth, setContainerWidth] = useState<number | null>(null);
-    const [isReferencePanelCollapsed, setIsReferencePanelCollapsed] = useState(false);
-
-    // Determine if we should use vertical layout based on container width
-    const shouldUseVerticalLayout = containerWidth !== null && containerWidth < MIN_HORIZONTAL_LAYOUT_WIDTH;
-
-    // Monitor container width for responsive layout
-    useEffect(() => {
-        if (!containerRef.current) {
-            return;
-        }
-
-        const resizeObserver = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                setContainerWidth(entry.contentRect.width);
-            }
-        });
-
-        resizeObserver.observe(containerRef.current);
-
-        return () => {
-            resizeObserver.disconnect();
-        };
-    }, []);
 
     const userQuestion = useMemo(() => {
         return userMessage.parts.length > 0 && userMessage.parts[0].type === 'text' ? userMessage.parts[0].text : '';
@@ -337,162 +305,10 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     }, [references, sources]);
 
 
-    // Content for the answer/question panel
-    const answerPanelContent = (
-        <div
-            ref={leftPanelRef}
-            className="py-4 h-full"
-        >
-            <div className="flex flex-row gap-2 mb-4">
-                {isStreaming ? (
-                    <Loader2 className="w-4 h-4 animate-spin flex-shrink-0 mt-1.5" />
-                ) : (
-                    <CheckCircle className="w-4 h-4 text-green-700 flex-shrink-0 mt-1.5" />
-                )}
-                <MarkdownRenderer
-                    content={userQuestion.trim()}
-                    className="prose-p:m-0"
-                    escapeHtml={true}
-                />
-            </div>
-
-            {isThinking && (
-                <div className="space-y-4 mb-4">
-                    <Skeleton className="h-4 max-w-32" />
-                    <div className="space-y-2">
-                        <Skeleton className="h-3 max-w-72" />
-                        <Skeleton className="h-3 max-w-64" />
-                        <Skeleton className="h-3 max-w-56" />
-                    </div>
-                </div>
-            )}
-
-            <DetailsCard
-                chatId={chatId}
-                isExpanded={isDetailsPanelExpanded}
-                onExpandedChanged={onExpandDetailsPanel}
-                isThinking={isThinking}
-                isStreaming={isStreaming}
-                thinkingSteps={uiVisibleThinkingSteps}
-                metadata={assistantMessage?.metadata}
-            />
-
-            {(answerPart && assistantMessage) ? (
-                <AnswerCard
-                    ref={answerRef}
-                    answerText={answerPart.text}
-                    chatId={chatId}
-                    messageId={assistantMessage.id}
-                    traceId={assistantMessage.metadata?.traceId}
-                />
-            ) : !isStreaming && (
-                <p className="text-destructive">Error: No answer response was provided</p>
-            )}
-        </div>
-    );
-
-    // Content for the references panel
-    const referencesPanelContent = (
-        <>
-            {referencedFileSources.length > 0 ? (
-                <ReferencedSourcesListView
-                    index={index}
-                    references={references}
-                    sources={referencedFileSources}
-                    hoveredReference={hoveredReference}
-                    selectedReference={selectedReference}
-                    onSelectedReferenceChanged={setSelectedReference}
-                    onHoveredReferenceChanged={setHoveredReference}
-                    style={shouldUseVerticalLayout || isReferencePanelCollapsed ? {} : rightPanelStyle}
-                />
-            ) : isStreaming ? (
-                <div className="space-y-4">
-                    {Array.from({ length: 3 }).map((_, index) => (
-                        <Skeleton key={index} className="w-full h-48" />
-                    ))}
-                </div>
-            ) : (
-                <div className="p-4 text-center text-muted-foreground text-sm">
-                    No file references found
-                </div>
-            )}
-        </>
-    );
-
-    // Layout toggle button for narrow containers
-    const layoutToggleButton = referencedFileSources.length > 0 && (
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => setIsReferencePanelCollapsed(!isReferencePanelCollapsed)}
-                >
-                    {isReferencePanelCollapsed ? (
-                        <PanelLeft className="h-4 w-4" />
-                    ) : (
-                        <PanelLeftClose className="h-4 w-4" />
-                    )}
-                </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-                {isReferencePanelCollapsed ? 'Show code references' : 'Hide code references'}
-            </TooltipContent>
-        </Tooltip>
-    );
-
-    // Vertical layout for narrow containers
-    if (shouldUseVerticalLayout) {
-        return (
-            <div
-                className="flex flex-col relative"
-                ref={(node) => {
-                    // Handle both refs
-                    containerRef.current = node;
-                    if (typeof ref === 'function') {
-                        ref(node);
-                    } else if (ref) {
-                        ref.current = node;
-                    }
-                }}
-            >
-                {/* Answer panel with toggle button */}
-                <div className="relative">
-                    {referencedFileSources.length > 0 && (
-                        <div className="absolute top-4 right-0 z-10">
-                            {layoutToggleButton}
-                        </div>
-                    )}
-                    {answerPanelContent}
-                </div>
-
-                {/* References panel - collapsible in vertical layout */}
-                {!isReferencePanelCollapsed && referencedFileSources.length > 0 && (
-                    <div className="border-t pt-4 mt-4">
-                        <div className="text-sm font-medium text-muted-foreground mb-3">Code References</div>
-                        <div className="max-h-[50vh] overflow-y-auto">
-                            {referencesPanelContent}
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    }
-
-    // Horizontal layout for wider containers
     return (
         <div
-            className="flex flex-col relative min-h-[calc(100vh-250px)]"
-            ref={(node) => {
-                // Handle both refs
-                containerRef.current = node;
-                if (typeof ref === 'function') {
-                    ref(node);
-                } else if (ref) {
-                    ref.current = node;
-                }
-            }}
+            className="flex flex-col md:flex-row relative min-h-[calc(100vh-250px)]"
+            ref={ref}
         >
             <ResizablePanelGroup
                 direction="horizontal"
@@ -503,42 +319,103 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
             >
                 <ResizablePanel
                     order={1}
-                    minSize={isReferencePanelCollapsed ? 100 : 30}
-                    maxSize={isReferencePanelCollapsed ? 100 : 70}
-                    defaultSize={isReferencePanelCollapsed ? 100 : 50}
+                    minSize={20}
+                    maxSize={80}
+                    defaultSize={50}
                     style={{
                         overflow: 'visible',
                     }}
                 >
-                    <div className="relative">
-                        {referencedFileSources.length > 0 && (
-                            <div className="absolute top-4 right-0 z-10">
-                                {layoutToggleButton}
+                    <div
+                        ref={leftPanelRef}
+                        className="py-4 h-full"
+                    >
+                        <div className="flex flex-row gap-2 mb-4">
+                            {isStreaming ? (
+                                <Loader2 className="w-4 h-4 animate-spin flex-shrink-0 mt-1.5" />
+                            ) : (
+                                <CheckCircle className="w-4 h-4 text-green-700 flex-shrink-0 mt-1.5" />
+                            )}
+                            <MarkdownRenderer
+                                content={userQuestion.trim()}
+                                className="prose-p:m-0"
+                                escapeHtml={true}
+                            />
+                        </div>
+
+                        {isThinking && (
+                            <div className="space-y-4 mb-4">
+                                <Skeleton className="h-4 max-w-32" />
+                                <div className="space-y-2">
+                                    <Skeleton className="h-3 max-w-72" />
+                                    <Skeleton className="h-3 max-w-64" />
+                                    <Skeleton className="h-3 max-w-56" />
+                                </div>
                             </div>
                         )}
-                        {answerPanelContent}
+
+                        <DetailsCard
+                            chatId={chatId}
+                            isExpanded={isDetailsPanelExpanded}
+                            onExpandedChanged={onExpandDetailsPanel}
+                            isThinking={isThinking}
+                            isStreaming={isStreaming}
+                            thinkingSteps={uiVisibleThinkingSteps}
+                            metadata={assistantMessage?.metadata}
+                        />
+
+                        {(answerPart && assistantMessage) ? (
+                            <AnswerCard
+                                ref={answerRef}
+                                answerText={answerPart.text}
+                                chatId={chatId}
+                                messageId={assistantMessage.id}
+                                traceId={assistantMessage.metadata?.traceId}
+                            />
+                        ) : !isStreaming && (
+                            <p className="text-destructive">Error: No answer response was provided</p>
+                        )}
                     </div>
                 </ResizablePanel>
-                {!isReferencePanelCollapsed && (
-                    <>
-                        <AnimatedResizableHandle className='mx-4' />
-                        <ResizablePanel
-                            order={2}
-                            minSize={30}
-                            maxSize={70}
-                            defaultSize={50}
-                            style={{
-                                overflow: 'clip',
-                                maxHeight: '100%',
-                                minWidth: 0,
-                            }}
-                        >
-                            <div className="sticky top-0">
-                                {referencesPanelContent}
+                <AnimatedResizableHandle className='mx-4' />
+                <ResizablePanel
+                    order={2}
+                    minSize={20}
+                    maxSize={80}
+                    defaultSize={50}
+                    style={{
+                        overflow: 'clip',
+                        maxHeight: '100%',
+                        minWidth: 0,
+                    }}
+                >
+                    <div
+                        className="sticky top-0"
+                    >
+                        {referencedFileSources.length > 0 ? (
+                            <ReferencedSourcesListView
+                                index={index}
+                                references={references}
+                                sources={referencedFileSources}
+                                hoveredReference={hoveredReference}
+                                selectedReference={selectedReference}
+                                onSelectedReferenceChanged={setSelectedReference}
+                                onHoveredReferenceChanged={setHoveredReference}
+                                style={rightPanelStyle}
+                            />
+                        ) : isStreaming ? (
+                            <div className="space-y-4">
+                                {Array.from({ length: 3 }).map((_, index) => (
+                                    <Skeleton key={index} className="w-full h-48" />
+                                ))}
                             </div>
-                        </ResizablePanel>
-                    </>
-                )}
+                        ) : (
+                            <div className="p-4 text-center text-muted-foreground text-sm">
+                                No file references found
+                            </div>
+                        )}
+                    </div>
+                </ResizablePanel>
             </ResizablePanelGroup>
         </div>
     )
