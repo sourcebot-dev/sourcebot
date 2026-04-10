@@ -1,26 +1,32 @@
 'use client';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { HomeView, useHomeView } from "@/hooks/useHomeView";
 import { useKeymapType } from "@/hooks/useKeymapType";
 import { KeymapType } from "@/lib/types";
-import { Laptop, Moon, Sun, Terminal, TextCursor } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useMemo } from "react";
 import { BasicSettingsCard, SettingsCardGroup } from "../components/settingsCard";
 
 const themeOptions = [
-    { value: "light", label: "Light", icon: Sun },
-    { value: "dark", label: "Dark", icon: Moon },
-    { value: "system", label: "System", icon: Laptop },
+    { value: "light", label: "Light" },
+    { value: "dark", label: "Dark" },
+    { value: "system", label: "System" },
+] as const;
+
+const homeViewOptions = [
+    { value: "search", label: "Code Search" },
+    { value: "ask", label: "Ask" },
 ] as const;
 
 const keymapOptions = [
-    { value: "default", label: "Standard", icon: TextCursor },
-    { value: "vim", label: "Vim", icon: Terminal },
+    { value: "default", label: "Standard" },
+    { value: "vim", label: "Vim" },
 ] as const;
 
 export function ProfilePage() {
     const { theme: _theme, setTheme } = useTheme();
+    const [homeView, setHomeView] = useHomeView();
     const [keymapType, setKeymapType] = useKeymapType();
 
     const theme = useMemo(() => {
@@ -36,6 +42,20 @@ export function ProfilePage() {
                 </p>
             </div>
             <SettingsCardGroup>
+                <BasicSettingsCard name="Default home view" description="Choose which page to show when you open Sourcebot.">
+                    <Select value={homeView} onValueChange={(value) => setHomeView(value as HomeView)}>
+                        <SelectTrigger className="w-36">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {homeViewOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </BasicSettingsCard>
                 <BasicSettingsCard name="Appearance" description="Choose how Sourcebot looks to you.">
                     <Select value={theme} onValueChange={setTheme}>
                         <SelectTrigger className="w-36">
@@ -44,10 +64,7 @@ export function ProfilePage() {
                         <SelectContent>
                             {themeOptions.map((option) => (
                                 <SelectItem key={option.value} value={option.value}>
-                                    <div className="flex items-center gap-2">
-                                        <option.icon className="h-3 w-3" />
-                                        <span>{option.label}</span>
-                                    </div>
+                                    {option.label}
                                 </SelectItem>
                             ))}
                         </SelectContent>
@@ -61,10 +78,7 @@ export function ProfilePage() {
                         <SelectContent>
                             {keymapOptions.map((option) => (
                                 <SelectItem key={option.value} value={option.value}>
-                                    <div className="flex items-center gap-2">
-                                        <option.icon className="h-3 w-3" />
-                                        <span>{option.label}</span>
-                                    </div>
+                                    {option.label}
                                 </SelectItem>
                             ))}
                         </SelectContent>

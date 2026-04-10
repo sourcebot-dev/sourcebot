@@ -1,4 +1,7 @@
+import { cookies } from "next/headers";
 import { auth } from "@/auth";
+import { HOME_VIEW_COOKIE_NAME } from "@/lib/constants";
+import { HomeView } from "@/hooks/useHomeView";
 import { getConnectionStats, getOrgAccountRequests } from "@/actions";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
@@ -15,6 +18,8 @@ const SIDEBAR_CHAT_LIMIT = 30;
 
 export async function DefaultSidebar() {
     const session = await auth();
+    const cookieStore = await cookies();
+    const homeView = (cookieStore.get(HOME_VIEW_COOKIE_NAME)?.value ?? "search") as HomeView;
 
     const chatHistory = session ? await getUserChatHistory() : [];
     if (isServiceError(chatHistory)) {
@@ -43,7 +48,13 @@ export async function DefaultSidebar() {
         <SidebarBase
             session={session}
             collapsible="icon"
-            headerContent={<Nav isSettingsNotificationVisible={isSettingsNotificationVisible} isSignedIn={!!session} />}
+            headerContent={
+                <Nav
+                    isSettingsNotificationVisible={isSettingsNotificationVisible}
+                    isSignedIn={!!session}
+                    homeView={homeView}
+                />
+            }
         >
             <ChatHistory
                 chatHistory={chatHistory.slice(0, SIDEBAR_CHAT_LIMIT)}

@@ -7,7 +7,9 @@ import {
 } from "@/components/ui/sidebar";
 import { BookMarkedIcon, type LucideIcon, MessageCircleIcon, MessagesSquareIcon, SearchIcon, SettingsIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { HomeView } from "@/hooks/useHomeView";
 import { NotificationDot } from "../../../components/notificationDot";
+import { useMemo } from "react";
 
 interface NavItem {
     title: string;
@@ -17,53 +19,76 @@ interface NavItem {
     requiresAuth?: boolean;
 }
 
-const baseItems: NavItem[] = [
-    {
-        title: "Code Search",
-        href: "/search",
-        icon: SearchIcon,
-        key: "search",
-    },
-    {
-        title: "Ask",
-        href: "/chat",
-        icon: MessageCircleIcon,
-        key: "chat"
-    },
-    {
-        title: "Chats",
-        href: "/chats",
-        icon: MessagesSquareIcon,
-        key: "chats",
-        requiresAuth: true,
-    },
-    {
-        title: "Repositories",
-        href: "/repos",
-        icon: BookMarkedIcon,
-        key: "repos"
-    },
-    {
-        title: "Settings",
-        href: "/settings",
-        icon: SettingsIcon,
-        key: "settings",
-        requiresAuth: true
-    },
-];
-
 interface NavProps {
     isSettingsNotificationVisible?: boolean;
     isSignedIn?: boolean;
+    homeView: HomeView;
 }
 
-export function Nav({ isSettingsNotificationVisible, isSignedIn }: NavProps) {
+export function Nav({ isSettingsNotificationVisible, isSignedIn, homeView }: NavProps) {
     const pathname = usePathname();
 
-    const isActive = (href: string) => {
-        if (href === "/search") {
-            return pathname === "/" || pathname.startsWith("/search");
+    const baseItems = useMemo((): NavItem[] => {
+
+        const searchItem: NavItem = {
+            title: "Code Search",
+            href: "/search",
+            icon: SearchIcon,
+            key: "search",
         }
+
+        const askItem: NavItem = {
+            title: "Ask",
+            href: "/chat",
+            icon: MessageCircleIcon,
+            key: "chat"
+        }
+
+        return [
+            ...(homeView === "search" ? [
+                searchItem,
+                askItem,
+            ] : [
+                askItem,
+                searchItem,
+            ]),
+            {
+                title: "Chats",
+                href: "/chats",
+                icon: MessagesSquareIcon,
+                key: "chats",
+                requiresAuth: true,
+            },
+            {
+                title: "Repositories",
+                href: "/repos",
+                icon: BookMarkedIcon,
+                key: "repos"
+            },
+            {
+                title: "Settings",
+                href: "/settings",
+                icon: SettingsIcon,
+                key: "settings",
+                requiresAuth: true
+            },
+        ]
+
+
+    }, [homeView]);
+
+    const isActive = (href: string) => {
+        if (pathname === "/") {
+            return (
+                (homeView === "ask" && href === "/chat") ||
+                (homeView === "search" && href === "/search")
+            )
+        }
+
+        if (href === "/search") {
+            return pathname.startsWith("/search");
+        }
+
         if (href === "/chat") {
             return pathname === "/chat";
         }
