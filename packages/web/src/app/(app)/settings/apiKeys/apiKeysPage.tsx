@@ -16,7 +16,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { isServiceError } from "@/lib/utils";
-import { Copy, Check, AlertTriangle, Loader2, KeyRound, Trash2 } from "lucide-react";
+import { Copy, Check, AlertTriangle, Loader2, KeyRound, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useToast } from "@/components/hooks/use-toast";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
@@ -136,11 +136,11 @@ export function ApiKeysPage({ canCreateApiKey, apiKeys }: ApiKeysPageProps) {
             <div>
                 <h3 className="text-lg font-medium">API Keys</h3>
                 <p className="text-sm text-muted-foreground">
-                    Create and manage API keys for programmatic access to Sourcebot. All API keys are scoped to the user who created them.
+                    Create and manage API keys for programmatic access to Sourcebot on your behalf.
                 </p>
             </div>
 
-            <div className="border border-border rounded-lg">
+            <div className="border border-border rounded-lg bg-card">
                 <div className="flex items-center justify-between px-4 py-3">
                     <span className="text-sm text-muted-foreground">
                         {apiKeys.length} API key{apiKeys.length !== 1 ? "s" : ""}
@@ -168,6 +168,7 @@ export function ApiKeysPage({ canCreateApiKey, apiKeys }: ApiKeysPageProps) {
                                                     setIsCreateDialogOpen(true);
                                                 }}
                                             >
+                                                <Plus className="h-4 w-4" />
                                                 New API key
                                             </Button>
                                         </DialogTrigger>

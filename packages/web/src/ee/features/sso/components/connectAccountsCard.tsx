@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { skipOptionalProvidersLink } from "@/ee/features/sso/actions";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -21,11 +21,10 @@ export const ConnectAccountsCard = ({ linkedAccounts, callbackUrl }: ConnectAcco
         setIsSkipping(true);
         try {
             await skipOptionalProvidersLink();
+            router.refresh();
         } catch (error) {
             console.error("Failed to skip optional providers:", error);
-        } finally {
             setIsSkipping(false);
-            router.refresh()
         }
     };
 
@@ -43,27 +42,27 @@ export const ConnectAccountsCard = ({ linkedAccounts, callbackUrl }: ConnectAcco
                     You can manage your linked accounts later in <strong>Settings → Linked Accounts.</strong>
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-2">
+            <CardContent>
+                <div className="space-y-3">
                     {accountLinkingProviders
                         .sort((a, b) => (b.required ? 1 : 0) - (a.required ? 1 : 0))
                         .map(account => (
-                        <LinkedAccountProviderCard
-                            key={account.provider}
-                            linkedAccount={account}
-                            callbackUrl={callbackUrl}
-                        />
-                    ))}
+                            <LinkedAccountProviderCard
+                                key={account.provider}
+                                linkedAccount={account}
+                                callbackUrl={callbackUrl}
+                            />
+                        ))}
                 </div>
                 {canSkip && (
-                    <Button
+                    <LoadingButton
                         variant="outline"
-                        className="w-full"
+                        className="w-full mt-5"
                         onClick={handleSkip}
-                        disabled={isSkipping}
+                        loading={isSkipping}
                     >
-                        {isSkipping ? "Skipping..." : "Skip for now"}
-                    </Button>
+                        Skip for now
+                    </LoadingButton>
                 )}
             </CardContent>
         </Card>

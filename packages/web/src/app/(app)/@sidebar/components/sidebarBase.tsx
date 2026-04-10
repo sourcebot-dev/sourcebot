@@ -158,7 +158,7 @@ const MeControlDropdownMenu = ({
                             <ChevronsUpDown className="ml-auto size-4" />
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-64" side="top" align="start" sideOffset={4}>
+                    <DropdownMenuContent className="w-64" side="right" align="end" sideOffset={4}>
                         <DropdownMenuGroup>
                             <div className="flex flex-row items-center gap-3 px-3 py-3">
                                 <UserAvatar
@@ -224,7 +224,7 @@ const GuestDropdownMenu = () => {
                             <ChevronsUpDown className="ml-auto size-4" />
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-64" side="top" align="start" sideOffset={4}>
+                    <DropdownMenuContent className="w-64" side="right" align="end" sideOffset={4}>
                         <AppearanceDropdownMenuGroup />
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
@@ -288,13 +288,13 @@ const AppearanceDropdownMenuGroup = () => {
             <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                     <CodeIcon className="h-4 w-4 mr-2" />
-                    <span>Code navigation</span>
+                    <span>Editor keymap</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
                     <DropdownMenuSubContent>
                         <DropdownMenuRadioGroup value={keymapType} onValueChange={(value) => setKeymapType(value as KeymapType)}>
                             <DropdownMenuRadioItem value="default">
-                                Default
+                                Standard
                             </DropdownMenuRadioItem>
                             <DropdownMenuRadioItem value="vim">
                                 Vim

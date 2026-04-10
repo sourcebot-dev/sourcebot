@@ -17,6 +17,7 @@ import {
     PlugIcon,
     ScrollTextIcon,
     ShieldIcon,
+    UserIcon,
     UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -30,6 +31,7 @@ const iconMap = {
     "plug": PlugIcon,
     "chart-area": ChartAreaIcon,
     "scroll-text": ScrollTextIcon,
+    "user": UserIcon,
 } satisfies Record<string, LucideIcon>;
 
 export type NavIconName = keyof typeof iconMap;

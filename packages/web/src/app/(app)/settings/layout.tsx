@@ -61,18 +61,23 @@ export const getSidebarNavGroups = async () =>
             {
                 label: "Account",
                 items: [
-                    ...(hasEntitlement("sso") ? [
-                        {
-                            title: "Linked Accounts",
-                            href: `/settings/linked-accounts`,
-                            icon: "link" as const,
-                        }
-                    ] : []),
+                    {
+                        title: "Profile",
+                        href: `/settings/profile`,
+                        icon: "user" as const,
+                    },
                     ...(env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'false' || role === OrgRole.OWNER ? [
                         {
                             title: "API Keys",
                             href: `/settings/apiKeys`,
                             icon: "key-round" as const,
+                        }
+                    ] : []),
+                    ...(hasEntitlement("sso") ? [
+                        {
+                            title: "Linked Accounts",
+                            href: `/settings/linked-accounts`,
+                            icon: "link" as const,
                         }
                     ] : []),
                 ],
