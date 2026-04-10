@@ -112,18 +112,17 @@ export function ApiKeysPage({ canCreateApiKey, apiKeys }: ApiKeysPageProps) {
     };
 
     const handleDeleteApiKey = async (name: string) => {
-        try {
-            await deleteApiKey(name);
-            router.refresh();
-            toast({ description: "API key deleted" });
-        } catch (error) {
-            console.error("Failed to delete API key", error);
+        const result = await deleteApiKey(name);
+        if (isServiceError(result)) {
             toast({
                 title: "Error",
-                description: `Failed to delete API key: ${error}`,
+                description: `Failed to delete API key: ${result.message}`,
                 variant: "destructive",
             });
+            return;
         }
+        router.refresh();
+        toast({ description: "API key deleted" });
     };
 
     const sortedKeys = useMemo(
@@ -272,7 +271,7 @@ export function ApiKeysPage({ canCreateApiKey, apiKeys }: ApiKeysPageProps) {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive flex-shrink-0"
+                                            className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity text-muted-foreground hover:text-destructive flex-shrink-0"
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>

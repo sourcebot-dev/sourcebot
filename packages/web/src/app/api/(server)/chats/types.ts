@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const listChatsQueryParamsSchema = z.object({
     cursor: z.string().optional(),
-    limit: z.coerce.number().int().positive().default(20),
+    limit: z.coerce.number().int().positive().max(100).default(20),
     query: z.string().optional(),
     sortBy: z.enum(["name", "updatedAt"]).default("updatedAt"),
     sortOrder: z.enum(["asc", "desc"]).default("desc"),

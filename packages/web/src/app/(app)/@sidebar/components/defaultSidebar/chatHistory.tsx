@@ -119,7 +119,7 @@ export function ChatHistory({ chatHistory, hasMore }: ChatHistoryProps) {
                                         setIsDeleteDialogOpen(true);
                                     }}
                                 >
-                                    <SidebarMenuAction className="opacity-0 group-hover/chat:opacity-100 transition-opacity">
+                                    <SidebarMenuAction showOnHover className="transition-opacity">
                                         <EllipsisIcon className="w-4 h-4" />
                                     </SidebarMenuAction>
                                 </ChatActionsDropdown>

@@ -34,9 +34,10 @@ export const GET = apiHandler(async (request: NextRequest) => {
                     },
                 } : {}),
             },
-            orderBy: {
-                [sortBy]: sortOrder,
-            },
+            orderBy: [
+                { [sortBy]: sortOrder },
+                { id: "asc" },
+            ],
             take: limit + 1,
             ...(cursor ? {
                 cursor: { id: cursor },

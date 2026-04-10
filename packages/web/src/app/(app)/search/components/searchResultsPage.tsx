@@ -15,11 +15,13 @@ import { RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
+import { ServiceErrorException } from "@/lib/serviceError";
 import { SearchQueryParams } from "@/lib/types";
-import { cn, createPathWithQueryParams } from "@/lib/utils";
+import { createPathWithQueryParams } from "@/lib/utils";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { useLocalStorage } from "@uidotdev/usehooks";
-import { AlertTriangleIcon, BugIcon, FilterIcon, LogIn, RefreshCwIcon } from "lucide-react";
+import { AlertTriangleIcon, BugIcon, FilterIcon, RefreshCwIcon } from "lucide-react";
+import { Session } from "next-auth";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -31,15 +33,12 @@ import { CodePreviewPanel } from "./codePreviewPanel";
 import { FilterPanel } from "./filterPanel";
 import { useFilteredMatches } from "./filterPanel/useFilterMatches";
 import { SearchResultsPanel, SearchResultsPanelHandle } from "./searchResultsPanel";
-import { ServiceErrorException } from "@/lib/serviceError";
-import { Session } from "next-auth";
 
 interface SearchResultsPageProps {
     searchQuery: string;
     defaultMaxMatchCount: number;
     isRegexEnabled: boolean;
     isCaseSensitivityEnabled: boolean;
-    session: Session | null;
     isSearchAssistSupported: boolean;
 }
 
@@ -48,7 +47,6 @@ export const SearchResultsPage = ({
     defaultMaxMatchCount,
     isRegexEnabled,
     isCaseSensitivityEnabled,
-    session,
     isSearchAssistSupported,
 }: SearchResultsPageProps) => {
     const router = useRouter();
