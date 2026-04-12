@@ -1,20 +1,14 @@
 import { fetchWithRetry } from "@/lib/utils";
 import { __unsafePrisma } from "@/prisma";
 import { createLogger, env, SOURCEBOT_VERSION } from "@sourcebot/shared";
-import { z } from "zod";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
+import { lighthouseResponseSchema } from "./types";
 
 const logger = createLogger('service-ping');
 
-const lighthouseResponseSchema = z.object({
-    plan: z.string(),
-    seats: z.number(),
-    status: z.string(),
-});
-
 const SERVICE_PING_INTERVAL_MS = 24 * 60 * 60 * 1000; // 1 day
 
-const sendPing = async () => {
+export const sendServicePing = async () => {
     // Look up the activation code from the License record
     const license = await __unsafePrisma.license.findUnique({
         where: { orgId: SINGLE_TENANT_ORG_ID },
@@ -69,7 +63,7 @@ const sendPing = async () => {
     }
 };
 
-export const startServicePing = () => {
-    sendPing();
-    setInterval(sendPing, SERVICE_PING_INTERVAL_MS);
+export const startServicePingCronJob = () => {
+    sendServicePing();
+    setInterval(sendServicePing, SERVICE_PING_INTERVAL_MS);
 };

@@ -1,6 +1,6 @@
 import { createGuestUser } from '@/lib/authUtils';
 import { __unsafePrisma } from "@/prisma";
-import { startServicePing } from '@/servicePing';
+import { startServicePingCronJob } from '@/ee/features/lighthouse/servicePing';
 import { OrgRole } from '@sourcebot/db';
 import { createLogger, env, loadConfig } from "@sourcebot/shared";
 import { hasEntitlement } from '@/lib/entitlements';
@@ -117,5 +117,5 @@ const init = async () => {
 
 (async () => {
     await init();
-    startServicePing();
+    startServicePingCronJob();
 })();

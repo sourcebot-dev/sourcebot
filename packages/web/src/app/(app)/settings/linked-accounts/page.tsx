@@ -4,7 +4,6 @@ import { isServiceError } from "@/lib/utils";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { ShieldCheck } from "lucide-react";
 import { LinkedAccountProviderCard } from "@/ee/features/sso/components/linkedAccountProviderCard";
-import { SettingsCardGroup } from "../components/settingsCard";
 
 export default async function LinkedAccountsPage() {
     const linkedAccounts = await getLinkedAccounts();
