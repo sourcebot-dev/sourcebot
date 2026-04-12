@@ -1,5 +1,6 @@
 import { PrismaClient, RepoIndexingJobType } from '@sourcebot/db';
-import { createLogger, env, hasEntitlement, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from '@sourcebot/shared';
+import { createLogger, env, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from '@sourcebot/shared';
+import { hasEntitlement } from './entitlements.js';
 import express, { Request, Response } from 'express';
 import 'express-async-errors';
 import * as http from "http";
@@ -100,7 +101,7 @@ export class Api {
     }
 
     private async triggerAccountPermissionSync(req: Request, res: Response) {
-        if (env.PERMISSION_SYNC_ENABLED !== 'true' || !hasEntitlement('permission-syncing')) {
+        if (env.PERMISSION_SYNC_ENABLED !== 'true' || !await hasEntitlement('permission-syncing')) {
             res.status(403).json({ error: 'Permission syncing is not enabled.' });
             return;
         }

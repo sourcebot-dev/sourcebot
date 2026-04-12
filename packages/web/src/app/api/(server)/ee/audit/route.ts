@@ -6,7 +6,7 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { buildLinkHeader } from "@/lib/pagination";
 import { serviceErrorResponse, queryParamsSchemaValidationError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { getEntitlements } from "@sourcebot/shared";
+import { getEntitlements } from "@/lib/entitlements";
 import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
 import { z } from "zod";
@@ -24,7 +24,7 @@ const auditQueryParamsSchema = auditQueryParamsBaseSchema.refine(
 );
 
 export const GET = apiHandler(async (request: NextRequest) => {
-    const entitlements = getEntitlements();
+    const entitlements = await getEntitlements();
     if (!entitlements.includes('audit')) {
         return serviceErrorResponse({
             statusCode: StatusCodes.FORBIDDEN,

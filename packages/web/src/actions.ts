@@ -1,6 +1,6 @@
 'use server';
 
-import { getAuditService } from "@/ee/features/audit/factory";
+import { createAudit } from "@/ee/features/audit/audit";
 import { env, getSMTPConnectionURL } from "@sourcebot/shared";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -14,7 +14,7 @@ import { createLogger } from "@sourcebot/shared";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
-import { getPlan, hasEntitlement } from "@sourcebot/shared";
+import { getPlan, hasEntitlement } from "@/lib/entitlements";
 import { StatusCodes } from "http-status-codes";
 import { cookies } from "next/headers";
 import { createTransport } from "nodemailer";
@@ -30,7 +30,6 @@ import { getBrowsePath } from "./app/(app)/browse/hooks/utils";
 import { sew } from "@/middleware/sew";
 
 const logger = createLogger('web-actions');
-const auditService = getAuditService();
 
 ////// Actions ///////
 export const completeOnboarding = async (): Promise<{ success: boolean } | ServiceError> => sew(() =>
@@ -66,7 +65,7 @@ export const createApiKey = async (name: string): Promise<{ key: string } | Serv
         });
 
         if (existingApiKey) {
-            await auditService.createAudit({
+            await createAudit({
                 action: "api_key.creation_failed",
                 actor: {
                     id: user.id,
@@ -99,7 +98,7 @@ export const createApiKey = async (name: string): Promise<{ key: string } | Serv
             }
         });
 
-        await auditService.createAudit({
+        await createAudit({
             action: "api_key.created",
             actor: {
                 id: user.id,
@@ -127,7 +126,7 @@ export const deleteApiKey = async (name: string): Promise<{ success: boolean } |
         });
 
         if (!apiKey) {
-            await auditService.createAudit({
+            await createAudit({
                 action: "api_key.deletion_failed",
                 actor: {
                     id: user.id,
@@ -156,7 +155,7 @@ export const deleteApiKey = async (name: string): Promise<{ success: boolean } |
             },
         });
 
-        await auditService.createAudit({
+        await createAudit({
             action: "api_key.deleted",
             actor: {
                 id: user.id,
@@ -528,7 +527,7 @@ export const createInvites = async (emails: string[]): Promise<{ success: boolea
     withAuth(async ({ org, user, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const failAuditCallback = async (error: string) => {
-                await auditService.createAudit({
+                await createAudit({
                     action: "user.invite_failed",
                     actor: {
                         id: user.id,
@@ -548,7 +547,7 @@ export const createInvites = async (emails: string[]): Promise<{ success: boolea
 
             const hasAvailability = await orgHasAvailability();
             if (!hasAvailability) {
-                await auditService.createAudit({
+                await createAudit({
                     action: "user.invite_failed",
                     actor: {
                         id: user.id,
@@ -679,7 +678,7 @@ export const createInvites = async (emails: string[]): Promise<{ success: boolea
                 logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping invite email to ${emails.join(", ")}`);
             }
 
-            await auditService.createAudit({
+            await createAudit({
                 action: "user.invites_created",
                 actor: {
                     id: user.id,
@@ -968,7 +967,7 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
     withAuth(async ({ org, user, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const failAuditCallback = async (error: string) => {
-                await auditService.createAudit({
+                await createAudit({
                     action: "user.join_request_approve_failed",
                     actor: {
                         id: user.id,
@@ -1035,7 +1034,7 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
                 logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping approval email to ${request.requestedBy.email}`);
             }
 
-            await auditService.createAudit({
+            await createAudit({
                 action: "user.join_request_approved",
                 actor: {
                     id: user.id,
@@ -1199,9 +1198,9 @@ export const getAnonymousAccessStatus = async (): Promise<boolean | ServiceError
 export const setAnonymousAccessStatus = async (enabled: boolean): Promise<ServiceError | boolean> => sew(async () => {
     return await withAuth(async ({ org, role, prisma }) => {
         return await withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+            const hasAnonymousAccessEntitlement = await hasEntitlement("anonymous-access");
             if (!hasAnonymousAccessEntitlement) {
-                const plan = getPlan();
+                const plan = await getPlan();
                 console.error(`Anonymous access isn't supported in your current plan: ${plan}. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
                 return {
                     statusCode: StatusCodes.FORBIDDEN,

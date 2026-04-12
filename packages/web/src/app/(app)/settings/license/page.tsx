@@ -1,4 +1,5 @@
-import { getLicenseKey, getEntitlements, getPlan, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
+import { getOfflineLicenseKey, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
+import { getEntitlements, getPlan } from "@/lib/entitlements";
 import { Button } from "@/components/ui/button";
 import { Info, Mail } from "lucide-react";
 import { getOrgMembers } from "@/actions";
@@ -8,9 +9,9 @@ import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
 
 export default authenticatedPage(async () => {
-    const licenseKey = getLicenseKey();
-    const entitlements = getEntitlements();
-    const plan = getPlan();
+    const licenseKey = getOfflineLicenseKey();
+    const entitlements = await getEntitlements();
+    const plan = await getPlan();
 
     if (!licenseKey) {
         return (

@@ -1,6 +1,6 @@
 'use server';
 
-import { getAuditService } from "@/ee/features/audit/factory";
+import { createAudit } from "@/ee/features/audit/audit";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { serviceErrorResponse, missingQueryParam, notFound } from "@/lib/serviceError";
@@ -8,15 +8,15 @@ import { isServiceError } from "@/lib/utils";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
-import { createLogger, hasEntitlement } from "@sourcebot/shared";
+import { createLogger } from "@sourcebot/shared";
+import { hasEntitlement } from "@/lib/entitlements";
 import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
 
 const logger = createLogger('ee-user-api');
-const auditService = getAuditService();
 
 export const GET = apiHandler(async (request: NextRequest) => {
-    if (!hasEntitlement('org-management')) {
+    if (!await hasEntitlement('org-management')) {
         return serviceErrorResponse({
             statusCode: StatusCodes.FORBIDDEN,
             errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
@@ -50,7 +50,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
                     return notFound('User not found');
                 }
 
-                await auditService.createAudit({
+                await createAudit({
                     action: "user.read",
                     actor: {
                         id: user.id,
@@ -112,7 +112,7 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
                     return notFound('User not found');
                 }
 
-                await auditService.createAudit({
+                await createAudit({
                     action: "user.delete",
                     actor: {
                         id: currentUser.id,

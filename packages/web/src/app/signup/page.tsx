@@ -31,7 +31,7 @@ export default async function Signup(props: LoginProps) {
         return redirect("/onboard");
     }
 
-    const providers = getIdentityProviderMetadata();
+    const providers = await getIdentityProviderMetadata();
     const anonymousAccessStatus = await getAnonymousAccessStatus();
     const isAnonymousAccessEnabled = !isServiceError(anonymousAccessStatus) && anonymousAccessStatus;
 

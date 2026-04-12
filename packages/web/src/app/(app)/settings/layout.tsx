@@ -6,7 +6,8 @@ import { isServiceError } from "@/lib/utils";
 import { getConnectionStats, getOrgAccountRequests } from "@/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { OrgRole } from "@prisma/client";
-import { env, hasEntitlement } from "@sourcebot/shared";
+import { env } from "@sourcebot/shared";
+import { hasEntitlement } from "@/lib/entitlements";
 import { withAuth } from "@/middleware/withAuth";
 import { NavGroup } from "../@sidebar/components/settingsSidebar/nav";
 
@@ -73,7 +74,7 @@ export const getSidebarNavGroups = async () =>
                             icon: "key-round" as const,
                         }
                     ] : []),
-                    ...(hasEntitlement("sso") ? [
+                    ...(await hasEntitlement("sso") ? [
                         {
                             title: "Linked Accounts",
                             href: `/settings/linked-accounts`,

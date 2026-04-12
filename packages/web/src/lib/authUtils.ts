@@ -2,21 +2,21 @@ import type { User as AuthJsUser } from "next-auth";
 import { __unsafePrisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_EMAIL, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
-import { getPlan, getSeats, hasEntitlement, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
+import { SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
+import { getPlan, getSeats, hasEntitlement } from "@/lib/entitlements";
 import { isServiceError } from "@/lib/utils";
 import { orgNotFound, ServiceError, userNotFound } from "@/lib/serviceError";
 import { createLogger } from "@sourcebot/shared";
-import { getAuditService } from "@/ee/features/audit/factory";
+import { createAudit } from "@/ee/features/audit/audit";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
 
 const logger = createLogger('web-auth-utils');
-const auditService = getAuditService();
 
 export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
     if (!user.id) {
         logger.error("User ID is undefined on user creation");
-        await auditService.createAudit({
+        await createAudit({
             action: "user.creation_failed",
             actor: {
                 id: "undefined",
@@ -51,7 +51,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
 
     // We expect the default org to have been created on app initialization
     if (defaultOrg === null) {
-        await auditService.createAudit({
+        await createAudit({
             action: "user.creation_failed",
             actor: {
                 id: user.id,
@@ -92,7 +92,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
             });
         });
 
-        await auditService.createAudit({
+        await createAudit({
             action: "user.owner_created",
             actor: {
                 id: user.id,
@@ -128,9 +128,9 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
 
 
 export const createGuestUser = async (): Promise<ServiceError | boolean> => {
-    const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+    const hasAnonymousAccessEntitlement = await hasEntitlement("anonymous-access");
     if (!hasAnonymousAccessEntitlement) {
-        console.error(`Anonymous access isn't supported in your current plan: ${getPlan()}. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+        console.error(`Anonymous access isn't supported in your current plan: ${await getPlan()}. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
         return {
             statusCode: StatusCodes.FORBIDDEN,
             errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
@@ -209,7 +209,7 @@ export const orgHasAvailability = async (): Promise<boolean> => {
         },
     });
 
-    const maxSeats = getSeats();
+    const maxSeats = await getSeats();
     const memberCount = members.length;
 
     if (maxSeats !== SOURCEBOT_UNLIMITED_SEATS && memberCount >= maxSeats) {

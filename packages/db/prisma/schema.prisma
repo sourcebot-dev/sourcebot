@@ -291,6 +291,21 @@ model Org {
   searchContexts SearchContext[]
 
   chats Chat[]
+
+  license License?
+}
+
+model License {
+  id              String      @id @default(cuid())
+  orgId           Int      @unique
+  org             Org      @relation(fields: [orgId], references: [id])
+  activationCode  String
+  plan            String?
+  seats           Int?
+  status          String?
+  lastSyncAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 enum OrgRole {

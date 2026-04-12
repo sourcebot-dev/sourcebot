@@ -9,9 +9,7 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { getAuthenticatedUser } from "@/middleware/withAuth";
 import { __unsafePrisma } from "@/prisma";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
-import { getAuditService } from "@/ee/features/audit/factory";
-
-const auditService = getAuditService();
+import { createAudit } from "@/ee/features/audit/audit";
 
 export const joinOrganization = async (inviteLinkId?: string) => sew(async () => {
     const authResult = await getAuthenticatedUser();
@@ -83,7 +81,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
     }
 
     const failAuditCallback = async (error: string) => {
-        await auditService.createAudit({
+        await createAudit({
             action: "user.invite_accept_failed",
             actor: {
                 id: user.id,
@@ -122,7 +120,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
         return addUserToOrgRes;
     }
 
-    await auditService.createAudit({
+    await createAudit({
         action: "user.invite_accepted",
         actor: {
             id: user.id,

@@ -4,6 +4,7 @@ import { createLogger } from "./logger.js";
 import { env } from "./env.server.js";
 import { SOURCEBOT_SUPPORT_EMAIL, SOURCEBOT_UNLIMITED_SEATS } from "./constants.js";
 import { verifySignature } from "./crypto.js";
+import { License } from "@sourcebot/db";
 
 const logger = createLogger('entitlements');
 
@@ -74,25 +75,37 @@ const entitlementsByPlan: Record<Plan, Entitlement[]> = {
     ],
 } as const;
 
+const isValidPlan = (plan: string): plan is Plan => {
+    return plan in entitlementsByPlan;
+}
+
+const ACTIVE_LICENSE_STATUSES = ['active', 'trialing', 'past_due'] as const;
+
+const isLicenseActive = (license: License | null): boolean => {
+    if (!license?.status) {
+        return false;
+    }
+    return ACTIVE_LICENSE_STATUSES.includes(license.status as typeof ACTIVE_LICENSE_STATUSES[number]);
+}
 
 const decodeLicenseKeyPayload = (payload: string): LicenseKeyPayload => {
     try {
         const decodedPayload = base64Decode(payload);
         const payloadJson = JSON.parse(decodedPayload);
         const licenseData = eeLicenseKeyPayloadSchema.parse(payloadJson);
-        
+
         const dataToVerify = JSON.stringify({
             expiryDate: licenseData.expiryDate,
             id: licenseData.id,
             seats: licenseData.seats
         });
-        
+
         const isSignatureValid = verifySignature(dataToVerify, licenseData.sig, env.SOURCEBOT_PUBLIC_KEY_PATH);
         if (!isSignatureValid) {
             logger.error('License key signature verification failed');
             process.exit(1);
         }
-        
+
         return licenseData;
     } catch (error) {
         logger.error(`Failed to decode license key payload: ${error}`);
@@ -100,7 +113,7 @@ const decodeLicenseKeyPayload = (payload: string): LicenseKeyPayload => {
     }
 }
 
-export const getLicenseKey = (): LicenseKeyPayload | null => {
+export const getOfflineLicenseKey = (): LicenseKeyPayload | null => {
     const licenseKey = env.SOURCEBOT_EE_LICENSE_KEY;
     if (licenseKey && licenseKey.startsWith(eeLicenseKeyPrefix)) {
         const payload = licenseKey.substring(eeLicenseKeyPrefix.length);
@@ -109,8 +122,8 @@ export const getLicenseKey = (): LicenseKeyPayload | null => {
     return null;
 }
 
-export const getPlan = (): Plan => {
-    const licenseKey = getLicenseKey();
+export const getPlan = (license: License | null): Plan => {
+    const licenseKey = getOfflineLicenseKey();
     if (licenseKey) {
         const expiryDate = new Date(licenseKey.expiryDate);
         if (expiryDate.getTime() < new Date().getTime()) {
@@ -119,22 +132,34 @@ export const getPlan = (): Plan => {
         }
 
         return licenseKey.seats === SOURCEBOT_UNLIMITED_SEATS ? "self-hosted:enterprise-unlimited" : "self-hosted:enterprise";
-    } else {
-        return "oss"; 
+    }
+    else if (license?.plan && isValidPlan(license.plan) && isLicenseActive(license)) {
+        return license.plan;
+    }
+    else {
+        return "oss";
     }
 }
 
-export const getSeats = (): number => {
-const licenseKey = getLicenseKey();
-    return licenseKey?.seats ?? SOURCEBOT_UNLIMITED_SEATS;
+export const getSeats = (license: License | null): number => {
+    const licenseKey = getOfflineLicenseKey();
+    if (licenseKey) {
+        return licenseKey.seats;
+    }
+
+    if (license?.seats && isLicenseActive(license)) {
+        return license.seats;
+    }
+
+    return SOURCEBOT_UNLIMITED_SEATS;
 }
 
-export const hasEntitlement = (entitlement: Entitlement) => {
-    const entitlements = getEntitlements();
+export const hasEntitlement = (entitlement: Entitlement, license: License | null) => {
+    const entitlements = getEntitlements(license);
     return entitlements.includes(entitlement);
 }
 
-export const getEntitlements = (): Entitlement[] => {
-    const plan = getPlan();
+export const getEntitlements = (license: License | null): Entitlement[] => {
+    const plan = getPlan(license);
     return entitlementsByPlan[plan];
 }

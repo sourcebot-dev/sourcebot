@@ -7,7 +7,8 @@ import { TabSwitcher } from "@/components/ui/tab-switcher";
 import { InvitesList } from "./components/invitesList";
 import { getOrgInvites, getMe, getOrgAccountRequests } from "@/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
-import { getSeats, hasEntitlement, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
+import { SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
+import { getSeats, hasEntitlement } from "@/lib/entitlements";
 import { RequestsList } from "./components/requestsList";
 import { OrgRole } from "@sourcebot/db";
 import { NotificationDot } from "../../components/notificationDot";
@@ -49,7 +50,7 @@ export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role },
 
     const currentTab = tab || "members";
 
-    const seats = getSeats();
+    const seats = await getSeats();
     const usedSeats = members.length
     const seatsAvailable = seats === SOURCEBOT_UNLIMITED_SEATS || usedSeats < seats;
 
@@ -134,7 +135,7 @@ export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role },
                         currentUserId={me.id}
                         currentUserRole={role}
                         orgName={org.name}
-                        hasOrgManagement={hasEntitlement('org-management')}
+                        hasOrgManagement={await hasEntitlement('org-management')}
                     />
                 </TabsContent>
 

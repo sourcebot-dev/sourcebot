@@ -11,7 +11,7 @@ import { randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
 import { InferUIMessageChunk, UIDataTypes, UIMessage, UITools } from "ai";
 import { captureEvent } from "@/lib/posthog";
-import { getAuditService } from "@/ee/features/audit/factory";
+import { createAudit } from "@/ee/features/audit/audit";
 import { createMessageStream } from "../chat/agent";
 
 const logger = createLogger('ask-codebase-api');
@@ -93,7 +93,7 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
             });
 
             if (user) {
-                getAuditService().createAudit({
+                await createAudit({
                     action: 'user.created_ask_chat',
                     actor: { id: user.id, type: 'user' },
                     target: { id: org.id.toString(), type: 'org' },

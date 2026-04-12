@@ -1,6 +1,6 @@
 export {
     hasEntitlement,
-    getLicenseKey,
+    getOfflineLicenseKey,
     getPlan,
     getSeats,
     getEntitlements,

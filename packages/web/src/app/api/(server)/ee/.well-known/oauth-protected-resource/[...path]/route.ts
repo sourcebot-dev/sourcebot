@@ -1,5 +1,6 @@
 import { apiHandler } from '@/lib/apiHandler';
-import { env, hasEntitlement } from '@sourcebot/shared';
+import { env } from '@sourcebot/shared';
+import { hasEntitlement } from '@/lib/entitlements';
 import { NextRequest } from 'next/server';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
 
@@ -11,7 +12,7 @@ const PROTECTED_RESOURCES = new Set([
 ]);
 
 export const GET = apiHandler(async (_request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) => {
-    if (!hasEntitlement('oauth')) {
+    if (!await hasEntitlement('oauth')) {
         return Response.json(
             { error: 'not_found', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
             { status: 404 }

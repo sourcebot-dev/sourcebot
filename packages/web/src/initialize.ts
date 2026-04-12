@@ -2,7 +2,8 @@ import { createGuestUser } from '@/lib/authUtils';
 import { __unsafePrisma } from "@/prisma";
 import { startServicePing } from '@/servicePing';
 import { OrgRole } from '@sourcebot/db';
-import { createLogger, env, hasEntitlement, loadConfig } from "@sourcebot/shared";
+import { createLogger, env, loadConfig } from "@sourcebot/shared";
+import { hasEntitlement } from '@/lib/entitlements';
 import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_ID } from './lib/constants';
 import { ServiceErrorException } from './lib/serviceError';
 import { getOrgMetadata, isServiceError } from './lib/utils';
@@ -39,7 +40,7 @@ const init = async () => {
     // To keep things simple, we'll just delete the old guest user if it exists in the DB
     await pruneOldGuestUser();
 
-    const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+    const hasAnonymousAccessEntitlement = await hasEntitlement("anonymous-access");
     if (hasAnonymousAccessEntitlement) {
         const res = await createGuestUser();
         if (isServiceError(res)) {
@@ -64,7 +65,7 @@ const init = async () => {
     // If we don't have the search context entitlement then wipe any existing
     // search contexts that may be present in the DB. This could happen if a deployment had
     // the entitlement, synced search contexts, and then no longer had the entitlement
-    const hasSearchContextEntitlement = hasEntitlement("search-contexts")
+    const hasSearchContextEntitlement = await hasEntitlement("search-contexts")
     if (!hasSearchContextEntitlement) {
         await __unsafePrisma.searchContext.deleteMany({
             where: {

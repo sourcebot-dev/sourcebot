@@ -5,7 +5,7 @@ import { getTokenFromConfig } from "@sourcebot/shared";
 import * as Sentry from "@sentry/node";
 import { GithubConnectionConfig, GitlabConnectionConfig, GiteaConnectionConfig, BitbucketConnectionConfig, AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/connection.type';
 import { GithubAppManager } from "./ee/githubAppManager.js";
-import { hasEntitlement } from "@sourcebot/shared";
+import { hasEntitlement } from "./entitlements.js";
 import { StatusCodes } from "http-status-codes";
 import { isOctokitRequestError } from "./github.js";
 
@@ -116,7 +116,7 @@ export const fetchWithRetry = async <T>(
 // may technically cause syncing to fail if that connection's token just so happens to not have access to the repo it's referencing.
 export const getAuthCredentialsForRepo = async (repo: RepoWithConnections, logger?: Logger): Promise<RepoAuthCredentials | undefined> => {
     // If we have github apps configured we assume that we must use them for github service auth
-    if (repo.external_codeHostType === 'github' && hasEntitlement('github-app') && GithubAppManager.getInstance().appsConfigured()) {
+    if (repo.external_codeHostType === 'github' && await hasEntitlement('github-app') && GithubAppManager.getInstance().appsConfigured()) {
         logger?.debug(`Using GitHub App for service auth for repo ${repo.displayName} hosted at ${repo.external_codeHostUrl}`);
 
         const owner = repo.displayName?.split('/')[0];

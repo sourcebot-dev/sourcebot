@@ -8,7 +8,7 @@ import { SINGLE_TENANT_ORG_ID } from "../lib/constants";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "../lib/errorCodes";
 import { getOrgMetadata, isServiceError } from "../lib/utils";
-import { hasEntitlement } from "@sourcebot/shared";
+import { hasEntitlement } from "@/lib/entitlements";
 
 type OptionalAuthContext = {
     user?: UserWithAccounts;
@@ -48,7 +48,7 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
 
     const { user, org, role, prisma } = authContext;
 
-    const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+    const hasAnonymousAccessEntitlement = await hasEntitlement("anonymous-access");
     const orgMetadata = getOrgMetadata(org);
 
     if (
@@ -104,7 +104,7 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         } satisfies ServiceError;
     }
 
-    const prisma = __unsafePrisma.$extends(userScopedPrismaClientExtension(user)) as PrismaClient;
+    const prisma = __unsafePrisma.$extends(await userScopedPrismaClientExtension(user)) as PrismaClient;
 
     return {
         user: user ?? undefined,
@@ -140,7 +140,7 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
 
         // OAuth access token
         if (bearerToken.startsWith(OAUTH_ACCESS_TOKEN_PREFIX)) {
-            if (!hasEntitlement('oauth')) {
+            if (!await hasEntitlement('oauth')) {
                 return undefined;
             }
 

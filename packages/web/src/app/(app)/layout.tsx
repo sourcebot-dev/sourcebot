@@ -18,8 +18,8 @@ import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { notFound, redirect } from "next/navigation";
 import { PendingApprovalCard } from "./components/pendingApproval";
 import { SubmitJoinRequest } from "./components/submitJoinRequest";
-import { hasEntitlement } from "@sourcebot/shared";
 import { env } from "@sourcebot/shared";
+import { hasEntitlement } from "@/lib/entitlements";
 import { GcpIapAuth } from "./components/gcpIapAuth";
 import { getAnonymousAccessStatus, getMemberApprovalRequired } from "@/actions";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
@@ -54,7 +54,7 @@ export default async function Layout(props: LayoutProps) {
 
     const session = await auth();
     const anonymousAccessEnabled = await (async () => {
-        if (!hasEntitlement("anonymous-access")) {
+        if (!await hasEntitlement("anonymous-access")) {
             return false;
         }
 
@@ -129,7 +129,7 @@ export default async function Layout(props: LayoutProps) {
         )
     }
 
-    if (session && hasEntitlement("sso")) {
+    if (session && await hasEntitlement("sso")) {
         const linkedAccounts = await getLinkedAccounts();
         if (isServiceError(linkedAccounts)) {
             throw new ServiceErrorException(linkedAccounts);
@@ -163,7 +163,7 @@ export default async function Layout(props: LayoutProps) {
             <MobileUnsupportedSplashScreen />
         )
     }
-    const isPermissionSyncBannerVisible = session && hasEntitlement("permission-syncing");
+    const isPermissionSyncBannerVisible = session && await hasEntitlement("permission-syncing");
     const hasPendingFirstSync = isPermissionSyncBannerVisible ? (await getPermissionSyncStatus()) : null;
 
     return (

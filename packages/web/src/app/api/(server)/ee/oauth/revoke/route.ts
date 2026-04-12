@@ -1,6 +1,6 @@
 import { revokeToken } from '@/ee/features/oauth/server';
 import { apiHandler } from '@/lib/apiHandler';
-import { hasEntitlement } from '@sourcebot/shared';
+import { hasEntitlement } from '@/lib/entitlements';
 import { NextRequest } from 'next/server';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
 
@@ -8,7 +8,7 @@ import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants
 // Always returns 200 regardless of whether the token existed.
 // @see: https://datatracker.ietf.org/doc/html/rfc7009
 export const POST = apiHandler(async (request: NextRequest) => {
-    if (!hasEntitlement('oauth')) {
+    if (!await hasEntitlement('oauth')) {
         return Response.json(
             { error: 'access_denied', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
             { status: 403 }

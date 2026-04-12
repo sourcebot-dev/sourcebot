@@ -4,7 +4,8 @@ import { OrganizationAccessSettingsWrapper } from "./organizationAccessSettingsW
 import { getOrgMetadata } from "@/lib/utils"
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants"
 import { __unsafePrisma } from "@/prisma"
-import { hasEntitlement, env } from "@sourcebot/shared"
+import { env } from "@sourcebot/shared"
+import { hasEntitlement } from "@/lib/entitlements"
 
 export async function OrganizationAccessSettings() {
     const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
@@ -18,7 +19,7 @@ export async function OrganizationAccessSettings() {
     const baseUrl = env.AUTH_URL;
     const inviteLink = createInviteLink(baseUrl, org.inviteLinkId)
 
-    const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
+    const hasAnonymousAccessEntitlement = await hasEntitlement("anonymous-access");
 
     const forceEnableAnonymousAccess = env.FORCE_ENABLE_ANONYMOUS_ACCESS === 'true';
     const memberApprovalEnvVarSet = env.REQUIRE_APPROVAL_NEW_MEMBERS !== undefined;

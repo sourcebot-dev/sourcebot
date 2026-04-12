@@ -5,7 +5,8 @@ import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { ServiceError } from "@/lib/serviceError";
 import { AnalyticsResponse, AnalyticsRow } from "./types";
-import { env, hasEntitlement } from "@sourcebot/shared";
+import { env } from "@sourcebot/shared";
+import { hasEntitlement } from "@/lib/entitlements";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { OrgRole } from "@sourcebot/db";
@@ -13,7 +14,7 @@ import { OrgRole } from "@sourcebot/db";
 export const getAnalytics = async (): Promise<AnalyticsResponse | ServiceError> => sew(() =>
   withAuth(async ({ org, role, prisma }) =>
     withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-    if (!hasEntitlement("analytics")) {
+    if (!await hasEntitlement("analytics")) {
       return {
         statusCode: StatusCodes.FORBIDDEN,
         errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
