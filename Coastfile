@@ -1,0 +1,81 @@
+[coast]
+name = "sourcebot"
+compose = "./docker-compose-dev.yml"
+primary_port = "web"
+private_paths = ["packages/web/.next"]
+worktree_dir = [".worktrees", ".claude/worktrees", "~/.cursor/worktrees/sourcebot", "~/conductor/workspaces/sourcebot"]
+
+[coast.setup]
+packages = ["nodejs", "npm", "go", "make", "git", "bash", "ca-certificates", "ctags"]
+run = [
+    "npm install -g corepack",
+    "corepack enable",
+]
+
+# Zoekt code search server (Go binary built by `make`)
+[services.zoekt]
+install = "cd /workspace && (test -f bin/zoekt-webserver || make zoekt)"
+command = "cd /workspace && ./bin/zoekt-webserver -index .sourcebot/index -rpc"
+port = 6070
+restart = "on-failure"
+cache = ["bin"]
+
+# Next.js frontend + API
+[services.web]
+install = ["cd /workspace && (test -f node_modules/.yarn-state.yml || DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:5432/postgres make yarn)", "cd /workspace && test -f config.json || echo {} > config.json", "cd /workspace && DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:5432/postgres yarn dev:prisma:migrate:dev"]
+command = "cd /workspace && AUTH_URL=http://localhost:${WEB_DYNAMIC_PORT:-3000} DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:5432/postgres REDIS_URL=redis://host.docker.internal:6379 yarn dev:web"
+port = 3000
+restart = "on-failure"
+cache = ["node_modules"]
+
+# Background worker
+[services.backend]
+install = "cd /workspace && (test -f node_modules/.yarn-state.yml || DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:5432/postgres make yarn)"
+command = "cd /workspace && DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:5432/postgres REDIS_URL=redis://host.docker.internal:6379 yarn dev:backend"
+restart = "on-failure"
+cache = ["node_modules"]
+
+# Shared services — run on host Docker so all Coasts share one DB and cache
+[shared_services.postgres]
+image = "postgres:16-alpine"
+ports = [5432]
+volumes = ["sourcebot_postgres_data:/var/lib/postgresql/data"]
+env = { POSTGRES_DB = "postgres", POSTGRES_USER = "postgres", POSTGRES_PASSWORD = "postgres" }
+
+[shared_services.redis]
+image = "redis:7-alpine"
+ports = [6379]
+volumes = ["sourcebot_redis_data:/data"]
+
+# Override DATABASE_URL to reach shared postgres from bare services
+[secrets.database_url]
+extractor = "command"
+run = "echo postgresql://postgres:postgres@host.docker.internal:5432/postgres"
+inject = "env:DATABASE_URL"
+
+# Override REDIS_URL to reach shared redis from bare services
+[secrets.redis_url]
+extractor = "command"
+run = "echo redis://host.docker.internal:6379"
+inject = "env:REDIS_URL"
+
+[ports]
+web = 3000
+postgres = 5432
+redis = 6379
+zoekt = 6070
+
+
+[assign]
+default = "none"
+exclude_paths = ["docs", "schemas", "scripts", "configs", ".github", "ee"]
+
+[assign.services]
+web = "hot"
+backend = "hot"
+zoekt = "none"
+
+[assign.rebuild_triggers]
+web = ["package.json", "yarn.lock", "packages/db/prisma/schema.prisma", "packages/db/prisma/migrations"]
+backend = ["package.json", "yarn.lock", "packages/db/prisma/schema.prisma", "packages/db/prisma/migrations"]
+zoekt = ["vendor/zoekt"]
