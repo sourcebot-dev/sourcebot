@@ -221,7 +221,6 @@ const options = {
         GOOGLE_VERTEX_PROJECT: z.string().optional(),
         GOOGLE_VERTEX_REGION: z.string().default('us-central1'),
         GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
-        GOOGLE_VERTEX_INCLUDE_THOUGHTS: booleanSchema.default('true'),
 
         /**
          * @deprecated Use `thinkingBudget` in the language model config instead.
