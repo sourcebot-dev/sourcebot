@@ -613,6 +613,20 @@ const schema = {
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
         },
+        "thinkingLevel": {
+          "type": "string",
+          "description": "Optional thinking level for Gemini 3 models. Controls the depth of reasoning the model performs. See https://ai.google.dev/gemini-api/docs/thinking#thinking-levels",
+          "enum": [
+            "minimal",
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "thinkingBudget": {
+          "type": "integer",
+          "description": "Optional thinking budget for Gemini 2.5 models. Sets the number of thinking tokens the model can use when generating a response. Set to -1 for dynamic thinking. See https://ai.google.dev/gemini-api/docs/thinking#set-budget"
+        },
         "temperature": {
           "type": "number",
           "description": "Optional temperature setting to use with the model."
@@ -860,6 +874,20 @@ const schema = {
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
+        },
+        "thinkingLevel": {
+          "type": "string",
+          "description": "Optional thinking level for Gemini 3 models. Controls the depth of reasoning the model performs. See https://ai.google.dev/gemini-api/docs/thinking#thinking-levels",
+          "enum": [
+            "minimal",
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "thinkingBudget": {
+          "type": "integer",
+          "description": "Optional thinking budget for Gemini 2.5 models. Sets the number of thinking tokens the model can use when generating a response. Set to -1 for dynamic thinking. See https://ai.google.dev/gemini-api/docs/thinking#set-budget"
         },
         "temperature": {
           "type": "number",
@@ -2151,6 +2179,20 @@ const schema = {
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
         },
+        "thinkingLevel": {
+          "type": "string",
+          "description": "Optional thinking level for Gemini 3 models. Controls the depth of reasoning the model performs. See https://ai.google.dev/gemini-api/docs/thinking#thinking-levels",
+          "enum": [
+            "minimal",
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "thinkingBudget": {
+          "type": "integer",
+          "description": "Optional thinking budget for Gemini 2.5 models. Sets the number of thinking tokens the model can use when generating a response. Set to -1 for dynamic thinking. See https://ai.google.dev/gemini-api/docs/thinking#set-budget"
+        },
         "temperature": {
           "type": "number",
           "description": "Optional temperature setting to use with the model."
@@ -2398,6 +2440,20 @@ const schema = {
           "format": "url",
           "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
           "description": "Optional base URL."
+        },
+        "thinkingLevel": {
+          "type": "string",
+          "description": "Optional thinking level for Gemini 3 models. Controls the depth of reasoning the model performs. See https://ai.google.dev/gemini-api/docs/thinking#thinking-levels",
+          "enum": [
+            "minimal",
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "thinkingBudget": {
+          "type": "integer",
+          "description": "Optional thinking budget for Gemini 2.5 models. Sets the number of thinking tokens the model can use when generating a response. Set to -1 for dynamic thinking. See https://ai.google.dev/gemini-api/docs/thinking#set-budget"
         },
         "temperature": {
           "type": "number",
