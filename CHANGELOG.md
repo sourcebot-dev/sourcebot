@@ -9,10 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added `thinkingLevel` and `thinkingBudget` configuration options for Google Generative AI and Google Vertex providers. [#1110](https://github.com/sourcebot-dev/sourcebot/pull/1110)
+- Added unified `tool_used` PostHog event tracking for all tool calls across the ask agent and MCP server. [#1111](https://github.com/sourcebot-dev/sourcebot/pull/1111)
+- Added client-side `wa_ask_thread_created` and `wa_ask_message_sent` PostHog events for web-only ask usage tracking. [#1111](https://github.com/sourcebot-dev/sourcebot/pull/1111)
 
 ### Changed
 - Deprecated `GOOGLE_VERTEX_THINKING_BUDGET_TOKENS` environment variable in favor of per-model `thinkingBudget` config. [#1110](https://github.com/sourcebot-dev/sourcebot/pull/1110)
 - Removed `GOOGLE_VERTEX_INCLUDE_THOUGHTS` environment variable. Thoughts are now always included. [#1110](https://github.com/sourcebot-dev/sourcebot/pull/1110)
+- Renamed PostHog events: `wa_chat_thread_created` → `ask_thread_created`, `wa_chat_message_sent` → `ask_message_sent`, `wa_chat_tool_used` → `tool_used`. [#1111](https://github.com/sourcebot-dev/sourcebot/pull/1111)
 
 ## [4.16.8] - 2026-04-09
 
