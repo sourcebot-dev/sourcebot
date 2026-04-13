@@ -157,6 +157,10 @@ The `reasoningSummary` field controls whether the model returns its reasoning pr
 
 [Vercel AI SDK Google Generative AI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai)
 
+The `thinkingLevel` field controls the depth of reasoning for Gemini 3 models. Valid values are `minimal`, `low`, `medium`, and `high`. See [thinking levels](https://ai.google.dev/gemini-api/docs/thinking#thinking-levels).
+
+The `thinkingBudget` field sets the number of thinking tokens for Gemini 2.5 models. Set to `-1` for dynamic thinking. See [thinking budget](https://ai.google.dev/gemini-api/docs/thinking#set-budget).
+
 ```json wrap icon="code" Example config with Google Generative AI provider
 {
     "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
@@ -168,7 +172,9 @@ The `reasoningSummary` field controls whether the model returns its reasoning pr
             "token": {
                 "env": "GOOGLE_GENERATIVE_AI_API_KEY"
             },
-            "baseUrl": "OPTIONAL_BASE_URL"
+            "baseUrl": "OPTIONAL_BASE_URL",
+            "thinkingLevel": "high", // "minimal" | "low" | "medium" | "high" (Gemini 3 models)
+            "thinkingBudget": -1 // number of thinking tokens, -1 for dynamic (Gemini 2.5 models)
         }
     ] 
 }
@@ -180,6 +186,10 @@ The `reasoningSummary` field controls whether the model returns its reasoning pr
 <Note>The `credentials` parameter here expects a **path** to a [credentials](https://console.cloud.google.com/apis/credentials) file. This file **must be in a volume mounted by Sourcebot** for it to be readable.</Note>
 
 [Vercel AI SDK Google Vertex AI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex)
+
+The `thinkingLevel` field controls the depth of reasoning for Gemini 3 models. Valid values are `minimal`, `low`, `medium`, and `high`. See [thinking levels](https://ai.google.dev/gemini-api/docs/thinking#thinking-levels).
+
+The `thinkingBudget` field sets the number of thinking tokens for Gemini 2.5 models. Set to `-1` for dynamic thinking. See [thinking budget](https://ai.google.dev/gemini-api/docs/thinking#set-budget).
 
 ```json wrap icon="code" Example config with Google Vertex provider
 {
@@ -194,7 +204,9 @@ The `reasoningSummary` field controls whether the model returns its reasoning pr
             "credentials": {
                 "env": "GOOGLE_APPLICATION_CREDENTIALS"
             },
-            "baseUrl": "OPTIONAL_BASE_URL"
+            "baseUrl": "OPTIONAL_BASE_URL",
+            "thinkingLevel": "high", // "minimal" | "low" | "medium" | "high" (Gemini 3 models)
+            "thinkingBudget": -1 // number of thinking tokens, -1 for dynamic (Gemini 2.5 models)
         }
     ] 
 }
