@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Deprecated `GOOGLE_VERTEX_THINKING_BUDGET_TOKENS` environment variable in favor of per-model `thinkingBudget` config. [#1110](https://github.com/sourcebot-dev/sourcebot/pull/1110)
+- Removed `GOOGLE_VERTEX_INCLUDE_THOUGHTS` environment variable. Thoughts are now always included. [#1110](https://github.com/sourcebot-dev/sourcebot/pull/1110)
 
 ## [4.16.8] - 2026-04-09
 
