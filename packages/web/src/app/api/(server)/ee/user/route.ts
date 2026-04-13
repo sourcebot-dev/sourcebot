@@ -5,7 +5,8 @@ import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { serviceErrorResponse, missingQueryParam, notFound } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { withAuthV2, withMinimumOrgRole } from "@/withAuthV2";
+import { withAuth } from "@/middleware/withAuth";
+import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
 import { createLogger, hasEntitlement } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
@@ -30,7 +31,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
         return serviceErrorResponse(missingQueryParam('userId'));
     }
 
-    const result = await withAuthV2(async ({ org, role, user, prisma }) => {
+    const result = await withAuth(async ({ org, role, user, prisma }) => {
         return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             try {
                 const userData = await prisma.user.findUnique({
@@ -85,7 +86,7 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
         return serviceErrorResponse(missingQueryParam('userId'));
     }
 
-    const result = await withAuthV2(async ({ org, role, user: currentUser, prisma }) => {
+    const result = await withAuth(async ({ org, role, user: currentUser, prisma }) => {
         return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             try {
                 if (currentUser.id === userId) {

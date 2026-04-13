@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
-import { prisma } from "@/prisma";
-import { getOrgFromDomain } from "@/data/org";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
+import { __unsafePrisma } from "@/prisma";
+import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { notFound, redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
@@ -18,7 +17,7 @@ interface InvitePageProps {
 
 export default async function InvitePage(props: InvitePageProps) {
     const searchParams = await props.searchParams;
-    const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+    const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
     if (!org || !org.isOnboarded) {
         return redirect("/onboard");
     }
@@ -34,7 +33,7 @@ export default async function InvitePage(props: InvitePageProps) {
         return <WelcomeCard inviteLinkId={inviteLinkId} providers={providers} />;
     }
 
-    const membership = await prisma.userToOrg.findUnique({
+    const membership = await __unsafePrisma.userToOrg.findUnique({
         where: {
             orgId_userId: {
                 orgId: org.id,
@@ -45,7 +44,7 @@ export default async function InvitePage(props: InvitePageProps) {
 
     // If already a member, redirect to the organization
     if (membership) {
-        redirect(`/${SINGLE_TENANT_ORG_DOMAIN}`);
+        redirect(`/`);
     }
 
     // User is logged in but not a member, show join invitation

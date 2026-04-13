@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.16.8] - 2026-04-09
+
+### Added
+- Linear issue links in chat responses now render as a rich card-style UI showing the Linear logo, issue identifier, and title instead of plain hyperlinks. [#1060](https://github.com/sourcebot-dev/sourcebot/pull/1060)
+- Added `reasoningEffort` configuration option for the Azure OpenAI provider. [#1101](https://github.com/sourcebot-dev/sourcebot/pull/1101)
+- Added `reasoningSummary` configuration option for the OpenAI and Azure OpenAI providers. [#1102](https://github.com/sourcebot-dev/sourcebot/pull/1102)
+- Added per-model `temperature` configuration option for all language model providers. [#1103](https://github.com/sourcebot-dev/sourcebot/pull/1103)
+
+### Changed
+- Links in Ask Sourcebot chat responses now open in a new tab with a subtle external link icon indicator. [#1059](https://github.com/sourcebot-dev/sourcebot/pull/1059)
+- Removed `/~` from the root of most app URLs. [#1076](https://github.com/sourcebot-dev/sourcebot/pull/1076)
+- Deprecated `SOURCEBOT_CHAT_MODEL_TEMPERATURE` environment variable in favor of per-model `temperature` config. It no longer defaults to `0.3`; if unset and no per-model temperature is configured, temperature is not sent to the API. [#1103](https://github.com/sourcebot-dev/sourcebot/pull/1103)
+
+## [4.16.7] - 2026-04-03
+
+### Fixed
+- Fixed "TypeError: pathRegexp is not a function" type error in the worker. [#1093](https://github.com/sourcebot-dev/sourcebot/pull/1093)
+
+## [4.16.6] - 2026-04-03
+
+### Changed
+- Bumped dependencies. [#1082](https://github.com/sourcebot-dev/sourcebot/pull/1082) [#1083](https://github.com/sourcebot-dev/sourcebot/pull/1083) [#1084](https://github.com/sourcebot-dev/sourcebot/pull/1084) [#1085](https://github.com/sourcebot-dev/sourcebot/pull/1085) [#1086](https://github.com/sourcebot-dev/sourcebot/pull/1086) [#1087](https://github.com/sourcebot-dev/sourcebot/pull/1087) [#1088](https://github.com/sourcebot-dev/sourcebot/pull/1088) [#1089](https://github.com/sourcebot-dev/sourcebot/pull/1089) [#1090](https://github.com/sourcebot-dev/sourcebot/pull/1090) [#1091](https://github.com/sourcebot-dev/sourcebot/pull/1091) [#1092](https://github.com/sourcebot-dev/sourcebot/pull/1092)
+
+## [4.16.5] - 2026-04-02
+
+### Added
+- Added `GET /api/commit` endpoint for retrieving details about a single commit, including parent commit SHAs [#1077](https://github.com/sourcebot-dev/sourcebot/pull/1077)
+
+### Changed
+- Replaced placeholder avatars with deterministic minidenticon-based avatars generated from email addresses [#1072](https://github.com/sourcebot-dev/sourcebot/pull/1072)
+- Changed `author_name` and `author_email` fields to `authorName` and `authorEmail` in `GET /api/commits` response [#1077](https://github.com/sourcebot-dev/sourcebot/pull/1077)
+- Changed `oldPath` and `newPath` in `GET /api/diff` response from `"/dev/null"` to `null` for added/deleted files [#1077](https://github.com/sourcebot-dev/sourcebot/pull/1077)
+- Bumped `simple-git` to `3.33.0`. [#1078](https://github.com/sourcebot-dev/sourcebot/pull/1078)
+
+## [4.16.4] - 2026-04-01
+
+### Added
+- Added `GET /api/diff` endpoint for retrieving structured diffs between two git refs [#1063](https://github.com/sourcebot-dev/sourcebot/pull/1063)
+
+### Fixed
+- Fixed `GET /api/mcp` hanging with zero bytes by returning `405 Method Not Allowed` per the MCP Streamable HTTP spec [#1064](https://github.com/sourcebot-dev/sourcebot/pull/1064)
+- Fixed tokens with trailing newlines breaking git clone URLs by adding `.trim()` in `getTokenFromConfig()` [#1067](https://github.com/sourcebot-dev/sourcebot/pull/1067)
+
+### Removed
+- Removed "general" settings page with options to change organization name and domain. [#1065](https://github.com/sourcebot-dev/sourcebot/pull/1065)
+
+### Changed
+- Changed the analytics and license settings pages to only be viewable by organization owners. [#1065](https://github.com/sourcebot-dev/sourcebot/pull/1065)
+
 ## [4.16.3] - 2026-03-27
 
 ### Added

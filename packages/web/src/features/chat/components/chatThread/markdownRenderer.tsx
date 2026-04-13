@@ -5,7 +5,7 @@ import { SearchQueryParams } from '@/lib/types';
 import { cn, createPathWithQueryParams } from '@/lib/utils';
 import type { Element, Root } from "hast";
 import { Schema as SanitizeSchema } from 'hast-util-sanitize';
-import { CopyIcon, SearchIcon } from 'lucide-react';
+import { CopyIcon, ExternalLinkIcon, SearchIcon } from 'lucide-react';
 import type { Heading, Nodes } from "mdast";
 import { findAndReplace } from 'mdast-util-find-and-replace';
 import { useRouter } from 'next/navigation';
@@ -17,10 +17,12 @@ import remarkGfm from 'remark-gfm';
 import type { PluggableList, Plugin } from "unified";
 import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
+import { LinearIssueCard } from './linearIssueCard';
 import { FILE_REFERENCE_REGEX } from '@/features/chat/constants';
 import { createFileReference } from '@/features/chat/utils';
-import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
 import isEqual from "fast-deep-equal/react";
+
+const LINEAR_ISSUE_URL_REGEX = /^https:\/\/linear\.app\/[^/]+\/issue\/([A-Z]+-\d+)\/([^/\s"]+)$/;
 
 export const REFERENCE_PAYLOAD_ATTRIBUTE = 'data-reference-payload';
 
@@ -171,6 +173,30 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
         )
     }, []);
 
+    const renderAnchor = useCallback(({ href, children, className: incomingClassName, ...rest }: React.JSX.IntrinsicElements['a']) => {
+        if (href) {
+            const match = LINEAR_ISSUE_URL_REGEX.exec(href);
+            if (match) {
+                const identifier = match[1];
+                const titleSlug = match[2];
+                const title = titleSlug.replace(/-/g, ' ');
+                return <LinearIssueCard identifier={identifier} title={title} href={href} />;
+            }
+        }
+        return (
+            <a
+                {...rest}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(incomingClassName, "inline-flex items-center gap-0.5")}
+            >
+                {children}
+                <ExternalLinkIcon className="inline w-3 h-3 mb-0.5 opacity-60" />
+            </a>
+        );
+    }, []);
+
     const renderCode = useCallback(({ className, children, node, ...rest }: React.JSX.IntrinsicElements['code'] & { node?: Element }) => {
         const text = children?.toString().trimEnd() ?? '';
 
@@ -203,7 +229,7 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                const url = createPathWithQueryParams(`/${SINGLE_TENANT_ORG_DOMAIN}/search`, [SearchQueryParams.query, `"${text}"`])
+                                const url = createPathWithQueryParams(`/search`, [SearchQueryParams.query, `"${text}"`])
                                 router.push(url);
                             }}
                             title="Search for snippet"
@@ -239,6 +265,7 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
                 components={{
                     pre: renderPre,
                     code: renderCode,
+                    a: renderAnchor,
                 }}
             >
                 {content}

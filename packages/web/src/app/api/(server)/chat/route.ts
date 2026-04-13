@@ -1,4 +1,4 @@
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { createMessageStream } from "@/features/chat/agent";
 import { additionalChatRequestParamsSchema } from "@/features/chat/types";
 import { getLanguageModelKey } from "@/features/chat/utils";
@@ -8,7 +8,7 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
 import { notFound, requestBodySchemaValidationError, ServiceError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
-import { withOptionalAuthV2 } from "@/withAuthV2";
+import { withOptionalAuth } from "@/middleware/withAuth";
 import * as Sentry from "@sentry/nextjs";
 import { createLogger, env } from "@sourcebot/shared";
 import {
@@ -40,7 +40,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
     const languageModel = _languageModel;
 
     const response = await sew(() =>
-        withOptionalAuthV2(async ({ org, user, prisma }) => {
+        withOptionalAuth(async ({ org, user, prisma }) => {
             // Validate that the chat exists.
             const chat = await prisma.chat.findUnique({
                 where: {
@@ -77,7 +77,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 } satisfies ServiceError;
             }
 
-            const { model, providerOptions } = await getAISDKLanguageModelAndOptions(languageModelConfig);
+            const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
 
             const expandedRepos = (await Promise.all(selectedSearchScopes.map(async (scope) => {
                 if (scope.type === 'repo') return [scope.value];
@@ -108,6 +108,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 model,
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                 modelProviderOptions: providerOptions,
+                modelTemperature: temperature,
                 onFinish: async ({ messages }) => {
                     await updateChatMessages({ chatId: id, messages, prisma });
                 },

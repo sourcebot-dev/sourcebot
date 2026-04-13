@@ -1,8 +1,7 @@
 'use client';
 
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
-import { SINGLE_TENANT_ORG_DOMAIN } from "@/lib/constants";
+import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 import Link from "next/link";
 
 type FileInfo = {
@@ -22,7 +21,6 @@ export const FileRow = ({ file }: { file: FileInfo }) => {
         revisionName: file.revision,
         path: file.path,
         pathType: 'blob',
-        domain: SINGLE_TENANT_ORG_DOMAIN,
     });
 
     return (

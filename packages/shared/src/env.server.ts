@@ -6,7 +6,6 @@ import { readFile } from 'fs/promises';
 import stripJsonComments from "strip-json-comments";
 import { z } from "zod";
 import { getTokenFromConfig } from "./crypto.js";
-import { tenancyModeSchema } from "./types.js";
 
 // Booleans are specified as 'true' or 'false' strings.
 const booleanSchema = z.enum(["true", "false"]);
@@ -163,12 +162,6 @@ const options = {
         SMTP_PASSWORD: z.string().optional(),
         EMAIL_FROM_ADDRESS: z.string().email().optional(),
 
-        // Stripe
-        STRIPE_SECRET_KEY: z.string().optional(),
-        STRIPE_PRODUCT_ID: z.string().optional(),
-        STRIPE_WEBHOOK_SECRET: z.string().optional(),
-        STRIPE_ENABLE_TEST_CLOCKS: booleanSchema.default('false'),
-
         LOGTAIL_TOKEN: z.string().optional(),
         LOGTAIL_HOST: z.string().url().optional(),
 
@@ -188,7 +181,6 @@ const options = {
         DATABASE_NAME: z.string().optional(),
         DATABASE_ARGS: z.string().optional(),
 
-        SOURCEBOT_TENANCY_MODE: tenancyModeSchema.default("single"),
         CONFIG_PATH: z.string(),
 
         // Misc UI flags
@@ -237,7 +229,10 @@ const options = {
         AWS_SESSION_TOKEN: z.string().optional(),
         AWS_REGION: z.string().optional(),
 
-        SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.default(0.3),
+        /**
+         * @deprecated Use per-model `temperature` in the language model config instead.
+         */
+        SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.optional(),
         SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(100),
 
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),

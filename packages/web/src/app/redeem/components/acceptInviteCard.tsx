@@ -4,11 +4,12 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import Link from "next/link";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/userAvatar";
 import placeholderAvatar from "@/public/placeholder_avatar.png";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCallback, useState } from "react";
-import { redeemInvite } from "@/actions";
+import { redeemInvite } from "@/app/invite/actions";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/hooks/use-toast";
 import { isServiceError } from "@/lib/utils";
@@ -16,7 +17,6 @@ import { isServiceError } from "@/lib/utils";
 interface AcceptInviteCardProps {
     inviteId: string;
     orgName: string;
-    orgDomain: string;
     orgImageUrl?: string;
     host: {
         name?: string;
@@ -29,7 +29,7 @@ interface AcceptInviteCardProps {
     };
 }
 
-export const AcceptInviteCard = ({ inviteId, orgName, orgDomain, orgImageUrl, host, recipient }: AcceptInviteCardProps) => {
+export const AcceptInviteCard = ({ inviteId, orgName, orgImageUrl, host, recipient }: AcceptInviteCardProps) => {
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
     const { toast } = useToast();
@@ -47,13 +47,13 @@ export const AcceptInviteCard = ({ inviteId, orgName, orgDomain, orgImageUrl, ho
                     toast({
                         description: `✅ You are now a member of the ${orgName} organization.`,
                     });
-                    router.push(`/${orgDomain}`);
+                    router.push('/');
                 }
             })
             .finally(() => {
                 setIsLoading(false);
             });
-    }, [inviteId, orgDomain, orgName, router, toast]);
+    }, [inviteId, orgName, router, toast]);
 
     return (
         <Card className="p-12 max-w-lg">
@@ -74,9 +74,11 @@ export const AcceptInviteCard = ({ inviteId, orgName, orgDomain, orgImageUrl, ho
                     <InvitedByText email={host.email} name={host.name} /> invited you to join the <strong>{orgName}</strong> organization.
                 </p>
                 <div className="flex fex-row items-center justify-center gap-2 mt-12">
-                    <Avatar className="w-14 h-14">
-                        <AvatarImage src={host.avatarUrl ?? placeholderAvatar.src} />
-                    </Avatar>
+                    <UserAvatar
+                        email={host.email}
+                        imageUrl={host.avatarUrl}
+                        className="w-14 h-14"
+                    />
                     <ArrowRight className="w-4 h-4 text-muted-foreground" />
                     <Avatar className="w-14 h-14">
                         <AvatarImage src={orgImageUrl ?? placeholderAvatar.src} />

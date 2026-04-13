@@ -64,6 +64,4 @@ export const repoIndexingJobMetadataSchema = z.object({
 
 export type RepoIndexingJobMetadata = z.infer<typeof repoIndexingJobMetadataSchema>;
 
-export const tenancyModeSchema = z.enum(["multi", "single"]);
-
 export type IdentityProviderType = IdentityProviderConfig['provider'];

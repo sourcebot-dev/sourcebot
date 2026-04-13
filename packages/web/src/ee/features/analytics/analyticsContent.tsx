@@ -6,7 +6,6 @@ import { Users, LucideIcon, Search, ArrowRight, Activity, Calendar, MessageCircl
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer } from "@/components/ui/chart"
 import { useQuery } from "@tanstack/react-query"
-import { useDomain } from "@/hooks/useDomain"
 import { unwrapServiceError } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AnalyticsRow } from "./types"
@@ -383,7 +382,6 @@ function LoadingSkeleton() {
 }
 
 export function AnalyticsContent() {
-    const domain = useDomain()
     const { theme } = useTheme()
 
     // Time period selector state
@@ -395,8 +393,8 @@ export function AnalyticsContent() {
         isError,
         error
     } = useQuery({
-        queryKey: ["analytics", domain],
-        queryFn: () => unwrapServiceError(getAnalytics(domain)),
+        queryKey: ["analytics"],
+        queryFn: () => unwrapServiceError(getAnalytics()),
     })
 
     const chartColors = useMemo(() => ({

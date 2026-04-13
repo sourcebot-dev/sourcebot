@@ -1,16 +1,16 @@
 'use server';
 
 import { ServiceError, notFound } from "@/lib/serviceError";
-import { withAuthV2 } from "@/withAuthV2";
+import { withAuth } from "@/middleware/withAuth";
 import { AccountPermissionSyncJobStatus } from "@sourcebot/db";
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 
 export interface AccountSyncStatusResponse {
     isSyncing: boolean;
 }
 
 export const getAccountSyncStatus = async (jobId: string): Promise<AccountSyncStatusResponse | ServiceError> =>
-    sew(() => withAuthV2(async ({ prisma, user }) => {
+    sew(() => withAuth(async ({ prisma, user }) => {
         const job = await prisma.accountPermissionSyncJob.findFirst({
             where: {
                 id: jobId,

@@ -1812,6 +1812,10 @@ const schema = {
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
               },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
+              },
               "headers": {
                 "type": "object",
                 "description": "Optional headers to use with the model.",
@@ -1946,6 +1950,10 @@ const schema = {
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
               },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
+              },
               "headers": {
                 "type": "object",
                 "description": "Optional headers to use with the model.",
@@ -2057,6 +2065,30 @@ const schema = {
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Use a different URL prefix for API calls. Either this or `resourceName` can be used."
               },
+              "reasoningEffort": {
+                "type": "string",
+                "description": "The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings",
+                "examples": [
+                  "none",
+                  "minimal",
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
+              "reasoningSummary": {
+                "type": "string",
+                "description": "Controls whether the model returns its reasoning process. Set to 'auto' for a condensed summary, 'detailed' for more comprehensive reasoning, or 'none' to disable. Defaults to 'auto'.",
+                "examples": [
+                  "none",
+                  "auto",
+                  "detailed"
+                ]
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
+              },
               "headers": {
                 "type": "object",
                 "description": "Optional headers to use with the model.",
@@ -2160,6 +2192,10 @@ const schema = {
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
               },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
+              },
               "headers": {
                 "type": "object",
                 "description": "Optional headers to use with the model.",
@@ -2262,6 +2298,10 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
               },
               "headers": {
                 "type": "object",
@@ -2381,6 +2421,10 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
               },
               "headers": {
                 "type": "object",
@@ -2503,6 +2547,10 @@ const schema = {
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
               },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
+              },
               "headers": {
                 "type": "object",
                 "description": "Optional headers to use with the model.",
@@ -2605,6 +2653,10 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
               },
               "headers": {
                 "type": "object",
@@ -2719,11 +2771,25 @@ const schema = {
                 "type": "string",
                 "description": "The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings",
                 "examples": [
+                  "none",
                   "minimal",
                   "low",
                   "medium",
                   "high"
                 ]
+              },
+              "reasoningSummary": {
+                "type": "string",
+                "description": "Controls whether the model returns its reasoning process. Set to 'auto' for a condensed summary, 'detailed' for more comprehensive reasoning, or 'none' to disable. Defaults to 'auto'.",
+                "examples": [
+                  "none",
+                  "auto",
+                  "detailed"
+                ]
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
               },
               "headers": {
                 "type": "object",
@@ -2928,6 +2994,10 @@ const schema = {
                   "thinking",
                   "reasoning"
                 ]
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
               }
             },
             "required": [
@@ -2988,6 +3058,10 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
               },
               "headers": {
                 "type": "object",
@@ -3095,6 +3169,10 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
               },
               "headers": {
                 "type": "object",
@@ -3272,6 +3350,10 @@ const schema = {
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
               },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
+              },
               "headers": {
                 "type": "object",
                 "description": "Optional headers to use with the model.",
@@ -3406,6 +3488,10 @@ const schema = {
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
               },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
+              },
               "headers": {
                 "type": "object",
                 "description": "Optional headers to use with the model.",
@@ -3517,6 +3603,30 @@ const schema = {
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Use a different URL prefix for API calls. Either this or `resourceName` can be used."
               },
+              "reasoningEffort": {
+                "type": "string",
+                "description": "The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings",
+                "examples": [
+                  "none",
+                  "minimal",
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
+              "reasoningSummary": {
+                "type": "string",
+                "description": "Controls whether the model returns its reasoning process. Set to 'auto' for a condensed summary, 'detailed' for more comprehensive reasoning, or 'none' to disable. Defaults to 'auto'.",
+                "examples": [
+                  "none",
+                  "auto",
+                  "detailed"
+                ]
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
+              },
               "headers": {
                 "type": "object",
                 "description": "Optional headers to use with the model.",
@@ -3620,6 +3730,10 @@ const schema = {
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
               },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
+              },
               "headers": {
                 "type": "object",
                 "description": "Optional headers to use with the model.",
@@ -3722,6 +3836,10 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
               },
               "headers": {
                 "type": "object",
@@ -3841,6 +3959,10 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
               },
               "headers": {
                 "type": "object",
@@ -3963,6 +4085,10 @@ const schema = {
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
               },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
+              },
               "headers": {
                 "type": "object",
                 "description": "Optional headers to use with the model.",
@@ -4065,6 +4191,10 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
               },
               "headers": {
                 "type": "object",
@@ -4179,11 +4309,25 @@ const schema = {
                 "type": "string",
                 "description": "The reasoning effort to use with the model. Defaults to `medium`. See https://platform.openai.com/docs/guides/reasoning#get-started-with-reasonings",
                 "examples": [
+                  "none",
                   "minimal",
                   "low",
                   "medium",
                   "high"
                 ]
+              },
+              "reasoningSummary": {
+                "type": "string",
+                "description": "Controls whether the model returns its reasoning process. Set to 'auto' for a condensed summary, 'detailed' for more comprehensive reasoning, or 'none' to disable. Defaults to 'auto'.",
+                "examples": [
+                  "none",
+                  "auto",
+                  "detailed"
+                ]
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
               },
               "headers": {
                 "type": "object",
@@ -4388,6 +4532,10 @@ const schema = {
                   "thinking",
                   "reasoning"
                 ]
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
               }
             },
             "required": [
@@ -4448,6 +4596,10 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
               },
               "headers": {
                 "type": "object",
@@ -4555,6 +4707,10 @@ const schema = {
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
               },
               "headers": {
                 "type": "object",

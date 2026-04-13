@@ -1,7 +1,7 @@
 'use client';
 
 import { SBChatMessageToolTypes } from "@/features/chat/types";
-import { CopyIconButton } from "@/app/[domain]/components/copyIconButton";
+import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
 import { ToolUIPart } from "ai";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";

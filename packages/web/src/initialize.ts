@@ -1,10 +1,8 @@
 import { createGuestUser } from '@/lib/authUtils';
-import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
-import { prisma } from "@/prisma";
+import { __unsafePrisma } from "@/prisma";
 import { OrgRole } from '@sourcebot/db';
 import { createLogger, env, hasEntitlement, loadConfig } from "@sourcebot/shared";
-import { getOrgFromDomain } from './data/org';
-import { SINGLE_TENANT_ORG_DOMAIN, SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_ID } from './lib/constants';
+import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_ID } from './lib/constants';
 import { ServiceErrorException } from './lib/serviceError';
 import { getOrgMetadata, isServiceError } from './lib/utils';
 
@@ -12,7 +10,7 @@ const logger = createLogger('web-initialize');
 
 const pruneOldGuestUser = async () => {
     // The old guest user doesn't have the GUEST role
-    const guestUser = await prisma.userToOrg.findUnique({
+    const guestUser = await __unsafePrisma.userToOrg.findUnique({
         where: {
             orgId_userId: {
                 orgId: SINGLE_TENANT_ORG_ID,
@@ -25,7 +23,7 @@ const pruneOldGuestUser = async () => {
     });
 
     if (guestUser) {
-        await prisma.user.delete({
+        await __unsafePrisma.user.delete({
             where: {
                 id: guestUser.userId,
             },
@@ -35,27 +33,27 @@ const pruneOldGuestUser = async () => {
     }
 }
 
-const initSingleTenancy = async () => {
+const init = async () => {
     // This is needed because v4 introduces the GUEST org role as well as making authentication required. 
     // To keep things simple, we'll just delete the old guest user if it exists in the DB
     await pruneOldGuestUser();
 
     const hasAnonymousAccessEntitlement = hasEntitlement("anonymous-access");
     if (hasAnonymousAccessEntitlement) {
-        const res = await createGuestUser(SINGLE_TENANT_ORG_DOMAIN);
+        const res = await createGuestUser();
         if (isServiceError(res)) {
             throw new ServiceErrorException(res);
         }
     } else {
         // If anonymous access entitlement is not enabled, set the flag to false in the org on init
-        const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+        const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
         if (org) {
             const currentMetadata = getOrgMetadata(org);
             const mergedMetadata = {
                 ...(currentMetadata ?? {}),
                 anonymousAccessEnabled: false,
             };
-            await prisma.org.update({
+            await __unsafePrisma.org.update({
                 where: { id: org.id },
                 data: { metadata: mergedMetadata },
             });
@@ -66,8 +64,8 @@ const initSingleTenancy = async () => {
     // search contexts that may be present in the DB. This could happen if a deployment had
     // the entitlement, synced search contexts, and then no longer had the entitlement
     const hasSearchContextEntitlement = hasEntitlement("search-contexts")
-    if(!hasSearchContextEntitlement) {
-        await prisma.searchContext.deleteMany({
+    if (!hasSearchContextEntitlement) {
+        await __unsafePrisma.searchContext.deleteMany({
             where: {
                 orgId: SINGLE_TENANT_ORG_ID,
             },
@@ -82,7 +80,7 @@ const initSingleTenancy = async () => {
         if (!hasAnonymousAccessEntitlement) {
             logger.warn(`FORCE_ENABLE_ANONYMOUS_ACCESS env var is set to true but anonymous access entitlement is not available. Setting will be ignored.`);
         } else {
-            const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+            const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
             if (org) {
                 const currentMetadata = getOrgMetadata(org);
                 const mergedMetadata = {
@@ -90,7 +88,7 @@ const initSingleTenancy = async () => {
                     anonymousAccessEnabled: true,
                 };
 
-                await prisma.org.update({
+                await __unsafePrisma.org.update({
                     where: { id: org.id },
                     data: {
                         metadata: mergedMetadata,
@@ -104,9 +102,9 @@ const initSingleTenancy = async () => {
     // Sync member approval setting from env var (only if explicitly set)
     if (env.REQUIRE_APPROVAL_NEW_MEMBERS !== undefined) {
         const requireApprovalNewMembers = env.REQUIRE_APPROVAL_NEW_MEMBERS === 'true';
-        const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+        const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
         if (org && org.memberApprovalRequired !== requireApprovalNewMembers) {
-            await prisma.org.update({
+            await __unsafePrisma.org.update({
                 where: { id: org.id },
                 data: { memberApprovalRequired: requireApprovalNewMembers },
             });
@@ -115,20 +113,6 @@ const initSingleTenancy = async () => {
     }
 }
 
-const initMultiTenancy = async () => {
-    const hasMultiTenancyEntitlement = hasEntitlement("multi-tenancy");
-    if (!hasMultiTenancyEntitlement) {
-        logger.error(`SOURCEBOT_TENANCY_MODE is set to ${env.SOURCEBOT_TENANCY_MODE} but your license doesn't have multi-tenancy entitlement. Please contact ${SOURCEBOT_SUPPORT_EMAIL} to request a license upgrade.`);
-        process.exit(1);
-    }
-}
-
 (async () => {
-    if (env.SOURCEBOT_TENANCY_MODE === 'single') {
-        await initSingleTenancy();
-    } else if (env.SOURCEBOT_TENANCY_MODE === 'multi') {
-        await initMultiTenancy();
-    } else {
-        throw new Error(`Invalid SOURCEBOT_TENANCY_MODE: ${env.SOURCEBOT_TENANCY_MODE}`);
-    }
+    await init();
 })();

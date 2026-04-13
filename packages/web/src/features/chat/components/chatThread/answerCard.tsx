@@ -9,7 +9,7 @@ import { MarkdownRenderer } from "./markdownRenderer";
 import { forwardRef, memo, useCallback, useImperativeHandle, useRef, useState } from "react";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { CopyIconButton } from "@/app/[domain]/components/copyIconButton";
+import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
 import { useToast } from "@/components/hooks/use-toast";
 import { convertLLMOutputToPortableMarkdown } from "../../utils";
 import { submitFeedback } from "../../actions";

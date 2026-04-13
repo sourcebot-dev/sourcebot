@@ -107,7 +107,7 @@ export const getTokenFromConfig = async (token: Token): Promise<string> => {
             throw new Error(`Environment variable ${token.env} not found.`);
         }
 
-        return envToken;
+        return envToken.trim();
     } else if ('googleCloudSecret' in token) {
         try {
             const client = new SecretManagerServiceClient();
@@ -119,7 +119,7 @@ export const getTokenFromConfig = async (token: Token): Promise<string> => {
                 throw new Error(`Secret ${token.googleCloudSecret} not found.`);
             }
 
-            return response.payload.data.toString();
+            return response.payload.data.toString().trim();
         } catch (error) {
             throw new Error(`Failed to access Google Cloud secret ${token.googleCloudSecret}: ${error instanceof Error ? error.message : String(error)}`);
         }

@@ -1,7 +1,7 @@
-import { sew } from "@/actions";
+import { sew } from "@/middleware/sew";
 import { getAuditService } from "@/ee/features/audit/factory";
 import { getRepoPermissionFilterForUser } from "@/prisma";
-import { withOptionalAuthV2 } from "@/withAuthV2";
+import { withOptionalAuth } from "@/middleware/withAuth";
 import { PrismaClient, UserWithAccounts } from "@sourcebot/db";
 import { env, hasEntitlement } from "@sourcebot/shared";
 import { headers } from "next/headers";
@@ -29,7 +29,7 @@ type QueryIRSearchRequest = {
 type SearchRequest = QueryStringSearchRequest | QueryIRSearchRequest;
 
 export const search = (request: SearchRequest) => sew(() =>
-    withOptionalAuthV2(async ({ prisma, user, org }) => {
+    withOptionalAuth(async ({ prisma, user, org }) => {
         if (user) {
             const source = request.source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
             getAuditService().createAudit({
@@ -60,7 +60,7 @@ export const search = (request: SearchRequest) => sew(() =>
     }));
 
 export const streamSearch = (request: SearchRequest) => sew(() =>
-    withOptionalAuthV2(async ({ prisma, user, org }) => {
+    withOptionalAuth(async ({ prisma, user, org }) => {
         if (user) {
             const source = request.source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
             getAuditService().createAudit({

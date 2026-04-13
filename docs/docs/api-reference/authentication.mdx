@@ -1,0 +1,34 @@
+---
+title: "Authentication"
+---
+
+To securely access and interact with Sourcebot’s API, authentication is required. Users must generate an API Key, which will be used to authenticate requests.
+
+<Note>
+If [anonymous access](/docs/configuration/auth/access-settings#anonymous-access) is enabled, some endpoints will be accessible without a API key.
+</Note>
+
+## Creating an API key
+
+Navigate to **Settings → API Keys** and click **Create API Key**. Copy the value - it is only shown once.
+
+<Frame>
+  <img src="/images/mcp_api_key_settings.png" alt="API Keys page in Sourcebot Settings" />
+</Frame>
+
+## Using an API key
+
+Pass your API key as a Bearer token in the `Authorization` header on every request.
+
+```bash
+Authorization: Bearer <your-api-key>
+```
+
+For example, to call the `/api/search` endpoint:
+
+```bash
+curl -X POST https://your-sourcebot-instance.com/api/search \
+  -H "Authorization: Bearer <your-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "hello world", "matches": 10}'
+```

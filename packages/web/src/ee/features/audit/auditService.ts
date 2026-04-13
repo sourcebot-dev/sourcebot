@@ -1,5 +1,5 @@
 import { IAuditService, AuditEvent } from '@/ee/features/audit/types';
-import { prisma } from '@/prisma';
+import { __unsafePrisma } from '@/prisma';
 import { Audit } from '@prisma/client';
 import { createLogger, SOURCEBOT_VERSION } from '@sourcebot/shared';
 
@@ -10,7 +10,7 @@ export class AuditService implements IAuditService {
     const sourcebotVersion = SOURCEBOT_VERSION;
 
     try {
-      const audit = await prisma.audit.create({
+      const audit = await __unsafePrisma.audit.create({
         data: {
           action: event.action,
           actorId: event.actor.id,

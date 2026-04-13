@@ -2,7 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { FileSuggestion, RefineSuggestion, Suggestion, SuggestionMode } from "./types";
-import { useDomain } from "@/hooks/useDomain";
 import { unwrapServiceError } from "@/lib/utils";
 import { search } from "@/app/api/(client)/client";
 import { useMemo } from "react";
@@ -27,10 +26,8 @@ export const useSuggestionsData = ({
     suggestionQuery,
     selectedRepos,
 }: Props): { isLoading: boolean, suggestions: Suggestion[] } => {
-    const domain = useDomain();
-
     const { data: fileSuggestions, isLoading: _isLoadingFileSuggestions } = useQuery({
-        queryKey: ["fileSuggestions-agentic", suggestionQuery, domain, selectedRepos],
+        queryKey: ["fileSuggestions-agentic", suggestionQuery, selectedRepos],
         queryFn: () => {
             const query = [];
             if (suggestionQuery.length > 0) {

@@ -1,15 +1,14 @@
 'use client';
 
-import { getBrowsePath } from "@/app/[domain]/browse/hooks/utils";
-import { PathHeader } from "@/app/[domain]/components/pathHeader";
-import { LightweightCodeHighlighter } from "@/app/[domain]/components/lightweightCodeHighlighter";
+import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
+import { PathHeader } from "@/app/(app)/components/pathHeader";
+import { LightweightCodeHighlighter } from "@/app/(app)/components/lightweightCodeHighlighter";
 import { FindRelatedSymbolsResponse } from "@/features/codeNav/types";
 import { RepositoryInfo, SourceRange } from "@/features/search";
 import { useMemo, useRef } from "react";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import Link from "next/link";
-import { useDomain } from "@/hooks/useDomain";
 
 interface ReferenceListProps {
     data: FindRelatedSymbolsResponse;
@@ -23,7 +22,6 @@ export const ReferenceList = ({
     data,
     revisionName,
 }: ReferenceListProps) => {
-    const domain = useDomain();
     const repoInfoMap = useMemo(() => {
         return data.repositoryInfo.reduce((acc, repo) => {
             acc[repo.id] = repo;
@@ -112,7 +110,6 @@ export const ReferenceList = ({
                                                 path: file.fileName,
                                                 pathType: 'blob',
                                                 highlightRange: match.range,
-                                                domain,
                                             })}
                                             onClick={() => {
                                                 captureEvent('wa_explore_menu_reference_clicked', {});

@@ -1,12 +1,12 @@
 import { notFound, redirect } from 'next/navigation';
 import { auth } from "@/auth";
-import { getInviteInfo } from "@/actions";
+import { getInviteInfo } from "../invite/actions";
 import { isServiceError } from "@/lib/utils";
 import { AcceptInviteCard } from './components/acceptInviteCard';
 import { LogoutEscapeHatch } from '../components/logoutEscapeHatch';
 import { InviteNotFoundCard } from './components/inviteNotFoundCard';
-import { getOrgFromDomain } from '@/data/org';
-import { SINGLE_TENANT_ORG_DOMAIN } from '@/lib/constants';
+import { SINGLE_TENANT_ORG_ID } from '@/lib/constants';
+import { __unsafePrisma } from '@/prisma';
 
 interface RedeemPageProps {
     searchParams: Promise<{
@@ -16,7 +16,7 @@ interface RedeemPageProps {
 
 export default async function RedeemPage(props: RedeemPageProps) {
     const searchParams = await props.searchParams;
-    const org = await getOrgFromDomain(SINGLE_TENANT_ORG_DOMAIN);
+    const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
     if (!org || !org.isOnboarded) {
         return redirect("/onboard");
     }
@@ -42,7 +42,6 @@ export default async function RedeemPage(props: RedeemPageProps) {
                 <AcceptInviteCard
                     inviteId={inviteId}
                     orgName={inviteInfo.orgName}
-                    orgDomain={inviteInfo.orgDomain}
                     host={inviteInfo.host}
                     recipient={inviteInfo.recipient}
                     orgImageUrl={inviteInfo.orgImageUrl}

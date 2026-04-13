@@ -19,11 +19,6 @@ enum ConnectionSyncStatus {
   FAILED
 }
 
-enum StripeSubscriptionStatus {
-  ACTIVE
-  INACTIVE
-}
-
 enum ChatVisibility {
   PRIVATE
   PUBLIC
@@ -270,7 +265,6 @@ model AccountRequest {
 model Org {
   id          Int          @id @default(autoincrement())
   name        String
-  domain      String       @unique
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   members     UserToOrg[]
@@ -282,10 +276,6 @@ model Org {
   metadata    Json? // For schema see orgMetadataSchema in packages/web/src/types.ts
 
   memberApprovalRequired Boolean @default(true)
-
-  stripeCustomerId         String?
-  stripeSubscriptionStatus StripeSubscriptionStatus?
-  stripeLastUpdatedAt      DateTime?
 
   /// List of pending invites to this organization
   invites Invite[]
