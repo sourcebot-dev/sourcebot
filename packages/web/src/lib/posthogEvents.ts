@@ -159,14 +159,23 @@ export type PosthogEventMap = {
         chatId: string,
         messageId: string,
     },
-    wa_chat_thread_created: {
+    wa_ask_thread_created: {
+        chatId: string,
+    },
+    wa_ask_message_sent: {
+        chatId: string,
+        selectedReposCount: number,
+    },
+    ask_thread_created: {
         chatId: string,
         isAnonymous: boolean,
+        source?: string,
     },
-    wa_chat_message_sent: {
+    ask_message_sent: {
         chatId: string,
         messageCount: number,
         selectedReposCount: number,
+        source?: string,
         /**
          * @note this field will only be populated when
          * the EXPERIMENT_ASK_GH_ENABLED environment variable
@@ -174,9 +183,9 @@ export type PosthogEventMap = {
          */
         selectedRepos?: string[],
     },
-    wa_chat_tool_used: {
-        chatId: string,
+    tool_used: {
         toolName: string,
+        source: string,
         success: boolean,
     },
     wa_chat_share_dialog_opened: {

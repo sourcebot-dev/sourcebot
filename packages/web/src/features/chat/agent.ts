@@ -1,7 +1,6 @@
 import { SBChatMessage, SBChatMessageMetadata } from "@/features/chat/types";
 import { getAnswerPartFromAssistantMessage } from "@/features/chat/utils";
 import { getFileSource } from '@/features/git';
-import { captureEvent } from "@/lib/posthog";
 import { isServiceError } from "@/lib/utils";
 import { LanguageModelV3 as AISDKLanguageModelV3 } from "@ai-sdk/provider";
 import { ProviderOptions } from "@ai-sdk/provider-utils";
@@ -210,13 +209,7 @@ const createAgentStream = async ({
         ],
         toolChoice: "auto",
         onStepFinish: ({ toolResults }) => {
-            toolResults.forEach(({ toolName, output, dynamic }) => {
-                captureEvent('wa_chat_tool_used', {
-                    chatId,
-                    toolName,
-                    success: !isServiceError(output),
-                });
-
+            toolResults.forEach(({ output, dynamic }) => {
                 if (dynamic || isServiceError(output)) {
                     return;
                 }

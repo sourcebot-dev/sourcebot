@@ -46,6 +46,10 @@ export const useCreateNewChatThread = ({ isAuthenticated = false }: UseCreateNew
             return;
         }
 
+        captureEvent('wa_ask_thread_created', {
+            chatId: response.id,
+        });
+
         setChatState({
             inputMessage,
             selectedSearchScopes,

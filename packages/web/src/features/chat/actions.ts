@@ -49,9 +49,10 @@ export const createChat = async ({ source }: { source?: string } = {}) => sew(()
             });
         }
 
-        await captureEvent('wa_chat_thread_created', {
+        await captureEvent('ask_thread_created', {
             chatId: chat.id,
             isAnonymous: isGuestUser,
+            source,
         });
 
         return {

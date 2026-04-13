@@ -126,6 +126,11 @@ export const ChatThread = ({
             .map((part) => part.data);
         setSources((prev) => [...prev, ...sources]);
 
+        captureEvent('wa_ask_message_sent', {
+            chatId,
+            selectedReposCount: selectedSearchScopes.length,
+        });
+
         _sendMessage(message, {
             body: {
                 selectedSearchScopes,

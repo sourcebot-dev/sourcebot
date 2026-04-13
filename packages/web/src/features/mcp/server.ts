@@ -2,6 +2,7 @@ import {
     languageModelInfoSchema,
 } from '@/features/chat/types';
 import { askCodebase } from '@/features/mcp/askCodebase';
+import { captureEvent } from '@/lib/posthog';
 import { isServiceError } from '@/lib/utils';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ChatVisibility } from '@sourcebot/db';
@@ -57,6 +58,11 @@ export async function createMcpServer(): Promise<McpServer> {
         },
         async () => {
             const models = await getConfiguredLanguageModelsInfo();
+            captureEvent('tool_used', {
+                toolName: 'list_language_models',
+                source: 'sourcebot-mcp-server',
+                success: true,
+            });
             return { content: [{ type: "text", text: JSON.stringify(models) }] };
         }
     );
@@ -101,10 +107,21 @@ export async function createMcpServer(): Promise<McpServer> {
                 });
 
                 if (isServiceError(result)) {
+                    captureEvent('tool_used', {
+                        toolName: 'ask_codebase',
+                        source: 'sourcebot-mcp-server',
+                        success: false,
+                    });
                     return {
                         content: [{ type: "text", text: `Failed to ask codebase: ${result.message}` }],
                     };
                 }
+
+                captureEvent('tool_used', {
+                    toolName: 'ask_codebase',
+                    source: 'sourcebot-mcp-server',
+                    success: true,
+                });
 
                 const formattedResponse = dedent`
                 ${result.answer}
