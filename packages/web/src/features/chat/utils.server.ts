@@ -6,7 +6,7 @@ import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { createAzure } from '@ai-sdk/azure';
 import { createDeepSeek } from '@ai-sdk/deepseek';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createGoogleGenerativeAI, GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { createVertex } from '@ai-sdk/google-vertex';
 import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { createMistral } from '@ai-sdk/mistral';
@@ -270,6 +270,15 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
 
                 return {
                     model: google(modelId),
+                    providerOptions: {
+                        google: {
+                            thinkingConfig: {
+                                includeThoughts: true,
+                                thinkingBudget: config.thinkingBudget,
+                                thinkingLevel: config.thinkingLevel
+                            }
+                        } satisfies GoogleLanguageModelOptions
+                    }
                 };
             }
             case 'google-vertex': {
@@ -291,10 +300,13 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                     providerOptions: {
                         vertex: {
                             thinkingConfig: {
-                                thinkingBudget: env.GOOGLE_VERTEX_THINKING_BUDGET_TOKENS,
-                                includeThoughts: env.GOOGLE_VERTEX_INCLUDE_THOUGHTS === 'true',
+                                includeThoughts: true,
+                                thinkingBudget:
+                                    config.thinkingBudget ??
+                                    env.GOOGLE_VERTEX_THINKING_BUDGET_TOKENS,
+                                thinkingLevel: config.thinkingLevel,
                             }
-                        }
+                        } satisfies GoogleLanguageModelOptions
                     },
                 };
             }

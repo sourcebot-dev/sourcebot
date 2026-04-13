@@ -221,8 +221,11 @@ const options = {
         GOOGLE_VERTEX_PROJECT: z.string().optional(),
         GOOGLE_VERTEX_REGION: z.string().default('us-central1'),
         GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
-        GOOGLE_VERTEX_THINKING_BUDGET_TOKENS: numberSchema.default(-1),
-        GOOGLE_VERTEX_INCLUDE_THOUGHTS: booleanSchema.default('true'),
+
+        /**
+         * @deprecated Use `thinkingBudget` in the language model config instead.
+         */
+        GOOGLE_VERTEX_THINKING_BUDGET_TOKENS: numberSchema.optional(),
 
         AWS_ACCESS_KEY_ID: z.string().optional(),
         AWS_SECRET_ACCESS_KEY: z.string().optional(),

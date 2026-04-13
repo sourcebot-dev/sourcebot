@@ -963,6 +963,14 @@ export interface GoogleGenerativeAILanguageModel {
    */
   baseUrl?: string;
   /**
+   * Optional thinking level for Gemini 3 models. Controls the depth of reasoning the model performs. See https://ai.google.dev/gemini-api/docs/thinking#thinking-levels
+   */
+  thinkingLevel?: "minimal" | "low" | "medium" | "high";
+  /**
+   * Optional thinking budget for Gemini 2.5 models. Sets the number of thinking tokens the model can use when generating a response. Set to -1 for dynamic thinking. See https://ai.google.dev/gemini-api/docs/thinking#set-budget
+   */
+  thinkingBudget?: number;
+  /**
    * Optional temperature setting to use with the model.
    */
   temperature?: number;
@@ -1056,6 +1064,14 @@ export interface GoogleVertexLanguageModel {
    * Optional base URL.
    */
   baseUrl?: string;
+  /**
+   * Optional thinking level for Gemini 3 models. Controls the depth of reasoning the model performs. See https://ai.google.dev/gemini-api/docs/thinking#thinking-levels
+   */
+  thinkingLevel?: "minimal" | "low" | "medium" | "high";
+  /**
+   * Optional thinking budget for Gemini 2.5 models. Sets the number of thinking tokens the model can use when generating a response. Set to -1 for dynamic thinking. See https://ai.google.dev/gemini-api/docs/thinking#set-budget
+   */
+  thinkingBudget?: number;
   /**
    * Optional temperature setting to use with the model.
    */
