@@ -24,7 +24,7 @@ export function toVercelAITool<TName extends string, TShape extends z.ZodRawShap
                     toolName: def.name,
                     source: context.source ?? 'unknown',
                     success,
-                }, { distinctId: context.userId });
+                });
             }
         },
         toModelOutput: ({ output }) => ({
@@ -67,7 +67,7 @@ export function registerMcpTool<TName extends string, TShape extends z.ZodRawSha
                     toolName: def.name,
                     source: context.source ?? 'unknown',
                     success,
-                }, { distinctId: context.userId });
+                });
             }
         },
     );

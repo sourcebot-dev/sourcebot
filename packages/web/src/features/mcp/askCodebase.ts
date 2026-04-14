@@ -159,7 +159,6 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 modelName,
                 modelProviderOptions: providerOptions,
                 modelTemperature: temperature,
-                userId: user?.id,
                 onFinish: async ({ messages }) => {
                     finalMessages = messages;
                 },

@@ -43,8 +43,6 @@ interface CreateMessageStreamResponseProps {
     modelProviderOptions?: Record<string, Record<string, JSONValue>>;
     modelTemperature?: number;
     metadata?: Partial<SBChatMessageMetadata>;
-    /** User ID for telemetry attribution on tool_used events. */
-    userId?: string;
 }
 
 export const createMessageStream = async ({
@@ -58,7 +56,6 @@ export const createMessageStream = async ({
     modelTemperature,
     onFinish,
     onError,
-    userId,
 }: CreateMessageStreamResponseProps) => {
     const latestMessage = messages[messages.length - 1];
     const sources = latestMessage.parts
@@ -104,7 +101,6 @@ export const createMessageStream = async ({
                 inputMessages: messageHistory,
                 inputSources: sources,
                 selectedRepos,
-                userId,
                 onWriteSource: (source) => {
                     writer.write({
                         type: 'data-source',
@@ -158,7 +154,6 @@ interface AgentOptions {
     onWriteSource: (source: Source) => void;
     traceId: string;
     chatId: string;
-    userId?: string;
 }
 
 const createAgentStream = async ({
@@ -171,7 +166,6 @@ const createAgentStream = async ({
     onWriteSource,
     traceId,
     chatId,
-    userId,
 }: AgentOptions) => {
     // For every file source, resolve the source code so that we can include it in the system prompt.
     const fileSources = inputSources.filter((source) => source.type === 'file');
@@ -208,7 +202,7 @@ const createAgentStream = async ({
         providerOptions,
         messages: inputMessages,
         system: systemPrompt,
-        tools: createTools({ source: 'sourcebot-ask-agent', selectedRepos, userId }),
+        tools: createTools({ source: 'sourcebot-ask-agent', selectedRepos }),
         temperature: temperature ?? env.SOURCEBOT_CHAT_MODEL_TEMPERATURE,
         stopWhen: [
             stepCountIsGTE(env.SOURCEBOT_CHAT_MAX_STEP_COUNT),

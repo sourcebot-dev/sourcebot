@@ -25,7 +25,7 @@ import {
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
-export async function createMcpServer(options?: { userId?: string }): Promise<McpServer> {
+export async function createMcpServer(): Promise<McpServer> {
     const server = new McpServer({
         name: 'sourcebot-mcp-server',
         version: SOURCEBOT_VERSION,
@@ -36,7 +36,6 @@ export async function createMcpServer(options?: { userId?: string }): Promise<Mc
 
     const toolContext: ToolContext = {
         source: 'sourcebot-mcp-server',
-        userId: options?.userId,
     }
 
     registerMcpTool(server, grepDefinition, toolContext);
@@ -63,7 +62,7 @@ export async function createMcpServer(options?: { userId?: string }): Promise<Mc
                 toolName: 'list_language_models',
                 source: 'sourcebot-mcp-server',
                 success: true,
-            }, { distinctId: options?.userId });
+            });
             return { content: [{ type: "text", text: JSON.stringify(models) }] };
         }
     );
@@ -112,7 +111,7 @@ export async function createMcpServer(options?: { userId?: string }): Promise<Mc
                         toolName: 'ask_codebase',
                         source: 'sourcebot-mcp-server',
                         success: false,
-                    }, { distinctId: options?.userId });
+                    });
                     return {
                         content: [{ type: "text", text: `Failed to ask codebase: ${result.message}` }],
                     };
@@ -122,7 +121,7 @@ export async function createMcpServer(options?: { userId?: string }): Promise<Mc
                     toolName: 'ask_codebase',
                     source: 'sourcebot-mcp-server',
                     success: true,
-                }, { distinctId: options?.userId });
+                });
 
                 const formattedResponse = dedent`
                 ${result.answer}

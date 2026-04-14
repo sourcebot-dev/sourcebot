@@ -17,8 +17,6 @@ export type Source = z.infer<typeof sourceSchema>;
 export interface ToolContext {
     source?: string;
     selectedRepos?: string[];
-    /** User ID for telemetry attribution. When set, tool_used events will be attributed to this user. */
-    userId?: string;
 }
 
 export interface ToolDefinition<
