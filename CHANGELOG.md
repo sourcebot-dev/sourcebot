@@ -14,7 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deprecated `GOOGLE_VERTEX_THINKING_BUDGET_TOKENS` environment variable in favor of per-model `thinkingBudget` config. [#1110](https://github.com/sourcebot-dev/sourcebot/pull/1110)
 - Removed `GOOGLE_VERTEX_INCLUDE_THOUGHTS` environment variable. Thoughts are now always included. [#1110](https://github.com/sourcebot-dev/sourcebot/pull/1110)
 - Renamed and consolidated PostHog chat events (`wa_chat_thread_created` -> `ask_thread_created`, `wa_chat_message_sent` -> `ask_message_sent`, `wa_chat_tool_used` -> `tool_used`), added unified `tool_used` tracking across the ask agent and MCP server, and removed the redundant `api_code_search_request` event. [#1111](https://github.com/sourcebot-dev/sourcebot/pull/1111)
-- Upgraded Go toolchain from 1.23.4 to 1.25, resolving CVE-2025-68121 (CRITICAL) and multiple HIGH/MEDIUM Go stdlib CVEs. [#1112](https://github.com/sourcebot-dev/sourcebot/pull/1112)
 
 ## [4.16.8] - 2026-04-09
 
