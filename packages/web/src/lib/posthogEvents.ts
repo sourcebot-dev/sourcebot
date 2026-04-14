@@ -297,10 +297,6 @@ export type PosthogEventMap = {
     //////////////////////////////////////////////////////////////////
     wa_repo_not_found_for_zoekt_file: {},
     //////////////////////////////////////////////////////////////////
-    api_code_search_request: {
-        source: string;
-        type: 'streamed' | 'blocking';
-    },
     api_request: {
         path: string;
         source: string;
