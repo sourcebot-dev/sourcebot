@@ -6,7 +6,7 @@ import { captureEvent } from '@/lib/posthog';
 import { isServiceError } from '@/lib/utils';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ChatVisibility } from '@sourcebot/db';
-import { SOURCEBOT_VERSION } from '@sourcebot/shared';
+import { createLogger, SOURCEBOT_VERSION } from '@sourcebot/shared';
 import _dedent from 'dedent';
 import { z } from 'zod';
 import { getConfiguredLanguageModelsInfo } from "../chat/utils.server";
@@ -24,6 +24,7 @@ import {
 } from '../tools';
 
 const dedent = _dedent.withOptions({ alignValues: true });
+const logger = createLogger('mcp-server');
 
 export async function createMcpServer(): Promise<McpServer> {
     const server = new McpServer({
@@ -62,6 +63,8 @@ export async function createMcpServer(): Promise<McpServer> {
                 toolName: 'list_language_models',
                 source: 'sourcebot-mcp-server',
                 success: true,
+            }).catch((error) => {
+                logger.warn('Failed to capture tool_used event:', error);
             });
             return { content: [{ type: "text", text: JSON.stringify(models) }] };
         }
@@ -111,6 +114,8 @@ export async function createMcpServer(): Promise<McpServer> {
                         toolName: 'ask_codebase',
                         source: 'sourcebot-mcp-server',
                         success: false,
+                    }).catch((error) => {
+                        logger.warn('Failed to capture tool_used event:', error);
                     });
                     return {
                         content: [{ type: "text", text: `Failed to ask codebase: ${result.message}` }],
@@ -121,6 +126,8 @@ export async function createMcpServer(): Promise<McpServer> {
                     toolName: 'ask_codebase',
                     source: 'sourcebot-mcp-server',
                     success: true,
+                }).catch((error) => {
+                    logger.warn('Failed to capture tool_used event:', error);
                 });
 
                 const formattedResponse = dedent`
