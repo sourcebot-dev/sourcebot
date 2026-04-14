@@ -88,24 +88,28 @@ export const createPostHogClient = async () => {
 }
 
 export async function captureEvent<E extends PosthogEvent>(event: E, properties: PosthogEventMap[E], options?: { distinctId?: string }) {
-    if (env.SOURCEBOT_TELEMETRY_DISABLED === 'true') {
-        return;
+    try {
+        if (env.SOURCEBOT_TELEMETRY_DISABLED === 'true') {
+            return;
+        }
+
+        const distinctId = options?.distinctId ?? await tryGetPostHogDistinctId();
+        const posthog = await createPostHogClient();
+
+        const headersList = await headers();
+        const host = headersList.get("host") ?? undefined;
+
+        posthog.capture({
+            event,
+            properties: {
+                ...properties,
+                sourcebot_version: SOURCEBOT_VERSION,
+                install_id: env.SOURCEBOT_INSTALL_ID,
+                $host: host,
+            },
+            distinctId,
+        });
+    } catch {
+        // Telemetry should never break application functionality.
     }
-
-    const distinctId = options?.distinctId ?? await tryGetPostHogDistinctId();
-    const posthog = await createPostHogClient();
-
-    const headersList = await headers();
-    const host = headersList.get("host") ?? undefined;
-
-    posthog.capture({
-        event,
-        properties: {
-            ...properties,
-            sourcebot_version: SOURCEBOT_VERSION,
-            install_id: env.SOURCEBOT_INSTALL_ID,
-            $host: host,
-        },
-        distinctId,
-    });
 }

@@ -47,9 +47,7 @@ export function apiHandler<H extends AnyHandler>(
             const source = request.headers.get('X-Sourcebot-Client-Source') ?? 'unknown';
 
             // Fire and forget - don't await to avoid blocking the request
-            captureEvent('api_request', { path, method, source }).catch(() => {
-                // Silently ignore tracking errors
-            });
+            captureEvent('api_request', { path, method, source });
         }
 
         // Call the original handler with all arguments

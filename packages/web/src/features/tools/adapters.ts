@@ -3,7 +3,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { captureEvent } from "@/lib/posthog";
 import { ToolContext, ToolDefinition } from "./types";
-import { logger } from "./logger";
 
 export function toVercelAITool<TName extends string, TShape extends z.ZodRawShape, TMetadata>(
     def: ToolDefinition<TName, TShape, TMetadata>,
@@ -25,9 +24,7 @@ export function toVercelAITool<TName extends string, TShape extends z.ZodRawShap
                     toolName: def.name,
                     source: context.source ?? 'unknown',
                     success,
-                }, { distinctId: context.userId }).catch((error) => {
-                    logger.warn(`Failed to capture tool_used event for ${def.name}:`, error);
-                });
+                }, { distinctId: context.userId });
             }
         },
         toModelOutput: ({ output }) => ({
@@ -70,9 +67,7 @@ export function registerMcpTool<TName extends string, TShape extends z.ZodRawSha
                     toolName: def.name,
                     source: context.source ?? 'unknown',
                     success,
-                }, { distinctId: context.userId }).catch((error) => {
-                    logger.warn(`Failed to capture tool_used event for ${def.name}:`, error);
-                });
+                }, { distinctId: context.userId });
             }
         },
     );
