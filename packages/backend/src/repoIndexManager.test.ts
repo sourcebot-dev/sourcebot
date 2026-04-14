@@ -90,15 +90,19 @@ const mockWorkerClose = vi.fn().mockResolvedValue(undefined);
 const mockWorkerOn = vi.fn();
 
 vi.mock('bullmq', () => ({
-    Queue: vi.fn().mockImplementation(() => ({
-        add: mockQueueAdd,
-        close: mockQueueClose,
-    })),
-    Worker: vi.fn().mockImplementation((_name: string, processor: unknown) => ({
-        on: mockWorkerOn,
-        close: mockWorkerClose,
-        processJob: processor,
-    })),
+    Queue: vi.fn().mockImplementation(function () {
+        return {
+            add: mockQueueAdd,
+            close: mockQueueClose,
+        };
+    }),
+    Worker: vi.fn().mockImplementation(function (_name: string, processor: unknown) {
+        return {
+            on: mockWorkerOn,
+            close: mockWorkerClose,
+            processJob: processor,
+        };
+    }),
     DelayedError: class DelayedError extends Error {
         constructor(message: string) {
             super(message);
@@ -110,9 +114,11 @@ vi.mock('bullmq', () => ({
 // Mock Redlock
 const mockRedlockUsing = vi.fn();
 vi.mock('redlock', () => ({
-    default: vi.fn().mockImplementation(() => ({
-        using: mockRedlockUsing,
-    })),
+    default: vi.fn().mockImplementation(function () {
+        return {
+            using: mockRedlockUsing,
+        };
+    }),
     ExecutionError: class ExecutionError extends Error {
         constructor(message: string) {
             super(message);

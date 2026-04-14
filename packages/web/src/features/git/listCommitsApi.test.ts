@@ -4,7 +4,9 @@ import * as dateUtils from './dateUtils';
 
 // Mock dependencies
 vi.mock('simple-git');
-vi.mock('fs');
+vi.mock('fs', () => ({
+    existsSync: vi.fn().mockReturnValue(true),
+}));
 vi.mock('@sourcebot/shared', () => ({
     REPOS_CACHE_DIR: '/mock/cache/dir',
     getRepoPath: (repo: { id: number }) => ({
