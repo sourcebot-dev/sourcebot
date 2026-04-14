@@ -8,7 +8,7 @@ import { env } from "@sourcebot/shared";
 import { processGitHubPullRequest, processGitLabMergeRequest } from "@/features/agents/review-agent/app";
 import { throttling, type ThrottlingOptions } from "@octokit/plugin-throttling";
 import fs from "fs";
-import { GitHubPullRequest, GitLabMergeRequestPayload, GitLabNotePayload } from "@/features/agents/review-agent/types";
+import { GitHubPullRequest, gitLabMergeRequestPayloadSchema, gitLabNotePayloadSchema } from "@/features/agents/review-agent/types";
 import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('webhook');
@@ -96,24 +96,24 @@ function isIssueCommentEvent(eventHeader: string, payload: unknown): payload is 
     return eventHeader === "issue_comment" && typeof payload === "object" && payload !== null && "action" in payload && typeof payload.action === "string" && payload.action === "created";
 }
 
-function isGitLabMergeRequestEvent(eventHeader: string, payload: unknown): payload is GitLabMergeRequestPayload {
+function isGitLabMergeRequestEvent(eventHeader: string, payload: unknown): boolean {
     return (
         eventHeader === "Merge Request Hook" &&
         typeof payload === "object" &&
         payload !== null &&
         "object_attributes" in payload &&
-        typeof (payload as GitLabMergeRequestPayload).object_attributes?.action === "string" &&
-        ["open", "update", "reopen"].includes((payload as GitLabMergeRequestPayload).object_attributes.action)
+        typeof (payload as Record<string, unknown> & { object_attributes: { action?: unknown } }).object_attributes?.action === "string" &&
+        ["open", "update", "reopen"].includes((payload as Record<string, unknown> & { object_attributes: { action: string } }).object_attributes.action)
     );
 }
 
-function isGitLabNoteEvent(eventHeader: string, payload: unknown): payload is GitLabNotePayload {
+function isGitLabNoteEvent(eventHeader: string, payload: unknown): boolean {
     return (
         eventHeader === "Note Hook" &&
         typeof payload === "object" &&
         payload !== null &&
         "object_attributes" in payload &&
-        (payload as GitLabNotePayload).object_attributes?.noteable_type === "MergeRequest"
+        (payload as Record<string, unknown> & { object_attributes: { noteable_type?: unknown } }).object_attributes?.noteable_type === "MergeRequest"
     );
 }
 
@@ -217,45 +217,57 @@ export const POST = async (request: NextRequest) => {
                 return Response.json({ status: 'ok' });
             }
 
+            const parsed = gitLabMergeRequestPayloadSchema.safeParse(body);
+            if (!parsed.success) {
+                logger.warn(`GitLab MR webhook payload failed validation: ${parsed.error.message}`);
+                return Response.json({ status: 'ok' });
+            }
+
             try {
                 await processGitLabMergeRequest(
                     gitlabClient,
-                    body.project.id,
-                    body,
+                    parsed.data.project.id,
+                    parsed.data,
                     env.GITLAB_REVIEW_AGENT_HOST,
                 );
             } catch (error) {
-                logger.error(`Error in processGitLabMergeRequest for project ${body.project.id} (${gitlabEvent}):`, error);
+                logger.error(`Error in processGitLabMergeRequest for project ${parsed.data.project.id} (${gitlabEvent}):`, error);
             }
         }
 
         if (isGitLabNoteEvent(gitlabEvent, body)) {
-            const noteBody = body.object_attributes?.note;
+            const parsed = gitLabNotePayloadSchema.safeParse(body);
+            if (!parsed.success) {
+                logger.warn(`GitLab Note webhook payload failed validation: ${parsed.error.message}`);
+                return Response.json({ status: 'ok' });
+            }
+
+            const noteBody = parsed.data.object_attributes.note;
             if (noteBody === `/${env.REVIEW_AGENT_REVIEW_COMMAND}`) {
                 logger.info('Review agent review command received on GitLab MR, processing');
 
-                const mrPayload: GitLabMergeRequestPayload = {
+                const mrPayload = {
                     object_kind: "merge_request",
                     object_attributes: {
-                        iid: body.merge_request.iid,
-                        title: body.merge_request.title,
-                        description: body.merge_request.description,
+                        iid: parsed.data.merge_request.iid,
+                        title: parsed.data.merge_request.title,
+                        description: parsed.data.merge_request.description,
                         action: "update",
-                        last_commit: body.merge_request.last_commit,
-                        diff_refs: body.merge_request.diff_refs,
+                        last_commit: parsed.data.merge_request.last_commit,
+                        diff_refs: parsed.data.merge_request.diff_refs,
                     },
-                    project: body.project,
+                    project: parsed.data.project,
                 };
 
                 try {
                     await processGitLabMergeRequest(
                         gitlabClient,
-                        body.project.id,
+                        parsed.data.project.id,
                         mrPayload,
                         env.GITLAB_REVIEW_AGENT_HOST,
                     );
                 } catch (error) {
-                    logger.error(`Error in processGitLabMergeRequest for project ${body.project.id} (${gitlabEvent}):`, error);
+                    logger.error(`Error in processGitLabMergeRequest for project ${parsed.data.project.id} (${gitlabEvent}):`, error);
                 }
             }
         }
