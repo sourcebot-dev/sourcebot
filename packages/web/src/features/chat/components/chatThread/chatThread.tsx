@@ -128,6 +128,7 @@ export const ChatThread = ({
 
         captureEvent('wa_ask_message_sent', {
             chatId,
+            messageCount: messages.length + 1,
             selectedReposCount: selectedSearchScopes.length,
         });
 

@@ -48,6 +48,7 @@ export const useCreateNewChatThread = ({ isAuthenticated = false }: UseCreateNew
 
         captureEvent('wa_ask_thread_created', {
             chatId: response.id,
+            isAnonymous: response.isAnonymous,
         });
 
         setChatState({
