@@ -102,6 +102,9 @@ export const ChatThread = ({
         messages: initialMessages,
         transport: new DefaultChatTransport({
             api: '/api/chat',
+            headers: {
+                'X-Sourcebot-Client-Source': 'sourcebot-web-client',
+            },
         }),
         onData: (dataPart) => {
             // Keeps sources added by the assistant in sync.
@@ -125,12 +128,6 @@ export const ChatThread = ({
             .filter((part) => part.type === 'data-source')
             .map((part) => part.data);
         setSources((prev) => [...prev, ...sources]);
-
-        captureEvent('wa_ask_message_sent', {
-            chatId,
-            messageCount: messages.length + 1,
-            selectedReposCount: selectedSearchScopes.length,
-        });
 
         _sendMessage(message, {
             body: {
