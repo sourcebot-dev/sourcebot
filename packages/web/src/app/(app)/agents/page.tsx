@@ -25,21 +25,11 @@ export default async function AgentsPage() {
     <div className="flex flex-col items-center overflow-hidden min-h-screen">
       <NavigationMenu />
       <div className="w-full max-w-6xl px-4 mt-12 mb-24">
-        <div
-          className={
-            agents.length === 1
-              ? "flex justify-center items-center min-h-[60vh]"
-              : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"
-          }
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {agents.map((agent) => (
             <div
               key={agent.id}
-              className={
-                agents.length === 1
-                  ? "relative flex flex-col items-center border border-border rounded-2xl p-8 bg-card shadow-xl w-full max-w-xl"
-                  : "relative flex flex-col items-center border border-border rounded-2xl p-8 bg-card shadow-xl"
-              }
+              className="relative flex flex-col items-center border border-border rounded-2xl p-8 bg-card shadow-xl"
             >
               {/* Name and description */}
               <div className="flex flex-col items-center w-full">

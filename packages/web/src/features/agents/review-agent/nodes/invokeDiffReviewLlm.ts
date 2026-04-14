@@ -34,8 +34,8 @@ export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined
     try {
         const result = await generateText({
             model,
-            system: prompt,
-            prompt: "Review the code changes.",
+            system: "You are a code review assistant. Respond only with valid JSON matching the expected schema.",
+            prompt,
             providerOptions,
             temperature,
         });

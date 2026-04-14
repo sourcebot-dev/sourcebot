@@ -135,7 +135,7 @@ describe('githubPushPrReviews', () => {
 
         await expect(
             githubPushPrReviews(octokit, MOCK_PAYLOAD, SINGLE_REVIEW),
-        ).resolves.not.toThrow();
+        ).resolves.toBeUndefined();
     });
 
     test('does nothing when file_diff_reviews is empty', async () => {

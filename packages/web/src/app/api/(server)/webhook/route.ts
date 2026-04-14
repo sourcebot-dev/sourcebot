@@ -217,12 +217,16 @@ export const POST = async (request: NextRequest) => {
                 return Response.json({ status: 'ok' });
             }
 
-            await processGitLabMergeRequest(
-                gitlabClient,
-                body.project.id,
-                body,
-                env.GITLAB_REVIEW_AGENT_HOST,
-            );
+            try {
+                await processGitLabMergeRequest(
+                    gitlabClient,
+                    body.project.id,
+                    body,
+                    env.GITLAB_REVIEW_AGENT_HOST,
+                );
+            } catch (error) {
+                logger.error(`Error in processGitLabMergeRequest for project ${body.project.id} (${gitlabEvent}):`, error);
+            }
         }
 
         if (isGitLabNoteEvent(gitlabEvent, body)) {
@@ -243,12 +247,16 @@ export const POST = async (request: NextRequest) => {
                     project: body.project,
                 };
 
-                await processGitLabMergeRequest(
-                    gitlabClient,
-                    body.project.id,
-                    mrPayload,
-                    env.GITLAB_REVIEW_AGENT_HOST,
-                );
+                try {
+                    await processGitLabMergeRequest(
+                        gitlabClient,
+                        body.project.id,
+                        mrPayload,
+                        env.GITLAB_REVIEW_AGENT_HOST,
+                    );
+                } catch (error) {
+                    logger.error(`Error in processGitLabMergeRequest for project ${body.project.id} (${gitlabEvent}):`, error);
+                }
             }
         }
     }
