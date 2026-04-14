@@ -56,27 +56,23 @@ export function registerMcpTool<TName extends string, TShape extends z.ZodRawSha
             },
         },
         async (input) => {
+            let success = true;
             try {
                 const parsed = def.inputSchema.parse(input);
                 const result = await def.execute(parsed, context);
-                captureEvent('tool_used', {
-                    toolName: def.name,
-                    source: context.source ?? 'unknown',
-                    success: true,
-                }, { distinctId: context.userId }).catch((error) => {
-                    logger.warn(`Failed to capture tool_used event for ${def.name}:`, error);
-                });
                 return { content: [{ type: "text" as const, text: result.output }] };
             } catch (error) {
+                success = false;
+                const message = error instanceof Error ? error.message : String(error);
+                return { content: [{ type: "text" as const, text: `Tool "${def.name}" failed: ${message}` }], isError: true };
+            } finally {
                 captureEvent('tool_used', {
                     toolName: def.name,
                     source: context.source ?? 'unknown',
-                    success: false,
+                    success,
                 }, { distinctId: context.userId }).catch((error) => {
                     logger.warn(`Failed to capture tool_used event for ${def.name}:`, error);
                 });
-                const message = error instanceof Error ? error.message : String(error);
-                return { content: [{ type: "text" as const, text: `Tool "${def.name}" failed: ${message}` }], isError: true };
             }
         },
     );
