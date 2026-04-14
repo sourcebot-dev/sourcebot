@@ -7,10 +7,10 @@ import { OrgRole } from "@sourcebot/db";
 import { ServiceError } from "@/lib/serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
-import { env, encryptActivationCode } from "@sourcebot/shared";
+import { env, encryptActivationCode, decryptActivationCode } from "@sourcebot/shared";
 import { sendServicePing } from "@/ee/features/lighthouse/servicePing";
 import { fetchWithRetry } from "@/lib/utils";
-import { checkoutResponseSchema } from "./types";
+import { checkoutResponseSchema, portalResponseSchema } from "./types";
 
 export const activateLicense = async (activationCode: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async ({ org, role, prisma }) =>
@@ -121,6 +121,56 @@ export const deactivateLicense = async (): Promise<{ success: boolean } | Servic
             });
 
             return { success: true };
+        })
+    )
+);
+
+export const createPortalSession = async (returnUrl: string): Promise<{ url: string } | ServiceError> => sew(() =>
+    withAuth(async ({ org, role, prisma }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            const license = await prisma.license.findUnique({
+                where: { orgId: org.id },
+            });
+
+            if (!license) {
+                return {
+                    statusCode: StatusCodes.NOT_FOUND,
+                    errorCode: ErrorCode.NOT_FOUND,
+                    message: "No license found.",
+                } satisfies ServiceError;
+            }
+
+            const activationCode = decryptActivationCode(license.activationCode);
+
+            const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/portal`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    activationCode,
+                    returnUrl,
+                }),
+            });
+
+            if (!response.ok) {
+                return {
+                    statusCode: StatusCodes.BAD_GATEWAY,
+                    errorCode: ErrorCode.UNEXPECTED_ERROR,
+                    message: "Failed to create portal session.",
+                } satisfies ServiceError;
+            }
+
+            const body = await response.json();
+            const result = portalResponseSchema.safeParse(body);
+
+            if (!result.success) {
+                return {
+                    statusCode: StatusCodes.BAD_GATEWAY,
+                    errorCode: ErrorCode.UNEXPECTED_ERROR,
+                    message: "Invalid response from Lighthouse.",
+                } satisfies ServiceError;
+            }
+
+            return { url: result.data.url };
         })
     )
 );

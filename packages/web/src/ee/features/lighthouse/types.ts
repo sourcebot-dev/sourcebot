@@ -9,3 +9,7 @@ export const lighthouseResponseSchema = z.object({
 export const checkoutResponseSchema = z.object({
     url: z.string(),
 });
+
+export const portalResponseSchema = z.object({
+    url: z.string(),
+});

@@ -2,6 +2,7 @@ import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
 import { ActivationCodeCard } from "./activationCodeCard";
 import { PurchaseButton } from "./purchaseButton";
+import { ManageSubscriptionButton } from "./manageSubscriptionButton";
 import { BasicSettingsCard } from "../components/settingsCard";
 import { getPlan } from "@/lib/entitlements";
 
@@ -25,7 +26,10 @@ export default authenticatedPage(async ({ prisma, org }) => {
                 <span className="text-sm font-medium">{plan}</span>
             </BasicSettingsCard>
             <ActivationCodeCard isActivated={!!license} />
-            <PurchaseButton />
+            <div className="flex gap-3">
+                <PurchaseButton />
+                {license && <ManageSubscriptionButton />}
+            </div>
         </div>
     );
 }, {
