@@ -7,3 +7,11 @@ scan:
   pkg-types:
     - os
     - library
+ 
+severity:
+  - CRITICAL
+  - HIGH
+  - MEDIUM
+ 
+vulnerability:
+  ignore-unfixed: true
