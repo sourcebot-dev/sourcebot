@@ -31,7 +31,7 @@
         "tsc-watch": "6.2.1",
         "tsx": "^4.19.1",
         "typescript": "^5.7.3",
-        "vitest": "^2.1.9"
+        "vitest": "^4.1.4"
     },
     "exports": {
         ".": "./dist/index.server.js",
