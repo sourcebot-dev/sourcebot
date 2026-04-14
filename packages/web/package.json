@@ -152,7 +152,7 @@
     "lucide-react": "^0.517.0",
     "micromatch": "^4.0.8",
     "minidenticons": "^4.2.1",
-    "next": "16.1.6",
+    "next": "^16.2.3",
     "next-auth": "^5.0.0-beta.30",
     "next-navigation-guard": "^0.2.0",
     "next-themes": "^0.3.0",
