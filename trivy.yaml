@@ -1,0 +1,9 @@
+# Docs: https://aquasecurity.github.io/trivy/latest/docs/references/configuration/config-file/
+ 
+scan:
+  scanners:
+    - vuln
+ 
+  pkg-types:
+    - os
+    - library
