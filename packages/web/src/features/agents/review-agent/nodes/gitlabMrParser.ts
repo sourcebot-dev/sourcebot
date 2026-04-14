@@ -30,8 +30,9 @@ export const gitlabMrParser = async (
         throw error;
     }
 
-    const namespace = mrPayload.project.path_with_namespace.split('/').slice(0, -1).join('/');
-    const repoName = mrPayload.project.name;
+    const pathParts = mrPayload.project.path_with_namespace.split('/');
+    const namespace = pathParts.slice(0, -1).join('/');
+    const repoName = pathParts[pathParts.length - 1];
 
     const sourcebotFileDiffs: (sourcebot_file_diff | null)[] = fileDiffs.map((fileDiff) => {
         const fromPath = fileDiff.old_path as string;
