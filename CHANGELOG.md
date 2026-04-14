@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added `thinkingLevel` and `thinkingBudget` configuration options for Google Generative AI and Google Vertex providers. [#1110](https://github.com/sourcebot-dev/sourcebot/pull/1110)
+- Support Gitlab MRs in the AI Code Review Agent [#1104](https://github.com/sourcebot-dev/sourcebot/pull/1104)
 
 ### Changed
 - Deprecated `GOOGLE_VERTEX_THINKING_BUDGET_TOKENS` environment variable in favor of per-model `thinkingBudget` config. [#1110](https://github.com/sourcebot-dev/sourcebot/pull/1110)
