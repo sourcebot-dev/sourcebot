@@ -180,7 +180,8 @@ ENV SOURCEBOT_LOG_LEVEL=info
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
 # Configure dependencies
-RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql16 postgresql16-contrib openssl util-linux unzip
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql16 postgresql16-contrib openssl util-linux unzip && \
+    apk upgrade --no-cache
 
 ARG UID=1500
 ARG GID=1500
