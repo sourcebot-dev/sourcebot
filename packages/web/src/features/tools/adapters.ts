@@ -1,6 +1,7 @@
 import { tool } from "ai";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { captureEvent } from "@/lib/posthog";
 import { ToolContext, ToolDefinition } from "./types";
 
 export function toVercelAITool<TName extends string, TShape extends z.ZodRawShape, TMetadata>(
@@ -11,7 +12,21 @@ export function toVercelAITool<TName extends string, TShape extends z.ZodRawShap
         description: def.description,
         inputSchema: def.inputSchema,
         title: def.title,
-        execute: (input) => def.execute(input, context),
+        execute: async (input) => {
+            let success = true;
+            try {
+                return await def.execute(input, context);
+            } catch (error) {
+                success = false;
+                throw error;
+            } finally {
+                captureEvent('tool_used', {
+                    toolName: def.name,
+                    source: context.source ?? 'unknown',
+                    success,
+                });
+            }
+        },
         toModelOutput: ({ output }) => ({
             type: "content",
             value: [{ type: "text", text: output.output }],
@@ -38,13 +53,21 @@ export function registerMcpTool<TName extends string, TShape extends z.ZodRawSha
             },
         },
         async (input) => {
+            let success = true;
             try {
                 const parsed = def.inputSchema.parse(input);
                 const result = await def.execute(parsed, context);
                 return { content: [{ type: "text" as const, text: result.output }] };
             } catch (error) {
+                success = false;
                 const message = error instanceof Error ? error.message : String(error);
                 return { content: [{ type: "text" as const, text: `Tool "${def.name}" failed: ${message}` }], isError: true };
+            } finally {
+                captureEvent('tool_used', {
+                    toolName: def.name,
+                    source: context.source ?? 'unknown',
+                    success,
+                });
             }
         },
     );

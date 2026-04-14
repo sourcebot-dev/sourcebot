@@ -57,6 +57,12 @@ if (!value) { return; }
 if (condition) doSomething();
 ```
 
+## PostHog Event Naming
+
+- The `wa_` prefix is reserved for events that can ONLY be fired from the web app (e.g., `wa_login_with_github`, `wa_chat_feedback_submitted`).
+- Events fired from multiple sources (web app, MCP server, API) must NOT use the `wa_` prefix (e.g., `ask_message_sent`, `tool_used`).
+- Multi-source events should include a `source` property to identify the origin (e.g., `'sourcebot-web-client'`, `'sourcebot-mcp-server'`, `'sourcebot-ask-agent'`).
+
 ## Tailwind CSS
 
 Use Tailwind color classes directly instead of CSS variable syntax:

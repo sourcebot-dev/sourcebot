@@ -102,6 +102,9 @@ export const ChatThread = ({
         messages: initialMessages,
         transport: new DefaultChatTransport({
             api: '/api/chat',
+            headers: {
+                'X-Sourcebot-Client-Source': 'sourcebot-web-client',
+            },
         }),
         onData: (dataPart) => {
             // Keeps sources added by the assistant in sync.

@@ -1,11 +1,12 @@
 import { PostHog } from 'posthog-node'
-import { env, SOURCEBOT_VERSION } from '@sourcebot/shared'
+import { createLogger, env, SOURCEBOT_VERSION } from '@sourcebot/shared'
 import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies';
 import * as Sentry from "@sentry/nextjs";
 import { PosthogEvent, PosthogEventMap } from './posthogEvents';
 import { cookies, headers } from 'next/headers';
-import { auth } from '@/auth';
-import { getVerifiedApiObject } from '@/middleware/withAuth';
+import { getAuthenticatedUser } from '@/middleware/withAuth';
+
+const logger = createLogger('posthog');
 
 /**
  * @note: This is a subset of the properties stored in the
@@ -53,28 +54,19 @@ const getPostHogCookie = (cookieStore: Pick<RequestCookies, 'get'>): PostHogCook
  * Attempts to retrieve the distinct id of the current user.
  */
 export const tryGetPostHogDistinctId = async () => {
-    // First, attempt to retrieve the distinct id from the cookie.
+    // First, attempt to retrieve the distinct id from the PostHog cookie
+    // (set by the client-side PostHog SDK). This preserves identity
+    // continuity between client-side and server-side events.
     const cookieStore = await cookies();
     const cookie = getPostHogCookie(cookieStore);
     if (cookie) {
         return cookie.distinct_id;
     }
 
-    // Next, from the session.
-    const session = await auth();
-    if (session) {
-        return session.user.id;
-    }
-
-    // Finally, from the api key.
-    const headersList = await headers();
-    const apiKeyString = headersList.get("X-Sourcebot-Api-Key") ?? undefined;
-    if (!apiKeyString) {
-        return undefined;
-    }
-
-    const apiKey = await getVerifiedApiObject(apiKeyString);
-    return apiKey?.createdById;
+    // Fall back to the authenticated user's ID. This covers all auth
+    // methods: session cookies, OAuth Bearer tokens, and API keys.
+    const authResult = await getAuthenticatedUser();
+    return authResult?.user.id;
 }
 
 export const createPostHogClient = async () => {
@@ -88,24 +80,28 @@ export const createPostHogClient = async () => {
 }
 
 export async function captureEvent<E extends PosthogEvent>(event: E, properties: PosthogEventMap[E]) {
-    if (env.SOURCEBOT_TELEMETRY_DISABLED === 'true') {
-        return;
+    try {
+        if (env.SOURCEBOT_TELEMETRY_DISABLED === 'true') {
+            return;
+        }
+
+        const distinctId = await tryGetPostHogDistinctId();
+        const posthog = await createPostHogClient();
+
+        const headersList = await headers();
+        const host = headersList.get("host") ?? undefined;
+
+        posthog.capture({
+            event,
+            properties: {
+                ...properties,
+                sourcebot_version: SOURCEBOT_VERSION,
+                install_id: env.SOURCEBOT_INSTALL_ID,
+                $host: host,
+            },
+            distinctId,
+        });
+    } catch (error) {
+        logger.error('Failed to capture PostHog event:', error);
     }
-
-    const distinctId = await tryGetPostHogDistinctId();
-    const posthog = await createPostHogClient();
-
-    const headersList = await headers();
-    const host = headersList.get("host") ?? undefined;
-
-    posthog.capture({
-        event,
-        properties: {
-            ...properties,
-            sourcebot_version: SOURCEBOT_VERSION,
-            install_id: env.SOURCEBOT_INSTALL_ID,
-            $host: host,
-        },
-        distinctId,
-    });
 }

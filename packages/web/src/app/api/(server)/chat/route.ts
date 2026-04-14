@@ -91,12 +91,15 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 return [];
             }))).flat();
 
-            await captureEvent('wa_chat_message_sent', {
+            const source = req.headers.get('X-Sourcebot-Client-Source') ?? undefined;
+
+            await captureEvent('ask_message_sent', {
                 chatId: id,
                 messageCount: messages.length,
                 selectedReposCount: expandedRepos.length,
+                source,
                 ...(env.EXPERIMENT_ASK_GH_ENABLED === 'true' ? { selectedRepos: expandedRepos } : {}),
-            } );
+            });
 
             const stream = await createMessageStream({
                 chatId: id,

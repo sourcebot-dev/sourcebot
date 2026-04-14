@@ -86,9 +86,10 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 },
             });
 
-            await captureEvent('wa_chat_thread_created', {
+            await captureEvent('ask_thread_created', {
                 chatId: chat.id,
                 isAnonymous: !user,
+                source,
             });
 
             if (user) {
@@ -137,10 +138,11 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
 
             let finalMessages: SBChatMessage[] = [];
 
-            await captureEvent('wa_chat_message_sent', {
+            await captureEvent('ask_message_sent', {
                 chatId: chat.id,
                 messageCount: 1,
                 selectedReposCount: selectedRepos.length,
+                source,
                 ...(env.EXPERIMENT_ASK_GH_ENABLED === 'true' ? {
                     selectedRepos: selectedRepos.map(r => r.value)
                 } : {}),
