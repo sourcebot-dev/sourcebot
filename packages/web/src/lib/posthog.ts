@@ -87,12 +87,12 @@ export const createPostHogClient = async () => {
     return posthog;
 }
 
-export async function captureEvent<E extends PosthogEvent>(event: E, properties: PosthogEventMap[E]) {
+export async function captureEvent<E extends PosthogEvent>(event: E, properties: PosthogEventMap[E], options?: { distinctId?: string }) {
     if (env.SOURCEBOT_TELEMETRY_DISABLED === 'true') {
         return;
     }
 
-    const distinctId = await tryGetPostHogDistinctId();
+    const distinctId = options?.distinctId ?? await tryGetPostHogDistinctId();
     const posthog = await createPostHogClient();
 
     const headersList = await headers();

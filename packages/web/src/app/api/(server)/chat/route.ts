@@ -112,6 +112,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                 modelProviderOptions: providerOptions,
                 modelTemperature: temperature,
+                distinctId: user?.id,
                 onFinish: async ({ messages }) => {
                     await updateChatMessages({ chatId: id, messages, prisma });
                 },

@@ -26,7 +26,7 @@ import {
 const dedent = _dedent.withOptions({ alignValues: true });
 const logger = createLogger('mcp-server');
 
-export async function createMcpServer(): Promise<McpServer> {
+export async function createMcpServer(options?: { userId?: string }): Promise<McpServer> {
     const server = new McpServer({
         name: 'sourcebot-mcp-server',
         version: SOURCEBOT_VERSION,
@@ -37,6 +37,7 @@ export async function createMcpServer(): Promise<McpServer> {
 
     const toolContext: ToolContext = {
         source: 'sourcebot-mcp-server',
+        distinctId: options?.userId,
     }
 
     registerMcpTool(server, grepDefinition, toolContext);
@@ -63,7 +64,7 @@ export async function createMcpServer(): Promise<McpServer> {
                 toolName: 'list_language_models',
                 source: 'sourcebot-mcp-server',
                 success: true,
-            }).catch((error) => {
+            }, { distinctId: options?.userId }).catch((error) => {
                 logger.warn('Failed to capture tool_used event:', error);
             });
             return { content: [{ type: "text", text: JSON.stringify(models) }] };
@@ -114,7 +115,7 @@ export async function createMcpServer(): Promise<McpServer> {
                         toolName: 'ask_codebase',
                         source: 'sourcebot-mcp-server',
                         success: false,
-                    }).catch((error) => {
+                    }, { distinctId: options?.userId }).catch((error) => {
                         logger.warn('Failed to capture tool_used event:', error);
                     });
                     return {
@@ -126,7 +127,7 @@ export async function createMcpServer(): Promise<McpServer> {
                     toolName: 'ask_codebase',
                     source: 'sourcebot-mcp-server',
                     success: true,
-                }).catch((error) => {
+                }, { distinctId: options?.userId }).catch((error) => {
                     logger.warn('Failed to capture tool_used event:', error);
                 });
 

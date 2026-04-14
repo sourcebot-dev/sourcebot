@@ -79,7 +79,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 },
             });
 
-            const mcpServer = await createMcpServer();
+            const mcpServer = await createMcpServer({ userId: user?.id });
             await mcpServer.connect(transport);
 
             return transport.handleRequest(request);
