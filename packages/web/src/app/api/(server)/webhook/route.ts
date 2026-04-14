@@ -8,7 +8,7 @@ import { env } from "@sourcebot/shared";
 import { processGitHubPullRequest, processGitLabMergeRequest } from "@/features/agents/review-agent/app";
 import { throttling, type ThrottlingOptions } from "@octokit/plugin-throttling";
 import fs from "fs";
-import { GitHubPullRequest, gitLabMergeRequestPayloadSchema, gitLabNotePayloadSchema } from "@/features/agents/review-agent/types";
+import { GitHubPullRequest, GitLabMergeRequestPayload, gitLabMergeRequestPayloadSchema, gitLabNotePayloadSchema } from "@/features/agents/review-agent/types";
 import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('webhook');
@@ -246,7 +246,7 @@ export const POST = async (request: NextRequest) => {
             if (noteBody === `/${env.REVIEW_AGENT_REVIEW_COMMAND}`) {
                 logger.info('Review agent review command received on GitLab MR, processing');
 
-                const mrPayload = {
+                const mrPayload: GitLabMergeRequestPayload = {
                     object_kind: "merge_request",
                     object_attributes: {
                         iid: parsed.data.merge_request.iid,
