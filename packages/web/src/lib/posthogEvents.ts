@@ -159,10 +159,6 @@ export type PosthogEventMap = {
         chatId: string,
         messageId: string,
     },
-    wa_ask_thread_created: {
-        chatId: string,
-        isAnonymous: boolean,
-    },
     wa_ask_message_sent: {
         chatId: string,
         messageCount: number,
