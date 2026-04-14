@@ -198,7 +198,8 @@ const options = {
         // GitLab for review agent
         GITLAB_REVIEW_AGENT_WEBHOOK_SECRET: z.string().optional(),
         GITLAB_REVIEW_AGENT_TOKEN: z.string().optional(),
-        GITLAB_REVIEW_AGENT_HOST: z.string().default('gitlab.com'),
+        GITLAB_REVIEW_AGENT_HOST: z.string().default('gitlab.com').transform(s => s.replace(/^https?:\/\//, '').replace(/\/+$/, '')).refine(s => /^[a-z0-9.-]+$/i.test(s), { message: 'invalid hostname' }),
+        // Review agent config
         REVIEW_AGENT_MODEL: z.string().optional(),
         REVIEW_AGENT_API_KEY: z.string().optional(),
         REVIEW_AGENT_LOGGING_ENABLED: booleanSchema.default('true'),
