@@ -49,6 +49,8 @@ export {
     verifySignature,
     encryptOAuthToken,
     decryptOAuthToken,
+    encryptActivationCode,
+    decryptActivationCode,
 } from "./crypto.js";
 export {
     getDBConnectionString,

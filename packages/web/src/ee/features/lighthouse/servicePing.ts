@@ -1,6 +1,6 @@
 import { fetchWithRetry } from "@/lib/utils";
 import { __unsafePrisma } from "@/prisma";
-import { createLogger, env, SOURCEBOT_VERSION } from "@sourcebot/shared";
+import { createLogger, env, SOURCEBOT_VERSION, decryptActivationCode } from "@sourcebot/shared";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { lighthouseResponseSchema } from "./types";
 
@@ -14,10 +14,14 @@ export const sendServicePing = async () => {
         where: { orgId: SINGLE_TENANT_ORG_ID },
     });
 
+    const activationCode = license?.activationCode
+        ? decryptActivationCode(license.activationCode)
+        : undefined;
+
     const payload = {
         installId: env.SOURCEBOT_INSTALL_ID,
         version: SOURCEBOT_VERSION,
-        ...(license?.activationCode && { activationCode: license.activationCode }),
+        ...(activationCode && { activationCode }),
     };
 
     try {

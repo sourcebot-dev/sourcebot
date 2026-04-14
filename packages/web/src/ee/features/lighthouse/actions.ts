@@ -7,7 +7,7 @@ import { OrgRole } from "@sourcebot/db";
 import { ServiceError } from "@/lib/serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
-import { env } from "@sourcebot/shared";
+import { env, encryptActivationCode } from "@sourcebot/shared";
 import { sendServicePing } from "@/ee/features/lighthouse/servicePing";
 import { fetchWithRetry } from "@/lib/utils";
 import { checkoutResponseSchema } from "./types";
@@ -28,11 +28,10 @@ export const activateLicense = async (activationCode: string): Promise<{ success
                 } satisfies ServiceError;
             }
 
-            // Create the license record
             await prisma.license.create({
                 data: {
                     orgId: org.id,
-                    activationCode,
+                    activationCode: encryptActivationCode(activationCode),
                 },
             });
 

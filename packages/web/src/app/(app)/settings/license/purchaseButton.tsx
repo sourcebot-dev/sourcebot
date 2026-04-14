@@ -5,10 +5,12 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import { createCheckoutSession } from "@/ee/features/lighthouse/actions";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 export function PurchaseButton() {
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
+    const router = useRouter();
 
     const handleClick = useCallback(() => {
         setIsLoading(true);
@@ -23,14 +25,12 @@ export function PurchaseButton() {
                         description: `Failed to start checkout: ${response.message}`,
                         variant: "destructive",
                     });
+                    setIsLoading(false);
                 } else {
-                    window.location.href = response.url;
+                    router.push(response.url);
                 }
             })
-            .finally(() => {
-                setIsLoading(false);
-            });
-    }, [toast]);
+    }, [router, toast]);
 
     return (
         <LoadingButton
