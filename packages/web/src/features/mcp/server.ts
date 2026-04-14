@@ -37,7 +37,7 @@ export async function createMcpServer(options?: { userId?: string }): Promise<Mc
 
     const toolContext: ToolContext = {
         source: 'sourcebot-mcp-server',
-        distinctId: options?.userId,
+        userId: options?.userId,
     }
 
     registerMcpTool(server, grepDefinition, toolContext);

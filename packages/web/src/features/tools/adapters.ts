@@ -25,7 +25,7 @@ export function toVercelAITool<TName extends string, TShape extends z.ZodRawShap
                     toolName: def.name,
                     source: context.source ?? 'unknown',
                     success,
-                }, { distinctId: context.distinctId }).catch((error) => {
+                }, { distinctId: context.userId }).catch((error) => {
                     logger.warn(`Failed to capture tool_used event for ${def.name}:`, error);
                 });
             }
@@ -63,7 +63,7 @@ export function registerMcpTool<TName extends string, TShape extends z.ZodRawSha
                     toolName: def.name,
                     source: context.source ?? 'unknown',
                     success: true,
-                }, { distinctId: context.distinctId }).catch((error) => {
+                }, { distinctId: context.userId }).catch((error) => {
                     logger.warn(`Failed to capture tool_used event for ${def.name}:`, error);
                 });
                 return { content: [{ type: "text" as const, text: result.output }] };
@@ -72,7 +72,7 @@ export function registerMcpTool<TName extends string, TShape extends z.ZodRawSha
                     toolName: def.name,
                     source: context.source ?? 'unknown',
                     success: false,
-                }, { distinctId: context.distinctId }).catch((error) => {
+                }, { distinctId: context.userId }).catch((error) => {
                     logger.warn(`Failed to capture tool_used event for ${def.name}:`, error);
                 });
                 const message = error instanceof Error ? error.message : String(error);
