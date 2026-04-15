@@ -87,6 +87,8 @@ describe("git ref ordering", () => {
 
         const tags = await getTags(repoPath);
 
+        expect(tags).toContain("z-newest");
+        expect(tags).toContain("a-oldest");
         expect(tags.indexOf("z-newest")).toBeLessThan(tags.indexOf("a-oldest"));
     });
 
@@ -125,6 +127,8 @@ describe("git ref ordering", () => {
 
         const branches = await getBranches(repoPath);
 
+        expect(branches).toContain("zzz-newest");
+        expect(branches).toContain("aaa-oldest");
         expect(branches.indexOf("zzz-newest")).toBeLessThan(
             branches.indexOf("aaa-oldest"),
         );
