@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped dependencies (Go 1.25, Next.js, Vitest v4, tsx). [#1112](https://github.com/sourcebot-dev/sourcebot/pull/1112) [#1113](https://github.com/sourcebot-dev/sourcebot/pull/1113) [#1115](https://github.com/sourcebot-dev/sourcebot/pull/1115) [#1116](https://github.com/sourcebot-dev/sourcebot/pull/1116)
 
 ### Fixed
-- Fixed multiple CVEs in the Docker image by upgrading Go to 1.25, patching Alpine base packages (musl-utils, zlib), adding a build resolution for esbuild, and removing unused npm with its vulnerable transitive dependencies. [#1112](https://github.com/sourcebot-dev/sourcebot/pull/1112) [#1114](https://github.com/sourcebot-dev/sourcebot/pull/1114) [#1118](https://github.com/sourcebot-dev/sourcebot/pull/1118) [#1119](https://github.com/sourcebot-dev/sourcebot/pull/1119)
+- Fixed multiple CVEs in the Docker image and JS dependencies by upgrading Go to 1.25, patching Alpine base packages (musl-utils, zlib), adding a build resolution for esbuild, removing unused npm with its vulnerable transitive dependencies, and resolving all yarn audit security vulnerabilities. [#1112](https://github.com/sourcebot-dev/sourcebot/pull/1112) [#1114](https://github.com/sourcebot-dev/sourcebot/pull/1114) [#1118](https://github.com/sourcebot-dev/sourcebot/pull/1118) [#1119](https://github.com/sourcebot-dev/sourcebot/pull/1119) [#1121](https://github.com/sourcebot-dev/sourcebot/pull/1121)
 
 ## [4.16.8] - 2026-04-09
 
