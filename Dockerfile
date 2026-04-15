@@ -183,6 +183,16 @@ ENV SOURCEBOT_LOG_LEVEL=info
 RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql16 postgresql16-contrib openssl util-linux unzip && \
     apk upgrade --no-cache
 
+# Remove npm (unused — we use Yarn). The Node.js base image bundles npm
+# with its own transitive dependencies (minimatch, tar, picomatch, etc.)
+# that Trivy flags as vulnerable. Since npm is never invoked at runtime,
+# removing it eliminates these false positives and reduces image size.
+RUN rm -rf /usr/local/lib/node_modules/npm && \
+    rm -rf /usr/local/bin/npm && \
+    rm -rf /usr/local/bin/npx && \
+    rm -rf /root/.npm && \
+    rm -rf /root/.node-gyp
+
 ARG UID=1500
 ARG GID=1500
 
@@ -202,7 +212,9 @@ COPY .yarn ./.yarn
 
 # Configure zoekt
 COPY vendor/zoekt/install-ctags-alpine.sh .
-RUN ./install-ctags-alpine.sh && rm install-ctags-alpine.sh
+RUN ./install-ctags-alpine.sh && rm install-ctags-alpine.sh && \
+    # Clean up ctags build artifacts
+    rm -rf /tmp/*
 RUN mkdir -p ${DATA_CACHE_DIR}
 COPY --from=zoekt-builder \
 /cmd/zoekt-git-index \
