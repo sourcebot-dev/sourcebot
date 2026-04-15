@@ -43,6 +43,7 @@
         "picomatch@^4": "^4.0.4",
         "esbuild": "^0.27.3",
         "js-yaml@npm:^4.1.0": "^4.1.1",
+        "ajv@npm:^8.0.0": "^8.18.0",
         "ajv@npm:^8.17.1": "^8.18.0",
         "brace-expansion@npm:^2.0.2": "^2.0.3",
         "brace-expansion@npm:^5.0.2": "^5.0.5",
