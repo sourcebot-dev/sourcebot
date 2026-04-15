@@ -19,7 +19,8 @@
         "dev:prisma:db:push": "yarn with-env yarn workspace @sourcebot/db prisma:db:push",
         "build:deps": "yarn workspaces foreach --recursive --topological --from '{@sourcebot/schemas,@sourcebot/db,@sourcebot/shared,@sourcebot/query-language}' run build",
         "openapi:generate": "yarn workspace @sourcebot/web openapi:generate",
-        "tool:decrypt-jwe": "yarn with-env yarn workspace @sourcebot/web tool:decrypt-jwe"
+        "tool:decrypt-jwe": "yarn with-env yarn workspace @sourcebot/web tool:decrypt-jwe",
+        "audit": "yarn npm audit --all --recursive --no-deprecations"
     },
     "devDependencies": {
         "concurrently": "^9.2.1",
@@ -45,6 +46,16 @@
         "ajv@npm:^8.17.1": "^8.18.0",
         "brace-expansion@npm:^2.0.2": "^2.0.3",
         "brace-expansion@npm:^5.0.2": "^5.0.5",
-        "brace-expansion@npm:^1.1.7": "^1.1.13"
+        "brace-expansion@npm:^1.1.7": "^1.1.13",
+        "@react-email/preview-server/next": "^16.2.3",
+        "@modelcontextprotocol/sdk/hono": "^4.12.12",
+        "@modelcontextprotocol/sdk/@hono/node-server": "^1.19.13",
+        "langsmith@npm:>=0.5.0 <1.0.0": "^0.5.19",
+        "markdown-it@npm:^14.1.0": "^14.1.1",
+        "yaml@npm:^2.3.4": "^2.8.3",
+        "yaml@npm:^2.8.0": "^2.8.3",
+        "ajv@npm:^6.12.4": "^6.14.0",
+        "smol-toml@npm:^1.6.0": "^1.6.1",
+        "teeny-request@npm:^10.0.0": "^10.1.2"
     }
 }
