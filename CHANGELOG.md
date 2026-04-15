@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.16.9] - 2026-04-15
+
 ### Added
 - Added `thinkingLevel` and `thinkingBudget` configuration options for Google Generative AI and Google Vertex providers. [#1110](https://github.com/sourcebot-dev/sourcebot/pull/1110)
 
