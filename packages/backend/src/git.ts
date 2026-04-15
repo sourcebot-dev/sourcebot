@@ -285,17 +285,48 @@ export const getOriginUrl = async (path: string) => {
     }
 }
 
-export const getBranches = async (path: string) => {
+const parseRefNames = (refs: string) =>
+    refs
+        .split('\n')
+        .map((ref) => ref.trim())
+        .filter(Boolean);
+
+const getSortedRefs = async ({
+    path,
+    sort,
+    refNamespace,
+}: {
+    path: string,
+    sort: string,
+    refNamespace: 'refs/heads' | 'refs/tags',
+}) => {
     const git = createGitClientForPath(path);
-    const branches = await git.branch();
-    return branches.all;
-}
+
+    return parseRefNames(
+        await git.raw([
+            "for-each-ref",
+            `--sort=${sort}`,
+            "--format=%(refname:short)",
+            refNamespace,
+        ]),
+    );
+};
+
+export const getBranches = async (path: string) => {
+    return getSortedRefs({
+        path,
+        sort: "-committerdate",
+        refNamespace: "refs/heads",
+    });
+};
 
 export const getTags = async (path: string) => {
-    const git = createGitClientForPath(path);
-    const tags = await git.tags();
-    return tags.all;
-}
+    return getSortedRefs({
+        path,
+        sort: "-creatordate",
+        refNamespace: "refs/tags",
+    });
+};
 
 export const getCommitHashForRefName = async ({
     path,
