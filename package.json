@@ -6,12 +6,11 @@
     "scripts": {
         "build": "cross-env SKIP_ENV_VALIDATION=1 yarn workspaces foreach --all --topological run build",
         "test": "yarn workspaces foreach --all --topological run test",
-        "dev": "concurrently --kill-others --names \"zoekt,worker,web,mcp,schemas\" 'yarn dev:zoekt' 'yarn dev:backend' 'yarn dev:web' 'yarn watch:mcp' 'yarn watch:schemas'",
+        "dev": "concurrently --kill-others --names \"zoekt,worker,web,schemas\" 'yarn dev:zoekt' 'yarn dev:backend' 'yarn dev:web' 'yarn watch:schemas'",
         "with-env": "cross-env PATH=\"$PWD/bin:$PATH\" dotenv -e .env.development -c --",
         "dev:zoekt": "yarn with-env zoekt-webserver -index .sourcebot/index -rpc",
         "dev:backend": "yarn with-env yarn workspace @sourcebot/backend dev:watch",
         "dev:web": "yarn with-env yarn workspace @sourcebot/web dev",
-        "watch:mcp": "yarn workspace @sourcebot/mcp build:watch",
         "watch:schemas": "yarn workspace @sourcebot/schemas watch",
         "dev:prisma:migrate:dev": "yarn with-env yarn workspace @sourcebot/db prisma:migrate:dev",
         "dev:prisma:generate": "yarn with-env yarn workspace @sourcebot/db prisma:generate",
