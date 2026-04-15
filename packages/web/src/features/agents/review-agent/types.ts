@@ -71,7 +71,7 @@ const gitLabDiffRefsSchema = z.object({
 }).nullable().optional();
 
 export const gitLabMergeRequestPayloadSchema = z.object({
-    object_kind: z.string(),
+    object_kind: z.literal('merge_request'),
     object_attributes: z.object({
         iid: z.number(),
         title: z.string(),
@@ -85,10 +85,10 @@ export const gitLabMergeRequestPayloadSchema = z.object({
 export type GitLabMergeRequestPayload = z.infer<typeof gitLabMergeRequestPayloadSchema>;
 
 export const gitLabNotePayloadSchema = z.object({
-    object_kind: z.string(),
+    object_kind: z.literal('note'),
     object_attributes: z.object({
         note: z.string(),
-        noteable_type: z.string(),
+        noteable_type: z.literal('MergeRequest'),
     }),
     merge_request: z.object({
         iid: z.number(),

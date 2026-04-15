@@ -97,7 +97,7 @@ export const gitlabMrParser = async (
         repo: repoName,
         file_diffs: filteredSourcebotFileDiffs,
         number: mrIid,
-        head_sha: mr.sha ?? "",
+        head_sha: mr.sha ?? mrPayload.object_attributes.last_commit.id,
         diff_refs: mr.diff_refs != null
             ? mr.diff_refs as { base_sha: string; head_sha: string; start_sha: string }
             : undefined,
