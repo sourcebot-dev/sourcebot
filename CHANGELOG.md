@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed Claude Opus 4.7 compatibility by using adaptive thinking mode instead of budget-based thinking. Also added `ANTHROPIC_EFFORT` environment variable to control thinking depth, and extended thinking support to `google-vertex-anthropic` and `amazon-bedrock` providers. [#1125](https://github.com/sourcebot-dev/sourcebot/pull/1125)
+
 ## [4.16.9] - 2026-04-15
 
 ### Added
