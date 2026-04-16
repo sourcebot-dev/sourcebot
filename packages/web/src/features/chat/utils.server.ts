@@ -26,6 +26,66 @@ import fs from 'fs';
 import path from 'path';
 import { LanguageModelInfo, SBChatMessage } from './types';
 
+type AnthropicThinkingMode = 'adaptive' | 'budget' | 'disabled';
+
+/**
+ * Determines the appropriate thinking configuration for an Anthropic model.
+ *
+ * - Claude Opus 4.7+: Only supports adaptive thinking (budget mode is rejected)
+ * - Claude Opus 4.6/Sonnet 4.6+: Supports both but adaptive is recommended
+ * - Older models (Sonnet 4.5, Opus 4.5, etc.): Only support budget-based thinking
+ */
+const getAnthropicThinkingMode = (modelId: string): AnthropicThinkingMode => {
+    const lowerModelId = modelId.toLowerCase();
+
+    // Claude Opus 4.7 and later versions ONLY support adaptive thinking
+    // Model IDs: claude-opus-4-7, claude-opus-4-7-*, claude-opus-4-8, etc.
+    if (lowerModelId.includes('opus-4-7') ||
+        lowerModelId.includes('opus-4-8') ||
+        lowerModelId.includes('opus-4-9') ||
+        lowerModelId.includes('opus-5') ||
+        lowerModelId.includes('mythos')) {
+        return 'adaptive';
+    }
+
+    // Claude Opus 4.6 and Sonnet 4.6+ support both, but adaptive is recommended
+    // Model IDs: claude-opus-4-6, claude-sonnet-4-6, etc.
+    if (lowerModelId.includes('opus-4-6') || lowerModelId.includes('sonnet-4-6')) {
+        return 'adaptive';
+    }
+
+    // Older models (Sonnet 4.5, Opus 4.5, Sonnet 3.7, etc.) only support budget-based thinking
+    return 'budget';
+};
+
+/**
+ * Builds the Anthropic thinking provider options based on the model and environment configuration.
+ */
+const getAnthropicThinkingOptions = (modelId: string): AnthropicProviderOptions => {
+    const thinkingMode = getAnthropicThinkingMode(modelId);
+
+    if (thinkingMode === 'disabled') {
+        return {};
+    }
+
+    if (thinkingMode === 'adaptive') {
+        return {
+            thinking: {
+                type: 'adaptive',
+            },
+            effort: env.ANTHROPIC_EFFORT,
+        };
+    }
+
+    // Budget-based thinking for older models
+    return {
+        thinking: {
+            type: 'enabled',
+            budgetTokens: env.ANTHROPIC_THINKING_BUDGET_TOKENS,
+        },
+    };
+};
+
 /**
  * Checks if the current user (authenticated or anonymous) is the owner of a chat.
  */
@@ -192,8 +252,16 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                         : undefined,
                 });
 
+                // Add thinking options for Anthropic models on Bedrock
+                const isAnthropicModel = modelId.toLowerCase().includes('anthropic') ||
+                    modelId.toLowerCase().includes('claude');
+                const providerOptions = isAnthropicModel
+                    ? { anthropic: getAnthropicThinkingOptions(modelId) }
+                    : undefined;
+
                 return {
                     model: aws(modelId),
+                    providerOptions,
                 };
             }
             case 'anthropic': {
@@ -213,12 +281,7 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                 return {
                     model: anthropic(modelId),
                     providerOptions: {
-                        anthropic: {
-                            thinking: {
-                                type: "enabled",
-                                budgetTokens: env.ANTHROPIC_THINKING_BUDGET_TOKENS,
-                            }
-                        } satisfies AnthropicProviderOptions,
+                        anthropic: getAnthropicThinkingOptions(modelId),
                     },
                 };
             }
@@ -326,6 +389,9 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
 
                 return {
                     model: vertexAnthropic(modelId),
+                    providerOptions: {
+                        anthropic: getAnthropicThinkingOptions(modelId),
+                    },
                 };
             }
             case 'mistral': {

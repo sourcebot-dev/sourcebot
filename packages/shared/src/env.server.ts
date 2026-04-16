@@ -203,6 +203,13 @@ const options = {
         ANTHROPIC_API_KEY: z.string().optional(),
         ANTHROPIC_AUTH_TOKEN: z.string().optional(),
         ANTHROPIC_THINKING_BUDGET_TOKENS: numberSchema.default(12000),
+        /**
+         * The effort level for Anthropic models using adaptive thinking.
+         * Controls how much thinking Claude uses when responding.
+         * Valid values: 'low', 'medium', 'high' (default), 'max'
+         * @see https://docs.anthropic.com/en/docs/build-with-claude/effort
+         */
+        ANTHROPIC_EFFORT: z.enum(['low', 'medium', 'high', 'max']).default('high'),
 
         AZURE_API_KEY: z.string().optional(),
         AZURE_RESOURCE_NAME: z.string().optional(),
