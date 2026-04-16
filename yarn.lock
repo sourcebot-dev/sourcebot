@@ -8480,9 +8480,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@sourcebot/codemirror-lang-tcl@npm:^1.0.12":
-  version: 1.0.12
-  resolution: "@sourcebot/codemirror-lang-tcl@npm:1.0.12"
+"@sourcebot/codemirror-lang-tcl@npm:^1.0.13":
+  version: 1.0.13
+  resolution: "@sourcebot/codemirror-lang-tcl@npm:1.0.13"
   dependencies:
     "@codemirror/highlight": "npm:^0.19.0"
     "@codemirror/language": "npm:^6.0.0"
@@ -8490,7 +8490,7 @@ __metadata:
     "@lezer/highlight": "npm:^1.0.0"
     "@lezer/lr": "npm:^1.0.0"
     tslib: "npm:^2.8.1"
-  checksum: 10c0/3f858a1fb57a2da63d3b197a2d2617075fdf84598b77b0c8b8237835363035088aec4a7784da5909bd2c9c98422dda5577be6366a3e266715fc5436a8078dab3
+  checksum: 10c0/1d251f0be95264bf281deb15aaecda9004e511c0747d6e8199d9fd024834d129c1384865e548c8280290d48bca927b3be722d03f2b908c2b3025d5dff072f847
   languageName: node
   linkType: hard
 
@@ -8650,7 +8650,7 @@ __metadata:
     "@replit/codemirror-vim": "npm:^6.2.1"
     "@sentry/nextjs": "npm:^10.40.0"
     "@shopify/lang-jsonc": "npm:^1.0.0"
-    "@sourcebot/codemirror-lang-tcl": "npm:^1.0.12"
+    "@sourcebot/codemirror-lang-tcl": "npm:^1.0.13"
     "@sourcebot/db": "workspace:*"
     "@sourcebot/query-language": "workspace:*"
     "@sourcebot/schemas": "workspace:*"
