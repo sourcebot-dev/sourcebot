@@ -82,7 +82,7 @@ export const BottomPanel = ({ order }: BottomPanelProps) => {
                     </Button>
                 )}
             </div>
-            <Separator />
+            {!isBottomPanelCollapsed && <Separator />}
             <ResizablePanel
                 minSize={BOTTOM_PANEL_MIN_SIZE}
                 maxSize={BOTTOM_PANEL_MAX_SIZE}

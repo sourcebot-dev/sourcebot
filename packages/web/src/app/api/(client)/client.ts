@@ -2,6 +2,7 @@
 
 import { ServiceError } from "@/lib/serviceError";
 import { GetVersionResponse, ListReposQueryParams, ListReposResponse } from "@/lib/types";
+import type { ListChatsQueryParams, ListChatsResponse } from "../(server)/chats/types";
 import { isServiceError } from "@/lib/utils";
 import {
     SearchRequest,
@@ -168,4 +169,22 @@ export const searchChatShareableMembers = async (
     }).then(response => response.json());
 
     return result as SearchChatShareableMembersResponse | ServiceError;
+}
+
+export const listChats = async (queryParams: ListChatsQueryParams): Promise<ListChatsResponse | ServiceError> => {
+    const url = new URL("/api/chats", window.location.origin);
+    for (const [key, value] of Object.entries(queryParams)) {
+        if (value !== undefined) {
+            url.searchParams.set(key, String(value));
+        }
+    }
+
+    const result = await fetch(url, {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    }).then(response => response.json());
+
+    return result as ListChatsResponse | ServiceError;
 }

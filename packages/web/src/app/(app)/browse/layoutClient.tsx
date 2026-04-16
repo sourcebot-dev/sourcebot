@@ -5,40 +5,38 @@ import { BottomPanel } from "./components/bottomPanel";
 import { AnimatedResizableHandle } from "@/components/ui/animatedResizableHandle";
 import { BrowseStateProvider } from "./browseStateProvider";
 import { FileTreePanel } from "./components/fileTreePanel";
-import { TopBar } from "@/app/(app)/components/topBar";
 import { useBrowseParams } from "./hooks/useBrowseParams";
 import { FileSearchCommandDialog } from "./components/fileSearchCommandDialog";
 import { SearchBar } from "../components/searchBar";
 import escapeStringRegexp from "escape-string-regexp";
-import { Session } from "next-auth";
+import { Separator } from "@/components/ui/separator";
 
 interface LayoutProps {
     children: React.ReactNode;
-    session: Session | null;
     isSearchAssistSupported: boolean;
 }
 
 export function LayoutClient({
     children,
-    session,
     isSearchAssistSupported,
 }: LayoutProps) {
     const { repoName, revisionName } = useBrowseParams();
     return (
         <BrowseStateProvider>
-            <div className="flex flex-col h-screen">
-                <TopBar
-                    session={session}
-                >
-                    <SearchBar
-                        size="sm"
-                        defaults={{
-                            query: `repo:^${escapeStringRegexp(repoName)}$${revisionName ? ` rev:${revisionName}` : ''} `,
-                        }}
-                        className="w-full"
-                        isSearchAssistSupported={isSearchAssistSupported}
-                    />
-                </TopBar>
+            <div className="flex flex-col h-full">
+                <div className='sticky top-0 left-0 right-0 z-10'>
+                    <div className="py-1.5 px-3">
+                        <SearchBar
+                            size="sm"
+                            defaults={{
+                                query: `repo:^${escapeStringRegexp(repoName)}$${revisionName ? ` rev:${revisionName}` : ''} `,
+                            }}
+                            className="w-full"
+                            isSearchAssistSupported={isSearchAssistSupported}
+                        />
+                    </div>
+                    <Separator />
+                </div>
                 <ResizablePanelGroup
                     direction="horizontal"
                 >

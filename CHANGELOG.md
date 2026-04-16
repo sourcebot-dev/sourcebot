@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1097](https://github.com/sourcebot-dev/sourcebot/pull/1097)
+
 ## [4.16.9] - 2026-04-15
 
 ### Added

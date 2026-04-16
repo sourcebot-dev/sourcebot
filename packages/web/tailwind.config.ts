@@ -56,6 +56,7 @@ const config = {
                 },
                 highlight: 'var(--highlight)',
                 link: 'var(--link)',
+                shell: 'var(--shell)',
                 sidebar: {
                     DEFAULT: 'var(--sidebar-background)',
                     foreground: 'var(--sidebar-foreground)',
