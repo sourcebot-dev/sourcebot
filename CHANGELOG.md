@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.16.10] - 2026-04-16
+
 ### Changed
 - Bumped AI SDK and associated packages version. [#1126](https://github.com/sourcebot-dev/sourcebot/pull/1126)
 
