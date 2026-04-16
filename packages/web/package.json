@@ -95,7 +95,7 @@
     "@replit/codemirror-vim": "^6.2.1",
     "@sentry/nextjs": "^10.40.0",
     "@shopify/lang-jsonc": "^1.0.0",
-    "@sourcebot/codemirror-lang-tcl": "^1.0.12",
+    "@sourcebot/codemirror-lang-tcl": "^1.0.13",
     "@sourcebot/db": "workspace:*",
     "@sourcebot/query-language": "workspace:*",
     "@sourcebot/schemas": "workspace:*",
