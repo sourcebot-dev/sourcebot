@@ -209,15 +209,16 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                         ? await extractLanguageModelKeyValuePairs(config.headers)
                         : undefined,
                 });
-
                 return {
                     model: anthropic(modelId),
                     providerOptions: {
                         anthropic: {
                             thinking: {
-                                type: "enabled",
-                                budgetTokens: env.ANTHROPIC_THINKING_BUDGET_TOKENS,
-                            }
+                                type: "adaptive",
+                            },
+                            output_config: {
+                                effort: env.ANTHROPIC_THINKING_EFFORT ?? "medium",
+                            },
                         } satisfies AnthropicProviderOptions,
                     },
                 };
