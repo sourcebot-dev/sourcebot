@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed revision selection so the 64-revision cap prefers the newest matching branches and tags instead of pruning by ref-name order. [#1122](https://github.com/sourcebot-dev/sourcebot/pull/1122)
 
+## [4.16.10] - 2026-04-16
+
+### Changed
+- Bumped AI SDK and associated packages version. [#1126](https://github.com/sourcebot-dev/sourcebot/pull/1126)
+
+### Fixed
+- Fixed issue where claude-opus-4-7 was returning "error occurred "thinking.type.enabled" is not supported for this model". [#1123](https://github.com/sourcebot-dev/sourcebot/issues/1123)
+
 ## [4.16.9] - 2026-04-15
 
 ### Added
