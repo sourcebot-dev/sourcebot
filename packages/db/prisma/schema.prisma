@@ -300,7 +300,7 @@ model License {
   orgId           Int      @unique
   org             Org      @relation(fields: [orgId], references: [id])
   activationCode  String
-  plan            String?
+  entitlements    String[]
   seats           Int?
   status          String?
   lastSyncAt      DateTime?

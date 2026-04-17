@@ -1,12 +1,10 @@
 export {
     hasEntitlement,
     getOfflineLicenseKey,
-    getPlan,
     getSeats,
     getEntitlements,
 } from "./entitlements.js";
 export type {
-    Plan,
     Entitlement,
 } from "./entitlements.js";
 export type {

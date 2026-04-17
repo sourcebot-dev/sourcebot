@@ -10,7 +10,7 @@ export type ServicePingRequest = z.infer<typeof servicePingRequestSchema>;
 
 export const servicePingResponseSchema = z.object({
     license: z.object({
-        plan: z.string(),
+        entitlements: z.string().array(),
         seats: z.number(),
         status: z.string(),
     }).optional(),

@@ -14,7 +14,7 @@ import { createLogger } from "@sourcebot/shared";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
-import { getPlan, hasEntitlement } from "@/lib/entitlements";
+import { hasEntitlement } from "@/lib/entitlements";
 import { StatusCodes } from "http-status-codes";
 import { cookies } from "next/headers";
 import { createTransport } from "nodemailer";
@@ -1200,8 +1200,7 @@ export const setAnonymousAccessStatus = async (enabled: boolean): Promise<Servic
         return await withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const hasAnonymousAccessEntitlement = await hasEntitlement("anonymous-access");
             if (!hasAnonymousAccessEntitlement) {
-                const plan = await getPlan();
-                console.error(`Anonymous access isn't supported in your current plan: ${plan}. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+                console.error(`Anonymous access isn't supported in your current plan. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
                 return {
                     statusCode: StatusCodes.FORBIDDEN,
                     errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,

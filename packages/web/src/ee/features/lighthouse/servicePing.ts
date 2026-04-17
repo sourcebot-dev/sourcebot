@@ -45,19 +45,19 @@ export const syncWithLighthouse = async (orgId: number) => {
 
     // If we have a license and Lighthouse returned license data, sync it
     if (license && response.license) {
-        const { plan, seats, status } = response.license;
+        const { entitlements, seats, status } = response.license;
 
         await __unsafePrisma.license.update({
             where: { orgId: SINGLE_TENANT_ORG_ID },
             data: {
-                plan,
+                entitlements,
                 seats,
                 status,
                 lastSyncAt: new Date(),
             },
         });
 
-        logger.info(`License synced: plan=${plan}, seats=${seats}, status=${status}`);
+        logger.info(`License synced: entitlements=${entitlements.join(',')}, seats=${seats}, status=${status}`);
     }
 };
 

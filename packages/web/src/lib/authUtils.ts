@@ -3,7 +3,7 @@ import { __unsafePrisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_EMAIL, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
 import { SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
-import { getPlan, getSeats, hasEntitlement } from "@/lib/entitlements";
+import { getSeats, hasEntitlement } from "@/lib/entitlements";
 import { isServiceError } from "@/lib/utils";
 import { orgNotFound, ServiceError, userNotFound } from "@/lib/serviceError";
 import { createLogger } from "@sourcebot/shared";
@@ -130,7 +130,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
 export const createGuestUser = async (): Promise<ServiceError | boolean> => {
     const hasAnonymousAccessEntitlement = await hasEntitlement("anonymous-access");
     if (!hasAnonymousAccessEntitlement) {
-        console.error(`Anonymous access isn't supported in your current plan: ${await getPlan()}. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
+        console.error(`Anonymous access isn't supported in your current plan. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
         return {
             statusCode: StatusCodes.FORBIDDEN,
             errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,

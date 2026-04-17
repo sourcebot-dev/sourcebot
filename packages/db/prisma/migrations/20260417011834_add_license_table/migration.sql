@@ -3,7 +3,7 @@ CREATE TABLE "License" (
     "id" TEXT NOT NULL,
     "orgId" INTEGER NOT NULL,
     "activationCode" TEXT NOT NULL,
-    "plan" TEXT,
+    "entitlements" TEXT[],
     "seats" INTEGER,
     "status" TEXT,
     "lastSyncAt" TIMESTAMP(3),

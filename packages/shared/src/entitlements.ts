@@ -21,14 +21,6 @@ const eeLicenseKeyPayloadSchema = z.object({
 type LicenseKeyPayload = z.infer<typeof eeLicenseKeyPayloadSchema>;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const planLabels = {
-    oss: "OSS",
-    "self-hosted:enterprise": "Enterprise (Self-Hosted)",
-    "self-hosted:enterprise-unlimited": "Enterprise (Self-Hosted) Unlimited",
-} as const;
-export type Plan = keyof typeof planLabels;
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const entitlements = [
     "search-contexts",
     "anonymous-access",
@@ -44,45 +36,10 @@ const entitlements = [
 ] as const;
 export type Entitlement = (typeof entitlements)[number];
 
-const entitlementsByPlan: Record<Plan, Entitlement[]> = {
-    oss: [
-        "anonymous-access",
-    ],
-    "self-hosted:enterprise": [
-        "search-contexts",
-        "sso",
-        "code-nav",
-        "audit",
-        "analytics",
-        "permission-syncing",
-        "github-app",
-        "chat-sharing",
-        "org-management",
-        "oauth",
-    ],
-    "self-hosted:enterprise-unlimited": [
-        "anonymous-access",
-        "search-contexts",
-        "sso",
-        "code-nav",
-        "audit",
-        "analytics",
-        "permission-syncing",
-        "github-app",
-        "chat-sharing",
-        "org-management",
-        "oauth",
-    ],
-} as const;
-
-const isValidPlan = (plan: string): plan is Plan => {
-    return plan in entitlementsByPlan;
-}
-
 const ACTIVE_LICENSE_STATUSES = ['active', 'trialing', 'past_due'] as const;
 
-const isLicenseActive = (license: License | null): boolean => {
-    if (!license?.status) {
+const isLicenseActive = (license: License): boolean => {
+    if (!license.status) {
         return false;
     }
     return ACTIVE_LICENSE_STATUSES.includes(license.status as typeof ACTIVE_LICENSE_STATUSES[number]);
@@ -122,25 +79,6 @@ export const getOfflineLicenseKey = (): LicenseKeyPayload | null => {
     return null;
 }
 
-export const getPlan = (license: License | null): Plan => {
-    const licenseKey = getOfflineLicenseKey();
-    if (licenseKey) {
-        const expiryDate = new Date(licenseKey.expiryDate);
-        if (expiryDate.getTime() < new Date().getTime()) {
-            logger.error(`The provided license key has expired (${expiryDate.toLocaleString()}). Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
-            process.exit(1);
-        }
-
-        return licenseKey.seats === SOURCEBOT_UNLIMITED_SEATS ? "self-hosted:enterprise-unlimited" : "self-hosted:enterprise";
-    }
-    else if (license?.plan && isValidPlan(license.plan) && isLicenseActive(license)) {
-        return license.plan;
-    }
-    else {
-        return "oss";
-    }
-}
-
 export const getSeats = (license: License | null): number => {
     const licenseKey = getOfflineLicenseKey();
     if (licenseKey) {
@@ -160,6 +98,20 @@ export const hasEntitlement = (entitlement: Entitlement, license: License | null
 }
 
 export const getEntitlements = (license: License | null): Entitlement[] => {
-    const plan = getPlan(license);
-    return entitlementsByPlan[plan];
+    const licenseKey = getOfflineLicenseKey();
+    if (licenseKey) {
+        const expiryDate = new Date(licenseKey.expiryDate);
+        if (expiryDate.getTime() < new Date().getTime()) {
+            logger.error(`The provided license key has expired (${expiryDate.toLocaleString()}). Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
+            process.exit(1);
+        }
+
+        return entitlements as unknown as Entitlement[];
+    }
+    else if (license && isLicenseActive(license)) {
+        return license.entitlements as unknown as Entitlement[];
+    }
+    else {
+        return [];
+    }
 }

@@ -1,6 +1,5 @@
 import {
     getSeats as _getSeats,
-    getPlan as _getPlan,
     getEntitlements as _getEntitlements,
     hasEntitlement as _hasEntitlement,
     Entitlement,
@@ -23,11 +22,6 @@ const getSingleTenantLicense = async () => {
 export const getSeats = async () => {
     const license = await getSingleTenantLicense();
     return _getSeats(license);
-}
-
-export const getPlan = async () => {
-    const license = await getSingleTenantLicense();
-    return _getPlan(license);
 }
 
 export const getEntitlements = async () => {

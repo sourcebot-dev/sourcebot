@@ -1,7 +1,5 @@
 import {
     Entitlement,
-    Plan,
-    getPlan as _getPlan,
     getSeats as _getSeats,
     hasEntitlement as _hasEntitlement,
     getEntitlements as _getEntitlements,
@@ -13,11 +11,6 @@ const getLicense = async () => {
     return prisma.license.findUnique({
         where: { orgId: SINGLE_TENANT_ORG_ID },
     });
-}
-
-export const getPlan = async (): Promise<Plan> => {
-    const license = await getLicense();
-    return _getPlan(license);
 }
 
 export const getSeats = async (): Promise<number> => {
