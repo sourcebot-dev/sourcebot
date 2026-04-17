@@ -7,10 +7,10 @@ import { OrgRole } from "@sourcebot/db";
 import { ServiceError } from "@/lib/serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
-import { env, encryptActivationCode, decryptActivationCode } from "@sourcebot/shared";
+import { encryptActivationCode, decryptActivationCode } from "@sourcebot/shared";
 import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
-import { fetchWithRetry } from "@/lib/utils";
-import { checkoutResponseSchema, portalResponseSchema } from "./types";
+import { isServiceError } from "@/lib/utils";
+import { client } from "./client";
 
 export const activateLicense = async (activationCode: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async ({ org, role, prisma }) =>
@@ -59,6 +59,14 @@ export const activateLicense = async (activationCode: string): Promise<{ success
 export const createCheckoutSession = async (successUrl: string, cancelUrl: string): Promise<{ url: string } | ServiceError> => sew(() =>
     withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            if (!user.email) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.UNEXPECTED_ERROR,
+                    message: "User does not have an email address.",
+                } satisfies ServiceError;
+            }
+
             const memberCount = await prisma.userToOrg.count({
                 where: {
                     orgId: org.id,
@@ -66,37 +74,18 @@ export const createCheckoutSession = async (successUrl: string, cancelUrl: strin
                 },
             });
 
-            const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/checkout`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: user.email,
-                    quantity: Math.max(memberCount, 1),
-                    successUrl,
-                    cancelUrl,
-                }),
+            const result = await client.checkout({
+                email: user.email,
+                quantity: Math.max(memberCount, 1),
+                successUrl,
+                cancelUrl,
             });
 
-            if (!response.ok) {
-                return {
-                    statusCode: StatusCodes.BAD_GATEWAY,
-                    errorCode: ErrorCode.UNEXPECTED_ERROR,
-                    message: "Failed to create checkout session.",
-                } satisfies ServiceError;
+            if (isServiceError(result)) {
+                return result;
             }
 
-            const body = await response.json();
-            const result = checkoutResponseSchema.safeParse(body);
-
-            if (!result.success) {
-                return {
-                    statusCode: StatusCodes.BAD_GATEWAY,
-                    errorCode: ErrorCode.UNEXPECTED_ERROR,
-                    message: "Invalid response from Lighthouse.",
-                } satisfies ServiceError;
-            }
-
-            return { url: result.data.url };
+            return { url: result.url };
         })
     )
 );
@@ -142,35 +131,16 @@ export const createPortalSession = async (returnUrl: string): Promise<{ url: str
 
             const activationCode = decryptActivationCode(license.activationCode);
 
-            const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/portal`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    activationCode,
-                    returnUrl,
-                }),
+            const result = await client.portal({
+                activationCode,
+                returnUrl,
             });
 
-            if (!response.ok) {
-                return {
-                    statusCode: StatusCodes.BAD_GATEWAY,
-                    errorCode: ErrorCode.UNEXPECTED_ERROR,
-                    message: "Failed to create portal session.",
-                } satisfies ServiceError;
+            if (isServiceError(result)) {
+                return result;
             }
 
-            const body = await response.json();
-            const result = portalResponseSchema.safeParse(body);
-
-            if (!result.success) {
-                return {
-                    statusCode: StatusCodes.BAD_GATEWAY,
-                    errorCode: ErrorCode.UNEXPECTED_ERROR,
-                    message: "Invalid response from Lighthouse.",
-                } satisfies ServiceError;
-            }
-
-            return { url: result.data.url };
+            return { url: result.url };
         })
     )
 );

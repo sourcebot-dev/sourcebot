@@ -1,20 +1,51 @@
 import { fetchWithRetry, isServiceError } from "@/lib/utils";
 import { env } from "@sourcebot/shared";
-import { ServicePingRequest, ServicePingResponse, servicePingResponseSchema } from "./types";
+import {
+    CheckoutRequest,
+    CheckoutResponse,
+    checkoutResponseSchema,
+    PortalRequest,
+    PortalResponse,
+    portalResponseSchema,
+    ServicePingRequest,
+    ServicePingResponse,
+    servicePingResponseSchema,
+} from "./types";
 import { ServiceError } from "@/lib/serviceError";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 
-export const sendServicePing = async (body: ServicePingRequest): Promise<ServicePingResponse | ServiceError> => {
-    const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/ping`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    });
+export const client = {
+    ping: async (body: ServicePingRequest): Promise<ServicePingResponse | ServiceError> => {
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/ping`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
 
-    const result = await parseResponseBody(response, servicePingResponseSchema);
-    return result;
+        return parseResponseBody(response, servicePingResponseSchema);
+    },
+
+    checkout: async (body: CheckoutRequest): Promise<CheckoutResponse | ServiceError> => {
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/checkout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        return parseResponseBody(response, checkoutResponseSchema);
+    },
+
+    portal: async (body: PortalRequest): Promise<PortalResponse | ServiceError> => {
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/portal`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        return parseResponseBody(response, portalResponseSchema);
+    }
 }
 
 const parseResponseBody = async <T extends z.ZodTypeAny>(

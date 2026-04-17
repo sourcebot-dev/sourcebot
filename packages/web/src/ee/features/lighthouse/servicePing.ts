@@ -2,7 +2,7 @@ import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_ID } from "@/lib/constants";
 import { isServiceError } from "@/lib/utils";
 import { __unsafePrisma } from "@/prisma";
 import { createLogger, decryptActivationCode, env, SOURCEBOT_VERSION } from "@sourcebot/shared";
-import { sendServicePing } from "./client";
+import { client } from "./client";
 import { ServicePingRequest } from "./types";
 
 const logger = createLogger('service-ping');
@@ -35,7 +35,7 @@ export const syncWithLighthouse = async (orgId: number) => {
         ...(activationCode && { activationCode }),
     };
 
-    const response = await sendServicePing(payload);
+    const response = await client.ping(payload);
     if (isServiceError(response)) {
         logger.error(`Service ping failed:\n ${JSON.stringify(response, null, 2)}`)
         return;
