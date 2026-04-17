@@ -545,7 +545,7 @@ export const createInvites = async (emails: string[]): Promise<{ success: boolea
                 });
             }
 
-            const hasAvailability = await orgHasAvailability();
+            const hasAvailability = await orgHasAvailability(org.id);
             if (!hasAvailability) {
                 await createAudit({
                     action: "user.invite_failed",

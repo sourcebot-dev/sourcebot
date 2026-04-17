@@ -2,7 +2,7 @@ import { base64Decode } from "./utils.js";
 import { z } from "zod";
 import { createLogger } from "./logger.js";
 import { env } from "./env.server.js";
-import { SOURCEBOT_SUPPORT_EMAIL, SOURCEBOT_UNLIMITED_SEATS } from "./constants.js";
+import { SOURCEBOT_SUPPORT_EMAIL } from "./constants.js";
 import { verifySignature } from "./crypto.js";
 import { License } from "@sourcebot/db";
 
@@ -77,19 +77,6 @@ export const getOfflineLicenseKey = (): LicenseKeyPayload | null => {
         return decodeLicenseKeyPayload(payload);
     }
     return null;
-}
-
-export const getSeats = (license: License | null): number => {
-    const licenseKey = getOfflineLicenseKey();
-    if (licenseKey) {
-        return licenseKey.seats;
-    }
-
-    if (license?.seats && isLicenseActive(license)) {
-        return license.seats;
-    }
-
-    return SOURCEBOT_UNLIMITED_SEATS;
 }
 
 export const hasEntitlement = (entitlement: Entitlement, license: License | null) => {

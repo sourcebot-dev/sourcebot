@@ -1,6 +1,5 @@
 import {
     Entitlement,
-    getSeats as _getSeats,
     hasEntitlement as _hasEntitlement,
     getEntitlements as _getEntitlements,
 } from "@sourcebot/shared";
@@ -11,11 +10,6 @@ const getLicense = async () => {
     return prisma.license.findUnique({
         where: { orgId: SINGLE_TENANT_ORG_ID },
     });
-}
-
-export const getSeats = async (): Promise<number> => {
-    const license = await getLicense();
-    return _getSeats(license);
 }
 
 export const hasEntitlement = async (entitlement: Entitlement): Promise<boolean> => {

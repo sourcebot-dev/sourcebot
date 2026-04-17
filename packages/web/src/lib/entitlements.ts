@@ -1,5 +1,4 @@
 import {
-    getSeats as _getSeats,
     getEntitlements as _getEntitlements,
     hasEntitlement as _hasEntitlement,
     Entitlement,
@@ -17,11 +16,6 @@ const getSingleTenantLicense = async () => {
     } catch {
         return null;
     }
-}
-
-export const getSeats = async () => {
-    const license = await getSingleTenantLicense();
-    return _getSeats(license);
 }
 
 export const getEntitlements = async () => {

@@ -2,11 +2,10 @@ import type { User as AuthJsUser } from "next-auth";
 import { __unsafePrisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_EMAIL, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
-import { SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
-import { getSeats, hasEntitlement } from "@/lib/entitlements";
+import { hasEntitlement } from "@/lib/entitlements";
 import { isServiceError } from "@/lib/utils";
 import { orgNotFound, ServiceError, userNotFound } from "@/lib/serviceError";
-import { createLogger } from "@sourcebot/shared";
+import { createLogger, getOfflineLicenseKey } from "@sourcebot/shared";
 import { createAudit } from "@/ee/features/audit/audit";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
@@ -49,7 +48,6 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
         }
     });
 
-    // We expect the default org to have been created on app initialization
     if (defaultOrg === null) {
         await createAudit({
             action: "user.creation_failed",
@@ -69,7 +67,8 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
         throw new Error("Default org not found on single tenant user creation");
     }
 
-    // If this is the first user to sign up, we make them the owner of the default org.
+    // First (non-guest) user to sign up bootstraps the org as its OWNER. This
+    // is how a fresh deployment gets its initial admin without manual setup.
     const isFirstUser = defaultOrg.members.length === 0;
     if (isFirstUser) {
         await __unsafePrisma.$transaction(async (tx) => {
@@ -104,8 +103,16 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                 type: "org"
             }
         });
-    } else if (!defaultOrg.memberApprovalRequired) {
-        const hasAvailability = await orgHasAvailability();
+    }
+    
+    // Subsequent users auto-join as MEMBER only when the org is in open
+    // self-serve mode. If memberApprovalRequired is true, the user is left
+    // without a membership and must submit an AccountRequest for an owner to
+    // approve via addUserToOrganization.
+    else if (!defaultOrg.memberApprovalRequired) {
+        // Don't exceed the licensed seat count. The user row still exists;
+        // they just aren't attached to the org until a seat frees up.
+        const hasAvailability = await orgHasAvailability(defaultOrg.id);
         if (!hasAvailability) {
             logger.warn(`onCreateUser: org ${SINGLE_TENANT_ORG_ID} has reached max capacity. User ${user.id} was not added to the org.`);
             return;
@@ -189,30 +196,31 @@ export const createGuestUser = async (): Promise<ServiceError | boolean> => {
     return true;
 };
 
-export const orgHasAvailability = async (): Promise<boolean> => {
-    const org = await __unsafePrisma.org.findUnique({
+/**
+ * Checks to see if the given organization has seat availability.
+ * Seat availability is determined by the `seats` parameter in
+ * the offline license key, if available.
+ */
+export const orgHasAvailability = async (orgId: number): Promise<boolean> => {
+    const org = await __unsafePrisma.org.findUniqueOrThrow({
         where: {
-            id: SINGLE_TENANT_ORG_ID,
+            id: orgId,
         },
-    });
-
-    if (!org) {
-        logger.error(`orgHasAvailability: org not found for id ${SINGLE_TENANT_ORG_ID}`);
-        return false;
-    }
-    const members = await __unsafePrisma.userToOrg.findMany({
-        where: {
-            orgId: org.id,
-            role: {
-                not: OrgRole.GUEST,
+        include: {
+            members: {
+                where: {
+                    role: {
+                        not: OrgRole.GUEST
+                    }
+                }
             },
-        },
+        }
     });
 
-    const maxSeats = await getSeats();
-    const memberCount = members.length;
+    const licenseKey = getOfflineLicenseKey();
+    const memberCount = org.members.length;
 
-    if (maxSeats !== SOURCEBOT_UNLIMITED_SEATS && memberCount >= maxSeats) {
+    if (licenseKey && memberCount >= licenseKey?.seats) {
         logger.error(`orgHasAvailability: org ${org.id} has reached max capacity`);
         return false;
     }
@@ -243,7 +251,7 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
         return orgNotFound();
     }
 
-    const hasAvailability = await orgHasAvailability();
+    const hasAvailability = await orgHasAvailability(org.id);
     if (!hasAvailability) {
         return {
             statusCode: StatusCodes.BAD_REQUEST,

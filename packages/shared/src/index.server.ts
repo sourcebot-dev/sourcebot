@@ -1,7 +1,6 @@
 export {
     hasEntitlement,
     getOfflineLicenseKey,
-    getSeats,
     getEntitlements,
 } from "./entitlements.js";
 export type {

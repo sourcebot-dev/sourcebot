@@ -98,7 +98,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
         });
     };
 
-    const hasAvailability = await orgHasAvailability();
+    const hasAvailability = await orgHasAvailability(invite.org.id);
     if (!hasAvailability) {
         await failAuditCallback("Organization is at max capacity");
         return {
