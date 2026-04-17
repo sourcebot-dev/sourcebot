@@ -21,7 +21,7 @@ const eeLicenseKeyPayloadSchema = z.object({
 type LicenseKeyPayload = z.infer<typeof eeLicenseKeyPayloadSchema>;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const entitlements = [
+const ALL_ENTITLEMENTS = [
     "search-contexts",
     "anonymous-access",
     "sso",
@@ -34,7 +34,7 @@ const entitlements = [
     "org-management",
     "oauth",
 ] as const;
-export type Entitlement = (typeof entitlements)[number];
+export type Entitlement = (typeof ALL_ENTITLEMENTS)[number];
 
 const ACTIVE_LICENSE_STATUSES = ['active', 'trialing', 'past_due'] as const;
 
@@ -93,7 +93,7 @@ export const getEntitlements = (license: License | null): Entitlement[] => {
             process.exit(1);
         }
 
-        return entitlements as unknown as Entitlement[];
+        return ALL_ENTITLEMENTS as unknown as Entitlement[];
     }
     else if (license && isLicenseActive(license)) {
         return license.entitlements as unknown as Entitlement[];
