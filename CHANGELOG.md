@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed revision selection so the 64-revision cap prefers the newest matching branches and tags instead of pruning by ref-name order. [#1122](https://github.com/sourcebot-dev/sourcebot/pull/1122)
+
 ## [4.16.11] - 2026-04-17
 
 ### Changed

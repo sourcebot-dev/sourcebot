@@ -131,7 +131,13 @@ vi.mock('redlock', () => ({
 import { existsSync } from 'fs';
 import { readdir, rm } from 'fs/promises';
 import { ExecutionError } from 'redlock';
-import { cloneRepository, fetchRepository, isPathAValidGitRepoRoot } from './git.js';
+import {
+    cloneRepository,
+    fetchRepository,
+    getBranches,
+    getTags,
+    isPathAValidGitRepoRoot,
+} from './git.js';
 import { RepoIndexManager } from './repoIndexManager.js';
 import { indexGitRepository } from './zoekt.js';
 
@@ -408,6 +414,106 @@ describe('RepoIndexManager', () => {
                 expect.arrayContaining(['refs/heads/main']),
                 expect.any(Object)
             );
+        });
+
+        test('keeps default branch and truncates to the first 63 matching tags', async () => {
+            const newestTagsFirst = Array.from(
+                { length: 70 },
+                (_, index) => `v${70 - index}.0.0`,
+            );
+            const repo = createMockRepoWithConnections({
+                metadata: {
+                    tags: ['**'],
+                },
+            });
+            (existsSync as Mock).mockReturnValue(true);
+            (getTags as Mock).mockResolvedValue(newestTagsFirst);
+
+            manager = new RepoIndexManager(mockPrisma, mockSettings, mockRedis, mockPromClient as any);
+
+            (mockPrisma.repoIndexingJob.findUniqueOrThrow as Mock).mockResolvedValue({
+                status: RepoIndexingJobStatus.PENDING,
+            });
+            (mockPrisma.repoIndexingJob.update as Mock).mockResolvedValue({
+                type: RepoIndexingJobType.INDEX,
+                repo,
+            });
+
+            const mockJob = {
+                data: {
+                    jobId: 'job-1',
+                    type: 'INDEX',
+                    repoId: repo.id,
+                    repoName: repo.name,
+                },
+                moveToDelayed: vi.fn(),
+            } as unknown as Job;
+
+            const { Worker } = await import('bullmq');
+            const processor = (Worker as unknown as Mock).mock.calls[0][1];
+            await processor(mockJob);
+
+            expect(indexGitRepository).toHaveBeenCalledWith(
+                repo,
+                mockSettings,
+                [
+                    'refs/heads/main',
+                    ...newestTagsFirst
+                        .slice(0, 63)
+                        .map((tag) => `refs/tags/${tag}`),
+                ],
+                expect.any(Object)
+            );
+        });
+
+        test('de-duplicates the default branch before truncating matching branches', async () => {
+            const newestBranchesFirst = [
+                'feature/newest',
+                'main',
+                ...Array.from(
+                    { length: 68 },
+                    (_, index) => `feature/${68 - index}`,
+                ),
+            ];
+            const repo = createMockRepoWithConnections({
+                metadata: {
+                    branches: ['main', 'feature/**'],
+                },
+            });
+            (existsSync as Mock).mockReturnValue(true);
+            (getBranches as Mock).mockResolvedValue(newestBranchesFirst);
+
+            manager = new RepoIndexManager(mockPrisma, mockSettings, mockRedis, mockPromClient as any);
+
+            (mockPrisma.repoIndexingJob.findUniqueOrThrow as Mock).mockResolvedValue({
+                status: RepoIndexingJobStatus.PENDING,
+            });
+            (mockPrisma.repoIndexingJob.update as Mock).mockResolvedValue({
+                type: RepoIndexingJobType.INDEX,
+                repo,
+            });
+
+            const mockJob = {
+                data: {
+                    jobId: 'job-1',
+                    type: 'INDEX',
+                    repoId: repo.id,
+                    repoName: repo.name,
+                },
+                moveToDelayed: vi.fn(),
+            } as unknown as Job;
+
+            const { Worker } = await import('bullmq');
+            const processor = (Worker as unknown as Mock).mock.calls[0][1];
+            await processor(mockJob);
+
+            const revisions = (indexGitRepository as Mock).mock.calls.at(-1)?.[2] as string[];
+
+            expect(revisions).toHaveLength(64);
+            expect(revisions.filter((revision) => revision === 'refs/heads/main')).toHaveLength(1);
+            expect(revisions[0]).toBe('refs/heads/main');
+            expect(revisions).toContain('refs/heads/feature/newest');
+            expect(revisions).not.toContain('refs/heads/feature/6');
         });
 
         test('updates repo.indexedAt and indexedCommitHash on completion', async () => {
