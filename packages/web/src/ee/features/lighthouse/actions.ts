@@ -8,7 +8,7 @@ import { ServiceError } from "@/lib/serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 import { env, encryptActivationCode, decryptActivationCode } from "@sourcebot/shared";
-import { sendServicePing } from "@/ee/features/lighthouse/servicePing";
+import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
 import { fetchWithRetry } from "@/lib/utils";
 import { checkoutResponseSchema, portalResponseSchema } from "./types";
 
@@ -37,7 +37,7 @@ export const activateLicense = async (activationCode: string): Promise<{ success
 
             // Immediately ping Lighthouse to validate and sync license data
             try {
-                await sendServicePing();
+                await syncWithLighthouse(org.id);
             } catch {
                 // If the ping fails, remove the license record
                 await prisma.license.delete({
