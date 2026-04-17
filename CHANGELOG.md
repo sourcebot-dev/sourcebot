@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.16.11] - 2026-04-17
+
 ### Changed
 - Bumped `protobufjs` to `7.5.5`. [#1128](https://github.com/sourcebot-dev/sourcebot/pull/1128)
 
