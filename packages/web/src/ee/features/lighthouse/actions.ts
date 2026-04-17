@@ -56,6 +56,36 @@ export const activateLicense = async (activationCode: string): Promise<{ success
     )
 );
 
+export const refreshLicense = async (): Promise<{ success: boolean } | ServiceError> => sew(() =>
+    withAuth(async ({ org, role, prisma }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            const existing = await prisma.license.findUnique({
+                where: { orgId: org.id },
+            });
+
+            if (!existing) {
+                return {
+                    statusCode: StatusCodes.NOT_FOUND,
+                    errorCode: ErrorCode.NOT_FOUND,
+                    message: "No license found.",
+                } satisfies ServiceError;
+            }
+
+            try {
+                await syncWithLighthouse(org.id);
+            } catch {
+                return {
+                    statusCode: StatusCodes.BAD_GATEWAY,
+                    errorCode: ErrorCode.UNEXPECTED_ERROR,
+                    message: "Failed to refresh license. Please try again.",
+                } satisfies ServiceError;
+            }
+
+            return { success: true };
+        })
+    )
+);
+
 export const createCheckoutSession = async (successUrl: string, cancelUrl: string): Promise<{ url: string } | ServiceError> => sew(() =>
     withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
