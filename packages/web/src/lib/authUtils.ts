@@ -97,7 +97,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
             }
         });
     }
-    
+
     // Subsequent users auto-join as MEMBER only when the org is in open
     // self-serve mode. If memberApprovalRequired is true, the user is left
     // without a membership and must submit an AccountRequest for an owner to
@@ -145,7 +145,11 @@ export const orgHasAvailability = async (orgId: number): Promise<boolean> => {
     const licenseKey = getOfflineLicenseKey();
     const memberCount = org.members.length;
 
-    if (licenseKey && memberCount >= licenseKey?.seats) {
+    if (
+        licenseKey &&
+        licenseKey.seats !== undefined &&
+        memberCount >= licenseKey.seats
+    ) {
         logger.error(`orgHasAvailability: org ${org.id} has reached max capacity`);
         return false;
     }

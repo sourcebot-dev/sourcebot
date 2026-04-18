@@ -12,7 +12,7 @@ const eeLicenseKeyPrefix = "sourcebot_ee_";
 
 const eeLicenseKeyPayloadSchema = z.object({
     id: z.string(),
-    seats: z.number(),
+    seats: z.number().optional(),
     // ISO 8601 date string
     expiryDate: z.string().datetime(),
     sig: z.string(),
@@ -84,9 +84,11 @@ export const hasEntitlement = (entitlement: Entitlement, license: License | null
 }
 
 export const isAnonymousAccessAvailable = (license: License | null): boolean => {
-    if (getOfflineLicenseKey()) {
-        return false;
+    const offlineKey = getOfflineLicenseKey();
+    if (offlineKey) {
+        return offlineKey.seats === undefined;
     }
+
     if (license && isLicenseActive(license)) {
         return false;
     }
