@@ -2,16 +2,11 @@ import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
 import { ActivationCodeCard } from "./activationCodeCard";
 import { CurrentPlanCard } from "./currentPlanCard";
-import { PurchaseButton } from "./purchaseButton";
-import { SettingsCard } from "../components/settingsCard";
-import { getEntitlements } from "@/lib/entitlements";
 
 export default authenticatedPage(async ({ prisma, org }) => {
     const license = await prisma.license.findUnique({
         where: { orgId: org.id },
     });
-
-    const entitlements = await getEntitlements();
 
     return (
         <div className="flex flex-col gap-6">
@@ -20,13 +15,7 @@ export default authenticatedPage(async ({ prisma, org }) => {
                 <p className="text-sm text-muted-foreground">Manage your license.</p>
             </div>
             {license && <CurrentPlanCard license={license} />}
-            <SettingsCard>
-                <span className="text-sm font-medium">{entitlements.join(", ")}</span>
-            </SettingsCard>
-            <ActivationCodeCard isActivated={!!license} />
-            <div className="flex gap-3">
-                <PurchaseButton />
-            </div>
+            {!license && <ActivationCodeCard />}
         </div>
     );
 }, {

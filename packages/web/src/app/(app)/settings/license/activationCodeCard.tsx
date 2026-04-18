@@ -6,29 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { SettingsCard } from "../components/settingsCard";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { activateLicense, deactivateLicense } from "@/ee/features/lighthouse/actions";
+import { activateLicense, createCheckoutSession } from "@/ee/features/lighthouse/actions";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { Loader2, ExternalLink } from "lucide-react";
 
-interface ActivationCodeCardProps {
-    isActivated: boolean;
-}
-
-export function ActivationCodeCard({ isActivated }: ActivationCodeCardProps) {
+export function ActivationCodeCard() {
     const [activationCode, setActivationCode] = useState("");
     const [isActivating, setIsActivating] = useState(false);
-    const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+    const [isCheckoutSessionCreating, setIsCheckoutSessionCreating] = useState(false);
     const router = useRouter();
     const { toast } = useToast();
 
@@ -58,93 +45,75 @@ export function ActivationCodeCard({ isActivated }: ActivationCodeCardProps) {
             });
     }, [activationCode, toast, router]);
 
-    const handleDeactivate = useCallback(() => {
-        deactivateLicense()
+    const onCreateCheckoutSession = useCallback(() => {
+        setIsCheckoutSessionCreating(true);
+
+        const successUrl = `${window.location.origin}/settings/license?checkout=success`;
+        const cancelUrl = `${window.location.origin}/settings/license`;
+
+        createCheckoutSession(successUrl, cancelUrl)
             .then((response) => {
                 if (isServiceError(response)) {
                     toast({
-                        description: `Failed to remove license: ${response.message}`,
+                        description: `Failed to start checkout: ${response.message}`,
                         variant: "destructive",
                     });
+                    setIsCheckoutSessionCreating(false);
                 } else {
-                    toast({
-                        description: "License removed successfully.",
-                    });
-                    router.refresh();
+                    router.push(response.url);
                 }
             });
-    }, [toast, router]);
+    }, [router, toast]);
 
     return (
-        <>
-            <SettingsCard>
-                <div className="flex flex-col gap-2">
-                    <p className="font-medium">Activation code</p>
-                    <p className="text-sm text-muted-foreground">
-                        Enter your activation code to enable your enterprise license.
-                    </p>
-                    <Separator className="my-2" />
-                    <div>
-                        {isActivated ? (
-                            <div className="flex items-center gap-3">
-                                <code className="text-sm bg-muted px-3 py-2 rounded-md font-mono flex-1">
-                                    sb_act_••••
-                                </code>
-                                <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => setIsRemoveDialogOpen(true)}
-                                >
-                                    Remove
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-3">
-                                <Input
-                                    placeholder="sb_act_..."
-                                    value={activationCode}
-                                    onChange={(e) => setActivationCode(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                            handleActivate();
-                                        }
-                                    }}
-                                    disabled={isActivating}
-                                    className="font-mono"
-                                />
-                                <LoadingButton
-                                    size="sm"
-                                    onClick={handleActivate}
-                                    loading={isActivating}
-                                    disabled={!activationCode.trim()}
-                                >
-                                    Activate
-                                </LoadingButton>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </SettingsCard>
-
-            <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Remove activation code</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Are you sure you want to remove this activation code? Your deployment will lose access to enterprise features.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={handleDeactivate}
+        <SettingsCard>
+            <div className="flex flex-col gap-2">
+                <p className="font-medium">Activation code</p>
+                <p className="text-sm text-muted-foreground">
+                    Enter your activation code to enable your enterprise license.
+                </p>
+                <Separator className="my-2" />
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                        <Input
+                            placeholder="sb_act_..."
+                            value={activationCode}
+                            onChange={(e) => setActivationCode(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    handleActivate();
+                                }
+                            }}
+                            disabled={isActivating}
+                            className="font-mono"
+                        />
+                        <LoadingButton
+                            size="sm"
+                            onClick={handleActivate}
+                            loading={isActivating}
+                            disabled={!activationCode.trim()}
                         >
-                            Remove
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </>
+                            Activate
+                        </LoadingButton>
+                    </div>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                        Don&apos;t have an activation code?
+                        <Button
+                            variant="link"
+                            className="h-auto p-0 gap-1"
+                            onClick={onCreateCheckoutSession}
+                            disabled={isCheckoutSessionCreating}
+                        >
+                            Purchase a license
+                            {isCheckoutSessionCreating ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                                <ExternalLink className="h-3 w-3" />
+                            )}
+                        </Button>
+                    </p>
+                </div>
+            </div>
+        </SettingsCard>
     );
 }
