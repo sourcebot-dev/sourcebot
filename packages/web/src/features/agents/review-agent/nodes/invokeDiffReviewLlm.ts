@@ -7,11 +7,11 @@ import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('invoke-diff-review-llm');
 
-const REVIEW_AGENT_LOG_BASE = path.join(env.DATA_CACHE_DIR, 'review-agent');
+export const REVIEW_AGENT_LOG_DIR = path.join(env.DATA_CACHE_DIR, 'review-agent');
 
 const validateLogPath = (logPath: string): void => {
     const resolved = path.resolve(logPath);
-    if (!resolved.startsWith(REVIEW_AGENT_LOG_BASE + path.sep)) {
+    if (!resolved.startsWith(REVIEW_AGENT_LOG_DIR + path.sep)) {
         throw new Error('reviewAgentLogPath escapes log directory');
     }
 };
