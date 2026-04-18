@@ -278,6 +278,10 @@ PR description:
 - If a GitHub issue number was provided, include `Fixes #<github_issue_number>` in the PR description
 - If a Linear issue ID was provided (e.g., SOU-123), include `Fixes SOU-123` at the top of the PR description to auto-link the PR to the Linear issue
 
+Before pushing:
+- ALWAYS run `yarn test` and `yarn workspace @sourcebot/web build` before pushing to ensure tests pass and the build succeeds
+- Do not push code that fails tests or breaks the build
+
 After the PR is created:
 - Update CHANGELOG.md with an entry under `[Unreleased]` linking to the new PR. New entries should be placed at the bottom of their section.
 - Do NOT add a CHANGELOG entry for documentation-only changes (e.g., changes only in `docs/`)
