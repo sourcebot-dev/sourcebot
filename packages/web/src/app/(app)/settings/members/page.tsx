@@ -1,11 +1,10 @@
 import { MembersList } from "./components/membersList";
-import { getOrgMembers } from "@/actions";
+import { getOrgMembers, getOrgInvites, getOrgAccountRequests } from "@/features/userManagement/actions";
 import { isServiceError } from "@/lib/utils";
 import { InviteMemberCard } from "./components/inviteMemberCard";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { TabSwitcher } from "@/components/ui/tab-switcher";
 import { InvitesList } from "./components/invitesList";
-import { getOrgInvites, getMe, getOrgAccountRequests } from "@/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { hasEntitlement } from "@/lib/entitlements";
 import { RequestsList } from "./components/requestsList";
@@ -22,17 +21,12 @@ type MembersSettingsPageProps = {
     }>
 }
 
-export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role }, props) => {
+export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role, user }, props) => {
     const searchParams = await props.searchParams;
 
     const {
         tab
     } = searchParams;
-
-    const me = await getMe();
-    if (isServiceError(me)) {
-        throw new ServiceErrorException(me);
-    }
 
     const members = await getOrgMembers();
     if (isServiceError(members)) {
@@ -132,7 +126,7 @@ export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role },
                 <TabsContent value="members">
                     <MembersList
                         members={members}
-                        currentUserId={me.id}
+                        currentUserId={user.id}
                         currentUserRole={role}
                         orgName={org.name}
                         hasOrgManagement={await hasEntitlement('org-management')}

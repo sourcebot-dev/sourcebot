@@ -21,7 +21,6 @@ import { SubmitJoinRequest } from "./components/submitJoinRequest";
 import { env } from "@sourcebot/shared";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { GcpIapAuth } from "./components/gcpIapAuth";
-import { getMemberApprovalRequired } from "@/actions";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { GitHubStarToast } from "./components/githubStarToast";
@@ -74,8 +73,7 @@ export default async function Layout(props: LayoutProps) {
         // the join organization card to allow them to join the org if seat capacity is freed up. This card handles checking if the org has available seats.
         // 2. The org requires member approval, and they haven't been approved yet. In this case, we allow them to submit a request to join the org.
         if (!membership) {
-            const memberApprovalRequired = await getMemberApprovalRequired();
-            if (!memberApprovalRequired) {
+            if (!org.memberApprovalRequired) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-6">
                         <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
