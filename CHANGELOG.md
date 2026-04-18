@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed revision selection so the 64-revision cap prefers the newest matching branches and tags instead of pruning by ref-name order. [#1122](https://github.com/sourcebot-dev/sourcebot/pull/1122)
 - Fixed infinite pagination loop in Gitea/Forgejo when an API token can only see a subset of org repos (the `x-total-count` header reports org total while token returns fewer items). [#1130](https://github.com/sourcebot-dev/sourcebot/pull/1130)
+- Fixed path injection vulnerability (CodeQL js/path-injection) in review agent log writing by validating paths stay within the expected log directory. [#1134](https://github.com/sourcebot-dev/sourcebot/pull/1134)
 
 ## [4.16.11] - 2026-04-17
 
