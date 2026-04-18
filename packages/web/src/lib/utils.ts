@@ -590,3 +590,23 @@ export const isHttpError = (error: unknown, status: number): boolean => {
         && 'status' in error
         && error.status === status;
 }
+
+/**
+ * Validates an OAuth redirect URL to prevent open redirect and javascript: URI attacks.
+ * Returns the validated URL if safe, or null if the URL is potentially malicious.
+ */
+export const validateOAuthRedirectUrl = (url: string): string | null => {
+    try {
+        const parsed = new URL(url);
+        const protocol = parsed.protocol.toLowerCase();
+
+        const dangerousProtocols = ['javascript:', 'data:', 'vbscript:'];
+        if (dangerousProtocols.includes(protocol)) {
+            return null;
+        }
+
+        return parsed.toString();
+    } catch {
+        return null;
+    }
+}

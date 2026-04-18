@@ -2,7 +2,7 @@
 
 import { approveAuthorization, denyAuthorization } from '@/ee/features/oauth/actions';
 import { LoadingButton } from '@/components/ui/loading-button';
-import { isServiceError } from '@/lib/utils';
+import { isServiceError, validateOAuthRedirectUrl } from '@/lib/utils';
 import { ClientIcon } from './clientIcon';
 import Image from 'next/image';
 import logo from '@/public/logo_512.png';
@@ -44,16 +44,24 @@ export function ConsentScreen({
         setPending('approve');
         const result = await approveAuthorization({ clientId, redirectUri, codeChallenge, resource, state });
         if (!isServiceError(result)) {
-            toast({
-                description: `✅ Authorization approved successfully. Redirecting...`,
-            });
-            window.location.href = result;
+            const validatedUrl = validateOAuthRedirectUrl(result);
+            if (validatedUrl) {
+                toast({
+                    description: `✅ Authorization approved successfully. Redirecting...`,
+                });
+                window.location.href = validatedUrl;
+            } else {
+                toast({
+                    description: '❌ Invalid redirect URL. Authorization could not be completed.',
+                });
+                setPending(null);
+            }
         } else {
             toast({
                 description: `❌ Failed to approve authorization. ${result.message}`,
             });
+            setPending(null);
         }
-        setPending(null);
     };
 
     const onDeny = async () => {
@@ -64,7 +72,15 @@ export function ConsentScreen({
             setPending(null);
             return;
         }
-        window.location.href = result;
+        const validatedUrl = validateOAuthRedirectUrl(result);
+        if (validatedUrl) {
+            window.location.href = validatedUrl;
+        } else {
+            toast({
+                description: '❌ Invalid redirect URL. Could not complete the request.',
+            });
+            setPending(null);
+        }
     };
 
     return (
