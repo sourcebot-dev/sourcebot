@@ -11,6 +11,7 @@ import { encryptActivationCode, decryptActivationCode } from "@sourcebot/shared"
 import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
 import { isServiceError } from "@/lib/utils";
 import { client } from "./client";
+import { Invoice } from "./types";
 
 export const activateLicense = async (activationCode: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async ({ org, role, prisma }) =>
@@ -170,6 +171,54 @@ export const createPortalSession = async (returnUrl: string): Promise<{ url: str
             }
 
             return { url: result.url };
+        })
+    )
+);
+
+export const getAllInvoices = async (): Promise<Invoice[] | ServiceError> => sew(() =>
+    withAuth(async ({ org, role, prisma }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            const license = await prisma.license.findUnique({
+                where: { orgId: org.id },
+            });
+
+            if (!license) {
+                return {
+                    statusCode: StatusCodes.NOT_FOUND,
+                    errorCode: ErrorCode.NOT_FOUND,
+                    message: "No license found.",
+                } satisfies ServiceError;
+            }
+
+            const activationCode = decryptActivationCode(license.activationCode);
+
+            const allInvoices: Invoice[] = [];
+            let startingAfter: string | undefined;
+            while (true) {
+                const result = await client.invoices({
+                    activationCode,
+                    limit: 100,
+                    ...(startingAfter && { startingAfter }),
+                });
+
+                if (isServiceError(result)) {
+                    return result;
+                }
+
+                allInvoices.push(...result.invoices);
+
+                if (!result.hasMore) {
+                    break;
+                }
+
+                const lastInvoice = result.invoices[result.invoices.length - 1];
+                if (!lastInvoice) {
+                    break;
+                }
+                startingAfter = lastInvoice.id;
+            }
+
+            return allInvoices;
         })
     )
 );

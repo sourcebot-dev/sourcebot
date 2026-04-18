@@ -4,6 +4,9 @@ import {
     CheckoutRequest,
     CheckoutResponse,
     checkoutResponseSchema,
+    InvoicesRequest,
+    InvoicesResponse,
+    invoicesResponseSchema,
     PortalRequest,
     PortalResponse,
     portalResponseSchema,
@@ -45,7 +48,17 @@ export const client = {
         });
 
         return parseResponseBody(response, portalResponseSchema);
-    }
+    },
+
+    invoices: async (body: InvoicesRequest): Promise<InvoicesResponse | ServiceError> => {
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/invoices`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        return parseResponseBody(response, invoicesResponseSchema);
+    },
 }
 
 const parseResponseBody = async <T extends z.ZodTypeAny>(

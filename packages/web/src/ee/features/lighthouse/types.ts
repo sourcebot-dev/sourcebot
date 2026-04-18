@@ -47,3 +47,26 @@ export const portalResponseSchema = z.object({
     url: z.string(),
 });
 export type PortalResponse = z.infer<typeof portalResponseSchema>;
+
+export const invoiceSchema = z.object({
+    id: z.string(),
+    createdAt: z.string(),
+    amount: z.number().int(),
+    currency: z.string(),
+    status: z.string(),
+    hostedInvoiceUrl: z.string().nullable(),
+});
+export type Invoice = z.infer<typeof invoiceSchema>;
+
+export const invoicesRequestSchema = z.object({
+    activationCode: z.string(),
+    limit: z.number().int().positive().max(100).optional(),
+    startingAfter: z.string().optional(),
+});
+export type InvoicesRequest = z.infer<typeof invoicesRequestSchema>;
+
+export const invoicesResponseSchema = z.object({
+    invoices: z.array(invoiceSchema),
+    hasMore: z.boolean(),
+});
+export type InvoicesResponse = z.infer<typeof invoicesResponseSchema>;
