@@ -14,7 +14,7 @@ import { NotificationDot } from "../../components/notificationDot";
 import { Badge } from "@/components/ui/badge";
 import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { orgHasAvailability } from "@/lib/authUtils";
-import { getOfflineLicenseKey } from "@sourcebot/shared";
+import { getSeatCap } from "@sourcebot/shared";
 
 type MembersSettingsPageProps = {
     searchParams: Promise<{
@@ -52,7 +52,7 @@ export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role },
     const currentTab = tab || "members";
 
     const hasAvailability = await orgHasAvailability(org.id);
-    const offlineLicenseKey = getOfflineLicenseKey();
+    const seatCap = getSeatCap();
 
     return (
         <div className="flex flex-col gap-6">
@@ -61,12 +61,12 @@ export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role },
                     <h3 className="text-lg font-medium">Members</h3>
                     <p className="text-sm text-muted-foreground">Invite and manage members of your organization.</p>
                 </div>
-                {offlineLicenseKey?.seats && (
+                {seatCap && (
                     <div className="bg-card px-4 py-2 rounded-md border shadow-sm">
                         <div className="text-sm">
                             <span className="text-foreground font-medium">{members.length}</span>
                             <span className="text-muted-foreground"> of </span>
-                            <span className="text-foreground font-medium">{offlineLicenseKey.seats}</span>
+                            <span className="text-foreground font-medium">{seatCap}</span>
                             <span className="text-muted-foreground"> seats used</span>
                         </div>
                     </div>

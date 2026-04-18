@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => {
         auth: vi.fn(async (): Promise<Session | null> => null),
         headers: vi.fn(async (): Promise<Headers> => new Headers()),
         hasEntitlement: vi.fn((_entitlement: string) => false),
+        isAnonymousAccessAvailable: vi.fn(() => false),
         env: {} as Record<string, string>,
     }
 });
@@ -38,7 +39,9 @@ vi.mock('server-only', () => ({
 }));
 
 vi.mock('@sourcebot/shared', () => ({
-    hasEntitlement: mocks.hasEntitlement,
+    _hasEntitlement: mocks.hasEntitlement,
+    _getEntitlements: vi.fn(() => []),
+    _isAnonymousAccessAvailable: mocks.isAnonymousAccessAvailable,
     hashSecret: vi.fn((secret: string) => secret),
     OAUTH_ACCESS_TOKEN_PREFIX: 'sboa_',
     API_KEY_PREFIX: 'sbk_',
@@ -73,6 +76,8 @@ beforeEach(() => {
     vi.clearAllMocks();
     mocks.auth.mockResolvedValue(null);
     mocks.headers.mockResolvedValue(new Headers());
+    mocks.hasEntitlement.mockReturnValue(false);
+    mocks.isAnonymousAccessAvailable.mockReturnValue(false);
     // Reset env flags between tests
     Object.keys(mocks.env).forEach(key => delete mocks.env[key]);
 });
@@ -944,8 +949,8 @@ describe('withOptionalAuth', () => {
         expect(result).toStrictEqual(notAuthenticated());
     });
 
-    test('should call the callback with the auth context object if the user is not a member of the organization and the anonymous access entitlement is enabled', async () => {
-        mocks.hasEntitlement.mockReturnValue(true);
+    test('should call the callback with the auth context object if the user is not a member of the organization and anonymous access is available', async () => {
+        mocks.isAnonymousAccessAvailable.mockReturnValue(true);
 
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
@@ -978,8 +983,8 @@ describe('withOptionalAuth', () => {
         expect(result).toEqual(undefined);
     });
 
-    test('should return a service error when anonymousAccessEnabled is true but hasAnonymousAccessEntitlement is false', async () => {
-        mocks.hasEntitlement.mockReturnValue(false);
+    test('should return a service error when anonymousAccessEnabled is true but anonymous access is not available', async () => {
+        mocks.isAnonymousAccessAvailable.mockReturnValue(false);
 
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
@@ -1000,8 +1005,8 @@ describe('withOptionalAuth', () => {
         expect(result).toStrictEqual(notAuthenticated());
     });
 
-    test('should return a service error when hasAnonymousAccessEntitlement is true but anonymousAccessEnabled is false', async () => {
-        mocks.hasEntitlement.mockReturnValue(true);
+    test('should return a service error when anonymous access is available but anonymousAccessEnabled is false', async () => {
+        mocks.isAnonymousAccessAvailable.mockReturnValue(true);
 
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({

@@ -17,9 +17,9 @@ vi.mock('server-only', () => ({
 }));
 
 vi.mock('@sourcebot/shared', () => ({
-    isAnonymousAccessEnabled: mocks.isAnonymousAccessAvailable,
-    hasEntitlement: vi.fn(),
-    getEntitlements: vi.fn(),
+    _isAnonymousAccessAvailable: mocks.isAnonymousAccessAvailable,
+    _hasEntitlement: vi.fn(),
+    _getEntitlements: vi.fn(),
     env: mocks.env,
 }));
 

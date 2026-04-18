@@ -2,15 +2,13 @@ import { base64Decode } from "./utils.js";
 import { z } from "zod";
 import { createLogger } from "./logger.js";
 import { env } from "./env.server.js";
-import { SOURCEBOT_SUPPORT_EMAIL } from "./constants.js";
 import { verifySignature } from "./crypto.js";
 import { License } from "@sourcebot/db";
 
 const logger = createLogger('entitlements');
 
-const eeLicenseKeyPrefix = "sourcebot_ee_";
-
-const eeLicenseKeyPayloadSchema = z.object({
+const offlineLicensePrefix = "sourcebot_ee_";
+const offlineLicensePayloadSchema = z.object({
     id: z.string(),
     seats: z.number().optional(),
     // ISO 8601 date string
@@ -18,7 +16,9 @@ const eeLicenseKeyPayloadSchema = z.object({
     sig: z.string(),
 });
 
-type LicenseKeyPayload = z.infer<typeof eeLicenseKeyPayloadSchema>;
+type getValidOfflineLicense = z.infer<typeof offlineLicensePayloadSchema>;
+
+const ACTIVE_ONLINE_LICENSE_STATUSES = ['active', 'trialing', 'past_due'] as const;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ALL_ENTITLEMENTS = [
@@ -35,20 +35,11 @@ const ALL_ENTITLEMENTS = [
 ] as const;
 export type Entitlement = (typeof ALL_ENTITLEMENTS)[number];
 
-const ACTIVE_LICENSE_STATUSES = ['active', 'trialing', 'past_due'] as const;
-
-const isLicenseActive = (license: License): boolean => {
-    if (!license.status) {
-        return false;
-    }
-    return ACTIVE_LICENSE_STATUSES.includes(license.status as typeof ACTIVE_LICENSE_STATUSES[number]);
-}
-
-const decodeLicenseKeyPayload = (payload: string): LicenseKeyPayload => {
+const decodeOfflineLicenseKeyPayload = (payload: string): getValidOfflineLicense | null => {
     try {
         const decodedPayload = base64Decode(payload);
         const payloadJson = JSON.parse(decodedPayload);
-        const licenseData = eeLicenseKeyPayloadSchema.parse(payloadJson);
+        const licenseData = offlineLicensePayloadSchema.parse(payloadJson);
 
         const dataToVerify = JSON.stringify({
             expiryDate: licenseData.expiryDate,
@@ -59,57 +50,85 @@ const decodeLicenseKeyPayload = (payload: string): LicenseKeyPayload => {
         const isSignatureValid = verifySignature(dataToVerify, licenseData.sig, env.SOURCEBOT_PUBLIC_KEY_PATH);
         if (!isSignatureValid) {
             logger.error('License key signature verification failed');
-            process.exit(1);
+            return null;
         }
 
         return licenseData;
     } catch (error) {
         logger.error(`Failed to decode license key payload: ${error}`);
-        process.exit(1);
+        return null;
     }
 }
 
-export const getOfflineLicenseKey = (): LicenseKeyPayload | null => {
+const getValidOfflineLicense = (): getValidOfflineLicense | null => {
     const licenseKey = env.SOURCEBOT_EE_LICENSE_KEY;
-    if (licenseKey && licenseKey.startsWith(eeLicenseKeyPrefix)) {
-        const payload = licenseKey.substring(eeLicenseKeyPrefix.length);
-        return decodeLicenseKeyPayload(payload);
+    if (!licenseKey || !licenseKey.startsWith(offlineLicensePrefix)) {
+        return null;
     }
+
+    const payload = decodeOfflineLicenseKeyPayload(licenseKey.substring(offlineLicensePrefix.length));
+    if (!payload) {
+        return null;
+    }
+
+    const expiryDate = new Date(payload.expiryDate);
+    if (expiryDate.getTime() < new Date().getTime()) {
+        return null;
+    }
+
+    return payload;
+}
+
+const getValidOnlineLicense = (_license: License | null): License | null => {
+    if (
+        _license &&
+        _license.status &&
+        ACTIVE_ONLINE_LICENSE_STATUSES.includes(_license.status as typeof ACTIVE_ONLINE_LICENSE_STATUSES[number])
+    ) {
+        return _license;
+    }
+
     return null;
 }
 
-export const hasEntitlement = (entitlement: Entitlement, license: License | null) => {
-    const entitlements = getEntitlements(license);
-    return entitlements.includes(entitlement);
-}
-
-export const isAnonymousAccessAvailable = (license: License | null): boolean => {
-    const offlineKey = getOfflineLicenseKey();
+export const isAnonymousAccessAvailable = (_license: License | null): boolean => {
+    const offlineKey = getValidOfflineLicense();
     if (offlineKey) {
         return offlineKey.seats === undefined;
     }
 
-    if (license && isLicenseActive(license)) {
+    const onlineLicense = getValidOnlineLicense(_license);
+    if (onlineLicense) {
         return false;
     }
     return true;
 }
 
-export const getEntitlements = (license: License | null): Entitlement[] => {
-    const licenseKey = getOfflineLicenseKey();
-    if (licenseKey) {
-        const expiryDate = new Date(licenseKey.expiryDate);
-        if (expiryDate.getTime() < new Date().getTime()) {
-            logger.error(`The provided license key has expired (${expiryDate.toLocaleString()}). Please contact ${SOURCEBOT_SUPPORT_EMAIL} for support.`);
-            process.exit(1);
-        }
-
+export const getEntitlements = (_license: License | null): Entitlement[] => {
+    const offlineLicense = getValidOfflineLicense();
+    if (offlineLicense) {
         return ALL_ENTITLEMENTS as unknown as Entitlement[];
     }
-    else if (license && isLicenseActive(license)) {
-        return license.entitlements as unknown as Entitlement[];
+
+    const onlineLicense = getValidOnlineLicense(_license);
+    if (onlineLicense) {
+        return onlineLicense.entitlements as unknown as Entitlement[];
     }
     else {
         return [];
     }
+}
+
+export const hasEntitlement = (entitlement: Entitlement, _license: License | null) => {
+    const entitlements = getEntitlements(_license);
+    return entitlements.includes(entitlement);
+}
+
+export const getSeatCap = (): number | undefined => {
+    const offlineLicense = getValidOfflineLicense();
+    if (offlineLicense?.seats && offlineLicense.seats > 0) {
+        return offlineLicense.seats;
+    }
+
+    return undefined;
 }

@@ -4,7 +4,7 @@ import { OrgRole } from "@sourcebot/db";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { isServiceError } from "@/lib/utils";
 import { orgNotFound, ServiceError, userNotFound } from "@/lib/serviceError";
-import { createLogger, getOfflineLicenseKey } from "@sourcebot/shared";
+import { createLogger, getSeatCap } from "@sourcebot/shared";
 import { createAudit } from "@/ee/features/audit/audit";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
@@ -142,13 +142,12 @@ export const orgHasAvailability = async (orgId: number): Promise<boolean> => {
         }
     });
 
-    const licenseKey = getOfflineLicenseKey();
+    const seatCap = getSeatCap();
     const memberCount = org.members.length;
 
     if (
-        licenseKey &&
-        licenseKey.seats !== undefined &&
-        memberCount >= licenseKey.seats
+        seatCap &&
+        memberCount >= seatCap
     ) {
         logger.error(`orgHasAvailability: org ${org.id} has reached max capacity`);
         return false;

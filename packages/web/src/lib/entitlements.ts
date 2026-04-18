@@ -1,7 +1,7 @@
 import {
-    getEntitlements as _getEntitlements,
-    hasEntitlement as _hasEntitlement,
-    isAnonymousAccessEnabled as _isAnonymousAccessAvailable,
+    _getEntitlements,
+    _hasEntitlement,
+    _isAnonymousAccessAvailable,
     Entitlement,
     env,
 } from "@sourcebot/shared";

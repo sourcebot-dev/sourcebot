@@ -1,8 +1,11 @@
+// types prefixed with _ are intended to be wrapped
+// by the consumer. See web/entitlements.ts and
+// backend/entitlements.ts
 export {
-    hasEntitlement,
-    getOfflineLicenseKey,
-    getEntitlements,
-    isAnonymousAccessAvailable as isAnonymousAccessEnabled,
+    hasEntitlement as _hasEntitlement,
+    getEntitlements as _getEntitlements,
+    isAnonymousAccessAvailable as _isAnonymousAccessAvailable,
+    getSeatCap,
 } from "./entitlements.js";
 export type {
     Entitlement,

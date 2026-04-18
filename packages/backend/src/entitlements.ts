@@ -1,7 +1,7 @@
 import {
     Entitlement,
-    hasEntitlement as _hasEntitlement,
-    getEntitlements as _getEntitlements,
+    _hasEntitlement,
+    _getEntitlements,
 } from "@sourcebot/shared";
 import { prisma } from "./prisma.js";
 import { SINGLE_TENANT_ORG_ID } from "./constants.js";
