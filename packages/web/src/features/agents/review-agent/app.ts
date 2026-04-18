@@ -2,7 +2,7 @@ import { Octokit } from "octokit";
 import { generatePrReviews } from "@/features/agents/review-agent/nodes/generatePrReview";
 import { githubPushPrReviews } from "@/features/agents/review-agent/nodes/githubPushPrReviews";
 import { githubPrParser } from "@/features/agents/review-agent/nodes/githubPrParser";
-import { REVIEW_AGENT_LOG_DIR } from "@/features/agents/review-agent/nodes/invokeDiffReviewLlm";
+import { getReviewAgentLogDir } from "@/features/agents/review-agent/nodes/invokeDiffReviewLlm";
 import { env } from "@sourcebot/shared";
 import { GitHubPullRequest } from "@/features/agents/review-agent/types";
 import path from "path";
@@ -31,8 +31,9 @@ export async function processGitHubPullRequest(octokit: Octokit, pullRequest: Gi
 
     let reviewAgentLogPath: string | undefined;
     if (env.REVIEW_AGENT_LOGGING_ENABLED) {
-        if (!fs.existsSync(REVIEW_AGENT_LOG_DIR)) {
-            fs.mkdirSync(REVIEW_AGENT_LOG_DIR, { recursive: true });
+        const reviewAgentLogDir = getReviewAgentLogDir();
+        if (!fs.existsSync(reviewAgentLogDir)) {
+            fs.mkdirSync(reviewAgentLogDir, { recursive: true });
         }
 
         const timestamp = new Date().toLocaleString('en-US', {
@@ -44,7 +45,7 @@ export async function processGitHubPullRequest(octokit: Octokit, pullRequest: Gi
             second: '2-digit',
             hour12: false
         }).replace(/(\d+)\/(\d+)\/(\d+), (\d+):(\d+):(\d+)/, '$3_$1_$2_$4_$5_$6');
-        reviewAgentLogPath = path.join(REVIEW_AGENT_LOG_DIR, `review-agent-${pullRequest.number}-${timestamp}.log`);
+        reviewAgentLogPath = path.join(reviewAgentLogDir, `review-agent-${pullRequest.number}-${timestamp}.log`);
         logger.info(`Review agent logging to ${reviewAgentLogPath}`);
     }
 
