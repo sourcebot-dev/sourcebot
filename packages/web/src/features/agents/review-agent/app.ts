@@ -2,6 +2,7 @@ import { Octokit } from "octokit";
 import { generatePrReviews } from "@/features/agents/review-agent/nodes/generatePrReview";
 import { githubPushPrReviews } from "@/features/agents/review-agent/nodes/githubPushPrReviews";
 import { githubPrParser } from "@/features/agents/review-agent/nodes/githubPrParser";
+import { getReviewAgentLogDir } from "@/features/agents/review-agent/nodes/invokeDiffReviewLlm";
 import { env } from "@sourcebot/shared";
 import { GitHubPullRequest } from "@/features/agents/review-agent/types";
 import path from "path";
@@ -30,7 +31,7 @@ export async function processGitHubPullRequest(octokit: Octokit, pullRequest: Gi
 
     let reviewAgentLogPath: string | undefined;
     if (env.REVIEW_AGENT_LOGGING_ENABLED) {
-        const reviewAgentLogDir = path.join(env.DATA_CACHE_DIR, "review-agent");
+        const reviewAgentLogDir = getReviewAgentLogDir();
         if (!fs.existsSync(reviewAgentLogDir)) {
             fs.mkdirSync(reviewAgentLogDir, { recursive: true });
         }

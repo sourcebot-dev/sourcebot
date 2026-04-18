@@ -2,9 +2,22 @@ import OpenAI from "openai";
 import { sourcebot_file_diff_review, sourcebot_file_diff_review_schema } from "@/features/agents/review-agent/types";
 import { env } from "@sourcebot/shared";
 import fs from "fs";
+import path from "path";
 import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('invoke-diff-review-llm');
+
+export const getReviewAgentLogDir = (): string => {
+    return path.join(env.DATA_CACHE_DIR, 'review-agent');
+};
+
+const validateLogPath = (logPath: string): void => {
+    const resolved = path.resolve(logPath);
+    const logDir = getReviewAgentLogDir();
+    if (!resolved.startsWith(logDir + path.sep)) {
+        throw new Error('reviewAgentLogPath escapes log directory');
+    }
+};
 
 export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined, prompt: string): Promise<sourcebot_file_diff_review> => {
     logger.debug("Executing invoke_diff_review_llm");
@@ -19,6 +32,7 @@ export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined
     });
 
     if (reviewAgentLogPath) {
+        validateLogPath(reviewAgentLogPath);
         fs.appendFileSync(reviewAgentLogPath, `\n\nPrompt:\n${prompt}`);
     }
 
@@ -32,6 +46,7 @@ export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined
     
         const openaiResponse = completion.choices[0].message.content;
         if (reviewAgentLogPath) {
+            validateLogPath(reviewAgentLogPath);
             fs.appendFileSync(reviewAgentLogPath, `\n\nResponse:\n${openaiResponse}`);
         }
         
