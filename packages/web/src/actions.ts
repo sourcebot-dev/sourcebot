@@ -518,11 +518,6 @@ export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: strin
         }
     }));
 
-export const getCurrentUserRole = async (): Promise<OrgRole | ServiceError> => sew(() =>
-    withOptionalAuth(async ({ role }) => {
-        return role;
-    }));
-
 export const createInvites = async (emails: string[]): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async ({ org, user, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
@@ -762,9 +757,6 @@ export const getOrgMembers = async () => sew(() =>
         const members = await prisma.userToOrg.findMany({
             where: {
                 orgId: org.id,
-                role: {
-                    not: OrgRole.GUEST,
-                }
             },
             include: {
                 user: true,

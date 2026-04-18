@@ -10,19 +10,22 @@ import { ErrorCode } from "../lib/errorCodes";
 import { getOrgMetadata, isServiceError } from "../lib/utils";
 import { hasEntitlement } from "@/lib/entitlements";
 
-type OptionalAuthContext = {
-    user?: UserWithAccounts;
-    org: Org;
-    role: OrgRole;
-    prisma: PrismaClient;
-}
-
 type RequiredAuthContext = {
     user: UserWithAccounts;
+    role: OrgRole;
     org: Org;
-    role: Exclude<OrgRole, 'GUEST'>;
     prisma: PrismaClient;
-}
+};
+
+type OptionalAuthContext =
+    | RequiredAuthContext
+    | {
+        user?: UserWithAccounts;
+        role?: undefined;
+        org: Org;
+        prisma: PrismaClient;
+    };
+
 
 export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T>) => {
     const authContext = await getAuthContext();
@@ -33,7 +36,7 @@ export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T
 
     const { user, org, role, prisma } = authContext;
 
-    if (!user || role === OrgRole.GUEST) {
+    if (!user || !role) {
         return notAuthenticated();
     }
 
@@ -46,15 +49,13 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
         return authContext;
     }
 
-    const { user, org, role, prisma } = authContext;
-
     const hasAnonymousAccessEntitlement = await hasEntitlement("anonymous-access");
-    const orgMetadata = getOrgMetadata(org);
+    const orgMetadata = getOrgMetadata(authContext.org);
 
     if (
         (
-            !user ||
-            role === OrgRole.GUEST
+            !authContext.user ||
+            !authContext.role
         ) && (
             !hasAnonymousAccessEntitlement ||
             !orgMetadata?.anonymousAccessEnabled
@@ -63,7 +64,7 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
         return notAuthenticated();
     }
 
-    return fn({ user, org, role, prisma });
+    return fn(authContext);
 };
 
 export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceError> => {
@@ -90,7 +91,7 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         },
     }) : null;
 
-    const role = membership?.role ?? OrgRole.GUEST;
+    const role = membership?.role;
 
     if (
         env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'true' &&
@@ -106,12 +107,10 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
 
     const prisma = __unsafePrisma.$extends(await userScopedPrismaClientExtension(user)) as PrismaClient;
 
-    return {
-        user: user ?? undefined,
-        org,
-        role,
-        prisma,
-    };
+    if (user && role) {
+        return { user, org, role, prisma };
+    }
+    return { user, org, prisma };
 };
 
 type AuthSource = 'session' | 'oauth' | 'api_key';

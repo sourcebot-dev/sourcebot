@@ -311,7 +311,6 @@ model License {
 enum OrgRole {
   OWNER
   MEMBER
-  GUEST
 }
 
 model UserToOrg {

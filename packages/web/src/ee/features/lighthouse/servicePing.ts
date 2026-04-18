@@ -1,4 +1,4 @@
-import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_ID } from "@/lib/constants";
+import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { isServiceError } from "@/lib/utils";
 import { __unsafePrisma } from "@/prisma";
 import { createLogger, decryptActivationCode, env, SOURCEBOT_VERSION } from "@sourcebot/shared";
@@ -18,9 +18,6 @@ export const syncWithLighthouse = async (orgId: number) => {
     const userCount = await __unsafePrisma.userToOrg.count({
         where: {
             orgId,
-            userId: {
-                not: SOURCEBOT_GUEST_USER_ID,
-            }
         },
     });
 

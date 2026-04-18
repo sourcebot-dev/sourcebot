@@ -1,8 +1,7 @@
 import type { User as AuthJsUser } from "next-auth";
 import { __unsafePrisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
-import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_EMAIL, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
-import { hasEntitlement } from "@/lib/entitlements";
+import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { isServiceError } from "@/lib/utils";
 import { orgNotFound, ServiceError, userNotFound } from "@/lib/serviceError";
 import { createLogger, getOfflineLicenseKey } from "@sourcebot/shared";
@@ -38,13 +37,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
             id: SINGLE_TENANT_ORG_ID,
         },
         include: {
-            members: {
-                where: {
-                    role: {
-                        not: OrgRole.GUEST,
-                    }
-                }
-            },
+            members: true,
         }
     });
 
@@ -67,8 +60,8 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
         throw new Error("Default org not found on single tenant user creation");
     }
 
-    // First (non-guest) user to sign up bootstraps the org as its OWNER. This
-    // is how a fresh deployment gets its initial admin without manual setup.
+    // First user to sign up bootstraps the org as its OWNER. This is how a
+    // fresh deployment gets its initial admin without manual setup.
     const isFirstUser = defaultOrg.members.length === 0;
     if (isFirstUser) {
         await __unsafePrisma.$transaction(async (tx) => {
@@ -134,68 +127,6 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
 };
 
 
-export const createGuestUser = async (): Promise<ServiceError | boolean> => {
-    const hasAnonymousAccessEntitlement = await hasEntitlement("anonymous-access");
-    if (!hasAnonymousAccessEntitlement) {
-        console.error(`Anonymous access isn't supported in your current plan. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
-        return {
-            statusCode: StatusCodes.FORBIDDEN,
-            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
-            message: "Public access is not supported in your current plan",
-        } satisfies ServiceError;
-    }
-
-    const org = await __unsafePrisma.org.findUnique({
-        where: { id: SINGLE_TENANT_ORG_ID },
-    });
-    if (!org) {
-        return {
-            statusCode: StatusCodes.NOT_FOUND,
-            errorCode: ErrorCode.NOT_FOUND,
-            message: "Organization not found",
-        } satisfies ServiceError;
-    }
-
-    const user = await __unsafePrisma.user.upsert({
-        where: {
-            id: SOURCEBOT_GUEST_USER_ID,
-        },
-        update: {},
-        create: {
-            id: SOURCEBOT_GUEST_USER_ID,
-            name: "Guest",
-            email: SOURCEBOT_GUEST_USER_EMAIL,
-        },
-    });
-
-    await __unsafePrisma.org.update({
-        where: {
-            id: org.id,
-        },
-        data: {
-            members: {
-                upsert: {
-                    where: {
-                        orgId_userId: {
-                            orgId: org.id,
-                            userId: user.id,
-                        },
-                    },
-                    update: {},
-                    create: {
-                        role: OrgRole.GUEST,
-                        user: {
-                            connect: { id: user.id },
-                        },
-                    },
-                },
-            },
-        },
-    });
-
-    return true;
-};
-
 /**
  * Checks to see if the given organization has seat availability.
  * Seat availability is determined by the `seats` parameter in
@@ -207,13 +138,7 @@ export const orgHasAvailability = async (orgId: number): Promise<boolean> => {
             id: orgId,
         },
         include: {
-            members: {
-                where: {
-                    role: {
-                        not: OrgRole.GUEST
-                    }
-                }
-            },
+            members: true,
         }
     });
 

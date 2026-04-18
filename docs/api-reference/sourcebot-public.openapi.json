@@ -1025,8 +1025,7 @@
             "type": "string",
             "enum": [
               "OWNER",
-              "MEMBER",
-              "GUEST"
+              "MEMBER"
             ]
           },
           "createdAt": {

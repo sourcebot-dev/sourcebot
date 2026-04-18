@@ -350,7 +350,7 @@ describe('getAuthContext', () => {
         });
     });
 
-    test('should return a auth context object if a valid session is present and the user is not a member of the organization. The role should be GUEST.', async () => {
+    test('should return a auth context object if a valid session is present and the user is not a member of the organization. The role should be undefined.', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
             ...MOCK_USER_WITH_ACCOUNTS,
@@ -370,12 +370,11 @@ describe('getAuthContext', () => {
                 id: userId,
             },
             org: MOCK_ORG,
-            role: OrgRole.GUEST,
             prisma: undefined,
         });
     });
 
-    test('should return a auth context object if no auth session is present. The role should be GUEST and the user should be undefined.', async () => {
+    test('should return a auth context object if no auth session is present. The role and user should be undefined.', async () => {
         prisma.org.findUnique.mockResolvedValue({
             ...MOCK_ORG,
         });
@@ -386,7 +385,6 @@ describe('getAuthContext', () => {
         expect(authContext).toStrictEqual({
             user: undefined,
             org: MOCK_ORG,
-            role: OrgRole.GUEST,
             prisma: undefined,
         });
     });
@@ -685,31 +683,7 @@ describe('withAuth', () => {
         expect(result).toStrictEqual(notAuthenticated());
     });
 
-    test('should return a service error if the user is a guest of the organization', async () => {
-        const userId = 'test-user-id';
-        prisma.user.findUnique.mockResolvedValue({
-            ...MOCK_USER_WITH_ACCOUNTS,
-            id: userId,
-        });
-        prisma.org.findUnique.mockResolvedValue({
-            ...MOCK_ORG,
-        });
-        prisma.userToOrg.findUnique.mockResolvedValue({
-            joinedAt: new Date(),
-            userId: userId,
-            orgId: MOCK_ORG.id,
-            role: OrgRole.GUEST,
-        });
-        setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
-
-        const cb = vi.fn();
-        const result = await withAuth(cb);
-        expect(cb).not.toHaveBeenCalled();
-        expect(result).toStrictEqual(notAuthenticated());
-    });
-
-
-    test('should return a service error if the user is not a member of the organization (guest role)', async () => {
+    test('should return a service error if the user is not a member of the organization', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
             ...MOCK_USER_WITH_ACCOUNTS,
@@ -952,31 +926,7 @@ describe('withOptionalAuth', () => {
         expect(result).toStrictEqual(notAuthenticated());
     });
 
-    test('should return a service error if the user is a guest of the organization', async () => {
-        const userId = 'test-user-id';
-        prisma.user.findUnique.mockResolvedValue({
-            ...MOCK_USER_WITH_ACCOUNTS,
-            id: userId,
-        });
-        prisma.org.findUnique.mockResolvedValue({
-            ...MOCK_ORG,
-        });
-        prisma.userToOrg.findUnique.mockResolvedValue({
-            joinedAt: new Date(),
-            userId: userId,
-            orgId: MOCK_ORG.id,
-            role: OrgRole.GUEST,
-        });
-        setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
-
-        const cb = vi.fn();
-        const result = await withOptionalAuth(cb);
-        expect(cb).not.toHaveBeenCalled();
-        expect(result).toStrictEqual(notAuthenticated());
-    });
-
-
-    test('should return a service error if the user is not a member of the organization (guest role)', async () => {
+    test('should return a service error if the user is not a member of the organization', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
             ...MOCK_USER_WITH_ACCOUNTS,
@@ -994,7 +944,7 @@ describe('withOptionalAuth', () => {
         expect(result).toStrictEqual(notAuthenticated());
     });
 
-    test('should call the callback with the auth context object if the user is a guest of the organization and the anonymous access entitlement is enabled', async () => {
+    test('should call the callback with the auth context object if the user is not a member of the organization and the anonymous access entitlement is enabled', async () => {
         mocks.hasEntitlement.mockReturnValue(true);
 
         const userId = 'test-user-id';
@@ -1023,7 +973,7 @@ describe('withOptionalAuth', () => {
                     anonymousAccessEnabled: true,
                 },
             },
-            role: OrgRole.GUEST,
+            prisma: undefined,
         });
         expect(result).toEqual(undefined);
     });

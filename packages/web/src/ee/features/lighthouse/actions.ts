@@ -100,7 +100,6 @@ export const createCheckoutSession = async (successUrl: string, cancelUrl: strin
             const memberCount = await prisma.userToOrg.count({
                 where: {
                     orgId: org.id,
-                    role: { not: "GUEST" },
                 },
             });
 
