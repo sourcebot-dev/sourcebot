@@ -145,7 +145,7 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName, 
                         description: `✅ You have left the organization.`
                     })
                     captureEvent('wa_members_list_leave_org_success', {})
-                    router.push("/");
+                    router.refresh();
                 }
             });
     }, [toast, router, captureEvent]);
