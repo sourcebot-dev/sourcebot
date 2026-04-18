@@ -13,6 +13,13 @@ export const servicePingResponseSchema = z.object({
         entitlements: z.string().array(),
         seats: z.number(),
         status: z.string(),
+        planName: z.string(),
+        unitAmount: z.number().int(),
+        currency: z.string(),
+        interval: z.string(),
+        intervalCount: z.number().int(),
+        nextRenewalAt: z.string().datetime(),
+        nextRenewalAmount: z.number().int(),
     }).optional(),
 });
 export type ServicePingResponse = z.infer<typeof servicePingResponseSchema>;

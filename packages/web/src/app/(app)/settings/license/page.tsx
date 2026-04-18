@@ -1,6 +1,7 @@
 import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
 import { ActivationCodeCard } from "./activationCodeCard";
+import { CurrentPlanCard } from "./currentPlanCard";
 import { PurchaseButton } from "./purchaseButton";
 import { ManageSubscriptionButton } from "./manageSubscriptionButton";
 import { RefreshLicenseButton } from "./refreshLicenseButton";
@@ -20,6 +21,7 @@ export default authenticatedPage(async ({ prisma, org }) => {
                 <h3 className="text-lg font-medium">License</h3>
                 <p className="text-sm text-muted-foreground">Manage your license.</p>
             </div>
+            {license && <CurrentPlanCard license={license} />}
             <SettingsCard>
                 <span className="text-sm font-medium">{entitlements.join(", ")}</span>
             </SettingsCard>

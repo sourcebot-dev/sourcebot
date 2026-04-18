@@ -296,16 +296,23 @@ model Org {
 }
 
 model License {
-  id              String      @id @default(cuid())
-  orgId           Int      @unique
-  org             Org      @relation(fields: [orgId], references: [id])
-  activationCode  String
-  entitlements    String[]
-  seats           Int?
-  status          String?
-  lastSyncAt      DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                String      @id @default(cuid())
+  orgId             Int      @unique
+  org               Org      @relation(fields: [orgId], references: [id])
+  activationCode    String
+  entitlements      String[]
+  seats             Int?
+  status            String? /// See LicenseStatus in packages/shared/src/types.ts
+  planName          String?
+  unitAmount        Int?
+  currency          String?
+  interval          String?
+  intervalCount     Int?
+  nextRenewalAt     DateTime?
+  nextRenewalAmount Int?
+  lastSyncAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 enum OrgRole {

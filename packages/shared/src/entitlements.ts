@@ -4,6 +4,7 @@ import { createLogger } from "./logger.js";
 import { env } from "./env.server.js";
 import { verifySignature } from "./crypto.js";
 import { License } from "@sourcebot/db";
+import { LicenseStatus } from "./types.js";
 
 const logger = createLogger('entitlements');
 
@@ -18,7 +19,11 @@ const offlineLicensePayloadSchema = z.object({
 
 type getValidOfflineLicense = z.infer<typeof offlineLicensePayloadSchema>;
 
-const ACTIVE_ONLINE_LICENSE_STATUSES = ['active', 'trialing', 'past_due'] as const;
+const ACTIVE_ONLINE_LICENSE_STATUSES: LicenseStatus[] = [
+    'active',
+    'trialing',
+    'past_due',
+];
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ALL_ENTITLEMENTS = [
@@ -83,7 +88,7 @@ const getValidOnlineLicense = (_license: License | null): License | null => {
     if (
         _license &&
         _license.status &&
-        ACTIVE_ONLINE_LICENSE_STATUSES.includes(_license.status as typeof ACTIVE_ONLINE_LICENSE_STATUSES[number])
+        ACTIVE_ONLINE_LICENSE_STATUSES.includes(_license.status as LicenseStatus)
     ) {
         return _license;
     }
