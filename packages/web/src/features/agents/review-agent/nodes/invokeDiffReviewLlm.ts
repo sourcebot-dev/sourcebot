@@ -2,9 +2,19 @@ import OpenAI from "openai";
 import { sourcebot_file_diff_review, sourcebot_file_diff_review_schema } from "@/features/agents/review-agent/types";
 import { env } from "@sourcebot/shared";
 import fs from "fs";
+import path from "path";
 import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('invoke-diff-review-llm');
+
+const REVIEW_AGENT_LOG_BASE = path.join(env.DATA_CACHE_DIR, 'review-agent');
+
+const validateReviewAgentLogPath = (logPath: string): void => {
+    const resolved = path.resolve(logPath);
+    if (!resolved.startsWith(REVIEW_AGENT_LOG_BASE + path.sep)) {
+        throw new Error('reviewAgentLogPath escapes log directory');
+    }
+};
 
 export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined, prompt: string): Promise<sourcebot_file_diff_review> => {
     logger.debug("Executing invoke_diff_review_llm");
@@ -12,6 +22,10 @@ export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined
     if (!env.OPENAI_API_KEY) {
         logger.error("OPENAI_API_KEY is not set, skipping review agent");
         throw new Error("OPENAI_API_KEY is not set, skipping review agent");
+    }
+
+    if (reviewAgentLogPath) {
+        validateReviewAgentLogPath(reviewAgentLogPath);
     }
     
     const openai = new OpenAI({
