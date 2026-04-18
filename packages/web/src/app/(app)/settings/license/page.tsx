@@ -3,8 +3,6 @@ import { OrgRole } from "@sourcebot/db";
 import { ActivationCodeCard } from "./activationCodeCard";
 import { CurrentPlanCard } from "./currentPlanCard";
 import { PurchaseButton } from "./purchaseButton";
-import { ManageSubscriptionButton } from "./manageSubscriptionButton";
-import { RefreshLicenseButton } from "./refreshLicenseButton";
 import { SettingsCard } from "../components/settingsCard";
 import { getEntitlements } from "@/lib/entitlements";
 
@@ -28,8 +26,6 @@ export default authenticatedPage(async ({ prisma, org }) => {
             <ActivationCodeCard isActivated={!!license} />
             <div className="flex gap-3">
                 <PurchaseButton />
-                {license && <ManageSubscriptionButton />}
-                {license && <RefreshLicenseButton />}
             </div>
         </div>
     );
