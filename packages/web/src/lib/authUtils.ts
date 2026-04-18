@@ -193,12 +193,22 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
     }
 
     await __unsafePrisma.$transaction(async (tx) => {
-        await tx.userToOrg.create({
-            data: {
+        // Upsert rather than create: the user may already be a member from the
+        // self-serve auto-join in onCreateUser, in which case this call is
+        // just here to trigger the AccountRequest / Invite cleanup below.
+        await tx.userToOrg.upsert({
+            where: {
+                orgId_userId: {
+                    orgId: org.id,
+                    userId: user.id,
+                },
+            },
+            create: {
                 userId: user.id,
                 orgId: org.id,
                 role: OrgRole.MEMBER,
-            }
+            },
+            update: {},
         });
 
         // Delete the account request if it exists since we've added the user to the org
