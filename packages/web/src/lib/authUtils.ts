@@ -2,12 +2,12 @@ import type { User as AuthJsUser } from "next-auth";
 import { __unsafePrisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
-import { isServiceError } from "@/lib/utils";
 import { orgNotFound, ServiceError, userNotFound } from "@/lib/serviceError";
 import { createLogger, getSeatCap } from "@sourcebot/shared";
 import { createAudit } from "@/ee/features/audit/audit";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
+import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
 
 const logger = createLogger('web-auth-utils');
 
@@ -124,6 +124,10 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
     // authUtils -> posthog -> auth -> authUtils
     const { captureEvent } = await import("@/lib/posthog");
     await captureEvent('wa_user_created', { userId: user.id });
+
+    // Sync with lighthouse s.t., the subscription
+    // quantity will update immediately.
+    await syncWithLighthouse(defaultOrg.id);
 };
 
 
@@ -188,7 +192,7 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
         } satisfies ServiceError;
     }
 
-    const res = await __unsafePrisma.$transaction(async (tx) => {
+    await __unsafePrisma.$transaction(async (tx) => {
         await tx.userToOrg.create({
             data: {
                 userId: user.id,
@@ -234,10 +238,9 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
         }
     });
 
-    if (isServiceError(res)) {
-        logger.error(`addUserToOrganization: failed to add user ${userId} to org ${orgId}: ${res.message}`);
-        return res;
-    }
+    // Sync with lighthouse s.t., the subscription
+    // quantity will update immediately.
+    await syncWithLighthouse(org.id);
 
     return {
         success: true,

@@ -45,7 +45,9 @@ export const syncWithLighthouse = async (orgId: number) => {
         const { entitlements, seats, status } = response.license;
 
         await __unsafePrisma.license.update({
-            where: { orgId: SINGLE_TENANT_ORG_ID },
+            where: {
+                orgId
+            },
             data: {
                 entitlements,
                 seats,
