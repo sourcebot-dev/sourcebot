@@ -2,6 +2,7 @@ export {
     hasEntitlement,
     getOfflineLicenseKey,
     getEntitlements,
+    isAnonymousAccessAvailable as isAnonymousAccessEnabled,
 } from "./entitlements.js";
 export type {
     Entitlement,

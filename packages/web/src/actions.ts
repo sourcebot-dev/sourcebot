@@ -14,7 +14,7 @@ import { createLogger } from "@sourcebot/shared";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
-import { hasEntitlement } from "@/lib/entitlements";
+import { isAnonymousAccessAvailable } from "@/lib/entitlements";
 import { StatusCodes } from "http-status-codes";
 import { cookies } from "next/headers";
 import { createTransport } from "nodemailer";
@@ -1158,40 +1158,11 @@ export const getRepoImage = async (repoId: number): Promise<ArrayBuffer | Servic
     })
 });
 
-export const getAnonymousAccessStatus = async (): Promise<boolean | ServiceError> => sew(async () => {
-    const org = await __unsafePrisma.org.findUnique({
-        where: { id: SINGLE_TENANT_ORG_ID },
-    });
-    if (!org) {
-        return {
-            statusCode: StatusCodes.NOT_FOUND,
-            errorCode: ErrorCode.NOT_FOUND,
-            message: "Organization not found",
-        } satisfies ServiceError;
-    }
-
-    // If no metadata is set we don't try to parse it since it'll result in a parse error
-    if (org.metadata === null) {
-        return false;
-    }
-
-    const orgMetadata = getOrgMetadata(org);
-    if (!orgMetadata) {
-        return {
-            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-            errorCode: ErrorCode.INVALID_ORG_METADATA,
-            message: "Invalid organization metadata",
-        } satisfies ServiceError;
-    }
-
-    return !!orgMetadata.anonymousAccessEnabled;
-});
-
 export const setAnonymousAccessStatus = async (enabled: boolean): Promise<ServiceError | boolean> => sew(async () => {
     return await withAuth(async ({ org, role, prisma }) => {
         return await withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            const hasAnonymousAccessEntitlement = await hasEntitlement("anonymous-access");
-            if (!hasAnonymousAccessEntitlement) {
+            const anonymousAccessAvailable = await isAnonymousAccessAvailable();
+            if (!anonymousAccessAvailable) {
                 console.error(`Anonymous access isn't supported in your current plan. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
                 return {
                     statusCode: StatusCodes.FORBIDDEN,

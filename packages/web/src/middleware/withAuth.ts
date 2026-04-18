@@ -8,7 +8,7 @@ import { SINGLE_TENANT_ORG_ID } from "../lib/constants";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "../lib/errorCodes";
 import { getOrgMetadata, isServiceError } from "../lib/utils";
-import { hasEntitlement } from "@/lib/entitlements";
+import { hasEntitlement, isAnonymousAccessAvailable } from "@/lib/entitlements";
 
 type RequiredAuthContext = {
     user: UserWithAccounts;
@@ -49,7 +49,7 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
         return authContext;
     }
 
-    const hasAnonymousAccessEntitlement = await hasEntitlement("anonymous-access");
+    const anonymousAccessAvailable = await isAnonymousAccessAvailable();
     const orgMetadata = getOrgMetadata(authContext.org);
 
     if (
@@ -57,7 +57,7 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
             !authContext.user ||
             !authContext.role
         ) && (
-            !hasAnonymousAccessEntitlement ||
+            !anonymousAccessAvailable ||
             !orgMetadata?.anonymousAccessEnabled
         )
     ) {

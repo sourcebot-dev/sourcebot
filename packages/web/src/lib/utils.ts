@@ -583,7 +583,6 @@ export const getOrgMetadata = (org: Org): OrgMetadata | null => {
     return currentMetadata.success ? currentMetadata.data : null;
 }
 
-
 export const isHttpError = (error: unknown, status: number): boolean => {
     return error !== null
         && typeof error === 'object'

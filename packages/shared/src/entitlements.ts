@@ -23,7 +23,6 @@ type LicenseKeyPayload = z.infer<typeof eeLicenseKeyPayloadSchema>;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ALL_ENTITLEMENTS = [
     "search-contexts",
-    "anonymous-access",
     "sso",
     "code-nav",
     "audit",
@@ -82,6 +81,16 @@ export const getOfflineLicenseKey = (): LicenseKeyPayload | null => {
 export const hasEntitlement = (entitlement: Entitlement, license: License | null) => {
     const entitlements = getEntitlements(license);
     return entitlements.includes(entitlement);
+}
+
+export const isAnonymousAccessAvailable = (license: License | null): boolean => {
+    if (getOfflineLicenseKey()) {
+        return false;
+    }
+    if (license && isLicenseActive(license)) {
+        return false;
+    }
+    return true;
 }
 
 export const getEntitlements = (license: License | null): Entitlement[] => {

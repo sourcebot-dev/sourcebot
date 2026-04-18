@@ -5,9 +5,8 @@ import { Footer } from "@/app/components/footer";
 import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { __unsafePrisma } from "@/prisma";
-import { getAnonymousAccessStatus } from "@/actions";
-import { isServiceError } from "@/lib/utils";
 import { env } from "@sourcebot/shared";
+import { isAnonymousAccessEnabled } from "@/lib/entitlements";
 
 interface LoginProps {
     searchParams: Promise<{
@@ -29,8 +28,7 @@ export default async function Login(props: LoginProps) {
     }
 
     const providers = await getIdentityProviderMetadata();
-    const anonymousAccessStatus = await getAnonymousAccessStatus();
-    const isAnonymousAccessEnabled = !isServiceError(anonymousAccessStatus) && anonymousAccessStatus;
+    const anonymousAccessEnabled = await isAnonymousAccessEnabled();
 
     return (
         <div className="flex flex-col min-h-screen bg-backgroundSecondary">
@@ -40,7 +38,7 @@ export default async function Login(props: LoginProps) {
                     error={searchParams.error}
                     providers={providers}
                     context="login"
-                    isAnonymousAccessEnabled={isAnonymousAccessEnabled}
+                    isAnonymousAccessEnabled={anonymousAccessEnabled}
                     hideSecurityNotice={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
                 />
             </div>

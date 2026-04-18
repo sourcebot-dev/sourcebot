@@ -19,9 +19,9 @@ import { notFound, redirect } from "next/navigation";
 import { PendingApprovalCard } from "./components/pendingApproval";
 import { SubmitJoinRequest } from "./components/submitJoinRequest";
 import { env } from "@sourcebot/shared";
-import { hasEntitlement } from "@/lib/entitlements";
+import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { GcpIapAuth } from "./components/gcpIapAuth";
-import { getAnonymousAccessStatus, getMemberApprovalRequired } from "@/actions";
+import { getMemberApprovalRequired } from "@/actions";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { GitHubStarToast } from "./components/githubStarToast";
@@ -53,18 +53,7 @@ export default async function Layout(props: LayoutProps) {
     }
 
     const session = await auth();
-    const anonymousAccessEnabled = await (async () => {
-        if (!await hasEntitlement("anonymous-access")) {
-            return false;
-        }
-
-        const status = await getAnonymousAccessStatus();
-        if (isServiceError(status)) {
-            return false;
-        }
-
-        return status;
-    })();
+    const anonymousAccessEnabled = await isAnonymousAccessEnabled();
 
     // If the user is authenticated, we must check if they're a member of the org
     if (session) {
