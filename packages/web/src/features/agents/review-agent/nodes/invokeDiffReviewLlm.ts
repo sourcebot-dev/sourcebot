@@ -1,25 +1,12 @@
 import OpenAI from "openai";
 import { sourcebot_file_diff_review, sourcebot_file_diff_review_schema } from "@/features/agents/review-agent/types";
 import { env } from "@sourcebot/shared";
-import fs from "fs";
-import path from "path";
+import { appendReviewAgentLog } from "@/features/agents/review-agent/lib"
 import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('invoke-diff-review-llm');
 
-export const getReviewAgentLogDir = (): string => {
-    return path.join(env.DATA_CACHE_DIR, 'review-agent');
-};
-
-const validateLogPath = (logPath: string): void => {
-    const resolved = path.resolve(logPath);
-    const logDir = getReviewAgentLogDir();
-    if (!resolved.startsWith(logDir + path.sep)) {
-        throw new Error('reviewAgentLogPath escapes log directory');
-    }
-};
-
-export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined, prompt: string): Promise<sourcebot_file_diff_review> => {
+export const invokeDiffReviewLlm = async (reviewAgentLogFileName: string | undefined, prompt: string): Promise<sourcebot_file_diff_review> => {
     logger.debug("Executing invoke_diff_review_llm");
     
     if (!env.OPENAI_API_KEY) {
@@ -31,9 +18,8 @@ export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined
         apiKey: env.OPENAI_API_KEY,
     });
 
-    if (reviewAgentLogPath) {
-        validateLogPath(reviewAgentLogPath);
-        fs.appendFileSync(reviewAgentLogPath, `\n\nPrompt:\n${prompt}`);
+    if (reviewAgentLogFileName) {
+        appendReviewAgentLog(reviewAgentLogFileName, `\n\nPrompt:\n${prompt}`);
     }
 
     try {
@@ -45,9 +31,8 @@ export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined
         });
     
         const openaiResponse = completion.choices[0].message.content;
-        if (reviewAgentLogPath) {
-            validateLogPath(reviewAgentLogPath);
-            fs.appendFileSync(reviewAgentLogPath, `\n\nResponse:\n${openaiResponse}`);
+        if (reviewAgentLogFileName) {
+            appendReviewAgentLog(reviewAgentLogFileName, `\n\nResponse:\n${openaiResponse}`);
         }
         
         const diffReviewJson = JSON.parse(openaiResponse || '{}');
