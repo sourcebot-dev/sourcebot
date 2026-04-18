@@ -254,6 +254,9 @@ const paginate = async <T>(request: (page: number) => Promise<HttpResponse<T[], 
     while (output.length < totalCount) {
         page++;
         const result = await request(page);
+        if (result.data.length === 0) {
+            break;
+        }
         output.push(...result.data);
     }
 
