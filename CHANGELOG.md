@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed path injection vulnerability (CodeQL js/path-injection) in review agent log writing by validating paths stay within the expected log directory. [#1134](https://github.com/sourcebot-dev/sourcebot/pull/1134)
 - Fixed missing workflow permissions in `docs-broken-links.yml` by adding explicit `permissions: {}` to follow least privilege principle. [#1131](https://github.com/sourcebot-dev/sourcebot/pull/1131)
 - Fixed CodeQL missing-workflow-permissions alert by adding explicit empty permissions to `deploy-railway.yml`. [#1132](https://github.com/sourcebot-dev/sourcebot/pull/1132)
+- [EE] Fixed XSS vulnerability (CodeQL js/xss-through-exception) in OAuth redirect flow by blocking dangerous URI schemes (`javascript:`, `data:`, `vbscript:`) at registration, authorization, and redirect layers. [#1136](https://github.com/sourcebot-dev/sourcebot/pull/1136)
 
 ## [4.16.11] - 2026-04-17
 
