@@ -3,6 +3,7 @@
 import { sew } from "@/middleware/sew";
 import { generateAndStoreAuthCode } from '@/ee/features/oauth/server';
 import { withAuth } from '@/middleware/withAuth';
+import { UNPERMITTED_SCHEMES } from '@/ee/features/oauth/constants';
 
 /**
  * Resolves the final URL to navigate to after an authorization decision.
@@ -10,6 +11,10 @@ import { withAuth } from '@/middleware/withAuth';
  * /oauth/complete so the browser can handle the handoff.
  */
 function resolveCallbackUrl(callbackUrl: URL): string {
+    if (UNPERMITTED_SCHEMES.test(callbackUrl.protocol)) {
+        throw new Error('Unpermitted redirect URI scheme');
+    }
+
     const isWebUrl = callbackUrl.protocol === 'http:' || callbackUrl.protocol === 'https:';
     return isWebUrl
         ? callbackUrl.toString()

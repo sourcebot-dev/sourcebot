@@ -1,6 +1,7 @@
 'use client';
 
 import { approveAuthorization, denyAuthorization } from '@/ee/features/oauth/actions';
+import { isPermittedRedirectUrl } from '@/ee/features/oauth/constants';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { isServiceError } from '@/lib/utils';
 import { ClientIcon } from './clientIcon';
@@ -44,6 +45,12 @@ export function ConsentScreen({
         setPending('approve');
         const result = await approveAuthorization({ clientId, redirectUri, codeChallenge, resource, state });
         if (!isServiceError(result)) {
+            if (!isPermittedRedirectUrl(result)) {
+                toast({ description: `❌ Redirect URL is not permitted.` });
+                setPending(null);
+                return;
+            }
+
             toast({
                 description: `✅ Authorization approved successfully. Redirecting...`,
             });
@@ -61,6 +68,12 @@ export function ConsentScreen({
         setPending('deny');
         const result = await denyAuthorization({ redirectUri, state });
         if (isServiceError(result)) {
+            setPending(null);
+            return;
+        }
+
+        if (!isPermittedRedirectUrl(result)) {
+            toast({ description: `❌ Redirect URL is not permitted.` });
             setPending(null);
             return;
         }
