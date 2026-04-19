@@ -75,7 +75,7 @@ export function CurrentPlanCard({ license }: CurrentPlanCardProps) {
                     {isActivelyBilling && nextRenewalAt && (
                         <div className="flex items-center gap-12">
                             <div className="flex flex-col items-end">
-                                <p className="text-xs text-muted-foreground">Users</p>
+                                <p className="text-xs text-muted-foreground">Billed seats</p>
                                 <p className="text-sm">{seats ?? 0}</p>
                             </div>
                             <div className="flex flex-col items-end">
