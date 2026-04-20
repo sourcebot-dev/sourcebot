@@ -35,8 +35,8 @@ const parser = _parser.configure({
     strict: true,
 });
 
-// In regex mode, parens and | are regex metacharacters, not query grouping operators.
-// The "regex" dialect makes the tokenizer treat them as plain word characters.
+// In regex mode, bare regex parens should stay part of a term while query-like
+// parenthesized expressions (e.g. grouped filters) should still parse as groups.
 const regexParser = _parser.configure({
     strict: true,
     dialect: "regex",
@@ -89,7 +89,8 @@ export const parseQuerySyntaxIntoIR = async ({
 
     try {
         // First parse the query into a Lezer tree.
-        // In regex mode, use the regex dialect so parens/| are treated as word characters.
+        // In regex mode, use the regex dialect so bare regex parens stay inside
+        // a term while query-like parenthesized groups still tokenize correctly.
         const activeParser = (options.isRegexEnabled ?? false) ? regexParser : parser;
         const tree = activeParser.parse(query);
 

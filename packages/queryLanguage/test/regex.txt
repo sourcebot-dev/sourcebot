@@ -53,6 +53,26 @@ file:test.js (test|render)<
 ==>
 Program(AndExpr(PrefixExpr(FileExpr),Term))
 
+# Parenthesized prefix OR group still works in regex mode
+(file:.yarnrc.yml or file:README.md)
+==>
+Program(ParenExpr(OrExpr(PrefixExpr(FileExpr),PrefixExpr(FileExpr))))
+
+# Regex query with grouped prefix filters
+repo:^github\.com/sourcebot\x2ddev/sourcebot$ (file:.yarnrc.yml or file:README.md)
+==>
+Program(AndExpr(PrefixExpr(RepoExpr),ParenExpr(OrExpr(PrefixExpr(FileExpr),PrefixExpr(FileExpr)))))
+
+# Multiple filters with a parenthesized regex OR group
+repo:^github\.com/sourcebot-dev/.+$ lang:Dockerfile ( FROM\s+node or RUN\s+npm )
+==>
+Program(AndExpr(PrefixExpr(RepoExpr),PrefixExpr(LangExpr),ParenExpr(OrExpr(Term,Term))))
+
+# Negated grouped prefix filters still work in regex mode
+-(file:test or file:spec)
+==>
+Program(NegateExpr(ParenExpr(OrExpr(PrefixExpr(FileExpr),PrefixExpr(FileExpr)))))
+
 # Negation of prefix still works in regex mode
 -file:test.js
 ==>
