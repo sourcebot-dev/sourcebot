@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed missing workflow permissions in `docs-broken-links.yml` by adding explicit `permissions: {}` to follow least privilege principle. [#1131](https://github.com/sourcebot-dev/sourcebot/pull/1131)
 - Fixed CodeQL missing-workflow-permissions alert by adding explicit empty permissions to `deploy-railway.yml`. [#1132](https://github.com/sourcebot-dev/sourcebot/pull/1132)
 - [EE] Fixed XSS vulnerability (CodeQL js/xss-through-exception) in OAuth redirect flow by blocking dangerous URI schemes (`javascript:`, `data:`, `vbscript:`) at registration, authorization, and redirect layers. [#1136](https://github.com/sourcebot-dev/sourcebot/pull/1136)
+- Fixed regex search parsing so query-style parenthesized groups with filters still work when regex mode is enabled. [#1138](https://github.com/sourcebot-dev/sourcebot/pull/1138)
 
 ## [4.16.11] - 2026-04-17
 
