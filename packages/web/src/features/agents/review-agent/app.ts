@@ -3,6 +3,7 @@ import { Gitlab } from "@gitbeaker/rest";
 import { generatePrReviews } from "@/features/agents/review-agent/nodes/generatePrReview";
 import { githubPushPrReviews } from "@/features/agents/review-agent/nodes/githubPushPrReviews";
 import { githubPrParser } from "@/features/agents/review-agent/nodes/githubPrParser";
+import { getReviewAgentLogDir } from "@/features/agents/review-agent/nodes/invokeDiffReviewLlm";
 import { gitlabMrParser } from "@/features/agents/review-agent/nodes/gitlabMrParser";
 import { gitlabPushMrReviews } from "@/features/agents/review-agent/nodes/gitlabPushMrReviews";
 import { GitHubPullRequest, GitLabMergeRequestPayload } from "@/features/agents/review-agent/types";
@@ -28,7 +29,7 @@ function getReviewAgentLogPath(identifier: string): string | undefined {
         return undefined;
     }
 
-    const reviewAgentLogDir = path.join(env.DATA_CACHE_DIR, "review-agent");
+    const reviewAgentLogDir = getReviewAgentLogDir();
     if (!fs.existsSync(reviewAgentLogDir)) {
         fs.mkdirSync(reviewAgentLogDir, { recursive: true });
     }
