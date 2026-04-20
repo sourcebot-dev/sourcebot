@@ -42,8 +42,15 @@ function isAlphaNumUnderscore(ch: number): boolean {
  * Checks if the input at current position matches the given string.
  */
 function matchesString(input: InputStream, str: string): boolean {
+    return matchesStringAt(input, 0, str);
+}
+
+/**
+ * Checks if the input at the given offset matches the given string.
+ */
+function matchesStringAt(input: InputStream, offset: number, str: string): boolean {
     for (let i = 0; i < str.length; i++) {
-        if (input.peek(i) !== str.charCodeAt(i)) {
+        if (input.peek(offset + i) !== str.charCodeAt(i)) {
             return false;
         }
     }
@@ -94,8 +101,15 @@ function isOrKeyword(input: InputStream): boolean {
  * Checks if current position starts with a prefix keyword.
  */
 function startsWithPrefix(input: InputStream): boolean {
+    return startsWithPrefixAt(input, 0);
+}
+
+/**
+ * Checks if the input at the given offset starts with a prefix keyword.
+ */
+function startsWithPrefixAt(input: InputStream, offset: number): boolean {
     for (const prefix of PREFIXES) {
-        if (matchesString(input, prefix)) {
+        if (matchesStringAt(input, offset, prefix)) {
             return true;
         }
     }
@@ -103,14 +117,38 @@ function startsWithPrefix(input: InputStream): boolean {
 }
 
 /**
- * Checks if a '(' at the given offset starts a balanced ParenExpr.
- * Uses peek() to avoid modifying stream position.
- * Returns true if we find a matching ')' that closes the initial '('.
+ * Advances past whitespace starting at the given offset.
+ */
+function skipWhitespace(input: InputStream, offset: number): number {
+    while (isWhitespace(input.peek(offset))) {
+        offset++;
+    }
+    return offset;
+}
+
+/**
+ * Checks whether the character at the given offset is escaped by an odd number
+ * of immediately preceding backslashes.
+ */
+function isEscapedAt(input: InputStream, offset: number): boolean {
+    let backslashCount = 0;
+    let currentOffset = offset - 1;
+
+    while (input.peek(currentOffset) === 92 /* backslash */) {
+        backslashCount++;
+        currentOffset--;
+    }
+
+    return backslashCount % 2 === 1;
+}
+
+/**
+ * Returns the offset of the closing ')' that matches the '(' at startOffset.
  * Handles escaped characters (backslash followed by any character).
  */
-function hasBalancedParensAt(input: InputStream, startOffset: number): boolean {
+function findMatchingCloseParenOffset(input: InputStream, startOffset: number): number | null {
     if (input.peek(startOffset) !== OPEN_PAREN) {
-        return false;
+        return null;
     }
 
     let offset = startOffset + 1;
@@ -131,13 +169,169 @@ function hasBalancedParensAt(input: InputStream, startOffset: number): boolean {
         } else if (ch === CLOSE_PAREN) {
             depth--;
             if (depth === 0) {
-                return true;
+                return offset;
             }
         }
         offset++;
     }
 
+    return null;
+}
+
+/**
+ * Checks if a '(' at the given offset starts a balanced ParenExpr.
+ * Uses peek() to avoid modifying stream position.
+ * Returns true if we find a matching ')' that closes the initial '('.
+ * Handles escaped characters (backslash followed by any character).
+ */
+function hasBalancedParensAt(input: InputStream, startOffset: number): boolean {
+    return findMatchingCloseParenOffset(input, startOffset) !== null;
+}
+
+/**
+ * Determines whether a balanced parenthesized expression should be treated as
+ * query grouping in regex mode. This preserves query constructs like:
+ *   (file:a or file:b)
+ * while still allowing bare regex atoms like:
+ *   (foo|bar)
+ */
+function isRegexQueryGroupingAt(input: InputStream, startOffset: number): boolean {
+    const closeOffset = findMatchingCloseParenOffset(input, startOffset);
+    if (closeOffset === null) {
+        return false;
+    }
+
+    let offset = skipWhitespace(input, startOffset + 1);
+    if (offset >= closeOffset) {
+        return true; // Empty parens are always grouping syntax
+    }
+
+    const topLevelTokens: Array<{ start: number; end: number }> = [];
+
+    while (offset < closeOffset) {
+        const tokenStart = offset;
+        let depth = 0;
+        let inQuote = false;
+
+        while (offset < closeOffset) {
+            const ch = input.peek(offset);
+
+            if (ch === 92 /* backslash */) {
+                offset += 2;
+                continue;
+            }
+
+            if (inQuote) {
+                offset++;
+                if (ch === QUOTE) {
+                    inQuote = false;
+                }
+                continue;
+            }
+
+            if (ch === QUOTE) {
+                inQuote = true;
+                offset++;
+                continue;
+            }
+
+            if (ch === OPEN_PAREN) {
+                depth++;
+                offset++;
+                continue;
+            }
+
+            if (ch === CLOSE_PAREN) {
+                if (depth === 0) {
+                    break;
+                }
+                depth--;
+                offset++;
+                continue;
+            }
+
+            if (depth === 0 && isWhitespace(ch)) {
+                break;
+            }
+
+            offset++;
+        }
+
+        topLevelTokens.push({ start: tokenStart, end: offset });
+        offset = skipWhitespace(input, offset);
+    }
+
+    if (topLevelTokens.length !== 1) {
+        return true;
+    }
+
+    const [{ start, end }] = topLevelTokens;
+    const firstCh = input.peek(start);
+
+    if (startsWithPrefixAt(input, start)) {
+        return true;
+    }
+
+    if (firstCh === DASH) {
+        const afterDash = skipWhitespace(input, start + 1);
+
+        if (startsWithPrefixAt(input, afterDash)) {
+            return true;
+        }
+
+        if (input.peek(afterDash) === OPEN_PAREN && afterDash < end) {
+            return isRegexQueryGroupingAt(input, afterDash);
+        }
+
+        return false;
+    }
+
+    if (firstCh === QUOTE) {
+        return true;
+    }
+
+    if (firstCh === OPEN_PAREN && start < end) {
+        return isRegexQueryGroupingAt(input, start);
+    }
+
     return false;
+}
+
+/**
+ * Finds the offset of the '(' that matches the current ')' at offset 0.
+ * Handles escaped characters (backslash followed by any character).
+ */
+function findMatchingOpenParenOffset(input: InputStream): number | null {
+    if (input.next !== CLOSE_PAREN) {
+        return null;
+    }
+
+    let offset = -1;
+    let depth = 1;
+
+    while (true) {
+        const ch = input.peek(offset);
+
+        if (ch === EOF) {
+            return null;
+        }
+
+        if (isEscapedAt(input, offset)) {
+            offset--;
+            continue;
+        }
+
+        if (ch === CLOSE_PAREN) {
+            depth++;
+        } else if (ch === OPEN_PAREN) {
+            depth--;
+            if (depth === 0) {
+                return offset;
+            }
+        }
+
+        offset--;
+    }
 }
 
 /**
@@ -246,15 +440,20 @@ function isInsideParenExpr(input: InputStream, stack: Stack): boolean {
 export const parenToken = new ExternalTokenizer((input, stack) => {
     if (input.next !== OPEN_PAREN) return;
 
-    // In regex mode, parens are just word characters — don't emit openParen
     if (stack.dialectEnabled(Dialect_regex)) {
-        return;
+        // In regex mode, only treat parens as grouping syntax when the contents
+        // clearly look like a query expression. Otherwise they remain part of a
+        // regex term, e.g. (foo|bar).
+        if (!isRegexQueryGroupingAt(input, 0)) {
+            return;
+        }
     }
 
     if (hasBalancedParensAt(input, 0)) {
         // Found balanced parens - emit openParen (just the '(')
         input.advance();
         input.acceptToken(openParen);
+        return;
     }
     // If unbalanced, don't emit anything - let wordToken handle it
 });
@@ -268,8 +467,13 @@ export const parenToken = new ExternalTokenizer((input, stack) => {
 export const closeParenToken = new ExternalTokenizer((input, stack) => {
     if (input.next !== CLOSE_PAREN) return;
 
-    // In regex mode, parens are just word characters — don't emit closeParen
     if (stack.dialectEnabled(Dialect_regex)) {
+        const matchingOpenOffset = findMatchingOpenParenOffset(input);
+        if (matchingOpenOffset === null || !isRegexQueryGroupingAt(input, matchingOpenOffset)) {
+            return;
+        }
+        input.advance();
+        input.acceptToken(closeParen);
         return;
     }
 
@@ -277,6 +481,7 @@ export const closeParenToken = new ExternalTokenizer((input, stack) => {
     if (isInsideParenExpr(input, stack)) {
         input.advance();
         input.acceptToken(closeParen);
+        return;
     }
     // Otherwise, don't emit - let wordToken handle ')' as part of a word
 });
@@ -324,10 +529,16 @@ export const wordToken = new ExternalTokenizer((input, stack) => {
     }
 
     // In regex mode: consume all non-whitespace characters as a single word.
-    // Parens and | are valid regex metacharacters, not query syntax in this mode.
+    // Parens remain part of the word unless they clearly start/end a query group.
     if (stack.dialectEnabled(Dialect_regex)) {
         const startPos = input.pos;
         while (input.next !== EOF && !isWhitespace(input.next)) {
+            if (input.next === CLOSE_PAREN) {
+                const matchingOpenOffset = findMatchingOpenParenOffset(input);
+                if (matchingOpenOffset !== null && isRegexQueryGroupingAt(input, matchingOpenOffset)) {
+                    break;
+                }
+            }
             input.advance();
         }
         if (input.pos > startPos) {
@@ -454,10 +665,8 @@ export const negateToken = new ExternalTokenizer((input, stack) => {
     const chAfterDash = input.peek(offset);
 
     // In normal mode: also check for balanced paren (negated group e.g. -(foo bar))
-    // In regex mode: skip this — parens are not query grouping operators, so emitting
-    // negate before a '(' would leave the parser without a matching ParenExpr to parse.
-    if (!stack.dialectEnabled(Dialect_regex)) {
-        if (chAfterDash === OPEN_PAREN && hasBalancedParensAt(input, offset)) {
+    if (chAfterDash === OPEN_PAREN && hasBalancedParensAt(input, offset)) {
+        if (!stack.dialectEnabled(Dialect_regex) || isRegexQueryGroupingAt(input, offset)) {
             input.advance();
             input.acceptToken(negate);
             return;
@@ -492,4 +701,3 @@ export const negateToken = new ExternalTokenizer((input, stack) => {
     
     // Otherwise, don't tokenize as negate (let word handle it)
 });
-
