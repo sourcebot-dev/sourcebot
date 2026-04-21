@@ -56,7 +56,7 @@ export const fetchFileContent = async (pr_payload: sourcebot_pr_payload, filenam
 /**
  * Fetches a repo-level context file (e.g. AGENTS.md) from the repository at the
  * PR's head commit. Returns null when the file does not exist or cannot be read,
- * so the caller can silently skip it. Content is capped at CONTEXT_FILE_MAX_BYTES.
+ * so the caller can silently skip it.
  */
 export const fetchContextFile = async (
     pr_payload: sourcebot_pr_payload,

@@ -14,8 +14,14 @@ export const generatePrReviews = async (reviewAgentLogFileName: string | undefin
         ? contextFiles.split(/[\s,]+/).map((p) => p.trim()).filter(Boolean)
         : [];
     const repoInstructionsContexts = (
-        await Promise.all(contextFilePaths.map((p) => fetchContextFile(pr_payload, p)))
-    ).filter((c): c is NonNullable<typeof c> => c !== null);
+        await Promise.allSettled(contextFilePaths.map((p) => fetchContextFile(pr_payload, p)))
+    ).flatMap((result) => {
+        if (result.status === 'rejected') {
+            logger.warn(`Unexpected error fetching context file: ${result.reason}`);
+            return [];
+        }
+        return result.value !== null ? [result.value] : [];
+    });
 
     const file_diff_reviews: sourcebot_file_diff_review[] = [];
     for (const file_diff of pr_payload.file_diffs) {
