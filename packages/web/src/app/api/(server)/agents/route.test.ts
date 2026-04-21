@@ -175,6 +175,7 @@ describe('POST /api/agents', () => {
 
         test('accepts scope REPO when repoIds is a non-empty array', async () => {
             prisma.agentConfig.findUnique.mockResolvedValue(null);
+            prisma.repo.count.mockResolvedValue(1);
             prisma.agentConfig.create.mockResolvedValue(makeDbConfig({ scope: AgentScope.REPO }) as any);
 
             const res = await POST(makePostRequest({ name: 'x', type: 'CODE_REVIEW', scope: 'REPO', repoIds: [1] }));
@@ -184,6 +185,7 @@ describe('POST /api/agents', () => {
 
         test('accepts scope CONNECTION when connectionIds is a non-empty array', async () => {
             prisma.agentConfig.findUnique.mockResolvedValue(null);
+            prisma.connection.count.mockResolvedValue(1);
             prisma.agentConfig.create.mockResolvedValue(makeDbConfig({ scope: AgentScope.CONNECTION }) as any);
 
             const res = await POST(makePostRequest({ name: 'x', type: 'CODE_REVIEW', scope: 'CONNECTION', connectionIds: [2] }));
