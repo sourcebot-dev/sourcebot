@@ -6,9 +6,11 @@ export {
     getEntitlements as _getEntitlements,
     isAnonymousAccessAvailable as _isAnonymousAccessAvailable,
     getSeatCap,
+    getOfflineLicenseMetadata,
 } from "./entitlements.js";
 export type {
     Entitlement,
+    OfflineLicenseMetadata,
 } from "./entitlements.js";
 export type {
     RepoMetadata,

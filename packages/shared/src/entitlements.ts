@@ -129,6 +129,25 @@ export const hasEntitlement = (entitlement: Entitlement, _license: License | nul
     return entitlements.includes(entitlement);
 }
 
+export type OfflineLicenseMetadata = {
+    id: string;
+    seats?: number;
+    expiryDate: string;
+}
+
+export const getOfflineLicenseMetadata = (): OfflineLicenseMetadata | null => {
+    const license = getValidOfflineLicense();
+    if (!license) {
+        return null;
+    }
+
+    return {
+        id: license.id,
+        seats: license.seats,
+        expiryDate: license.expiryDate,
+    };
+}
+
 export const getSeatCap = (): number | undefined => {
     const offlineLicense = getValidOfflineLicense();
     if (offlineLicense?.seats && offlineLicense.seats > 0) {
