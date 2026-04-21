@@ -3,6 +3,7 @@ import {
     readFileDefinition,
     listCommitsDefinition,
     listReposDefinition,
+    getDiffDefinition,
     grepDefinition,
     globDefinition,
     findSymbolReferencesDefinition,
@@ -17,6 +18,7 @@ export const createTools = (context: ToolContext) => ({
     [readFileDefinition.name]: toVercelAITool(readFileDefinition, context),
     [listCommitsDefinition.name]: toVercelAITool(listCommitsDefinition, context),
     [listReposDefinition.name]: toVercelAITool(listReposDefinition, context),
+    [getDiffDefinition.name]: toVercelAITool(getDiffDefinition, context),
     [grepDefinition.name]: toVercelAITool(grepDefinition, context),
     [globDefinition.name]: toVercelAITool(globDefinition, context),
     [findSymbolReferencesDefinition.name]: toVercelAITool(findSymbolReferencesDefinition, context),
@@ -27,6 +29,7 @@ export const createTools = (context: ToolContext) => ({
 export type ReadFileToolUIPart = ToolUIPart<{ read_file: SBChatMessageToolTypes['read_file'] }>;
 export type ListCommitsToolUIPart = ToolUIPart<{ list_commits: SBChatMessageToolTypes['list_commits'] }>;
 export type ListReposToolUIPart = ToolUIPart<{ list_repos: SBChatMessageToolTypes['list_repos'] }>;
+export type GetDiffToolUIPart = ToolUIPart<{ get_diff: SBChatMessageToolTypes['get_diff'] }>;
 export type GrepToolUIPart = ToolUIPart<{ grep: SBChatMessageToolTypes['grep'] }>;
 export type GlobToolUIPart = ToolUIPart<{ glob: SBChatMessageToolTypes['glob'] }>;
 export type FindSymbolReferencesToolUIPart = ToolUIPart<{ find_symbol_references: SBChatMessageToolTypes['find_symbol_references'] }>;
