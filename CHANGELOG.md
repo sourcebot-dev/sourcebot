@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.16.13] - 2026-04-21
+
 ### Added
 - Added a `get_diff` MCP tool to return structured diffs between two git refs. [#1142](https://github.com/sourcebot-dev/sourcebot/pull/1142)
 
