@@ -19,6 +19,7 @@ import type { ListOptions as _zoekt_webserver_v1_ListOptions, ListOptions__Outpu
 import type { ListRequest as _zoekt_webserver_v1_ListRequest, ListRequest__Output as _zoekt_webserver_v1_ListRequest__Output } from './zoekt/webserver/v1/ListRequest';
 import type { ListResponse as _zoekt_webserver_v1_ListResponse, ListResponse__Output as _zoekt_webserver_v1_ListResponse__Output } from './zoekt/webserver/v1/ListResponse';
 import type { Location as _zoekt_webserver_v1_Location, Location__Output as _zoekt_webserver_v1_Location__Output } from './zoekt/webserver/v1/Location';
+import type { Meta as _zoekt_webserver_v1_Meta, Meta__Output as _zoekt_webserver_v1_Meta__Output } from './zoekt/webserver/v1/Meta';
 import type { MinimalRepoListEntry as _zoekt_webserver_v1_MinimalRepoListEntry, MinimalRepoListEntry__Output as _zoekt_webserver_v1_MinimalRepoListEntry__Output } from './zoekt/webserver/v1/MinimalRepoListEntry';
 import type { Not as _zoekt_webserver_v1_Not, Not__Output as _zoekt_webserver_v1_Not__Output } from './zoekt/webserver/v1/Not';
 import type { Or as _zoekt_webserver_v1_Or, Or__Output as _zoekt_webserver_v1_Or__Output } from './zoekt/webserver/v1/Or';
@@ -78,6 +79,7 @@ export interface ProtoGrpcType {
         ListRequest: MessageTypeDefinition<_zoekt_webserver_v1_ListRequest, _zoekt_webserver_v1_ListRequest__Output>
         ListResponse: MessageTypeDefinition<_zoekt_webserver_v1_ListResponse, _zoekt_webserver_v1_ListResponse__Output>
         Location: MessageTypeDefinition<_zoekt_webserver_v1_Location, _zoekt_webserver_v1_Location__Output>
+        Meta: MessageTypeDefinition<_zoekt_webserver_v1_Meta, _zoekt_webserver_v1_Meta__Output>
         MinimalRepoListEntry: MessageTypeDefinition<_zoekt_webserver_v1_MinimalRepoListEntry, _zoekt_webserver_v1_MinimalRepoListEntry__Output>
         Not: MessageTypeDefinition<_zoekt_webserver_v1_Not, _zoekt_webserver_v1_Not__Output>
         Or: MessageTypeDefinition<_zoekt_webserver_v1_Or, _zoekt_webserver_v1_Or__Output>
