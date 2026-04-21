@@ -4,20 +4,17 @@ import { apiHandler } from "@/lib/apiHandler";
 import { requestBodySchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withAuth } from "@/middleware/withAuth";
+import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
+import { OrgRole } from "@sourcebot/db";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 import { AgentScope, AgentType, PromptMode } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/shared";
+import { agentConfigSettingsSchema } from "@/features/agents/review-agent/app";
 
 const logger = createLogger('agents-api');
-
-const agentConfigSettingsSchema = z.object({
-    autoReviewEnabled: z.boolean().optional(),
-    reviewCommand: z.string().optional(),
-    model: z.string().optional(),
-});
 
 const createAgentConfigBodySchema = z.object({
     name: z.string().min(1).max(255),
@@ -75,7 +72,8 @@ export const POST = apiHandler(async (request: NextRequest) => {
 
     const { name, description, type, enabled, prompt, promptMode, scope, repoIds, connectionIds, settings } = parsed.data;
 
-    const result = await withAuth(async ({ org, prisma }) => {
+    const result = await withAuth(async ({ org, role, prisma }) => {
+        return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
         // Check for name collision within org
         const existing = await prisma.agentConfig.findUnique({
             where: { orgId_name: { orgId: org.id, name } },
@@ -104,6 +102,33 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 errorCode: ErrorCode.INVALID_REQUEST_BODY,
                 message: "connectionIds is required when scope is CONNECTION",
             };
+        }
+
+        // Verify all provided IDs belong to this org
+        if (scope === AgentScope.REPO && repoIds && repoIds.length > 0) {
+            const count = await prisma.repo.count({
+                where: { id: { in: repoIds }, orgId: org.id },
+            });
+            if (count !== repoIds.length) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "One or more repoIds are invalid or do not belong to this org",
+                };
+            }
+        }
+
+        if (scope === AgentScope.CONNECTION && connectionIds && connectionIds.length > 0) {
+            const count = await prisma.connection.count({
+                where: { id: { in: connectionIds }, orgId: org.id },
+            });
+            if (count !== connectionIds.length) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "One or more connectionIds are invalid or do not belong to this org",
+                };
+            }
         }
 
         try {
@@ -148,6 +173,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
             logger.error('Error creating agent config', { error, name, orgId: org.id });
             throw error;
         }
+        });
     });
 
     if (isServiceError(result)) {
