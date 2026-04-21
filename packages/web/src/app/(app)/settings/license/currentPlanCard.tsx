@@ -19,6 +19,7 @@ export function CurrentPlanCard({ license }: CurrentPlanCardProps) {
         seats,
         nextRenewalAt,
         nextRenewalAmount,
+        cancelAt,
     } = license;
 
     // Require the fields needed to render the plan header. nextRenewalAt is
@@ -72,18 +73,25 @@ export function CurrentPlanCard({ license }: CurrentPlanCardProps) {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    {isActivelyBilling && nextRenewalAt && (
+                    {isActivelyBilling && (nextRenewalAt || cancelAt) && (
                         <div className="flex items-center gap-12">
                             <div className="flex flex-col items-end">
                                 <p className="text-xs text-muted-foreground">Billed seats</p>
                                 <p className="text-sm">{seats ?? 0}</p>
                             </div>
-                            <div className="flex flex-col items-end">
-                                <p className="text-xs text-muted-foreground">Next renewal</p>
-                                <p className="text-sm">
-                                    {formatCurrency(nextRenewalAmount ?? 0, currency)} on {formatDate(nextRenewalAt)}
-                                </p>
-                            </div>
+                            {nextRenewalAt ? (
+                                <div className="flex flex-col items-end">
+                                    <p className="text-xs text-muted-foreground">Next renewal</p>
+                                    <p className="text-sm">
+                                        {formatCurrency(nextRenewalAmount ?? 0, currency)} on {formatDate(nextRenewalAt)}
+                                    </p>
+                                </div>
+                            ) : cancelAt && (
+                                <div className="flex flex-col items-end">
+                                    <p className="text-xs text-muted-foreground">Cancels on</p>
+                                    <p className="text-sm">{formatDate(cancelAt)}</p>
+                                </div>
+                            )}
                         </div>
                     )}
                     <PlanActionsMenu />

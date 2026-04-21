@@ -310,6 +310,7 @@ model License {
   intervalCount     Int?
   nextRenewalAt     DateTime?
   nextRenewalAmount Int?
+  cancelAt          DateTime?
   lastSyncAt        DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

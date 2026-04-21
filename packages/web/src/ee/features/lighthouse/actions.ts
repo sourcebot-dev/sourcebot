@@ -39,17 +39,13 @@ export const activateLicense = async (activationCode: string): Promise<{ success
             // Immediately ping Lighthouse to validate and sync license data
             try {
                 await syncWithLighthouse(org.id);
-            } catch {
+            } catch (e) {
                 // If the ping fails, remove the license record
                 await prisma.license.delete({
                     where: { orgId: org.id },
                 });
 
-                return {
-                    statusCode: StatusCodes.BAD_GATEWAY,
-                    errorCode: ErrorCode.UNEXPECTED_ERROR,
-                    message: "Failed to validate activation code. Please try again.",
-                } satisfies ServiceError;
+                throw e;
             }
 
             return { success: true };
@@ -72,15 +68,7 @@ export const refreshLicense = async (): Promise<{ success: boolean } | ServiceEr
                 } satisfies ServiceError;
             }
 
-            try {
-                await syncWithLighthouse(org.id);
-            } catch {
-                return {
-                    statusCode: StatusCodes.BAD_GATEWAY,
-                    errorCode: ErrorCode.UNEXPECTED_ERROR,
-                    message: "Failed to refresh license. Please try again.",
-                } satisfies ServiceError;
-            }
+            await syncWithLighthouse(org.id);
 
             return { success: true };
         })

@@ -53,6 +53,7 @@ export const syncWithLighthouse = async (orgId: number) => {
             intervalCount,
             nextRenewalAt,
             nextRenewalAmount,
+            cancelAt,
         } = response.license;
 
         await __unsafePrisma.license.update({
@@ -68,8 +69,9 @@ export const syncWithLighthouse = async (orgId: number) => {
                 currency,
                 interval,
                 intervalCount,
-                nextRenewalAt: new Date(nextRenewalAt),
+                nextRenewalAt: nextRenewalAt ? new Date(nextRenewalAt) : null,
                 nextRenewalAmount,
+                cancelAt: cancelAt ? new Date(cancelAt) : null,
                 lastSyncAt: new Date(),
             },
         });
