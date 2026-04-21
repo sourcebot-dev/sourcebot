@@ -54,6 +54,7 @@
     "@codemirror/state": "^6.4.1",
     "@codemirror/view": "^6.33.0",
     "@floating-ui/react": "^0.27.2",
+    "@gitbeaker/rest": "^40.5.1",
     "@grpc/grpc-js": "^1.14.1",
     "@grpc/proto-loader": "^0.8.0",
     "@hookform/resolvers": "^3.9.0",

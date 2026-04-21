@@ -3,7 +3,7 @@
 import { NavigationMenuItem, NavigationMenuLink, NavigationMenuList, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn, getShortenedNumberDisplayString } from "@/lib/utils";
-import { SearchIcon, MessageCircleIcon, BookMarkedIcon, SettingsIcon } from "lucide-react";
+import { SearchIcon, MessageCircleIcon, BookMarkedIcon, SettingsIcon, BotIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { NotificationDot } from "../notificationDot";
 
@@ -12,6 +12,7 @@ interface NavigationItemsProps {
     isReposButtonNotificationDotVisible: boolean;
     isSettingsButtonNotificationDotVisible: boolean;
     isAuthenticated: boolean;
+    isAgentsVisible: boolean;
 }
 
 export const NavigationItems = ({
@@ -19,6 +20,7 @@ export const NavigationItems = ({
     isReposButtonNotificationDotVisible,
     isSettingsButtonNotificationDotVisible,
     isAuthenticated,
+    isAgentsVisible,
 }: NavigationItemsProps) => {
     const pathname = usePathname();
 
@@ -65,6 +67,18 @@ export const NavigationItems = ({
                 </NavigationMenuLink>
                 {isActive('/repos') && <ActiveIndicator />}
             </NavigationMenuItem>
+            {isAgentsVisible && (
+                <NavigationMenuItem className="relative">
+                    <NavigationMenuLink
+                        href="/agents"
+                        className={navigationMenuTriggerStyle()}
+                    >
+                        <BotIcon className="w-4 h-4 mr-1" />
+                        Agents
+                    </NavigationMenuLink>
+                    {isActive('/agents') && <ActiveIndicator />}
+                </NavigationMenuItem>
+            )}
             {isAuthenticated && (
                 <NavigationMenuItem className="relative">
                     <NavigationMenuLink

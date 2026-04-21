@@ -5,10 +5,17 @@ import { env } from "@sourcebot/shared";
 
 const agents = [
   {
-    id: "review-agent",
-    name: "Review Agent",
-    description: "An AI code review agent that reviews your PRs. Uses the code indexed on Sourcebot to provide codebase-wide context.",
-    requiredEnvVars: ["GITHUB_REVIEW_AGENT_APP_ID", "GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET", "GITHUB_REVIEW_AGENT_APP_PRIVATE_KEY_PATH", "OPENAI_API_KEY"],
+    id: "github-review-agent",
+    name: "GitHub Review Agent",
+    description: "An AI code review agent that reviews your GitHub PRs. Uses the code indexed on Sourcebot to provide codebase-wide context.",
+    requiredEnvVars: ["GITHUB_REVIEW_AGENT_APP_ID", "GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET", "GITHUB_REVIEW_AGENT_APP_PRIVATE_KEY_PATH"],
+    configureUrl: "https://docs.sourcebot.dev/docs/features/agents/review-agent"
+  },
+  {
+    id: "gitlab-review-agent",
+    name: "GitLab Review Agent",
+    description: "An AI code review agent that reviews your GitLab MRs. Uses the code indexed on Sourcebot to provide codebase-wide context.",
+    requiredEnvVars: ["GITLAB_REVIEW_AGENT_WEBHOOK_SECRET", "GITLAB_REVIEW_AGENT_TOKEN"],
     configureUrl: "https://docs.sourcebot.dev/docs/features/agents/review-agent"
   },
 ];
@@ -18,21 +25,11 @@ export default async function AgentsPage() {
     <div className="flex flex-col items-center overflow-hidden min-h-screen">
       <NavigationMenu />
       <div className="w-full max-w-6xl px-4 mt-12 mb-24">
-        <div
-          className={
-            agents.length === 1
-              ? "flex justify-center items-center min-h-[60vh]"
-              : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"
-          }
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {agents.map((agent) => (
             <div
               key={agent.id}
-              className={
-                agents.length === 1
-                  ? "relative flex flex-col items-center border border-border rounded-2xl p-8 bg-card shadow-xl w-full max-w-xl"
-                  : "relative flex flex-col items-center border border-border rounded-2xl p-8 bg-card shadow-xl"
-              }
+              className="relative flex flex-col items-center border border-border rounded-2xl p-8 bg-card shadow-xl"
             >
               {/* Name and description */}
               <div className="flex flex-col items-center w-full">
