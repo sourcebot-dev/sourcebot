@@ -65,13 +65,17 @@ const decodeOfflineLicenseKeyPayload = (payload: string): getValidOfflineLicense
     }
 }
 
-const getValidOfflineLicense = (): getValidOfflineLicense | null => {
+const getDecodedOfflineLicense = (): getValidOfflineLicense | null => {
     const licenseKey = env.SOURCEBOT_EE_LICENSE_KEY;
     if (!licenseKey || !licenseKey.startsWith(offlineLicensePrefix)) {
         return null;
     }
 
-    const payload = decodeOfflineLicenseKeyPayload(licenseKey.substring(offlineLicensePrefix.length));
+    return decodeOfflineLicenseKeyPayload(licenseKey.substring(offlineLicensePrefix.length));
+}
+
+const getValidOfflineLicense = (): getValidOfflineLicense | null => {
+    const payload = getDecodedOfflineLicense();
     if (!payload) {
         return null;
     }
@@ -135,8 +139,11 @@ export type OfflineLicenseMetadata = {
     expiryDate: string;
 }
 
+// Returns the metadata of the offline license if one is configured, even
+// if it has expired. Callers that only care about active entitlements
+// should use `getEntitlements` / `getValidOfflineLicense` instead.
 export const getOfflineLicenseMetadata = (): OfflineLicenseMetadata | null => {
-    const license = getValidOfflineLicense();
+    const license = getDecodedOfflineLicense();
     if (!license) {
         return null;
     }
