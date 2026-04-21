@@ -388,6 +388,17 @@ Parameters:
 | `ref` | no | Commit SHA, branch or tag name to search on. If not provided, defaults to the default branch. |
 | `limit` | no | Maximum number of files to return (default: 100). |
 
+### `get_diff`
+
+Returns a structured diff between two refs in a repository using a two-dot comparison.
+
+Parameters:
+| Name | Required | Description |
+|:----------|:---------|:--------------------------------------------------------------------------------------------------------------|
+| `repo` | yes | The fully-qualified repository name. |
+| `base` | yes | The base git ref (branch, tag, or commit SHA) to diff from. |
+| `head` | yes | The head git ref (branch, tag, or commit SHA) to diff to. |
+
 ### `find_symbol_definitions`
 
 Finds where a symbol (function, class, variable, etc.) is defined in a repository.

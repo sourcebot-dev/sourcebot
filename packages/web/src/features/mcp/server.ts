@@ -13,6 +13,7 @@ import { getConfiguredLanguageModelsInfo } from "../chat/utils.server";
 import {
     findSymbolDefinitionsDefinition,
     findSymbolReferencesDefinition,
+    getDiffDefinition,
     listCommitsDefinition,
     listReposDefinition,
     listTreeDefinition,
@@ -40,6 +41,7 @@ export async function createMcpServer(): Promise<McpServer> {
 
     registerMcpTool(server, grepDefinition, toolContext);
     registerMcpTool(server, globDefinition, toolContext);
+    registerMcpTool(server, getDiffDefinition, toolContext);
     registerMcpTool(server, listCommitsDefinition, toolContext);
     registerMcpTool(server, listReposDefinition, toolContext);
     registerMcpTool(server, readFileDefinition, toolContext);
