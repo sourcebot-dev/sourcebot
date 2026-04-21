@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.16.14] - 2026-04-21
 
+### Added
+- [Experimental] Added support for GitLab MRs to the AI review agent. [#1104](https://github.com/sourcebot-dev/sourcebot/pull/1104)
+
 ## [4.16.13] - 2026-04-21
 
 ### Added
