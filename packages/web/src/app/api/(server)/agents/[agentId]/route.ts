@@ -3,20 +3,18 @@
 import { apiHandler } from "@/lib/apiHandler";
 import { requestBodySchemaValidationError, serviceErrorResponse, notFound } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
+import { ErrorCode } from "@/lib/errorCodes";
 import { withAuth } from "@/middleware/withAuth";
+import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
+import { OrgRole } from "@sourcebot/db";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { StatusCodes } from "http-status-codes";
 import { AgentScope, AgentType, PromptMode } from "@sourcebot/db";
 import { createLogger } from "@sourcebot/shared";
+import { agentConfigSettingsSchema } from "@/features/agents/review-agent/app";
 
 const logger = createLogger('agents-api');
-
-const agentConfigSettingsSchema = z.object({
-    autoReviewEnabled: z.boolean().optional(),
-    reviewCommand: z.string().optional(),
-    model: z.string().optional(),
-});
 
 const updateAgentConfigBodySchema = z.object({
     name: z.string().min(1).max(255).optional(),
@@ -85,13 +83,29 @@ export const PATCH = apiHandler(async (request: NextRequest, { params }: RoutePa
 
     const { name, description, type, enabled, prompt, promptMode, scope, repoIds, connectionIds, settings } = parsed.data;
 
-    const result = await withAuth(async ({ org, prisma }) => {
+    const result = await withAuth(async ({ org, role, prisma }) => {
+        return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
         const existing = await prisma.agentConfig.findFirst({
             where: { id: agentId, orgId: org.id },
         });
 
         if (!existing) {
             return notFound(`Agent config '${agentId}' not found`);
+        }
+
+        // Check for name collision with a different config in the same org
+        if (name !== undefined && name !== existing.name) {
+            const collision = await prisma.agentConfig.findUnique({
+                where: { orgId_name: { orgId: org.id, name } },
+            });
+
+            if (collision) {
+                return {
+                    statusCode: StatusCodes.CONFLICT,
+                    errorCode: ErrorCode.AGENT_CONFIG_ALREADY_EXISTS,
+                    message: `An agent config named '${name}' already exists`,
+                };
+            }
         }
 
         const effectiveScope = scope ?? existing.scope;
@@ -111,6 +125,33 @@ export const PATCH = apiHandler(async (request: NextRequest, { params }: RoutePa
                 errorCode: 'INVALID_REQUEST_BODY',
                 message: "connectionIds is required when scope is CONNECTION",
             };
+        }
+
+        // Verify all provided IDs belong to this org
+        if (repoIds && repoIds.length > 0) {
+            const count = await prisma.repo.count({
+                where: { id: { in: repoIds }, orgId: org.id },
+            });
+            if (count !== repoIds.length) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "One or more repoIds are invalid or do not belong to this org",
+                };
+            }
+        }
+
+        if (connectionIds && connectionIds.length > 0) {
+            const count = await prisma.connection.count({
+                where: { id: { in: connectionIds }, orgId: org.id },
+            });
+            if (count !== connectionIds.length) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: "One or more connectionIds are invalid or do not belong to this org",
+                };
+            }
         }
 
         try {
@@ -147,6 +188,7 @@ export const PATCH = apiHandler(async (request: NextRequest, { params }: RoutePa
             logger.error('Error updating agent config', { error, agentId, orgId: org.id });
             throw error;
         }
+        });
     });
 
     if (isServiceError(result)) {
@@ -159,7 +201,8 @@ export const PATCH = apiHandler(async (request: NextRequest, { params }: RoutePa
 export const DELETE = apiHandler(async (_request: NextRequest, { params }: RouteParams) => {
     const { agentId } = await params;
 
-    const result = await withAuth(async ({ org, prisma }) => {
+    const result = await withAuth(async ({ org, role, prisma }) => {
+        return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
         const existing = await prisma.agentConfig.findFirst({
             where: { id: agentId, orgId: org.id },
         });
@@ -175,6 +218,7 @@ export const DELETE = apiHandler(async (_request: NextRequest, { params }: Route
             logger.error('Error deleting agent config', { error, agentId, orgId: org.id });
             throw error;
         }
+        });
     });
 
     if (isServiceError(result)) {

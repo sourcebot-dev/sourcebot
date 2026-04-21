@@ -2,6 +2,7 @@ import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { NavigationMenu } from "@/app/(app)/components/navigationMenu";
 import { AgentConfigForm } from "../agentConfigForm";
 import { notFound } from "next/navigation";
+import { OrgRole } from "@sourcebot/db";
 
 type Props = {
     params: Promise<{ agentId: string }>;
@@ -59,4 +60,4 @@ export default authenticatedPage(async ({ prisma, org }, { params }: Props) => {
             </div>
         </div>
     );
-});
+}, { minRole: OrgRole.OWNER, redirectTo: '/agents' });

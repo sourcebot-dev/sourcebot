@@ -26,7 +26,7 @@ const DEFAULT_RULES = [
     "If there are no issues found on a line range, do NOT respond with any comments. This includes comments such as \"No issues found\" or \"LGTM\".",
 ];
 
-const agentConfigSettingsSchema = z.object({
+export const agentConfigSettingsSchema = z.object({
     autoReviewEnabled: z.boolean().optional(),
     reviewCommand: z.string().optional(),
     model: z.string().optional(),

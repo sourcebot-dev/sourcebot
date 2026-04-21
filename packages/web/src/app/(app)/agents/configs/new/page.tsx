@@ -1,6 +1,7 @@
 import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { NavigationMenu } from "@/app/(app)/components/navigationMenu";
 import { AgentConfigForm } from "../agentConfigForm";
+import { OrgRole } from "@sourcebot/db";
 
 export default authenticatedPage(async ({ prisma, org }) => {
     const connections = await prisma.connection.findMany({
@@ -24,4 +25,4 @@ export default authenticatedPage(async ({ prisma, org }) => {
             </div>
         </div>
     );
-});
+}, { minRole: OrgRole.OWNER, redirectTo: '/agents' });

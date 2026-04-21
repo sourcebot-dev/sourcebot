@@ -13,7 +13,6 @@ import fs from "fs";
 import { GitHubPullRequest, GitLabMergeRequestPayload, gitLabMergeRequestPayloadSchema, gitLabNotePayloadSchema } from "@/features/agents/review-agent/types";
 import { createLogger } from "@sourcebot/shared";
 import { __unsafePrisma } from "@/prisma";
-import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { AgentConfig } from "@sourcebot/db";
 
 const logger = createLogger('webhook');
@@ -148,7 +147,6 @@ async function resolveGitHubAgentConfig(
             where: {
                 external_id: String(githubRepoId),
                 external_codeHostUrl: codeHostUrl,
-                orgId: SINGLE_TENANT_ORG_ID,
             },
         });
 
@@ -157,7 +155,7 @@ async function resolveGitHubAgentConfig(
             return null;
         }
 
-        return resolveAgentConfig(repo.id, SINGLE_TENANT_ORG_ID, 'CODE_REVIEW', __unsafePrisma);
+        return resolveAgentConfig(repo.id, repo.orgId, 'CODE_REVIEW', __unsafePrisma);
     } catch (error) {
         logger.error(`Error resolving AgentConfig for GitHub repo ${githubRepoId}:`, error);
         return null;
@@ -177,7 +175,6 @@ async function resolveGitLabAgentConfig(
             where: {
                 external_id: String(gitlabProjectId),
                 external_codeHostUrl: codeHostUrl,
-                orgId: SINGLE_TENANT_ORG_ID,
             },
         });
 
@@ -186,7 +183,7 @@ async function resolveGitLabAgentConfig(
             return null;
         }
 
-        return resolveAgentConfig(repo.id, SINGLE_TENANT_ORG_ID, 'CODE_REVIEW', __unsafePrisma);
+        return resolveAgentConfig(repo.id, repo.orgId, 'CODE_REVIEW', __unsafePrisma);
     } catch (error) {
         logger.error(`Error resolving AgentConfig for GitLab project ${gitlabProjectId}:`, error);
         return null;

@@ -627,7 +627,7 @@ model AgentConfig {
   connections AgentConfigToConnection[]
 
   /// Extensible per-agent settings stored as JSON.
-  /// Shape: { autoReviewEnabled?: boolean, reviewCommand?: string, model?: string }
+  /// Shape: { autoReviewEnabled?: boolean, reviewCommand?: string, model?: string, contextFiles?: string }
   settings    Json        @default("{}")
 
   createdAt   DateTime    @default(now())

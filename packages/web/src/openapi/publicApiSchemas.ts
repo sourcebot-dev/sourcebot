@@ -65,6 +65,7 @@ const publicAgentConfigSettingsSchema = z.object({
     autoReviewEnabled: z.boolean().optional().describe('Whether the agent automatically reviews new PRs/MRs. Overrides the REVIEW_AGENT_AUTO_REVIEW_ENABLED env var.'),
     reviewCommand: z.string().optional().describe('Comment command that triggers a manual review (without the leading /). Overrides the REVIEW_AGENT_REVIEW_COMMAND env var.'),
     model: z.string().optional().describe('Display name of the language model to use for this config. Overrides the REVIEW_AGENT_MODEL env var.'),
+    contextFiles: z.string().optional().describe('Comma or space separated list of file paths to fetch from the repository and inject as context for each review. Missing files are silently ignored.'),
 }).openapi('PublicAgentConfigSettings');
 
 const publicAgentConfigRepoSchema = z.object({
