@@ -17,6 +17,7 @@ import type { Or as _zoekt_webserver_v1_Or, Or__Output as _zoekt_webserver_v1_Or
 import type { Not as _zoekt_webserver_v1_Not, Not__Output as _zoekt_webserver_v1_Not__Output } from '../../../zoekt/webserver/v1/Not';
 import type { Branch as _zoekt_webserver_v1_Branch, Branch__Output as _zoekt_webserver_v1_Branch__Output } from '../../../zoekt/webserver/v1/Branch';
 import type { Boost as _zoekt_webserver_v1_Boost, Boost__Output as _zoekt_webserver_v1_Boost__Output } from '../../../zoekt/webserver/v1/Boost';
+import type { Meta as _zoekt_webserver_v1_Meta, Meta__Output as _zoekt_webserver_v1_Meta__Output } from '../../../zoekt/webserver/v1/Meta';
 
 export interface Q {
   'raw_config'?: (_zoekt_webserver_v1_RawConfig | null);
@@ -37,7 +38,8 @@ export interface Q {
   'not'?: (_zoekt_webserver_v1_Not | null);
   'branch'?: (_zoekt_webserver_v1_Branch | null);
   'boost'?: (_zoekt_webserver_v1_Boost | null);
-  'query'?: "raw_config"|"regexp"|"symbol"|"language"|"const"|"repo"|"repo_regexp"|"branches_repos"|"repo_ids"|"repo_set"|"file_name_set"|"type"|"substring"|"and"|"or"|"not"|"branch"|"boost";
+  'meta'?: (_zoekt_webserver_v1_Meta | null);
+  'query'?: "raw_config"|"regexp"|"symbol"|"language"|"const"|"repo"|"repo_regexp"|"branches_repos"|"repo_ids"|"repo_set"|"file_name_set"|"type"|"substring"|"and"|"or"|"not"|"branch"|"boost"|"meta";
 }
 
 export interface Q__Output {
@@ -59,5 +61,6 @@ export interface Q__Output {
   'not'?: (_zoekt_webserver_v1_Not__Output | null);
   'branch'?: (_zoekt_webserver_v1_Branch__Output | null);
   'boost'?: (_zoekt_webserver_v1_Boost__Output | null);
-  'query'?: "raw_config"|"regexp"|"symbol"|"language"|"const"|"repo"|"repo_regexp"|"branches_repos"|"repo_ids"|"repo_set"|"file_name_set"|"type"|"substring"|"and"|"or"|"not"|"branch"|"boost";
+  'meta'?: (_zoekt_webserver_v1_Meta__Output | null);
+  'query'?: "raw_config"|"regexp"|"symbol"|"language"|"const"|"repo"|"repo_regexp"|"branches_repos"|"repo_ids"|"repo_set"|"file_name_set"|"type"|"substring"|"and"|"or"|"not"|"branch"|"boost"|"meta";
 }

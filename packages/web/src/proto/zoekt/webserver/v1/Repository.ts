@@ -92,6 +92,10 @@ export interface Repository {
    * tenant_id is the tenant ID of the repository.
    */
   'tenant_id'?: (number | string | Long);
+  /**
+   * Additional metadata about the repository.
+   */
+  'metadata'?: ({[key: string]: string});
 }
 
 export interface Repository__Output {
@@ -181,4 +185,8 @@ export interface Repository__Output {
    * tenant_id is the tenant ID of the repository.
    */
   'tenant_id': (number);
+  /**
+   * Additional metadata about the repository.
+   */
+  'metadata': ({[key: string]: string});
 }
