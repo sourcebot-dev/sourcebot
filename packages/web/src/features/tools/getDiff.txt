@@ -1,0 +1,4 @@
+Returns a structured git diff between two refs in a repository.
+
+Use this tool when you need patch details (added, removed, and context lines) between a base and head revision.
+The output includes changed files and hunks with line ranges and diff body content.
