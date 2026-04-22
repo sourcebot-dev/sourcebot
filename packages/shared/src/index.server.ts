@@ -7,6 +7,8 @@ export {
     isAnonymousAccessAvailable as _isAnonymousAccessAvailable,
     getSeatCap,
     getOfflineLicenseMetadata,
+    STALE_ONLINE_LICENSE_THRESHOLD_MS,
+    STALE_ONLINE_LICENSE_WARNING_THRESHOLD_MS,
 } from "./entitlements.js";
 export type {
     Entitlement,

@@ -1,10 +1,16 @@
 import { OrgRole, type License } from "@sourcebot/db";
-import type { LicenseStatus, OfflineLicenseMetadata } from "@sourcebot/shared";
+import {
+    STALE_ONLINE_LICENSE_THRESHOLD_MS,
+    STALE_ONLINE_LICENSE_WARNING_THRESHOLD_MS,
+    type LicenseStatus,
+    type OfflineLicenseMetadata,
+} from "@sourcebot/shared";
 import { BannerPriority, type BannerDescriptor, type BannerId } from "./types";
 import { PermissionSyncBanner } from "./permissionSyncBanner";
 import { LicenseExpiredBanner } from "./licenseExpiredBanner";
 import { LicenseExpiryHeadsUpBanner } from "./licenseExpiryHeadsUpBanner";
 import { InvoicePastDueBanner } from "./invoicePastDueBanner";
+import { ServicePingFailedBanner } from "./servicePingFailedBanner";
 
 const EXPIRY_HEADS_UP_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -69,6 +75,39 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
         });
     }
 
+    const pingStaleness = getPingStaleness(ctx);
+    if (pingStaleness === 'warning') {
+        const lastSyncAtIso = ctx.license?.lastSyncAt?.toISOString() ?? null;
+        banners.push({
+            id: 'servicePingFailed',
+            priority: BannerPriority.SERVICE_PING_FAILED,
+            dismissible: true,
+            audience: 'owner',
+            render: (props) => (
+                <ServicePingFailedBanner
+                    {...props}
+                    variant="warning"
+                    lastSyncAt={lastSyncAtIso}
+                />
+            ),
+        });
+    } else if (pingStaleness === 'enforced') {
+        const lastSyncAtIso = ctx.license?.lastSyncAt?.toISOString() ?? null;
+        banners.push({
+            id: 'servicePingFailed',
+            priority: BannerPriority.SERVICE_PING_ENFORCED,
+            dismissible: false,
+            audience: 'everyone',
+            render: (props) => (
+                <ServicePingFailedBanner
+                    {...props}
+                    variant="enforced"
+                    lastSyncAt={lastSyncAtIso}
+                />
+            ),
+        });
+    }
+
     if (ctx.hasPermissionSyncEntitlement && ctx.hasPendingFirstSync) {
         banners.push({
             id: 'permissionSync',
@@ -126,6 +165,27 @@ function getLicenseExpiryState(ctx: BannerContext): LicenseExpiryState {
         if (deltaMs > 0 && deltaMs <= EXPIRY_HEADS_UP_WINDOW_MS) {
             return { kind: 'expiring-soon', source: 'online', expiresAt };
         }
+    }
+    return null;
+}
+
+// 'enforced' once entitlements.ts would strip entitlements; 'warning' in the
+// lead-up. Offline licenses don't ping, so they're never stale here.
+function getPingStaleness(ctx: BannerContext): 'warning' | 'enforced' | null {
+    if (ctx.offlineLicense || !ctx.license) {
+        return null;
+    }
+    // Matches the fail-safe in entitlements.ts: a license row without a
+    // lastSyncAt means the first verification never succeeded.
+    if (!ctx.license.lastSyncAt) {
+        return 'enforced';
+    }
+    const stalenessMs = ctx.now.getTime() - ctx.license.lastSyncAt.getTime();
+    if (stalenessMs > STALE_ONLINE_LICENSE_THRESHOLD_MS) {
+        return 'enforced';
+    }
+    if (stalenessMs > STALE_ONLINE_LICENSE_WARNING_THRESHOLD_MS) {
+        return 'warning';
     }
     return null;
 }

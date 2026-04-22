@@ -9,7 +9,7 @@ interface LicenseExpiredBannerProps extends BannerProps {
     source: 'offline' | 'online';
 }
 
-// @todo: This should instead be a docs page that explains the enterprise offering.
+// @nocheckin: This should instead be a docs page that explains the enterprise offering.
 const ENTERPRISE_OFFERING_DOCS_LINK = "https://sourcebot.dev/pricing";
 
 export function LicenseExpiredBanner({ id, dismissible, role, source }: LicenseExpiredBannerProps) {
@@ -37,7 +37,7 @@ export function LicenseExpiredBanner({ id, dismissible, role, source }: LicenseE
             id={id}
             dismissible={dismissible}
             icon={<AlertTriangle className="h-4 w-4 mt-0.5 text-destructive" />}
-            title="License Expired"
+            title="License expired"
             description={description}
             action={isOwner ? (
                 <Button asChild size="sm" variant="outline">

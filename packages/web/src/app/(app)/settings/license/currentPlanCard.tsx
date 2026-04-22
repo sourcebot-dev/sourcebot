@@ -1,7 +1,9 @@
 import { License } from "@sourcebot/db";
-import { LicenseStatus } from "@sourcebot/shared";
+import { LicenseStatus, STALE_ONLINE_LICENSE_WARNING_THRESHOLD_MS } from "@sourcebot/shared";
 import { formatDistanceToNow } from "date-fns";
+import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { SettingsCard } from "../components/settingsCard";
 import { PlanActionsMenu } from "./planActionsMenu";
 
@@ -67,7 +69,12 @@ export function CurrentPlanCard({ license }: CurrentPlanCardProps) {
                         {license.lastSyncAt && (
                             <>
                                 <span>·</span>
-                                <span>Refreshed {formatDistanceToNow(license.lastSyncAt, { addSuffix: true })}</span>
+                                <span className={cn("inline-flex items-center gap-1", isLastSyncStale(license.lastSyncAt) && "text-warning")}>
+                                    {isLastSyncStale(license.lastSyncAt) && (
+                                        <AlertTriangle className="h-3 w-3" />
+                                    )}
+                                    Verified {formatDistanceToNow(license.lastSyncAt, { addSuffix: true })}
+                                </span>
                             </>
                         )}
                     </div>
@@ -168,5 +175,9 @@ function formatDate(date: Date): string {
         day: 'numeric',
         year: 'numeric',
     });
+}
+
+function isLastSyncStale(lastSyncAt: Date): boolean {
+    return Date.now() - lastSyncAt.getTime() > STALE_ONLINE_LICENSE_WARNING_THRESHOLD_MS;
 }
 

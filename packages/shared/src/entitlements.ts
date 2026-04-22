@@ -88,11 +88,26 @@ const getValidOfflineLicense = (): getValidOfflineLicense | null => {
     return payload;
 }
 
+// If the license hasn't successfully synced with Lighthouse for this long,                                                                                                                                                            
+// the locally-cached state is no longer trusted. This guards against an                                                                                                                                                             
+// operator blocking egress to prevent the license row from hearing about                                                                                                                                                            
+// a canceled or past-due subscription. 7 days absorbs week-long transient                                                                                                                                                             
+// outages (weekends, firewall rollouts) without punishing legitimate                                                                                                                                                                  
+// customers.                                                                                                                                                                                                                          
+export const STALE_ONLINE_LICENSE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Surface a UI warning (banner + "refreshed" timestamp color) when the
+// license hasn't synced for this long. Must be < the enforcement threshold
+// so the warning has a chance to fire before entitlements are stripped.
+export const STALE_ONLINE_LICENSE_WARNING_THRESHOLD_MS = 48 * 60 * 60 * 1000;
+
 const getValidOnlineLicense = (_license: License | null): License | null => {
     if (
         _license &&
         _license.status &&
-        ACTIVE_ONLINE_LICENSE_STATUSES.includes(_license.status as LicenseStatus)
+        ACTIVE_ONLINE_LICENSE_STATUSES.includes(_license.status as LicenseStatus) &&
+        _license.lastSyncAt &&
+        (Date.now() - _license.lastSyncAt.getTime()) <= STALE_ONLINE_LICENSE_THRESHOLD_MS
     ) {
         return _license;
     }

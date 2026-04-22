@@ -1,10 +1,11 @@
 export const BannerPriority = {
-    LICENSE_EXPIRED:         100,
-    INVOICE_PAST_DUE:         90,
-    PERMISSION_SYNC:          50,
-    LICENSE_EXPIRY_HEADS_UP:  20,
-    TRIAL:                    15,
-    SERVICE_PING_FAILED:      10,
+    LICENSE_EXPIRED:          100,
+    SERVICE_PING_ENFORCED:     95,
+    INVOICE_PAST_DUE:          90,
+    PERMISSION_SYNC:           50,
+    LICENSE_EXPIRY_HEADS_UP:   20,
+    TRIAL:                     15,
+    SERVICE_PING_FAILED:       10,
 } as const;
 
 export type BannerId =

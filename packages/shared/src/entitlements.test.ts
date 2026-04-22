@@ -63,7 +63,7 @@ const makeLicense = (overrides: Partial<License> = {}): License => ({
     nextRenewalAt: null,
     nextRenewalAmount: null,
     cancelAt: null,
-    lastSyncAt: null,
+    lastSyncAt: new Date(),
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -171,6 +171,47 @@ describe('getEntitlements', () => {
     test('falls through when offline key is malformed', () => {
         mocks.env.SOURCEBOT_EE_LICENSE_KEY = 'sourcebot_ee_not-a-valid-payload';
         expect(getEntitlements(null)).toEqual([]);
+    });
+
+    describe('online license staleness', () => {
+        const STALE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
+
+        test('returns entitlements when lastSyncAt is recent', () => {
+            const license = makeLicense({
+                status: 'active',
+                entitlements: ['sso'],
+                lastSyncAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+            });
+            expect(getEntitlements(license)).toEqual(['sso']);
+        });
+
+        test('returns empty when lastSyncAt is past the stale threshold', () => {
+            const license = makeLicense({
+                status: 'active',
+                entitlements: ['sso'],
+                lastSyncAt: new Date(Date.now() - STALE_THRESHOLD_MS - 60 * 1000), // 7d + 1min
+            });
+            expect(getEntitlements(license)).toEqual([]);
+        });
+
+        test('returns empty when lastSyncAt is null', () => {
+            const license = makeLicense({
+                status: 'active',
+                entitlements: ['sso'],
+                lastSyncAt: null,
+            });
+            expect(getEntitlements(license)).toEqual([]);
+        });
+
+        test('returns entitlements at the threshold boundary', () => {
+            // Exactly at the threshold should still be treated as valid (<=).
+            const license = makeLicense({
+                status: 'active',
+                entitlements: ['sso'],
+                lastSyncAt: new Date(Date.now() - STALE_THRESHOLD_MS + 1000),
+            });
+            expect(getEntitlements(license)).toEqual(['sso']);
+        });
     });
 });
 

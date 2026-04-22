@@ -5,10 +5,19 @@ import type { OfflineLicenseMetadata } from '@sourcebot/shared';
 // Stub the rendered banner components — these tests assert on descriptor
 // metadata only (id, priority, etc), so avoiding their React/Next.js import
 // chains keeps the suite focused on resolver logic.
+// Stub @sourcebot/shared: importing its real index initializes env-backed
+// server code that can't run in the test environment. The resolver only
+// needs the threshold constant; type imports are erased at runtime.
+vi.mock('@sourcebot/shared', () => ({
+    STALE_ONLINE_LICENSE_THRESHOLD_MS: 7 * 24 * 60 * 60 * 1000,
+    STALE_ONLINE_LICENSE_WARNING_THRESHOLD_MS: 48 * 60 * 60 * 1000,
+}));
+
 vi.mock('./permissionSyncBanner', () => ({ PermissionSyncBanner: () => null }));
 vi.mock('./licenseExpiredBanner', () => ({ LicenseExpiredBanner: () => null }));
 vi.mock('./licenseExpiryHeadsUpBanner', () => ({ LicenseExpiryHeadsUpBanner: () => null }));
 vi.mock('./invoicePastDueBanner', () => ({ InvoicePastDueBanner: () => null }));
+vi.mock('./servicePingFailedBanner', () => ({ ServicePingFailedBanner: () => null }));
 
 import { resolveActiveBanner, type BannerContext } from './bannerResolver';
 
@@ -34,7 +43,7 @@ const makeLicense = (overrides: Partial<License> = {}): License => ({
     nextRenewalAt: null,
     nextRenewalAmount: null,
     cancelAt: null,
-    lastSyncAt: null,
+    lastSyncAt: NOW,
     createdAt: NOW,
     updatedAt: NOW,
     ...overrides,
@@ -302,6 +311,136 @@ describe('resolveActiveBanner', () => {
                 dismissals: { invoicePastDue: TODAY },
             }));
             expect(result?.id).toBe('invoicePastDue');
+        });
+    });
+
+    describe('service ping staleness', () => {
+        const WARNING_MS = 48 * 60 * 60 * 1000;
+        const ENFORCEMENT_MS = 7 * 24 * 60 * 60 * 1000;
+        const msBefore = (ms: number) => new Date(NOW.getTime() - ms);
+
+        test('fresh lastSyncAt → no banner', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({ status: 'active', lastSyncAt: msBefore(1000) }),
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('stale between 48h and 7d → warning (dismissible, owner)', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'active',
+                    lastSyncAt: msBefore(WARNING_MS + 60_000),
+                }),
+            }));
+            expect(result?.id).toBe('servicePingFailed');
+            expect(result?.dismissible).toBe(true);
+            expect(result?.audience).toBe('owner');
+        });
+
+        test('stale beyond 7d → enforced (non-dismissible, everyone)', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'active',
+                    lastSyncAt: msBefore(ENFORCEMENT_MS + 60_000),
+                }),
+            }));
+            expect(result?.id).toBe('servicePingFailed');
+            expect(result?.dismissible).toBe(false);
+            expect(result?.audience).toBe('everyone');
+        });
+
+        test('null lastSyncAt on existing license → enforced', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({ status: 'active', lastSyncAt: null }),
+            }));
+            expect(result?.id).toBe('servicePingFailed');
+            expect(result?.audience).toBe('everyone');
+        });
+
+        test('offline license suppresses staleness banner', () => {
+            const result = resolveActiveBanner(makeContext({
+                offlineLicense: makeOfflineLicense(),
+                license: makeLicense({ status: 'active', lastSyncAt: null }),
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('warning banner hidden from non-owners', () => {
+            const result = resolveActiveBanner(makeContext({
+                role: OrgRole.MEMBER,
+                license: makeLicense({
+                    status: 'active',
+                    lastSyncAt: msBefore(WARNING_MS + 60_000),
+                }),
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('enforced banner shown to non-owners', () => {
+            const result = resolveActiveBanner(makeContext({
+                role: OrgRole.MEMBER,
+                license: makeLicense({
+                    status: 'active',
+                    lastSyncAt: msBefore(ENFORCEMENT_MS + 60_000),
+                }),
+            }));
+            expect(result?.id).toBe('servicePingFailed');
+        });
+
+        test('warning: dismissed today → filtered out', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'active',
+                    lastSyncAt: msBefore(WARNING_MS + 60_000),
+                }),
+                dismissals: { servicePingFailed: TODAY },
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('enforced: dismissal cookie is ignored', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'active',
+                    lastSyncAt: msBefore(ENFORCEMENT_MS + 60_000),
+                }),
+                dismissals: { servicePingFailed: TODAY },
+            }));
+            expect(result?.id).toBe('servicePingFailed');
+        });
+
+        test('enforced outranks invoice past due', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'past_due',
+                    lastSyncAt: msBefore(ENFORCEMENT_MS + 60_000),
+                }),
+            }));
+            expect(result?.id).toBe('servicePingFailed');
+            expect(result?.audience).toBe('everyone');
+        });
+
+        test('license expired outranks enforced ping staleness', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'canceled',
+                    lastSyncAt: msBefore(ENFORCEMENT_MS + 60_000),
+                }),
+            }));
+            expect(result?.id).toBe('licenseExpired');
+        });
+
+        test('warning ranks below permission sync', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'active',
+                    lastSyncAt: msBefore(WARNING_MS + 60_000),
+                }),
+                hasPermissionSyncEntitlement: true,
+                hasPendingFirstSync: true,
+            }));
+            expect(result?.id).toBe('permissionSync');
         });
     });
 
