@@ -53,12 +53,14 @@ describe('parseAgentConfigSettings', () => {
             autoReviewEnabled: false,
             reviewCommand: 'check',
             model: 'claude-sonnet-4-6',
+            contextFiles: 'AGENTS.md .sourcebot/review.md',
         });
 
         expect(result).toEqual({
             autoReviewEnabled: false,
             reviewCommand: 'check',
             model: 'claude-sonnet-4-6',
+            contextFiles: 'AGENTS.md .sourcebot/review.md',
         });
     });
 

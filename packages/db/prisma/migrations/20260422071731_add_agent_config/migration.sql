@@ -47,6 +47,12 @@ CREATE INDEX "AgentConfig_orgId_type_enabled_idx" ON "AgentConfig"("orgId", "typ
 -- CreateIndex
 CREATE UNIQUE INDEX "AgentConfig_orgId_name_key" ON "AgentConfig"("orgId", "name");
 
+-- CreateIndex
+CREATE INDEX "AgentConfigToRepo_repoId_idx" ON "AgentConfigToRepo"("repoId");
+
+-- CreateIndex
+CREATE INDEX "AgentConfigToConnection_connectionId_idx" ON "AgentConfigToConnection"("connectionId");
+
 -- AddForeignKey
 ALTER TABLE "AgentConfig" ADD CONSTRAINT "AgentConfig_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Org"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
