@@ -592,6 +592,13 @@ export const isHttpError = (error: unknown, status: number): boolean => {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Retry only on transient failures: network errors, 5xx responses, and the
+// two 4xx codes that are known to be retry-safe (408 Request Timeout, 429
+// Too Many Requests). Other 4xx responses are deterministic client errors
+// and should be surfaced to the caller immediately.
+const isRetryableStatus = (status: number): boolean =>
+    status >= 500 || status === 408 || status === 429;
+
 export const fetchWithRetry = async (
     input: RequestInfo | URL,
     init?: RequestInit,
@@ -600,7 +607,7 @@ export const fetchWithRetry = async (
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
             const response = await fetch(input, init);
-            if (response.ok || attempt === retries) {
+            if (response.ok || !isRetryableStatus(response.status) || attempt === retries) {
                 return response;
             }
         } catch (error) {

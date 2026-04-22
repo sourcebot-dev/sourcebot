@@ -18,6 +18,7 @@ vi.mock('./licenseExpiredBanner', () => ({ LicenseExpiredBanner: () => null }));
 vi.mock('./licenseExpiryHeadsUpBanner', () => ({ LicenseExpiryHeadsUpBanner: () => null }));
 vi.mock('./invoicePastDueBanner', () => ({ InvoicePastDueBanner: () => null }));
 vi.mock('./servicePingFailedBanner', () => ({ ServicePingFailedBanner: () => null }));
+vi.mock('./trialBanner', () => ({ TrialBanner: () => null }));
 
 import { resolveActiveBanner, type BannerContext } from './bannerResolver';
 
@@ -43,6 +44,8 @@ const makeLicense = (overrides: Partial<License> = {}): License => ({
     nextRenewalAt: null,
     nextRenewalAmount: null,
     cancelAt: null,
+    trialEnd: null,
+    hasPaymentMethod: null,
     lastSyncAt: NOW,
     createdAt: NOW,
     updatedAt: NOW,
@@ -441,6 +444,92 @@ describe('resolveActiveBanner', () => {
                 hasPendingFirstSync: true,
             }));
             expect(result?.id).toBe('permissionSync');
+        });
+    });
+
+    describe('trial', () => {
+        test('status trialing + future trialEnd → trial banner', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'trialing',
+                    trialEnd: daysFromNow(10),
+                }),
+            }));
+            expect(result?.id).toBe('trial');
+        });
+
+        test('trialing but trialEnd in past → no banner', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'trialing',
+                    trialEnd: hoursFromNow(-1),
+                }),
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('trialing but no trialEnd → no banner', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({ status: 'trialing', trialEnd: null }),
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('hidden from non-owners', () => {
+            const result = resolveActiveBanner(makeContext({
+                role: OrgRole.MEMBER,
+                license: makeLicense({
+                    status: 'trialing',
+                    trialEnd: daysFromNow(5),
+                }),
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('suppressed by offline license', () => {
+            const result = resolveActiveBanner(makeContext({
+                offlineLicense: makeOfflineLicense(),
+                license: makeLicense({
+                    status: 'trialing',
+                    trialEnd: daysFromNow(5),
+                }),
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('dismissible: today cookie filters out', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'trialing',
+                    trialEnd: daysFromNow(5),
+                }),
+                dismissals: { trial: TODAY },
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('outranks license expiry heads-up', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'trialing',
+                    trialEnd: daysFromNow(5),
+                    cancelAt: daysFromNow(5),
+                }),
+            }));
+            expect(result?.id).toBe('trial');
+        });
+
+        test('invoice past due outranks trial', () => {
+            // In reality Stripe statuses are mutually exclusive (a sub can't
+            // be trialing AND past_due at once), but the priority ordering
+            // should hold if both descriptors were somehow produced.
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'past_due',
+                    trialEnd: daysFromNow(5),
+                }),
+            }));
+            expect(result?.id).toBe('invoicePastDue');
         });
     });
 

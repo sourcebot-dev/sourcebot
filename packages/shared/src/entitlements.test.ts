@@ -63,6 +63,8 @@ const makeLicense = (overrides: Partial<License> = {}): License => ({
     nextRenewalAt: null,
     nextRenewalAmount: null,
     cancelAt: null,
+    trialEnd: null,
+    hasPaymentMethod: null,
     lastSyncAt: new Date(),
     createdAt: new Date(),
     updatedAt: new Date(),

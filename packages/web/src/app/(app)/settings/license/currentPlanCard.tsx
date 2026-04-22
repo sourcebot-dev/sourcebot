@@ -22,6 +22,7 @@ export function CurrentPlanCard({ license }: CurrentPlanCardProps) {
         nextRenewalAt,
         nextRenewalAmount,
         cancelAt,
+        trialEnd,
     } = license;
 
     // Require the fields needed to render the plan header. nextRenewalAt is
@@ -80,7 +81,7 @@ export function CurrentPlanCard({ license }: CurrentPlanCardProps) {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    {isActivelyBilling && (nextRenewalAt || cancelAt) && (
+                    {isActivelyBilling && (nextRenewalAt || cancelAt || trialEnd) && (
                         <div className="flex items-center gap-12">
                             <div className="flex flex-col items-end">
                                 <p className="text-xs text-muted-foreground">Billed seats</p>
@@ -93,10 +94,15 @@ export function CurrentPlanCard({ license }: CurrentPlanCardProps) {
                                         {formatCurrency(nextRenewalAmount ?? 0, currency)} on {formatDate(nextRenewalAt)}
                                     </p>
                                 </div>
-                            ) : cancelAt && (
+                            ) : cancelAt ? (
                                 <div className="flex flex-col items-end">
                                     <p className="text-xs text-muted-foreground">Cancels on</p>
                                     <p className="text-sm">{formatDate(cancelAt)}</p>
+                                </div>
+                            ) : trialEnd && (
+                                <div className="flex flex-col items-end">
+                                    <p className="text-xs text-muted-foreground">Trial ends on</p>
+                                    <p className="text-sm">{formatDate(trialEnd)}</p>
                                 </div>
                             )}
                         </div>

@@ -3,8 +3,8 @@ export const BannerPriority = {
     SERVICE_PING_ENFORCED:     95,
     INVOICE_PAST_DUE:          90,
     PERMISSION_SYNC:           50,
+    TRIAL:                     25,
     LICENSE_EXPIRY_HEADS_UP:   20,
-    TRIAL:                     15,
     SERVICE_PING_FAILED:       10,
 } as const;
 

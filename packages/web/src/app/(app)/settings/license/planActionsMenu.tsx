@@ -72,8 +72,7 @@ export function PlanActionsMenu() {
 
     const handleManage = useCallback(() => {
         setIsOpeningPortal(true);
-        const returnUrl = `${window.location.origin}/settings/license`;
-        createPortalSession(returnUrl)
+        createPortalSession()
             .then((response) => {
                 if (isServiceError(response)) {
                     toast({

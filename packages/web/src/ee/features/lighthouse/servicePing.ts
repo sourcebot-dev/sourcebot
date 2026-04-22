@@ -54,6 +54,8 @@ export const syncWithLighthouse = async (orgId: number) => {
             nextRenewalAt,
             nextRenewalAmount,
             cancelAt,
+            trialEnd,
+            hasPaymentMethod,
         } = response.license;
 
         await __unsafePrisma.license.update({
@@ -72,9 +74,21 @@ export const syncWithLighthouse = async (orgId: number) => {
                 nextRenewalAt: nextRenewalAt ? new Date(nextRenewalAt) : null,
                 nextRenewalAmount,
                 cancelAt: cancelAt ? new Date(cancelAt) : null,
+                trialEnd: trialEnd ? new Date(trialEnd) : null,
+                hasPaymentMethod,
                 lastSyncAt: new Date(),
             },
         });
+
+        if (trialEnd) {
+            await __unsafePrisma.org.update({
+                where: { id: orgId, trialUsedAt: null },
+                data: { trialUsedAt: new Date() },
+            }).catch(() => {
+                // No-op: the `where` matched zero rows because trialUsedAt
+                // was already set. Safe to ignore.
+            });
+        }
 
         logger.info(`License synced: entitlements=${entitlements.join(',')}, seats=${seats}, status=${status}`);
     }

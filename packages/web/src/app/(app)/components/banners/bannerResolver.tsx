@@ -11,6 +11,7 @@ import { LicenseExpiredBanner } from "./licenseExpiredBanner";
 import { LicenseExpiryHeadsUpBanner } from "./licenseExpiryHeadsUpBanner";
 import { InvoicePastDueBanner } from "./invoicePastDueBanner";
 import { ServicePingFailedBanner } from "./servicePingFailedBanner";
+import { TrialBanner } from "./trialBanner";
 
 const EXPIRY_HEADS_UP_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -60,6 +61,29 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
                     {...props}
                     source={expiryState.source}
                     expiresAt={expiryState.expiresAt.toISOString()}
+                />
+            ),
+        });
+    }
+
+    if (
+        !ctx.offlineLicense
+        && ctx.license?.status === 'trialing'
+        && ctx.license.trialEnd
+        && ctx.license.trialEnd.getTime() > ctx.now.getTime()
+    ) {
+        const trialEndIso = ctx.license.trialEnd.toISOString();
+        const hasPaymentMethod = ctx.license.hasPaymentMethod ?? false;
+        banners.push({
+            id: 'trial',
+            priority: BannerPriority.TRIAL,
+            dismissible: true,
+            audience: 'owner',
+            render: (props) => (
+                <TrialBanner
+                    {...props}
+                    trialEnd={trialEndIso}
+                    hasPaymentMethod={hasPaymentMethod}
                 />
             ),
         });

@@ -12,7 +12,11 @@ import { useToast } from "@/components/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, ExternalLink } from "lucide-react";
 
-export function ActivationCodeCard() {
+interface ActivationCodeCardProps {
+    isTrialEligible: boolean;
+}
+
+export function ActivationCodeCard({ isTrialEligible }: ActivationCodeCardProps) {
     const [activationCode, setActivationCode] = useState("");
     const [isActivating, setIsActivating] = useState(false);
     const [isCheckoutSessionCreating, setIsCheckoutSessionCreating] = useState(false);
@@ -48,10 +52,7 @@ export function ActivationCodeCard() {
     const onCreateCheckoutSession = useCallback(() => {
         setIsCheckoutSessionCreating(true);
 
-        const successUrl = `${window.location.origin}/settings/license?checkout=success`;
-        const cancelUrl = `${window.location.origin}/settings/license`;
-
-        createCheckoutSession(successUrl, cancelUrl)
+        createCheckoutSession(isTrialEligible)
             .then((response) => {
                 if (isServiceError(response)) {
                     toast({
@@ -63,7 +64,7 @@ export function ActivationCodeCard() {
                     router.push(response.url);
                 }
             });
-    }, [router, toast]);
+    }, [router, toast, isTrialEligible]);
 
     return (
         <SettingsCard>
@@ -104,7 +105,7 @@ export function ActivationCodeCard() {
                             onClick={onCreateCheckoutSession}
                             disabled={isCheckoutSessionCreating}
                         >
-                            Purchase a license
+                            {isTrialEligible ? "Start a free trial" : "Purchase a license"}
                             {isCheckoutSessionCreating ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
                             ) : (

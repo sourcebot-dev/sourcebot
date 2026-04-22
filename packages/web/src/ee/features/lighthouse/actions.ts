@@ -75,7 +75,7 @@ export const refreshLicense = async (): Promise<{ success: boolean } | ServiceEr
     )
 );
 
-export const createCheckoutSession = async (successUrl: string, cancelUrl: string): Promise<{ url: string } | ServiceError> => sew(() =>
+export const createCheckoutSession = async (requestTrial = false): Promise<{ url: string } | ServiceError> => sew(() =>
     withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             if (!user.email) {
@@ -96,9 +96,11 @@ export const createCheckoutSession = async (successUrl: string, cancelUrl: strin
                 email: user.email,
                 installId: env.SOURCEBOT_INSTALL_ID,
                 quantity: Math.max(memberCount, 1),
-                requestTrial: false,
-                successUrl,
-                cancelUrl,
+                requestTrial,
+                successUrl: requestTrial
+                    ? `${env.AUTH_URL}/settings/license?checkout=success&refresh=true&trial_used=true`
+                    : `${env.AUTH_URL}/settings/license?checkout=success&refresh=true`,
+                cancelUrl: `${env.AUTH_URL}/settings/license?refresh=true`,
             });
 
             if (isServiceError(result)) {
@@ -134,7 +136,7 @@ export const deactivateLicense = async (): Promise<{ success: boolean } | Servic
     )
 );
 
-export const createPortalSession = async (returnUrl: string): Promise<{ url: string } | ServiceError> => sew(() =>
+export const createPortalSession = async (): Promise<{ url: string } | ServiceError> => sew(() =>
     withAuth(async ({ org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const license = await prisma.license.findUnique({
@@ -153,7 +155,10 @@ export const createPortalSession = async (returnUrl: string): Promise<{ url: str
 
             const result = await client.portal({
                 activationCode,
-                returnUrl,
+                // Forces a license resync on the return page so any changes
+                // made in the portal (e.g. payment method added) show up
+                // immediately instead of waiting for the next daily ping.
+                returnUrl: `${env.AUTH_URL}/settings/license?refresh=true`,
             });
 
             if (isServiceError(result)) {

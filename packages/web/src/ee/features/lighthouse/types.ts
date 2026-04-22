@@ -22,6 +22,7 @@ export const servicePingResponseSchema = z.object({
         nextRenewalAmount: z.number().int().nullable(),
         cancelAt: z.string().datetime().nullable(),
         trialEnd: z.string().datetime().nullable(),
+        hasPaymentMethod: z.boolean(),
     }).optional(),
 });
 export type ServicePingResponse = z.infer<typeof servicePingResponseSchema>;
