@@ -87,6 +87,10 @@ export const PATCH = apiHandler(async (request: NextRequest, { params }: RoutePa
         return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
         const existing = await prisma.agentConfig.findFirst({
             where: { id: agentId, orgId: org.id },
+            include: {
+                repos: { select: { repoId: true } },
+                connections: { select: { connectionId: true } },
+            },
         });
 
         if (!existing) {
@@ -151,6 +155,64 @@ export const PATCH = apiHandler(async (request: NextRequest, { params }: RoutePa
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
                     message: "One or more connectionIds are invalid or do not belong to this org",
                 };
+            }
+        }
+
+        // Enforce scope-level uniqueness (only when the config is or will be enabled)
+        const willBeEnabled = enabled !== undefined ? enabled : existing.enabled;
+        if (willBeEnabled) {
+            const effectiveType = type ?? existing.type;
+            const notSelf = { id: { not: agentId } };
+
+            if (effectiveScope === AgentScope.ORG) {
+                const conflict = await prisma.agentConfig.findFirst({
+                    where: { orgId: org.id, type: effectiveType, scope: AgentScope.ORG, enabled: true, ...notSelf },
+                });
+                if (conflict) {
+                    return {
+                        statusCode: StatusCodes.CONFLICT,
+                        errorCode: ErrorCode.AGENT_CONFIG_SCOPE_CONFLICT,
+                        message: `An org-wide config of this type already exists: '${conflict.name}'`,
+                    };
+                }
+            }
+
+            const effectiveRepoIds = repoIds ?? (effectiveScope === AgentScope.REPO
+                ? existing.repos?.map((r: { repoId: number }) => r.repoId) ?? []
+                : []);
+            if (effectiveScope === AgentScope.REPO && effectiveRepoIds.length > 0) {
+                const conflict = await prisma.agentConfig.findFirst({
+                    where: {
+                        orgId: org.id, type: effectiveType, scope: AgentScope.REPO, enabled: true, ...notSelf,
+                        repos: { some: { repoId: { in: effectiveRepoIds } } },
+                    },
+                });
+                if (conflict) {
+                    return {
+                        statusCode: StatusCodes.CONFLICT,
+                        errorCode: ErrorCode.AGENT_CONFIG_SCOPE_CONFLICT,
+                        message: `One or more of the selected repos is already covered by config '${conflict.name}'`,
+                    };
+                }
+            }
+
+            const effectiveConnectionIds = connectionIds ?? (effectiveScope === AgentScope.CONNECTION
+                ? existing.connections?.map((c: { connectionId: number }) => c.connectionId) ?? []
+                : []);
+            if (effectiveScope === AgentScope.CONNECTION && effectiveConnectionIds.length > 0) {
+                const conflict = await prisma.agentConfig.findFirst({
+                    where: {
+                        orgId: org.id, type: effectiveType, scope: AgentScope.CONNECTION, enabled: true, ...notSelf,
+                        connections: { some: { connectionId: { in: effectiveConnectionIds } } },
+                    },
+                });
+                if (conflict) {
+                    return {
+                        statusCode: StatusCodes.CONFLICT,
+                        errorCode: ErrorCode.AGENT_CONFIG_SCOPE_CONFLICT,
+                        message: `One or more of the selected connections is already covered by config '${conflict.name}'`,
+                    };
+                }
             }
         }
 

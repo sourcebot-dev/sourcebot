@@ -194,6 +194,61 @@ describe('POST /api/agents', () => {
         });
     });
 
+    describe('scope conflict', () => {
+        beforeEach(() => {
+            prisma.agentConfig.findUnique.mockResolvedValue(null);
+        });
+
+        test('returns 409 when an enabled ORG-scoped config of the same type already exists', async () => {
+            prisma.agentConfig.findFirst.mockResolvedValue(makeDbConfig({ id: 'cfg-conflict', name: 'existing' }) as any);
+
+            const res = await POST(makePostRequest({ name: 'new-config', type: 'CODE_REVIEW', scope: 'ORG' }));
+
+            expect(res.status).toBe(StatusCodes.CONFLICT);
+            const body = await res.json();
+            expect(body.message).toContain('existing');
+        });
+
+        test('returns 409 when a REPO-scoped config already covers one of the provided repos', async () => {
+            prisma.repo.count.mockResolvedValue(1);
+            prisma.agentConfig.findFirst.mockResolvedValue(
+                makeDbConfig({ id: 'cfg-conflict', name: 'repo-config', scope: AgentScope.REPO }) as any,
+            );
+
+            const res = await POST(makePostRequest({ name: 'new-config', type: 'CODE_REVIEW', scope: 'REPO', repoIds: [1] }));
+
+            expect(res.status).toBe(StatusCodes.CONFLICT);
+        });
+
+        test('returns 409 when a CONNECTION-scoped config already covers one of the provided connections', async () => {
+            prisma.connection.count.mockResolvedValue(1);
+            prisma.agentConfig.findFirst.mockResolvedValue(
+                makeDbConfig({ id: 'cfg-conflict', name: 'conn-config', scope: AgentScope.CONNECTION }) as any,
+            );
+
+            const res = await POST(makePostRequest({ name: 'new-config', type: 'CODE_REVIEW', scope: 'CONNECTION', connectionIds: [2] }));
+
+            expect(res.status).toBe(StatusCodes.CONFLICT);
+        });
+
+        test('does not check for scope conflict when enabled is false', async () => {
+            prisma.agentConfig.create.mockResolvedValue(makeDbConfig({ enabled: false }) as any);
+
+            const res = await POST(makePostRequest({ name: 'new-config', type: 'CODE_REVIEW', scope: 'ORG', enabled: false }));
+
+            expect(res.status).toBe(StatusCodes.CREATED);
+            expect(prisma.agentConfig.findFirst).not.toHaveBeenCalled();
+        });
+
+        test('does not call create when a scope conflict is detected', async () => {
+            prisma.agentConfig.findFirst.mockResolvedValue(makeDbConfig({ id: 'cfg-conflict', name: 'existing' }) as any);
+
+            await POST(makePostRequest({ name: 'new-config', type: 'CODE_REVIEW', scope: 'ORG' }));
+
+            expect(prisma.agentConfig.create).not.toHaveBeenCalled();
+        });
+    });
+
     describe('name collision', () => {
         test('returns 409 when a config with the same name already exists', async () => {
             prisma.agentConfig.findUnique.mockResolvedValue(makeDbConfig() as any);

@@ -66,7 +66,12 @@ function makeDeleteRequest(agentId: string): NextRequest {
     return new NextRequest(makeUrl(agentId), { method: 'DELETE' });
 }
 
-function makeDbConfig(overrides: Partial<AgentConfig> = {}): AgentConfig & { repos: []; connections: [] } {
+type DbConfigOverrides = Partial<AgentConfig> & {
+    repos?: { repoId: number }[];
+    connections?: { connectionId: number }[];
+};
+
+function makeDbConfig(overrides: DbConfigOverrides = {}): AgentConfig & { repos: { repoId: number }[]; connections: { connectionId: number }[] } {
     return {
         id: 'cfg-abc',
         orgId: MOCK_ORG.id,
@@ -126,7 +131,10 @@ describe('PATCH /api/agents/[agentId]', () => {
 
     describe('name collision', () => {
         beforeEach(() => {
-            prisma.agentConfig.findFirst.mockResolvedValue(makeDbConfig() as any);
+            // First findFirst: fetch existing config. Subsequent calls (scope conflict): no conflict.
+            prisma.agentConfig.findFirst
+                .mockResolvedValueOnce(makeDbConfig() as any)
+                .mockResolvedValue(null);
         });
 
         test('returns 409 when renaming to a name used by another config', async () => {
@@ -177,7 +185,10 @@ describe('PATCH /api/agents/[agentId]', () => {
 
     describe('successful update', () => {
         beforeEach(() => {
-            prisma.agentConfig.findFirst.mockResolvedValue(makeDbConfig() as any);
+            // First findFirst: fetch existing config. Subsequent calls (scope conflict): no conflict.
+            prisma.agentConfig.findFirst
+                .mockResolvedValueOnce(makeDbConfig() as any)
+                .mockResolvedValue(null);
             prisma.agentConfig.findUnique.mockResolvedValue(null);
         });
 
@@ -202,6 +213,75 @@ describe('PATCH /api/agents/[agentId]', () => {
                     }),
                 }),
             );
+        });
+    });
+
+    describe('scope conflict', () => {
+        const params = { params: Promise.resolve({ agentId: AGENT_ID }) };
+
+        test('returns 409 when patching an ORG config conflicts with another enabled org-wide config', async () => {
+            prisma.agentConfig.findFirst
+                .mockResolvedValueOnce(makeDbConfig() as any)                                         // existing
+                .mockResolvedValueOnce(makeDbConfig({ id: 'cfg-other', name: 'conflicting' }) as any); // scope conflict
+            prisma.agentConfig.findUnique.mockResolvedValue(null);
+
+            const res = await PATCH(makePatchRequest(AGENT_ID, { name: 'renamed' }), params);
+
+            expect(res.status).toBe(StatusCodes.CONFLICT);
+            const body = await res.json();
+            expect(body.message).toContain('conflicting');
+        });
+
+        test('does not call update when a scope conflict is detected', async () => {
+            prisma.agentConfig.findFirst
+                .mockResolvedValueOnce(makeDbConfig() as any)
+                .mockResolvedValueOnce(makeDbConfig({ id: 'cfg-other', name: 'conflicting' }) as any);
+            prisma.agentConfig.findUnique.mockResolvedValue(null);
+
+            await PATCH(makePatchRequest(AGENT_ID, { name: 'renamed' }), params);
+
+            expect(prisma.agentConfig.update).not.toHaveBeenCalled();
+        });
+
+        test('returns 409 when a REPO config overlaps with another enabled REPO config', async () => {
+            const existingRepoConfig = makeDbConfig({
+                scope: AgentScope.REPO,
+                repos: [{ repoId: 5 }] as any,
+            });
+            prisma.agentConfig.findFirst
+                .mockResolvedValueOnce(existingRepoConfig as any)
+                .mockResolvedValueOnce(makeDbConfig({ id: 'cfg-other', name: 'conflicting', scope: AgentScope.REPO }) as any);
+            prisma.agentConfig.findUnique.mockResolvedValue(null);
+
+            const res = await PATCH(makePatchRequest(AGENT_ID, { prompt: 'updated' }), params);
+
+            expect(res.status).toBe(StatusCodes.CONFLICT);
+        });
+
+        test('returns 409 when a CONNECTION config overlaps with another enabled CONNECTION config', async () => {
+            const existingConnConfig = makeDbConfig({
+                scope: AgentScope.CONNECTION,
+                connections: [{ connectionId: 7 }] as any,
+            });
+            prisma.agentConfig.findFirst
+                .mockResolvedValueOnce(existingConnConfig as any)
+                .mockResolvedValueOnce(makeDbConfig({ id: 'cfg-other', name: 'conflicting', scope: AgentScope.CONNECTION }) as any);
+            prisma.agentConfig.findUnique.mockResolvedValue(null);
+
+            const res = await PATCH(makePatchRequest(AGENT_ID, { prompt: 'updated' }), params);
+
+            expect(res.status).toBe(StatusCodes.CONFLICT);
+        });
+
+        test('does not check scope conflict when patching enabled to false', async () => {
+            prisma.agentConfig.findFirst.mockResolvedValueOnce(makeDbConfig() as any);
+            prisma.agentConfig.findUnique.mockResolvedValue(null);
+            prisma.agentConfig.update.mockResolvedValue(makeDbConfig({ enabled: false }) as any);
+
+            const res = await PATCH(makePatchRequest(AGENT_ID, { enabled: false }), params);
+
+            expect(res.status).toBe(StatusCodes.OK);
+            expect(prisma.agentConfig.findFirst).toHaveBeenCalledTimes(1);
         });
     });
 });

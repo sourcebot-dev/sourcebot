@@ -131,6 +131,54 @@ export const POST = apiHandler(async (request: NextRequest) => {
             }
         }
 
+        // Enforce scope-level uniqueness
+        if (enabled !== false) {
+            if (scope === AgentScope.ORG) {
+                const conflict = await prisma.agentConfig.findFirst({
+                    where: { orgId: org.id, type, scope: AgentScope.ORG, enabled: true },
+                });
+                if (conflict) {
+                    return {
+                        statusCode: StatusCodes.CONFLICT,
+                        errorCode: ErrorCode.AGENT_CONFIG_SCOPE_CONFLICT,
+                        message: `An org-wide config of this type already exists: '${conflict.name}'`,
+                    };
+                }
+            }
+
+            if (scope === AgentScope.REPO && repoIds && repoIds.length > 0) {
+                const conflict = await prisma.agentConfig.findFirst({
+                    where: {
+                        orgId: org.id, type, scope: AgentScope.REPO, enabled: true,
+                        repos: { some: { repoId: { in: repoIds } } },
+                    },
+                });
+                if (conflict) {
+                    return {
+                        statusCode: StatusCodes.CONFLICT,
+                        errorCode: ErrorCode.AGENT_CONFIG_SCOPE_CONFLICT,
+                        message: `One or more of the selected repos is already covered by config '${conflict.name}'`,
+                    };
+                }
+            }
+
+            if (scope === AgentScope.CONNECTION && connectionIds && connectionIds.length > 0) {
+                const conflict = await prisma.agentConfig.findFirst({
+                    where: {
+                        orgId: org.id, type, scope: AgentScope.CONNECTION, enabled: true,
+                        connections: { some: { connectionId: { in: connectionIds } } },
+                    },
+                });
+                if (conflict) {
+                    return {
+                        statusCode: StatusCodes.CONFLICT,
+                        errorCode: ErrorCode.AGENT_CONFIG_SCOPE_CONFLICT,
+                        message: `One or more of the selected connections is already covered by config '${conflict.name}'`,
+                    };
+                }
+            }
+        }
+
         try {
             const config = await prisma.agentConfig.create({
                 data: {
