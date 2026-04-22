@@ -833,6 +833,7 @@ model AgentConfigToRepo {
   repoId        Int
 
   @@id([agentConfigId, repoId])
+  @@index([repoId])
 }
 
 /// Maps an AgentConfig to specific connections (used when scope = CONNECTION).
@@ -844,4 +845,5 @@ model AgentConfigToConnection {
   connectionId  Int
 
   @@id([agentConfigId, connectionId])
+  @@index([connectionId])
 }
