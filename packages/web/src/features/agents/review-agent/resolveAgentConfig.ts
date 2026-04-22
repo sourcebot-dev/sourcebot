@@ -28,7 +28,6 @@ export async function resolveAgentConfig(
                 some: { repoId },
             },
         },
-        orderBy: { updatedAt: 'desc' },
     });
 
     if (repoConfig) {
@@ -53,7 +52,6 @@ export async function resolveAgentConfig(
                 },
             },
         },
-        orderBy: { updatedAt: 'desc' },
     });
 
     if (connectionConfig) {
@@ -69,7 +67,6 @@ export async function resolveAgentConfig(
             enabled: true,
             scope: 'ORG',
         },
-        orderBy: { updatedAt: 'desc' },
     });
 
     if (orgConfig) {
