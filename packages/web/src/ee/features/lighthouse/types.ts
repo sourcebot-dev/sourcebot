@@ -21,13 +21,16 @@ export const servicePingResponseSchema = z.object({
         nextRenewalAt: z.string().datetime().nullable(),
         nextRenewalAmount: z.number().int().nullable(),
         cancelAt: z.string().datetime().nullable(),
+        trialEnd: z.string().datetime().nullable(),
     }).optional(),
 });
 export type ServicePingResponse = z.infer<typeof servicePingResponseSchema>;
 
 export const checkoutRequestSchema = z.object({
     email: z.string().email(),
+    installId: z.string(),
     quantity: z.number().int().positive(),
+    requestTrial: z.boolean().default(false),
     successUrl: z.string().url(),
     cancelUrl: z.string().url(),
 });

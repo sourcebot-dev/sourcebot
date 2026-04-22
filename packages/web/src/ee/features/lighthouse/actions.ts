@@ -7,7 +7,7 @@ import { OrgRole } from "@sourcebot/db";
 import { ServiceError } from "@/lib/serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
-import { encryptActivationCode, decryptActivationCode } from "@sourcebot/shared";
+import { encryptActivationCode, decryptActivationCode, env } from "@sourcebot/shared";
 import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
 import { isServiceError } from "@/lib/utils";
 import { client } from "./client";
@@ -94,7 +94,9 @@ export const createCheckoutSession = async (successUrl: string, cancelUrl: strin
 
             const result = await client.checkout({
                 email: user.email,
+                installId: env.SOURCEBOT_INSTALL_ID,
                 quantity: Math.max(memberCount, 1),
+                requestTrial: false,
                 successUrl,
                 cancelUrl,
             });
