@@ -147,6 +147,14 @@ Configs are managed on the **Agents** page in the Sourcebot UI. Each config has 
 - **Connection** — applies to all repos in a specific connection
 - **Org** — applies to all repositories in your org (lowest priority, catch-all)
 
+Sourcebot enforces uniqueness within each scope level to avoid ambiguity:
+
+- Only one enabled org-scoped config can exist per agent type.
+- No two enabled repo-scoped configs can cover the same repository.
+- No two enabled connection-scoped configs can cover the same connection.
+
+Sourcebot rejects a create or update request that would violate these rules. To apply a different config to a subset of repos covered by an existing config, disable the existing config first, then create the new narrower one.
+
 When a PR or MR arrives, Sourcebot selects the most specific matching config. If no config exists, the agent falls back to global environment variable defaults.
 
 ## Custom prompt
