@@ -139,7 +139,7 @@ You can also trigger a review manually by commenting `/review` on any PR or MR. 
 
 # Agent configs
 
-Agent configs let you customise how the review agent behaves per repository, connection, or your whole org. You can override the model, review command, auto-review behaviour, custom prompt, and context files — all without changing environment variables.
+Agent configs let you customise how the review agent behaves per repository, connection, or your whole org. You can override the model, review command, auto-review behaviour, custom prompt, and context files, all without changing environment variables.
 
 Configs are managed on the **Agents** page in the Sourcebot UI. Each config has a **scope**:
 
@@ -153,12 +153,12 @@ When a PR or MR arrives, Sourcebot selects the most specific matching config. If
 
 Each config can include a custom prompt. Two modes are available:
 
-- **Append** (default) — your instructions are added after the built-in review rules.
-- **Replace** — your instructions entirely replace the built-in rules. Use this when you want full control over what the agent looks for.
+- **Append** (default): your instructions are added after the built-in review rules.
+- **Replace**: your instructions entirely replace the built-in rules. Use this when you want full control over what the agent looks for.
 
 ## Context files
 
-You can configure one or more repository files to be fetched at review time and injected as additional context for the model. This is useful for encoding project-specific conventions that the model should be aware of when reviewing diffs — for example, preferred error handling patterns, style rules, or areas of the codebase that need extra scrutiny.
+You can configure one or more repository files to be fetched at review time and injected as additional context for the model. This is useful for encoding project-specific conventions that the model should be aware of when reviewing diffs (for example, preferred error handling patterns, style rules, or areas of the codebase that need extra scrutiny).
 
 Set **Context files** in the agent config form to a comma or space separated list of paths relative to the repository root (e.g. `AGENTS.md .sourcebot/review.md`). Files that do not exist in the repository are silently ignored. The files are fetched once per PR from the head commit and included in the context for every diff hunk.
 
@@ -166,7 +166,7 @@ Set **Context files** in the agent config form to a comma or space separated lis
 
 | Variable | Default | Description |
 |---|---|---|
-| `REVIEW_AGENT_AUTO_REVIEW_ENABLED` | `false` | Automatically review new and updated PRs/MRs. Can be overridden per agent config. |
-| `REVIEW_AGENT_REVIEW_COMMAND` | `review` | Comment command that triggers a manual review (without the `/`). Can be overridden per agent config. |
-| `REVIEW_AGENT_MODEL` | first configured model | `displayName` of the language model to use for reviews. Can be overridden per agent config. |
+| `REVIEW_AGENT_AUTO_REVIEW_ENABLED` | `false` | Automatically review new and updated PRs/MRs. You can override this in an agent config. |
+| `REVIEW_AGENT_REVIEW_COMMAND` | `review` | Comment command that triggers a manual review (without the `/`). You can override this in an agent config. |
+| `REVIEW_AGENT_MODEL` | first configured model | `displayName` of the language model to use for reviews. You can override this in an agent config. |
 | `REVIEW_AGENT_LOGGING_ENABLED` | unset | Write prompt and response logs to disk for debugging. |
