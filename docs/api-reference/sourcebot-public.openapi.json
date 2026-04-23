@@ -1005,18 +1005,18 @@
             "type": "string",
             "nullable": true
           },
-          "external_id": {
+          "externalId": {
             "type": "string"
           },
-          "external_codeHostType": {
+          "externalCodeHostType": {
             "type": "string"
           }
         },
         "required": [
           "id",
           "displayName",
-          "external_id",
-          "external_codeHostType"
+          "externalId",
+          "externalCodeHostType"
         ]
       },
       "PublicAgentConfigConnection": {
@@ -1052,6 +1052,10 @@
           "model": {
             "type": "string",
             "description": "Display name of the language model to use for this config. Overrides the REVIEW_AGENT_MODEL env var."
+          },
+          "contextFiles": {
+            "type": "string",
+            "description": "Comma or space separated list of file paths to fetch from the repository and inject as context for each review. Missing files are silently ignored."
           }
         }
       },

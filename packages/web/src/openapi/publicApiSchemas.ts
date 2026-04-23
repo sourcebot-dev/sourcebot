@@ -71,8 +71,8 @@ const publicAgentConfigSettingsSchema = z.object({
 const publicAgentConfigRepoSchema = z.object({
     id: z.number().int(),
     displayName: z.string().nullable(),
-    external_id: z.string(),
-    external_codeHostType: z.string(),
+    externalId: z.string(),
+    externalCodeHostType: z.string(),
 }).openapi('PublicAgentConfigRepo');
 
 const publicAgentConfigConnectionSchema = z.object({

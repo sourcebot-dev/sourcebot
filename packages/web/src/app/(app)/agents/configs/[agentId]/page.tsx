@@ -11,7 +11,7 @@ type Props = {
 export default authenticatedPage(async ({ prisma, org }, { params }: Props) => {
     const { agentId } = await params;
 
-    const [config, connections, repos] = await Promise.all([
+    const [config, connections, reposRaw] = await Promise.all([
         prisma.agentConfig.findFirst({
             where: { id: agentId, orgId: org.id },
             include: {
@@ -34,6 +34,8 @@ export default authenticatedPage(async ({ prisma, org }, { params }: Props) => {
     if (!config) {
         notFound();
     }
+
+    const repos = reposRaw.map(r => ({ id: r.id, displayName: r.displayName, externalId: r.external_id, externalCodeHostType: r.external_codeHostType }));
 
     return (
         <div className="flex flex-col items-center overflow-hidden min-h-screen">

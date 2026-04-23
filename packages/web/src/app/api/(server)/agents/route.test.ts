@@ -84,6 +84,27 @@ describe('GET /api/agents', () => {
         const body = await res.json();
         expect(body).toHaveLength(2);
     });
+
+    test('serializes nested repo fields to camelCase', async () => {
+        const config = {
+            ...makeDbConfig(),
+            repos: [{
+                repoId: 1,
+                agentConfigId: 'cfg-abc',
+                repo: { id: 1, displayName: 'my-repo', external_id: 'repo-123', external_codeHostType: 'github' },
+            }],
+        };
+        prisma.agentConfig.findMany.mockResolvedValue([config] as any);
+
+        const res = await GET(new NextRequest('http://localhost/api/agents'));
+        const body = await res.json();
+
+        const repo = body[0].repos[0].repo;
+        expect(repo.externalId).toBe('repo-123');
+        expect(repo.externalCodeHostType).toBe('github');
+        expect(repo.external_id).toBeUndefined();
+        expect(repo.external_codeHostType).toBeUndefined();
+    });
 });
 
 // ── POST /api/agents ──────────────────────────────────────────────────────────
@@ -318,6 +339,29 @@ describe('POST /api/agents', () => {
 
             expect(body.id).toBe(created.id);
             expect(body.name).toBe('new-config');
+        });
+
+        test('serializes nested repo fields to camelCase', async () => {
+            const created = {
+                ...makeDbConfig({ scope: AgentScope.REPO }),
+                repos: [{
+                    repoId: 1,
+                    agentConfigId: 'cfg-abc',
+                    repo: { id: 1, displayName: 'my-repo', external_id: 'repo-123', external_codeHostType: 'github' },
+                }],
+            };
+            prisma.repo.count.mockResolvedValue(1);
+            prisma.agentConfig.findFirst.mockResolvedValue(null);
+            prisma.agentConfig.create.mockResolvedValue(created as any);
+
+            const res = await POST(makePostRequest({ name: 'repo-config', type: 'CODE_REVIEW', scope: 'REPO', repoIds: [1] }));
+            const body = await res.json();
+
+            const repo = body.repos[0].repo;
+            expect(repo.externalId).toBe('repo-123');
+            expect(repo.externalCodeHostType).toBe('github');
+            expect(repo.external_id).toBeUndefined();
+            expect(repo.external_codeHostType).toBeUndefined();
         });
     });
 });

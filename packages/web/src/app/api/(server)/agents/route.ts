@@ -52,7 +52,18 @@ export const GET = apiHandler(async (_request: NextRequest) => {
             orderBy: { createdAt: 'desc' },
         });
 
-        return configs;
+        return configs.map(config => ({
+            ...config,
+            repos: config.repos.map(r => ({
+                ...r,
+                repo: {
+                    id: r.repo.id,
+                    displayName: r.repo.displayName,
+                    externalId: r.repo.external_id,
+                    externalCodeHostType: r.repo.external_codeHostType,
+                },
+            })),
+        }));
     });
 
     if (isServiceError(result)) {
@@ -216,7 +227,18 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 },
             });
 
-            return config;
+            return {
+                ...config,
+                repos: config.repos.map(r => ({
+                    ...r,
+                    repo: {
+                        id: r.repo.id,
+                        displayName: r.repo.displayName,
+                        externalId: r.repo.external_id,
+                        externalCodeHostType: r.repo.external_codeHostType,
+                    },
+                })),
+            };
         } catch (error) {
             logger.error('Error creating agent config', { error, name, orgId: org.id });
             throw error;
