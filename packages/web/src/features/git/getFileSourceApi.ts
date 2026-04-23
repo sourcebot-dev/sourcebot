@@ -3,7 +3,7 @@ import { getBrowsePath } from '@/app/(app)/browse/hooks/utils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { parseGitAttributes, resolveLanguageFromGitAttributes } from '@/lib/gitattributes';
 import { detectLanguageFromFilename } from '@/lib/languageDetection';
-import { ServiceError, notFound, fileNotFound, invalidGitRef, unexpectedError } from '@/lib/serviceError';
+import { ServiceError, notFound, fileNotFound, invalidGitRef, unresolvedGitRef, unexpectedError } from '@/lib/serviceError';
 import { getCodeHostBrowseFileAtBranchUrl } from '@/lib/utils';
 import { withOptionalAuth } from '@/middleware/withAuth';
 import { env, getRepoPath } from '@sourcebot/shared';
@@ -26,7 +26,7 @@ export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
 export const getFileSourceForRepo = async (
     { path: filePath, repo: repoName, ref }: FileSourceRequest,
     { org, prisma }: { org: Org; prisma: PrismaClient },
-): Promise<FileSourceResponse | ServiceError> => {
+): Promise<FileSourceResponse | ServiceError> => sew(async () => {
     const repo = await prisma.repo.findFirst({
         where: { name: repoName, orgId: org.id },
     });
@@ -56,9 +56,9 @@ export const getFileSourceForRepo = async (
             return fileNotFound(filePath, repoName);
         }
         if (errorMessage.includes('unknown revision') || errorMessage.includes('bad revision') || errorMessage.includes('invalid object name')) {
-            return unexpectedError(`Invalid git reference: ${gitRef}`);
+            return unresolvedGitRef(gitRef);
         }
-        throw error;
+        return unexpectedError(errorMessage);
     }
 
     let gitattributesContent: string | undefined;
@@ -98,7 +98,7 @@ export const getFileSourceForRepo = async (
         webUrl,
         externalWebUrl,
     } satisfies FileSourceResponse;
-};
+});
 
 export const getFileSource = async ({ path: filePath, repo: repoName, ref }: FileSourceRequest, { source }: { source?: string } = {}): Promise<FileSourceResponse | ServiceError> => sew(() => withOptionalAuth(async ({ org, prisma, user }) => {
     if (user) {
