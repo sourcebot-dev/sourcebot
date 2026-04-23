@@ -1,38 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { GetDiffResult } from '@/features/git';
+import type { z } from 'zod';
+import type { getDiffResponseSchema } from '@/features/git/schemas';
+import { formatDiffAsGitDiff } from './utils';
 
-// Extract the formatting function for testing
-function formatDiffAsGitDiff(result: GetDiffResult): string {
-    let output = '';
-
-    for (const file of result.files) {
-        const oldPath = file.oldPath ?? '/dev/null';
-        const newPath = file.newPath ?? '/dev/null';
-
-        output += `--- a/${oldPath}\n`;
-        output += `+++ b/${newPath}\n`;
-
-        for (const hunk of file.hunks) {
-            const oldStart = hunk.oldRange.start;
-            const oldLines = hunk.oldRange.lines;
-            const newStart = hunk.newRange.start;
-            const newLines = hunk.newRange.lines;
-
-            output += `@@ -${oldStart},${oldLines} +${newStart},${newLines} @@`;
-            if (hunk.heading) {
-                output += ` ${hunk.heading}`;
-            }
-            output += '\n';
-
-            output += hunk.body;
-            if (!hunk.body.endsWith('\n')) {
-                output += '\n';
-            }
-        }
-    }
-
-    return output;
-}
+type GetDiffResult = z.infer<typeof getDiffResponseSchema>;
 
 describe('formatDiffAsGitDiff', () => {
     it('should format a simple file change correctly', () => {
@@ -84,7 +55,7 @@ describe('formatDiffAsGitDiff', () => {
         };
 
         const expected = `--- a/deleted.txt
-+++ b//dev/null
++++ /dev/null
 @@ -1,2 +0,0 @@
 -line 1
 -line 2
@@ -111,7 +82,7 @@ describe('formatDiffAsGitDiff', () => {
             ],
         };
 
-        const expected = `--- a//dev/null
+        const expected = `--- /dev/null
 +++ b/new.txt
 @@ -0,0 +1,2 @@
 +line 1

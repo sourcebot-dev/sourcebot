@@ -2,6 +2,7 @@ import { getDiff, GetDiffResult } from '@/features/git';
 import { getDiffRequestSchema } from '@/features/git/schemas';
 import { isServiceError } from '@/lib/utils';
 import description from './getDiff.txt';
+import { formatDiffAsGitDiff } from './utils';
 import { logger } from './logger';
 import { ToolDefinition } from './types';
 import { CodeHostType } from '@sourcebot/db';
@@ -19,38 +20,6 @@ export type GetDiffMetadata = GetDiffResult & {
     base: string;
     head: string;
 };
-
-function formatDiffAsGitDiff(result: GetDiffResult): string {
-    let output = '';
-
-    for (const file of result.files) {
-        const oldPath = file.oldPath ?? '/dev/null';
-        const newPath = file.newPath ?? '/dev/null';
-
-        output += `--- a/${oldPath}\n`;
-        output += `+++ b/${newPath}\n`;
-
-        for (const hunk of file.hunks) {
-            const oldStart = hunk.oldRange.start;
-            const oldLines = hunk.oldRange.lines;
-            const newStart = hunk.newRange.start;
-            const newLines = hunk.newRange.lines;
-
-            output += `@@ -${oldStart},${oldLines} +${newStart},${newLines} @@`;
-            if (hunk.heading) {
-                output += ` ${hunk.heading}`;
-            }
-            output += '\n';
-
-            output += hunk.body;
-            if (!hunk.body.endsWith('\n')) {
-                output += '\n';
-            }
-        }
-    }
-
-    return output;
-}
 
 export const getDiffDefinition: ToolDefinition<'get_diff', typeof getDiffRequestSchema.shape, GetDiffMetadata> = {
     name: 'get_diff',
