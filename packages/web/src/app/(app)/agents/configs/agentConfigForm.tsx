@@ -13,7 +13,7 @@ import { Trash2 } from "lucide-react";
 import { AgentScope, AgentType, PromptMode } from "@sourcebot/db";
 
 type Connection = { id: number; name: string; connectionType: string };
-type Repo = { id: number; displayName: string | null; external_id: string; external_codeHostType: string };
+type Repo = { id: number; displayName: string | null; externalId: string; externalCodeHostType: string };
 type ModelInfo = { provider: string; model: string; displayName: string };
 
 type InitialValues = {
@@ -96,31 +96,39 @@ export function AgentConfigForm({ initialValues, connections, repos }: Props) {
 
     const handleSubmit = () => {
         startTransition(async () => {
-            const payload = buildPayload();
-            const url = isEditing ? `/api/agents/${initialValues!.id}` : `/api/agents`;
-            const method = isEditing ? "PATCH" : "POST";
+            try {
+                const payload = buildPayload();
+                const url = isEditing ? `/api/agents/${initialValues!.id}` : `/api/agents`;
+                const method = isEditing ? "PATCH" : "POST";
 
-            const res = await fetch(url, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
+                const res = await fetch(url, {
+                    method,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
 
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    toast({
+                        title: "Error",
+                        description: err.message ?? "Failed to save agent config",
+                        variant: "destructive",
+                    });
+                    return;
+                }
+
+                toast({
+                    title: isEditing ? "Config updated" : "Config created",
+                    description: `Agent config '${name}' was ${isEditing ? "updated" : "created"} successfully.`,
+                });
+                router.push("/agents");
+            } catch {
                 toast({
                     title: "Error",
-                    description: err.message ?? "Failed to save agent config",
+                    description: "Failed to save agent config",
                     variant: "destructive",
                 });
-                return;
             }
-
-            toast({
-                title: isEditing ? "Config updated" : "Config created",
-                description: `Agent config '${name}' was ${isEditing ? "updated" : "created"} successfully.`,
-            });
-            router.push("/agents");
         });
     };
 
@@ -130,16 +138,21 @@ export function AgentConfigForm({ initialValues, connections, repos }: Props) {
         }
 
         setIsDeleting(true);
-        const res = await fetch(`/api/agents/${initialValues.id}`, { method: "DELETE" });
-        setIsDeleting(false);
+        try {
+            const res = await fetch(`/api/agents/${initialValues.id}`, { method: "DELETE" });
 
-        if (!res.ok) {
+            if (!res.ok) {
+                toast({ title: "Error", description: "Failed to delete agent config", variant: "destructive" });
+                return;
+            }
+
+            toast({ title: "Config deleted", description: `Agent config '${name}' was deleted.` });
+            router.push("/agents");
+        } catch {
             toast({ title: "Error", description: "Failed to delete agent config", variant: "destructive" });
-            return;
+        } finally {
+            setIsDeleting(false);
         }
-
-        toast({ title: "Config deleted", description: `Agent config '${name}' was deleted.` });
-        router.push("/agents");
     };
 
     const toggleRepoId = (id: number) => {
@@ -215,7 +228,7 @@ export function AgentConfigForm({ initialValues, connections, repos }: Props) {
                 {scope === AgentScope.REPO && (() => {
                     const lc = repoFilter.toLowerCase();
                     const visible = repos.filter((r) =>
-                        (r.displayName ?? r.external_id).toLowerCase().includes(lc)
+                        (r.displayName ?? r.externalId).toLowerCase().includes(lc)
                     );
                     const hiddenSelected = selectedRepoIds.filter(
                         (id) => !visible.some((r) => r.id === id)
@@ -251,8 +264,8 @@ export function AgentConfigForm({ initialValues, connections, repos }: Props) {
                                                 checked={selectedRepoIds.includes(repo.id)}
                                                 onChange={() => toggleRepoId(repo.id)}
                                             />
-                                            <span className="text-sm">{repo.displayName ?? repo.external_id}</span>
-                                            <span className="text-xs text-muted-foreground ml-auto">{repo.external_codeHostType}</span>
+                                            <span className="text-sm">{repo.displayName ?? repo.externalId}</span>
+                                            <span className="text-xs text-muted-foreground ml-auto">{repo.externalCodeHostType}</span>
                                         </label>
                                     ))
                                 )}
