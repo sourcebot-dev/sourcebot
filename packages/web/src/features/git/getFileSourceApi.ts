@@ -26,84 +26,79 @@ export type FileSourceResponse = z.infer<typeof fileSourceResponseSchema>;
 export const getFileSourceForRepo = async (
     { path: filePath, repo: repoName, ref }: FileSourceRequest,
     { org, prisma }: { org: Org; prisma: PrismaClient },
-): Promise<FileSourceResponse | ServiceError> => {
+): Promise<FileSourceResponse | ServiceError> => sew(async () => {
+    const repo = await prisma.repo.findFirst({
+        where: { name: repoName, orgId: org.id },
+    });
+    if (!repo) {
+        return notFound(`Repository "${repoName}" not found.`);
+    }
+
+    if (!isPathValid(filePath)) {
+        return fileNotFound(filePath, repoName);
+    }
+
+    if (ref !== undefined && !isGitRefValid(ref)) {
+        return invalidGitRef(ref);
+    }
+
+    const { path: repoPath } = getRepoPath(repo);
+    const git = simpleGit().cwd(repoPath);
+
+    const gitRef = ref ?? repo.defaultBranch ?? 'HEAD';
+
+    let fileContent: string;
     try {
-        const repo = await prisma.repo.findFirst({
-            where: { name: repoName, orgId: org.id },
-        });
-        if (!repo) {
-            return notFound(`Repository "${repoName}" not found.`);
-        }
-
-        if (!isPathValid(filePath)) {
-            return fileNotFound(filePath, repoName);
-        }
-
-        if (ref !== undefined && !isGitRefValid(ref)) {
-            return invalidGitRef(ref);
-        }
-
-        const { path: repoPath } = getRepoPath(repo);
-        const git = simpleGit().cwd(repoPath);
-
-        const gitRef = ref ?? repo.defaultBranch ?? 'HEAD';
-
-        let fileContent: string;
-        try {
-            fileContent = await git.raw(['show', `${gitRef}:${filePath}`]);
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            if (errorMessage.includes('does not exist') || errorMessage.includes('fatal: path')) {
-                return fileNotFound(filePath, repoName);
-            }
-            if (errorMessage.includes('unknown revision') || errorMessage.includes('bad revision') || errorMessage.includes('invalid object name')) {
-                return unresolvedGitRef(gitRef);
-            }
-            return unexpectedError(errorMessage);
-        }
-
-        let gitattributesContent: string | undefined;
-        try {
-            gitattributesContent = await git.raw(['show', `${gitRef}:.gitattributes`]);
-        } catch {
-            // No .gitattributes in this repo/ref, that's fine
-        }
-
-        const language = gitattributesContent
-            ? (resolveLanguageFromGitAttributes(filePath, parseGitAttributes(gitattributesContent)) ?? detectLanguageFromFilename(filePath))
-            : detectLanguageFromFilename(filePath);
-
-        const externalWebUrl = getCodeHostBrowseFileAtBranchUrl({
-            webUrl: repo.webUrl,
-            codeHostType: repo.external_codeHostType,
-            branchName: gitRef,
-            filePath,
-        });
-
-        const baseUrl = env.AUTH_URL;
-        const webUrl = `${baseUrl}${getBrowsePath({
-            repoName: repo.name,
-            revisionName: ref,
-            path: filePath,
-            pathType: 'blob',
-        })}`;
-
-        return {
-            source: fileContent,
-            language,
-            path: filePath,
-            repo: repoName,
-            repoCodeHostType: repo.external_codeHostType,
-            repoDisplayName: repo.displayName ?? undefined,
-            repoExternalWebUrl: repo.webUrl ?? undefined,
-            webUrl,
-            externalWebUrl,
-        } satisfies FileSourceResponse;
+        fileContent = await git.raw(['show', `${gitRef}:${filePath}`]);
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('does not exist') || errorMessage.includes('fatal: path')) {
+            return fileNotFound(filePath, repoName);
+        }
+        if (errorMessage.includes('unknown revision') || errorMessage.includes('bad revision') || errorMessage.includes('invalid object name')) {
+            return unresolvedGitRef(gitRef);
+        }
         return unexpectedError(errorMessage);
     }
-};
+
+    let gitattributesContent: string | undefined;
+    try {
+        gitattributesContent = await git.raw(['show', `${gitRef}:.gitattributes`]);
+    } catch {
+        // No .gitattributes in this repo/ref, that's fine
+    }
+
+    const language = gitattributesContent
+        ? (resolveLanguageFromGitAttributes(filePath, parseGitAttributes(gitattributesContent)) ?? detectLanguageFromFilename(filePath))
+        : detectLanguageFromFilename(filePath);
+
+    const externalWebUrl = getCodeHostBrowseFileAtBranchUrl({
+        webUrl: repo.webUrl,
+        codeHostType: repo.external_codeHostType,
+        branchName: gitRef,
+        filePath,
+    });
+
+    const baseUrl = env.AUTH_URL;
+    const webUrl = `${baseUrl}${getBrowsePath({
+        repoName: repo.name,
+        revisionName: ref,
+        path: filePath,
+        pathType: 'blob',
+    })}`;
+
+    return {
+        source: fileContent,
+        language,
+        path: filePath,
+        repo: repoName,
+        repoCodeHostType: repo.external_codeHostType,
+        repoDisplayName: repo.displayName ?? undefined,
+        repoExternalWebUrl: repo.webUrl ?? undefined,
+        webUrl,
+        externalWebUrl,
+    } satisfies FileSourceResponse;
+});
 
 export const getFileSource = async ({ path: filePath, repo: repoName, ref }: FileSourceRequest, { source }: { source?: string } = {}): Promise<FileSourceResponse | ServiceError> => sew(() => withOptionalAuth(async ({ org, prisma, user }) => {
     if (user) {

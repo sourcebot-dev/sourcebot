@@ -44,7 +44,16 @@ vi.mock('next/headers', () => ({
     headers: vi.fn().mockResolvedValue(new Headers()),
 }));
 vi.mock('@/middleware/sew', () => ({
-    sew: async <T>(fn: () => Promise<T> | T): Promise<T> => fn(),
+    sew: async <T>(fn: () => Promise<T> | T): Promise<T> => {
+        try {
+            return await fn();
+        } catch (error) {
+            return {
+                errorCode: 'UNEXPECTED_ERROR',
+                message: error instanceof Error ? error.message : String(error),
+            } as T;
+        }
+    },
 }));
 vi.mock('@/middleware/withAuth', () => ({
     withOptionalAuth: vi.fn(),
@@ -117,7 +126,7 @@ describe('getFileSourceForRepo', () => {
             });
         });
 
-        it('returns UNEXPECTED_ERROR when the database throws (outer catch)', async () => {
+        it('returns UNEXPECTED_ERROR when the database throws (caught by sew)', async () => {
             mockFindFirst.mockRejectedValue(new Error('DB connection refused'));
 
             const result = await getFileSourceForRepo(
