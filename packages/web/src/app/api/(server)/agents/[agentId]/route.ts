@@ -126,18 +126,18 @@ export const PATCH = apiHandler(async (request: NextRequest, { params }: RoutePa
         const effectiveScope = scope ?? existing.scope;
 
         // When scope changes to REPO/CONNECTION, IDs must be supplied
-        if (effectiveScope === 'REPO' && scope === 'REPO' && (!repoIds || repoIds.length === 0)) {
+        if (effectiveScope === AgentScope.REPO && scope === AgentScope.REPO && (!repoIds || repoIds.length === 0)) {
             return {
                 statusCode: StatusCodes.BAD_REQUEST,
-                errorCode: 'INVALID_REQUEST_BODY',
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
                 message: "repoIds is required when scope is REPO",
             };
         }
 
-        if (effectiveScope === 'CONNECTION' && scope === 'CONNECTION' && (!connectionIds || connectionIds.length === 0)) {
+        if (effectiveScope === AgentScope.CONNECTION && scope === AgentScope.CONNECTION && (!connectionIds || connectionIds.length === 0)) {
             return {
                 statusCode: StatusCodes.BAD_REQUEST,
-                errorCode: 'INVALID_REQUEST_BODY',
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
                 message: "connectionIds is required when scope is CONNECTION",
             };
         }
