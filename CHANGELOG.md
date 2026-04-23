@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Improved diff tool UI to truncate full commit SHAs to 7 characters, use RepoBadge component for repository display, and output diffs in git-diff format instead of JSON for better token efficiency. [#1146](https://github.com/sourcebot-dev/sourcebot/pull/1146)
+
 ## [4.16.14] - 2026-04-21
 
 ### Added
