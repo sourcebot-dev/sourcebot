@@ -1,5 +1,5 @@
 
-CMDS := zoekt yarn
+CMDS := zoekt yarn update_submodule
 
 ALL: $(CMDS)
 
@@ -12,6 +12,9 @@ zoekt:
 	go build -C vendor/zoekt -o $(CURDIR)/bin ./cmd/...
 	export PATH="$(CURDIR)/bin:$(PATH)"
 	export CTAGS_COMMANDS=ctags
+
+update_submodule:
+	git submodule update
 
 clean:
 	@if docker ps 2>/dev/null | grep -q sourcebot-redis; then \
