@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed a missing error boundary in `getFileSourceForRepo` introduced in v4.16.14: the function was extracted outside `sew()` but still re-threw unrecognised git exceptions, causing fatal Next.js task-runner errors. All error paths now return a `ServiceError`. Also tightened the error message for unresolved git refs (e.g. an unfetched `head_sha`) to distinguish them from syntactically invalid refs. [#1145](https://github.com/sourcebot-dev/sourcebot/pull/1145)
 - Bumped transitive `uuid` dependency to `^14.0.0`. [#1147](https://github.com/sourcebot-dev/sourcebot/pull/1147)
-- Bumped `@aws-sdk/credential-providers` to `^3.1036.0` to pull in `fast-xml-parser@5.7.1` and patch CVE-2026-41650. [#1148](https://github.com/sourcebot-dev/sourcebot/pull/1148)
+- Bumped `@aws-sdk/credential-providers` to `^3.1036.0`. [#1148](https://github.com/sourcebot-dev/sourcebot/pull/1148)
 
 ## [4.16.14] - 2026-04-21
 
