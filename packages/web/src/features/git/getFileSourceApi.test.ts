@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
-// Mocks must be declared before imports
-vi.mock('simple-git');
+// Hoist the mock function so it can be referenced in both the vi.mock factory
+// and the test body. The SUT imports simpleGit as a default export; the factory
+// maps both default and named exports to the same fn so both resolve identically.
+const mockSimpleGit = vi.hoisted(() => vi.fn());
+
+vi.mock('simple-git', () => ({
+    default: mockSimpleGit,
+    simpleGit: mockSimpleGit,
+}));
 vi.mock('@sourcebot/shared', () => ({
     getRepoPath: (repo: { id: number }) => ({
         path: `/mock/repos/${repo.id}`,
@@ -48,7 +55,6 @@ vi.mock('@/ee/features/audit/factory', () => ({
     }),
 }));
 
-import { simpleGit } from 'simple-git';
 import { getFileSourceForRepo } from './getFileSourceApi';
 
 const MOCK_ORG = { id: 1, name: 'test-org' } as Parameters<typeof getFileSourceForRepo>[1]['org'];
@@ -66,7 +72,6 @@ const MOCK_REPO = {
 describe('getFileSourceForRepo', () => {
     const mockGitRaw = vi.fn();
     const mockCwd = vi.fn();
-    const mockSimpleGit = simpleGit as unknown as Mock;
     const mockFindFirst = vi.fn();
 
     const mockPrisma = {
@@ -111,6 +116,17 @@ describe('getFileSourceForRepo', () => {
                 where: { name: 'github.com/owner/repo', orgId: 1 },
             });
         });
+
+        it('returns UNEXPECTED_ERROR when the database throws (outer catch)', async () => {
+            mockFindFirst.mockRejectedValue(new Error('DB connection refused'));
+
+            const result = await getFileSourceForRepo(
+                { path: 'src/index.ts', repo: 'github.com/owner/repo' },
+                { org: MOCK_ORG, prisma: mockPrisma },
+            );
+
+            expect(result).toMatchObject({ errorCode: 'UNEXPECTED_ERROR' });
+        });
     });
 
     describe('input validation', () => {
@@ -132,13 +148,16 @@ describe('getFileSourceForRepo', () => {
             expect(result).toMatchObject({ errorCode: 'FILE_NOT_FOUND' });
         });
 
-        it('returns INVALID_GIT_REF for refs starting with "-" (flag injection guard)', async () => {
+        it('returns INVALID_GIT_REF with a syntactic message for refs starting with "-" (flag injection guard)', async () => {
             const result = await getFileSourceForRepo(
                 { path: 'src/index.ts', repo: 'github.com/owner/repo', ref: '--upload-pack=evil' },
                 { org: MOCK_ORG, prisma: mockPrisma },
             );
 
-            expect(result).toMatchObject({ errorCode: 'INVALID_GIT_REF' });
+            expect(result).toMatchObject({
+                errorCode: 'INVALID_GIT_REF',
+                message: expect.stringContaining("cannot start with '-'"),
+            });
         });
     });
 
@@ -167,7 +186,7 @@ describe('getFileSourceForRepo', () => {
             expect(result).toMatchObject({ errorCode: 'FILE_NOT_FOUND' });
         });
 
-        it('returns INVALID_GIT_REF when head_sha has not been fetched on the local clone ("unknown revision")', async () => {
+        it('returns INVALID_GIT_REF with an unresolved-ref message when head_sha has not been fetched ("unknown revision")', async () => {
             // This is the scenario from the v4.16.14 regression: the review agent passes
             // pr_payload.head_sha as ref, but the bare clone hasn't fetched it yet.
             mockGitRaw.mockRejectedValueOnce(
@@ -179,10 +198,13 @@ describe('getFileSourceForRepo', () => {
                 { org: MOCK_ORG, prisma: mockPrisma },
             );
 
-            expect(result).toMatchObject({ errorCode: 'INVALID_GIT_REF' });
+            expect(result).toMatchObject({
+                errorCode: 'INVALID_GIT_REF',
+                message: expect.stringContaining('could not be resolved'),
+            });
         });
 
-        it('returns INVALID_GIT_REF for "bad revision" errors', async () => {
+        it('returns INVALID_GIT_REF with an unresolved-ref message for "bad revision" errors', async () => {
             mockGitRaw.mockRejectedValueOnce(new Error('fatal: bad revision'));
 
             const result = await getFileSourceForRepo(
@@ -190,10 +212,13 @@ describe('getFileSourceForRepo', () => {
                 { org: MOCK_ORG, prisma: mockPrisma },
             );
 
-            expect(result).toMatchObject({ errorCode: 'INVALID_GIT_REF' });
+            expect(result).toMatchObject({
+                errorCode: 'INVALID_GIT_REF',
+                message: expect.stringContaining('could not be resolved'),
+            });
         });
 
-        it('returns INVALID_GIT_REF for "invalid object name" errors', async () => {
+        it('returns INVALID_GIT_REF with an unresolved-ref message for "invalid object name" errors', async () => {
             mockGitRaw.mockRejectedValueOnce(new Error('fatal: invalid object name HEAD'));
 
             const result = await getFileSourceForRepo(
@@ -201,7 +226,10 @@ describe('getFileSourceForRepo', () => {
                 { org: MOCK_ORG, prisma: mockPrisma },
             );
 
-            expect(result).toMatchObject({ errorCode: 'INVALID_GIT_REF' });
+            expect(result).toMatchObject({
+                errorCode: 'INVALID_GIT_REF',
+                message: expect.stringContaining('could not be resolved'),
+            });
         });
 
         it('returns UNEXPECTED_ERROR — not throw — for unrecognised git errors (regression: v4.16.14 fatal exception)', async () => {
