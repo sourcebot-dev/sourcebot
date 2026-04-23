@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed a missing error boundary in `getFileSourceForRepo` introduced in v4.16.14: the function was extracted outside `sew()` but still re-threw unrecognised git exceptions, causing fatal Next.js task-runner errors. All error paths now return a `ServiceError`. Also tightened the error message for unresolved git refs (e.g. an unfetched `head_sha`) to distinguish them from syntactically invalid refs. [#1145](https://github.com/sourcebot-dev/sourcebot/pull/1145)
+
 ## [4.16.14] - 2026-04-21
 
 ### Added
