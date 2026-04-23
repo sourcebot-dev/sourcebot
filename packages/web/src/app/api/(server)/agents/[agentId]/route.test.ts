@@ -111,6 +111,27 @@ describe('GET /api/agents/[agentId]', () => {
         const body = await res.json();
         expect(body.id).toBe('cfg-abc');
     });
+
+    test('serializes nested repo fields to camelCase', async () => {
+        const config = {
+            ...makeDbConfig(),
+            repos: [{
+                repoId: 1,
+                agentConfigId: 'cfg-abc',
+                repo: { id: 1, displayName: 'my-repo', external_id: 'repo-123', external_codeHostType: 'github' },
+            }],
+        };
+        prisma.agentConfig.findFirst.mockResolvedValue(config as any);
+
+        const res = await GET(makeGetRequest('cfg-abc'), { params: Promise.resolve({ agentId: 'cfg-abc' }) });
+        const body = await res.json();
+
+        const repo = body.repos[0].repo;
+        expect(repo.externalId).toBe('repo-123');
+        expect(repo.externalCodeHostType).toBe('github');
+        expect(repo.external_id).toBeUndefined();
+        expect(repo.external_codeHostType).toBeUndefined();
+    });
 });
 
 // ── PATCH /api/agents/[agentId] ───────────────────────────────────────────────
@@ -213,6 +234,27 @@ describe('PATCH /api/agents/[agentId]', () => {
                     }),
                 }),
             );
+        });
+
+        test('serializes nested repo fields to camelCase', async () => {
+            const updated = {
+                ...makeDbConfig({ scope: AgentScope.REPO }),
+                repos: [{
+                    repoId: 1,
+                    agentConfigId: 'cfg-abc',
+                    repo: { id: 1, displayName: 'my-repo', external_id: 'repo-123', external_codeHostType: 'github' },
+                }],
+            };
+            prisma.agentConfig.update.mockResolvedValue(updated as any);
+
+            const res = await PATCH(makePatchRequest(AGENT_ID, { enabled: false }), params);
+            const body = await res.json();
+
+            const repo = body.repos[0].repo;
+            expect(repo.externalId).toBe('repo-123');
+            expect(repo.externalCodeHostType).toBe('github');
+            expect(repo.external_id).toBeUndefined();
+            expect(repo.external_codeHostType).toBeUndefined();
         });
     });
 

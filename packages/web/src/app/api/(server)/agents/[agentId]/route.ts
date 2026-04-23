@@ -61,7 +61,18 @@ export const GET = apiHandler(async (_request: NextRequest, { params }: RoutePar
             return notFound(`Agent config '${agentId}' not found`);
         }
 
-        return config;
+        return {
+            ...config,
+            repos: config.repos.map(r => ({
+                ...r,
+                repo: {
+                    id: r.repo.id,
+                    displayName: r.repo.displayName,
+                    externalId: r.repo.external_id,
+                    externalCodeHostType: r.repo.external_codeHostType,
+                },
+            })),
+        };
     });
 
     if (isServiceError(result)) {
@@ -245,7 +256,18 @@ export const PATCH = apiHandler(async (request: NextRequest, { params }: RoutePa
                 include: includeRelations,
             });
 
-            return updated;
+            return {
+                ...updated,
+                repos: updated.repos.map(r => ({
+                    ...r,
+                    repo: {
+                        id: r.repo.id,
+                        displayName: r.repo.displayName,
+                        externalId: r.repo.external_id,
+                        externalCodeHostType: r.repo.external_codeHostType,
+                    },
+                })),
+            };
         } catch (error) {
             logger.error('Error updating agent config', { error, agentId, orgId: org.id });
             throw error;
