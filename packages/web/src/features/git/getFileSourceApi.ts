@@ -56,9 +56,9 @@ export const getFileSourceForRepo = async (
             return fileNotFound(filePath, repoName);
         }
         if (errorMessage.includes('unknown revision') || errorMessage.includes('bad revision') || errorMessage.includes('invalid object name')) {
-            return unexpectedError(`Invalid git reference: ${gitRef}`);
+            return invalidGitRef(gitRef);
         }
-        throw error;
+        return unexpectedError(errorMessage);
     }
 
     let gitattributesContent: string | undefined;
