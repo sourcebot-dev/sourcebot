@@ -127,7 +127,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
 
     // Sync with lighthouse s.t., the subscription
     // quantity will update immediately.
-    await syncWithLighthouse(defaultOrg.id);
+    await syncWithLighthouse(defaultOrg.id).catch(() => { /* ignore error */ });
 };
 
 
@@ -250,7 +250,7 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
 
     // Sync with lighthouse s.t., the subscription
     // quantity will update immediately.
-    await syncWithLighthouse(org.id);
+    await syncWithLighthouse(org.id).catch(() => { /* ignore error */ });
 
     return {
         success: true,

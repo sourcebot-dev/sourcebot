@@ -104,7 +104,7 @@ const _removeUserFromOrg = async (
     // Sync with lighthouse s.t., the subscription
     // quantity will update immediately.
     if (!isServiceError(result)) {
-        await syncWithLighthouse(orgId);
+        await syncWithLighthouse(orgId).catch(() => { /* ignore error */ });
     }
 
     return result;

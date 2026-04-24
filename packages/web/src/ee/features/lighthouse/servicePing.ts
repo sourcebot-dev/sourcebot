@@ -4,6 +4,7 @@ import { __unsafePrisma } from "@/prisma";
 import { createLogger, decryptActivationCode, env, SOURCEBOT_VERSION } from "@sourcebot/shared";
 import { client } from "./client";
 import { ServicePingRequest } from "./types";
+import { ServiceErrorException } from "@/lib/serviceError";
 
 const logger = createLogger('service-ping');
 
@@ -35,7 +36,7 @@ export const syncWithLighthouse = async (orgId: number) => {
     const response = await client.ping(payload);
     if (isServiceError(response)) {
         logger.error(`Service ping failed:\n ${JSON.stringify(response, null, 2)}`)
-        return;
+        throw new ServiceErrorException(response);
     }
 
     logger.info(`Service ping sent successfully`);
@@ -95,9 +96,9 @@ export const syncWithLighthouse = async (orgId: number) => {
 };
 
 export const startServicePingCronJob = () => {
-    syncWithLighthouse(SINGLE_TENANT_ORG_ID);
+    syncWithLighthouse(SINGLE_TENANT_ORG_ID).catch(() => { /* ignore error */ })
     setInterval(
-        () => syncWithLighthouse(SINGLE_TENANT_ORG_ID),
+        () => syncWithLighthouse(SINGLE_TENANT_ORG_ID).catch(() => { /* ignore error */ }),
         SERVICE_PING_INTERVAL_MS
     );
 };

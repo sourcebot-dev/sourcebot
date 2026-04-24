@@ -27,7 +27,9 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
         // activation code from email before syncWithLighthouse has
         // anything to pull).
         if (searchParams.refresh === 'true') {
-            await syncWithLighthouse(org.id);
+            await syncWithLighthouse(org.id).catch(() => {
+                // ignore failure
+            });
         }
         if (searchParams.trial_used === 'true' && org.trialUsedAt === null) {
             await prisma.org.update({
