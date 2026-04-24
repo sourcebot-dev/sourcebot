@@ -1,6 +1,6 @@
 import { expect, test, vi, describe } from 'vitest';
 import { gitlabPushMrReviews } from './gitlabPushMrReviews';
-import { sourcebot_pr_payload, sourcebot_file_diff_review } from '../types';
+import { sourcebot_pr_payload, sourcebot_file_diff_review, sourcebot_diff_refs } from '../types';
 
 vi.mock('@sourcebot/shared', () => ({
     createLogger: () => ({
@@ -64,6 +64,7 @@ describe('gitlabPushMrReviews', () => {
                     baseSha: 'base_sha_value',
                     headSha: 'head_sha_value',
                     startSha: 'start_sha_value',
+                    oldPath: 'src/foo.ts',
                     newPath: 'src/foo.ts',
                     newLine: '5',
                 }),
@@ -183,5 +184,143 @@ describe('gitlabPushMrReviews', () => {
         await expect(
             gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, SINGLE_REVIEW),
         ).resolves.not.toThrow();
+    });
+
+    test('uses oldFilename as oldPath when file was renamed', async () => {
+        const renamedReview: sourcebot_file_diff_review[] = [
+            {
+                filename: 'src/new-name.ts',
+                oldFilename: 'src/old-name.ts',
+                reviews: [{ line_start: 1, line_end: 1, review: 'Comment on renamed file' }],
+            },
+        ];
+        const client = makeMockClient();
+
+        await gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, renamedReview);
+
+        expect(client.MergeRequestDiscussions.create).toHaveBeenCalledWith(
+            101,
+            42,
+            'Comment on renamed file',
+            expect.objectContaining({
+                position: expect.objectContaining({
+                    oldPath: 'src/old-name.ts',
+                    newPath: 'src/new-name.ts',
+                }),
+            }),
+        );
+    });
+
+    test('passes oldLine for context lines', async () => {
+        // old line 47 = new line 48 (a line was added at new line 47 before it)
+        const payloadWithDiffs: sourcebot_pr_payload = {
+            ...MOCK_PAYLOAD,
+            file_diffs: [{
+                from: 'src/foo.ts',
+                to: 'src/foo.ts',
+                diffs: [{
+                    oldSnippet: '@@ -47,1 +48,1 @@\n47: context line\n',
+                    newSnippet: '@@ -47,1 +48,1 @@\n48: context line\n',
+                }],
+            }],
+        };
+        const contextReview: sourcebot_file_diff_review[] = [
+            {
+                filename: 'src/foo.ts',
+                reviews: [{ line_start: 48, line_end: 48, review: 'Context line comment' }],
+            },
+        ];
+        const client = makeMockClient();
+
+        await gitlabPushMrReviews(client, 101, payloadWithDiffs, contextReview);
+
+        expect(client.MergeRequestDiscussions.create).toHaveBeenCalledWith(
+            101,
+            42,
+            'Context line comment',
+            expect.objectContaining({
+                position: expect.objectContaining({
+                    newLine: '48',
+                    oldLine: '47',
+                }),
+            }),
+        );
+    });
+
+    test('does not pass oldLine for added lines', async () => {
+        const payloadWithDiffs: sourcebot_pr_payload = {
+            ...MOCK_PAYLOAD,
+            file_diffs: [{
+                from: 'src/foo.ts',
+                to: 'src/foo.ts',
+                diffs: [{
+                    oldSnippet: '@@ -1,1 +1,2 @@\n1: existing line\n',
+                    newSnippet: '@@ -1,1 +1,2 @@\n1: existing line\n2:+added line\n',
+                }],
+            }],
+        };
+        const addedLineReview: sourcebot_file_diff_review[] = [
+            {
+                filename: 'src/foo.ts',
+                reviews: [{ line_start: 2, line_end: 2, review: 'Comment on added line' }],
+            },
+        ];
+        const client = makeMockClient();
+
+        await gitlabPushMrReviews(client, 101, payloadWithDiffs, addedLineReview);
+
+        const call = client.MergeRequestDiscussions.create.mock.calls[0][3];
+        expect(call.position).not.toHaveProperty('oldLine');
+        expect(call.position.newLine).toBe('2');
+    });
+
+    test('uses new path for both oldPath and newPath when old path is /dev/null (added file)', async () => {
+        const addedFileReview: sourcebot_file_diff_review[] = [
+            {
+                filename: 'src/new-file.ts',
+                oldFilename: '/dev/null',
+                reviews: [{ line_start: 1, line_end: 1, review: 'Comment on new file' }],
+            },
+        ];
+        const client = makeMockClient();
+
+        await gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, addedFileReview);
+
+        expect(client.MergeRequestDiscussions.create).toHaveBeenCalledWith(
+            101,
+            42,
+            'Comment on new file',
+            expect.objectContaining({
+                position: expect.objectContaining({
+                    oldPath: 'src/new-file.ts',
+                    newPath: 'src/new-file.ts',
+                }),
+            }),
+        );
+    });
+
+    test('uses old path for both oldPath and newPath when new path is /dev/null (deleted file)', async () => {
+        const deletedFileReview: sourcebot_file_diff_review[] = [
+            {
+                filename: '/dev/null',
+                oldFilename: 'src/deleted-file.ts',
+                reviews: [{ line_start: 1, line_end: 1, review: 'Comment on deleted file' }],
+            },
+        ];
+        const client = makeMockClient();
+
+        await gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, deletedFileReview);
+
+        expect(client.MergeRequestDiscussions.create).toHaveBeenCalledWith(
+            101,
+            42,
+            'Comment on deleted file',
+            expect.objectContaining({
+                position: expect.objectContaining({
+                    oldPath: 'src/deleted-file.ts',
+                    newPath: 'src/deleted-file.ts',
+                }),
+            }),
+        );
     });
 });
