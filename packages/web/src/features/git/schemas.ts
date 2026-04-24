@@ -95,3 +95,17 @@ export const getCommitQueryParamsSchema = z.object({
 export const commitDetailSchema = commitSchema.extend({
     parents: z.array(z.string()).describe('The parent commit SHAs.'),
 });
+
+export const listCommitAuthorsQueryParamsSchema = z.object({
+    repo: z.string().describe('The fully-qualified repository name.'),
+    ref: z.string().optional().describe('The git ref (branch, tag, or commit SHA) to list authors from. Defaults to `HEAD`.'),
+    path: z.string().optional().describe('Restrict authors to those who touched this file path.'),
+    page: z.coerce.number().int().positive().default(1),
+    perPage: z.coerce.number().int().positive().max(100).default(50),
+});
+
+export const commitAuthorSchema = z.object({
+    name: z.string(),
+    email: z.string(),
+    commitCount: z.number().int().nonnegative(),
+});
