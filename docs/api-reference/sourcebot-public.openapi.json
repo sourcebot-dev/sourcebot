@@ -1757,10 +1757,10 @@
           {
             "schema": {
               "type": "string",
-              "description": "Filter commits by message content (case-insensitive)."
+              "description": "Filter commits by message content (case-insensitive). Interpreted as a POSIX BRE regex — escape metacharacters for literal matching."
             },
             "required": false,
-            "description": "Filter commits by message content (case-insensitive).",
+            "description": "Filter commits by message content (case-insensitive). Interpreted as a POSIX BRE regex — escape metacharacters for literal matching.",
             "name": "query",
             "in": "query"
           },
@@ -1787,10 +1787,10 @@
           {
             "schema": {
               "type": "string",
-              "description": "Filter commits by author name or email (case-insensitive)."
+              "description": "Filter commits by author name or email (case-insensitive). Interpreted as a POSIX BRE regex — escape metacharacters for literal matching."
             },
             "required": false,
-            "description": "Filter commits by author name or email (case-insensitive).",
+            "description": "Filter commits by author name or email (case-insensitive). Interpreted as a POSIX BRE regex — escape metacharacters for literal matching.",
             "name": "author",
             "in": "query"
           },

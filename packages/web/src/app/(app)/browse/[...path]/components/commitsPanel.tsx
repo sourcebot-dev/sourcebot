@@ -3,8 +3,10 @@ import { GitCommitHorizontal } from "lucide-react";
 import { getRepoInfoByName } from "@/actions";
 import { PathHeader } from "@/app/(app)/components/pathHeader";
 import { Separator } from "@/components/ui/separator";
-import { listCommits } from "@/features/git";
+import { listCommitAuthors, listCommits } from "@/features/git";
 import { isServiceError } from "@/lib/utils";
+import { AuthorFilter } from "./authorFilter";
+import { dedupeCommitAuthorsByEmail, escapeGitBreLiteral } from "./commitAuthors";
 import { CommitRow } from "./commitRow";
 import { CommitsPagination } from "./commitsPagination";
 
@@ -13,22 +15,32 @@ interface CommitsPanelProps {
     repoName: string;
     revisionName?: string;
     page: number;
+    author?: string;
 }
 
-const PER_PAGE = 35;
+const COMMITS_PER_PAGE = 35;
+const AUTHORS_PER_PAGE = 100;
 
-export const CommitsPanel = async ({ path, repoName, revisionName, page }: CommitsPanelProps) => {
-    const skip = (page - 1) * PER_PAGE;
+export const CommitsPanel = async ({ path, repoName, revisionName, page, author }: CommitsPanelProps) => {
+    const skip = (page - 1) * COMMITS_PER_PAGE;
 
-    const [commitsResponse, repoInfoResponse] = await Promise.all([
+    const [commitsResponse, repoInfoResponse, authorsResponse] = await Promise.all([
         listCommits({
             repo: repoName,
             path: path || undefined,
             ref: revisionName,
-            maxCount: PER_PAGE,
+            author: author ? escapeGitBreLiteral(author) : undefined,
+            maxCount: COMMITS_PER_PAGE,
             skip,
         }),
         getRepoInfoByName(repoName),
+        listCommitAuthors({
+            repo: repoName,
+            path: path || undefined,
+            ref: revisionName,
+            maxCount: AUTHORS_PER_PAGE,
+            skip: 0,
+        }),
     ]);
 
     if (isServiceError(commitsResponse)) {
@@ -37,9 +49,13 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page }: Commi
     if (isServiceError(repoInfoResponse)) {
         return <div className="p-4 text-sm">Error loading repo info: {repoInfoResponse.message}</div>;
     }
+    if (isServiceError(authorsResponse)) {
+        return <div className="p-4 text-sm">Error loading commit authors: {authorsResponse.message}</div>;
+    }
 
+    const authors = dedupeCommitAuthorsByEmail(authorsResponse.authors);
     const { commits, totalCount } = commitsResponse;
-    const isLastPage = page * PER_PAGE >= totalCount;
+    const isLastPage = page * COMMITS_PER_PAGE >= totalCount;
 
     const groups = new Map<string, { label: string; commits: typeof commits }>();
     for (const commit of commits) {
@@ -56,18 +72,21 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page }: Commi
 
     return (
         <div className="flex flex-col h-full">
-            <div className="flex flex-row py-1 px-2 items-center gap-2">
-                <span className="text-sm text-muted-foreground flex-shrink-0">History for</span>
-                <PathHeader
-                    path={path}
-                    repo={{
-                        name: repoName,
-                        codeHostType: repoInfoResponse.codeHostType,
-                        displayName: repoInfoResponse.displayName,
-                        externalWebUrl: repoInfoResponse.externalWebUrl,
-                    }}
-                    revisionName={revisionName}
-                />
+            <div className="flex flex-row py-1 px-2 items-center justify-between gap-2">
+                <div className="flex flex-row items-center gap-2 min-w-0">
+                    <span className="text-sm text-muted-foreground flex-shrink-0">History for</span>
+                    <PathHeader
+                        path={path}
+                        repo={{
+                            name: repoName,
+                            codeHostType: repoInfoResponse.codeHostType,
+                            displayName: repoInfoResponse.displayName,
+                            externalWebUrl: repoInfoResponse.externalWebUrl,
+                        }}
+                        revisionName={revisionName}
+                    />
+                </div>
+                <AuthorFilter authors={authors} selectedAuthor={author} />
             </div>
             <Separator />
             <div className="flex-1 overflow-auto">
@@ -94,8 +113,9 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page }: Commi
                 )}
                 <CommitsPagination
                     page={page}
-                    perPage={PER_PAGE}
+                    perPage={COMMITS_PER_PAGE}
                     totalCount={totalCount}
+                    extraParams={{ author }}
                 />
             </div>
         </div>

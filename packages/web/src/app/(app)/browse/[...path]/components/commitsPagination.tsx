@@ -6,9 +6,23 @@ interface CommitsPaginationProps {
     page: number;
     perPage: number;
     totalCount: number;
+    extraParams?: Record<string, string | undefined>;
 }
 
-export const CommitsPagination = ({ page, perPage, totalCount }: CommitsPaginationProps) => {
+const buildHref = (page: number, extraParams?: Record<string, string | undefined>) => {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    if (extraParams) {
+        for (const [key, value] of Object.entries(extraParams)) {
+            if (value !== undefined && value !== '') {
+                params.set(key, value);
+            }
+        }
+    }
+    return `?${params.toString()}`;
+};
+
+export const CommitsPagination = ({ page, perPage, totalCount, extraParams }: CommitsPaginationProps) => {
     const hasPrev = page > 1;
     const hasNext = page * perPage < totalCount;
 
@@ -22,7 +36,7 @@ export const CommitsPagination = ({ page, perPage, totalCount }: CommitsPaginati
     return (
         <div className="flex flex-row items-center justify-center gap-6 py-6">
             {hasPrev ? (
-                <Link href={`?page=${page - 1}`} className={linkClass}>
+                <Link href={buildHref(page - 1, extraParams)} className={linkClass}>
                     <ChevronLeft className="h-4 w-4" />
                     Previous
                 </Link>
@@ -33,7 +47,7 @@ export const CommitsPagination = ({ page, perPage, totalCount }: CommitsPaginati
                 </span>
             )}
             {hasNext ? (
-                <Link href={`?page=${page + 1}`} className={linkClass}>
+                <Link href={buildHref(page + 1, extraParams)} className={linkClass}>
                     Next
                     <ChevronRight className="h-4 w-4" />
                 </Link>

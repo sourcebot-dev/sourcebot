@@ -77,6 +77,7 @@ interface BrowsePageProps {
     }>;
     searchParams: Promise<{
         page?: string;
+        author?: string;
     }>;
 }
 
@@ -91,6 +92,7 @@ export default async function BrowsePage(props: BrowsePageProps) {
     const { repoName, revisionName, path, pathType } = getBrowseParamsFromPathParam(rawPath);
 
     const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
+    const author = searchParams.author || undefined;
 
     return (
         <div className="flex flex-col h-full">
@@ -112,6 +114,7 @@ export default async function BrowsePage(props: BrowsePageProps) {
                         repoName={repoName}
                         revisionName={revisionName}
                         page={page}
+                        author={author}
                     />
                 ) : (
                     <TreePreviewPanel

@@ -277,6 +277,23 @@ describe('searchCommits', () => {
             );
         });
 
+        it('should pass author through as a regex pattern verbatim', async () => {
+            // Caller is responsible for escaping literal inputs. Here we pass a
+            // pre-escaped BRE pattern and assert it reaches git log unchanged.
+            await listCommits({
+                repo: 'github.com/test/repo',
+                author: '49699333+dependabot\\[bot\\]@users\\.noreply\\.github\\.com',
+            });
+
+            expect(mockGitLog).toHaveBeenCalledWith(
+                expect.arrayContaining([
+                    '--author=49699333+dependabot\\[bot\\]@users\\.noreply\\.github\\.com',
+                    '--regexp-ignore-case',
+                    'HEAD',
+                ])
+            );
+        });
+
         it('should add --grep and --regexp-ignore-case when query is provided', async () => {
             await listCommits({
                 repo: 'github.com/test/repo',

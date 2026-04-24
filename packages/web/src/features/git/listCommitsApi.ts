@@ -76,6 +76,9 @@ export const listCommits = async ({
         const git = simpleGit().cwd(repoPath);
 
         try {
+            // --author and --grep are interpreted as git's default regex (POSIX BRE
+            // with GNU extensions). Callers are responsible for escaping metacharacters
+            // when they want literal matching.
             const sharedOptions: Record<string, string | number | null> = {
                 ...(gitSince ? { '--since': gitSince } : {}),
                 ...(gitUntil ? { '--until': gitUntil } : {}),
