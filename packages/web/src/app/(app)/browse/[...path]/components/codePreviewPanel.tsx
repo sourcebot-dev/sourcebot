@@ -85,7 +85,12 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePre
             <Separator />
             {latestCommit && (
                 <>
-                    <CommitHeader commit={latestCommit} />
+                    <CommitHeader
+                        commit={latestCommit}
+                        repoName={repoName}
+                        path={path}
+                        revisionName={revisionName}
+                    />
                     <Separator />
                 </>
             )}

@@ -39,6 +39,12 @@ const parsePathForTitle = (path: string[]): string => {
       const directoryPath = filePath.endsWith('/') ? filePath : `${filePath}/`;
       return `${directoryPath} - ${repoAndRevision}`;
     }
+    case 'commits': {
+      if (filePath === '' || filePath === '/') {
+        return `History - ${repoAndRevision}`;
+      }
+      return `History: ${filePath} - ${repoAndRevision}`;
+    }
   }
 }
 
@@ -94,6 +100,10 @@ export default async function BrowsePage(props: BrowsePageProps) {
                         repoName={repoName}
                         revisionName={revisionName}
                     />
+                ) : pathType === 'commits' ? (
+                    <div className="p-4 text-sm text-muted-foreground">
+                        Commit history view coming soon.
+                    </div>
                 ) : (
                     <TreePreviewPanel
                         path={path}

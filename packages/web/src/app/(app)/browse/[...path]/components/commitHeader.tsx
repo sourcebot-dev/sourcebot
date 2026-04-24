@@ -3,15 +3,20 @@
 import { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { History, MoreHorizontal } from "lucide-react";
+import Link from "next/link";
 import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { UserAvatar } from "@/components/userAvatar";
 import type { Commit } from "@/features/git";
+import { getBrowsePath } from "../../hooks/utils";
 
 interface CommitHeaderProps {
     commit: Commit;
+    repoName: string;
+    path: string;
+    revisionName?: string;
 }
 
 type Author = { name: string; email: string };
@@ -37,11 +42,18 @@ const formatAuthorsText = (authors: Author[]): string => {
     return `${authors[0].name}, ${authors[1].name}, and ${others} other${others > 1 ? "s" : ""}`;
 };
 
-export const CommitHeader = ({ commit }: CommitHeaderProps) => {
+export const CommitHeader = ({ commit, repoName, path, revisionName }: CommitHeaderProps) => {
     const [isBodyExpanded, setIsBodyExpanded] = useState(false);
     const shortSha = commit.hash.slice(0, 7);
     const relativeDate = formatDistanceToNow(new Date(commit.date), { addSuffix: true });
     const hasBody = commit.body.trim().length > 0;
+
+    const historyHref = getBrowsePath({
+        repoName,
+        revisionName,
+        path,
+        pathType: 'commits',
+    });
 
     const authors = useMemo<Author[]>(() => {
         const all: Author[] = [
@@ -111,9 +123,11 @@ export const CommitHeader = ({ commit }: CommitHeaderProps) => {
                             {relativeDate}
                         </span>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-7 px-2 gap-1.5">
-                        <History className="h-4 w-4" />
-                        <span className="text-sm">History</span>
+                    <Button asChild variant="ghost" size="sm" className="h-7 px-2 gap-1.5">
+                        <Link href={historyHref}>
+                            <History className="h-4 w-4" />
+                            <span className="text-sm">History</span>
+                        </Link>
                     </Button>
                 </div>
             </div>
