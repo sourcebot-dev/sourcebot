@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getBrowseParamsFromPathParam } from "../hooks/utils";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
+import { CommitsPanel } from "./components/commitsPanel";
 import { Loader2 } from "lucide-react";
 import { TreePreviewPanel } from "./components/treePreviewPanel";
 import { Metadata } from "next";
@@ -74,10 +75,13 @@ interface BrowsePageProps {
     params: Promise<{
         path: string[];
     }>;
+    searchParams: Promise<{
+        page?: string;
+    }>;
 }
 
 export default async function BrowsePage(props: BrowsePageProps) {
-    const params = await props.params;
+    const [params, searchParams] = await Promise.all([props.params, props.searchParams]);
 
     const {
         path: _rawPath,
@@ -85,6 +89,8 @@ export default async function BrowsePage(props: BrowsePageProps) {
 
     const rawPath = _rawPath.join('/');
     const { repoName, revisionName, path, pathType } = getBrowseParamsFromPathParam(rawPath);
+
+    const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
 
     return (
         <div className="flex flex-col h-full">
@@ -101,9 +107,12 @@ export default async function BrowsePage(props: BrowsePageProps) {
                         revisionName={revisionName}
                     />
                 ) : pathType === 'commits' ? (
-                    <div className="p-4 text-sm text-muted-foreground">
-                        Commit history view coming soon.
-                    </div>
+                    <CommitsPanel
+                        path={path}
+                        repoName={repoName}
+                        revisionName={revisionName}
+                        page={page}
+                    />
                 ) : (
                     <TreePreviewPanel
                         path={path}
