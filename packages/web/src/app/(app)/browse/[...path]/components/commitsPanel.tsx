@@ -9,6 +9,7 @@ import { AuthorFilter } from "./authorFilter";
 import { dedupeCommitAuthorsByEmail, escapeGitBreLiteral } from "./commitAuthors";
 import { CommitRow } from "./commitRow";
 import { CommitsPagination } from "./commitsPagination";
+import { DateFilter } from "./dateFilter";
 
 interface CommitsPanelProps {
     path: string;
@@ -16,13 +17,22 @@ interface CommitsPanelProps {
     revisionName?: string;
     page: number;
     author?: string;
+    since?: string;
+    until?: string;
 }
 
 const COMMITS_PER_PAGE = 35;
 const AUTHORS_PER_PAGE = 100;
 
-export const CommitsPanel = async ({ path, repoName, revisionName, page, author }: CommitsPanelProps) => {
+export const CommitsPanel = async ({ path, repoName, revisionName, page, author, since, until }: CommitsPanelProps) => {
     const skip = (page - 1) * COMMITS_PER_PAGE;
+
+    // The URL stores dates as YYYY-MM-DD. Always pass explicit timestamps to
+    // git: the bare-date form triggers approxidate quirks (returning 0 commits
+    // in some cases), and bare `--until=YYYY-MM-DD` would also exclude commits
+    // made on that day since it resolves to midnight at the start.
+    const sinceForGit = since ? `${since}T00:00:00` : undefined;
+    const untilForGit = until ? `${until}T23:59:59` : undefined;
 
     const [commitsResponse, repoInfoResponse, authorsResponse] = await Promise.all([
         listCommits({
@@ -30,6 +40,8 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page, author 
             path: path || undefined,
             ref: revisionName,
             author: author ? escapeGitBreLiteral(author) : undefined,
+            since: sinceForGit,
+            until: untilForGit,
             maxCount: COMMITS_PER_PAGE,
             skip,
         }),
@@ -86,7 +98,10 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page, author 
                         revisionName={revisionName}
                     />
                 </div>
-                <AuthorFilter authors={authors} selectedAuthor={author} />
+                <div className="flex flex-row items-center gap-2 flex-shrink-0">
+                    <AuthorFilter authors={authors} selectedAuthor={author} />
+                    <DateFilter since={since} until={until} />
+                </div>
             </div>
             <Separator />
             <div className="flex-1 overflow-auto">
@@ -115,7 +130,7 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page, author 
                     page={page}
                     perPage={COMMITS_PER_PAGE}
                     totalCount={totalCount}
-                    extraParams={{ author }}
+                    extraParams={{ author, since, until }}
                 />
             </div>
         </div>

@@ -78,6 +78,8 @@ interface BrowsePageProps {
     searchParams: Promise<{
         page?: string;
         author?: string;
+        since?: string;
+        until?: string;
     }>;
 }
 
@@ -93,6 +95,8 @@ export default async function BrowsePage(props: BrowsePageProps) {
 
     const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
     const author = searchParams.author || undefined;
+    const since = searchParams.since || undefined;
+    const until = searchParams.until || undefined;
 
     return (
         <div className="flex flex-col h-full">
@@ -115,6 +119,8 @@ export default async function BrowsePage(props: BrowsePageProps) {
                         revisionName={revisionName}
                         page={page}
                         author={author}
+                        since={since}
+                        until={until}
                     />
                 ) : (
                     <TreePreviewPanel
