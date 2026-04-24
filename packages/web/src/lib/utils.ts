@@ -493,6 +493,34 @@ export const getShortenedNumberDisplayString = (number: number, fractionDigits: 
     }
 }
 
+/**
+ * Formats a Stripe currency amount for display.
+ *
+ * Stripe reports amounts in the currency's smallest unit (cents for USD,
+ * yen for JPY, fils for BHD, etc). The divisor is derived from the
+ * currency's fraction digits rather than hard-coded, so zero-decimal and
+ * three-decimal currencies render correctly.
+ *
+ * By default the currency's natural number of decimal places is shown.
+ * Pass `minimumFractionDigits: 0` to suppress trailing zeros on whole
+ * amounts (e.g. "$10" instead of "$10.00").
+ */
+export const formatCurrency = (
+    amountSmallestUnit: number,
+    currency: string,
+    options: { minimumFractionDigits?: number } = {},
+): string => {
+    const formatter = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency.toUpperCase(),
+        ...(options.minimumFractionDigits !== undefined && {
+            minimumFractionDigits: options.minimumFractionDigits,
+        }),
+    });
+    const fractionDigits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
+    return formatter.format(amountSmallestUnit / Math.pow(10, fractionDigits));
+}
+
 export const measureSync = <T>(cb: () => T, measureName: string, outputLog: boolean = true) => {
     const startMark = `${measureName}.start`;
     const endMark = `${measureName}.end`;

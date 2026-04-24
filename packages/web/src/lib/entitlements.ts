@@ -2,24 +2,29 @@ import {
     _getEntitlements,
     _hasEntitlement,
     _isAnonymousAccessAvailable,
+    createLogger,
     Entitlement,
     env,
 } from "@sourcebot/shared";
 import { __unsafePrisma } from "@/prisma";
 import { SINGLE_TENANT_ORG_ID } from "./constants";
 import { getOrgMetadata } from "./utils";
+import { cache } from 'react';
 
-const getSingleTenantLicense = async () => {
+const logger = createLogger('entitlements');
+
+const getSingleTenantLicense = cache(async () => {
     try {
         return await __unsafePrisma.license.findUnique({
             where: {
                 orgId: SINGLE_TENANT_ORG_ID,
             },
         });
-    } catch {
+    } catch (err) {
+        logger.error('Failed to fetch single-tenant license', err);
         return null;
     }
-}
+});
 
 export const getEntitlements = async () => {
     const license = await getSingleTenantLicense();

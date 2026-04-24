@@ -3,7 +3,7 @@ import { LicenseStatus, STALE_ONLINE_LICENSE_WARNING_THRESHOLD_MS } from "@sourc
 import { formatDistanceToNow } from "date-fns";
 import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { SettingsCard } from "../components/settingsCard";
 import { PlanActionsMenu } from "./planActionsMenu";
 
@@ -58,11 +58,11 @@ export function CurrentPlanCard({ license }: CurrentPlanCardProps) {
                     </div>
                     {monthlyPerSeat !== null ? (
                         <p className="text-sm text-muted-foreground">
-                            {formatCurrency(monthlyPerSeat, currency)} per user/mo, billed {formatCadence(interval, intervalCount)}
+                            {formatCurrency(monthlyPerSeat, currency, { minimumFractionDigits: 0 })} per user/mo, billed {formatCadence(interval, intervalCount)}
                         </p>
                     ) : (
                         <p className="text-sm text-muted-foreground">
-                            {formatCurrency(unitAmount, currency)} per user, billed {formatCadence(interval, intervalCount)}
+                            {formatCurrency(unitAmount, currency, { minimumFractionDigits: 0 })} per user, billed {formatCadence(interval, intervalCount)}
                         </p>
                     )}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
@@ -91,7 +91,7 @@ export function CurrentPlanCard({ license }: CurrentPlanCardProps) {
                                 <div className="flex flex-col items-end">
                                     <p className="text-xs text-muted-foreground">Next renewal</p>
                                     <p className="text-sm">
-                                        {formatCurrency(nextRenewalAmount ?? 0, currency)} on {formatDate(nextRenewalAt)}
+                                        {formatCurrency(nextRenewalAmount ?? 0, currency, { minimumFractionDigits: 0 })} on {formatDate(nextRenewalAt)}
                                     </p>
                                 </div>
                             ) : cancelAt ? (
@@ -124,14 +124,6 @@ function normalizeToMonthly(unitAmount: number, interval: string, intervalCount:
     return null;
 }
 
-function formatCurrency(amountCents: number, currency: string): string {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency.toUpperCase(),
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-    }).format(amountCents / 100);
-}
 
 function formatCadence(interval: string, intervalCount: number): string {
     if (intervalCount === 1) {

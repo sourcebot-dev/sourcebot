@@ -59,12 +59,22 @@ export function ActivationCodeCard({ isTrialEligible }: ActivationCodeCardProps)
                         description: `Failed to start checkout: ${response.message}`,
                         variant: "destructive",
                     });
-                    setIsCheckoutSessionCreating(false);
                 } else {
-                    router.push(response.url);
+                    // Stripe Checkout is an external URL; use assign for a
+                    // full navigation rather than router.push.
+                    window.location.assign(response.url);
                 }
+            })
+            .catch(() => {
+                toast({
+                    description: "Failed to start checkout. Please try again.",
+                    variant: "destructive",
+                });
+            })
+            .finally(() => {
+                setIsCheckoutSessionCreating(false);
             });
-    }, [router, toast, isTrialEligible]);
+    }, [toast, isTrialEligible]);
 
     return (
         <SettingsCard>

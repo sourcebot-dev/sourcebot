@@ -66,9 +66,9 @@ if (env.PERMISSION_SYNC_ENABLED === 'true' && !await hasEntitlement('permission-
 }
 else if (env.PERMISSION_SYNC_ENABLED === 'true' && await hasEntitlement('permission-syncing')) {
     if (env.PERMISSION_SYNC_REPO_DRIVEN_ENABLED === 'true') {
-        repoPermissionSyncer.startScheduler();
+        await repoPermissionSyncer.startScheduler();
     }
-    accountPermissionSyncer.startScheduler();
+    await accountPermissionSyncer.startScheduler();
 }
 
 const api = new Api(

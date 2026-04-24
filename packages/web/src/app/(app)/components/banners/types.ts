@@ -1,3 +1,6 @@
+import { ReactNode } from "react";
+import type { OrgRole } from "@sourcebot/db";
+
 export const BannerPriority = {
     LICENSE_EXPIRED:          100,
     SERVICE_PING_ENFORCED:     95,
@@ -16,8 +19,6 @@ export type BannerId =
     | 'trial'
     | 'servicePingFailed';
 
-import type { OrgRole } from "@sourcebot/db";
-
 export interface BannerProps {
     id: BannerId;
     dismissible: boolean;
@@ -30,7 +31,7 @@ export interface BannerDescriptor {
     priority: number;
     dismissible: boolean;
     audience: 'everyone' | 'owner';
-    render: (props: BannerProps) => React.ReactNode;
+    render: (props: BannerProps) => ReactNode;
 }
 
 export const DISMISS_COOKIE_PREFIX = 'banner_dismissed_';

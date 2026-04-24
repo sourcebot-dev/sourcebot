@@ -4,6 +4,7 @@ import { Invoice } from "@/ee/features/lighthouse/types";
 import { SettingsCard, SettingsCardGroup } from "../components/settingsCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/utils";
 
 interface RecentInvoicesCardProps {
     invoices: Invoice[];
@@ -81,11 +82,3 @@ function formatDate(isoDate: string): string {
     });
 }
 
-function formatCurrency(amountCents: number, currency: string): string {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency.toUpperCase(),
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(amountCents / 100);
-}

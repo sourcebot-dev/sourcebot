@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ExternalLink } from "lucide-react";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { useToast } from "@/components/hooks/use-toast";
@@ -14,7 +13,6 @@ interface OpenBillingPortalButtonProps {
 
 export function OpenBillingPortalButton({ label }: OpenBillingPortalButtonProps) {
     const [isOpeningPortal, setIsOpeningPortal] = useState(false);
-    const router = useRouter();
     const { toast } = useToast();
 
     const handleClick = useCallback(() => {
@@ -26,12 +24,20 @@ export function OpenBillingPortalButton({ label }: OpenBillingPortalButtonProps)
                         description: `Failed to open billing portal: ${response.message}`,
                         variant: "destructive",
                     });
-                    setIsOpeningPortal(false);
                 } else {
-                    router.push(response.url);
+                    window.location.assign(response.url);
                 }
+            })
+            .catch(() => {
+                toast({
+                    description: "Failed to open billing portal. Please try again.",
+                    variant: "destructive",
+                });
+            })
+            .finally(() => {
+                setIsOpeningPortal(false);
             });
-    }, [router, toast]);
+    }, [toast]);
 
     return (
         <LoadingButton

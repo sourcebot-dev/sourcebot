@@ -302,7 +302,7 @@ model Org {
 model License {
   id                String      @id @default(cuid())
   orgId             Int      @unique
-  org               Org      @relation(fields: [orgId], references: [id])
+  org               Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
   activationCode    String
   entitlements      String[]
   seats             Int?
