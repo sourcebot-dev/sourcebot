@@ -15,8 +15,8 @@ import { OrgRole } from "@sourcebot/db";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { redirect } from "next/navigation";
 import { BetweenHorizontalStart, Brain, GitBranchIcon, LockIcon } from "lucide-react";
-import { hasEntitlement } from "@sourcebot/shared";
 import { env } from "@sourcebot/shared";
+import { hasEntitlement } from "@/lib/entitlements";
 import { GcpIapAuth } from "@/app/(app)/components/gcpIapAuth";
 
 interface OnboardingProps {
@@ -40,7 +40,7 @@ interface ResourceCard {
 
 export default async function Onboarding(props: OnboardingProps) {
     const searchParams = await props.searchParams;
-    const providers = getIdentityProviderMetadata();
+    const providers = await getIdentityProviderMetadata();
     const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
     const session = await auth();
 

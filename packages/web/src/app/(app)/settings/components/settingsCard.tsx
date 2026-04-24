@@ -32,7 +32,7 @@ interface BasicSettingsCardProps {
 export function BasicSettingsCard({ name, description, children }: BasicSettingsCardProps) {
     return (
         <SettingsCard>
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
                 <div className="flex-1 min-w-0">
                     <p className="font-medium">{name}</p>
                     <p className="text-sm text-muted-foreground mt-1">{description}</p>

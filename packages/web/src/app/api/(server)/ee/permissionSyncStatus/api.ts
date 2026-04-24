@@ -2,7 +2,8 @@
 
 import { ServiceError } from "@/lib/serviceError";
 import { withAuth } from "@/middleware/withAuth";
-import { env, getEntitlements } from "@sourcebot/shared";
+import { env } from "@sourcebot/shared";
+import { getEntitlements } from "@/lib/entitlements";
 import { AccountPermissionSyncJobStatus } from "@sourcebot/db";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -18,7 +19,7 @@ export interface PermissionSyncStatusResponse {
  */
 export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusResponse | ServiceError> => sew(async () =>
     withAuth(async ({ prisma, user }) => {
-        const entitlements = getEntitlements();
+        const entitlements = await getEntitlements();
         if (!entitlements.includes('permission-syncing')) {
             return {
                 statusCode: StatusCodes.FORBIDDEN,

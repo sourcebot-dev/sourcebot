@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/node";
 import { PrismaClient, AccountPermissionSyncJobStatus, Account, PermissionSyncSource} from "@sourcebot/db";
-import { env, hasEntitlement, createLogger, loadConfig, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
+import { env, createLogger, loadConfig, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
+import { hasEntitlement } from "../entitlements.js";
 import { ensureFreshAccountToken } from "./tokenRefresh.js";
 import { Job, Queue, Worker } from "bullmq";
 import { Redis } from "ioredis";
@@ -50,8 +51,8 @@ export class AccountPermissionSyncer {
         this.worker.on('failed', this.onJobFailed.bind(this));
     }
 
-    public startScheduler() {
-        if (!hasEntitlement('permission-syncing')) {
+    public async startScheduler() {
+        if (!await hasEntitlement('permission-syncing')) {
             throw new Error('Permission syncing is not supported in current plan.');
         }
 

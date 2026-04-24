@@ -65,3 +65,14 @@ export const repoIndexingJobMetadataSchema = z.object({
 export type RepoIndexingJobMetadata = z.infer<typeof repoIndexingJobMetadataSchema>;
 
 export type IdentityProviderType = IdentityProviderConfig['provider'];
+
+// @see: https://docs.stripe.com/api/subscriptions/object#subscription_object-status
+export type LicenseStatus =
+    'active' |
+    'trialing' |
+    'past_due' |
+    'unpaid' |
+    'canceled' |
+    'incomplete' |
+    'incomplete_expired' |
+    'paused';

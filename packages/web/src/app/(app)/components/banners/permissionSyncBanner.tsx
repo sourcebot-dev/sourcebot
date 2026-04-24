@@ -1,6 +1,5 @@
 'use client';
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Info } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { unwrapServiceError } from "@/lib/utils";
@@ -8,14 +7,16 @@ import { getPermissionSyncStatus } from "@/app/api/(client)/client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { usePrevious } from "@uidotdev/usehooks";
+import { BannerShell } from "./bannerShell";
+import type { BannerProps } from "./types";
 
 const POLL_INTERVAL_MS = 5000;
 
-interface PermissionSyncBannerProps {
+interface PermissionSyncBannerProps extends BannerProps {
     initialHasPendingFirstSync: boolean;
 }
 
-export function PermissionSyncBanner({ initialHasPendingFirstSync }: PermissionSyncBannerProps) {
+export function PermissionSyncBanner({ id, dismissible, initialHasPendingFirstSync }: PermissionSyncBannerProps) {
     const router = useRouter();
 
     const { data: hasPendingFirstSync, isError, isPending } = useQuery({
@@ -26,7 +27,6 @@ export function PermissionSyncBanner({ initialHasPendingFirstSync }: PermissionS
         },
         refetchInterval: (query) => {
             const hasPendingFirstSync = query.state.data?.hasPendingFirstSync;
-            // Keep polling while sync is in progress, stop when done
             return hasPendingFirstSync ? POLL_INTERVAL_MS : false;
         },
         initialData: {
@@ -36,14 +36,12 @@ export function PermissionSyncBanner({ initialHasPendingFirstSync }: PermissionS
 
     const previousHasPendingFirstSync = usePrevious(hasPendingFirstSync);
 
-    // Refresh the page when sync completes
     useEffect(() => {
         if (previousHasPendingFirstSync === true && hasPendingFirstSync === false) {
             router.refresh();
         }
     }, [hasPendingFirstSync, previousHasPendingFirstSync, router]);
 
-    // Don't show anything if we can't get status or no pending first sync
     if (isError || isPending) {
         return null;
     }
@@ -53,15 +51,17 @@ export function PermissionSyncBanner({ initialHasPendingFirstSync }: PermissionS
     }
 
     return (
-        <Alert className="rounded-none border-x-0 border-t-0 bg-accent">
-            <Info className="h-4 w-4 mt-0.5" />
-            <AlertTitle className="flex items-center gap-2">
-                Syncing repository access with Sourcebot.
-                <Loader2 className="h-4 w-4 animate-spin" />
-            </AlertTitle>
-            <AlertDescription>
-                Sourcebot is syncing what repositories you have access to from a code host. This may take a minute.
-            </AlertDescription>
-        </Alert>
+        <BannerShell
+            id={id}
+            dismissible={dismissible}
+            icon={<Info className="h-4 w-4 mt-0.5" />}
+            title={
+                <span className="flex items-center gap-2">
+                    Syncing repository access with Sourcebot.
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                </span>
+            }
+            description="Sourcebot is syncing what repositories you have access to from a code host. This may take a minute."
+        />
     );
 }

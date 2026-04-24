@@ -4,13 +4,7 @@ import { ServiceErrorException } from "@/lib/serviceError";
 import { getSidebarNavGroups } from "@/app/(app)/settings/layout";
 import { SidebarBase } from "../sidebarBase";
 import { Nav } from "./nav";
-import {
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { ArrowLeftIcon } from "lucide-react";
-import Link from "next/link";
+import { SettingsSidebarHeader } from "./header";
 
 export async function SettingsSidebar() {
     const session = await auth();
@@ -24,18 +18,7 @@ export async function SettingsSidebar() {
         <SidebarBase
             session={session}
             collapsible="none"
-            headerContent={
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                            <Link href="/">
-                                <ArrowLeftIcon />
-                                <span>Back to app</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            }
+            headerContent={<SettingsSidebarHeader />}
         >
             <Nav groups={sidebarNavGroups} />
         </SidebarBase>

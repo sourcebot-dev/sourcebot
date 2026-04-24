@@ -14,7 +14,8 @@ import { __unsafePrisma } from '@/prisma';
 import { ChatVisibility } from '@sourcebot/db';
 import { Metadata } from 'next';
 import { SBChatMessage } from '@/features/chat/types';
-import { env, hasEntitlement } from '@sourcebot/shared';
+import { env } from '@sourcebot/shared';
+import { hasEntitlement } from '@/lib/entitlements';
 import { captureEvent } from '@/lib/posthog';
 
 interface PageProps {
@@ -121,7 +122,7 @@ export default async function Page(props: PageProps) {
 
     const indexedRepos = repos.filter((repo) => repo.indexedAt !== undefined);
 
-    const hasChatSharingEntitlement = hasEntitlement('chat-sharing');
+    const hasChatSharingEntitlement = await hasEntitlement('chat-sharing');
 
     return (
         <div className="flex flex-col h-full">

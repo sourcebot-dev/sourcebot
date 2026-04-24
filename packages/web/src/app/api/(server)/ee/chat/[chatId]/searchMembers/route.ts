@@ -1,10 +1,10 @@
 import { apiHandler } from "@/lib/apiHandler";
-import { SOURCEBOT_GUEST_USER_ID } from "@/lib/constants";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withAuth } from "@/middleware/withAuth";
-import { env, hasEntitlement } from "@sourcebot/shared";
+import { env } from "@sourcebot/shared";
+import { hasEntitlement } from "@/lib/entitlements";
 import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
 import { z } from "zod";
@@ -41,7 +41,7 @@ export const GET = apiHandler(async (
         })
     }
 
-    if (!hasEntitlement('chat-sharing')) {
+    if (!await hasEntitlement('chat-sharing')) {
         return serviceErrorResponse({
             statusCode: StatusCodes.FORBIDDEN,
             errorCode: ErrorCode.UNEXPECTED_ERROR,
@@ -94,8 +94,6 @@ export const GET = apiHandler(async (
         const excludeUserIds = new Set([
             // Exclude the owner
             user.id,
-            // ... and the guest user
-            SOURCEBOT_GUEST_USER_ID,
             // ... as well as any existing
             ...sharedWithUsers.map((s) => s.userId),
         ]);

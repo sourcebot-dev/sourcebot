@@ -13,16 +13,13 @@ import { render } from '@react-email/render';
 import MagicLinkEmail from './emails/magicLinkEmail';
 import bcrypt from 'bcryptjs';
 import { getEEIdentityProviders } from '@/ee/features/sso/sso';
-import { hasEntitlement } from '@sourcebot/shared';
+import { hasEntitlement } from '@/lib/entitlements';
 import { onCreateUser } from '@/lib/authUtils';
-import { getAuditService } from '@/ee/features/audit/factory';
+import { createAudit } from '@/ee/features/audit/audit';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
 import { EncryptedPrismaAdapter, encryptAccountData } from '@/lib/encryptedPrismaAdapter';
 import { getAnonymousId } from '@/lib/anonymousId';
 import { captureEvent } from '@/lib/posthog';
-
-const auditService = getAuditService();
-const eeIdentityProviders = hasEntitlement("sso") ? await getEEIdentityProviders() : [];
 
 export const runtime = 'nodejs';
 
@@ -49,8 +46,11 @@ declare module 'next-auth/jwt' {
     }
 }
 
-export const getProviders = () => {
-    const providers: IdentityProvider[] = [...eeIdentityProviders];
+export const getProviders = async () => {
+    const hasSSOEntitlement = await hasEntitlement("sso");
+    const providers: IdentityProvider[] = [
+        ...(hasSSOEntitlement ? await getEEIdentityProviders() : []),
+    ];
 
     const smtpConnectionUrl = getSMTPConnectionURL();
     if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
@@ -211,7 +211,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     }
                 }
 
-                await auditService.createAudit({
+                await createAudit({
                     action: "user.signed_in",
                     actor: {
                         id: user.id,
@@ -228,7 +228,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         signOut: async (message) => {
             const token = message as { token: { userId: string } | null };
             if (token?.token?.userId) {
-                await auditService.createAudit({
+                await createAudit({
                     action: "user.signed_out",
                     actor: {
                         id: token.token.userId,
@@ -294,7 +294,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return session;
         },
     },
-    providers: getProviders().map((provider) => provider.provider),
+    providers: (await getProviders()).map((provider) => provider.provider),
     pages: {
         signIn: "/login",
         // We set redirect to false in signInOptions so we can pass the email is as a param
@@ -306,7 +306,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
  * Returns the issuer URL for a given auth.js account
  */
 const getIssuerUrlForAccount = async (account: { provider: string; }) => {
-    const providers = getProviders();
+    const providers = await getProviders();
     const matchingProvider = providers.find((provider) => {
         if (typeof provider.provider === "function") {
             const providerInfo = provider.provider();

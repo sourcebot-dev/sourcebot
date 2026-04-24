@@ -1,5 +1,5 @@
 import { sew } from "@/middleware/sew";
-import { getAuditService } from '@/ee/features/audit/factory';
+import { createAudit } from '@/ee/features/audit/audit';
 import { invalidGitRef, notFound, ServiceError, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuth } from "@/middleware/withAuth";
 import { getRepoPath } from '@sourcebot/shared';
@@ -22,7 +22,7 @@ export const getTree = async ({ repoName, revisionName, paths }: GetTreeRequest,
     withOptionalAuth(async ({ org, prisma, user }) => {
         if (user) {
             const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
-            getAuditService().createAudit({
+            await createAudit({
                 action: 'user.fetched_file_tree',
                 actor: { id: user.id, type: 'user' },
                 target: { id: org.id.toString(), type: 'org' },
