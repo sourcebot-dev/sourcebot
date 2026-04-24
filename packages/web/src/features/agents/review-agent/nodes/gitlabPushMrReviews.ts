@@ -2,6 +2,11 @@ import { sourcebot_pr_payload, sourcebot_file_diff_review } from "@/features/age
 import { Gitlab } from "@gitbeaker/rest";
 import { createLogger } from "@sourcebot/shared";
 
+// Derive the position type from the Gitlab client to avoid importing from @gitbeaker/core.
+type DiscussionNotePosition = NonNullable<
+    NonNullable<Parameters<InstanceType<typeof Gitlab>['MergeRequestDiscussions']['create']>[3]>['position']
+>;
+
 const logger = createLogger('gitlab-push-mr-reviews');
 
 /**
@@ -71,27 +76,30 @@ export const gitlabPushMrReviews = async (
     for (const fileDiffReview of fileDiffReviews) {
         const fileContextMap = contextLineMap.get(fileDiffReview.filename);
         const resolvedOldPath = fileDiffReview.oldFilename ?? fileDiffReview.filename;
-        const oldPathEntry = resolvedOldPath !== '/dev/null' ? { oldPath: resolvedOldPath } : {};
-        const newPathEntry = fileDiffReview.filename !== '/dev/null' ? { newPath: fileDiffReview.filename } : {};
         for (const review of fileDiffReview.reviews) {
             const oldLine = fileContextMap?.get(review.line_end);
+            const position: Record<string, string> = {
+                positionType: 'text',
+                baseSha: base_sha,
+                headSha: head_sha,
+                startSha: start_sha,
+                newLine: String(review.line_end),
+            };
+            if (resolvedOldPath !== '/dev/null') {
+                position['oldPath'] = resolvedOldPath;
+            }
+            if (fileDiffReview.filename !== '/dev/null') {
+                position['newPath'] = fileDiffReview.filename;
+            }
+            if (oldLine !== undefined) {
+                position['oldLine'] = String(oldLine);
+            }
             try {
                 await gitlabClient.MergeRequestDiscussions.create(
                     projectId,
                     prPayload.number,
                     review.review,
-                    {
-                        position: {
-                            positionType: "text",
-                            baseSha: base_sha,
-                            headSha: head_sha,
-                            startSha: start_sha,
-                            ...oldPathEntry,
-                            ...newPathEntry,
-                            newLine: String(review.line_end),
-                            ...(oldLine !== undefined ? { oldLine: String(oldLine) } : {}),
-                        },
-                    },
+                    { position: position as unknown as DiscussionNotePosition },
                 );
             } catch (error) {
                 // Inline comment failed (e.g. line not in diff) — fall back to a general MR note
