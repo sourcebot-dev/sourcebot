@@ -4,6 +4,46 @@ import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('gitlab-push-mr-reviews');
 
+/**
+ * Extracts new-file line numbers for context (unchanged) lines from a snippet.
+ * Snippet lines have the format `<lineNum>:<content>` where content starts with
+ * a space for context lines, `+` for additions, and `-` for deletions.
+ */
+function extractContextLineNumbers(snippet: string): number[] {
+    const result: number[] = [];
+    for (const line of snippet.split('\n')) {
+        if (line.startsWith('@@')) continue;
+        const colonIdx = line.indexOf(':');
+        if (colonIdx === -1) continue;
+        const lineNum = parseInt(line.substring(0, colonIdx), 10);
+        if (isNaN(lineNum)) continue;
+        const content = line.substring(colonIdx + 1);
+        if (content.startsWith(' ')) result.push(lineNum);
+    }
+    return result;
+}
+
+/**
+ * Builds a per-file map from new-file line number → old-file line number for
+ * context lines. Context lines appear at the same index in oldSnippet and
+ * newSnippet, so zipping them gives the mapping.
+ */
+function buildContextLineMap(prPayload: sourcebot_pr_payload): Map<string, Map<number, number>> {
+    const fileMap = new Map<string, Map<number, number>>();
+    for (const fileDiff of prPayload.file_diffs) {
+        const lineMap = new Map<number, number>();
+        for (const diff of fileDiff.diffs) {
+            const oldNums = extractContextLineNumbers(diff.oldSnippet);
+            const newNums = extractContextLineNumbers(diff.newSnippet);
+            for (let i = 0; i < Math.min(oldNums.length, newNums.length); i++) {
+                lineMap.set(newNums[i], oldNums[i]);
+            }
+        }
+        fileMap.set(fileDiff.to, lineMap);
+    }
+    return fileMap;
+}
+
 export const gitlabPushMrReviews = async (
     gitlabClient: InstanceType<typeof Gitlab>,
     projectId: number,
@@ -18,9 +58,12 @@ export const gitlabPushMrReviews = async (
     }
 
     const { base_sha, head_sha, start_sha } = prPayload.diff_refs;
+    const contextLineMap = buildContextLineMap(prPayload);
 
     for (const fileDiffReview of fileDiffReviews) {
+        const fileContextMap = contextLineMap.get(fileDiffReview.filename);
         for (const review of fileDiffReview.reviews) {
+            const oldLine = fileContextMap?.get(review.line_end);
             try {
                 await gitlabClient.MergeRequestDiscussions.create(
                     projectId,
@@ -32,8 +75,10 @@ export const gitlabPushMrReviews = async (
                             baseSha: base_sha,
                             headSha: head_sha,
                             startSha: start_sha,
+                            oldPath: fileDiffReview.oldFilename ?? fileDiffReview.filename,
                             newPath: fileDiffReview.filename,
                             newLine: String(review.line_end),
+                            ...(oldLine !== undefined ? { oldLine: String(oldLine) } : {}),
                         },
                     },
                 );

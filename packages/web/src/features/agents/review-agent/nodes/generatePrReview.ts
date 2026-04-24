@@ -42,6 +42,7 @@ export const generatePrReviews = async (reviewAgentLogFileName: string | undefin
         if (reviews.length > 0) {
             file_diff_reviews.push({
                 filename: file_diff.to,
+                oldFilename: file_diff.from,
                 reviews: reviews,
             });
         }
