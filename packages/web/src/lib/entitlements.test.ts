@@ -21,6 +21,12 @@ vi.mock('@sourcebot/shared', () => ({
     _hasEntitlement: vi.fn(),
     _getEntitlements: vi.fn(),
     env: mocks.env,
+    createLogger: vi.fn(() => ({
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+    })),
 }));
 
 beforeEach(() => {

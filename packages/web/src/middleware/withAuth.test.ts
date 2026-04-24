@@ -47,6 +47,12 @@ vi.mock('@sourcebot/shared', () => ({
     API_KEY_PREFIX: 'sbk_',
     LEGACY_API_KEY_PREFIX: 'sourcebot-',
     env: mocks.env,
+    createLogger: vi.fn(() => ({
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+    })),
 }));
 
 // Test utility to set the mock session
