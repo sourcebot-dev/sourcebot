@@ -12,13 +12,21 @@ const logger = createLogger('gitlab-push-mr-reviews');
 function extractContextLineNumbers(snippet: string): number[] {
     const result: number[] = [];
     for (const line of snippet.split('\n')) {
-        if (line.startsWith('@@')) continue;
+        if (line.startsWith('@@')) {
+            continue;
+        }
         const colonIdx = line.indexOf(':');
-        if (colonIdx === -1) continue;
+        if (colonIdx === -1) {
+            continue;
+        }
         const lineNum = parseInt(line.substring(0, colonIdx), 10);
-        if (isNaN(lineNum)) continue;
+        if (isNaN(lineNum)) {
+            continue;
+        }
         const content = line.substring(colonIdx + 1);
-        if (content.startsWith(' ')) result.push(lineNum);
+        if (content.startsWith(' ')) {
+            result.push(lineNum);
+        }
     }
     return result;
 }
@@ -75,8 +83,12 @@ export const gitlabPushMrReviews = async (
                             baseSha: base_sha,
                             headSha: head_sha,
                             startSha: start_sha,
-                            oldPath: fileDiffReview.oldFilename ?? fileDiffReview.filename,
-                            newPath: fileDiffReview.filename,
+                            oldPath: (fileDiffReview.oldFilename ?? fileDiffReview.filename) !== '/dev/null'
+                                ? (fileDiffReview.oldFilename ?? fileDiffReview.filename)
+                                : undefined,
+                            newPath: fileDiffReview.filename !== '/dev/null'
+                                ? fileDiffReview.filename
+                                : undefined,
                             newLine: String(review.line_end),
                             ...(oldLine !== undefined ? { oldLine: String(oldLine) } : {}),
                         },

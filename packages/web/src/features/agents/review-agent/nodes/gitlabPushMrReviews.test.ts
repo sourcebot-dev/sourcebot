@@ -211,7 +211,7 @@ describe('gitlabPushMrReviews', () => {
         );
     });
 
-    test('passes oldLine for context lines and omits it for added lines', async () => {
+    test('passes oldLine for context lines', async () => {
         // old line 47 = new line 48 (a line was added at new line 47 before it)
         const payloadWithDiffs: sourcebot_pr_payload = {
             ...MOCK_PAYLOAD,
