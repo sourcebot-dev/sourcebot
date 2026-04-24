@@ -273,4 +273,54 @@ describe('gitlabPushMrReviews', () => {
         expect(call.position).not.toHaveProperty('oldLine');
         expect(call.position.newLine).toBe('2');
     });
+
+    test('uses new path for both oldPath and newPath when old path is /dev/null (added file)', async () => {
+        const addedFileReview: sourcebot_file_diff_review[] = [
+            {
+                filename: 'src/new-file.ts',
+                oldFilename: '/dev/null',
+                reviews: [{ line_start: 1, line_end: 1, review: 'Comment on new file' }],
+            },
+        ];
+        const client = makeMockClient();
+
+        await gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, addedFileReview);
+
+        expect(client.MergeRequestDiscussions.create).toHaveBeenCalledWith(
+            101,
+            42,
+            'Comment on new file',
+            expect.objectContaining({
+                position: expect.objectContaining({
+                    oldPath: 'src/new-file.ts',
+                    newPath: 'src/new-file.ts',
+                }),
+            }),
+        );
+    });
+
+    test('uses old path for both oldPath and newPath when new path is /dev/null (deleted file)', async () => {
+        const deletedFileReview: sourcebot_file_diff_review[] = [
+            {
+                filename: '/dev/null',
+                oldFilename: 'src/deleted-file.ts',
+                reviews: [{ line_start: 1, line_end: 1, review: 'Comment on deleted file' }],
+            },
+        ];
+        const client = makeMockClient();
+
+        await gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, deletedFileReview);
+
+        expect(client.MergeRequestDiscussions.create).toHaveBeenCalledWith(
+            101,
+            42,
+            'Comment on deleted file',
+            expect.objectContaining({
+                position: expect.objectContaining({
+                    oldPath: 'src/deleted-file.ts',
+                    newPath: 'src/deleted-file.ts',
+                }),
+            }),
+        );
+    });
 });

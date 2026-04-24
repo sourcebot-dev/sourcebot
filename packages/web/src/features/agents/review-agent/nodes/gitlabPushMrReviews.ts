@@ -76,6 +76,11 @@ export const gitlabPushMrReviews = async (
     for (const fileDiffReview of fileDiffReviews) {
         const fileContextMap = contextLineMap.get(fileDiffReview.filename);
         const resolvedOldPath = fileDiffReview.oldFilename ?? fileDiffReview.filename;
+        // GitLab requires both oldPath and newPath in the position object.
+        // For added files (old is /dev/null) use the new path for both;
+        // for deleted files (new is /dev/null) use the old path for both.
+        const oldPath = resolvedOldPath !== '/dev/null' ? resolvedOldPath : fileDiffReview.filename;
+        const newPath = fileDiffReview.filename !== '/dev/null' ? fileDiffReview.filename : resolvedOldPath;
         for (const review of fileDiffReview.reviews) {
             const oldLine = fileContextMap?.get(review.line_end);
             const position: Record<string, string> = {
@@ -83,14 +88,10 @@ export const gitlabPushMrReviews = async (
                 baseSha: base_sha,
                 headSha: head_sha,
                 startSha: start_sha,
+                oldPath,
+                newPath,
                 newLine: String(review.line_end),
             };
-            if (resolvedOldPath !== '/dev/null') {
-                position['oldPath'] = resolvedOldPath;
-            }
-            if (fileDiffReview.filename !== '/dev/null') {
-                position['newPath'] = fileDiffReview.filename;
-            }
             if (oldLine !== undefined) {
                 position['oldLine'] = String(oldLine);
             }
