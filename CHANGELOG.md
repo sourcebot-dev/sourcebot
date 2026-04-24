@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed GitLab MR inline review comments returning 400 Bad Request on context (unchanged) lines and renamed files. The position object now always includes `oldPath`, and `oldLine` is included alongside `newLine` for context lines by parsing the diff snippets to map new→old line numbers. [#1149](https://github.com/sourcebot-dev/sourcebot/pull/1149)
+
 ## [4.16.15] - 2026-04-23
 
 ### Changed
