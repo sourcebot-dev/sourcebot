@@ -70,6 +70,9 @@ export const gitlabPushMrReviews = async (
 
     for (const fileDiffReview of fileDiffReviews) {
         const fileContextMap = contextLineMap.get(fileDiffReview.filename);
+        const resolvedOldPath = fileDiffReview.oldFilename ?? fileDiffReview.filename;
+        const oldPathEntry = resolvedOldPath !== '/dev/null' ? { oldPath: resolvedOldPath } : {};
+        const newPathEntry = fileDiffReview.filename !== '/dev/null' ? { newPath: fileDiffReview.filename } : {};
         for (const review of fileDiffReview.reviews) {
             const oldLine = fileContextMap?.get(review.line_end);
             try {
@@ -83,12 +86,8 @@ export const gitlabPushMrReviews = async (
                             baseSha: base_sha,
                             headSha: head_sha,
                             startSha: start_sha,
-                            oldPath: (fileDiffReview.oldFilename ?? fileDiffReview.filename) !== '/dev/null'
-                                ? (fileDiffReview.oldFilename ?? fileDiffReview.filename)
-                                : undefined,
-                            newPath: fileDiffReview.filename !== '/dev/null'
-                                ? fileDiffReview.filename
-                                : undefined,
+                            ...oldPathEntry,
+                            ...newPathEntry,
                             newLine: String(review.line_end),
                             ...(oldLine !== undefined ? { oldLine: String(oldLine) } : {}),
                         },
