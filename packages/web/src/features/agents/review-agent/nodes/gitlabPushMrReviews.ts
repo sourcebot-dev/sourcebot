@@ -83,7 +83,7 @@ export const gitlabPushMrReviews = async (
         const newPath = fileDiffReview.filename !== '/dev/null' ? fileDiffReview.filename : resolvedOldPath;
         for (const review of fileDiffReview.reviews) {
             const oldLine = fileContextMap?.get(review.line_end);
-            const position: Record<string, string> = {
+            const position: DiscussionNotePosition = {
                 positionType: 'text',
                 baseSha: base_sha,
                 headSha: head_sha,
@@ -91,16 +91,14 @@ export const gitlabPushMrReviews = async (
                 oldPath,
                 newPath,
                 newLine: String(review.line_end),
+                ...(oldLine !== undefined ? { oldLine: String(oldLine) } : {}),
             };
-            if (oldLine !== undefined) {
-                position['oldLine'] = String(oldLine);
-            }
             try {
                 await gitlabClient.MergeRequestDiscussions.create(
                     projectId,
                     prPayload.number,
                     review.review,
-                    { position: position as unknown as DiscussionNotePosition },
+                    { position },
                 );
             } catch (error) {
                 // Inline comment failed (e.g. line not in diff) — fall back to a general MR note
