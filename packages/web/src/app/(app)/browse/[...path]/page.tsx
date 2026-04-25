@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getBrowseParamsFromPathParam } from "../hooks/utils";
 import { CodePreviewPanel } from "./components/codePreviewPanel";
+import { CommitsPanel } from "./components/commitsPanel";
 import { Loader2 } from "lucide-react";
 import { TreePreviewPanel } from "./components/treePreviewPanel";
 import { Metadata } from "next";
@@ -39,6 +40,12 @@ const parsePathForTitle = (path: string[]): string => {
       const directoryPath = filePath.endsWith('/') ? filePath : `${filePath}/`;
       return `${directoryPath} - ${repoAndRevision}`;
     }
+    case 'commits': {
+      if (filePath === '' || filePath === '/') {
+        return `History - ${repoAndRevision}`;
+      }
+      return `History: ${filePath} - ${repoAndRevision}`;
+    }
   }
 }
 
@@ -68,10 +75,16 @@ interface BrowsePageProps {
     params: Promise<{
         path: string[];
     }>;
+    searchParams: Promise<{
+        page?: string;
+        author?: string;
+        since?: string;
+        until?: string;
+    }>;
 }
 
 export default async function BrowsePage(props: BrowsePageProps) {
-    const params = await props.params;
+    const [params, searchParams] = await Promise.all([props.params, props.searchParams]);
 
     const {
         path: _rawPath,
@@ -79,6 +92,11 @@ export default async function BrowsePage(props: BrowsePageProps) {
 
     const rawPath = _rawPath.join('/');
     const { repoName, revisionName, path, pathType } = getBrowseParamsFromPathParam(rawPath);
+
+    const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
+    const author = searchParams.author || undefined;
+    const since = searchParams.since || undefined;
+    const until = searchParams.until || undefined;
 
     return (
         <div className="flex flex-col h-full">
@@ -93,6 +111,16 @@ export default async function BrowsePage(props: BrowsePageProps) {
                         path={path}
                         repoName={repoName}
                         revisionName={revisionName}
+                    />
+                ) : pathType === 'commits' ? (
+                    <CommitsPanel
+                        path={path}
+                        repoName={repoName}
+                        revisionName={revisionName}
+                        page={page}
+                        author={author}
+                        since={since}
+                        until={until}
                     />
                 ) : (
                     <TreePreviewPanel

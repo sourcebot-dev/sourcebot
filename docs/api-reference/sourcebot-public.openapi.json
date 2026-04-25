@@ -965,6 +965,32 @@
           "parents"
         ]
       },
+      "PublicCommitAuthor": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "commitCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "commitCount"
+        ]
+      },
+      "PublicListCommitAuthorsResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/PublicCommitAuthor"
+        }
+      },
       "PublicEeUser": {
         "type": "object",
         "properties": {
@@ -1731,10 +1757,10 @@
           {
             "schema": {
               "type": "string",
-              "description": "Filter commits by message content (case-insensitive)."
+              "description": "Filter commits by message content (case-insensitive). Interpreted as a POSIX BRE regex — escape metacharacters for literal matching."
             },
             "required": false,
-            "description": "Filter commits by message content (case-insensitive).",
+            "description": "Filter commits by message content (case-insensitive). Interpreted as a POSIX BRE regex — escape metacharacters for literal matching.",
             "name": "query",
             "in": "query"
           },
@@ -1761,10 +1787,10 @@
           {
             "schema": {
               "type": "string",
-              "description": "Filter commits by author name or email (case-insensitive)."
+              "description": "Filter commits by author name or email (case-insensitive). Interpreted as a POSIX BRE regex — escape metacharacters for literal matching."
             },
             "required": false,
-            "description": "Filter commits by author name or email (case-insensitive).",
+            "description": "Filter commits by author name or email (case-insensitive). Interpreted as a POSIX BRE regex — escape metacharacters for literal matching.",
             "name": "author",
             "in": "query"
           },
@@ -1923,6 +1949,127 @@
           },
           "404": {
             "description": "Repository or revision not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/commits/authors": {
+      "get": {
+        "operationId": "listCommitAuthors",
+        "tags": [
+          "Git"
+        ],
+        "summary": "List commit authors",
+        "description": "Returns a paginated list of unique authors who committed in a repository, sorted by commit count descending. Optionally scoped to a file path.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "The fully-qualified repository name."
+            },
+            "required": true,
+            "description": "The fully-qualified repository name.",
+            "name": "repo",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The git ref (branch, tag, or commit SHA) to list authors from. Defaults to `HEAD`."
+            },
+            "required": false,
+            "description": "The git ref (branch, tag, or commit SHA) to list authors from. Defaults to `HEAD`.",
+            "name": "ref",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Restrict authors to those who touched this file path."
+            },
+            "required": false,
+            "description": "Restrict authors to those who touched this file path.",
+            "name": "path",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "maximum": 100,
+              "default": 50
+            },
+            "required": false,
+            "name": "perPage",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated commit author list.",
+            "headers": {
+              "X-Total-Count": {
+                "description": "Total number of unique authors matching the query across all pages.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "Link": {
+                "description": "Pagination links formatted per RFC 8288.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicListCommitAuthorsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters or git ref.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Repository not found.",
             "content": {
               "application/json": {
                 "schema": {

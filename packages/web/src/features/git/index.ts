@@ -5,4 +5,6 @@ export * from './getFolderContentsApi';
 export * from './getTreeApi';
 export * from './getFileSourceApi';
 export * from './listCommitsApi';
+export * from './listCommitAuthorsApi';
+export * from './getPathTypeApi';
 export * from './types';

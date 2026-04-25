@@ -14,6 +14,7 @@ export interface BrowseState {
     isFileTreePanelCollapsed: boolean;
     isFileSearchOpen: boolean;
     activeExploreMenuTab: "references" | "definitions";
+    activeBottomPanelTab: "explore" | "history";
     bottomPanelSize: number;
 }
 
@@ -23,6 +24,7 @@ const defaultState: BrowseState = {
     isFileTreePanelCollapsed: false,
     isFileSearchOpen: false,
     activeExploreMenuTab: "references",
+    activeBottomPanelTab: "history",
     bottomPanelSize: 35,
 };
 

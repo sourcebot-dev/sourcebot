@@ -5,6 +5,7 @@ import {
     findRelatedSymbolsResponseSchema,
 } from '../features/codeNav/types.js';
 import {
+    commitAuthorSchema,
     commitDetailSchema,
     commitSchema,
     fileSourceRequestSchema,
@@ -13,6 +14,7 @@ import {
     getDiffRequestSchema,
     getDiffResponseSchema,
     getTreeRequestSchema,
+    listCommitAuthorsQueryParamsSchema,
     listCommitsQueryParamsSchema,
 } from '../features/git/schemas.js';
 import {
@@ -50,6 +52,9 @@ export const publicCommitSchema = commitSchema.openapi('PublicCommit');
 export const publicListCommitsResponseSchema = z.array(publicCommitSchema).openapi('PublicListCommitsResponse');
 export const publicGetCommitQuerySchema = getCommitQueryParamsSchema.openapi('PublicGetCommitQuery');
 export const publicCommitDetailSchema = commitDetailSchema.openapi('PublicCommitDetail');
+export const publicListCommitAuthorsQuerySchema = listCommitAuthorsQueryParamsSchema.openapi('PublicListCommitAuthorsQuery');
+export const publicCommitAuthorSchema = commitAuthorSchema.openapi('PublicCommitAuthor');
+export const publicListCommitAuthorsResponseSchema = z.array(publicCommitAuthorSchema).openapi('PublicListCommitAuthorsResponse');
 
 export const publicHealthResponseSchema = z.object({
     status: z.enum(['ok']),

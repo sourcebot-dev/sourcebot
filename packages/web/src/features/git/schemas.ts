@@ -67,10 +67,10 @@ export const getDiffResponseSchema = z.object({
 
 export const listCommitsQueryParamsSchema = z.object({
     repo: z.string().describe('The fully-qualified repository name.'),
-    query: z.string().optional().describe('Filter commits by message content (case-insensitive).'),
+    query: z.string().optional().describe('Filter commits by message content (case-insensitive). Interpreted as a POSIX BRE regex — escape metacharacters for literal matching.'),
     since: z.string().optional().describe('Return commits after this date. Accepts ISO 8601 or relative formats (e.g. `30 days ago`).'),
     until: z.string().optional().describe('Return commits before this date. Accepts ISO 8601 or relative formats.'),
-    author: z.string().optional().describe('Filter commits by author name or email (case-insensitive).'),
+    author: z.string().optional().describe('Filter commits by author name or email (case-insensitive). Interpreted as a POSIX BRE regex — escape metacharacters for literal matching.'),
     ref: z.string().optional().describe('The git ref (branch, tag, or commit SHA) to list commits from. Defaults to `HEAD`.'),
     path: z.string().optional().describe('Restrict commits to those that touch this file path.'),
     page: z.coerce.number().int().positive().default(1),
@@ -94,4 +94,18 @@ export const getCommitQueryParamsSchema = z.object({
 
 export const commitDetailSchema = commitSchema.extend({
     parents: z.array(z.string()).describe('The parent commit SHAs.'),
+});
+
+export const listCommitAuthorsQueryParamsSchema = z.object({
+    repo: z.string().describe('The fully-qualified repository name.'),
+    ref: z.string().optional().describe('The git ref (branch, tag, or commit SHA) to list authors from. Defaults to `HEAD`.'),
+    path: z.string().optional().describe('Restrict authors to those who touched this file path.'),
+    page: z.coerce.number().int().positive().default(1),
+    perPage: z.coerce.number().int().positive().max(100).default(50),
+});
+
+export const commitAuthorSchema = z.object({
+    name: z.string(),
+    email: z.string(),
+    commitCount: z.number().int().nonnegative(),
 });

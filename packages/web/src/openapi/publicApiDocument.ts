@@ -18,6 +18,8 @@ import {
     publicHealthResponseSchema,
     publicCommitDetailSchema,
     publicGetCommitQuerySchema,
+    publicListCommitAuthorsQuerySchema,
+    publicListCommitAuthorsResponseSchema,
     publicListCommitsQuerySchema,
     publicListCommitsResponseSchema,
     publicListReposQueryParamsSchema,
@@ -358,6 +360,37 @@ export function createPublicOpenApiDocument(version: string) {
             },
             400: errorJson('Invalid query parameters or git ref.'),
             404: errorJson('Repository or revision not found.'),
+            500: errorJson('Unexpected failure.'),
+        },
+    });
+
+    registry.registerPath({
+        method: 'get',
+        path: '/api/commits/authors',
+        operationId: 'listCommitAuthors',
+        tags: [gitTag.name],
+        summary: 'List commit authors',
+        description: 'Returns a paginated list of unique authors who committed in a repository, sorted by commit count descending. Optionally scoped to a file path.',
+        request: {
+            query: publicListCommitAuthorsQuerySchema,
+        },
+        responses: {
+            200: {
+                description: 'Paginated commit author list.',
+                headers: {
+                    'X-Total-Count': {
+                        description: 'Total number of unique authors matching the query across all pages.',
+                        schema: { type: 'integer' },
+                    },
+                    Link: {
+                        description: 'Pagination links formatted per RFC 8288.',
+                        schema: { type: 'string' },
+                    },
+                },
+                content: jsonContent(publicListCommitAuthorsResponseSchema),
+            },
+            400: errorJson('Invalid query parameters or git ref.'),
+            404: errorJson('Repository not found.'),
             500: errorJson('Unexpected failure.'),
         },
     });

@@ -10,19 +10,21 @@ export type BrowseHighlightRange = {
     end: { lineNumber: number; };
 }
 
+export type BrowsePathType = 'blob' | 'tree' | 'commits';
+
 export interface GetBrowsePathProps {
     repoName: string;
     revisionName?: string;
     path: string;
-    pathType: 'blob' | 'tree';
+    pathType: BrowsePathType;
     highlightRange?: BrowseHighlightRange;
     setBrowseState?: Partial<BrowseState>;
 }
 
 export const getBrowseParamsFromPathParam = (pathParam: string) => {
-    const sentinelIndex = pathParam.search(/\/-\/(tree|blob)/);
+    const sentinelIndex = pathParam.search(/\/-\/(tree|blob|commits)/);
     if (sentinelIndex === -1) {
-        throw new Error(`Invalid browse pathname: "${pathParam}" - expected to contain "/-/(tree|blob)/" pattern`);
+        throw new Error(`Invalid browse pathname: "${pathParam}" - expected to contain "/-/(tree|blob|commits)/" pattern`);
     }
 
     const repoAndRevisionPart = decodeURIComponent(pathParam.substring(0, sentinelIndex));
@@ -31,15 +33,24 @@ export const getBrowseParamsFromPathParam = (pathParam: string) => {
     const repoName = lastAtIndex === -1 ? repoAndRevisionPart : repoAndRevisionPart.substring(0, lastAtIndex);
     const revisionName = lastAtIndex === -1 ? undefined : repoAndRevisionPart.substring(lastAtIndex + 1);
 
-    const { path, pathType } = ((): { path: string, pathType: 'tree' | 'blob' } => {
+    const { path, pathType } = ((): { path: string, pathType: BrowsePathType } => {
         const path = pathParam.substring(sentinelIndex + '/-/'.length);
-        const pathType = path.startsWith('tree') ? 'tree' : 'blob';
+        const pathType: BrowsePathType = path.startsWith('tree')
+            ? 'tree'
+            : path.startsWith('commits')
+                ? 'commits'
+                : 'blob';
 
         // @note: decodedURIComponent is needed here incase the path contains a space.
         switch (pathType) {
             case 'tree':
                 return {
                     path: decodeURIComponent(path.startsWith('tree/') ? path.substring('tree/'.length) : path.substring('tree'.length)),
+                    pathType,
+                };
+            case 'commits':
+                return {
+                    path: decodeURIComponent(path.startsWith('commits/') ? path.substring('commits/'.length) : path.substring('commits'.length)),
                     pathType,
                 };
             case 'blob':
@@ -50,17 +61,27 @@ export const getBrowseParamsFromPathParam = (pathParam: string) => {
         }
     })();
 
-    if (pathType === 'blob' && path === '') {
+    // Normalize parsed paths the same way URL generation does, so URLs that
+    // happen to contain a leading slash (e.g. legacy bookmarks with `%2F`)
+    // don't leak `/foo` into git log args.
+    const normalizedPath = path.replace(/^\/+/, '');
+
+    if (pathType === 'blob' && normalizedPath === '') {
         throw new Error(`Invalid browse pathname: "${pathParam}" - expected to contain a path for blob type`);
     }
 
     return {
         repoName,
         revisionName,
-        path,
+        path: normalizedPath,
         pathType,
     }
 };
+
+// Repo-relative paths shouldn't have leading slashes — `git log -- /foo` (or
+// just `--`) treats them as absolute filesystem paths. Repo root and `/`
+// both map to the empty path.
+const normalizeRepoPath = (path: string): string => path.replace(/^\/+/, '');
 
 export const getBrowsePath = ({
     repoName, revisionName, path, pathType, highlightRange, setBrowseState,
@@ -81,7 +102,7 @@ export const getBrowsePath = ({
         params.set(SET_BROWSE_STATE_QUERY_PARAM, JSON.stringify(setBrowseState));
     }
 
-    const encodedPath = encodeURIComponent(path);
+    const encodedPath = encodeURIComponent(normalizeRepoPath(path));
     const browsePath = `/browse/${repoName}${revisionName ? `@${revisionName}` : ''}/-/${pathType}/${encodedPath}${params.size > 0 ? `?${params.toString()}` : ''}`;
     return browsePath;
 };
