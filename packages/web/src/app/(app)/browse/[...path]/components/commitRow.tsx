@@ -5,7 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Code, FileCode } from "lucide-react";
 import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
 import { useToast } from "@/components/hooks/use-toast";
-import type { Commit } from "@/features/git";
+import type { Commit, GitObjectPathType } from "@/features/git";
 import { getBrowsePath } from "../../hooks/utils";
 import { formatAuthorsText, getCommitAuthors } from "../../components/commitAuthors";
 import {
@@ -19,16 +19,17 @@ interface CommitRowProps {
     commit: Commit;
     repoName: string;
     path: string;
+    pathType: GitObjectPathType;
 }
 
-export const CommitRow = ({ commit, repoName, path }: CommitRowProps) => {
+export const CommitRow = ({ commit, repoName, path, pathType }: CommitRowProps) => {
     const [isBodyExpanded, setIsBodyExpanded] = useState(false);
     const { toast } = useToast();
 
     const shortSha = commit.hash.slice(0, 7);
     const relativeDate = formatDistanceToNow(new Date(commit.date), { addSuffix: true });
     const hasBody = commit.body.trim().length > 0;
-    const hasFilePath = path !== '' && path !== '/';
+    const isBlobPath = pathType === 'blob';
 
     const authors = useMemo(
         () => getCommitAuthors(commit),
@@ -82,7 +83,7 @@ export const CommitRow = ({ commit, repoName, path }: CommitRowProps) => {
                         {shortSha}
                     </span>
                     <CopyIconButton onCopy={onCopySha} />
-                    {hasFilePath && (
+                    {isBlobPath && (
                         <CommitActionLink
                             href={viewFileAtCommitHref}
                             label="View code at this commit"

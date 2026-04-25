@@ -14,7 +14,7 @@ const PER_PAGE = 25;
 type CommitsPage = ListCommitsResponse & { page: number };
 
 export const HistoryPanel = () => {
-    const { repoName, revisionName, path } = useBrowseParams();
+    const { repoName, revisionName, path, pathType } = useBrowseParams();
 
     const {
         data,
@@ -94,6 +94,7 @@ export const HistoryPanel = () => {
                         commit={commit}
                         repoName={repoName}
                         path={path}
+                        pathType={pathType}
                     />
                 ))}
                 {hasNextPage && (

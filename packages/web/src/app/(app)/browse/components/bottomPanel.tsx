@@ -130,7 +130,10 @@ export const BottomPanel = ({ order }: BottomPanelProps) => {
                     <div className="flex flex-row items-center gap-1 self-center">
                         {activeBottomPanelTab === "history" && (
                             <Button asChild variant="ghost" size="sm">
-                                <Link href={fullHistoryHref}>
+                                <Link
+                                    href={fullHistoryHref}
+                                    onClick={() => updateBrowseState({ isBottomPanelCollapsed: true })}
+                                >
                                     <ExternalLink className="w-4 h-4" />
                                     View full history
                                 </Link>

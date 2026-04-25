@@ -61,17 +61,27 @@ export const getBrowseParamsFromPathParam = (pathParam: string) => {
         }
     })();
 
-    if (pathType === 'blob' && path === '') {
+    // Normalize parsed paths the same way URL generation does, so URLs that
+    // happen to contain a leading slash (e.g. legacy bookmarks with `%2F`)
+    // don't leak `/foo` into git log args.
+    const normalizedPath = path.replace(/^\/+/, '');
+
+    if (pathType === 'blob' && normalizedPath === '') {
         throw new Error(`Invalid browse pathname: "${pathParam}" - expected to contain a path for blob type`);
     }
 
     return {
         repoName,
         revisionName,
-        path,
+        path: normalizedPath,
         pathType,
     }
 };
+
+// Repo-relative paths shouldn't have leading slashes — `git log -- /foo` (or
+// just `--`) treats them as absolute filesystem paths. Repo root and `/`
+// both map to the empty path.
+const normalizeRepoPath = (path: string): string => path.replace(/^\/+/, '');
 
 export const getBrowsePath = ({
     repoName, revisionName, path, pathType, highlightRange, setBrowseState,
@@ -92,7 +102,7 @@ export const getBrowsePath = ({
         params.set(SET_BROWSE_STATE_QUERY_PARAM, JSON.stringify(setBrowseState));
     }
 
-    const encodedPath = encodeURIComponent(path);
+    const encodedPath = encodeURIComponent(normalizeRepoPath(path));
     const browsePath = `/browse/${repoName}${revisionName ? `@${revisionName}` : ''}/-/${pathType}/${encodedPath}${params.size > 0 ? `?${params.toString()}` : ''}`;
     return browsePath;
 };

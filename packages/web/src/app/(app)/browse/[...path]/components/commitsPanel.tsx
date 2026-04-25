@@ -3,7 +3,7 @@ import { GitCommitHorizontal } from "lucide-react";
 import { getRepoInfoByName } from "@/actions";
 import { PathHeader } from "@/app/(app)/components/pathHeader";
 import { Separator } from "@/components/ui/separator";
-import { listCommitAuthors, listCommits } from "@/features/git";
+import { getPathType, listCommitAuthors, listCommits } from "@/features/git";
 import { isServiceError } from "@/lib/utils";
 import { AuthorFilter } from "./authorFilter";
 import { dedupeCommitAuthorsByEmail, escapeGitBreLiteral } from "../../components/commitAuthors";
@@ -34,7 +34,7 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page, author,
     const sinceForGit = since ? `${since}T00:00:00` : undefined;
     const untilForGit = until ? `${until}T23:59:59` : undefined;
 
-    const [commitsResponse, repoInfoResponse, authorsResponse] = await Promise.all([
+    const [commitsResponse, repoInfoResponse, authorsResponse, pathTypeResponse] = await Promise.all([
         listCommits({
             repo: repoName,
             path: path || undefined,
@@ -53,6 +53,11 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page, author,
             maxCount: AUTHORS_PER_PAGE,
             skip: 0,
         }),
+        getPathType({
+            repo: repoName,
+            ref: revisionName,
+            path,
+        }),
     ]);
 
     if (isServiceError(commitsResponse)) {
@@ -64,6 +69,8 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page, author,
     if (isServiceError(authorsResponse)) {
         return <div className="p-4 text-sm">Error loading commit authors: {authorsResponse.message}</div>;
     }
+    // Fall back to 'blob' if the lookup fails so PathHeader still renders.
+    const headerPathType = isServiceError(pathTypeResponse) ? 'blob' : pathTypeResponse;
 
     const authors = dedupeCommitAuthorsByEmail(authorsResponse.authors);
     const { commits, totalCount } = commitsResponse;
@@ -89,6 +96,7 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page, author,
                     <span className="text-sm text-muted-foreground flex-shrink-0">History for</span>
                     <PathHeader
                         path={path}
+                        pathType={headerPathType}
                         repo={{
                             name: repoName,
                             codeHostType: repoInfoResponse.codeHostType,
@@ -96,6 +104,7 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page, author,
                             externalWebUrl: repoInfoResponse.externalWebUrl,
                         }}
                         revisionName={revisionName}
+                        isFileIconVisible={headerPathType === 'blob'}
                     />
                 </div>
                 <div className="flex flex-row items-center gap-2 flex-shrink-0">
@@ -117,6 +126,7 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page, author,
                                 commit={commit}
                                 repoName={repoName}
                                 path={path}
+                                pathType={headerPathType}
                             />
                         ))}
                     </div>

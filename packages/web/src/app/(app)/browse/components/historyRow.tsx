@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Code, FileCode } from "lucide-react";
 import type { Commit } from "@/features/git";
-import { getBrowsePath } from "../hooks/utils";
+import { BrowsePathType, getBrowsePath } from "../hooks/utils";
 import { formatAuthorsText, getCommitAuthors } from "./commitAuthors";
 import { AuthorsAvatarGroup, CommitActionLink } from "./commitParts";
 
@@ -12,12 +12,13 @@ interface HistoryRowProps {
     commit: Commit;
     repoName: string;
     path: string;
+    pathType: BrowsePathType;
 }
 
-export const HistoryRow = ({ commit, repoName, path }: HistoryRowProps) => {
+export const HistoryRow = ({ commit, repoName, path, pathType }: HistoryRowProps) => {
     const shortSha = commit.hash.slice(0, 7);
     const relativeDate = formatDistanceToNow(new Date(commit.date), { addSuffix: true });
-    const hasFilePath = path !== '' && path !== '/';
+    const isBlobPath = pathType === 'blob';
 
     const authors = useMemo(() => getCommitAuthors(commit), [commit]);
 
@@ -60,7 +61,7 @@ export const HistoryRow = ({ commit, repoName, path }: HistoryRowProps) => {
                 {relativeDate}
             </span>
             <div className="flex flex-row items-center gap-1 flex-shrink-0">
-                {hasFilePath && (
+                {isBlobPath && (
                     <CommitActionLink
                         href={viewCodeHref}
                         label="View code at this commit"
