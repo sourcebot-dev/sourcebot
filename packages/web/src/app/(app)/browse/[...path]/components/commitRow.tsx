@@ -50,8 +50,8 @@ export const CommitRow = ({ commit, repoName, path, pathType }: CommitRowProps) 
         pathType: 'tree',
     });
 
-    const onCopySha = useCallback(() => {
-        navigator.clipboard.writeText(commit.hash);
+    const onCopySha = useCallback(async () => {
+        await navigator.clipboard.writeText(commit.hash);
         toast({ description: "✅ Copied commit SHA to clipboard" });
         return true;
     }, [commit.hash, toast]);

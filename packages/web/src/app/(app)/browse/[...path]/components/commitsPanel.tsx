@@ -1,7 +1,9 @@
 import { format } from "date-fns";
 import { GitCommitHorizontal } from "lucide-react";
+import Link from "next/link";
 import { getRepoInfoByName } from "@/actions";
 import { PathHeader } from "@/app/(app)/components/pathHeader";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getPathType, listCommitAuthors, listCommits } from "@/features/git";
 import { isServiceError } from "@/lib/utils";
@@ -10,6 +12,7 @@ import { dedupeCommitAuthorsByEmail, escapeGitBreLiteral } from "../../component
 import { CommitRow } from "./commitRow";
 import { CommitsPagination } from "./commitsPagination";
 import { DateFilter } from "./dateFilter";
+import { getBrowsePath } from "../../hooks/utils";
 
 interface CommitsPanelProps {
     path: string;
@@ -75,6 +78,14 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page, author,
     const authors = dedupeCommitAuthorsByEmail(authorsResponse.authors);
     const { commits, totalCount } = commitsResponse;
     const isLastPage = page * COMMITS_PER_PAGE >= totalCount;
+    const hasFilters = Boolean(author || since || until);
+    const isEmpty = commits.length === 0;
+    const clearFiltersHref = getBrowsePath({
+        repoName,
+        revisionName,
+        path,
+        pathType: 'commits',
+    });
 
     const groups = new Map<string, { label: string; commits: typeof commits }>();
     for (const commit of commits) {
@@ -114,34 +125,51 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page, author,
             </div>
             <Separator />
             <div className="flex-1 overflow-auto">
-                {Array.from(groups.values()).map((group) => (
-                    <div key={group.label}>
-                        <div className="sticky top-0 z-10 flex flex-row items-center gap-2 px-3 py-2 bg-muted text-sm font-medium text-muted-foreground border-b">
-                            <GitCommitHorizontal className="h-4 w-4 flex-shrink-0" />
-                            {group.label}
+                {isEmpty ? (
+                    hasFilters ? (
+                        <div className="flex flex-col items-center justify-center gap-3 py-12">
+                            <p className="text-sm text-muted-foreground">No commits match these filters</p>
+                            <Button asChild variant="outline" size="sm">
+                                <Link href={clearFiltersHref}>Clear filters</Link>
+                            </Button>
                         </div>
-                        {group.commits.map((commit) => (
-                            <CommitRow
-                                key={commit.hash}
-                                commit={commit}
-                                repoName={repoName}
-                                path={path}
-                                pathType={headerPathType}
-                            />
+                    ) : (
+                        <div className="py-12 text-center text-sm text-muted-foreground">
+                            No commits found
+                        </div>
+                    )
+                ) : (
+                    <>
+                        {Array.from(groups.values()).map((group) => (
+                            <div key={group.label}>
+                                <div className="sticky top-0 z-10 flex flex-row items-center gap-2 px-3 py-2 bg-muted text-sm font-medium text-muted-foreground border-b">
+                                    <GitCommitHorizontal className="h-4 w-4 flex-shrink-0" />
+                                    {group.label}
+                                </div>
+                                {group.commits.map((commit) => (
+                                    <CommitRow
+                                        key={commit.hash}
+                                        commit={commit}
+                                        repoName={repoName}
+                                        path={path}
+                                        pathType={headerPathType}
+                                    />
+                                ))}
+                            </div>
                         ))}
-                    </div>
-                ))}
-                {isLastPage && (
-                    <div className="py-8 text-center text-sm text-muted-foreground">
-                        End of commit history
-                    </div>
+                        {isLastPage && (
+                            <div className="py-8 text-center text-sm text-muted-foreground">
+                                End of commit history
+                            </div>
+                        )}
+                        <CommitsPagination
+                            page={page}
+                            perPage={COMMITS_PER_PAGE}
+                            totalCount={totalCount}
+                            extraParams={{ author, since, until }}
+                        />
+                    </>
                 )}
-                <CommitsPagination
-                    page={page}
-                    perPage={COMMITS_PER_PAGE}
-                    totalCount={totalCount}
-                    extraParams={{ author, since, until }}
-                />
             </div>
         </div>
     );

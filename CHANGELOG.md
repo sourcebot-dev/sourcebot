@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Added a GitHub-style git history view to the code browser: a latest-commit header above each file, a paginated commits list (file- or repo-scoped) at `/browse/<repo>@<rev>/-/commits[/<path>]`, and author and date-range filters. Also exposes `GET /api/commits/authors` in the public API. [#1150](https://github.com/sourcebot-dev/sourcebot/pull/1150)
+- Added commit history viewer to code browser. [#1150](https://github.com/sourcebot-dev/sourcebot/pull/1150)
+- Added `/api/commits/authors` to the public API to allow fetching a list of authors for a given path and revision. [#1150](https://github.com/sourcebot-dev/sourcebot/pull/1150)
 
 ## [4.16.15] - 2026-04-23
 

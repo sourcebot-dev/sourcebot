@@ -18,7 +18,7 @@ import { getBrowsePath } from "../hooks/utils";
 import { ExploreMenu } from "@/ee/features/codeNav/components/exploreMenu";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ExternalLink, History } from "lucide-react";
+import { History } from "lucide-react";
 import type { BrowseState } from "../browseStateProvider";
 import { HistoryPanel } from "./historyPanel";
 import { LatestCommitInfo } from "./latestCommitInfo";
@@ -134,7 +134,7 @@ export const BottomPanel = ({ order }: BottomPanelProps) => {
                                     href={fullHistoryHref}
                                     onClick={() => updateBrowseState({ isBottomPanelCollapsed: true })}
                                 >
-                                    <ExternalLink className="w-4 h-4" />
+                                    <History className="w-4 h-4" />
                                     View full history
                                 </Link>
                             </Button>
