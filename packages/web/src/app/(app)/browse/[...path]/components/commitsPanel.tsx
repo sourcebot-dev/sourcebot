@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { listCommitAuthors, listCommits } from "@/features/git";
 import { isServiceError } from "@/lib/utils";
 import { AuthorFilter } from "./authorFilter";
-import { dedupeCommitAuthorsByEmail, escapeGitBreLiteral } from "./commitAuthors";
+import { dedupeCommitAuthorsByEmail, escapeGitBreLiteral } from "../../components/commitAuthors";
 import { CommitRow } from "./commitRow";
 import { CommitsPagination } from "./commitsPagination";
 import { DateFilter } from "./dateFilter";

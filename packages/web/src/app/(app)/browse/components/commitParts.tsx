@@ -1,5 +1,8 @@
+import type { ReactNode } from "react";
+import Link from "next/link";
 import { MoreHorizontal } from "lucide-react";
 import { AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { UserAvatar } from "@/components/userAvatar";
@@ -64,4 +67,23 @@ export const CommitBody = ({ body, className }: CommitBodyProps) => (
             {body.trim()}
         </pre>
     </div>
+);
+
+interface CommitActionLinkProps {
+    href: string;
+    label: string;
+    icon: ReactNode;
+}
+
+export const CommitActionLink = ({ href, label, icon }: CommitActionLinkProps) => (
+    <Tooltip>
+        <TooltipTrigger asChild>
+            <Button asChild variant="ghost" size="sm" className="h-6 w-6 text-muted-foreground">
+                <Link href={href} aria-label={label}>
+                    {icon}
+                </Link>
+            </Button>
+        </TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
 );

@@ -15,6 +15,18 @@ export type ListCommitsResponse = {
     totalCount: number;
 };
 
+export type ListCommitsQueryParams = {
+    repo: string;
+    query?: string;
+    since?: string;
+    until?: string;
+    author?: string;
+    ref?: string;
+    path?: string;
+    page?: number;
+    perPage?: number;
+};
+
 type ListCommitsRequest = {
     repo: string;
     query?: string;

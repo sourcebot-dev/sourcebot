@@ -4,8 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils";
 import Image from "next/image";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
-import { CommitHeader } from "./commitHeader";
-import { getFileSource, listCommits } from '@/features/git';
+import { getFileSource } from '@/features/git';
 
 interface CodePreviewPanelProps {
     path: string;
@@ -14,19 +13,13 @@ interface CodePreviewPanelProps {
 }
 
 export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePreviewPanelProps) => {
-    const [fileSourceResponse, repoInfoResponse, commitsResponse] = await Promise.all([
+    const [fileSourceResponse, repoInfoResponse] = await Promise.all([
         getFileSource({
             path,
             repo: repoName,
             ref: revisionName,
         }, { source: 'sourcebot-web-client' }),
         getRepoInfoByName(repoName),
-        listCommits({
-            repo: repoName,
-            path,
-            ref: revisionName,
-            maxCount: 1,
-        }),
     ]);
 
     if (isServiceError(fileSourceResponse)) {
@@ -36,8 +29,6 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePre
     if (isServiceError(repoInfoResponse)) {
         return <div>Error loading repo info: {repoInfoResponse.message}</div>
     }
-
-    const latestCommit = !isServiceError(commitsResponse) ? commitsResponse.commits[0] : undefined;
 
     const codeHostInfo = getCodeHostInfoForRepo({
         codeHostType: repoInfoResponse.codeHostType,
@@ -83,17 +74,6 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePre
                 )}
             </div>
             <Separator />
-            {latestCommit && (
-                <>
-                    <CommitHeader
-                        commit={latestCommit}
-                        repoName={repoName}
-                        path={path}
-                        revisionName={revisionName}
-                    />
-                    <Separator />
-                </>
-            )}
             <PureCodePreviewPanel
                 source={fileSourceResponse.source}
                 language={fileSourceResponse.language}

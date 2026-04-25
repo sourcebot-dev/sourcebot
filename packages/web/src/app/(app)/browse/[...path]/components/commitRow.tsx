@@ -3,15 +3,17 @@
 import { useCallback, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Code, FileCode } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
 import { useToast } from "@/components/hooks/use-toast";
 import type { Commit } from "@/features/git";
 import { getBrowsePath } from "../../hooks/utils";
-import { formatAuthorsText, getCommitAuthors } from "./commitAuthors";
-import { AuthorsAvatarGroup, CommitBody, CommitBodyToggle } from "./commitParts";
+import { formatAuthorsText, getCommitAuthors } from "../../components/commitAuthors";
+import {
+    AuthorsAvatarGroup,
+    CommitActionLink,
+    CommitBody,
+    CommitBodyToggle,
+} from "../../components/commitParts";
 
 interface CommitRowProps {
     commit: Commit;
@@ -81,27 +83,17 @@ export const CommitRow = ({ commit, repoName, path }: CommitRowProps) => {
                     </span>
                     <CopyIconButton onCopy={onCopySha} />
                     {hasFilePath && (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button asChild variant="ghost" size="sm" className="h-6 w-6 text-muted-foreground">
-                                    <Link href={viewFileAtCommitHref} aria-label="View code at this commit">
-                                        <FileCode className="h-3 w-3" />
-                                    </Link>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>View code at this commit</TooltipContent>
-                        </Tooltip>
+                        <CommitActionLink
+                            href={viewFileAtCommitHref}
+                            label="View code at this commit"
+                            icon={<FileCode className="h-3 w-3" />}
+                        />
                     )}
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button asChild variant="ghost" size="sm" className="h-6 w-6 text-muted-foreground">
-                                <Link href={viewRepoAtCommitHref} aria-label="View repository at this commit">
-                                    <Code className="h-3 w-3" />
-                                </Link>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>View repository at this commit</TooltipContent>
-                    </Tooltip>
+                    <CommitActionLink
+                        href={viewRepoAtCommitHref}
+                        label="View repository at this commit"
+                        icon={<Code className="h-3 w-3" />}
+                    />
                 </div>
             </div>
             {hasBody && isBodyExpanded && (
