@@ -78,8 +78,9 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                         message = `Language model '${requestedLanguageModel.provider}/${requestedLanguageModel.model}' is configured but displayName '${requestedLanguageModel.displayName}' was not found.`
                             + (available ? ` Available: ${available}.` : '');
                     } else {
-                        message = `Multiple configurations found for '${requestedLanguageModel.provider}/${requestedLanguageModel.model}'. Provide a displayName to disambiguate.`
-                            + (available ? ` Available: ${available}.` : '');
+                        message = available
+                            ? `Multiple configurations found for '${requestedLanguageModel.provider}/${requestedLanguageModel.model}'. Provide a displayName to disambiguate. Available: ${available}.`
+                            : `Multiple configurations found for '${requestedLanguageModel.provider}/${requestedLanguageModel.model}' but none define a displayName. Add a unique displayName to each configuration entry to enable disambiguation.`;
                     }
                     return {
                         statusCode: StatusCodes.BAD_REQUEST,
