@@ -16,7 +16,18 @@ const getStoredSelectedLanguageModel = (): LanguageModelInfo | undefined => {
             return undefined;
         }
 
-        return JSON.parse(storedValue) as LanguageModelInfo;
+        const parsedValue = JSON.parse(storedValue);
+        if (
+            typeof parsedValue === "object" &&
+            parsedValue !== null &&
+            typeof parsedValue.provider === "string" &&
+            typeof parsedValue.model === "string" &&
+            typeof parsedValue.displayName === "string"
+        ) {
+            return parsedValue as LanguageModelInfo;
+        }
+
+        return undefined;
     } catch {
         return undefined;
     }
@@ -48,7 +59,7 @@ export const useSelectedLanguageModel = ({
         }
 
         if (selectedLanguageModel && !availableSelectedLanguageModel) {
-            setSelectedLanguageModel((currentSelectedLanguageModel) => {
+            setSelectedLanguageModel(() => {
                 const storedSelectedLanguageModel = getStoredSelectedLanguageModel();
                 const availableStoredSelectedLanguageModel = storedSelectedLanguageModel && languageModels.find(
                     (model) => getLanguageModelKey(model) === getLanguageModelKey(storedSelectedLanguageModel)
@@ -56,12 +67,6 @@ export const useSelectedLanguageModel = ({
 
                 if (availableStoredSelectedLanguageModel) {
                     return availableStoredSelectedLanguageModel;
-                }
-
-                if (currentSelectedLanguageModel && languageModels.find(
-                    (model) => getLanguageModelKey(model) === getLanguageModelKey(currentSelectedLanguageModel)
-                )) {
-                    return currentSelectedLanguageModel;
                 }
 
                 return fallbackLanguageModel;
