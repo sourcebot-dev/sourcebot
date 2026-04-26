@@ -1,7 +1,7 @@
 import { sew } from "@/middleware/sew";
 import { getConfiguredLanguageModels, getAISDKLanguageModelAndOptions, generateChatNameFromMessage, updateChatMessages } from "@/features/chat/utils.server";
 import { LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
-import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
+import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
 import { withOptionalAuth } from "@/middleware/withAuth";
@@ -57,14 +57,34 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
 
             let languageModelConfig = configuredModels[0];
             if (requestedLanguageModel) {
-                const matchingModel = configuredModels.find(
-                    (m) => getLanguageModelKey(m) === getLanguageModelKey(requestedLanguageModel)
+                const candidates = configuredModels.filter(
+                    (m) => m.provider === requestedLanguageModel.provider &&
+                           m.model === requestedLanguageModel.model
                 );
+                const displayNameProvided = requestedLanguageModel.displayName !== undefined;
+                const matchingModel = displayNameProvided
+                    ? candidates.find((m) => m.displayName === requestedLanguageModel.displayName)
+                    : candidates.length === 1 ? candidates[0] : undefined;
                 if (!matchingModel) {
+                    const available = candidates
+                        .map((m) => m.displayName)
+                        .filter((n): n is string => n !== undefined)
+                        .map((n) => `"${n}"`)
+                        .join(', ');
+                    let message: string;
+                    if (candidates.length === 0) {
+                        message = `Language model '${requestedLanguageModel.provider}/${requestedLanguageModel.model}' is not configured.`;
+                    } else if (displayNameProvided) {
+                        message = `Language model '${requestedLanguageModel.provider}/${requestedLanguageModel.model}' is configured but displayName '${requestedLanguageModel.displayName}' was not found.`
+                            + (available ? ` Available: ${available}.` : '');
+                    } else {
+                        message = `Multiple configurations found for '${requestedLanguageModel.provider}/${requestedLanguageModel.model}'. Provide a displayName to disambiguate.`
+                            + (available ? ` Available: ${available}.` : '');
+                    }
                     return {
                         statusCode: StatusCodes.BAD_REQUEST,
                         errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                        message: `Language model '${requestedLanguageModel.provider}/${requestedLanguageModel.model}' is not configured.`,
+                        message,
                     } satisfies ServiceError;
                 }
                 languageModelConfig = matchingModel;
