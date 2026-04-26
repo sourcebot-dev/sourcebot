@@ -27,7 +27,7 @@ export const ChatBoxToolbar = ({
     isContextSelectorOpen,
     onContextSelectorOpenChanged,
 }: ChatBoxToolbarProps) => {
-    const { selectedLanguageModel, setSelectedLanguageModel } = useSelectedLanguageModel({
+    const { resolvedSelectedLanguageModel, setSelectedLanguageModel } = useSelectedLanguageModel({
         languageModels,
     });
 
@@ -48,7 +48,7 @@ export const ChatBoxToolbar = ({
             <LanguageModelSelector
                 languageModels={languageModels}
                 onSelectedModelChange={setSelectedLanguageModel}
-                selectedModel={selectedLanguageModel}
+                selectedModel={resolvedSelectedLanguageModel}
             />
         </>
     )

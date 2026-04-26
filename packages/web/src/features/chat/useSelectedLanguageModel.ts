@@ -76,7 +76,8 @@ export const useSelectedLanguageModel = ({
     ]);
 
     return {
-        selectedLanguageModel: resolvedSelectedLanguageModel,
+        selectedLanguageModel,
+        resolvedSelectedLanguageModel,
         setSelectedLanguageModel,
     };
 }
