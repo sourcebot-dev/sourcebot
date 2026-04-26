@@ -126,6 +126,12 @@ export const LanguageModelSelector = ({
                                         return (
                                             <CommandItem
                                                 key={getLanguageModelKey(model)}
+                                                value={getLanguageModelKey(model)}
+                                                keywords={[
+                                                    model.displayName ?? "",
+                                                    model.model,
+                                                    model.provider,
+                                                ]}
                                                 onSelect={() => {
                                                     selectModel(model)
                                                 }}
