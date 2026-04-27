@@ -166,6 +166,7 @@
     "pretty-bytes": "^6.1.1",
     "psl": "^1.15.0",
     "react": "19.2.4",
+    "react-codemirror-merge": "^4.25.9",
     "react-day-picker": "^9.14.0",
     "react-device-detect": "^2.2.3",
     "react-dom": "19.2.4",

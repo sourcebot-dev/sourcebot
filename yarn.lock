@@ -1736,6 +1736,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@codemirror/merge@npm:^6.1.2":
+  version: 6.12.1
+  resolution: "@codemirror/merge@npm:6.12.1"
+  dependencies:
+    "@codemirror/language": "npm:^6.0.0"
+    "@codemirror/state": "npm:^6.0.0"
+    "@codemirror/view": "npm:^6.17.0"
+    "@lezer/highlight": "npm:^1.0.0"
+    style-mod: "npm:^4.1.0"
+  checksum: 10c0/f031670b570598c46d80f8c55be9eb9c4e8b8ab68cf337b88300af787f5aa9d11a07fc4c8fc6d8a065a181ca1fff8ec45f3ddea3d2fa7856364dc4b2b9c9d325
+  languageName: node
+  linkType: hard
+
 "@codemirror/rangeset@npm:^0.19.0, @codemirror/rangeset@npm:^0.19.5":
   version: 0.19.9
   resolution: "@codemirror/rangeset@npm:0.19.9"
@@ -8819,6 +8832,7 @@ __metadata:
     psl: "npm:^1.15.0"
     raw-loader: "npm:^4.0.2"
     react: "npm:19.2.4"
+    react-codemirror-merge: "npm:^4.25.9"
     react-day-picker: "npm:^9.14.0"
     react-device-detect: "npm:^2.2.3"
     react-dom: "npm:19.2.4"
@@ -9933,6 +9947,29 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@uiw/codemirror-extensions-basic-setup@npm:4.25.9":
+  version: 4.25.9
+  resolution: "@uiw/codemirror-extensions-basic-setup@npm:4.25.9"
+  dependencies:
+    "@codemirror/autocomplete": "npm:^6.0.0"
+    "@codemirror/commands": "npm:^6.0.0"
+    "@codemirror/language": "npm:^6.0.0"
+    "@codemirror/lint": "npm:^6.0.0"
+    "@codemirror/search": "npm:^6.0.0"
+    "@codemirror/state": "npm:^6.0.0"
+    "@codemirror/view": "npm:^6.0.0"
+  peerDependencies:
+    "@codemirror/autocomplete": ">=6.0.0"
+    "@codemirror/commands": ">=6.0.0"
+    "@codemirror/language": ">=6.0.0"
+    "@codemirror/lint": ">=6.0.0"
+    "@codemirror/search": ">=6.0.0"
+    "@codemirror/state": ">=6.0.0"
+    "@codemirror/view": ">=6.0.0"
+  checksum: 10c0/5833a5e3ff8a156ea1f2f624f6ca3d4244ce5421622ccf192f6ce34fa5039b8549c86243ad95e3b93c7485807d1feb9475c8bb3210996f8772869168d68e9a41
+  languageName: node
+  linkType: hard
+
 "@uiw/codemirror-themes@npm:^4.23.6":
   version: 4.23.10
   resolution: "@uiw/codemirror-themes@npm:4.23.10"
@@ -9945,6 +9982,28 @@ __metadata:
     "@codemirror/state": ">=6.0.0"
     "@codemirror/view": ">=6.0.0"
   checksum: 10c0/29f980789a535ae021ca8d8bec3ecee4dda8cb11c5451729c04481310cc04cd7c00ddb3011137f5cc305d565bc0a3464ebd88fdde9359e296d8f0a6cf6477811
+  languageName: node
+  linkType: hard
+
+"@uiw/react-codemirror@npm:4.25.9":
+  version: 4.25.9
+  resolution: "@uiw/react-codemirror@npm:4.25.9"
+  dependencies:
+    "@babel/runtime": "npm:^7.18.6"
+    "@codemirror/commands": "npm:^6.1.0"
+    "@codemirror/state": "npm:^6.1.1"
+    "@codemirror/theme-one-dark": "npm:^6.0.0"
+    "@uiw/codemirror-extensions-basic-setup": "npm:4.25.9"
+    codemirror: "npm:^6.0.0"
+  peerDependencies:
+    "@babel/runtime": ">=7.11.0"
+    "@codemirror/state": ">=6.0.0"
+    "@codemirror/theme-one-dark": ">=6.0.0"
+    "@codemirror/view": ">=6.0.0"
+    codemirror: ">=6.0.0"
+    react: ">=17.0.0"
+    react-dom: ">=17.0.0"
+  checksum: 10c0/a3f9ac6230ac406d38bc9fd6772ff577b1ff24270d1017d931e877cc1c39517a52d04913a0f7d2a12e4d248799c9395fc5fb8a65337e7f720b5264095b068074
   languageName: node
   linkType: hard
 
@@ -18778,6 +18837,25 @@ __metadata:
   peerDependencies:
     webpack: ^4.0.0 || ^5.0.0
   checksum: 10c0/981ebe65e1cee7230300d21ba6dcd8bd23ea81ef4ad2b167c0f62d93deba347f27921d330be848634baab3831cf9f38900af6082d6416c2e937fe612fa6a74ff
+  languageName: node
+  linkType: hard
+
+"react-codemirror-merge@npm:^4.25.9":
+  version: 4.25.9
+  resolution: "react-codemirror-merge@npm:4.25.9"
+  dependencies:
+    "@babel/runtime": "npm:^7.18.6"
+    "@codemirror/merge": "npm:^6.1.2"
+    "@uiw/react-codemirror": "npm:4.25.9"
+  peerDependencies:
+    "@babel/runtime": ">=7.11.0"
+    "@codemirror/state": ">=6.0.0"
+    "@codemirror/theme-one-dark": ">=6.0.0"
+    "@codemirror/view": ">=6.0.0"
+    codemirror: ">=6.0.0"
+    react: ">=16.8.0"
+    react-dom: ">=16.8.0"
+  checksum: 10c0/4fb93af491116e775064de5253be90f5dac3061946b3f939ef0b82753370dca7ba650971b6982b041ac6dad7511dd4ebc4291b603acda571ddaeb86d924aa7c2
   languageName: node
   linkType: hard
 
