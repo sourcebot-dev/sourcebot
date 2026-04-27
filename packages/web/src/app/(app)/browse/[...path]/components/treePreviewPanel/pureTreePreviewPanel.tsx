@@ -2,9 +2,9 @@
 
 import { useRef } from "react";
 import { FileTreeItemComponent } from "@/app/(app)/browse/components/fileTreeItemComponent";
-import { getBrowsePath } from "../../hooks/utils";
+import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useBrowseParams } from "../../hooks/useBrowseParams";
+import { useBrowseParams } from "@/app/(app)/browse/hooks/useBrowseParams";
 import { FileTreeItem } from "@/features/git";
 
 interface PureTreePreviewPanelProps {

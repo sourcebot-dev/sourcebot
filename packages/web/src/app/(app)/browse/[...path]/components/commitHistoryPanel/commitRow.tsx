@@ -6,14 +6,14 @@ import { Code, FileCode } from "lucide-react";
 import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
 import { useToast } from "@/components/hooks/use-toast";
 import type { Commit, GitObjectPathType } from "@/features/git";
-import { getBrowsePath } from "../../hooks/utils";
-import { formatAuthorsText, getCommitAuthors } from "../../components/commitAuthors";
+import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
+import { formatAuthorsText, getCommitAuthors } from "@/app/(app)/browse/components/commitAuthors";
 import {
     AuthorsAvatarGroup,
     CommitActionLink,
     CommitBody,
     CommitBodyToggle,
-} from "../../components/commitParts";
+} from "@/app/(app)/browse/components/commitParts";
 
 interface CommitRowProps {
     commit: Commit;

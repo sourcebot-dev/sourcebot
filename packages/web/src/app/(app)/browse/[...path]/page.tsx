@@ -1,10 +1,10 @@
 import { Suspense } from "react";
 import { getBrowseParamsFromPathParam } from "../hooks/utils";
-import { CodePreviewPanel } from "./components/codePreviewPanel";
-import { CommitDiffPanel } from "./components/commitDiffPanel";
-import { CommitsPanel } from "./components/commitsPanel";
+import { CodePreviewPanel } from "./components/codePreviewPanel/codePreviewPanel";
+import { CommitDiffPanel } from "./components/commitDiffPanel/commitDiffPanel";
+import { CommitsPanel } from "./components/commitHistoryPanel/commitsPanel";
 import { Loader2 } from "lucide-react";
-import { TreePreviewPanel } from "./components/treePreviewPanel";
+import { TreePreviewPanel } from "./components/treePreviewPanel/treePreviewPanel";
 import { Metadata } from "next";
 
 /**
