@@ -219,7 +219,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "jsdom": "^25.0.1",
     "npm-run-all": "^4.1.5",
-    "postcss": "^8",
+    "postcss": "^8.5.10",
     "raw-loader": "^4.0.2",
     "react-email": "^5.2.10",
     "react-grab": "^0.1.23",
