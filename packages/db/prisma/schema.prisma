@@ -39,6 +39,28 @@ enum CodeHostType {
   azuredevops
 }
 
+enum AgentType {
+  CODE_REVIEW
+}
+
+/// Determines which repositories an AgentConfig applies to.
+enum AgentScope {
+  /// Applies to all repositories in the organization.
+  ORG
+  /// Applies to all repositories under specific connections.
+  CONNECTION
+  /// Applies to specific repositories only.
+  REPO
+}
+
+/// Controls how a custom prompt is combined with the built-in system rules.
+enum PromptMode {
+  /// Custom prompt replaces the built-in rules entirely.
+  REPLACE
+  /// Custom prompt is appended after the built-in rules.
+  APPEND
+}
+
 model Repo {
   id                    Int                    @id @default(autoincrement())
   name                  String /// Full repo name, including the vcs hostname (ex. github.com/sourcebot-dev/sourcebot)
@@ -74,6 +96,8 @@ model Repo {
   orgId Int
 
   searchContexts SearchContext[]
+
+  agentConfigMappings AgentConfigToRepo[]
 
   @@unique([external_id, external_codeHostUrl, orgId])
   @@index([orgId])
@@ -169,6 +193,8 @@ model Connection {
   syncJobs ConnectionSyncJob[]
   /// When the connection was last synced successfully.
   syncedAt           DateTime?
+
+  agentConfigMappings AgentConfigToConnection[]
 
   /// Controls whether repository permissions are enforced for this connection.
   /// When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect.
@@ -291,6 +317,8 @@ model Org {
   searchContexts SearchContext[]
 
   chats Chat[]
+
+  agentConfigs AgentConfig[]
 }
 
 enum OrgRole {
@@ -568,4 +596,65 @@ model OAuthToken {
   expiresAt  DateTime
   createdAt  DateTime    @default(now())
   lastUsedAt DateTime?
+}
+
+/// Configures a customisable AI agent (e.g. code review) scoped to an org, connection, or specific repos.
+model AgentConfig {
+  id          String      @id @default(cuid())
+
+  org         Org         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId       Int
+
+  name        String
+  description String?
+
+  type        AgentType
+  enabled     Boolean     @default(true)
+
+  /// Custom prompt instructions. Null means the agent uses its built-in rules only.
+  prompt      String?
+
+  /// Controls whether the custom prompt replaces or appends to the built-in rules.
+  promptMode  PromptMode  @default(APPEND)
+
+  /// Determines what this config is scoped to: the whole org, specific connections, or specific repos.
+  scope       AgentScope
+
+  /// Repo-level scope mappings (populated when scope = REPO).
+  repos       AgentConfigToRepo[]
+
+  /// Connection-level scope mappings (populated when scope = CONNECTION).
+  connections AgentConfigToConnection[]
+
+  /// Extensible per-agent settings stored as JSON.
+  /// Shape: { autoReviewEnabled?: boolean, reviewCommand?: string, model?: string }
+  settings    Json        @default("{}")
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([orgId, name])
+  @@index([orgId, type, enabled])
+}
+
+/// Maps an AgentConfig to specific repositories (used when scope = REPO).
+model AgentConfigToRepo {
+  agentConfig   AgentConfig @relation(fields: [agentConfigId], references: [id], onDelete: Cascade)
+  agentConfigId String
+
+  repo          Repo        @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId        Int
+
+  @@id([agentConfigId, repoId])
+}
+
+/// Maps an AgentConfig to specific connections (used when scope = CONNECTION).
+model AgentConfigToConnection {
+  agentConfig   AgentConfig @relation(fields: [agentConfigId], references: [id], onDelete: Cascade)
+  agentConfigId String
+
+  connection    Connection  @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  connectionId  Int
+
+  @@id([agentConfigId, connectionId])
 }

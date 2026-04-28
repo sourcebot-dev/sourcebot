@@ -1,13 +1,21 @@
 import { sourcebot_pr_payload, sourcebot_diff_review, sourcebot_file_diff_review, sourcebot_context } from "@/features/agents/review-agent/types";
 import { generateDiffReviewPrompt } from "@/features/agents/review-agent/nodes/generateDiffReviewPrompt";
 import { invokeDiffReviewLlm } from "@/features/agents/review-agent/nodes/invokeDiffReviewLlm";
-import { fetchFileContent } from "@/features/agents/review-agent/nodes/fetchFileContent";
+import { fetchContextFile, fetchFileContent } from "@/features/agents/review-agent/nodes/fetchFileContent";
 import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('generate-pr-review');
 
-export const generatePrReviews = async (reviewAgentLogFileName: string | undefined, pr_payload: sourcebot_pr_payload, rules: string[]): Promise<sourcebot_file_diff_review[]> => {
+export const generatePrReviews = async (reviewAgentLogFileName: string | undefined, pr_payload: sourcebot_pr_payload, rules: string[], modelOverride?: string, contextFiles?: string): Promise<sourcebot_file_diff_review[]> => {
     logger.debug("Executing generate_pr_reviews");
+
+    // Parse comma- or whitespace-separated list and fetch all files once per PR.
+    const contextFilePaths = contextFiles
+        ? contextFiles.split(/[\s,]+/).map((p) => p.trim()).filter(Boolean)
+        : [];
+    const repoInstructionsContexts = (
+        await Promise.all(contextFilePaths.map((p) => fetchContextFile(pr_payload, p)))
+    ).filter((c): c is NonNullable<typeof c> => c !== null);
 
     const file_diff_reviews: sourcebot_file_diff_review[] = [];
     for (const file_diff of pr_payload.file_diffs) {
@@ -28,11 +36,12 @@ export const generatePrReviews = async (reviewAgentLogFileName: string | undefin
                         context: pr_payload.description,
                     },
                     fileContentContext,
+                    ...repoInstructionsContexts,
                 ];
 
                 const prompt = await generateDiffReviewPrompt(diff, context, rules);
-                
-                const diffReview = await invokeDiffReviewLlm(reviewAgentLogFileName, prompt);
+
+                const diffReview = await invokeDiffReviewLlm(reviewAgentLogFileName, prompt, modelOverride);
                 reviews.push(...diffReview.reviews);
             } catch (error) {
                 logger.error(`Error generating review for ${file_diff.to}: ${error}`);

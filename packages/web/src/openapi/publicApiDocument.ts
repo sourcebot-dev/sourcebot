@@ -3,6 +3,10 @@ import type { ComponentsObject, SchemaObject, SecuritySchemeObject } from 'opena
 import { type ZodTypeAny } from 'zod';
 import z from 'zod';
 import {
+    publicAgentConfigListSchema,
+    publicAgentConfigSchema,
+    publicCreateAgentConfigBodySchema,
+    publicDeleteAgentConfigResponseSchema,
     publicEeAuditQuerySchema,
     publicEeAuditResponseSchema,
     publicEeDeleteUserResponseSchema,
@@ -27,6 +31,7 @@ import {
     publicSearchRequestSchema,
     publicSearchResponseSchema,
     publicServiceErrorSchema,
+    publicUpdateAgentConfigBodySchema,
     publicVersionResponseSchema,
 } from './publicApiSchemas.js';
 import dedent from 'dedent';
@@ -36,6 +41,7 @@ const reposTag = { name: 'Repositories', description: 'Repository listing and me
 const gitTag = { name: 'Git', description: 'Git history, diff, and file content endpoints.' };
 const systemTag = { name: 'System', description: 'System health and version endpoints.' };
 const eeTag = { name: 'Enterprise (EE)', description: 'Enterprise endpoints for user management and audit logging.' };
+const agentsTag = { name: 'Agents', description: 'Manage customisable AI agent configurations.' };
 
 const EE_LICENSE_KEY_NOTE = dedent`
 <Note>
@@ -395,6 +401,115 @@ export function createPublicOpenApiDocument(version: string) {
         },
     });
 
+    // Agents
+    registry.registerPath({
+        method: 'get',
+        path: '/api/agents',
+        operationId: 'listAgentConfigs',
+        tags: [agentsTag.name],
+        summary: 'List agent configs',
+        description: 'Returns all agent configurations for the organization.',
+        responses: {
+            200: {
+                description: 'List of agent configs.',
+                content: jsonContent(publicAgentConfigListSchema),
+            },
+            401: errorJson('Not authenticated.'),
+            500: errorJson('Unexpected failure.'),
+        },
+    });
+
+    registry.registerPath({
+        method: 'post',
+        path: '/api/agents',
+        operationId: 'createAgentConfig',
+        tags: [agentsTag.name],
+        summary: 'Create an agent config',
+        description: 'Creates a new agent configuration scoped to the organization, a set of connections, or specific repositories.',
+        request: {
+            body: {
+                required: true,
+                content: jsonContent(publicCreateAgentConfigBodySchema),
+            },
+        },
+        responses: {
+            201: {
+                description: 'Agent config created.',
+                content: jsonContent(publicAgentConfigSchema),
+            },
+            400: errorJson('Invalid request body.'),
+            401: errorJson('Not authenticated.'),
+            409: errorJson('An agent config with that name already exists.'),
+            500: errorJson('Unexpected failure.'),
+        },
+    });
+
+    registry.registerPath({
+        method: 'get',
+        path: '/api/agents/{agentId}',
+        operationId: 'getAgentConfig',
+        tags: [agentsTag.name],
+        summary: 'Get an agent config',
+        request: {
+            params: z.object({ agentId: z.string() }),
+        },
+        responses: {
+            200: {
+                description: 'Agent config.',
+                content: jsonContent(publicAgentConfigSchema),
+            },
+            401: errorJson('Not authenticated.'),
+            404: errorJson('Agent config not found.'),
+            500: errorJson('Unexpected failure.'),
+        },
+    });
+
+    registry.registerPath({
+        method: 'patch',
+        path: '/api/agents/{agentId}',
+        operationId: 'updateAgentConfig',
+        tags: [agentsTag.name],
+        summary: 'Update an agent config',
+        description: 'Partially updates an agent configuration. Only provided fields are changed.',
+        request: {
+            params: z.object({ agentId: z.string() }),
+            body: {
+                required: true,
+                content: jsonContent(publicUpdateAgentConfigBodySchema),
+            },
+        },
+        responses: {
+            200: {
+                description: 'Updated agent config.',
+                content: jsonContent(publicAgentConfigSchema),
+            },
+            400: errorJson('Invalid request body.'),
+            401: errorJson('Not authenticated.'),
+            404: errorJson('Agent config not found.'),
+            500: errorJson('Unexpected failure.'),
+        },
+    });
+
+    registry.registerPath({
+        method: 'delete',
+        path: '/api/agents/{agentId}',
+        operationId: 'deleteAgentConfig',
+        tags: [agentsTag.name],
+        summary: 'Delete an agent config',
+        request: {
+            params: z.object({ agentId: z.string() }),
+        },
+        responses: {
+            200: {
+                description: 'Agent config deleted.',
+                content: jsonContent(publicDeleteAgentConfigResponseSchema),
+            },
+            401: errorJson('Not authenticated.'),
+            404: errorJson('Agent config not found.'),
+            500: errorJson('Unexpected failure.'),
+        },
+    });
+
     // EE: User Management
     registry.registerPath({
         method: 'get',
@@ -514,7 +629,7 @@ export function createPublicOpenApiDocument(version: string) {
             version,
             description: 'OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing. Authentication is instance-dependent: API keys are the standard integration mechanism, OAuth bearer tokens are EE-only, and some instances may allow anonymous access.',
         },
-        tags: [searchTag, reposTag, gitTag, systemTag, eeTag],
+        tags: [searchTag, reposTag, gitTag, systemTag, agentsTag, eeTag],
         security: [
             { [securitySchemeNames.bearerToken]: [] },
             { [securitySchemeNames.apiKeyHeader]: [] },

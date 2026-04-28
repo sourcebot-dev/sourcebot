@@ -20,7 +20,7 @@ const validateLogPath = (logPath: string): void => {
     }
 };
 
-export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined, prompt: string): Promise<sourcebot_file_diff_review> => {
+export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined, prompt: string, modelOverride?: string): Promise<sourcebot_file_diff_review> => {
     logger.debug("Executing invoke_diff_review_llm");
 
     const models = await getConfiguredLanguageModels();
@@ -29,12 +29,15 @@ export const invokeDiffReviewLlm = async (reviewAgentLogPath: string | undefined
     }
 
     let selectedModel = models[0];
-    if (env.REVIEW_AGENT_MODEL) {
-        const match = models.find((m) => m.displayName === env.REVIEW_AGENT_MODEL);
+
+    // Priority: per-config model override > REVIEW_AGENT_MODEL env var > first configured model
+    const modelName = modelOverride ?? env.REVIEW_AGENT_MODEL;
+    if (modelName) {
+        const match = models.find((m) => m.displayName === modelName);
         if (match) {
             selectedModel = match;
         } else {
-            logger.warn(`REVIEW_AGENT_MODEL="${env.REVIEW_AGENT_MODEL}" did not match any configured model displayName. Falling back to the first configured model.`);
+            logger.warn(`Model "${modelName}" did not match any configured model displayName. Falling back to the first configured model.`);
         }
     }
 
