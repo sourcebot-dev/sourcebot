@@ -115,7 +115,7 @@ export const PathHeader = ({
             if (!containerRef.current || !breadcrumbsRef.current) return;
 
             const containerWidth = containerRef.current.offsetWidth;
-            const availableWidth = containerWidth - 175; // Reserve space for copy button and padding
+            const availableWidth = containerWidth - 40; // Reserve space for copy button and padding
 
             // Create a temporary element to measure segment widths
             const tempElement = document.createElement('div');

@@ -21,13 +21,13 @@ const SIDE_BG: Record<'left' | 'right', Record<'add' | 'del' | 'context' | 'blan
         add: '',
         del: 'bg-red-500/10',
         context: '',
-        blank: 'bg-muted/30',
+        blank: 'bg-muted',
     },
     right: {
         add: 'bg-green-500/10',
         del: '',
         context: '',
-        blank: 'bg-muted/30',
+        blank: 'bg-muted',
     },
 };
 
@@ -41,6 +41,12 @@ const MARKER: Record<'add' | 'del' | 'context', string> = {
     del: '-',
     context: ' ',
 };
+
+// Mirrors `lightweightCodeHighlighter`: skip rendering when any line in the
+// diff exceeds this length. Tree-sitter parsing + per-character span emission
+// gets very expensive on minified files (one-line bundles, etc.), and the
+// resulting display is unreadable anyway.
+const MAX_NUMBER_OF_CHARACTER_PER_LINE = 1000;
 
 export const LightweightDiffViewer = ({ hunks, oldPath, newPath }: LightweightDiffViewerProps) => {
     const filename = (newPath ?? oldPath ?? '').split('/').pop() ?? '';
@@ -58,6 +64,20 @@ export const LightweightDiffViewer = ({ hunks, oldPath, newPath }: LightweightDi
             cancelled = true;
         };
     }, [filename]);
+
+    const isDiffTooLargeToDisplay = useMemo(() => {
+        return hunks.some((hunk) =>
+            hunk.body.split('\n').some((line) => line.length > MAX_NUMBER_OF_CHARACTER_PER_LINE),
+        );
+    }, [hunks]);
+
+    if (isDiffTooLargeToDisplay) {
+        return (
+            <div className="p-4 text-sm text-muted-foreground">
+                Diff too large to display in preview.
+            </div>
+        );
+    }
 
     return (
         <div

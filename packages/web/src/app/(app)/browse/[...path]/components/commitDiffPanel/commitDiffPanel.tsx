@@ -1,6 +1,8 @@
 import { getCommit, getDiff } from "@/features/git";
 import { isServiceError } from "@/lib/utils";
 import { format } from "date-fns";
+import { formatAuthorsText, getCommitAuthors } from "../../../components/commitAuthors";
+import { AuthorsAvatarGroup } from "../../../components/commitParts";
 import { computeTotalChangeCounts, DiffStat } from "./diffStat";
 import { FileDiffList } from "./fileDiffList";
 
@@ -15,7 +17,7 @@ interface CommitDiffPanelProps {
 // no parent (i.e. the initial commit), since `<sha>^` doesn't resolve there.
 const EMPTY_TREE_SHA = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
 
-export const CommitDiffPanel = async ({ repoName, commitSha }: CommitDiffPanelProps) => {
+export const CommitDiffPanel = async ({ repoName, commitSha, path }: CommitDiffPanelProps) => {
     const [commitResponse, initialDiffResponse] = await Promise.all([
         getCommit({ repo: repoName, ref: commitSha }),
         getDiff({ repo: repoName, base: `${commitSha}^`, head: commitSha }),
@@ -53,13 +55,21 @@ export const CommitDiffPanel = async ({ repoName, commitSha }: CommitDiffPanelPr
     const subject = commitResponse.message.split('\n')[0];
     const formattedDate = format(new Date(commitResponse.date), 'MMM d, yyyy');
     const totalChangeCounts = computeTotalChangeCounts(diffResponse.files);
+    const authors = getCommitAuthors(commitResponse);
 
     return (
         <div className="flex flex-col h-full">
             <div className="flex flex-col gap-2 p-4 border-b shrink-0">
                 <h1 className="text-lg font-semibold">{subject}</h1>
-                <div className="text-sm text-muted-foreground">
-                    {commitResponse.authorName} committed on {formattedDate}
+                <div className="flex flex-row items-center gap-2 text-sm text-muted-foreground">
+                    <AuthorsAvatarGroup authors={authors} />
+                    <span
+                        className="font-medium text-foreground"
+                        title={authors.map((a) => a.name).join(", ")}
+                    >
+                        {formatAuthorsText(authors)}
+                    </span>
+                    <span>committed on {formattedDate}</span>
                 </div>
                 <div className="text-xs font-mono text-muted-foreground">
                     {commitResponse.hash.substring(0, 12)}
@@ -87,6 +97,7 @@ export const CommitDiffPanel = async ({ repoName, commitSha }: CommitDiffPanelPr
                     repoName={repoName}
                     commitSha={commitSha}
                     parentSha={baseSha}
+                    targetPath={path || undefined}
                 />
             )}
         </div>

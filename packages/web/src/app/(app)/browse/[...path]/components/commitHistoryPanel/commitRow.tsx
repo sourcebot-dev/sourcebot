@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { Code, FileCode } from "lucide-react";
 import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
@@ -25,6 +26,7 @@ interface CommitRowProps {
 export const CommitRow = ({ commit, repoName, path, pathType }: CommitRowProps) => {
     const [isBodyExpanded, setIsBodyExpanded] = useState(false);
     const { toast } = useToast();
+    const router = useRouter();
 
     const shortSha = commit.hash.slice(0, 7);
     const relativeDate = formatDistanceToNow(new Date(commit.date), { addSuffix: true });
@@ -50,6 +52,13 @@ export const CommitRow = ({ commit, repoName, path, pathType }: CommitRowProps) 
         pathType: 'tree',
     });
 
+    const commitDiffHref = getBrowsePath({
+        repoName,
+        path,
+        pathType: 'commit',
+        commitSha: commit.hash,
+    });
+
     const onCopySha = useCallback(() => {
         navigator.clipboard.writeText(commit.hash).then(() => {
             toast({ description: "✅ Copied commit SHA to clipboard" });
@@ -57,9 +66,23 @@ export const CommitRow = ({ commit, repoName, path, pathType }: CommitRowProps) 
         return true;
     }, [commit.hash, toast]);
 
+    // Navigate to the commit diff when the row is clicked, unless the click
+    // originated from an interactive child (button or link) — those keep their
+    // own behavior (copy SHA, view file/repo at commit, expand body, etc.).
+    const onRowClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+        const target = event.target as HTMLElement;
+        if (target.closest('button, a')) {
+            return;
+        }
+        router.push(commitDiffHref);
+    }, [router, commitDiffHref]);
+
     return (
         <>
-            <div className="flex flex-row py-3 px-3 items-center justify-between gap-4 min-w-0 border-b">
+            <div
+                className="flex flex-row py-3 px-3 items-center justify-between gap-4 min-w-0 border-b cursor-pointer hover:bg-muted"
+                onClick={onRowClick}
+            >
                 <div className="flex flex-col gap-1 min-w-0 overflow-hidden">
                     <div className="flex flex-row items-center gap-2 min-w-0 overflow-hidden">
                         <span className="text-sm font-medium truncate" title={commit.message}>
