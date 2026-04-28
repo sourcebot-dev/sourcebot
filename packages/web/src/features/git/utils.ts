@@ -1,7 +1,4 @@
-import { createLogger } from '@sourcebot/shared';
 import { FileTreeItem, FileTreeNode } from "./types";
-
-export const logger = createLogger('git');
 
 // @note: reject refs starting with '-' to prevent git flag injection.
 export const isGitRefValid = (ref: string): boolean => {
