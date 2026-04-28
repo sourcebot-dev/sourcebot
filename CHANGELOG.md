@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added commit history viewer to code browser. [#1150](https://github.com/sourcebot-dev/sourcebot/pull/1150)
 - Added `/api/commits/authors` to the public API to allow fetching a list of authors for a given path and revision. [#1150](https://github.com/sourcebot-dev/sourcebot/pull/1150)
 
+### Fixed
+- Bumped `postcss` to `8.5.10`. [#1155](https://github.com/sourcebot-dev/sourcebot/pull/1155)
+
 ## [4.16.15] - 2026-04-23
 
 ### Changed
