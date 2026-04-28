@@ -128,6 +128,7 @@ Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-
 - Added collapsible file diffs in the commit diff panel. [#1157](https://github.com/sourcebot-dev/sourcebot/pull/1157)
 - Added `/api/blame` to the public API to fetch per-line blame information for a file at a given revision. [#1158](https://github.com/sourcebot-dev/sourcebot/pull/1158)
 - Added a file blame view to the code browser, with a Code / Blame toggle, cursor-driven peer-line highlighting, and a reblame button to walk back through history. [#1160](https://github.com/sourcebot-dev/sourcebot/pull/1160)
+- [Experimental] Added customisable agent configs for the AI code review agent, supporting per-repo, per-connection, and org-wide configuration of prompt, model, review command, auto-review behaviour, and context files. [#1149](https://github.com/sourcebot-dev/sourcebot/pull/1149)
 
 ### Changed
 - Added `/api/avatar` to resolve user profile pictures. [#1159](https://github.com/sourcebot-dev/sourcebot/pull/1159)
