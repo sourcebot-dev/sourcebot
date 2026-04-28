@@ -23,6 +23,10 @@
       "description": "System health and version endpoints."
     },
     {
+      "name": "Agents",
+      "description": "Manage customisable AI agent configurations."
+    },
+    {
       "name": "Enterprise (EE)",
       "description": "Enterprise endpoints for user management and audit logging."
     }
@@ -990,6 +994,350 @@
         "items": {
           "$ref": "#/components/schemas/PublicCommitAuthor"
         }
+      },
+      "PublicAgentConfigRepo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "externalCodeHostType": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "externalId",
+          "externalCodeHostType"
+        ]
+      },
+      "PublicAgentConfigConnection": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "connectionType": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "connectionType"
+        ]
+      },
+      "PublicAgentConfigSettings": {
+        "type": "object",
+        "properties": {
+          "autoReviewEnabled": {
+            "type": "boolean",
+            "description": "Whether the agent automatically reviews new PRs/MRs. Overrides the REVIEW_AGENT_AUTO_REVIEW_ENABLED env var."
+          },
+          "reviewCommand": {
+            "type": "string",
+            "description": "Comment command that triggers a manual review (without the leading /). Overrides the REVIEW_AGENT_REVIEW_COMMAND env var."
+          },
+          "model": {
+            "type": "string",
+            "description": "Display name of the language model to use for this config. Overrides the REVIEW_AGENT_MODEL env var."
+          },
+          "contextFiles": {
+            "type": "string",
+            "description": "Comma or space separated list of file paths to fetch from the repository and inject as context for each review. Missing files are silently ignored."
+          }
+        }
+      },
+      "PublicAgentConfig": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orgId": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "CODE_REVIEW"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "prompt": {
+            "type": "string",
+            "nullable": true,
+            "description": "Custom prompt instructions. Null uses the built-in rules only."
+          },
+          "promptMode": {
+            "type": "string",
+            "enum": [
+              "REPLACE",
+              "APPEND"
+            ],
+            "description": "Whether the custom prompt replaces or appends to the built-in rules."
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "ORG",
+              "CONNECTION",
+              "REPO"
+            ],
+            "description": "What this config is scoped to."
+          },
+          "repos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "agentConfigId": {
+                  "type": "string"
+                },
+                "repoId": {
+                  "type": "integer"
+                },
+                "repo": {
+                  "$ref": "#/components/schemas/PublicAgentConfigRepo"
+                }
+              },
+              "required": [
+                "agentConfigId",
+                "repoId",
+                "repo"
+              ]
+            }
+          },
+          "connections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "agentConfigId": {
+                  "type": "string"
+                },
+                "connectionId": {
+                  "type": "integer"
+                },
+                "connection": {
+                  "$ref": "#/components/schemas/PublicAgentConfigConnection"
+                }
+              },
+              "required": [
+                "agentConfigId",
+                "connectionId",
+                "connection"
+              ]
+            }
+          },
+          "settings": {
+            "$ref": "#/components/schemas/PublicAgentConfigSettings"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "orgId",
+          "name",
+          "description",
+          "type",
+          "enabled",
+          "prompt",
+          "promptMode",
+          "scope",
+          "repos",
+          "connections",
+          "settings",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PublicAgentConfigList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/PublicAgentConfig"
+        }
+      },
+      "PublicCreateAgentConfigBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "Unique name for this agent config within the org."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "CODE_REVIEW"
+            ],
+            "description": "The type of agent."
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether this config is active."
+          },
+          "prompt": {
+            "type": "string",
+            "description": "Custom prompt instructions."
+          },
+          "promptMode": {
+            "type": "string",
+            "enum": [
+              "REPLACE",
+              "APPEND"
+            ],
+            "default": "APPEND",
+            "description": "How the custom prompt interacts with the built-in rules."
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "ORG",
+              "CONNECTION",
+              "REPO"
+            ],
+            "description": "What this config is scoped to."
+          },
+          "repoIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "description": "Required when scope is REPO."
+          },
+          "connectionIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "description": "Required when scope is CONNECTION."
+          },
+          "settings": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicAgentConfigSettings"
+              },
+              {
+                "description": "Per-config overrides for model, auto-review, and review command."
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "scope"
+        ]
+      },
+      "PublicUpdateAgentConfigBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "CODE_REVIEW"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "prompt": {
+            "type": "string",
+            "nullable": true
+          },
+          "promptMode": {
+            "type": "string",
+            "enum": [
+              "REPLACE",
+              "APPEND"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "ORG",
+              "CONNECTION",
+              "REPO"
+            ]
+          },
+          "repoIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            }
+          },
+          "connectionIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            }
+          },
+          "settings": {
+            "$ref": "#/components/schemas/PublicAgentConfigSettings"
+          }
+        }
+      },
+      "PublicDeleteAgentConfigResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ]
       },
       "PublicEeUser": {
         "type": "object",
@@ -2070,6 +2418,318 @@
           },
           "404": {
             "description": "Repository not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents": {
+      "get": {
+        "operationId": "listAgentConfigs",
+        "tags": [
+          "Agents"
+        ],
+        "summary": "List agent configs",
+        "description": "Returns all agent configurations for the organization.",
+        "responses": {
+          "200": {
+            "description": "List of agent configs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAgentConfigList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createAgentConfig",
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Create an agent config",
+        "description": "Creates a new agent configuration scoped to the organization, a set of connections, or specific repositories.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicCreateAgentConfigBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agent config created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAgentConfig"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An agent config with that name already exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/{agentId}": {
+      "get": {
+        "operationId": "getAgentConfig",
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Get an agent config",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "agentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent config.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAgentConfig"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent config not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateAgentConfig",
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Update an agent config",
+        "description": "Partially updates an agent configuration. Only provided fields are changed.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "agentId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicUpdateAgentConfigBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated agent config.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAgentConfig"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent config not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAgentConfig",
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Delete an agent config",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "agentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent config deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicDeleteAgentConfigResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent config not found.",
             "content": {
               "application/json": {
                 "schema": {

@@ -60,6 +60,84 @@ export const publicHealthResponseSchema = z.object({
     status: z.enum(['ok']),
 }).openapi('PublicHealthResponse');
 
+// Agent configs
+const publicAgentConfigSettingsSchema = z.object({
+    autoReviewEnabled: z.boolean().optional().describe('Whether the agent automatically reviews new PRs/MRs. Overrides the REVIEW_AGENT_AUTO_REVIEW_ENABLED env var.'),
+    reviewCommand: z.string().optional().describe('Comment command that triggers a manual review (without the leading /). Overrides the REVIEW_AGENT_REVIEW_COMMAND env var.'),
+    model: z.string().optional().describe('Display name of the language model to use for this config. Overrides the REVIEW_AGENT_MODEL env var.'),
+    contextFiles: z.string().optional().describe('Comma or space separated list of file paths to fetch from the repository and inject as context for each review. Missing files are silently ignored.'),
+}).openapi('PublicAgentConfigSettings');
+
+const publicAgentConfigRepoSchema = z.object({
+    id: z.number().int(),
+    displayName: z.string().nullable(),
+    externalId: z.string(),
+    externalCodeHostType: z.string(),
+}).openapi('PublicAgentConfigRepo');
+
+const publicAgentConfigConnectionSchema = z.object({
+    id: z.number().int(),
+    name: z.string(),
+    connectionType: z.string(),
+}).openapi('PublicAgentConfigConnection');
+
+export const publicAgentConfigSchema = z.object({
+    id: z.string(),
+    orgId: z.number().int(),
+    name: z.string(),
+    description: z.string().nullable(),
+    type: z.enum(['CODE_REVIEW']),
+    enabled: z.boolean(),
+    prompt: z.string().nullable().describe('Custom prompt instructions. Null uses the built-in rules only.'),
+    promptMode: z.enum(['REPLACE', 'APPEND']).describe('Whether the custom prompt replaces or appends to the built-in rules.'),
+    scope: z.enum(['ORG', 'CONNECTION', 'REPO']).describe('What this config is scoped to.'),
+    repos: z.array(z.object({
+        agentConfigId: z.string(),
+        repoId: z.number().int(),
+        repo: publicAgentConfigRepoSchema,
+    })),
+    connections: z.array(z.object({
+        agentConfigId: z.string(),
+        connectionId: z.number().int(),
+        connection: publicAgentConfigConnectionSchema,
+    })),
+    settings: publicAgentConfigSettingsSchema,
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+}).openapi('PublicAgentConfig');
+
+export const publicAgentConfigListSchema = z.array(publicAgentConfigSchema).openapi('PublicAgentConfigList');
+
+export const publicCreateAgentConfigBodySchema = z.object({
+    name: z.string().min(1).max(255).describe('Unique name for this agent config within the org.'),
+    description: z.string().optional().describe('Optional description.'),
+    type: z.enum(['CODE_REVIEW']).describe('The type of agent.'),
+    enabled: z.boolean().default(true).describe('Whether this config is active.'),
+    prompt: z.string().optional().describe('Custom prompt instructions.'),
+    promptMode: z.enum(['REPLACE', 'APPEND']).default('APPEND').describe('How the custom prompt interacts with the built-in rules.'),
+    scope: z.enum(['ORG', 'CONNECTION', 'REPO']).describe('What this config is scoped to.'),
+    repoIds: z.array(z.number().int().positive()).optional().describe('Required when scope is REPO.'),
+    connectionIds: z.array(z.number().int().positive()).optional().describe('Required when scope is CONNECTION.'),
+    settings: publicAgentConfigSettingsSchema.optional().describe('Per-config overrides for model, auto-review, and review command.'),
+}).openapi('PublicCreateAgentConfigBody');
+
+export const publicUpdateAgentConfigBodySchema = z.object({
+    name: z.string().min(1).max(255).optional(),
+    description: z.string().nullable().optional(),
+    type: z.enum(['CODE_REVIEW']).optional(),
+    enabled: z.boolean().optional(),
+    prompt: z.string().nullable().optional(),
+    promptMode: z.enum(['REPLACE', 'APPEND']).optional(),
+    scope: z.enum(['ORG', 'CONNECTION', 'REPO']).optional(),
+    repoIds: z.array(z.number().int().positive()).optional(),
+    connectionIds: z.array(z.number().int().positive()).optional(),
+    settings: publicAgentConfigSettingsSchema.optional(),
+}).openapi('PublicUpdateAgentConfigBody');
+
+export const publicDeleteAgentConfigResponseSchema = z.object({
+    success: z.boolean(),
+}).openapi('PublicDeleteAgentConfigResponse');
+
 // EE: User Management
 export const publicEeUserSchema = z.object({
     name: z.string().nullable(),
