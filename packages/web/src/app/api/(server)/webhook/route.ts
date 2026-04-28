@@ -6,10 +6,15 @@ import { WebhookEventDefinition} from "@octokit/webhooks/types";
 import { Gitlab } from "@gitbeaker/rest";
 import { env } from "@sourcebot/shared";
 import { processGitHubPullRequest, processGitLabMergeRequest } from "@/features/agents/review-agent/app";
+import { resolveAgentConfig } from "@/features/agents/review-agent/resolveAgentConfig";
+import { isAutoReviewEnabled, getReviewCommand } from "@/features/agents/review-agent/webhookUtils";
 import { throttling, type ThrottlingOptions } from "@octokit/plugin-throttling";
 import fs from "fs";
 import { GitHubPullRequest, GitLabMergeRequestPayload, gitLabMergeRequestPayloadSchema, gitLabNotePayloadSchema } from "@/features/agents/review-agent/types";
 import { createLogger } from "@sourcebot/shared";
+import { __unsafePrisma } from "@/prisma";
+import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
+import { AgentConfig } from "@sourcebot/db";
 
 const logger = createLogger('webhook');
 
@@ -130,6 +135,64 @@ if (env.GITLAB_REVIEW_AGENT_TOKEN) {
     }
 }
 
+/**
+ * Resolves the AgentConfig for a GitHub repository.
+ * Looks up the Repo record by GitHub repository ID and the code host URL.
+ */
+async function resolveGitHubAgentConfig(
+    githubRepoId: number,
+    codeHostUrl: string,
+): Promise<AgentConfig | null> {
+    try {
+        const repo = await __unsafePrisma.repo.findFirst({
+            where: {
+                external_id: String(githubRepoId),
+                external_codeHostUrl: codeHostUrl,
+                orgId: SINGLE_TENANT_ORG_ID,
+            },
+        });
+
+        if (!repo) {
+            logger.debug(`No Repo record found for GitHub repo ${githubRepoId} at ${codeHostUrl}`);
+            return null;
+        }
+
+        return resolveAgentConfig(repo.id, SINGLE_TENANT_ORG_ID, 'CODE_REVIEW', __unsafePrisma);
+    } catch (error) {
+        logger.error(`Error resolving AgentConfig for GitHub repo ${githubRepoId}:`, error);
+        return null;
+    }
+}
+
+/**
+ * Resolves the AgentConfig for a GitLab project.
+ * Looks up the Repo record by GitLab project ID and the code host URL.
+ */
+async function resolveGitLabAgentConfig(
+    gitlabProjectId: number,
+    codeHostUrl: string,
+): Promise<AgentConfig | null> {
+    try {
+        const repo = await __unsafePrisma.repo.findFirst({
+            where: {
+                external_id: String(gitlabProjectId),
+                external_codeHostUrl: codeHostUrl,
+                orgId: SINGLE_TENANT_ORG_ID,
+            },
+        });
+
+        if (!repo) {
+            logger.debug(`No Repo record found for GitLab project ${gitlabProjectId} at ${codeHostUrl}`);
+            return null;
+        }
+
+        return resolveAgentConfig(repo.id, SINGLE_TENANT_ORG_ID, 'CODE_REVIEW', __unsafePrisma);
+    } catch (error) {
+        logger.error(`Error resolving AgentConfig for GitLab project ${gitlabProjectId}:`, error);
+        return null;
+    }
+}
+
 // eslint-disable-next-line authz/require-auth-wrapper -- authenticated via GitHub App / GitLab webhook secrets, not user session
 export const POST = async (request: NextRequest) => {
     const body = await request.json();
@@ -149,8 +212,16 @@ export const POST = async (request: NextRequest) => {
         }
 
         if (isPullRequestEvent(githubEvent, body)) {
-            if (env.REVIEW_AGENT_AUTO_REVIEW_ENABLED === "false") {
-                logger.info('Review agent auto review (REVIEW_AGENT_AUTO_REVIEW_ENABLED) is disabled, skipping');
+            const pullRequest = body.pull_request as GitHubPullRequest;
+
+            const codeHostUrl = githubApiBaseUrl === DEFAULT_GITHUB_API_BASE_URL
+                ? 'https://github.com'
+                : githubApiBaseUrl.replace(/\/api\/v3$/, '');
+
+            const config = await resolveGitHubAgentConfig(pullRequest.base.repo.id, codeHostUrl);
+
+            if (!isAutoReviewEnabled(config)) {
+                logger.info('Auto review is disabled for this repo/config, skipping');
                 return Response.json({ status: 'ok' });
             }
 
@@ -162,8 +233,7 @@ export const POST = async (request: NextRequest) => {
             const installationId = body.installation.id;
             const octokit = await githubApp.getInstallationOctokit(installationId);
 
-            const pullRequest = body.pull_request as GitHubPullRequest;
-            await processGitHubPullRequest(octokit, pullRequest);
+            await processGitHubPullRequest(octokit, pullRequest, config);
         }
 
         if (isIssueCommentEvent(githubEvent, body)) {
@@ -173,7 +243,16 @@ export const POST = async (request: NextRequest) => {
                 return Response.json({ status: 'ok' });
             }
 
-            if (comment === `/${env.REVIEW_AGENT_REVIEW_COMMAND}`) {
+            const codeHostUrl = githubApiBaseUrl === DEFAULT_GITHUB_API_BASE_URL
+                ? 'https://github.com'
+                : githubApiBaseUrl.replace(/\/api\/v3$/, '');
+
+            const repoId: number = body.repository?.id;
+            const config = repoId
+                ? await resolveGitHubAgentConfig(repoId, codeHostUrl)
+                : null;
+
+            if (comment === `/${getReviewCommand(config)}`) {
                 logger.info('Review agent review command received, processing');
 
                 if (!body.installation) {
@@ -192,7 +271,7 @@ export const POST = async (request: NextRequest) => {
                     pull_number: pullRequestNumber,
                 });
 
-                await processGitHubPullRequest(octokit, pullRequest);
+                await processGitHubPullRequest(octokit, pullRequest, config);
             }
         }
     }
@@ -212,15 +291,19 @@ export const POST = async (request: NextRequest) => {
             return Response.json({ status: 'ok' });
         }
 
-        if (isGitLabMergeRequestEvent(gitlabEvent, body)) {
-            if (env.REVIEW_AGENT_AUTO_REVIEW_ENABLED === "false") {
-                logger.info('Review agent auto review (REVIEW_AGENT_AUTO_REVIEW_ENABLED) is disabled, skipping');
-                return Response.json({ status: 'ok' });
-            }
+        const gitlabCodeHostUrl = `https://${env.GITLAB_REVIEW_AGENT_HOST}`;
 
+        if (isGitLabMergeRequestEvent(gitlabEvent, body)) {
             const parsed = gitLabMergeRequestPayloadSchema.safeParse(body);
             if (!parsed.success) {
                 logger.warn(`GitLab MR webhook payload failed validation: ${parsed.error.message}`);
+                return Response.json({ status: 'ok' });
+            }
+
+            const config = await resolveGitLabAgentConfig(parsed.data.project.id, gitlabCodeHostUrl);
+
+            if (!isAutoReviewEnabled(config)) {
+                logger.info('Auto review is disabled for this project/config, skipping');
                 return Response.json({ status: 'ok' });
             }
 
@@ -230,6 +313,7 @@ export const POST = async (request: NextRequest) => {
                     parsed.data.project.id,
                     parsed.data,
                     env.GITLAB_REVIEW_AGENT_HOST,
+                    config,
                 );
             } catch (error) {
                 logger.error(`Error in processGitLabMergeRequest for project ${parsed.data.project.id} (${gitlabEvent}):`, error);
@@ -243,8 +327,10 @@ export const POST = async (request: NextRequest) => {
                 return Response.json({ status: 'ok' });
             }
 
+            const config = await resolveGitLabAgentConfig(parsed.data.project.id, gitlabCodeHostUrl);
+
             const noteBody = parsed.data.object_attributes.note;
-            if (noteBody === `/${env.REVIEW_AGENT_REVIEW_COMMAND}`) {
+            if (noteBody === `/${getReviewCommand(config)}`) {
                 logger.info('Review agent review command received on GitLab MR, processing');
 
                 const mrPayload: GitLabMergeRequestPayload = {
@@ -266,6 +352,7 @@ export const POST = async (request: NextRequest) => {
                         parsed.data.project.id,
                         mrPayload,
                         env.GITLAB_REVIEW_AGENT_HOST,
+                        config,
                     );
                 } catch (error) {
                     logger.error(`Error in processGitLabMergeRequest for project ${parsed.data.project.id} (${gitlabEvent}):`, error);
