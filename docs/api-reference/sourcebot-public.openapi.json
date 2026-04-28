@@ -1585,6 +1585,16 @@
             "description": "The head git ref (branch, tag, or commit SHA) to diff to.",
             "name": "head",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Restrict the diff to changes touching this file path. Omit to diff all changes between the two refs."
+            },
+            "required": false,
+            "description": "Restrict the diff to changes touching this file path. Omit to diff all changes between the two refs.",
+            "name": "path",
+            "in": "query"
           }
         ],
         "responses": {

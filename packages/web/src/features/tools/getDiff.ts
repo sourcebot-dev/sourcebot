@@ -28,10 +28,10 @@ export const getDiffDefinition: ToolDefinition<'get_diff', typeof getDiffRequest
     isIdempotent: true,
     description,
     inputSchema: getDiffRequestSchema,
-    execute: async ({ repo, base, head }, _context) => {
-        logger.debug('get_diff', { repo, base, head });
+    execute: async ({ repo, base, head, path }, _context) => {
+        logger.debug('get_diff', { repo, base, head, path });
 
-        const response = await getDiff({ repo, base, head });
+        const response = await getDiff({ repo, base, head, path });
 
         if (isServiceError(response)) {
             throw new Error(response.message);

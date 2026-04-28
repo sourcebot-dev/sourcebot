@@ -1,24 +1,18 @@
 import { getDiff } from "@/features/git";
+import { getDiffRequestSchema } from "@/features/git/schemas";
 import { apiHandler } from "@/lib/apiHandler";
 import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
-import { z } from "zod";
-
-const getDiffQueryParamsSchema = z.object({
-    repo: z.string(),
-    base: z.string(),
-    head: z.string(),
-});
 
 export const GET = apiHandler(async (request: NextRequest): Promise<Response> => {
     const rawParams = Object.fromEntries(
-        Object.keys(getDiffQueryParamsSchema.shape).map(key => [
+        Object.keys(getDiffRequestSchema.shape).map(key => [
             key,
             request.nextUrl.searchParams.get(key) ?? undefined
         ])
     );
-    const parsed = getDiffQueryParamsSchema.safeParse(rawParams);
+    const parsed = getDiffRequestSchema.safeParse(rawParams);
 
     if (!parsed.success) {
         return serviceErrorResponse(
