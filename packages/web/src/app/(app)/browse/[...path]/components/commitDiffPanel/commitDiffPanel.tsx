@@ -1,6 +1,7 @@
 import { getCommit, getDiff } from "@/features/git";
 import { isServiceError } from "@/lib/utils";
 import { format } from "date-fns";
+import { computeTotalChangeCounts, DiffStat } from "./diffStat";
 import { FileDiffList } from "./fileDiffList";
 
 interface CommitDiffPanelProps {
@@ -51,6 +52,7 @@ export const CommitDiffPanel = async ({ repoName, commitSha }: CommitDiffPanelPr
     const baseSha = commitResponse.parents.length > 0 ? commitResponse.parents[0] : null;
     const subject = commitResponse.message.split('\n')[0];
     const formattedDate = format(new Date(commitResponse.date), 'MMM d, yyyy');
+    const totalChangeCounts = computeTotalChangeCounts(diffResponse.files);
 
     return (
         <div className="flex flex-col h-full">
@@ -71,15 +73,21 @@ export const CommitDiffPanel = async ({ repoName, commitSha }: CommitDiffPanelPr
                     </div>
                 )}
             </div>
-            <div className="px-4 py-2 border-b shrink-0">
+            <div className="flex flex-row items-center justify-between gap-2 px-4 py-2 border-b shrink-0">
                 <h2 className="text-sm font-medium">
-                    Files changed ({diffResponse.files.length})
+                    {diffResponse.files.length} file{diffResponse.files.length > 1 ? 's' : ''} changed
                 </h2>
+                <DiffStat {...totalChangeCounts} />
             </div>
             {diffResponse.files.length === 0 ? (
                 <div className="p-4 text-sm text-muted-foreground">No files changed.</div>
             ) : (
-                <FileDiffList files={diffResponse.files} />
+                <FileDiffList
+                    files={diffResponse.files}
+                    repoName={repoName}
+                    commitSha={commitSha}
+                    parentSha={baseSha}
+                />
             )}
         </div>
     );

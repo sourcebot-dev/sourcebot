@@ -7,6 +7,10 @@ import { FileDiffRow } from "./fileDiffRow";
 
 interface FileDiffListProps {
     files: FileDiff[];
+    repoName: string;
+    commitSha: string;
+    // Null for the initial commit (no parent).
+    parentSha: string | null;
 }
 
 // Constants used to estimate row height up front so the virtualizer can size
@@ -28,7 +32,7 @@ const estimateRowHeight = (file: FileDiff): number => {
     return Math.max(estimated, MIN_ROW_HEIGHT_PX);
 };
 
-export const FileDiffList = ({ files }: FileDiffListProps) => {
+export const FileDiffList = ({ files, repoName, commitSha, parentSha }: FileDiffListProps) => {
     const parentRef = useRef<HTMLDivElement>(null);
 
     const virtualizer = useVirtualizer({
@@ -75,6 +79,9 @@ export const FileDiffList = ({ files }: FileDiffListProps) => {
                                 key={rowKey}
                                 file={file}
                                 yOffset={virtualRow.start}
+                                repoName={repoName}
+                                commitSha={commitSha}
+                                parentSha={parentSha}
                             />
                         </div>
                     );
