@@ -7,22 +7,8 @@ import { useCallback, useMemo } from "react";
 import { CommitActionLink } from "../../../components/commitParts";
 import { getBrowsePath } from "../../../hooks/utils";
 import { computeChangeCounts, DiffStat } from "./diffStat";
+import { getFileStatus, StatusBadge } from "./fileStatus";
 import { LightweightDiffViewer } from "./lightweightDiffViewer";
-
-type FileStatus = 'added' | 'modified' | 'deleted' | 'renamed';
-
-const getFileStatus = (file: FileDiff): FileStatus => {
-    if (!file.oldPath) {
-        return 'added';
-    }
-    if (!file.newPath) {
-        return 'deleted';
-    }
-    if (file.oldPath !== file.newPath) {
-        return 'renamed';
-    }
-    return 'modified';
-};
 
 const getDisplayPath = (file: FileDiff): string => {
     if (getFileStatus(file) === 'renamed') {
@@ -103,25 +89,3 @@ export const FileDiffRow = ({ file, yOffset, repoName, commitSha, parentSha }: F
         </div>
     );
 };
-
-const STATUS_LABELS: Record<FileStatus, string> = {
-    added: 'A',
-    modified: 'M',
-    deleted: 'D',
-    renamed: 'R',
-};
-
-const STATUS_COLORS: Record<FileStatus, string> = {
-    added: 'bg-green-500/20 text-green-700 dark:text-green-400',
-    modified: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400',
-    deleted: 'bg-red-500/20 text-red-700 dark:text-red-400',
-    renamed: 'bg-blue-500/20 text-blue-700 dark:text-blue-400',
-};
-
-const StatusBadge = ({ status }: { status: FileStatus }) => (
-    <span
-        className={`inline-flex items-center justify-center w-5 h-5 rounded text-xs font-mono font-bold ${STATUS_COLORS[status]}`}
-    >
-        {STATUS_LABELS[status]}
-    </span>
-);

@@ -132,7 +132,6 @@ export const BottomPanel = ({ order }: BottomPanelProps) => {
                             <Button asChild variant="ghost" size="sm">
                                 <Link
                                     href={fullHistoryHref}
-                                    onClick={() => updateBrowseState({ isBottomPanelCollapsed: true })}
                                 >
                                     <History className="w-4 h-4" />
                                     View full history

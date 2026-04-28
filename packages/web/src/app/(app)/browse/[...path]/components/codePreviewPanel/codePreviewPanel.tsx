@@ -1,8 +1,13 @@
 import { getRepoInfoByName } from "@/actions";
 import { PathHeader } from "@/app/(app)/components/pathHeader";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn, getCodeHostInfoForRepo, isServiceError, truncateSha } from "@/lib/utils";
+import { X } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import { getBrowsePath } from "../../../hooks/utils";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
 import { getFileSource } from '@/features/git';
 
@@ -10,14 +15,19 @@ interface CodePreviewPanelProps {
     path: string;
     repoName: string;
     revisionName?: string;
+    // When set, the file's content is fetched at this ref while the
+    // surrounding browse context (path header) stays at `revisionName`.
+    previewRef?: string;
 }
 
-export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePreviewPanelProps) => {
+export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRef }: CodePreviewPanelProps) => {
+    const contentRef = previewRef ?? revisionName;
+
     const [fileSourceResponse, repoInfoResponse] = await Promise.all([
         getFileSource({
             path,
             repo: repoName,
-            ref: revisionName,
+            ref: contentRef,
         }, { source: 'sourcebot-web-client' }),
         getRepoInfoByName(repoName),
     ]);
@@ -53,7 +63,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePre
                         displayName: repoInfoResponse.displayName,
                         externalWebUrl: repoInfoResponse.externalWebUrl,
                     }}
-                    revisionName={revisionName}
+                    revisionName={contentRef}
                 />
 
                 {fileWebUrl && (
@@ -74,12 +84,54 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName }: CodePre
                 )}
             </div>
             <Separator />
+            {previewRef && (
+                <div className="flex flex-row items-center justify-between gap-2 px-4 py-2 border-b shrink-0">
+                    <span className="text-sm">
+                        Previewing file at revision{" "}
+                        <Link
+                            href={getBrowsePath({
+                                repoName,
+                                revisionName,
+                                path: '',
+                                pathType: 'commit',
+                                commitSha: previewRef,
+                            })}
+                            className="font-mono text-link hover:underline"
+                        >
+                            {truncateSha(previewRef)}
+                        </Link>
+                    </span>
+                    <Tooltip key={previewRef}>
+                        <TooltipTrigger>
+                            <Button
+                                asChild
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground"
+                            >
+                                <Link
+                                    href={getBrowsePath({
+                                        repoName,
+                                        revisionName,
+                                        path,
+                                        pathType: 'blob',
+                                    })}
+                                    aria-label="Close preview"
+                                >
+                                    <X className="h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Close preview</TooltipContent>
+                    </Tooltip>
+                </div>
+            )}
             <PureCodePreviewPanel
                 source={fileSourceResponse.source}
                 language={fileSourceResponse.language}
                 repoName={repoName}
                 path={path}
-                revisionName={revisionName ?? 'HEAD'}
+                revisionName={contentRef ?? 'HEAD'}
             />
         </>
     )

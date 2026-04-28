@@ -1,6 +1,8 @@
 import { BrowseState, SET_BROWSE_STATE_QUERY_PARAM } from "../browseStateProvider";
 
 export const HIGHLIGHT_RANGE_QUERY_PARAM = 'highlightRange';
+export const PREVIEW_REF_QUERY_PARAM = 'ref';
+export const DIFF_QUERY_PARAM = 'diff';
 
 export type BrowseHighlightRange = {
     start: { lineNumber: number; column: number; };
@@ -20,6 +22,12 @@ type BaseProps = {
 type BlobProps = BaseProps & {
     pathType: 'blob',
     highlightRange?: BrowseHighlightRange;
+    // Override the ref the file's content is fetched at, while the surrounding
+    // browse context (file tree, etc.) stays anchored to `revisionName`.
+    previewRef?: string;
+    // When true, render the focused commit diff (for `previewRef`) instead of
+    // the file's source. Only meaningful alongside `previewRef`.
+    diff?: boolean;
 }
 
 type TreeProps = BaseProps & {
@@ -27,12 +35,12 @@ type TreeProps = BaseProps & {
 }
 
 type CommitsProps = BaseProps & {
-    pathType: 'commits'
+    pathType: 'commits',
 }
 
 type CommitProps = BaseProps & {
     pathType: 'commit',
-    commitSha: string
+    commitSha: string,
 }
 
 export type BrowseProps =
@@ -98,10 +106,12 @@ export const getBrowseParamsFromPathParam = (pathParam: string): BrowseProps => 
             };
         }
         case 'commit': {
+            // Path suffix on /-/commit/<sha>/<path> is no longer used, but we
+            // keep the slash-split here so legacy URLs still resolve to the
+            // commit (we just ignore everything after the SHA).
             const rest = tail.startsWith('commit/') ? tail.substring('commit/'.length) : tail.substring('commit'.length);
             const firstSlash = rest.indexOf('/');
             const commitSha = decodeURIComponent(firstSlash === -1 ? rest : rest.substring(0, firstSlash));
-            const filePath = firstSlash === -1 ? '' : rest.substring(firstSlash + 1);
 
             if (!commitSha) {
                 throw new Error(`Invalid browse pathname: "${pathParam}" - expected to contain a commit SHA for commit type`);
@@ -112,7 +122,7 @@ export const getBrowseParamsFromPathParam = (pathParam: string): BrowseProps => 
                 revisionName,
                 pathType,
                 commitSha,
-                path: normalizeRepoPath(decodeURIComponent(filePath)),
+                path: '',
             };
         }
         case 'blob': {
@@ -134,7 +144,7 @@ export const getBrowseParamsFromPathParam = (pathParam: string): BrowseProps => 
 };
 
 export const getBrowsePath = (props: BrowseProps) => {
-    const { repoName, revisionName, path, pathType, setBrowseState } = props;
+    const { repoName, revisionName, pathType, setBrowseState } = props;
     const params = new URLSearchParams();
 
     if (pathType === 'blob' && props.highlightRange) {
@@ -147,15 +157,21 @@ export const getBrowsePath = (props: BrowseProps) => {
         }
     }
 
+    if (pathType === 'blob' && props.previewRef) {
+        params.set(PREVIEW_REF_QUERY_PARAM, props.previewRef);
+    }
+
+    if (pathType === 'blob' && props.diff) {
+        params.set(DIFF_QUERY_PARAM, 'true');
+    }
+
     if (setBrowseState) {
         params.set(SET_BROWSE_STATE_QUERY_PARAM, JSON.stringify(setBrowseState));
     }
 
-    const encodedPath = encodeURIComponent(normalizeRepoPath(path));
-    const tail = props.pathType === 'commit'
-        ? `${encodeURIComponent(props.commitSha)}${encodedPath ? `/${encodedPath}` : ''}`
-        : encodedPath;
+    const tail = pathType === 'commit'
+        ? encodeURIComponent(props.commitSha)
+        : encodeURIComponent(normalizeRepoPath(props.path));
     const browsePath = `/browse/${repoName}${revisionName ? `@${revisionName}` : ''}/-/${pathType}/${tail}${params.size > 0 ? `?${params.toString()}` : ''}`;
     return browsePath;
 };
-

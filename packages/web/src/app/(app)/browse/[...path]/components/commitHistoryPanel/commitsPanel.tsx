@@ -151,8 +151,7 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page, author,
                                         key={commit.hash}
                                         commit={commit}
                                         repoName={repoName}
-                                        path={path}
-                                        pathType={headerPathType}
+                                        revisionName={revisionName}
                                     />
                                 ))}
                             </div>

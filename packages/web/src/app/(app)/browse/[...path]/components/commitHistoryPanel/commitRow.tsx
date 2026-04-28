@@ -3,10 +3,10 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { Code, FileCode } from "lucide-react";
+import { Code } from "lucide-react";
 import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
 import { useToast } from "@/components/hooks/use-toast";
-import type { Commit, GitObjectPathType } from "@/features/git";
+import type { Commit } from "@/features/git";
 import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 import { formatAuthorsText, getCommitAuthors } from "@/app/(app)/browse/components/commitAuthors";
 import {
@@ -19,11 +19,10 @@ import {
 interface CommitRowProps {
     commit: Commit;
     repoName: string;
-    path: string;
-    pathType: GitObjectPathType;
+    revisionName?: string;
 }
 
-export const CommitRow = ({ commit, repoName, path, pathType }: CommitRowProps) => {
+export const CommitRow = ({ commit, repoName, revisionName }: CommitRowProps) => {
     const [isBodyExpanded, setIsBodyExpanded] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
@@ -31,19 +30,11 @@ export const CommitRow = ({ commit, repoName, path, pathType }: CommitRowProps) 
     const shortSha = commit.hash.slice(0, 7);
     const relativeDate = formatDistanceToNow(new Date(commit.date), { addSuffix: true });
     const hasBody = commit.body.trim().length > 0;
-    const isBlobPath = pathType === 'blob';
 
     const authors = useMemo(
         () => getCommitAuthors(commit),
         [commit],
     );
-
-    const viewFileAtCommitHref = getBrowsePath({
-        repoName,
-        revisionName: commit.hash,
-        path,
-        pathType: 'blob',
-    });
 
     const viewRepoAtCommitHref = getBrowsePath({
         repoName,
@@ -53,11 +44,12 @@ export const CommitRow = ({ commit, repoName, path, pathType }: CommitRowProps) 
     });
 
     const commitDiffHref = getBrowsePath({
-        repoName,
-        path,
-        pathType: 'commit',
-        commitSha: commit.hash,
-    });
+            repoName,
+            revisionName,
+            path: '',
+            pathType: 'commit',
+            commitSha: commit.hash,
+        });
 
     const onCopySha = useCallback(() => {
         navigator.clipboard.writeText(commit.hash).then(() => {
@@ -107,13 +99,6 @@ export const CommitRow = ({ commit, repoName, path, pathType }: CommitRowProps) 
                         {shortSha}
                     </span>
                     <CopyIconButton onCopy={onCopySha} />
-                    {isBlobPath && (
-                        <CommitActionLink
-                            href={viewFileAtCommitHref}
-                            label="View code at this commit"
-                            icon={<FileCode className="h-3 w-3" />}
-                        />
-                    )}
                     <CommitActionLink
                         href={viewRepoAtCommitHref}
                         label="View repository at this commit"

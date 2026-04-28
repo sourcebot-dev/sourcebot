@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { getBrowseParamsFromPathParam } from "../hooks/utils";
 import { CodePreviewPanel } from "./components/codePreviewPanel/codePreviewPanel";
-import { CommitDiffPanel } from "./components/commitDiffPanel/commitDiffPanel";
+import { FocusedCommitDiffPanel } from "./components/commitDiffPanel/focusedCommitDiffPanel";
+import { FullCommitDiffPanel } from "./components/commitDiffPanel/fullCommitDiffPanel";
 import { CommitsPanel } from "./components/commitHistoryPanel/commitsPanel";
 import { Loader2 } from "lucide-react";
 import { TreePreviewPanel } from "./components/treePreviewPanel/treePreviewPanel";
@@ -86,6 +87,8 @@ interface BrowsePageProps {
         author?: string;
         since?: string;
         until?: string;
+        ref?: string;
+        diff?: string;
     }>;
 }
 
@@ -104,6 +107,8 @@ export default async function BrowsePage(props: BrowsePageProps) {
     const author = searchParams.author || undefined;
     const since = searchParams.since || undefined;
     const until = searchParams.until || undefined;
+    const previewRef = searchParams.ref || undefined;
+    const isDiffMode = searchParams.diff === 'true';
 
     return (
         <div className="flex flex-col h-full">
@@ -114,11 +119,21 @@ export default async function BrowsePage(props: BrowsePageProps) {
                 </div>
             }>
                 {browseProps.pathType === 'blob' ? (
-                    <CodePreviewPanel
-                        path={path}
-                        repoName={repoName}
-                        revisionName={revisionName}
-                    />
+                    isDiffMode && previewRef ? (
+                        <FocusedCommitDiffPanel
+                            repoName={repoName}
+                            revisionName={revisionName}
+                            commitSha={previewRef}
+                            path={path}
+                        />
+                    ) : (
+                        <CodePreviewPanel
+                            path={path}
+                            repoName={repoName}
+                            revisionName={revisionName}
+                            previewRef={previewRef}
+                        />
+                    )
                 ) : browseProps.pathType === 'commits' ? (
                     <CommitsPanel
                         path={path}
@@ -130,11 +145,9 @@ export default async function BrowsePage(props: BrowsePageProps) {
                         until={until}
                     />
                 ) : browseProps.pathType === 'commit' ? (
-                    <CommitDiffPanel
+                    <FullCommitDiffPanel
                         repoName={repoName}
-                        revisionName={revisionName}
                         commitSha={browseProps.commitSha}
-                        path={path}
                     />
                 ) : (
                     <TreePreviewPanel

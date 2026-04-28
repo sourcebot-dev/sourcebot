@@ -11,8 +11,6 @@ interface FileDiffListProps {
     commitSha: string;
     // Null for the initial commit (no parent).
     parentSha: string | null;
-    // When set, scroll the matching file into view on mount.
-    targetPath?: string;
 }
 
 // Constants used to estimate row height up front so the virtualizer can size
@@ -34,33 +32,13 @@ const estimateRowHeight = (file: FileDiff): number => {
     return Math.max(estimated, MIN_ROW_HEIGHT_PX);
 };
 
-export const FileDiffList = ({ files, repoName, commitSha, parentSha, targetPath }: FileDiffListProps) => {
+export const FileDiffList = ({ files, repoName, commitSha, parentSha }: FileDiffListProps) => {
     const parentRef = useRef<HTMLDivElement>(null);
 
-    // Reorder so the URL-targeted file (matched against either side, so
-    // renames work regardless of which name the URL points to) is at the top
-    // of the list. Other files keep their original order behind it.
-    const orderedFiles = useMemo(() => {
-        if (!targetPath) {
-            return files;
-        }
-        const targetIdx = files.findIndex(
-            (file) => file.newPath === targetPath || file.oldPath === targetPath,
-        );
-        if (targetIdx < 0) {
-            return files;
-        }
-        return [
-            files[targetIdx],
-            ...files.slice(0, targetIdx),
-            ...files.slice(targetIdx + 1),
-        ];
-    }, [files, targetPath]);
-
     const virtualizer = useVirtualizer({
-        count: orderedFiles.length,
+        count: files.length,
         getScrollElement: () => parentRef.current,
-        estimateSize: (index) => estimateRowHeight(orderedFiles[index]),
+        estimateSize: (index) => estimateRowHeight(files[index]),
         overscan: 6,
     });
 
@@ -82,7 +60,7 @@ export const FileDiffList = ({ files, repoName, commitSha, parentSha, targetPath
                 }}
             >
                 {virtualizer.getVirtualItems().map((virtualRow) => {
-                    const file = orderedFiles[virtualRow.index];
+                    const file = files[virtualRow.index];
                     const rowKey = file.newPath ?? file.oldPath ?? `idx-${virtualRow.index}`;
                     return (
                         <div

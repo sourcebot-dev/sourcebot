@@ -233,7 +233,17 @@ export const PathHeader = ({
                     }}
                 >
                     <span className="mr-0.5">@</span>
-                    {truncateSha(branchDisplayName.replace(/^refs\/(heads|tags)\//, ''))}
+                    <Link
+                        href={getBrowsePath({
+                            repoName: repo.name,
+                            path: '',
+                            pathType: 'commit',
+                            commitSha: branchDisplayName,
+                        })}
+                        className="hover:underline"
+                    >
+                        {truncateSha(branchDisplayName.replace(/^refs\/(heads|tags)\//, ''))}
+                    </Link>
                 </p>
             )}
             {breadcrumbSegments.length > 0 && (

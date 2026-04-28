@@ -13,21 +13,26 @@ import { CommitMessage } from "./commitMessage";
 import { computeTotalChangeCounts, DiffStat } from "./diffStat";
 import { FileDiffList } from "./fileDiffList";
 
-interface CommitDiffPanelProps {
+interface FullCommitDiffPanelProps {
     repoName: string;
-    revisionName?: string;
     commitSha: string;
-    path: string;
 }
 
 // Git's well-known empty-tree SHA. Used as the diff base when the commit has
 // no parent (i.e. the initial commit), since `<sha>^` doesn't resolve there.
 const EMPTY_TREE_SHA = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
 
-export const CommitDiffPanel = async ({ repoName, commitSha, path }: CommitDiffPanelProps) => {
+export const FullCommitDiffPanel = async ({ repoName, commitSha }: FullCommitDiffPanelProps) => {
     const [commitResponse, initialDiffResponse] = await Promise.all([
-        getCommit({ repo: repoName, ref: commitSha }),
-        getDiff({ repo: repoName, base: `${commitSha}^`, head: commitSha }),
+        getCommit({
+            repo: repoName,
+            ref: commitSha,
+        }),
+        getDiff({
+            repo: repoName,
+            base: `${commitSha}^`,
+            head: commitSha,
+        }),
     ]);
 
     if (isServiceError(commitResponse)) {
@@ -70,8 +75,8 @@ export const CommitDiffPanel = async ({ repoName, commitSha, path }: CommitDiffP
                     <div className="flex-1 min-w-0">
                         <CommitMessage subject={subject} body={commitResponse.body} />
                     </div>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
+                    <Tooltip key={commitSha}>
+                        <TooltipTrigger>
                             <Button asChild variant="outline" size="sm" className="flex-shrink-0">
                                 <Link
                                     href={getBrowsePath({
@@ -119,7 +124,6 @@ export const CommitDiffPanel = async ({ repoName, commitSha, path }: CommitDiffP
                     repoName={repoName}
                     commitSha={commitSha}
                     parentSha={baseSha}
-                    targetPath={path || undefined}
                 />
             )}
         </div>
