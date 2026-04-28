@@ -72,7 +72,7 @@ export const FileDiffRow = ({ file, yOffset, repoName, commitSha, parentSha }: F
     return (
         <div className="flex flex-col">
             <div
-                className="flex flex-row items-center gap-2 p-2 border-b bg-muted sticky z-10 mr-2"
+                className="flex flex-row items-center gap-2 py-2 px-3 border-b bg-muted sticky z-10"
                 style={{ top: `-${yOffset}px` }}
             >
                 <StatusBadge status={status} />

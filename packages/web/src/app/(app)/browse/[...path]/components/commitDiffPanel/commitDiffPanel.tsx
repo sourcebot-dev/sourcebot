@@ -1,8 +1,15 @@
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getCommit, getDiff } from "@/features/git";
 import { isServiceError } from "@/lib/utils";
 import { format } from "date-fns";
+import { FileCode } from "lucide-react";
+import Link from "next/link";
 import { formatAuthorsText, getCommitAuthors } from "../../../components/commitAuthors";
 import { AuthorsAvatarGroup } from "../../../components/commitParts";
+import { getBrowsePath } from "../../../hooks/utils";
+import { CommitHashLine } from "./commitHashLine";
+import { CommitMessage } from "./commitMessage";
 import { computeTotalChangeCounts, DiffStat } from "./diffStat";
 import { FileDiffList } from "./fileDiffList";
 
@@ -50,7 +57,6 @@ export const CommitDiffPanel = async ({ repoName, commitSha, path }: CommitDiffP
         );
     }
 
-    const isMergeCommit = commitResponse.parents.length > 1;
     const baseSha = commitResponse.parents.length > 0 ? commitResponse.parents[0] : null;
     const subject = commitResponse.message.split('\n')[0];
     const formattedDate = format(new Date(commitResponse.date), 'MMM d, yyyy');
@@ -59,8 +65,30 @@ export const CommitDiffPanel = async ({ repoName, commitSha, path }: CommitDiffP
 
     return (
         <div className="flex flex-col h-full">
-            <div className="flex flex-col gap-2 p-4 border-b shrink-0">
-                <h1 className="text-lg font-semibold">{subject}</h1>
+            <div className="flex flex-col gap-2 p-3 border-b shrink-0">
+                <div className="flex flex-row items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                        <CommitMessage subject={subject} body={commitResponse.body} />
+                    </div>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button asChild variant="outline" size="sm" className="flex-shrink-0">
+                                <Link
+                                    href={getBrowsePath({
+                                        repoName,
+                                        revisionName: commitResponse.hash,
+                                        path: '',
+                                        pathType: 'tree',
+                                    })}
+                                >
+                                    <FileCode className="h-4 w-4 mr-1" />
+                                    Browse files
+                                </Link>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>View code at this commit</TooltipContent>
+                    </Tooltip>
+                </div>
                 <div className="flex flex-row items-center gap-2 text-sm text-muted-foreground">
                     <AuthorsAvatarGroup authors={authors} />
                     <span
@@ -71,17 +99,11 @@ export const CommitDiffPanel = async ({ repoName, commitSha, path }: CommitDiffP
                     </span>
                     <span>committed on {formattedDate}</span>
                 </div>
-                <div className="text-xs font-mono text-muted-foreground">
-                    {commitResponse.hash.substring(0, 12)}
-                    {baseSha && (
-                        <> · parent {baseSha.substring(0, 12)}</>
-                    )}
-                </div>
-                {isMergeCommit && (
-                    <div className="text-xs text-muted-foreground italic">
-                        Merge commit — diff shown against first parent
-                    </div>
-                )}
+                <CommitHashLine
+                    repoName={repoName}
+                    commitHash={commitResponse.hash}
+                    parents={commitResponse.parents}
+                />
             </div>
             <div className="flex flex-row items-center justify-between gap-2 px-4 py-2 border-b shrink-0">
                 <h2 className="text-sm font-medium">
