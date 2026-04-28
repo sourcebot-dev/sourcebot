@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added commit history viewer to code browser. [#1150](https://github.com/sourcebot-dev/sourcebot/pull/1150)
 - Added `/api/commits/authors` to the public API to allow fetching a list of authors for a given path and revision. [#1150](https://github.com/sourcebot-dev/sourcebot/pull/1150)
+- [Experimental] Added customisable agent configs for the AI code review agent, supporting per-repo, per-connection, and org-wide configuration of prompt, model, review command, auto-review behaviour, and context files. [#1149](https://github.com/sourcebot-dev/sourcebot/pull/1149)
 
 ## [4.16.15] - 2026-04-23
 
