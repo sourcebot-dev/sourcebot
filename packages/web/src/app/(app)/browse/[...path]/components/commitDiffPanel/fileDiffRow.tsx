@@ -27,14 +27,18 @@ const getDisplayPath = (file: FileDiff): string => {
 
 interface FileDiffRowProps {
     file: FileDiff;
+    yOffset: number;
 }
 
-export const FileDiffRow = ({ file }: FileDiffRowProps) => {
+export const FileDiffRow = ({ file, yOffset }: FileDiffRowProps) => {
     const status = getFileStatus(file);
 
     return (
-        <div className="flex flex-col border rounded">
-            <div className="flex flex-row items-center gap-2 p-2 bg-muted border-b">
+        <div className="flex flex-col">
+            <div
+                className="flex flex-row items-center gap-2 p-2 border-b bg-muted sticky z-10"
+                style={{ top: `-${yOffset}px` }}
+            >
                 <StatusBadge status={status} />
                 <code className="text-xs">{getDisplayPath(file)}</code>
             </div>

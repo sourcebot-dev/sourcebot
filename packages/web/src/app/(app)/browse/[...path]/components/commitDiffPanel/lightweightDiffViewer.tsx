@@ -68,8 +68,14 @@ export const LightweightDiffViewer = ({ hunks, oldPath, newPath }: LightweightDi
                 // content. Using a single outer grid (with `subgrid` on the
                 // side cells) ensures all rows share the same column widths,
                 // so line numbers/markers/content stay aligned across rows.
-                gridTemplateColumns: 'max-content max-content minmax(0, 1fr) max-content max-content minmax(0, 1fr)',
-                columnGap: '8px',
+                // `minmax(<min>, max-content)` for the line-number and marker
+                // columns: when one side of the diff is entirely blank
+                // (fully-added or fully-deleted files), there's nothing on that
+                // side to size the column, and `max-content` collapses it to
+                // zero. The minimums keep these columns at a consistent width
+                // so the right side starts at the same X across files.
+                gridTemplateColumns: 'minmax(2.5rem, max-content) minmax(1ch, max-content) minmax(0, 1fr) minmax(2.5rem, max-content) minmax(1ch, max-content) minmax(0, 1fr)',
+                columnGap: '0px',
             }}
         >
             {hunks.map((hunk, hunkIdx) => {
@@ -77,7 +83,10 @@ export const LightweightDiffViewer = ({ hunks, oldPath, newPath }: LightweightDi
                 const rows = pairForSplit(lines);
                 return (
                     <Fragment key={hunkIdx}>
-                        <HunkHeader hunk={hunk} />
+                        <HunkHeader
+                            hunk={hunk}
+                            className={hunkIdx === 0 ? 'border-b' : 'border-y'}
+                        />
                         {rows.map((row, rowIdx) => (
                             <SplitRowView
                                 key={`${hunkIdx}-${rowIdx}`}
@@ -93,11 +102,11 @@ export const LightweightDiffViewer = ({ hunks, oldPath, newPath }: LightweightDi
     );
 };
 
-const HunkHeader = ({ hunk }: { hunk: DiffHunk }) => {
+const HunkHeader = ({ hunk, className = '' }: { hunk: DiffHunk; className?: string }) => {
     const range = `@@ -${hunk.oldRange.start},${hunk.oldRange.lines} +${hunk.newRange.start},${hunk.newRange.lines} @@`;
     return (
         <div
-            className="px-3 py-1 bg-muted text-muted-foreground border-y text-xs"
+            className={`px-3 py-1 bg-muted text-muted-foreground text-xs ${className}`}
             style={{ gridColumn: '1 / -1' }}
         >
             <span>{range}</span>
@@ -159,10 +168,13 @@ interface SideCellProps {
 }
 
 const SideCell = ({ line, side, parser, highlighter, innerDiffRanges }: SideCellProps) => {
+    // Drawn on the left side's right edge to visually separate the two panes.
+    const separator = side === 'left' ? 'border-r border-border' : '';
+
     if (!line) {
         return (
             <div
-                className={`${SIDE_BG[side].blank} px-2 py-px`}
+                className={`${SIDE_BG[side].blank} ${separator} px-2 py-px`}
                 style={{ gridColumn: 'span 3' }}
                 aria-hidden="true"
             />
@@ -175,7 +187,7 @@ const SideCell = ({ line, side, parser, highlighter, innerDiffRanges }: SideCell
 
     return (
         <div
-            className={`${bg} items-start py-px`}
+            className={`${bg} ${separator} items-start py-px`}
             style={{
                 gridColumn: 'span 3',
                 display: 'grid',

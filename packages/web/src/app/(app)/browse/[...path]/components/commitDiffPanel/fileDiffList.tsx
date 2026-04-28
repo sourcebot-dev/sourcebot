@@ -15,7 +15,6 @@ interface FileDiffListProps {
 // `measureElement`, so the estimate only affects initial scrollbar accuracy
 // and overscan placement.
 const ROW_HEADER_PX = 40;
-const ROW_FOOTER_PX = 16;
 const LINE_HEIGHT_PX = 18;
 const MIN_ROW_HEIGHT_PX = 200;
 const CONTEXT_LINES_PER_HUNK = 6;
@@ -25,7 +24,7 @@ const estimateRowHeight = (file: FileDiff): number => {
         return sum + Math.max(hunk.oldRange.lines, hunk.newRange.lines) + CONTEXT_LINES_PER_HUNK;
     }, 0);
 
-    const estimated = ROW_HEADER_PX + visibleLines * LINE_HEIGHT_PX + ROW_FOOTER_PX;
+    const estimated = ROW_HEADER_PX + visibleLines * LINE_HEIGHT_PX;
     return Math.max(estimated, MIN_ROW_HEIGHT_PX);
 };
 
@@ -42,7 +41,7 @@ export const FileDiffList = ({ files }: FileDiffListProps) => {
     return (
         <div
             ref={parentRef}
-            className="flex-1 min-h-0 px-4"
+            className="flex-1 min-h-0"
             style={{
                 width: '100%',
                 overflowY: 'auto',
@@ -70,12 +69,12 @@ export const FileDiffList = ({ files }: FileDiffListProps) => {
                                 left: 0,
                                 width: '100%',
                                 transform: `translateY(${virtualRow.start}px)`,
-                                paddingBottom: ROW_FOOTER_PX,
                             }}
                         >
                             <FileDiffRow
                                 key={rowKey}
                                 file={file}
+                                yOffset={virtualRow.start}
                             />
                         </div>
                     );
