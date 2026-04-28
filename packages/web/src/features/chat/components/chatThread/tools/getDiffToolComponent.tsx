@@ -2,16 +2,9 @@
 
 import { Separator } from '@/components/ui/separator';
 import { GetDiffMetadata, ToolResult } from '@/features/tools';
+import { truncateSha } from '@/lib/utils';
 import { GitCommitHorizontalIcon } from 'lucide-react';
 import { RepoBadge } from './repoBadge';
-
-function truncateSha(ref: string): string {
-    const match = ref.match(/^([0-9a-f]{40})(.*)$/i);
-    if (match) {
-        return match[1].substring(0, 7) + match[2];
-    }
-    return ref;
-}
 
 export const GetDiffToolComponent = ({ metadata }: ToolResult<GetDiffMetadata>) => {
     const fileCount = metadata.files.length;

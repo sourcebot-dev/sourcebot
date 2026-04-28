@@ -23,6 +23,19 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * If `ref` starts with a 40-character hex SHA, truncate the SHA portion to
+ * 7 characters and preserve any trailing operator suffix (e.g. `^`, `~1`).
+ * Returns the input unchanged for symbolic refs (branches, tags, etc.).
+ */
+export function truncateSha(ref: string): string {
+    const match = ref.match(/^([0-9a-f]{40})(.*)$/i);
+    if (match) {
+        return match[1].slice(0, 7) + match[2];
+    }
+    return ref;
+}
+
+/**
  * Creates an invite link URL from the base URL and invite ID
  * @param baseUrl The base URL of the application
  * @param inviteLinkId The invite link ID

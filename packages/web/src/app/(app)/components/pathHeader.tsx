@@ -1,6 +1,6 @@
 'use client';
 
-import { cn, getCodeHostInfoForRepo } from "@/lib/utils";
+import { cn, getCodeHostInfoForRepo, truncateSha } from "@/lib/utils";
 import Image from "next/image";
 import { getBrowsePath } from "../browse/hooks/utils";
 import { ChevronRight, MoreHorizontal } from "lucide-react";
@@ -233,10 +233,12 @@ export const PathHeader = ({
                     }}
                 >
                     <span className="mr-0.5">@</span>
-                    {`${branchDisplayName.replace(/^refs\/(heads|tags)\//, '')}`}
+                    {truncateSha(branchDisplayName.replace(/^refs\/(heads|tags)\//, ''))}
                 </p>
             )}
-            <span>·</span>
+            {breadcrumbSegments.length > 0 && (
+                <span>·</span>
+            )}
             <div ref={containerRef} className="flex-1 flex items-center overflow-hidden mt-0.5">
                 <div ref={breadcrumbsRef} className="flex items-center overflow-hidden">
                     {hiddenSegments.length > 0 && (
@@ -296,10 +298,12 @@ export const PathHeader = ({
                         </div>
                     ))}
                 </div>
-                <CopyIconButton
-                    onCopy={onCopyPath}
-                    className="ml-2"
-                />
+                {breadcrumbSegments.length > 0 && (
+                    <CopyIconButton
+                        onCopy={onCopyPath}
+                        className="ml-2"
+                    />
+                )}
             </div>
         </div>
     )
