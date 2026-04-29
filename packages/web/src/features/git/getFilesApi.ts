@@ -6,7 +6,8 @@ import { getRepoPath } from '@sourcebot/shared';
 import simpleGit from 'simple-git';
 import type z from 'zod';
 import { getFilesRequestSchema, getFilesResponseSchema } from './schemas';
-import { logger } from './utils';
+import { logger } from './logger';
+
 
 export { getFilesRequestSchema, getFilesResponseSchema } from './schemas';
 export type GetFilesRequest = z.infer<typeof getFilesRequestSchema>;

@@ -41,6 +41,7 @@ export const getDiffRequestSchema = z.object({
     repo: z.string().describe('The fully-qualified repository name.'),
     base: z.string().describe('The base git ref (branch, tag, or commit SHA) to diff from.'),
     head: z.string().describe('The head git ref (branch, tag, or commit SHA) to diff to.'),
+    path: z.string().optional().describe('Restrict the diff to changes touching this file path. Omit to diff all changes between the two refs.'),
 });
 
 const hunkRangeSchema = z.object({

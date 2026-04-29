@@ -93,6 +93,7 @@ export const HistoryPanel = () => {
                         key={commit.hash}
                         commit={commit}
                         repoName={repoName}
+                        revisionName={revisionName}
                         path={path}
                         pathType={pathType}
                     />

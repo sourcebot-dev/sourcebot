@@ -11,8 +11,8 @@ import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { search } from "@codemirror/search";
 import CodeMirror, { EditorSelection, EditorView, ReactCodeMirrorRef, SelectionRange, ViewUpdate } from "@uiw/react-codemirror";
 import { useEffect, useMemo, useState } from "react";
-import { EditorContextMenu } from "../../../components/editorContextMenu";
-import { BrowseHighlightRange, HIGHLIGHT_RANGE_QUERY_PARAM } from "../../hooks/utils";
+import { EditorContextMenu } from "@/app/(app)/components/editorContextMenu";
+import { BrowseHighlightRange, HIGHLIGHT_RANGE_QUERY_PARAM } from "@/app/(app)/browse/hooks/utils";
 import { rangeHighlightingExtension } from "./rangeHighlightingExtension";
 
 interface PureCodePreviewPanelProps {

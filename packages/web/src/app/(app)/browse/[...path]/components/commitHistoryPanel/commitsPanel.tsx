@@ -8,11 +8,11 @@ import { Separator } from "@/components/ui/separator";
 import { getPathType, listCommitAuthors, listCommits } from "@/features/git";
 import { isServiceError } from "@/lib/utils";
 import { AuthorFilter } from "./authorFilter";
-import { dedupeCommitAuthorsByEmail, escapeGitBreLiteral } from "../../components/commitAuthors";
+import { dedupeCommitAuthorsByEmail, escapeGitBreLiteral } from "@/app/(app)/browse/components/commitAuthors";
 import { CommitRow } from "./commitRow";
 import { CommitsPagination } from "./commitsPagination";
 import { DateFilter } from "./dateFilter";
-import { getBrowsePath } from "../../hooks/utils";
+import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 
 interface CommitsPanelProps {
     path: string;
@@ -151,8 +151,7 @@ export const CommitsPanel = async ({ path, repoName, revisionName, page, author,
                                         key={commit.hash}
                                         commit={commit}
                                         repoName={repoName}
-                                        path={path}
-                                        pathType={headerPathType}
+                                        revisionName={revisionName}
                                     />
                                 ))}
                             </div>
