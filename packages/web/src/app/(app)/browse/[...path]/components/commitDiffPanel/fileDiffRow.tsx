@@ -24,9 +24,11 @@ interface FileDiffRowProps {
     commitSha: string;
     // Null for the initial commit (no parent).
     parentSha: string | null;
+    isCollapsed: boolean;
+    onToggleCollapsed: () => void;
 }
 
-export const FileDiffRow = ({ file, yOffset, repoName, commitSha, parentSha }: FileDiffRowProps) => {
+export const FileDiffRow = ({ file, yOffset, repoName, commitSha, parentSha, isCollapsed, onToggleCollapsed }: FileDiffRowProps) => {
     const status = getFileStatus(file);
 
     // Deleted files don't exist at the commit, so the link points to the
@@ -61,7 +63,7 @@ export const FileDiffRow = ({ file, yOffset, repoName, commitSha, parentSha }: F
                 className="flex flex-row items-center gap-2 py-2 px-3 border-b bg-muted sticky z-10"
                 style={{ top: `-${yOffset}px` }}
             >
-                <StatusBadge status={status} />
+                <StatusBadge status={status} onToggle={onToggleCollapsed} isCollapsed={isCollapsed} />
                 <div className="flex-1 min-w-0 flex flex-row items-center gap-1 overflow-hidden">
                     <code className="text-xs truncate">{getDisplayPath(file)}</code>
                     <CopyIconButton onCopy={onCopyPath} className="flex-shrink-0" />
@@ -75,16 +77,18 @@ export const FileDiffRow = ({ file, yOffset, repoName, commitSha, parentSha }: F
                     />
                 )}
             </div>
-            {file.hunks.length === 0 ? (
-                <div className="p-4 text-sm text-muted-foreground">
-                    No textual diff (binary file or empty change).
-                </div>
-            ) : (
-                <LightweightDiffViewer
-                    hunks={file.hunks}
-                    oldPath={file.oldPath}
-                    newPath={file.newPath}
-                />
+            {!isCollapsed && (
+                file.hunks.length === 0 ? (
+                    <div className="p-4 text-sm text-muted-foreground">
+                        No textual diff (binary file or empty change).
+                    </div>
+                ) : (
+                    <LightweightDiffViewer
+                        hunks={file.hunks}
+                        oldPath={file.oldPath}
+                        newPath={file.newPath}
+                    />
+                )
             )}
         </div>
     );
