@@ -587,6 +587,97 @@
           "webUrl"
         ]
       },
+      "PublicFileBlameResponse": {
+        "type": "object",
+        "properties": {
+          "ranges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "hash": {
+                  "type": "string",
+                  "description": "The hash of the commit that last modified the lines in this range."
+                },
+                "startLine": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "exclusiveMinimum": true,
+                  "description": "The 1-based line number where the range begins (inclusive)."
+                },
+                "lineCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "exclusiveMinimum": true,
+                  "description": "The number of contiguous lines in this range."
+                }
+              },
+              "required": [
+                "hash",
+                "startLine",
+                "lineCount"
+              ]
+            },
+            "description": "Contiguous, non-overlapping line ranges ordered by startLine. Each range is attributed to a single commit."
+          },
+          "commits": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "hash": {
+                  "type": "string",
+                  "description": "The full commit SHA."
+                },
+                "date": {
+                  "type": "string",
+                  "description": "The commit date in ISO 8601 format."
+                },
+                "message": {
+                  "type": "string",
+                  "description": "The commit subject line."
+                },
+                "authorName": {
+                  "type": "string"
+                },
+                "authorEmail": {
+                  "type": "string"
+                },
+                "previous": {
+                  "type": "object",
+                  "properties": {
+                    "hash": {
+                      "type": "string",
+                      "description": "The hash of the commit that previously affected these lines (i.e., the next step backwards in the blame walk)."
+                    },
+                    "path": {
+                      "type": "string",
+                      "description": "The file path as it existed at the previous commit. May differ from the current path due to renames."
+                    }
+                  },
+                  "required": [
+                    "hash",
+                    "path"
+                  ],
+                  "description": "Pointer to the previous commit that affected these lines, with the file path as it existed there. Absent when the commit introduced the lines (no earlier history to walk to)."
+                }
+              },
+              "required": [
+                "hash",
+                "date",
+                "message",
+                "authorName",
+                "authorEmail"
+              ]
+            },
+            "description": "Commit metadata keyed by hash, deduplicated across ranges."
+          }
+        },
+        "required": [
+          "ranges",
+          "commits"
+        ]
+      },
       "PublicGetTreeRequest": {
         "type": "object",
         "properties": {
@@ -1465,6 +1556,90 @@
           },
           "500": {
             "description": "Unexpected file retrieval failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blame": {
+      "get": {
+        "operationId": "getFileBlame",
+        "tags": [
+          "Git"
+        ],
+        "summary": "Get file blame",
+        "description": "Returns blame information for a file at a given repository path and optional git ref.\n\nThe response is split into two parts:\n- `ranges`: contiguous, non-overlapping line ranges, each attributed to a single commit. Ordered by `startLine`.\n- `commits`: commit metadata (hash, date, message, author, optional `previous` pointer for walking back through history) keyed by hash, deduplicated across ranges.\n\nWhole-file renames are followed automatically. Cross-file line moves and copies are not.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "The file path to blame, relative to the repository root."
+            },
+            "required": true,
+            "description": "The file path to blame, relative to the repository root.",
+            "name": "path",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The fully-qualified repository name."
+            },
+            "required": true,
+            "description": "The fully-qualified repository name.",
+            "name": "repo",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The git ref (branch, tag, or commit SHA) to blame at. Defaults to the repository's default branch."
+            },
+            "required": false,
+            "description": "The git ref (branch, tag, or commit SHA) to blame at. Defaults to the repository's default branch.",
+            "name": "ref",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Blame ranges and deduplicated commit metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicFileBlameResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters or git ref.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Repository or file not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicApiServiceError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected blame retrieval failure.",
             "content": {
               "application/json": {
                 "schema": {
