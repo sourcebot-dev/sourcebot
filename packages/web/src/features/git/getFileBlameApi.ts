@@ -137,7 +137,7 @@ export const getFileBlame = async ({ path: filePath, repo: repoName, ref }: File
         withOptionalAuth(async ({ org, prisma, user }) => {
             if (user) {
                 const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
-                getAuditService().createAudit({
+                await getAuditService().createAudit({
                     action: 'user.fetched_file_blame',
                     actor: { id: user.id, type: 'user' },
                     target: { id: org.id.toString(), type: 'org' },
