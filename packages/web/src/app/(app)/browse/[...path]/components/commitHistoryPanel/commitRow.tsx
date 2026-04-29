@@ -58,6 +58,10 @@ export const CommitRow = ({ commit, repoName, revisionName }: CommitRowProps) =>
         return true;
     }, [commit.hash, toast]);
 
+    const navigateToCommit = useCallback(() => {
+        router.push(commitDiffHref);
+    }, [router, commitDiffHref]);
+
     // Navigate to the commit diff when the row is clicked, unless the click
     // originated from an interactive child (button or link) — those keep their
     // own behavior (copy SHA, view file/repo at commit, expand body, etc.).
@@ -66,14 +70,26 @@ export const CommitRow = ({ commit, repoName, revisionName }: CommitRowProps) =>
         if (target.closest('button, a')) {
             return;
         }
-        router.push(commitDiffHref);
-    }, [router, commitDiffHref]);
+        navigateToCommit();
+    }, [navigateToCommit]);
+
+    const onRowKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+        if ((event.target as HTMLElement).closest('button, a')) {
+            return;
+        }
+        if (event.key === 'Enter') {
+            navigateToCommit();
+        }
+    }, [navigateToCommit]);
 
     return (
         <>
             <div
+                role="link"
+                tabIndex={0}
                 className="flex flex-row py-3 px-3 items-center justify-between gap-4 min-w-0 border-b cursor-pointer hover:bg-muted"
                 onClick={onRowClick}
+                onKeyDown={onRowKeyDown}
             >
                 <div className="flex flex-col gap-1 min-w-0 overflow-hidden">
                     <div className="flex flex-row items-center gap-2 min-w-0 overflow-hidden">
