@@ -9,7 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getBrowsePath } from "../../../hooks/utils";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
-import { getFileSource } from '@/features/git';
+import { getFileBlame, getFileSource } from '@/features/git';
 
 interface CodePreviewPanelProps {
     path: string;
@@ -18,18 +18,28 @@ interface CodePreviewPanelProps {
     // When set, the file's content is fetched at this ref while the
     // surrounding browse context (path header) stays at `revisionName`.
     previewRef?: string;
+    // When true, fetch blame data alongside the file source and pass it to
+    // the editor so the blame gutter can render.
+    blame?: boolean;
 }
 
-export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRef }: CodePreviewPanelProps) => {
+export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRef, blame }: CodePreviewPanelProps) => {
     const contentRef = previewRef ?? revisionName;
 
-    const [fileSourceResponse, repoInfoResponse] = await Promise.all([
+    const [fileSourceResponse, repoInfoResponse, blameResponse] = await Promise.all([
         getFileSource({
             path,
             repo: repoName,
             ref: contentRef,
         }, { source: 'sourcebot-web-client' }),
         getRepoInfoByName(repoName),
+        blame
+            ? getFileBlame({
+                path,
+                repo: repoName,
+                ref: contentRef,
+            }, { source: 'sourcebot-web-client' })
+            : Promise.resolve(undefined),
     ]);
 
     if (isServiceError(fileSourceResponse)) {
@@ -38,6 +48,10 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
 
     if (isServiceError(repoInfoResponse)) {
         return <div>Error loading repo info: {repoInfoResponse.message}</div>
+    }
+
+    if (blameResponse !== undefined && isServiceError(blameResponse)) {
+        return <div>Error loading blame: {blameResponse.message}</div>
     }
 
     const codeHostInfo = getCodeHostInfoForRepo({
@@ -132,6 +146,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
                 repoName={repoName}
                 path={path}
                 revisionName={contentRef ?? 'HEAD'}
+                blame={blameResponse}
             />
         </>
     )
