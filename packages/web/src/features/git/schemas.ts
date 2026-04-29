@@ -110,3 +110,34 @@ export const commitAuthorSchema = z.object({
     email: z.string(),
     commitCount: z.number().int().nonnegative(),
 });
+
+export const fileBlameRequestSchema = z.object({
+    path: z.string().describe('The file path to blame, relative to the repository root.'),
+    repo: z.string().describe('The fully-qualified repository name.'),
+    ref: z.string().optional().describe('The git ref (branch, tag, or commit SHA) to blame at. Defaults to the repository\'s default branch.'),
+});
+
+export const blameRangeSchema = z.object({
+    hash: z.string().describe('The hash of the commit that last modified the lines in this range.'),
+    startLine: z.number().int().positive().describe('The 1-based line number where the range begins (inclusive).'),
+    lineCount: z.number().int().positive().describe('The number of contiguous lines in this range.'),
+});
+
+export const blamePreviousSchema = z.object({
+    hash: z.string().describe('The hash of the commit that previously affected these lines (i.e., the next step backwards in the blame walk).'),
+    path: z.string().describe('The file path as it existed at the previous commit. May differ from the current path due to renames.'),
+});
+
+export const blameCommitSchema = z.object({
+    hash: z.string().describe('The full commit SHA.'),
+    date: z.string().describe('The commit date in ISO 8601 format.'),
+    message: z.string().describe('The commit subject line.'),
+    authorName: z.string(),
+    authorEmail: z.string(),
+    previous: blamePreviousSchema.optional().describe('Pointer to the previous commit that affected these lines, with the file path as it existed there. Absent when the commit introduced the lines (no earlier history to walk to).'),
+});
+
+export const fileBlameResponseSchema = z.object({
+    ranges: z.array(blameRangeSchema).describe('Contiguous, non-overlapping line ranges ordered by startLine. Each range is attributed to a single commit.'),
+    commits: z.record(z.string(), blameCommitSchema).describe('Commit metadata keyed by hash, deduplicated across ranges.'),
+});

@@ -8,6 +8,8 @@ import {
     commitAuthorSchema,
     commitDetailSchema,
     commitSchema,
+    fileBlameRequestSchema,
+    fileBlameResponseSchema,
     fileSourceRequestSchema,
     fileSourceResponseSchema,
     getCommitQueryParamsSchema,
@@ -40,6 +42,8 @@ export const publicSearchResponseSchema = searchResponseSchema.openapi('PublicSe
 export const publicGetTreeRequestSchema = getTreeRequestSchema.openapi('PublicGetTreeRequest');
 export const publicFileSourceRequestSchema = fileSourceRequestSchema.openapi('PublicFileSourceRequest');
 export const publicFileSourceResponseSchema = fileSourceResponseSchema.openapi('PublicFileSourceResponse');
+export const publicFileBlameRequestSchema = fileBlameRequestSchema.openapi('PublicFileBlameRequest');
+export const publicFileBlameResponseSchema = fileBlameResponseSchema.openapi('PublicFileBlameResponse');
 export const publicVersionResponseSchema = getVersionResponseSchema.openapi('PublicVersionResponse');
 export const publicListReposQueryParamsSchema = listReposQueryParamsSchema.openapi('PublicListReposQuery');
 export const publicListReposResponseSchema = listReposResponseSchema.openapi('PublicListReposResponse');
