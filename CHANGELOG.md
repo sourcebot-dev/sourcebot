@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added collapsible file diffs in the commit diff panel. [#1157](https://github.com/sourcebot-dev/sourcebot/pull/1157)
 - Added `/api/blame` to the public API to fetch per-line blame information for a file at a given revision. [#1158](https://github.com/sourcebot-dev/sourcebot/pull/1158)
 
+### Changed
+- `UserAvatar` now resolves profile pictures via a new `/api/avatar` endpoint, automatically displaying a user's profile image when their email matches a Sourcebot user. Falls back to a minidenticon otherwise. [#1159](https://github.com/sourcebot-dev/sourcebot/pull/1159)
+
 ### Fixed
 - Bumped `postcss` to `8.5.10`. [#1155](https://github.com/sourcebot-dev/sourcebot/pull/1155)
 
