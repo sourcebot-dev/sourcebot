@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `/api/commits/authors` to the public API to allow fetching a list of authors for a given path and revision. [#1150](https://github.com/sourcebot-dev/sourcebot/pull/1150)
 - Added optional `path` query parameter to the `/api/diff` endpoint and `get_diff` MCP tool to restrict diffs to changes touching a specific file. [#1154](https://github.com/sourcebot-dev/sourcebot/pull/1154)
 - Added collapsible file diffs in the commit diff panel. [#1157](https://github.com/sourcebot-dev/sourcebot/pull/1157)
+- Added `/api/blame` to the public API to fetch per-line blame information for a file at a given revision. [#1158](https://github.com/sourcebot-dev/sourcebot/pull/1158)
 
 ### Fixed
 - Bumped `postcss` to `8.5.10`. [#1155](https://github.com/sourcebot-dev/sourcebot/pull/1155)
