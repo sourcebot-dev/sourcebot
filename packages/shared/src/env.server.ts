@@ -246,7 +246,7 @@ const options = {
 
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
         DEBUG_ENABLE_REACT_SCAN: booleanSchema.default('false'),
-        DEBUG_ENABLE_REACT_GRAP: booleanSchema.default('false'),
+        DEBUG_ENABLE_REACT_GRAB: booleanSchema.default('false'),
 
         LANGFUSE_SECRET_KEY: z.string().optional(),
 
