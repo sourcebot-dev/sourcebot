@@ -55,14 +55,15 @@ export const GET = apiHandler(async (request: NextRequest) => {
         });
     }
 
-    // Fallback: identicons are deterministic from the email so they can be
-    // cached aggressively.
+    // Fallback: identicon. Cache lifetime matches the redirect path so the
+    // response naturally revalidates as users sign up, set profile pictures,
+    // or transient lookup errors recover.
     const svg = minidenticon(email, 50, 50);
     return new Response(svg, {
         status: 200,
         headers: {
             'Content-Type': 'image/svg+xml',
-            'Cache-Control': 'public, max-age=31536000, immutable',
+            'Cache-Control': 'public, max-age=300',
         },
     });
 }, { track: false });
