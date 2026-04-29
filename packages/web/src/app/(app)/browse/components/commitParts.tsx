@@ -24,6 +24,7 @@ export const AuthorsAvatarGroup = ({ authors, className }: AuthorsAvatarGroupPro
                 <UserAvatar
                     key={a.email}
                     email={a.email}
+                    title={a.email}
                     className="h-5 w-5"
                 />
             ))}
