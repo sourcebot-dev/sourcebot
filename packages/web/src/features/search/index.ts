@@ -13,3 +13,4 @@ export type {
     SearchResultChunk,
     SearchResponse,
 } from './types';
+export { getSearchLimitExplanation } from './searchLimitExplanation';
