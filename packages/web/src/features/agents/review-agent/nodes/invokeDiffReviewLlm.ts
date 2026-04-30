@@ -12,7 +12,7 @@ export const getReviewAgentLogDir = (): string => {
     return path.join(env.DATA_CACHE_DIR, 'review-agent');
 };
 
-const validateLogPath = (logPath: string): void => {
+export const validateLogPath = (logPath: string): void => {
     const resolved = path.resolve(logPath);
     const logDir = getReviewAgentLogDir();
     if (!resolved.startsWith(logDir + path.sep)) {

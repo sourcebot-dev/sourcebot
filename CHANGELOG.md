@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- [Experimental] Improved AI code review agent efficiency: replaced per-hunk LLM calls with a two-phase pipeline — a single MR summary pass followed by one parallelised LLM call per file (capped at 5 concurrent), reducing total LLM calls on large PRs. [#1164](https://github.com/sourcebot-dev/sourcebot/pull/1164)
+
 ## [4.17.0] - 2026-04-30
 
 ### Added

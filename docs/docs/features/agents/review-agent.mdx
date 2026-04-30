@@ -3,11 +3,23 @@ title: AI Code Review Agent
 sidebarTitle: AI code review agent
 ---
 
-This agent provides codebase-aware reviews for your GitHub PRs and GitLab MRs. For each diff, the agent fetches relevant context from your indexed codebase and feeds it into a configured language model for a detailed review.
+The AI Code Review Agent gives you codebase-aware reviews for your GitHub PRs and GitLab MRs. When you trigger a review, it runs a two-phase LLM pipeline and posts inline comments on the changed files.
 
 The AI Code Review Agent is [fair source](https://github.com/sourcebot-dev/sourcebot/tree/main/packages/web/src/features/agents/review-agent) and packaged in [Sourcebot](https://github.com/sourcebot-dev/sourcebot). To get started, [deploy Sourcebot](/docs/deployment/docker-compose) and follow the configuration instructions below.
 
 ![AI Code Review Agent Example](/images/review_agent_example.png)
+
+# How it works
+
+When you trigger a review, the agent runs the following steps:
+
+1. **MR summary pass.** A single LLM call analyses the full set of changed files to identify cross-file semantic changes, such as renamed functions, changed signatures, removed exports, or behaviour changes with cross-file implications. This summary is passed as additional context into each per-file review.
+
+2. **Per-file reviews.** One LLM call is made per changed file. Each call receives the file's complete diff (all hunks combined), the full file content, the PR title and description, the MR summary from step 1, and any configured context files. Reviews run in parallel, up to five files at a time.
+
+3. **Inline comments.** Results are posted as inline review comments on your PR or MR.
+
+If the MR summary pass finds no cross-file concerns, it is skipped and the per-file reviews proceed without it.
 
 # Language model
 
@@ -135,7 +147,7 @@ If you have multiple models configured, set `REVIEW_AGENT_MODEL` to the `display
 
 By default, the agent does not review PRs and MRs automatically. To enable automatic reviews on every new or updated PR/MR, set `REVIEW_AGENT_AUTO_REVIEW_ENABLED` to `true`.
 
-You can also trigger a review manually by commenting `/review` on any PR or MR. To use a different command, set `REVIEW_AGENT_REVIEW_COMMAND` to your preferred value (without the leading slash).
+You can also trigger a review manually by commenting `review` on any PR or MR. To use a different command, set `REVIEW_AGENT_REVIEW_COMMAND` to your preferred value.
 
 # Environment variable reference
 

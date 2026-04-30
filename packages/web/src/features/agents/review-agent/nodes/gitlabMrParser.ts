@@ -88,7 +88,7 @@ export const gitlabMrParser = async (
         (file): file is sourcebot_file_diff => file !== null,
     );
 
-    logger.debug("Completed gitlab_mr_parser");
+    logger.debug(`Completed gitlab_mr_parser: ${filteredSourcebotFileDiffs.length} file(s) parsed`);
     return {
         title: mr.title,
         description: mr.description ?? "",
