@@ -3,7 +3,7 @@ title: AI Code Review Agent
 sidebarTitle: AI code review agent
 ---
 
-This agent provides codebase-aware reviews for your GitHub PRs and GitLab MRs. When a review is triggered, the agent runs a two-phase LLM pipeline and posts inline comments on the changed files.
+The AI Code Review Agent gives you codebase-aware reviews for your GitHub PRs and GitLab MRs. When you trigger a review, it runs a two-phase LLM pipeline and posts inline comments on the changed files.
 
 The AI Code Review Agent is [fair source](https://github.com/sourcebot-dev/sourcebot/tree/main/packages/web/src/features/agents/review-agent) and packaged in [Sourcebot](https://github.com/sourcebot-dev/sourcebot). To get started, [deploy Sourcebot](/docs/deployment/docker-compose) and follow the configuration instructions below.
 
@@ -11,15 +11,15 @@ The AI Code Review Agent is [fair source](https://github.com/sourcebot-dev/sourc
 
 # How it works
 
-When a review is triggered, the agent runs the following steps:
+When you trigger a review, the agent runs the following steps:
 
 1. **MR summary pass.** A single LLM call analyses the full set of changed files to identify cross-file semantic changes, such as renamed functions, changed signatures, removed exports, or behaviour changes with cross-file implications. This summary is passed as additional context into each per-file review.
 
 2. **Per-file reviews.** One LLM call is made per changed file. Each call receives the file's complete diff (all hunks combined), the full file content, the PR title and description, the MR summary from step 1, and any configured context files. Reviews run in parallel, up to five files at a time.
 
-3. **Inline comments.** The agent posts the results as inline review comments on the PR or MR.
+3. **Inline comments.** Results are posted as inline review comments on your PR or MR.
 
-If the MR summary pass finds no cross-file concerns, it returns nothing and the per-file reviews proceed without it.
+If the MR summary pass finds no cross-file concerns, it is skipped and the per-file reviews proceed without it.
 
 # Language model
 

@@ -29,7 +29,7 @@ export const generateMrSummary = async (
 
     let selectedModel = models[0];
     if (env.REVIEW_AGENT_MODEL) {
-        const match = models.find((m) => m.displayName === modelName);
+        const match = models.find((m) => m.displayName === env.REVIEW_AGENT_MODEL);
         if (match) {
             selectedModel = match;
         } else {
