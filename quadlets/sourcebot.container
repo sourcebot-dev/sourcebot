@@ -1,0 +1,28 @@
+# sourcebot-sourcebot.container
+[Unit]
+Description=Sourcebot Instance
+Requires=postgres.service redis.service
+After=postgres.service redis.service
+
+[Container]
+ContainerName=sourcebot
+Image=ghcr.io/sourcebot-dev/sourcebot:latest
+Pull=always
+AutoUpdate=registry
+Pod=sourcebot.pod
+User=sourcebot
+Volume=./config.json:/data/config.json:ro,z
+Volume=sourcebot_data:/data
+Environment=CONFIG_PATH=/data/config.json
+Environment=AUTH_URL=${AUTH_URL:-http://localhost:3000}
+Environment=REDIS_URL=redis://localhost:6379
+Secret=SOURCEBOT_AUTH_SECRET,type=env,target=AUTH_SECRET
+Secret=SOURCEBOT_ENCRYPTION_KEY,type=env
+Secret=SOURCEBOT_DATABASE_URL,type=env,target=DATABASE_URL
+Secret=SOURCEBOT_EE_LICENSE_KEY,type=env
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target
