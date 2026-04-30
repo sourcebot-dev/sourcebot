@@ -230,7 +230,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Modified
 - Made OSS license audit runnable locally [#1021](https://github.com/sourcebot-dev/sourcebot/pull/1021)
 
-
 ## [4.15.6] - 2026-03-13
 
 ### Added
