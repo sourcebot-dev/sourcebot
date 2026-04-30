@@ -3,6 +3,7 @@ import 'server-only';
 import { __unsafePrisma } from '@/prisma';
 import { Prisma } from '@prisma/client';
 import {
+    env,
     generateOAuthRefreshToken,
     generateOAuthToken,
     hashSecret,
@@ -10,12 +11,6 @@ import {
     OAUTH_REFRESH_TOKEN_PREFIX,
 } from '@sourcebot/shared';
 import crypto from 'crypto';
-
-const AUTH_CODE_TTL_MS = 10 * 60 * 1000; // 10 minutes
-const ACCESS_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
-const REFRESH_TOKEN_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
-
-export const ACCESS_TOKEN_TTL_SECONDS = Math.floor(ACCESS_TOKEN_TTL_MS / 1000);
 
 // Generates a random authorization code, hashes it, and stores it alongside the
 // PKCE code challenge. Returns the raw code to be sent to the client.
@@ -43,7 +38,7 @@ export async function generateAndStoreAuthCode({
             redirectUri,
             codeChallenge,
             resource,
-            expiresAt: new Date(Date.now() + AUTH_CODE_TTL_MS),
+            expiresAt: new Date(Date.now() + env.OAUTH_AUTHORIZATION_CODE_TTL_SECONDS * 1000),
         },
     });
 
@@ -124,7 +119,7 @@ export async function verifyAndExchangeCode({
                 clientId,
                 userId: authCode.userId,
                 resource: authCode.resource,
-                expiresAt: new Date(Date.now() + ACCESS_TOKEN_TTL_MS),
+                expiresAt: new Date(Date.now() + env.OAUTH_ACCESS_TOKEN_TTL_SECONDS * 1000),
             },
         }),
         __unsafePrisma.oAuthRefreshToken.create({
@@ -133,12 +128,12 @@ export async function verifyAndExchangeCode({
                 clientId,
                 userId: authCode.userId,
                 resource: authCode.resource,
-                expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+                expiresAt: new Date(Date.now() + env.OAUTH_REFRESH_TOKEN_TTL_SECONDS * 1000),
             },
         }),
     ]);
 
-    return { token, refreshToken, expiresIn: ACCESS_TOKEN_TTL_SECONDS };
+    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS };
 }
 
 // Verifies a refresh token, rotates it, and issues a new access token + refresh token.
@@ -189,7 +184,7 @@ export async function verifyAndRotateRefreshToken({
                 clientId,
                 userId: existing.userId,
                 resource: existing.resource,
-                expiresAt: new Date(Date.now() + ACCESS_TOKEN_TTL_MS),
+                expiresAt: new Date(Date.now() + env.OAUTH_ACCESS_TOKEN_TTL_SECONDS * 1000),
             },
         }),
         __unsafePrisma.oAuthRefreshToken.create({
@@ -198,12 +193,12 @@ export async function verifyAndRotateRefreshToken({
                 clientId,
                 userId: existing.userId,
                 resource: existing.resource,
-                expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+                expiresAt: new Date(Date.now() + env.OAUTH_REFRESH_TOKEN_TTL_SECONDS * 1000),
             },
         }),
     ]);
 
-    return { token, refreshToken, expiresIn: ACCESS_TOKEN_TTL_SECONDS };
+    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS };
 }
 
 // Revokes an access token or refresh token by hashing it and deleting the DB record.

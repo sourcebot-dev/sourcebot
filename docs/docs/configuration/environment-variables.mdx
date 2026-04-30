@@ -13,6 +13,11 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `AUTH_CREDENTIALS_LOGIN_ENABLED` | `true` | <p>Enables/disables authentication with basic credentials. Username and passwords are stored encrypted at rest within the postgres database. Checkout the [auth docs](/docs/configuration/auth/overview) for more info</p> |
 | `AUTH_EMAIL_CODE_LOGIN_ENABLED` | `false` | <p>Enables/disables authentication with a login code that's sent to a users email. `SMTP_CONNECTION_URL` and `EMAIL_FROM_ADDRESS` must also be set. Checkout the [auth docs](/docs/configuration/auth/overview) for more info </p> |
 | `AUTH_SECRET` | Automatically generated at startup if no value is provided. Generated using `openssl rand -base64 33` | <p>Used to validate login session cookies</p> |
+| `AUTH_SESSION_MAX_AGE_SECONDS` | `2592000` (30 days) | <p>Relative time from now in seconds when to expire the session.</p> |
+| `AUTH_SESSION_UPDATE_AGE_SECONDS` | `86400` (1 day) | <p>How often the session should be updated in seconds. If set to `0`, session is updated every time.</p> |
+| `OAUTH_AUTHORIZATION_CODE_TTL_SECONDS` | `600` (10 minutes) | <p>Lifetime of an OAuth authorization code, in seconds.</p> |
+| `OAUTH_ACCESS_TOKEN_TTL_SECONDS` | `3600` (1 hour) | <p>Lifetime of an OAuth access token, in seconds.</p> |
+| `OAUTH_REFRESH_TOKEN_TTL_SECONDS` | `7776000` (90 days) | <p>Lifetime of an OAuth refresh token, in seconds.</p> |
 | `AUTH_URL` | - | <p>URL of your Sourcebot deployment, e.g., `https://example.com` or `http://localhost:3000`.</p> |
 | `CONFIG_PATH` | `-` | <p>The container relative path to the declarative configuration file. See [this doc](/docs/configuration/declarative-config) for more info.</p> | 
 | `DATA_CACHE_DIR` | `$DATA_DIR/.sourcebot` | <p>The root data directory in which all data written to disk by Sourcebot will be located.</p> |

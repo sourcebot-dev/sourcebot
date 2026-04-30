@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Added `/api/avatar` to resolve user profile pictures. [#1159](https://github.com/sourcebot-dev/sourcebot/pull/1159)
 - Hardened post-auth redirects with an explicit same-origin `redirect` callback in the NextAuth config, and switched the legacy `/~/...` URL rewrite from a 308 to a 301. [#1161](https://github.com/sourcebot-dev/sourcebot/pull/1161)
+- Made the Auth.js JWT session lifetime and OAuth token TTLs configurable via `AUTH_SESSION_MAX_AGE_SECONDS`, `AUTH_SESSION_UPDATE_AGE_SECONDS`, `OAUTH_AUTHORIZATION_CODE_TTL_SECONDS`, `OAUTH_ACCESS_TOKEN_TTL_SECONDS`, and `OAUTH_REFRESH_TOKEN_TTL_SECONDS`. Defaults preserve existing behavior. [#1162](https://github.com/sourcebot-dev/sourcebot/pull/1162)
 
 ### Fixed
 - Bumped `postcss` to `8.5.10`. [#1155](https://github.com/sourcebot-dev/sourcebot/pull/1155)
