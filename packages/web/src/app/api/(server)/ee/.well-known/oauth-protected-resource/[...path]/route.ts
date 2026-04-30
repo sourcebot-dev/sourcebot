@@ -1,4 +1,4 @@
-import { apiHandler } from '@/lib/apiHandler';
+import { oauthApiHandler } from '@/ee/features/oauth/apiHandler';
 import { env, hasEntitlement } from '@sourcebot/shared';
 import { NextRequest } from 'next/server';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
@@ -10,7 +10,7 @@ const PROTECTED_RESOURCES = new Set([
     'api/mcp'
 ]);
 
-export const GET = apiHandler(async (_request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) => {
+export const GET = oauthApiHandler(async (_request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) => {
     if (!hasEntitlement('oauth')) {
         return Response.json(
             { error: 'not_found', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
