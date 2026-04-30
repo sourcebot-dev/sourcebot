@@ -3,6 +3,7 @@ import { EditorState, Extension, Prec, Range as CMRange, RangeSet, StateField } 
 import { formatDistanceToNowStrict } from "date-fns";
 import type { FileBlameResponse } from "@/features/git";
 import { cn } from "@/lib/utils";
+import { BLAME_AGE_BG_CLASSES, computeAgeBucket } from "./blameAgeColors";
 
 type LineEntry = {
     hash: string;
@@ -17,6 +18,9 @@ type LineEntry = {
     // True for first-line cells except line 1 of the file, so the divider
     // border doesn't render at the very top of the gutter.
     showStartBorder: boolean;
+    // 0..9 bucket for the age-of-commit indicator stripe. Same value across
+    // every line of a region (continuation lines included).
+    ageBucket: number;
 };
 
 // @see: https://lucide.dev/icons/file-stack
@@ -29,10 +33,22 @@ const buildCellDom = (
     onReblameClick: (previous: { hash: string; path: string }) => void,
 ): HTMLElement => {
     const cell = document.createElement('div');
+    // `relative` so the absolutely-positioned age stripe inside has a
+    // positioning context. The stripe is a child <div> rather than a
+    // border-left because tailwind-merge collapses any same-group border-color
+    // class (e.g. `border-border` on the region divider) with the per-side
+    // amber color, dropping the stripe on first-line cells.
     cell.className = cn(
-        'flex items-start h-full px-2 overflow-hidden text-xs text-muted-foreground',
+        'relative flex items-start h-full pl-2 pr-2 overflow-hidden text-xs text-muted-foreground',
         entry.showStartBorder && 'border-t border-border',
     );
+
+    const stripe = document.createElement('div');
+    stripe.className = cn(
+        'absolute inset-y-0 left-0 w-0.5',
+        BLAME_AGE_BG_CLASSES[entry.ageBucket],
+    );
+    cell.appendChild(stripe);
 
     if (entry.message === null || entry.date === null) {
         // Continuation line — empty cell with a non-breaking space so the row
@@ -105,6 +121,7 @@ class BlameMarker extends GutterMarker {
             a.date === b.date &&
             a.authorEmail === b.authorEmail &&
             a.showStartBorder === b.showStartBorder &&
+            a.ageBucket === b.ageBucket &&
             a.previous?.hash === b.previous?.hash &&
             a.previous?.path === b.previous?.path
         );
@@ -155,9 +172,26 @@ const computeActive = (
 };
 
 const buildLineIndex = (blame: FileBlameResponse): Map<number, LineEntry> => {
+    // Compute the file's overall date range so each commit's age can be
+    // mapped to a 0..9 bucket. We assume blame.commits' `date` fields are
+    // ISO 8601 strings.
+    const dateMs = Object.values(blame.commits)
+        .map(c => new Date(c.date).getTime())
+        .filter(t => Number.isFinite(t));
+    const oldestMs = dateMs.length > 0 ? Math.min(...dateMs) : 0;
+    const newestMs = dateMs.length > 0 ? Math.max(...dateMs) : 0;
+
+    // Per-commit bucket cache so every line of a region gets the same value
+    // (and we don't recompute for each line).
+    const bucketByHash = new Map<string, number>();
+    for (const [hash, commit] of Object.entries(blame.commits)) {
+        bucketByHash.set(hash, computeAgeBucket(commit.date, oldestMs, newestMs));
+    }
+
     const index = new Map<number, LineEntry>();
     for (const range of blame.ranges) {
         const commit = blame.commits[range.hash];
+        const ageBucket = bucketByHash.get(range.hash) ?? 0;
         for (let i = 0; i < range.lineCount; i++) {
             const lineNumber = range.startLine + i;
             const isFirstLineOfRange = i === 0;
@@ -170,6 +204,7 @@ const buildLineIndex = (blame: FileBlameResponse): Map<number, LineEntry> => {
                     authorEmail: commit.authorEmail,
                     previous: commit.previous ?? null,
                     showStartBorder,
+                    ageBucket,
                 });
             } else {
                 index.set(lineNumber, {
@@ -179,6 +214,7 @@ const buildLineIndex = (blame: FileBlameResponse): Map<number, LineEntry> => {
                     authorEmail: null,
                     previous: null,
                     showStartBorder,
+                    ageBucket,
                 });
             }
         }

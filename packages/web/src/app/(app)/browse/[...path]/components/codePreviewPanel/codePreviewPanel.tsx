@@ -8,6 +8,7 @@ import { X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { getBrowsePath } from "../../../hooks/utils";
+import { BlameAgeLegend } from "./blameAgeLegend";
 import { BlameViewToggle } from "./blameViewToggle";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
 import { getFileBlame, getFileSource } from '@/features/git';
@@ -127,6 +128,12 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
                     <span className="text-sm text-muted-foreground">
                         {lineCount.toLocaleString()} lines · {fileSize}
                     </span>
+                    {blame && (
+                        <>
+                            <Separator orientation="vertical" className="h-4" />
+                            <BlameAgeLegend />
+                        </>
+                    )}
                 </div>
             )}
             {previewRef && (
