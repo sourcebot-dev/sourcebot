@@ -220,6 +220,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
     },
     callbacks: {
+        // Restrict post-auth redirects (sign-in / sign-out, `callbackUrl`,
+        // `redirectTo`) to the same origin as the application. This mirrors
+        // Auth.js's documented default; we set it explicitly so the protection
+        // is visible in code and not dependent on upstream defaults.
+        // @see https://authjs.dev/reference/core#redirect
+        async redirect({ url, baseUrl }) {
+            if (url.startsWith("/")) {
+                return `${baseUrl}${url}`;
+            }
+
+            try {
+                if (new URL(url).origin === baseUrl) {
+                    return url;
+                }
+            } catch {
+                // Malformed URL — fall through to baseUrl.
+            }
+
+            return baseUrl;
+        },
         async jwt({ token, user: _user }) {
             const user = _user as User | undefined;
             // @note: `user` will be available on signUp or signIn triggers.
