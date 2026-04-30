@@ -139,6 +139,41 @@ const options = {
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
         AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.default('false'),
 
+        /**
+         * Relative time from now in seconds when to expire the session.
+         * 
+         * @default 30 days
+         */
+        AUTH_SESSION_MAX_AGE_SECONDS: numberSchema.default(60 * 60 * 24 * 30),
+
+        /**
+         * How often the session should be updated in seconds. If set to 0, session is updated every time.
+         *
+         * @default 1 day
+         */
+        AUTH_SESSION_UPDATE_AGE_SECONDS: numberSchema.default(60 * 60 * 24),
+
+        /**
+         * Lifetime of an OAuth authorization code, in seconds.
+         *
+         * @default 10 minutes
+         */
+        OAUTH_AUTHORIZATION_CODE_TTL_SECONDS: numberSchema.default(60 * 10),
+
+        /**
+         * Lifetime of an OAuth access token, in seconds.
+         *
+         * @default 1 hour
+         */
+        OAUTH_ACCESS_TOKEN_TTL_SECONDS: numberSchema.default(60 * 60),
+
+        /**
+         * Lifetime of an OAuth refresh token, in seconds.
+         *
+         * @default 90 days
+         */
+        OAUTH_REFRESH_TOKEN_TTL_SECONDS: numberSchema.default(60 * 60 * 24 * 90),
+
         // Enterprise Auth
         AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING:
             booleanSchema

@@ -148,6 +148,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     adapter: EncryptedPrismaAdapter(__unsafePrisma),
     session: {
         strategy: "jwt",
+        maxAge: env.AUTH_SESSION_MAX_AGE_SECONDS,
+        updateAge: env.AUTH_SESSION_UPDATE_AGE_SECONDS,
     },
     trustHost: true,
     events: {
