@@ -153,6 +153,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                     },
                     activeExploreMenuTab: "definitions",
                     isBottomPanelCollapsed: false,
+                    activeBottomPanelTab: 'explore'
                 }
             } : {}),
         });
@@ -196,6 +197,7 @@ export const SymbolHoverPopup: React.FC<SymbolHoverPopupProps> = ({
                 },
                 activeExploreMenuTab: "references",
                 isBottomPanelCollapsed: false,
+                activeBottomPanelTab: 'explore'
             }
         })
     }, [captureEvent, fileName, language, navigateToPath, repoName, revisionName, source, symbolInfo]);

@@ -5196,6 +5196,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@radix-ui/primitive@npm:1.1.3":
+  version: 1.1.3
+  resolution: "@radix-ui/primitive@npm:1.1.3"
+  checksum: 10c0/88860165ee7066fa2c179f32ffcd3ee6d527d9dcdc0e8be85e9cb0e2c84834be8e3c1a976c74ba44b193f709544e12f54455d892b28e32f0708d89deda6b9f1d
+  languageName: node
+  linkType: hard
+
 "@radix-ui/react-accordion@npm:^1.2.11":
   version: 1.2.11
   resolution: "@radix-ui/react-accordion@npm:1.2.11"
@@ -6108,6 +6115,33 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@radix-ui/react-roving-focus@npm:1.1.11":
+  version: 1.1.11
+  resolution: "@radix-ui/react-roving-focus@npm:1.1.11"
+  dependencies:
+    "@radix-ui/primitive": "npm:1.1.3"
+    "@radix-ui/react-collection": "npm:1.1.7"
+    "@radix-ui/react-compose-refs": "npm:1.1.2"
+    "@radix-ui/react-context": "npm:1.1.2"
+    "@radix-ui/react-direction": "npm:1.1.1"
+    "@radix-ui/react-id": "npm:1.1.1"
+    "@radix-ui/react-primitive": "npm:2.1.3"
+    "@radix-ui/react-use-callback-ref": "npm:1.1.1"
+    "@radix-ui/react-use-controllable-state": "npm:1.2.2"
+  peerDependencies:
+    "@types/react": "*"
+    "@types/react-dom": "*"
+    react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+    "@types/react-dom":
+      optional: true
+  checksum: 10c0/2cd43339c36e89a3bf1db8aab34b939113dfbde56bf3a33df2d74757c78c9489b847b1962f1e2441c67e41817d120cb6177943e0f655f47bc1ff8e44fd55b1a2
+  languageName: node
+  linkType: hard
+
 "@radix-ui/react-roving-focus@npm:1.1.2":
   version: 1.1.2
   resolution: "@radix-ui/react-roving-focus@npm:1.1.2"
@@ -6377,13 +6411,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@radix-ui/react-toggle@npm:^1.1.0":
-  version: 1.1.2
-  resolution: "@radix-ui/react-toggle@npm:1.1.2"
+"@radix-ui/react-toggle-group@npm:^1.1.11":
+  version: 1.1.11
+  resolution: "@radix-ui/react-toggle-group@npm:1.1.11"
   dependencies:
-    "@radix-ui/primitive": "npm:1.1.1"
-    "@radix-ui/react-primitive": "npm:2.0.2"
-    "@radix-ui/react-use-controllable-state": "npm:1.1.0"
+    "@radix-ui/primitive": "npm:1.1.3"
+    "@radix-ui/react-context": "npm:1.1.2"
+    "@radix-ui/react-direction": "npm:1.1.1"
+    "@radix-ui/react-primitive": "npm:2.1.3"
+    "@radix-ui/react-roving-focus": "npm:1.1.11"
+    "@radix-ui/react-toggle": "npm:1.1.10"
+    "@radix-ui/react-use-controllable-state": "npm:1.2.2"
   peerDependencies:
     "@types/react": "*"
     "@types/react-dom": "*"
@@ -6394,7 +6432,28 @@ __metadata:
       optional: true
     "@types/react-dom":
       optional: true
-  checksum: 10c0/2cd8dc6b64c2680f4c0662ff2424963e8cc432de3a925a549e8fd5e5e7b48da1a08434ef4ab49b6b627faea1628160f89a16f098399104ed06a00220170f72a2
+  checksum: 10c0/c8cbccda3e25754ed9f3145c67792df2d5d0ee1a910bde6dc07c4577ab508d4b939f145569d4e2af5b17dc4a5c701473380d8695248f8620cf0a372c05b8e958
+  languageName: node
+  linkType: hard
+
+"@radix-ui/react-toggle@npm:1.1.10, @radix-ui/react-toggle@npm:^1.1.10":
+  version: 1.1.10
+  resolution: "@radix-ui/react-toggle@npm:1.1.10"
+  dependencies:
+    "@radix-ui/primitive": "npm:1.1.3"
+    "@radix-ui/react-primitive": "npm:2.1.3"
+    "@radix-ui/react-use-controllable-state": "npm:1.2.2"
+  peerDependencies:
+    "@types/react": "*"
+    "@types/react-dom": "*"
+    react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+    "@types/react-dom":
+      optional: true
+  checksum: 10c0/5406cdf5dd7299ae6cfdb4865dc5fd43ca3c475ebcd4e86830bd296d734255b61f749c9bde452ebfaad126033f92dd1112ee9d95982344ffad34491238dcc9b1
   languageName: node
   linkType: hard
 
@@ -6453,6 +6512,19 @@ __metadata:
     "@types/react":
       optional: true
   checksum: 10c0/e954863f3baa151faf89ac052a5468b42650efca924417470efd1bd254b411a94c69c30de2fdbb90187b38cb984795978e12e30423dc41e4309d93d53b66d819
+  languageName: node
+  linkType: hard
+
+"@radix-ui/react-use-callback-ref@npm:1.1.1":
+  version: 1.1.1
+  resolution: "@radix-ui/react-use-callback-ref@npm:1.1.1"
+  peerDependencies:
+    "@types/react": "*"
+    react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+  checksum: 10c0/5f6aff8592dea6a7e46589808912aba3fb3b626cf6edd2b14f01638b61dbbe49eeb9f67cd5601f4c15b2fb547b9a7e825f7c4961acd4dd70176c969ae405f8d8
   languageName: node
   linkType: hard
 
@@ -8729,7 +8801,8 @@ __metadata:
     "@radix-ui/react-switch": "npm:^1.2.4"
     "@radix-ui/react-tabs": "npm:^1.1.2"
     "@radix-ui/react-toast": "npm:^1.2.2"
-    "@radix-ui/react-toggle": "npm:^1.1.0"
+    "@radix-ui/react-toggle": "npm:^1.1.10"
+    "@radix-ui/react-toggle-group": "npm:^1.1.11"
     "@radix-ui/react-tooltip": "npm:^1.1.4"
     "@react-email/components": "npm:^1.0.2"
     "@react-email/preview-server": "npm:5.2.10"

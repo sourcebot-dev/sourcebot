@@ -129,7 +129,21 @@ const parsePorcelainBlame = (output: string): FileBlameResponse => {
         }
     }
 
-    return { ranges, commits };
+    // Coalesce adjacent same-commit ranges. Porcelain emits a fresh group
+    // whenever the source-line numbering is discontinuous in the commit's
+    // snapshot, even when the final-file lines are contiguous and attributed
+    // to the same commit.
+    const coalescedRanges: FileBlameResponse['ranges'] = [];
+    for (const range of ranges) {
+        const last = coalescedRanges[coalescedRanges.length - 1];
+        if (last && last.hash === range.hash && last.startLine + last.lineCount === range.startLine) {
+            last.lineCount += range.lineCount;
+        } else {
+            coalescedRanges.push({ ...range });
+        }
+    }
+
+    return { ranges: coalescedRanges, commits };
 };
 
 export const getFileBlame = async ({ path: filePath, repo: repoName, ref }: FileBlameRequest, { source }: { source?: string } = {}): Promise<FileBlameResponse | ServiceError> =>

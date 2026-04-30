@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added optional `path` query parameter to the `/api/diff` endpoint and `get_diff` MCP tool to restrict diffs to changes touching a specific file. [#1154](https://github.com/sourcebot-dev/sourcebot/pull/1154)
 - Added collapsible file diffs in the commit diff panel. [#1157](https://github.com/sourcebot-dev/sourcebot/pull/1157)
 - Added `/api/blame` to the public API to fetch per-line blame information for a file at a given revision. [#1158](https://github.com/sourcebot-dev/sourcebot/pull/1158)
+- Added a file blame view to the code browser, with a Code / Blame toggle, cursor-driven peer-line highlighting, and a reblame button to walk back through history. [#1160](https://github.com/sourcebot-dev/sourcebot/pull/1160)
 
 ### Changed
 - Added `/api/avatar` to resolve user profile pictures. [#1159](https://github.com/sourcebot-dev/sourcebot/pull/1159)

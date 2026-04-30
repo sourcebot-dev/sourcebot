@@ -89,6 +89,7 @@ interface BrowsePageProps {
         until?: string;
         ref?: string;
         diff?: string;
+        blame?: string;
     }>;
 }
 
@@ -109,6 +110,7 @@ export default async function BrowsePage(props: BrowsePageProps) {
     const until = searchParams.until || undefined;
     const previewRef = searchParams.ref || undefined;
     const isDiffMode = searchParams.diff === 'true';
+    const isBlameMode = searchParams.blame === 'true';
 
     return (
         <div className="flex flex-col h-full">
@@ -132,6 +134,7 @@ export default async function BrowsePage(props: BrowsePageProps) {
                             repoName={repoName}
                             revisionName={revisionName}
                             previewRef={previewRef}
+                            blame={isBlameMode}
                         />
                     )
                 ) : browseProps.pathType === 'commits' ? (

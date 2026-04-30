@@ -8,8 +8,20 @@ import { X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { getBrowsePath } from "../../../hooks/utils";
+import { BlameAgeLegend } from "./blameAgeLegend";
+import { BlameViewToggle } from "./blameViewToggle";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
-import { getFileSource } from '@/features/git';
+import { getFileBlame, getFileSource } from '@/features/git';
+
+const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+    if (bytes < 1024 * 1024) {
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+};
 
 interface CodePreviewPanelProps {
     path: string;
@@ -18,18 +30,28 @@ interface CodePreviewPanelProps {
     // When set, the file's content is fetched at this ref while the
     // surrounding browse context (path header) stays at `revisionName`.
     previewRef?: string;
+    // When true, fetch blame data alongside the file source and pass it to
+    // the editor so the blame gutter can render.
+    blame?: boolean;
 }
 
-export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRef }: CodePreviewPanelProps) => {
+export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRef, blame }: CodePreviewPanelProps) => {
     const contentRef = previewRef ?? revisionName;
 
-    const [fileSourceResponse, repoInfoResponse] = await Promise.all([
+    const [fileSourceResponse, repoInfoResponse, blameResponse] = await Promise.all([
         getFileSource({
             path,
             repo: repoName,
             ref: contentRef,
         }, { source: 'sourcebot-web-client' }),
         getRepoInfoByName(repoName),
+        blame
+            ? getFileBlame({
+                path,
+                repo: repoName,
+                ref: contentRef,
+            }, { source: 'sourcebot-web-client' })
+            : Promise.resolve(undefined),
     ]);
 
     if (isServiceError(fileSourceResponse)) {
@@ -39,6 +61,17 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
     if (isServiceError(repoInfoResponse)) {
         return <div>Error loading repo info: {repoInfoResponse.message}</div>
     }
+
+    if (blameResponse !== undefined && isServiceError(blameResponse)) {
+        return <div>Error loading blame: {blameResponse.message}</div>
+    }
+
+    const source = fileSourceResponse.source;
+    const lineCount = source.length === 0
+        ? 0
+        : source.split('\n').length - (source.endsWith('\n') ? 1 : 0);
+    const byteSize = Buffer.byteLength(source, 'utf-8');
+    const fileSize = formatFileSize(byteSize);
 
     const codeHostInfo = getCodeHostInfoForRepo({
         codeHostType: repoInfoResponse.codeHostType,
@@ -84,6 +117,25 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
                 )}
             </div>
             <Separator />
+            {!previewRef && (
+                <div className="flex flex-row items-center gap-3 px-4 py-1 border-b shrink-0">
+                    <BlameViewToggle
+                        repoName={repoName}
+                        revisionName={revisionName}
+                        path={path}
+                        blame={blame ?? false}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                        {lineCount.toLocaleString()} lines · {fileSize}
+                    </span>
+                    {blame && (
+                        <>
+                            <Separator orientation="vertical" className="h-4" />
+                            <BlameAgeLegend />
+                        </>
+                    )}
+                </div>
+            )}
             {previewRef && (
                 <div className="flex flex-row items-center justify-between gap-2 px-4 py-2 border-b shrink-0">
                     <span className="text-sm">
@@ -132,6 +184,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
                 repoName={repoName}
                 path={path}
                 revisionName={contentRef ?? 'HEAD'}
+                blame={blameResponse}
             />
         </>
     )
