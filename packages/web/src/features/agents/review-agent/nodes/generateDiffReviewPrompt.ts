@@ -4,29 +4,35 @@ import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('generate-diff-review-prompt');
 
-export const generateDiffReviewPrompt = async (diff: sourcebot_diff, context: sourcebot_context[], rules: string[]) => {
+export const generateDiffReviewPrompt = async (diffs: sourcebot_diff[], context: sourcebot_context[], rules: string[]) => {
     logger.debug("Executing generate_diff_review_prompt");
-        
+
+    const hunksText = diffs.map((diff, i) => `
+    ## Hunk ${i + 1}
+
+    ### Old Code
+
+    \`\`\`
+    ${diff.oldSnippet}
+    \`\`\`
+
+    ### New Code
+
+    \`\`\`
+    ${diff.newSnippet}
+    \`\`\`
+    `).join('\n');
+
     const prompt = `
     You are an expert software engineer that excels at reviewing code changes. Given the input, additional context, and rules defined below, review the code changes and provide a detailed review. The review you provide
     must conform to all of the rules defined below. The output format of your review must conform to the output format defined below.
 
     # Input
 
-    The input is the old and new code snippets, which represent a single hunk from a git diff. The old code snippet is the code before the changes were made, and the new code snippet is the code after the changes were made. Each code snippet
+    The input is the old and new code snippets for one or more hunks from a git diff for a single file. The old code snippet is the code before the changes were made, and the new code snippet is the code after the changes were made. Each code snippet
     is a sequence of lines each with a line number.
 
-    ## Old Code Snippet
-
-    \`\`\`
-    ${diff.oldSnippet}
-    \`\`\`
-
-    ## New Code Snippet
-
-    \`\`\`
-    ${diff.newSnippet}
-    \`\`\`
+    ${hunksText}
 
     # Additional Context
 
