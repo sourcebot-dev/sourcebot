@@ -1,3 +1,4 @@
+import { StatusCodes } from 'http-status-codes';
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
@@ -27,12 +28,12 @@ export async function proxy(request: NextRequest) {
 
     if (url.pathname.startsWith('/~/')) {
         url.pathname = url.pathname.replace(/^\/~/, '');
-        return NextResponse.redirect(url, 308);
+        return NextResponse.redirect(url, StatusCodes.MOVED_PERMANENTLY);
     }
 
     if (url.pathname === '/~') {
         url.pathname = '/';
-        return NextResponse.redirect(url, 308);
+        return NextResponse.redirect(url, StatusCodes.MOVED_PERMANENTLY);
     }
 
     return NextResponse.next();
