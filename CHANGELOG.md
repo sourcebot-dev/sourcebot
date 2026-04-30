@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Added `/api/avatar` to resolve user profile pictures. [#1159](https://github.com/sourcebot-dev/sourcebot/pull/1159)
+- Hardened post-auth redirects with an explicit same-origin `redirect` callback in the NextAuth config, and switched the legacy `/~/...` URL rewrite from a 308 to a 301. [#1161](https://github.com/sourcebot-dev/sourcebot/pull/1161)
 
 ### Fixed
 - Bumped `postcss` to `8.5.10`. [#1155](https://github.com/sourcebot-dev/sourcebot/pull/1155)
