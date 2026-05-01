@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 import { ReactNode } from "react"
 
 interface TabSwitcherProps {
@@ -37,14 +38,18 @@ interface LowProfileTabsTrigger {
     value: string
     children: React.ReactNode
     onClick?: () => void
+    className?: string
   }
-  
-  export function LowProfileTabsTrigger({ value, children, onClick }: LowProfileTabsTrigger) {
+
+  export function LowProfileTabsTrigger({ value, children, onClick, className }: LowProfileTabsTrigger) {
     return (
       <TabsTrigger
         value={value}
         onClick={onClick}
-        className="relative h-9 rounded-none border-b-2 border-transparent px-4 pb-3 pt-2 font-normal text-muted-foreground transition-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:bg-transparent"
+        className={cn(
+          "relative h-9 rounded-none border-b-2 border-transparent px-4 pb-3 pt-2 font-normal text-muted-foreground transition-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:bg-transparent",
+          className,
+        )}
       >
         {children}
       </TabsTrigger>

@@ -19,6 +19,7 @@ import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinition
 import { FindSymbolReferencesToolComponent } from './tools/findSymbolReferencesToolComponent';
 import { GlobToolComponent } from './tools/globToolComponent';
 import { GrepToolComponent } from './tools/grepToolComponent';
+import { GetDiffToolComponent } from './tools/getDiffToolComponent';
 import { ListCommitsToolComponent } from './tools/listCommitsToolComponent';
 import { ListReposToolComponent } from './tools/listReposToolComponent';
 import { ListTreeToolComponent } from './tools/listTreeToolComponent';
@@ -287,6 +288,15 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
                     loadingText="Listing commits..."
                 >
                     {(output) => <ListCommitsToolComponent {...output} />}
+                </ToolOutputGuard>
+            )
+        case 'tool-get_diff':
+            return (
+                <ToolOutputGuard
+                    part={part}
+                    loadingText="Comparing revisions..."
+                >
+                    {(output) => <GetDiffToolComponent {...output} />}
                 </ToolOutputGuard>
             )
         case 'tool-list_tree':

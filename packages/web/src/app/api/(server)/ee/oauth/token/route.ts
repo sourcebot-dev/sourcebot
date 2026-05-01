@@ -1,13 +1,14 @@
-import { verifyAndExchangeCode, verifyAndRotateRefreshToken, ACCESS_TOKEN_TTL_SECONDS } from '@/ee/features/oauth/server';
-import { apiHandler } from '@/lib/apiHandler';
-import { hasEntitlement } from '@/lib/entitlements';
+import { verifyAndExchangeCode, verifyAndRotateRefreshToken } from '@/ee/features/oauth/server';
+import { oauthApiHandler } from '@/ee/features/oauth/apiHandler';
+import { env } from '@sourcebot/shared';
 import { NextRequest } from 'next/server';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
+import { hasEntitlement } from '@/lib/entitlements';
 
 // OAuth 2.0 Token Endpoint
 // Supports grant_type=authorization_code with PKCE (RFC 7636).
 // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-3.2
-export const POST = apiHandler(async (request: NextRequest) => {
+export const POST = oauthApiHandler(async (request: NextRequest) => {
     if (!await hasEntitlement('oauth')) {
         return Response.json(
             { error: 'access_denied', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
@@ -59,7 +60,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
             access_token: result.token,
             refresh_token: result.refreshToken,
             token_type: 'Bearer',
-            expires_in: ACCESS_TOKEN_TTL_SECONDS,
+            expires_in: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS,
             scope: '',
         });
     }
@@ -91,7 +92,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
             access_token: result.token,
             refresh_token: result.refreshToken,
             token_type: 'Bearer',
-            expires_in: ACCESS_TOKEN_TTL_SECONDS,
+            expires_in: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS,
             scope: '',
         });
     }

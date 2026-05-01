@@ -1,6 +1,6 @@
 'use client';
 
-import { cn, getCodeHostInfoForRepo } from "@/lib/utils";
+import { cn, getCodeHostInfoForRepo, truncateSha } from "@/lib/utils";
 import Image from "next/image";
 import { getBrowsePath } from "../browse/hooks/utils";
 import { ChevronRight, MoreHorizontal } from "lucide-react";
@@ -115,7 +115,7 @@ export const PathHeader = ({
             if (!containerRef.current || !breadcrumbsRef.current) return;
 
             const containerWidth = containerRef.current.offsetWidth;
-            const availableWidth = containerWidth - 175; // Reserve space for copy button and padding
+            const availableWidth = containerWidth - 40; // Reserve space for copy button and padding
 
             // Create a temporary element to measure segment widths
             const tempElement = document.createElement('div');
@@ -233,10 +233,22 @@ export const PathHeader = ({
                     }}
                 >
                     <span className="mr-0.5">@</span>
-                    {`${branchDisplayName.replace(/^refs\/(heads|tags)\//, '')}`}
+                    <Link
+                        href={getBrowsePath({
+                            repoName: repo.name,
+                            path: '',
+                            pathType: 'commit',
+                            commitSha: branchDisplayName,
+                        })}
+                        className="hover:underline"
+                    >
+                        {truncateSha(branchDisplayName.replace(/^refs\/(heads|tags)\//, ''))}
+                    </Link>
                 </p>
             )}
-            <span>·</span>
+            {breadcrumbSegments.length > 0 && (
+                <span>·</span>
+            )}
             <div ref={containerRef} className="flex-1 flex items-center overflow-hidden mt-0.5">
                 <div ref={breadcrumbsRef} className="flex items-center overflow-hidden">
                     {hiddenSegments.length > 0 && (
@@ -296,10 +308,12 @@ export const PathHeader = ({
                         </div>
                     ))}
                 </div>
-                <CopyIconButton
-                    onCopy={onCopyPath}
-                    className="ml-2"
-                />
+                {breadcrumbSegments.length > 0 && (
+                    <CopyIconButton
+                        onCopy={onCopyPath}
+                        className="ml-2"
+                    />
+                )}
             </div>
         </div>
     )

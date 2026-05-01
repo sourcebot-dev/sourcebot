@@ -176,7 +176,9 @@
                             "GET /api/commit",
                             "GET /api/diff",
                             "GET /api/commits",
+                            "GET /api/commits/authors",
                             "GET /api/source",
+                            "GET /api/blame",
                             "POST /api/tree"
                         ]
                     },

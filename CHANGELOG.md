@@ -11,10 +11,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1097](https://github.com/sourcebot-dev/sourcebot/pull/1097)
 - Expired offline license keys no longer crash the process. An expired key now degrades to the unlicensed state. [#1109](https://github.com/sourcebot-dev/sourcebot/pull/1109)
 
+## [4.17.0] - 2026-04-30
+
+### Added
+- Added commit history viewer to code browser. [#1150](https://github.com/sourcebot-dev/sourcebot/pull/1150)
+- Added commit diff viewer to code browser. [#1154](https://github.com/sourcebot-dev/sourcebot/pull/1154)
+- Added `/api/commits/authors` to the public API to allow fetching a list of authors for a given path and revision. [#1150](https://github.com/sourcebot-dev/sourcebot/pull/1150)
+- Added optional `path` query parameter to the `/api/diff` endpoint and `get_diff` MCP tool to restrict diffs to changes touching a specific file. [#1154](https://github.com/sourcebot-dev/sourcebot/pull/1154)
+- Added collapsible file diffs in the commit diff panel. [#1157](https://github.com/sourcebot-dev/sourcebot/pull/1157)
+- Added `/api/blame` to the public API to fetch per-line blame information for a file at a given revision. [#1158](https://github.com/sourcebot-dev/sourcebot/pull/1158)
+- Added a file blame view to the code browser, with a Code / Blame toggle, cursor-driven peer-line highlighting, and a reblame button to walk back through history. [#1160](https://github.com/sourcebot-dev/sourcebot/pull/1160)
+
+### Changed
+- Added `/api/avatar` to resolve user profile pictures. [#1159](https://github.com/sourcebot-dev/sourcebot/pull/1159)
+- Hardened post-auth redirects with an explicit same-origin `redirect` callback in the NextAuth config, and switched the legacy `/~/...` URL rewrite from a 308 to a 301. [#1161](https://github.com/sourcebot-dev/sourcebot/pull/1161)
+- Made the Auth.js JWT session lifetime and OAuth token TTLs configurable via `AUTH_SESSION_MAX_AGE_SECONDS`, `AUTH_SESSION_UPDATE_AGE_SECONDS`, `OAUTH_AUTHORIZATION_CODE_TTL_SECONDS`, `OAUTH_ACCESS_TOKEN_TTL_SECONDS`, and `OAUTH_REFRESH_TOKEN_TTL_SECONDS`. Defaults preserve existing behavior. [#1162](https://github.com/sourcebot-dev/sourcebot/pull/1162)
+- Guarded all OAuth authorization-server route handlers with a runtime assertion that rejects HTTP 307 and 308 responses, per RFC 9700 §4.12. [#1163](https://github.com/sourcebot-dev/sourcebot/pull/1163)
+
+### Fixed
+- Bumped `postcss` to `8.5.10`. [#1155](https://github.com/sourcebot-dev/sourcebot/pull/1155)
+
+## [4.16.15] - 2026-04-23
+
+### Changed
+- Improved diff tool UI to truncate full commit SHAs to 7 characters, use RepoBadge component for repository display, and output diffs in git-diff format instead of JSON for better token efficiency. [#1146](https://github.com/sourcebot-dev/sourcebot/pull/1146)
+
+### Fixed
+- Fixed a missing error boundary in `getFileSourceForRepo` introduced in v4.16.14: the function was extracted outside `sew()` but still re-threw unrecognised git exceptions, causing fatal Next.js task-runner errors. All error paths now return a `ServiceError`. Also tightened the error message for unresolved git refs (e.g. an unfetched `head_sha`) to distinguish them from syntactically invalid refs. [#1145](https://github.com/sourcebot-dev/sourcebot/pull/1145)
+- Bumped transitive `uuid` dependency to `^14.0.0`. [#1147](https://github.com/sourcebot-dev/sourcebot/pull/1147)
+- Bumped `@aws-sdk/credential-providers` to `^3.1036.0`. [#1148](https://github.com/sourcebot-dev/sourcebot/pull/1148)
+
+## [4.16.14] - 2026-04-21
+
+### Added
+- [Experimental] Added support for GitLab MRs to the AI review agent. [#1104](https://github.com/sourcebot-dev/sourcebot/pull/1104)
+
+## [4.16.13] - 2026-04-21
+
+### Added
+- Added a `get_diff` MCP tool to return structured diffs between two git refs. [#1142](https://github.com/sourcebot-dev/sourcebot/pull/1142)
+
+### Changed
+- Synced `vendor/zoekt` with upstream `sourcegraph/zoekt`. [#1140](https://github.com/sourcebot-dev/sourcebot/pull/1140)
+
+## [4.16.12] - 2026-04-20
+
+### Fixed
+- Fixed revision selection so the 64-revision cap prefers the newest matching branches and tags instead of pruning by ref-name order. [#1122](https://github.com/sourcebot-dev/sourcebot/pull/1122)
+- Fixed infinite pagination loop in Gitea/Forgejo when an API token can only see a subset of org repos (the `x-total-count` header reports org total while token returns fewer items). [#1130](https://github.com/sourcebot-dev/sourcebot/pull/1130)
+- Fixed path injection vulnerability (CodeQL js/path-injection) in review agent log writing by validating paths stay within the expected log directory. [#1134](https://github.com/sourcebot-dev/sourcebot/pull/1134)
+- Fixed missing workflow permissions in `docs-broken-links.yml` by adding explicit `permissions: {}` to follow least privilege principle. [#1131](https://github.com/sourcebot-dev/sourcebot/pull/1131)
+- Fixed CodeQL missing-workflow-permissions alert by adding explicit empty permissions to `deploy-railway.yml`. [#1132](https://github.com/sourcebot-dev/sourcebot/pull/1132)
+- [EE] Fixed XSS vulnerability (CodeQL js/xss-through-exception) in OAuth redirect flow by blocking dangerous URI schemes (`javascript:`, `data:`, `vbscript:`) at registration, authorization, and redirect layers. [#1136](https://github.com/sourcebot-dev/sourcebot/pull/1136)
+- Fixed regex search parsing so query-style parenthesized groups with filters still work when regex mode is enabled. [#1138](https://github.com/sourcebot-dev/sourcebot/pull/1138)
+
+## [4.16.11] - 2026-04-17
+
+### Changed
+- Bumped `protobufjs` to `7.5.5`. [#1128](https://github.com/sourcebot-dev/sourcebot/pull/1128)
+
+## [4.16.10] - 2026-04-16
+
+### Changed
+- Bumped AI SDK and associated packages version. [#1126](https://github.com/sourcebot-dev/sourcebot/pull/1126)
+
+### Fixed
+- Fixed issue where claude-opus-4-7 was returning "error occurred "thinking.type.enabled" is not supported for this model". [#1123](https://github.com/sourcebot-dev/sourcebot/issues/1123)
+
 ## [4.16.9] - 2026-04-15
 
 ### Added
 - Added `thinkingLevel` and `thinkingBudget` configuration options for Google Generative AI and Google Vertex providers. [#1110](https://github.com/sourcebot-dev/sourcebot/pull/1110)
+- Support Gitlab MRs in the AI Code Review Agent [#1104](https://github.com/sourcebot-dev/sourcebot/pull/1104)
 
 ### Changed
 - Deprecated `GOOGLE_VERTEX_THINKING_BUDGET_TOKENS` environment variable in favor of per-model `thinkingBudget` config. [#1110](https://github.com/sourcebot-dev/sourcebot/pull/1110)

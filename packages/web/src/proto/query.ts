@@ -8,6 +8,7 @@ import type { BranchRepos as _zoekt_webserver_v1_BranchRepos, BranchRepos__Outpu
 import type { BranchesRepos as _zoekt_webserver_v1_BranchesRepos, BranchesRepos__Output as _zoekt_webserver_v1_BranchesRepos__Output } from './zoekt/webserver/v1/BranchesRepos';
 import type { FileNameSet as _zoekt_webserver_v1_FileNameSet, FileNameSet__Output as _zoekt_webserver_v1_FileNameSet__Output } from './zoekt/webserver/v1/FileNameSet';
 import type { Language as _zoekt_webserver_v1_Language, Language__Output as _zoekt_webserver_v1_Language__Output } from './zoekt/webserver/v1/Language';
+import type { Meta as _zoekt_webserver_v1_Meta, Meta__Output as _zoekt_webserver_v1_Meta__Output } from './zoekt/webserver/v1/Meta';
 import type { Not as _zoekt_webserver_v1_Not, Not__Output as _zoekt_webserver_v1_Not__Output } from './zoekt/webserver/v1/Not';
 import type { Or as _zoekt_webserver_v1_Or, Or__Output as _zoekt_webserver_v1_Or__Output } from './zoekt/webserver/v1/Or';
 import type { Q as _zoekt_webserver_v1_Q, Q__Output as _zoekt_webserver_v1_Q__Output } from './zoekt/webserver/v1/Q';
@@ -36,6 +37,7 @@ export interface ProtoGrpcType {
         BranchesRepos: MessageTypeDefinition<_zoekt_webserver_v1_BranchesRepos, _zoekt_webserver_v1_BranchesRepos__Output>
         FileNameSet: MessageTypeDefinition<_zoekt_webserver_v1_FileNameSet, _zoekt_webserver_v1_FileNameSet__Output>
         Language: MessageTypeDefinition<_zoekt_webserver_v1_Language, _zoekt_webserver_v1_Language__Output>
+        Meta: MessageTypeDefinition<_zoekt_webserver_v1_Meta, _zoekt_webserver_v1_Meta__Output>
         Not: MessageTypeDefinition<_zoekt_webserver_v1_Not, _zoekt_webserver_v1_Not__Output>
         Or: MessageTypeDefinition<_zoekt_webserver_v1_Or, _zoekt_webserver_v1_Or__Output>
         Q: MessageTypeDefinition<_zoekt_webserver_v1_Q, _zoekt_webserver_v1_Q__Output>

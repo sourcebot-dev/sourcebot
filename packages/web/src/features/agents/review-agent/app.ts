@@ -1,9 +1,13 @@
 import { Octokit } from "octokit";
+import { Gitlab } from "@gitbeaker/rest";
 import { generatePrReviews } from "@/features/agents/review-agent/nodes/generatePrReview";
 import { githubPushPrReviews } from "@/features/agents/review-agent/nodes/githubPushPrReviews";
 import { githubPrParser } from "@/features/agents/review-agent/nodes/githubPrParser";
+import { getReviewAgentLogDir } from "@/features/agents/review-agent/nodes/invokeDiffReviewLlm";
+import { gitlabMrParser } from "@/features/agents/review-agent/nodes/gitlabMrParser";
+import { gitlabPushMrReviews } from "@/features/agents/review-agent/nodes/gitlabPushMrReviews";
+import { GitHubPullRequest, GitLabMergeRequestPayload } from "@/features/agents/review-agent/types";
 import { env } from "@sourcebot/shared";
-import { GitHubPullRequest } from "@/features/agents/review-agent/types";
 import path from "path";
 import fs from "fs";
 import { createLogger } from "@sourcebot/shared";
@@ -20,35 +24,51 @@ const rules = [
 
 const logger = createLogger('review-agent');
 
+function getReviewAgentLogPath(identifier: string): string | undefined {
+    if (!env.REVIEW_AGENT_LOGGING_ENABLED) {
+        return undefined;
+    }
+
+    const reviewAgentLogDir = getReviewAgentLogDir();
+    if (!fs.existsSync(reviewAgentLogDir)) {
+        fs.mkdirSync(reviewAgentLogDir, { recursive: true });
+    }
+
+    const timestamp = new Date().toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    }).replace(/(\d+)\/(\d+)\/(\d+), (\d+):(\d+):(\d+)/, '$3_$1_$2_$4_$5_$6');
+    const logPath = path.join(reviewAgentLogDir, `review-agent-${identifier}-${timestamp}.log`);
+    logger.info(`Review agent logging to ${logPath}`);
+    return logPath;
+}
+
 export async function processGitHubPullRequest(octokit: Octokit, pullRequest: GitHubPullRequest) {
     logger.info(`Received a pull request event for #${pullRequest.number}`);
 
-    if (!env.OPENAI_API_KEY) {
-        logger.error("OPENAI_API_KEY is not set, skipping review agent");
-        return;
-    }
-
-    let reviewAgentLogPath: string | undefined;
-    if (env.REVIEW_AGENT_LOGGING_ENABLED) {
-        const reviewAgentLogDir = path.join(env.DATA_CACHE_DIR, "review-agent");
-        if (!fs.existsSync(reviewAgentLogDir)) {
-            fs.mkdirSync(reviewAgentLogDir, { recursive: true });
-        }
-
-        const timestamp = new Date().toLocaleString('en-US', {
-            year: 'numeric',
-            month: '2-digit', 
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        }).replace(/(\d+)\/(\d+)\/(\d+), (\d+):(\d+):(\d+)/, '$3_$1_$2_$4_$5_$6');
-        reviewAgentLogPath = path.join(reviewAgentLogDir, `review-agent-${pullRequest.number}-${timestamp}.log`);
-        logger.info(`Review agent logging to ${reviewAgentLogPath}`);
-    }
+    const reviewAgentLogPath = getReviewAgentLogPath(String(pullRequest.number));
 
     const prPayload = await githubPrParser(octokit, pullRequest);
     const fileDiffReviews = await generatePrReviews(reviewAgentLogPath, prPayload, rules);
-    await githubPushPrReviews(octokit, prPayload, fileDiffReviews); 
+    await githubPushPrReviews(octokit, prPayload, fileDiffReviews);
+}
+
+export async function processGitLabMergeRequest(
+    gitlabClient: InstanceType<typeof Gitlab>,
+    projectId: number,
+    mrPayload: GitLabMergeRequestPayload,
+    hostDomain: string,
+) {
+    logger.info(`Received a merge request event for !${mrPayload.object_attributes.iid}`);
+
+    const reviewAgentLogPath = getReviewAgentLogPath(`mr-${mrPayload.object_attributes.iid}`);
+
+    const prPayload = await gitlabMrParser(gitlabClient, mrPayload, hostDomain);
+    const fileDiffReviews = await generatePrReviews(reviewAgentLogPath, prPayload, rules);
+    await gitlabPushMrReviews(gitlabClient, projectId, prPayload, fileDiffReviews);
 }

@@ -109,3 +109,11 @@ export const invalidGitRef = (ref: string): ServiceError => {
     };
 }
 
+export const unresolvedGitRef = (ref: string): ServiceError => {
+    return {
+        statusCode: StatusCodes.BAD_REQUEST,
+        errorCode: ErrorCode.INVALID_GIT_REF,
+        message: `Git reference "${ref}" could not be resolved.`,
+    };
+}
+

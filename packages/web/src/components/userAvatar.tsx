@@ -1,8 +1,7 @@
 'use client';
 
-import { minidenticon } from 'minidenticons';
 import { ComponentPropsWithoutRef, forwardRef, useMemo } from 'react';
-import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 interface UserAvatarProps extends ComponentPropsWithoutRef<typeof Avatar> {
@@ -12,16 +11,31 @@ interface UserAvatarProps extends ComponentPropsWithoutRef<typeof Avatar> {
 
 export const UserAvatar = forwardRef<HTMLSpanElement, UserAvatarProps>(
     ({ email, imageUrl, className, ...rest }, ref) => {
-        const identiconUri = useMemo(() => {
+        const resolverUri = useMemo(() => {
             if (!email) {
                 return undefined;
             }
-            return 'data:image/svg+xml;utf8,' + encodeURIComponent(minidenticon(email, 50, 50));
+            return `/api/avatar?email=${encodeURIComponent(email)}`;
         }, [email]);
+
+        const src = imageUrl ?? resolverUri;
 
         return (
             <Avatar ref={ref} className={cn("bg-muted", className)} {...rest}>
-                <AvatarImage src={imageUrl ?? identiconUri} />
+                {/*
+                  We render a raw <img> instead of Radix's <AvatarImage>. AvatarImage
+                  delays painting until its internal `new Image().onload` fires —
+                  which is async even when the URL is in HTTP cache — and that
+                  one-frame gap manifests as a flicker every time a marker mounts
+                  (e.g., on scroll). The browser paints cached <img> synchronously.
+                */}
+                {src && (
+                    <img
+                        src={src}
+                        alt=""
+                        className="aspect-square h-full w-full"
+                    />
+                )}
             </Avatar>
         );
     }

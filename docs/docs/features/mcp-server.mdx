@@ -5,13 +5,7 @@ sidebarTitle: Sourcebot MCP
 
 import LicenseKeyRequired from '/snippets/license-key-required.mdx'
 
-<Note>
-    The [@sourcebot/mcp](https://www.npmjs.com/package/@sourcebot/mcp) npm
-    package has been deprecated as of 2026-03-04. Please migrate to using the
-    streamable http transport.
-</Note>
-
-The Sourcebot MCP Server connects AI tools to your [Sourcebot deployment](/docs/deployment/docker-compose). This gives AI agents and automations the ability to search, read files, resolve references & definitions, and more across all of your code hosted on Sourcebot.
+The Sourcebot MCP Server connects AI tools to your [Sourcebot deployment](/docs/deployment/docker-compose). This gives your agents the ability to search, read files, resolve references & definitions, and more across all of your code hosted on Sourcebot.
 
 ## Use cases
 
@@ -387,6 +381,17 @@ Parameters:
 | `repo` | no | Repository name to search in. If not provided, searches all repositories. Use the full name including host (e.g. `github.com/org/repo`). |
 | `ref` | no | Commit SHA, branch or tag name to search on. If not provided, defaults to the default branch. |
 | `limit` | no | Maximum number of files to return (default: 100). |
+
+### `get_diff`
+
+Returns a structured diff between two refs in a repository using a two-dot comparison.
+
+Parameters:
+| Name | Required | Description |
+|:----------|:---------|:--------------------------------------------------------------------------------------------------------------|
+| `repo` | yes | The fully-qualified repository name. |
+| `base` | yes | The base git ref (branch, tag, or commit SHA) to diff from. |
+| `head` | yes | The head git ref (branch, tag, or commit SHA) to diff to. |
 
 ### `find_symbol_definitions`
 

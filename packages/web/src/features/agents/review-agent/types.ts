@@ -16,6 +16,13 @@ export const sourcebot_file_diff_schema = z.object({
 });
 export type sourcebot_file_diff = z.infer<typeof sourcebot_file_diff_schema>;
 
+export const sourcebot_diff_refs_schema = z.object({
+    base_sha: z.string(),
+    head_sha: z.string(),
+    start_sha: z.string(),
+});
+export type sourcebot_diff_refs = z.infer<typeof sourcebot_diff_refs_schema>;
+
 export const sourcebot_pr_payload_schema = z.object({
     title: z.string(),
     description: z.string(),
@@ -24,7 +31,8 @@ export const sourcebot_pr_payload_schema = z.object({
     repo: z.string(),
     file_diffs: z.array(sourcebot_file_diff_schema),
     number: z.number(),
-    head_sha: z.string()
+    head_sha: z.string(),
+    diff_refs: sourcebot_diff_refs_schema.optional(),
 });
 export type sourcebot_pr_payload = z.infer<typeof sourcebot_pr_payload_schema>;
 
@@ -47,4 +55,49 @@ export const sourcebot_file_diff_review_schema = z.object({
     reviews: z.array(sourcebot_diff_review_schema),
 });
 export type sourcebot_file_diff_review = z.infer<typeof sourcebot_file_diff_review_schema>;
+
+const gitLabProjectSchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    path_with_namespace: z.string(),
+    web_url: z.string(),
+    namespace: z.string(),
+});
+
+const gitLabDiffRefsSchema = z.object({
+    base_sha: z.string(),
+    head_sha: z.string(),
+    start_sha: z.string(),
+}).nullable().optional();
+
+export const gitLabMergeRequestPayloadSchema = z.object({
+    object_kind: z.literal('merge_request'),
+    object_attributes: z.object({
+        iid: z.number(),
+        title: z.string(),
+        description: z.string().nullable(),
+        action: z.string(),
+        last_commit: z.object({ id: z.string() }),
+        diff_refs: gitLabDiffRefsSchema,
+    }),
+    project: gitLabProjectSchema,
+});
+export type GitLabMergeRequestPayload = z.infer<typeof gitLabMergeRequestPayloadSchema>;
+
+export const gitLabNotePayloadSchema = z.object({
+    object_kind: z.literal('note'),
+    object_attributes: z.object({
+        note: z.string(),
+        noteable_type: z.literal('MergeRequest'),
+    }),
+    merge_request: z.object({
+        iid: z.number(),
+        title: z.string(),
+        description: z.string().nullable(),
+        last_commit: z.object({ id: z.string() }),
+        diff_refs: gitLabDiffRefsSchema,
+    }),
+    project: gitLabProjectSchema,
+});
+export type GitLabNotePayload = z.infer<typeof gitLabNotePayloadSchema>;
 

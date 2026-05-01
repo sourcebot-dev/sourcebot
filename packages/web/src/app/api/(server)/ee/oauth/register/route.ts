@@ -1,10 +1,10 @@
-import { apiHandler } from '@/lib/apiHandler';
+import { oauthApiHandler } from '@/ee/features/oauth/apiHandler';
 import { requestBodySchemaValidationError, serviceErrorResponse } from '@/lib/serviceError';
 import { __unsafePrisma } from '@/prisma';
 import { hasEntitlement } from '@/lib/entitlements';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
+import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE, UNPERMITTED_SCHEMES } from '@/ee/features/oauth/constants';
 
 // RFC 7591: OAuth 2.0 Dynamic Client Registration
 // @see: https://datatracker.ietf.org/doc/html/rfc7591
@@ -14,7 +14,7 @@ const registerRequestSchema = z.object({
     logo_uri: z.string().url().nullish(),
 });
 
-export const POST = apiHandler(async (request: NextRequest) => {
+export const POST = oauthApiHandler(async (request: NextRequest) => {
     if (!await hasEntitlement('oauth')) {
         return Response.json(
             { error: 'access_denied', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
@@ -35,6 +35,14 @@ export const POST = apiHandler(async (request: NextRequest) => {
     if (redirect_uris.some((uri) => uri.includes('*'))) {
         return Response.json(
             { error: 'invalid_redirect_uri', error_description: 'Wildcard redirect URIs are not allowed.' },
+            { status: 400 }
+        );
+    }
+
+    // Reject dangerous URI schemes (e.g. javascript:, data:) at registration time
+    if (redirect_uris.some((uri) => UNPERMITTED_SCHEMES.test(uri))) {
+        return Response.json(
+            { error: 'invalid_redirect_uri', error_description: 'Redirect URI uses a scheme that is not permitted.' },
             { status: 400 }
         );
     }

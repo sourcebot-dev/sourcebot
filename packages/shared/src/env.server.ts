@@ -139,6 +139,41 @@ const options = {
         AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
         AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.default('false'),
 
+        /**
+         * Relative time from now in seconds when to expire the session.
+         * 
+         * @default 30 days
+         */
+        AUTH_SESSION_MAX_AGE_SECONDS: numberSchema.default(60 * 60 * 24 * 30),
+
+        /**
+         * How often the session should be updated in seconds. If set to 0, session is updated every time.
+         *
+         * @default 1 day
+         */
+        AUTH_SESSION_UPDATE_AGE_SECONDS: numberSchema.default(60 * 60 * 24),
+
+        /**
+         * Lifetime of an OAuth authorization code, in seconds.
+         *
+         * @default 10 minutes
+         */
+        OAUTH_AUTHORIZATION_CODE_TTL_SECONDS: numberSchema.default(60 * 10),
+
+        /**
+         * Lifetime of an OAuth access token, in seconds.
+         *
+         * @default 1 hour
+         */
+        OAUTH_ACCESS_TOKEN_TTL_SECONDS: numberSchema.default(60 * 60),
+
+        /**
+         * Lifetime of an OAuth refresh token, in seconds.
+         *
+         * @default 90 days
+         */
+        OAUTH_REFRESH_TOKEN_TTL_SECONDS: numberSchema.default(60 * 60 * 24 * 90),
+
         // Enterprise Auth
         AUTH_EE_ALLOW_EMAIL_ACCOUNT_LINKING:
             booleanSchema
@@ -195,6 +230,12 @@ const options = {
         GITHUB_REVIEW_AGENT_APP_ID: z.string().optional(),
         GITHUB_REVIEW_AGENT_APP_WEBHOOK_SECRET: z.string().optional(),
         GITHUB_REVIEW_AGENT_APP_PRIVATE_KEY_PATH: z.string().optional(),
+        // GitLab for review agent
+        GITLAB_REVIEW_AGENT_WEBHOOK_SECRET: z.string().optional(),
+        GITLAB_REVIEW_AGENT_TOKEN: z.string().optional(),
+        GITLAB_REVIEW_AGENT_HOST: z.string().default('gitlab.com').transform(s => s.replace(/^https?:\/\//, '').replace(/\/+$/, '')).refine(s => /^[a-z0-9.-]+$/i.test(s), { message: 'invalid hostname' }),
+        // Review agent config
+        REVIEW_AGENT_MODEL: z.string().optional(),
         REVIEW_AGENT_API_KEY: z.string().optional(),
         REVIEW_AGENT_LOGGING_ENABLED: booleanSchema.default('true'),
         REVIEW_AGENT_AUTO_REVIEW_ENABLED: booleanSchema.default('false'),
@@ -240,6 +281,7 @@ const options = {
 
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
         DEBUG_ENABLE_REACT_SCAN: booleanSchema.default('false'),
+        DEBUG_ENABLE_REACT_GRAB: booleanSchema.default('false'),
 
         LANGFUSE_SECRET_KEY: z.string().optional(),
 

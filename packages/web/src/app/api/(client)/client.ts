@@ -13,12 +13,15 @@ import {
     FindRelatedSymbolsResponse,
 } from "@/features/codeNav/types";
 import {
+    Commit,
     GetFilesRequest,
     GetFilesResponse,
     GetTreeRequest,
     GetTreeResponse,
     FileSourceRequest,
     FileSourceResponse,
+    ListCommitsQueryParams,
+    ListCommitsResponse,
 } from "@/features/git";
 import type { PermissionSyncStatusResponse } from "../(server)/ee/permissionSyncStatus/api";
 import type { AccountSyncStatusResponse } from "../(server)/ee/accountPermissionSyncJobStatus/api";
@@ -119,6 +122,30 @@ export const getTree = async (body: GetTreeRequest): Promise<GetTreeResponse | S
         body: JSON.stringify(body),
     }).then(response => response.json());
     return result as GetTreeResponse | ServiceError;
+}
+
+export const listCommits = async (queryParams: ListCommitsQueryParams): Promise<ListCommitsResponse | ServiceError> => {
+    const url = new URL("/api/commits", window.location.origin);
+    for (const [key, value] of Object.entries(queryParams)) {
+        if (value !== undefined && value !== '') {
+            url.searchParams.set(key, value.toString());
+        }
+    }
+
+    const response = await fetch(url, {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    });
+
+    const result = await response.json();
+    if (isServiceError(result)) {
+        return result;
+    }
+
+    const totalCount = parseInt(response.headers.get('X-Total-Count') ?? '0', 10);
+    return { commits: result as Commit[], totalCount };
 }
 
 export const getFiles = async (body: GetFilesRequest): Promise<GetFilesResponse | ServiceError> => {

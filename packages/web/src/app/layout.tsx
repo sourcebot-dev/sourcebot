@@ -45,15 +45,14 @@ export default async function RootLayout({
                         strategy="beforeInteractive"
                     />
                 )}
-
-                {env.NODE_ENV === "development" && (
+                {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_GRAB === 'true' && (
                     <Script
                         src="//unpkg.com/react-grab/dist/index.global.js"
                         crossOrigin="anonymous"
                         strategy="beforeInteractive"
                     />
                 )}
-                {env.NODE_ENV === "development" && (
+                {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_GRAB === 'true' && (
                     <Script
                         src="//unpkg.com/@react-grab/mcp/dist/client.global.js"
                         strategy="lazyOnload"

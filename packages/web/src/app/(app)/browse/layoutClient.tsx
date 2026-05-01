@@ -20,7 +20,7 @@ export function LayoutClient({
     children,
     isSearchAssistSupported,
 }: LayoutProps) {
-    const { repoName, revisionName } = useBrowseParams();
+    const { repoName, revisionName, pathType } = useBrowseParams();
     return (
         <BrowseStateProvider>
             <div className="flex flex-col h-full">
@@ -59,10 +59,14 @@ export function LayoutClient({
                             >
                                 {children}
                             </ResizablePanel>
-                            <AnimatedResizableHandle />
-                            <BottomPanel
-                                order={2}
-                            />
+                            {(pathType === 'blob' || pathType === 'tree') && (
+                                <>
+                                    <AnimatedResizableHandle />
+                                    <BottomPanel
+                                        order={2}
+                                    />
+                                </>
+                            )}
                         </ResizablePanelGroup>
                     </ResizablePanel>
                 </ResizablePanelGroup>

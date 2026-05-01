@@ -1,5 +1,7 @@
 name: Check for broken links in docs
 
+permissions: {}
+
 on:
   pull_request:
     branches: ["main"]

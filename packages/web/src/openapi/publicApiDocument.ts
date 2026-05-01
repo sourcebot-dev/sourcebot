@@ -8,6 +8,8 @@ import {
     publicEeDeleteUserResponseSchema,
     publicEeUserSchema,
     publicEeUsersResponseSchema,
+    publicFileBlameRequestSchema,
+    publicFileBlameResponseSchema,
     publicFileSourceRequestSchema,
     publicFileSourceResponseSchema,
     publicFindSymbolsRequestSchema,
@@ -18,6 +20,8 @@ import {
     publicHealthResponseSchema,
     publicCommitDetailSchema,
     publicGetCommitQuerySchema,
+    publicListCommitAuthorsQuerySchema,
+    publicListCommitAuthorsResponseSchema,
     publicListCommitsQuerySchema,
     publicListCommitsResponseSchema,
     publicListReposQueryParamsSchema,
@@ -219,6 +223,35 @@ export function createPublicOpenApiDocument(version: string) {
     });
 
     registry.registerPath({
+        method: 'get',
+        path: '/api/blame',
+        operationId: 'getFileBlame',
+        tags: [gitTag.name],
+        summary: 'Get file blame',
+        description: dedent`
+            Returns blame information for a file at a given repository path and optional git ref.
+
+            The response is split into two parts:
+            - \`ranges\`: contiguous, non-overlapping line ranges, each attributed to a single commit. Ordered by \`startLine\`.
+            - \`commits\`: commit metadata (hash, date, message, author, optional \`previous\` pointer for walking back through history) keyed by hash, deduplicated across ranges.
+
+            Whole-file renames are followed automatically. Cross-file line moves and copies are not.
+        `,
+        request: {
+            query: publicFileBlameRequestSchema,
+        },
+        responses: {
+            200: {
+                description: 'Blame ranges and deduplicated commit metadata.',
+                content: jsonContent(publicFileBlameResponseSchema),
+            },
+            400: errorJson('Invalid query parameters or git ref.'),
+            404: errorJson('Repository or file not found.'),
+            500: errorJson('Unexpected blame retrieval failure.'),
+        },
+    });
+
+    registry.registerPath({
         method: 'post',
         path: '/api/tree',
         operationId: 'getFileTree',
@@ -358,6 +391,37 @@ export function createPublicOpenApiDocument(version: string) {
             },
             400: errorJson('Invalid query parameters or git ref.'),
             404: errorJson('Repository or revision not found.'),
+            500: errorJson('Unexpected failure.'),
+        },
+    });
+
+    registry.registerPath({
+        method: 'get',
+        path: '/api/commits/authors',
+        operationId: 'listCommitAuthors',
+        tags: [gitTag.name],
+        summary: 'List commit authors',
+        description: 'Returns a paginated list of unique authors who committed in a repository, sorted by commit count descending. Optionally scoped to a file path.',
+        request: {
+            query: publicListCommitAuthorsQuerySchema,
+        },
+        responses: {
+            200: {
+                description: 'Paginated commit author list.',
+                headers: {
+                    'X-Total-Count': {
+                        description: 'Total number of unique authors matching the query across all pages.',
+                        schema: { type: 'integer' },
+                    },
+                    Link: {
+                        description: 'Pagination links formatted per RFC 8288.',
+                        schema: { type: 'string' },
+                    },
+                },
+                content: jsonContent(publicListCommitAuthorsResponseSchema),
+            },
+            400: errorJson('Invalid query parameters or git ref.'),
+            404: errorJson('Repository not found.'),
             500: errorJson('Unexpected failure.'),
         },
     });
