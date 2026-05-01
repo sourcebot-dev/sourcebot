@@ -1047,6 +1047,16 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
                     type: "account_join_request"
                 }
             });
+
+            await auditService.createAudit({
+                action: "org.member_added",
+                actor: { id: user.id, type: "user" },
+                target: { id: request.requestedById, type: "user" },
+                orgId: org.id,
+                metadata: {
+                    message: `${user.id} approved join request ${requestId} for ${request.requestedById}`,
+                },
+            });
             return {
                 success: true,
             }
