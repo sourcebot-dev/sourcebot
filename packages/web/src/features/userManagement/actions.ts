@@ -5,11 +5,14 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, ServiceError } from "@/lib/serviceError";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
+import { getAuditService } from "@/ee/features/audit/factory";
 import { OrgRole, Prisma } from "@sourcebot/db";
 import { StatusCodes } from "http-status-codes";
 
+const auditService = getAuditService();
+
 export const removeMemberFromOrg = async (memberId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth(async ({ org, role, prisma }) =>
+    withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const guardError = await prisma.$transaction(async (tx) => {
                 const targetMember = await tx.userToOrg.findUnique({
@@ -58,6 +61,16 @@ export const removeMemberFromOrg = async (memberId: string): Promise<{ success: 
                 return guardError;
             }
 
+            await auditService.createAudit({
+                action: "org.member_removed",
+                actor: { id: user.id, type: "user" },
+                target: { id: memberId, type: "user" },
+                orgId: org.id,
+                metadata: {
+                    message: `${user.id} removed ${memberId} from the organization`,
+                },
+            });
+
             return { success: true };
         }))
 );
@@ -97,6 +110,16 @@ export const leaveOrg = async (): Promise<{ success: boolean } | ServiceError> =
         if (guardError) {
             return guardError;
         }
+
+        await auditService.createAudit({
+            action: "org.member_left",
+            actor: { id: user.id, type: "user" },
+            target: { id: user.id, type: "user" },
+            orgId: org.id,
+            metadata: {
+                message: `${user.id} left the organization`,
+            },
+        });
 
         return {
             success: true,

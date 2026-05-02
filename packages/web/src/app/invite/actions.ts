@@ -56,6 +56,16 @@ export const joinOrganization = async (inviteLinkId?: string) => sew(async () =>
         return addUserToOrgRes;
     }
 
+    await auditService.createAudit({
+        action: "org.member_added",
+        actor: { id: user.id, type: "user" },
+        target: { id: user.id, type: "user" },
+        orgId: org.id,
+        metadata: {
+            message: `${user.id} joined the organization via invite link`,
+        },
+    });
+
     return {
         success: true,
     }
@@ -133,6 +143,16 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
             id: inviteId,
             type: "invite"
         }
+    });
+
+    await auditService.createAudit({
+        action: "org.member_added",
+        actor: { id: user.id, type: "user" },
+        target: { id: user.id, type: "user" },
+        orgId: invite.org.id,
+        metadata: {
+            message: `${user.id} joined the organization by accepting invite ${inviteId}`,
+        },
     });
 
     return {
