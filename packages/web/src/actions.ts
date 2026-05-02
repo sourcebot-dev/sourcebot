@@ -1005,36 +1005,6 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
                 return addUserToOrgRes;
             }
 
-            // Send approval email to the user
-            const smtpConnectionUrl = getSMTPConnectionURL();
-            if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS) {
-                const html = await render(JoinRequestApprovedEmail({
-                    baseUrl: env.AUTH_URL,
-                    user: {
-                        name: request.requestedBy.name ?? undefined,
-                        email: request.requestedBy.email!,
-                        avatarUrl: request.requestedBy.image ?? undefined,
-                    },
-                    orgName: org.name,
-                }));
-
-                const transport = createTransport(smtpConnectionUrl);
-                const result = await transport.sendMail({
-                    to: request.requestedBy.email!,
-                    from: env.EMAIL_FROM_ADDRESS,
-                    subject: `Your request to join ${org.name} has been approved`,
-                    html,
-                    text: `Your request to join ${org.name} on Sourcebot has been approved. You can now access the organization at ${env.AUTH_URL}`,
-                });
-
-                const failed = result.rejected.concat(result.pending).filter(Boolean);
-                if (failed.length > 0) {
-                    logger.error(`Failed to send approval email to ${request.requestedBy.email}: ${failed}`);
-                }
-            } else {
-                logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping approval email to ${request.requestedBy.email}`);
-            }
-
             await auditService.createAudit({
                 action: "user.join_request_approved",
                 actor: {
@@ -1047,6 +1017,50 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
                     type: "account_join_request"
                 }
             });
+
+            await auditService.createAudit({
+                action: "org.member_added",
+                actor: { id: user.id, type: "user" },
+                target: { id: request.requestedById, type: "user" },
+                orgId: org.id,
+                metadata: {
+                    message: `${user.id} approved join request ${requestId} for ${request.requestedById}`,
+                },
+            });
+
+            // Send approval email to the user
+            const smtpConnectionUrl = getSMTPConnectionURL();
+            if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS) {
+                try {
+                    const html = await render(JoinRequestApprovedEmail({
+                        baseUrl: env.AUTH_URL,
+                        user: {
+                            name: request.requestedBy.name ?? undefined,
+                            email: request.requestedBy.email!,
+                            avatarUrl: request.requestedBy.image ?? undefined,
+                        },
+                        orgName: org.name,
+                    }));
+
+                    const transport = createTransport(smtpConnectionUrl);
+                    const result = await transport.sendMail({
+                        to: request.requestedBy.email!,
+                        from: env.EMAIL_FROM_ADDRESS,
+                        subject: `Your request to join ${org.name} has been approved`,
+                        html,
+                        text: `Your request to join ${org.name} on Sourcebot has been approved. You can now access the organization at ${env.AUTH_URL}`,
+                    });
+
+                    const failed = result.rejected.concat(result.pending).filter(Boolean);
+                    if (failed.length > 0) {
+                        logger.error(`Failed to send approval email to ${request.requestedBy.email}: ${failed}`);
+                    }
+                } catch (e) {
+                    logger.error(`Failed to send approval email to ${request.requestedBy.email}: ${e}`);
+                }
+            } else {
+                logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping approval email to ${request.requestedBy.email}`);
+            }
             return {
                 success: true,
             }
