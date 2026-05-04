@@ -1,5 +1,6 @@
 import 'next-auth/jwt';
-import NextAuth, { DefaultSession, User as AuthJsUser } from "next-auth"
+import { cache } from "react";
+import NextAuth, { DefaultSession, Session, User as AuthJsUser } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/nodemailer";
 import { __unsafePrisma } from "@/prisma";
@@ -38,12 +39,17 @@ export type SessionUser = {
 declare module 'next-auth' {
     interface Session {
         user: SessionUser;
+        sessionVersion?: number;
+    }
+    interface User {
+        sessionVersion?: number;
     }
 }
 
 declare module 'next-auth/jwt' {
     interface JWT {
         userId: string;
+        sessionVersion?: number;
     }
 }
 
@@ -113,6 +119,7 @@ export const getProviders = () => {
                         const authJsUser: AuthJsUser = {
                             id: newUser.id,
                             email: newUser.email,
+                            sessionVersion: newUser.sessionVersion,
                         }
 
                         onCreateUser({ user: authJsUser });
@@ -133,6 +140,7 @@ export const getProviders = () => {
                             email: user.email,
                             name: user.name ?? undefined,
                             image: user.image ?? undefined,
+                            sessionVersion: user.sessionVersion,
                         };
                     }
                 }
@@ -143,7 +151,7 @@ export const getProviders = () => {
     return providers;
 }
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+const nextAuthResult = NextAuth({
     secret: env.AUTH_SECRET,
     adapter: EncryptedPrismaAdapter(__unsafePrisma),
     session: {
@@ -248,6 +256,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // Cache the userId in the JWT for later use.
             if (user) {
                 token.userId = user.id;
+                token.sessionVersion = user.sessionVersion ?? 0;
             }
 
             // @note The following performs a lazy migration of the issuerUrl
@@ -288,6 +297,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 // Propagate the userId to the session.
                 id: token.userId,
             }
+            session.sessionVersion = token.sessionVersion;
 
             return session;
         },
@@ -298,6 +308,40 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // We set redirect to false in signInOptions so we can pass the email is as a param
         // verifyRequest: "/login/verify",
     }
+});
+
+export const { handlers, signIn, signOut } = nextAuthResult;
+
+/**
+ * Wrapped session resolver that enforces JWT versioning at the auth layer.
+ *
+ * Every JWT cookie carries the `sessionVersion` it was minted with. This
+ * wrapper compares it against the user's current `sessionVersion` in the
+ * database; if the user's version has been bumped (e.g., they were removed
+ * from the org), we return null so every caller of `auth()` sees the
+ * session as logged out.
+ */
+export const auth = cache(async (): Promise<Session | null> => {
+    const session = await nextAuthResult.auth();
+    if (!session) {
+        return null;
+    }
+
+    const dbUser = await __unsafePrisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { sessionVersion: true },
+    });
+
+    if (!dbUser) {
+        return null;
+    }
+
+    const tokenVersion = session.sessionVersion ?? 0;
+    if (tokenVersion !== dbUser.sessionVersion) {
+        return null;
+    }
+
+    return session;
 });
 
 /**
