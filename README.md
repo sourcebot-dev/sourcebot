@@ -8,7 +8,7 @@
 <div align="center">
    <div>
       <h3>
-         <a href="https://docs.sourcebot.dev/self-hosting/overview">
+         <a href="https://docs.sourcebot.dev">
             <strong>Self Host</strong>
          </a> · 
          <a href="https://app.sourcebot.dev">

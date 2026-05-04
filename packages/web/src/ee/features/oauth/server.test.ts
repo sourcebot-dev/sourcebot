@@ -15,6 +15,11 @@ vi.mock('@sourcebot/shared', () => ({
     generateOAuthRefreshToken: vi.fn(() => ({ token: 'sbor_newrefresh', hash: 'newrefresh' })),
     OAUTH_ACCESS_TOKEN_PREFIX: 'sboa_',
     OAUTH_REFRESH_TOKEN_PREFIX: 'sbor_',
+    env: {
+        OAUTH_AUTHORIZATION_CODE_TTL_SECONDS: 60 * 10,
+        OAUTH_ACCESS_TOKEN_TTL_SECONDS: 60 * 60,
+        OAUTH_REFRESH_TOKEN_TTL_SECONDS: 60 * 60 * 24 * 90,
+    },
 }));
 
 const VALID_CODE_HASH = 'validcode';

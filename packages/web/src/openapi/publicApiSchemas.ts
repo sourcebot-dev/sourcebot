@@ -5,14 +5,18 @@ import {
     findRelatedSymbolsResponseSchema,
 } from '../features/codeNav/types.js';
 import {
+    commitAuthorSchema,
     commitDetailSchema,
     commitSchema,
+    fileBlameRequestSchema,
+    fileBlameResponseSchema,
     fileSourceRequestSchema,
     fileSourceResponseSchema,
     getCommitQueryParamsSchema,
     getDiffRequestSchema,
     getDiffResponseSchema,
     getTreeRequestSchema,
+    listCommitAuthorsQueryParamsSchema,
     listCommitsQueryParamsSchema,
 } from '../features/git/schemas.js';
 import {
@@ -38,6 +42,8 @@ export const publicSearchResponseSchema = searchResponseSchema.openapi('PublicSe
 export const publicGetTreeRequestSchema = getTreeRequestSchema.openapi('PublicGetTreeRequest');
 export const publicFileSourceRequestSchema = fileSourceRequestSchema.openapi('PublicFileSourceRequest');
 export const publicFileSourceResponseSchema = fileSourceResponseSchema.openapi('PublicFileSourceResponse');
+export const publicFileBlameRequestSchema = fileBlameRequestSchema.openapi('PublicFileBlameRequest');
+export const publicFileBlameResponseSchema = fileBlameResponseSchema.openapi('PublicFileBlameResponse');
 export const publicVersionResponseSchema = getVersionResponseSchema.openapi('PublicVersionResponse');
 export const publicListReposQueryParamsSchema = listReposQueryParamsSchema.openapi('PublicListReposQuery');
 export const publicListReposResponseSchema = listReposResponseSchema.openapi('PublicListReposResponse');
@@ -50,6 +56,9 @@ export const publicCommitSchema = commitSchema.openapi('PublicCommit');
 export const publicListCommitsResponseSchema = z.array(publicCommitSchema).openapi('PublicListCommitsResponse');
 export const publicGetCommitQuerySchema = getCommitQueryParamsSchema.openapi('PublicGetCommitQuery');
 export const publicCommitDetailSchema = commitDetailSchema.openapi('PublicCommitDetail');
+export const publicListCommitAuthorsQuerySchema = listCommitAuthorsQueryParamsSchema.openapi('PublicListCommitAuthorsQuery');
+export const publicCommitAuthorSchema = commitAuthorSchema.openapi('PublicCommitAuthor');
+export const publicListCommitAuthorsResponseSchema = z.array(publicCommitAuthorSchema).openapi('PublicListCommitAuthorsResponse');
 
 export const publicHealthResponseSchema = z.object({
     status: z.enum(['ok']),

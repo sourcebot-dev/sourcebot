@@ -5,7 +5,9 @@ import { withOptionalAuth } from "@/middleware/withAuth";
 import { getRepoPath } from '@sourcebot/shared';
 import simpleGit from 'simple-git';
 import z from 'zod';
-import { compareFileTreeItems, isPathValid, logger, normalizePath } from './utils';
+import { compareFileTreeItems, isPathValid, normalizePath } from './utils';
+import { logger } from './logger';
+
 
 export const getFolderContentsRequestSchema = z.object({
     repoName: z.string(),

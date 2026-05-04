@@ -32,12 +32,14 @@ type GetDiffRequest = {
     repo: string;
     base: string;
     head: string;
+    path?: string;
 }
 
 export const getDiff = async ({
     repo: repoName,
     base,
     head,
+    path,
 }: GetDiffRequest): Promise<GetDiffResult | ServiceError> => sew(() =>
     withOptionalAuth(async ({ org, prisma }) => {
         if (!isGitRefValid(base)) {
@@ -63,7 +65,15 @@ export const getDiff = async ({
         const git = simpleGit().cwd(repoPath);
 
         try {
-            const rawDiff = await git.raw(['diff', base, head]);
+            const diffArgs: string[] = ['diff', base, head];
+            // The `--` pathspec separator both restricts the diff to the path
+            // and prevents anything path-shaped from being interpreted as a
+            // flag or ref by git.
+            if (path) {
+                diffArgs.push('--', path);
+            }
+
+            const rawDiff = await git.raw(diffArgs);
             const files = parseDiff(rawDiff);
 
             const nodes: FileDiff[] = files.map((file) => ({

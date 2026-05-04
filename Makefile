@@ -1,5 +1,5 @@
 
-CMDS := zoekt yarn update_submodule
+CMDS := update_submodule zoekt yarn
 
 ALL: $(CMDS)
 

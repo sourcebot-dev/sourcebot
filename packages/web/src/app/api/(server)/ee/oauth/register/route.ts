@@ -1,4 +1,4 @@
-import { apiHandler } from '@/lib/apiHandler';
+import { oauthApiHandler } from '@/ee/features/oauth/apiHandler';
 import { requestBodySchemaValidationError, serviceErrorResponse } from '@/lib/serviceError';
 import { __unsafePrisma } from '@/prisma';
 import { hasEntitlement } from '@sourcebot/shared';
@@ -14,7 +14,7 @@ const registerRequestSchema = z.object({
     logo_uri: z.string().url().nullish(),
 });
 
-export const POST = apiHandler(async (request: NextRequest) => {
+export const POST = oauthApiHandler(async (request: NextRequest) => {
     if (!hasEntitlement('oauth')) {
         return Response.json(
             { error: 'access_denied', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },

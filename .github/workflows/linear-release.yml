@@ -1,0 +1,40 @@
+name: Linear Release
+
+on:
+    workflow_run:
+        workflows: [ "Release Sourcebot (Production)" ]
+        types:
+            - completed
+
+permissions:
+    contents: read
+
+jobs:
+    linear-release:
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  ref: main
+                  fetch-depth: 0
+
+            - name: Extract version from release
+              id: extract_version
+              run: |
+                  # Get the latest version from CHANGELOG.md (first non-Unreleased version)
+                  VERSION=$(grep -oP '## \[\K[0-9]+\.[0-9]+\.[0-9]+' CHANGELOG.md | head -n 1)
+
+                  if [ -z "$VERSION" ]; then
+                      echo "Error: Could not extract version from CHANGELOG.md"
+                      exit 1
+                  fi
+
+                  echo "Detected version: $VERSION"
+                  echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+            - uses: linear/linear-release-action@v0
+              with:
+                  access_key: ${{ secrets.LINEAR_ACCESS_KEY }}
+                  version: ${{ steps.extract_version.outputs.version }}

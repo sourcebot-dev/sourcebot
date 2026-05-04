@@ -10,10 +10,13 @@ import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { search } from "@codemirror/search";
 import CodeMirror, { EditorSelection, EditorView, ReactCodeMirrorRef, SelectionRange, ViewUpdate } from "@uiw/react-codemirror";
-import { useEffect, useMemo, useState } from "react";
-import { EditorContextMenu } from "../../../components/editorContextMenu";
-import { BrowseHighlightRange, HIGHLIGHT_RANGE_QUERY_PARAM } from "../../hooks/utils";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { EditorContextMenu } from "@/app/(app)/components/editorContextMenu";
+import { BrowseHighlightRange, getBrowsePath, HIGHLIGHT_RANGE_QUERY_PARAM } from "@/app/(app)/browse/hooks/utils";
 import { rangeHighlightingExtension } from "./rangeHighlightingExtension";
+import { blameGutterExtension } from "./blameGutterExtension";
+import type { FileBlameResponse } from "@/features/git";
 
 interface PureCodePreviewPanelProps {
     path: string;
@@ -21,6 +24,7 @@ interface PureCodePreviewPanelProps {
     revisionName: string;
     source: string;
     language: string;
+    blame?: FileBlameResponse;
 }
 
 export const PureCodePreviewPanel = ({
@@ -29,12 +33,35 @@ export const PureCodePreviewPanel = ({
     path,
     repoName,
     revisionName,
+    blame,
 }: PureCodePreviewPanelProps) => {
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
     const languageExtension = useCodeMirrorLanguageExtension(language, editorRef?.view);
     const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
     const keymapExtension = useKeymapExtension(editorRef?.view);
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
+    const router = useRouter();
+
+    const handleBlameCommitClick = useCallback((hash: string) => {
+        router.push(getBrowsePath({
+            repoName,
+            revisionName,
+            path,
+            pathType: 'blob',
+            previewRef: hash,
+            diff: true,
+        }));
+    }, [router, repoName, revisionName, path]);
+
+    const handleBlameReblameClick = useCallback((previous: { hash: string; path: string }) => {
+        router.push(getBrowsePath({
+            repoName,
+            revisionName: previous.hash,
+            path: previous.path,
+            pathType: 'blob',
+            blame: true,
+        }));
+    }, [router, repoName]);
 
     const highlightRangeQuery = useNonEmptyQueryParam(HIGHLIGHT_RANGE_QUERY_PARAM);
     const highlightRange = useMemo((): BrowseHighlightRange | undefined => {
@@ -97,12 +124,20 @@ export const PureCodePreviewPanel = ({
             }),
             highlightRange ? rangeHighlightingExtension(highlightRange) : [],
             hasCodeNavEntitlement ? symbolHoverTargetsExtension : [],
+            blame ? blameGutterExtension(
+                blame,
+                handleBlameCommitClick,
+                handleBlameReblameClick
+            ) : [],
         ];
     }, [
         keymapExtension,
         languageExtension,
         highlightRange,
         hasCodeNavEntitlement,
+        blame,
+        handleBlameCommitClick,
+        handleBlameReblameClick,
     ]);
 
     // Scroll the highlighted range into view.
@@ -129,7 +164,7 @@ export const PureCodePreviewPanel = ({
         const viewport = editorRef.view.viewport;
         const isInView = from >= viewport.from && to <= viewport.to;
         const scrollStrategy = isInView ? "nearest" : "center";
-        
+
         editorRef.view?.dispatch({
             effects: [
                 EditorView.scrollIntoView(selection, { y: scrollStrategy }),
@@ -148,6 +183,13 @@ export const PureCodePreviewPanel = ({
                 extensions={extensions}
                 readOnly={true}
                 theme={theme}
+                basicSetup={
+                    blame ? {
+                        foldGutter: false,
+                        highlightActiveLine: false,
+                        highlightActiveLineGutter: false,
+                    } : true
+                }
             >
                 {editorRef && editorRef.view && currentSelection && (
                     <EditorContextMenu

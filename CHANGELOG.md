@@ -7,8 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added three new audit actions covering the full org membership lifecycle: `org.member_added`, `org.member_removed`, and `org.member_left`. [#1165](https://github.com/sourcebot-dev/sourcebot/pull/1165)
+- Added per-user JWT session versioning so admin-driven member removals (and voluntary leaves) invalidate the removed user's active JWT cookies, personal API keys, and OAuth tokens atomically on their next request. [#1168](https://github.com/sourcebot-dev/sourcebot/pull/1168)
+
 ### Fixed
-- Fixed GitLab MR inline review comments returning 400 Bad Request on context (unchanged) lines and renamed files. The position object now always includes `oldPath`, and `oldLine` is included alongside `newLine` for context lines by parsing the diff snippets to map new→old line numbers. [#1149](https://github.com/sourcebot-dev/sourcebot/pull/1149)
+- Fixed Azure DevOps connection schema to allow spaces in project and repository names. [#1170](https://github.com/sourcebot-dev/sourcebot/pull/1170)
+- Fixed GitLab MR inline review comments returning 400 Bad Request on context (unchanged) lines and renamed files. [#1149](https://github.com/sourcebot-dev/sourcebot/pull/1149)
+
+## [4.17.0] - 2026-04-30
+
+### Added
+- Added commit history viewer to code browser. [#1150](https://github.com/sourcebot-dev/sourcebot/pull/1150)
+- Added commit diff viewer to code browser. [#1154](https://github.com/sourcebot-dev/sourcebot/pull/1154)
+- Added `/api/commits/authors` to the public API to allow fetching a list of authors for a given path and revision. [#1150](https://github.com/sourcebot-dev/sourcebot/pull/1150)
+- Added optional `path` query parameter to the `/api/diff` endpoint and `get_diff` MCP tool to restrict diffs to changes touching a specific file. [#1154](https://github.com/sourcebot-dev/sourcebot/pull/1154)
+- Added collapsible file diffs in the commit diff panel. [#1157](https://github.com/sourcebot-dev/sourcebot/pull/1157)
+- Added `/api/blame` to the public API to fetch per-line blame information for a file at a given revision. [#1158](https://github.com/sourcebot-dev/sourcebot/pull/1158)
+- Added a file blame view to the code browser, with a Code / Blame toggle, cursor-driven peer-line highlighting, and a reblame button to walk back through history. [#1160](https://github.com/sourcebot-dev/sourcebot/pull/1160)
+
+### Changed
+- Added `/api/avatar` to resolve user profile pictures. [#1159](https://github.com/sourcebot-dev/sourcebot/pull/1159)
+- Hardened post-auth redirects with an explicit same-origin `redirect` callback in the NextAuth config, and switched the legacy `/~/...` URL rewrite from a 308 to a 301. [#1161](https://github.com/sourcebot-dev/sourcebot/pull/1161)
+- Made the Auth.js JWT session lifetime and OAuth token TTLs configurable via `AUTH_SESSION_MAX_AGE_SECONDS`, `AUTH_SESSION_UPDATE_AGE_SECONDS`, `OAUTH_AUTHORIZATION_CODE_TTL_SECONDS`, `OAUTH_ACCESS_TOKEN_TTL_SECONDS`, and `OAUTH_REFRESH_TOKEN_TTL_SECONDS`. Defaults preserve existing behavior. [#1162](https://github.com/sourcebot-dev/sourcebot/pull/1162)
+- Guarded all OAuth authorization-server route handlers with a runtime assertion that rejects HTTP 307 and 308 responses, per RFC 9700 §4.12. [#1163](https://github.com/sourcebot-dev/sourcebot/pull/1163)
+
+### Fixed
+- Bumped `postcss` to `8.5.10`. [#1155](https://github.com/sourcebot-dev/sourcebot/pull/1155)
 
 ## [4.16.15] - 2026-04-23
 

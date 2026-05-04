@@ -5,11 +5,14 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, ServiceError } from "@/lib/serviceError";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
+import { getAuditService } from "@/ee/features/audit/factory";
 import { OrgRole, Prisma } from "@sourcebot/db";
 import { StatusCodes } from "http-status-codes";
 
+const auditService = getAuditService();
+
 export const removeMemberFromOrg = async (memberId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth(async ({ org, role, prisma }) =>
+    withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const guardError = await prisma.$transaction(async (tx) => {
                 const targetMember = await tx.userToOrg.findUnique({
@@ -42,6 +45,10 @@ export const removeMemberFromOrg = async (memberId: string): Promise<{ success: 
                     }
                 }
 
+                await invalidateAllSessionsForUser(tx, memberId);
+                await revokeUserOAuthTokens(tx, memberId);
+                await revokeUserApiKeysInOrg(tx, memberId, org.id);
+
                 await tx.userToOrg.delete({
                     where: {
                         orgId_userId: {
@@ -57,6 +64,16 @@ export const removeMemberFromOrg = async (memberId: string): Promise<{ success: 
             if (guardError) {
                 return guardError;
             }
+
+            await auditService.createAudit({
+                action: "org.member_removed",
+                actor: { id: user.id, type: "user" },
+                target: { id: memberId, type: "user" },
+                orgId: org.id,
+                metadata: {
+                    message: `${user.id} removed ${memberId} from the organization`,
+                },
+            });
 
             return { success: true };
         }))
@@ -82,6 +99,10 @@ export const leaveOrg = async (): Promise<{ success: boolean } | ServiceError> =
                 }
             }
 
+            await invalidateAllSessionsForUser(tx, user.id);
+            await revokeUserOAuthTokens(tx, user.id);
+            await revokeUserApiKeysInOrg(tx, user.id, org.id);
+
             await tx.userToOrg.delete({
                 where: {
                     orgId_userId: {
@@ -98,7 +119,68 @@ export const leaveOrg = async (): Promise<{ success: boolean } | ServiceError> =
             return guardError;
         }
 
+        await auditService.createAudit({
+            action: "org.member_left",
+            actor: { id: user.id, type: "user" },
+            target: { id: user.id, type: "user" },
+            orgId: org.id,
+            metadata: {
+                message: `${user.id} left the organization`,
+            },
+        });
+
         return {
             success: true,
         }
     }));
+
+/**
+ * Invalidates every active JWT cookie for the given user by incrementing
+ * their `sessionVersion`. The next request from any of their active
+ * sessions will compare the cookie's baked-in version against the
+ * (now-bumped) value on the User row, fail, and be treated as logged out.
+ */
+const invalidateAllSessionsForUser = async (
+    prisma: Prisma.TransactionClient,
+    userId: string,
+): Promise<void> => {
+    await prisma.user.update({
+        where: { id: userId },
+        data: { sessionVersion: { increment: 1 } },
+    });
+};
+
+const revokeUserApiKeysInOrg = async (
+    prisma: Prisma.TransactionClient,
+    userId: string,
+    orgId: number,
+): Promise<void> => {
+    await prisma.apiKey.deleteMany({
+        where: {
+            createdById: userId,
+            orgId,
+        }
+    });
+};
+
+const revokeUserOAuthTokens = async (
+    prisma: Prisma.TransactionClient,
+    userId: string,
+): Promise<void> => {
+    await prisma.oAuthToken.deleteMany({
+        where: {
+            userId
+        }
+    });
+    await prisma.oAuthRefreshToken.deleteMany({
+        where: {
+            userId
+        }
+    });
+    await prisma.oAuthAuthorizationCode.deleteMany({
+        where: {
+            userId
+        }
+    });
+};
+

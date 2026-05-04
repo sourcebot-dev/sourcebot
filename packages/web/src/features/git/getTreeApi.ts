@@ -7,7 +7,8 @@ import { headers } from 'next/headers';
 import simpleGit from 'simple-git';
 import type z from 'zod';
 import { getTreeRequestSchema, getTreeResponseSchema } from './schemas';
-import { buildFileTree, isGitRefValid, isPathValid, logger, normalizePath } from './utils';
+import { buildFileTree, isGitRefValid, isPathValid, normalizePath } from './utils';
+import { logger } from './logger';
 
 export { getTreeRequestSchema, getTreeResponseSchema } from './schemas';
 export type GetTreeRequest = z.infer<typeof getTreeRequestSchema>;
