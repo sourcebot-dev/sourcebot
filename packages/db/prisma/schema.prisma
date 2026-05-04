@@ -375,6 +375,11 @@ model User {
   oauthAuthCodes     OAuthAuthorizationCode[]
   oauthRefreshTokens OAuthRefreshToken[]
 
+  /// Per-user JWT version. Incremented to invalidate every active session for
+  /// this user on their next request. Compared against the `sessionVersion`
+  /// claim baked into the JWT cookie at mint time.
+  sessionVersion Int @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

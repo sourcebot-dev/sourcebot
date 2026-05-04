@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- [EE] Added three new audit actions covering the full org membership lifecycle: `org.member_added`, `org.member_removed`, and `org.member_left`. [#1165](https://github.com/sourcebot-dev/sourcebot/pull/1165)
+- Added three new audit actions covering the full org membership lifecycle: `org.member_added`, `org.member_removed`, and `org.member_left`. [#1165](https://github.com/sourcebot-dev/sourcebot/pull/1165)
+- Added per-user JWT session versioning so admin-driven member removals (and voluntary leaves) invalidate the removed user's active JWT cookies, personal API keys, and OAuth tokens atomically on their next request. [#1168](https://github.com/sourcebot-dev/sourcebot/pull/1168)
 
 ## [4.17.0] - 2026-04-30
 
