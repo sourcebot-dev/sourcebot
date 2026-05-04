@@ -81,7 +81,7 @@ const schema = {
       "type": "array",
       "items": {
         "type": "string",
-        "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+        "pattern": "^[\\w.-]+\\/[\\w. -]+$"
       },
       "default": [],
       "examples": [
@@ -96,7 +96,7 @@ const schema = {
       "type": "array",
       "items": {
         "type": "string",
-        "pattern": "^[\\w.-]+\\/[\\w.-]+\\/[\\w.-]+$"
+        "pattern": "^[\\w.-]+\\/[\\w. -]+\\/[\\w. -]+$"
       },
       "default": [],
       "examples": [
