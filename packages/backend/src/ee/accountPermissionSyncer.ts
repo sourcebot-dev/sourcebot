@@ -65,7 +65,7 @@ export class AccountPermissionSyncer {
                 where: {
                     AND: [
                         {
-                            provider: {
+                            providerType: {
                                 in: PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS
                             }
                         },
@@ -182,7 +182,7 @@ export class AccountPermissionSyncer {
 
         const config = await loadConfig(env.CONFIG_PATH);
 
-        logger.info(`Syncing permissions for ${account.provider} account (id: ${account.id}) for user ${account.user.email}...`);
+        logger.info(`Syncing permissions for ${account.providerId} account (id: ${account.id}) for user ${account.user.email}...`);
 
         // Ensure the OAuth token is fresh, refreshing it if it is expired or near expiry.
         // Throws and sets Account.tokenRefreshErrorMessage if the refresh fails.
@@ -192,15 +192,18 @@ export class AccountPermissionSyncer {
         const repoIds = await (async () => {
             const aggregatedRepoIds: Set<number> = new Set();
 
-            if (account.provider === 'github') {
-                // @hack: we don't have a way of identifying specific identity providers in the config file.
-                // Instead, we'll use the first connection of type 'github' and hope for the best.
-                const baseUrl = Array.from(Object.values(config.connections ?? {}))
-                    .find(connection => connection.type === 'github')?.url;
+            const idpConfig = config.identityProviders ?
+                config.identityProviders[account.providerId] :
+                undefined;
 
+            if (!idpConfig) {
+                throw new Error(`Unable to find IDP config in config.json.`);
+            }
+
+            if (idpConfig.provider === 'github') {
                 const { octokit } = await createOctokitFromToken({
                     token: accessToken,
-                    url: baseUrl,
+                    url: idpConfig.baseUrl,
                 });
 
                 const scopes = await getGitHubOAuthScopesForAuthenticatedUser(octokit, accessToken);
@@ -237,20 +240,18 @@ export class AccountPermissionSyncer {
                         external_codeHostType: 'github',
                         external_id: {
                             in: gitHubRepoIds,
-                        }
+                        },
+                        ...(account.issuerUrl ? {
+                            external_codeHostUrl: account.issuerUrl,
+                        } : {}),
                     }
                 });
 
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
-            } else if (account.provider === 'gitlab') {
-                // @hack: we don't have a way of identifying specific identity providers in the config file.
-                // Instead, we'll use the first connection of type 'gitlab' and hope for the best.
-                const baseUrl = Array.from(Object.values(config.connections ?? {}))
-                    .find(connection => connection.type === 'gitlab')?.url
-
+            } else if (idpConfig.provider === 'gitlab') {
                 const api = await createGitLabFromOAuthToken({
                     oauthToken: accessToken,
-                    url: baseUrl,
+                    url: idpConfig.baseUrl,
                 });
 
                 const scopes = await getGitLabOAuthScopesForAuthenticatedUser(api);
@@ -273,12 +274,15 @@ export class AccountPermissionSyncer {
                         external_codeHostType: 'gitlab',
                         external_id: {
                             in: gitLabProjectIds,
-                        }
+                        },
+                        ...(account.issuerUrl ? {
+                            external_codeHostUrl: account.issuerUrl,
+                        } : {}),
                     }
                 });
 
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
-            } else if (account.provider === 'bitbucket-cloud') {
+            } else if (idpConfig.provider === 'bitbucket-cloud') {
                 // @note: we don't pass a user here since we want to use a bearer token
                 // for authentication.
                 const client = createBitbucketCloudClient(/* user = */ undefined, accessToken)
@@ -290,22 +294,16 @@ export class AccountPermissionSyncer {
                         external_codeHostType: 'bitbucketCloud',
                         external_id: {
                             in: bitbucketRepoUuids,
-                        }
+                        },
+                        ...(account.issuerUrl ? {
+                            external_codeHostUrl: account.issuerUrl,
+                        } : {}),
                     }
                 });
 
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
-            } else if (account.provider === 'bitbucket-server') {
-                // @hack: we don't have a way of identifying specific identity providers in the config file.
-                // Instead, we'll use the first Bitbucket Server connection's URL as the base URL.
-                const baseUrl = Array.from(Object.values(config.connections ?? {}))
-                    .find(connection => connection.type === 'bitbucket' && connection.deploymentType === 'server')?.url;
-
-                if (!baseUrl) {
-                    throw new Error(`No Bitbucket Server connection URL found in config for account ${account.id}`);
-                }
-
-                const client = createBitbucketServerClient(baseUrl, /* user = */ undefined, accessToken);
+            } else if (idpConfig.provider === 'bitbucket-server') {
+                const client = createBitbucketServerClient(idpConfig.baseUrl, /* user = */ undefined, accessToken);
                 const serverRepos = await getReposForAuthenticatedBitbucketServerUser(client);
                 const serverRepoIds = serverRepos.map(r => r.id);
 
@@ -313,12 +311,15 @@ export class AccountPermissionSyncer {
                     where: {
                         external_codeHostType: 'bitbucketServer',
                         external_id: { in: serverRepoIds },
+                        ...(account.issuerUrl ? {
+                            external_codeHostUrl: account.issuerUrl,
+                        } : {}),
                     }
                 });
 
                 repos.forEach(repo => aggregatedRepoIds.add(repo.id));
             } else {
-                throw new Error(`Unsupported code host type: ${account.provider}`);
+                throw new Error(`Unsupported provider type: ${idpConfig.provider}`);
             }
 
             return Array.from(aggregatedRepoIds);
@@ -371,7 +372,7 @@ export class AccountPermissionSyncer {
             }
         });
 
-        logger.info(`Permissions synced for ${account.provider} account (id: ${account.id}) for user ${account.user.email}`);
+        logger.info(`Permissions synced for ${account.providerId} account (id: ${account.id}) for user ${account.user.email}`);
     }
 
     private async onJobFailed(job: Job<AccountPermissionSyncJob> | undefined, err: Error) {

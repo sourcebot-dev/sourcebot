@@ -5,14 +5,19 @@ import { OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME } from "@/lib/constants";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
-import { createLogger, env, IdentityProviderType, loadConfig, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
 import { hasEntitlement } from "@/lib/entitlements";
+import { createLogger, doesIdpSupportPermissionSyncing, env, loadConfig } from "@sourcebot/shared";
 import { cookies } from "next/headers";
 
 const logger = createLogger('web-ee-sso-actions');
 
 export type LinkedAccount = {
-    provider: string;
+    /** Provider instance id (e.g., 'github', 'gitlab-corp') — used for `signIn(provider)`. */
+    providerId: string;
+    /** Provider type (e.g., 'github', 'gitlab') — used to pick icon / display defaults. */
+    providerType: string;
+    /** Optional admin-supplied display name from config; overrides type-derived defaults in the UI. */
+    displayName?: string;
     isLinked: boolean;
     // Present when isLinked = true
     accountId?: string;
@@ -32,48 +37,54 @@ export const getLinkedAccounts = async () => sew(() =>
                 where: { userId: user.id },
                 select: {
                     id: true,
-                    provider: true,
+                    providerType: true,
+                    providerId: true,
                     providerAccountId: true,
                     tokenRefreshErrorMessage: true,
                 },
             });
 
             const config = await loadConfig(env.CONFIG_PATH);
-            const identityProviderConfigs = config.identityProviders ?? [];
 
             const permissionSyncEnabled =
                 env.PERMISSION_SYNC_ENABLED === 'true' &&
                 await hasEntitlement('permission-syncing');
 
-            const accountsByProvider = new Map(accounts.map(a => [a.provider, a]));
             const result: LinkedAccount[] = [];
 
             // All connected accounts (from DB), enriched with config data where available
             for (const account of accounts) {
-                const providerConfig = identityProviderConfigs.find(c => c.provider === account.provider);
+                const providerConfig = config.identityProviders ?
+                    config.identityProviders[account.providerId] :
+                    undefined;
                 const isAccountLinking = providerConfig?.purpose === 'account_linking';
 
                 result.push({
-                    provider: account.provider,
+                    providerId: account.providerId,
+                    providerType: account.providerType,
+                    displayName: providerConfig?.displayName,
                     isLinked: true,
                     accountId: account.id,
                     providerAccountId: account.providerAccountId,
                     error: account.tokenRefreshErrorMessage ?? undefined,
                     isAccountLinkingProvider: isAccountLinking,
                     required: isAccountLinking ? (providerConfig?.accountLinkingRequired ?? false) : false,
-                    supportsPermissionSync: permissionSyncEnabled && PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS.includes(account.provider as IdentityProviderType),
+                    supportsPermissionSync: permissionSyncEnabled && doesIdpSupportPermissionSyncing(account.providerType),
                 });
             }
 
             // Unlinked account_linking providers from config (not yet connected)
-            for (const providerConfig of identityProviderConfigs) {
-                if (!accountsByProvider.has(providerConfig.provider)) {
+            for (const [id, providerConfig] of Object.entries(config.identityProviders ?? {})) {
+                const account = accounts.find((account) => account.providerId === id);
+                if (!account) {
                     result.push({
-                        provider: providerConfig.provider,
+                        providerId: id,
+                        providerType: providerConfig.provider,
+                        displayName: providerConfig.displayName,
                         isLinked: false,
                         isAccountLinkingProvider: providerConfig.purpose === 'account_linking',
                         required: providerConfig.purpose === 'account_linking' ? (providerConfig.accountLinkingRequired ?? false) : false,
-                        supportsPermissionSync: permissionSyncEnabled && PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS.includes(providerConfig.provider),
+                        supportsPermissionSync: permissionSyncEnabled && doesIdpSupportPermissionSyncing(providerConfig.provider),
                     });
                 }
             }
@@ -84,17 +95,17 @@ export const getLinkedAccounts = async () => sew(() =>
 );
 
 
-export const unlinkLinkedAccountProvider = async (provider: string) => sew(() =>
+export const unlinkLinkedAccountProvider = async (providerId: string) => sew(() =>
     withAuth(async ({ prisma, role, user }) =>
         withMinimumOrgRole(role, OrgRole.MEMBER, async () => {
             const result = await prisma.account.deleteMany({
                 where: {
-                    provider,
+                    providerId,
                     userId: user.id,
                 },
             });
 
-            logger.info(`Unlinked account provider ${provider} for user ${user.id}. Deleted ${result.count} account(s).`);
+            logger.info(`Unlinked account provider ${providerId} for user ${user.id}. Deleted ${result.count} account(s).`);
 
             return { success: true, count: result.count };
         })

@@ -1,11 +1,16 @@
 import { indexSchema } from "@sourcebot/schemas/v3/index.schema";
-import { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
+import { IdentityProviderConfig, SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
 import { createEnv } from "@t3-oss/env-core";
 import { Ajv } from "ajv";
 import { readFile } from 'fs/promises';
 import stripJsonComments from "strip-json-comments";
 import { z } from "zod";
 import { getTokenFromConfig } from "./crypto.js";
+
+export type NormalizedIdentityProviders = Record<string, IdentityProviderConfig>;
+export type NormalizedSourcebotConfig = Omit<SourcebotConfig, "identityProviders"> & {
+    identityProviders?: NormalizedIdentityProviders;
+};
 
 // Booleans are specified as 'true' or 'false' strings.
 const booleanSchema = z.enum(["true", "false"]);
@@ -19,7 +24,7 @@ const ajv = new Ajv({
     validateFormats: false,
 });
 
-export const resolveEnvironmentVariableOverridesFromConfig = async (config: SourcebotConfig): Promise<Record<string, string>> => {
+export const resolveEnvironmentVariableOverridesFromConfig = async (config: NormalizedSourcebotConfig): Promise<Record<string, string>> => {
     if (!config.environmentOverrides) {
         return {};
     }
@@ -55,7 +60,39 @@ export const isRemotePath = (path: string) => {
     return path.startsWith('https://') || path.startsWith('http://');
 }
 
-export const loadConfig = async (configPath?: string): Promise<SourcebotConfig> => {
+/**
+ * Collapses the dual-form `identityProviders` field into the canonical object
+ * form keyed by id. The array form is deprecated and only supports a single
+ * instance per provider type - its synthesized id is `entry.provider`, which
+ * matches the value historically stored in `Account.provider` for those users,
+ * so existing single-instance deployments don't need a data migration.
+ */
+const normalizeIdentityProviders = (
+    raw: SourcebotConfig["identityProviders"],
+): NormalizedIdentityProviders | undefined => {
+    if (!raw) {
+        return undefined;
+    }
+    if (!Array.isArray(raw)) {
+        return raw;
+    }
+
+    const result: NormalizedIdentityProviders = {};
+    for (const entry of raw) {
+        const id = entry.provider;
+        if (result[id]) {
+            throw new Error(
+                `Duplicate identity provider id "${id}" in array-form \`identityProviders\`. ` +
+                `The array form is deprecated and only supports one instance per provider type. ` +
+                `Migrate to the object form (keyed by id) to configure multiple instances.`,
+            );
+        }
+        result[id] = entry;
+    }
+    return result;
+};
+
+export const loadConfig = async (configPath?: string): Promise<NormalizedSourcebotConfig> => {
     if (!configPath) {
         throw new Error('CONFIG_PATH is required but not provided');
     }
@@ -108,7 +145,11 @@ export const loadConfig = async (configPath?: string): Promise<SourcebotConfig> 
     if (!isValidConfig) {
         throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}`);
     }
-    return config;
+
+    return {
+        ...config,
+        identityProviders: normalizeIdentityProviders(config.identityProviders),
+    };
 }
 
 // Merge process.env with environment variables resolved from config.json

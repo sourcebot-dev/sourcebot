@@ -38,7 +38,8 @@ export function LinkedAccountProviderCard({
     const router = useRouter();
     const { toast } = useToast();
 
-    const providerInfo = getAuthProviderInfo(linkedAccount.provider);
+    const providerInfo = getAuthProviderInfo(linkedAccount.providerType);
+    const displayName = linkedAccount.displayName ?? providerInfo.displayName;
 
     const { data: syncStatusData } = useQuery({
         queryKey: ["accountSyncStatus", syncJobId],
@@ -52,27 +53,27 @@ export function LinkedAccountProviderCard({
     useEffect(() => {
         if (syncJobId && syncStatusData !== undefined && !syncStatusData.isSyncing) {
             setSyncJobId(null);
-            toast({ description: `✅ Permissions refreshed for ${providerInfo.displayName}.` });
+            toast({ description: `✅ Permissions refreshed for ${displayName}.` });
             router.refresh();
         }
-    }, [syncJobId, syncStatusData, providerInfo.displayName, toast, router]);
+    }, [syncJobId, syncStatusData, displayName, toast, router]);
 
     const handleConnect = () => {
-        signIn(linkedAccount.provider, { redirectTo: callbackUrl ?? window.location.href });
+        signIn(linkedAccount.providerId, { redirectTo: callbackUrl ?? window.location.href });
     };
 
     const handleDisconnect = async () => {
         setIsDisconnecting(true);
         try {
-            const result = await unlinkLinkedAccountProvider(linkedAccount.provider);
+            const result = await unlinkLinkedAccountProvider(linkedAccount.providerId);
             if (isServiceError(result)) {
                 toast({
-                    description: `❌ Failed to disconnect ${providerInfo.displayName}. ${result.message}`,
+                    description: `❌ Failed to disconnect ${displayName}. ${result.message}`,
                     variant: "destructive",
                 });
                 return;
             }
-            toast({ description: `✅ ${providerInfo.displayName} disconnected.` });
+            toast({ description: `✅ ${displayName} disconnected.` });
             router.refresh();
         } catch (error) {
             toast({
@@ -112,12 +113,12 @@ export function LinkedAccountProviderCard({
                 <div className="flex items-center gap-3">
                     <ProviderIcon
                         icon={providerInfo.icon}
-                        displayName={providerInfo.displayName}
+                        displayName={displayName}
                         size="md"
                     />
                     <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">{providerInfo.displayName}</span>
+                            <span className="text-sm font-medium">{displayName}</span>
                             {linkedAccount.required && (
                                 <Badge variant="default" className="text-xs font-medium">Required</Badge>
                             )}

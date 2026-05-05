@@ -25,10 +25,10 @@ const SUPPORTED_PROVIDERS = [
     'bitbucket-server',
 ] as const satisfies IdentityProviderType[];
 
-type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
+type SupportedProviderType = (typeof SUPPORTED_PROVIDERS)[number];
 
-const isSupportedProvider = (provider: string): provider is SupportedProvider =>
-    SUPPORTED_PROVIDERS.includes(provider as SupportedProvider);
+const isSupportedProvider = (providerType: string): providerType is SupportedProviderType =>
+    SUPPORTED_PROVIDERS.includes(providerType as SupportedProviderType);
 
 // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-5.1
 const OAuthTokenResponseSchema = z.object({
@@ -65,10 +65,10 @@ export const ensureFreshAccountToken = async (
     db: PrismaClient,
 ): Promise<string> => {
     if (!account.access_token) {
-        throw new Error(`Account ${account.id} (${account.provider}) has no access token.`);
+        throw new Error(`Account ${account.id} (${account.providerId}) has no access token.`);
     }
 
-    if (!isSupportedProvider(account.provider)) {
+    if (!isSupportedProvider(account.providerType)) {
         // Non-refreshable provider — just decrypt and return whatever is stored.
         const token = decryptOAuthToken(account.access_token);
         if (!token) {
@@ -92,7 +92,7 @@ export const ensureFreshAccountToken = async (
     }
 
     if (!account.refresh_token) {
-        const message = `Account ${account.id} (${account.provider}) token is expired and has no refresh token.`;
+        const message = `Account ${account.id} (${account.providerId}) token is expired and has no refresh token.`;
         logger.error(message);
         await setTokenRefreshError(account.id, message, db);
         throw new Error(message);
@@ -100,17 +100,22 @@ export const ensureFreshAccountToken = async (
 
     const refreshToken = decryptOAuthToken(account.refresh_token);
     if (!refreshToken) {
-        const message = `Failed to decrypt refresh token for account ${account.id} (${account.provider}).`;
+        const message = `Failed to decrypt refresh token for account ${account.id} (${account.providerId}).`;
         logger.error(message);
         await setTokenRefreshError(account.id, message, db);
         throw new Error(message);
     }
 
-    logger.debug(`Refreshing OAuth token for account ${account.id} (${account.provider})...`);
+    logger.debug(`Refreshing OAuth token for account ${account.id} (${account.providerId})...`);
 
-    const refreshResponse = await refreshOAuthToken(account.provider, refreshToken);
+    const refreshResponse = await refreshOAuthToken(
+        account.providerId,
+        account.providerType,
+        refreshToken
+    );
+
     if (!refreshResponse) {
-        const message = `OAuth token refresh failed for account ${account.id} (${account.provider}).`;
+        const message = `OAuth token refresh failed for account ${account.id} (${account.providerId}).`;
         logger.error(message);
         await setTokenRefreshError(account.id, message, db);
         throw new Error(message);
@@ -135,7 +140,7 @@ export const ensureFreshAccountToken = async (
         },
     });
 
-    logger.debug(`Successfully refreshed OAuth token for account ${account.id} (${account.provider}).`);
+    logger.debug(`Successfully refreshed OAuth token for account ${account.id} (${account.providerId}).`);
     return refreshResponse.access_token;
 };
 
@@ -147,72 +152,60 @@ const setTokenRefreshError = async (accountId: string, message: string, db: Pris
 };
 
 const refreshOAuthToken = async (
-    provider: SupportedProvider,
+    providerId: string,
+    providerType: SupportedProviderType,
     refreshToken: string,
 ): Promise<OAuthTokenResponse | null> => {
     try {
         const config = await loadConfig(env.CONFIG_PATH);
-        const identityProviders = config?.identityProviders ?? [];
-        const providerConfigs = identityProviders.filter(idp => idp.provider === provider);
+        const idpConfig = config.identityProviders ?
+                config.identityProviders[providerId] :
+                undefined;
 
         // If no provider configs in the config file, try deprecated env vars.
-        if (providerConfigs.length === 0) {
-            const envCredentials = getDeprecatedEnvCredentials(provider);
+        if (!idpConfig) {
+            const envCredentials = getDeprecatedEnvCredentials(providerType);
             if (envCredentials) {
-                logger.debug(`Using deprecated env vars for ${provider} token refresh`);
-                const result = await tryRefreshToken(provider, refreshToken, envCredentials);
+                logger.debug(`Using deprecated env vars for ${providerType} token refresh`);
+                const result = await tryRefreshToken(providerType, refreshToken, envCredentials);
                 if (result) {
                     return result;
                 }
-                logger.error(`Failed to refresh ${provider} token using deprecated env credentials`);
+                logger.error(`Failed to refresh ${providerType} token using deprecated env credentials`);
                 return null;
             }
-            logger.error(`No provider config or env credentials found for: ${provider}`);
+            logger.error(`No provider config or env credentials found for: ${providerType}`);
             return null;
         }
 
-        // Loop through all provider configs and return on first successful fetch
-        //
-        // The reason we have to do this is because 1) we might have multiple providers of the same type (ex. we're connecting to multiple gitlab instances) and 2) there isn't
-        // a trivial way to map a provider config to the associated Account object in the DB. The reason the config is involved at all here is because we need the client
-        // id/secret in order to refresh the token, and that info is in the config. We could in theory bypass this by storing the client id/secret for the provider in the
-        // Account table but we decided not to do that since these are secret. Instead, we simply try all of the client/id secrets for the associated provider type. This is safe
-        // to do because only the correct client id/secret will work since we're using a specific refresh token.
-        for (const providerConfig of providerConfigs) {
-            try {
-                const linkedAccountProviderConfig = providerConfig as
-                    GitHubIdentityProviderConfig |
-                    GitLabIdentityProviderConfig |
-                    BitbucketCloudIdentityProviderConfig |
-                    BitbucketServerIdentityProviderConfig;
+        const linkedAccountProviderConfig = idpConfig as
+            GitHubIdentityProviderConfig |
+            GitLabIdentityProviderConfig |
+            BitbucketCloudIdentityProviderConfig |
+            BitbucketServerIdentityProviderConfig;
 
-                // Get client credentials from config
-                const clientId = await getTokenFromConfig(linkedAccountProviderConfig.clientId);
-                const clientSecret = await getTokenFromConfig(linkedAccountProviderConfig.clientSecret);
-                const baseUrl = 'baseUrl' in linkedAccountProviderConfig
-                    ? linkedAccountProviderConfig.baseUrl
-                    : undefined;
+        // Get client credentials from config
+        const clientId = await getTokenFromConfig(linkedAccountProviderConfig.clientId);
+        const clientSecret = await getTokenFromConfig(linkedAccountProviderConfig.clientSecret);
+        const baseUrl = 'baseUrl' in linkedAccountProviderConfig
+            ? linkedAccountProviderConfig.baseUrl
+            : undefined;
 
-                const result = await tryRefreshToken(provider, refreshToken, { clientId, clientSecret, baseUrl });
-                if (result) {
-                    return result;
-                }
-            } catch (configError) {
-                logger.debug(`Error trying provider config for ${provider}:`, configError);
-                continue;
-            }
+        const result = await tryRefreshToken(providerType, refreshToken, { clientId, clientSecret, baseUrl });
+        if (result) {
+            return result;
         }
 
-        logger.error(`All provider configs failed for: ${provider}`);
+        logger.error(`Token refresh failed for ${providerId}`);
         return null;
     } catch (e) {
-        logger.error(`Error refreshing ${provider} token:`, e);
+        logger.error(`Error refreshing ${providerType} token:`, e);
         return null;
     }
 };
 
 const tryRefreshToken = async (
-    provider: SupportedProvider,
+    providerType: SupportedProviderType,
     refreshToken: string,
     credentials: ProviderCredentials,
 ): Promise<OAuthTokenResponse | null> => {
@@ -223,27 +216,27 @@ const tryRefreshToken = async (
         // Use a trailing-slash-normalized base so relative paths append correctly,
         // preserving any context path (e.g. https://example.com/bitbucket/).
         const base = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
-        if (provider === 'github') {
+        if (providerType === 'github') {
             url = new URL('login/oauth/access_token', base).toString();
-        } else if (provider === 'bitbucket-server') {
+        } else if (providerType === 'bitbucket-server') {
             url = new URL('rest/oauth2/latest/token', base).toString();
         } else {
             url = new URL('oauth/token', base).toString();
         }
-    } else if (provider === 'github') {
+    } else if (providerType === 'github') {
         url = 'https://github.com/login/oauth/access_token';
-    } else if (provider === 'gitlab') {
+    } else if (providerType === 'gitlab') {
         url = 'https://gitlab.com/oauth/token';
-    } else if (provider === 'bitbucket-cloud') {
+    } else if (providerType === 'bitbucket-cloud') {
         url = 'https://bitbucket.org/site/oauth2/access_token';
     } else {
-        logger.error(`Unsupported provider for token refresh: ${provider}`);
+        logger.error(`Unsupported provider for token refresh: ${providerType}`);
         return null;
     }
 
     // Bitbucket requires client credentials via HTTP Basic Auth rather than request body params.
     // @see: https://support.atlassian.com/bitbucket-cloud/docs/use-oauth-on-bitbucket-cloud/
-    const useBasicAuth = provider === 'bitbucket-cloud';
+    const useBasicAuth = providerType === 'bitbucket-cloud';
 
     // Build request body parameters
     const bodyParams: Record<string, string> = {
@@ -260,7 +253,7 @@ const tryRefreshToken = async (
 
     // GitLab requires redirect_uri to match the original authorization request
     // even when refreshing tokens. Use URL constructor to handle trailing slashes.
-    if (provider === 'gitlab') {
+    if (providerType === 'gitlab') {
         bodyParams.redirect_uri = new URL('/api/auth/callback/gitlab', env.AUTH_URL).toString();
     }
 
@@ -278,7 +271,7 @@ const tryRefreshToken = async (
 
     if (!response.ok) {
         const errorText = await response.text();
-        logger.error(`Failed to refresh ${provider} token: ${response.status} ${errorText}`);
+        logger.error(`Failed to refresh ${providerType} token: ${response.status} ${errorText}`);
         return null;
     }
 
@@ -286,7 +279,7 @@ const tryRefreshToken = async (
     const result = OAuthTokenResponseSchema.safeParse(json);
 
     if (!result.success) {
-        logger.error(`Invalid OAuth token response from ${provider}:\n${result.error.message}`);
+        logger.error(`Invalid OAuth token response from ${providerType}:\n${result.error.message}`);
         return null;
     }
 
@@ -297,15 +290,15 @@ const tryRefreshToken = async (
  * Get credentials from deprecated environment variables.
  * This is for backwards compatibility with deployments using env vars instead of config file.
  */
-const getDeprecatedEnvCredentials = (provider: string): ProviderCredentials | null => {
-    if (provider === 'github' && env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
+const getDeprecatedEnvCredentials = (providerType: string): ProviderCredentials | null => {
+    if (providerType === 'github' && env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
         return {
             clientId: env.AUTH_EE_GITHUB_CLIENT_ID,
             clientSecret: env.AUTH_EE_GITHUB_CLIENT_SECRET,
             baseUrl: env.AUTH_EE_GITHUB_BASE_URL,
         };
     }
-    if (provider === 'gitlab' && env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
+    if (providerType === 'gitlab' && env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
         return {
             clientId: env.AUTH_EE_GITLAB_CLIENT_ID,
             clientSecret: env.AUTH_EE_GITLAB_CLIENT_SECRET,
