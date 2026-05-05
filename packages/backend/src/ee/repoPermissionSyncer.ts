@@ -222,10 +222,11 @@ export class RepoPermissionSyncer {
 
                 const accounts = await this.db.account.findMany({
                     where: {
-                        provider: 'github',
+                        providerType: 'github',
                         providerAccountId: {
                             in: githubUserIds,
-                        }
+                        },
+                        issuerUrl: credentials.hostUrl,
                     },
                 });
 
@@ -248,10 +249,11 @@ export class RepoPermissionSyncer {
 
                 const accounts = await this.db.account.findMany({
                     where: {
-                        provider: 'gitlab',
+                        providerType: 'gitlab',
                         providerAccountId: {
                             in: gitlabUserIds,
-                        }
+                        },
+                        issuerUrl: credentials.hostUrl,
                     },
                 });
 
@@ -289,10 +291,11 @@ export class RepoPermissionSyncer {
 
                 const accounts = await this.db.account.findMany({
                     where: {
-                        provider: 'bitbucket-cloud',
+                        providerType: 'bitbucket-cloud',
                         providerAccountId: {
                             in: userAccountIds,
-                        }
+                        },
+                        issuerUrl: credentials.hostUrl,
                     },
                 });
 
@@ -328,8 +331,9 @@ export class RepoPermissionSyncer {
 
                 const accounts = await this.db.account.findMany({
                     where: {
-                        provider: 'bitbucket-server',
+                        providerType: 'bitbucket-server',
                         providerAccountId: { in: userIds },
+                        issuerUrl: credentials.hostUrl,
                     }
                 });
 

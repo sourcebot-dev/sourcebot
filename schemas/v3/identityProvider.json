@@ -9,6 +9,10 @@
                 "provider": {
                     "const": "github"
                 },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional human-readable label shown on the login screen. Defaults to 'GitHub'."
+                },
                 "purpose": {
                     "enum": ["sso", "account_linking"]
                 },
@@ -42,6 +46,10 @@
             "properties": {
                 "provider": {
                     "const": "gitlab"
+                },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional human-readable label shown on the login screen. Defaults to 'GitLab'."
                 },
                 "purpose": {
                     "enum": ["sso", "account_linking"]
@@ -77,6 +85,10 @@
                 "provider": {
                     "const": "google"
                 },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional human-readable label shown on the login screen. Defaults to 'Google'."
+                },
                 "purpose": {
                     "const": "sso"
                 },
@@ -95,6 +107,10 @@
             "properties": {
                 "provider": {
                     "const": "okta"
+                },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional human-readable label shown on the login screen. Defaults to 'Okta'."
                 },
                 "purpose": {
                     "const": "sso"
@@ -118,6 +134,10 @@
                 "provider": {
                     "const": "keycloak"
                 },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional human-readable label shown on the login screen. Defaults to 'Keycloak'."
+                },
                 "purpose": {
                     "const": "sso"
                 },
@@ -139,6 +159,10 @@
             "properties": {
                 "provider": {
                     "const": "microsoft-entra-id"
+                },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional human-readable label shown on the login screen. Defaults to 'Microsoft Entra ID'."
                 },
                 "purpose": {
                     "const": "sso"
@@ -162,6 +186,10 @@
                 "provider": {
                     "const": "gcp-iap"
                 },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional human-readable label shown on the login screen. Defaults to 'Google Cloud IAP'."
+                },
                 "purpose": {
                     "const": "sso"
                 },
@@ -177,6 +205,10 @@
             "properties": {
                 "provider": {
                     "const": "bitbucket-cloud"
+                },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional human-readable label shown on the login screen and account settings. Defaults to 'Bitbucket Cloud'."
                 },
                 "purpose": {
                     "enum": ["sso", "account_linking"]
@@ -201,6 +233,10 @@
                 "provider": {
                     "const": "authentik"
                 },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional human-readable label shown on the login screen. Defaults to 'Authentik'."
+                },
                 "purpose": {
                     "const": "sso"
                 },
@@ -223,6 +259,10 @@
                 "provider": {
                     "const": "jumpcloud"
                 },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional human-readable label shown on the login screen. Defaults to 'JumpCloud'."
+                },
                 "purpose": {
                     "const": "sso"
                 },
@@ -244,6 +284,10 @@
             "properties": {
                 "provider": {
                     "const": "bitbucket-server"
+                },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional human-readable label shown on the login screen and account settings. Defaults to 'Bitbucket Server'."
                 },
                 "purpose": {
                     "enum": ["sso", "account_linking"]

@@ -1,6 +1,6 @@
 import { PrismaClient, RepoIndexingJobType } from '@sourcebot/db';
-import { createLogger, env, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from '@sourcebot/shared';
 import { hasEntitlement } from './entitlements.js';
+import { createLogger, doesIdpSupportPermissionSyncing, env } from '@sourcebot/shared';
 import express, { Request, Response } from 'express';
 import 'express-async-errors';
 import * as http from "http";
@@ -126,8 +126,8 @@ export class Api {
             return;
         }
 
-        if (!PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS.includes(account.provider as typeof PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS[number])) {
-            res.status(400).json({ error: `Provider '${account.provider}' does not support permission syncing.` });
+        if (!doesIdpSupportPermissionSyncing(account.providerType)) {
+            res.status(400).json({ error: `Provider '${account.providerType}' does not support permission syncing.` });
             return;
         }
 

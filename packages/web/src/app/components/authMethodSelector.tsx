@@ -42,10 +42,10 @@ export const AuthMethodSelector = ({
 
     // Separate OAuth providers from special auth methods
     const oauthProviders = providers.filter(p => p.purpose === "sso" &&
-        !["credentials", "nodemailer"].includes(p.id)
+        !["credentials", "nodemailer"].includes(p.type)
     );
-    const hasCredentials = providers.some(p => p.purpose === "sso" && p.id === "credentials");
-    const hasMagicLink = providers.some(p => p.purpose === "sso" && p.id === "nodemailer");
+    const hasCredentials = providers.some(p => p.purpose === "sso" && p.type === "credentials");
+    const hasMagicLink = providers.some(p => p.purpose === "sso" && p.type === "nodemailer");
 
     if (oauthProviders.length === 0 && !hasCredentials && !hasMagicLink) {
         return (
@@ -64,11 +64,11 @@ export const AuthMethodSelector = ({
                     ...(oauthProviders.length > 0 ? [
                         <div key="oauth-providers" className="w-full space-y-3">
                             {oauthProviders.map((provider) => {
-                                const providerInfo = getAuthProviderInfo(provider.id);
+                                const providerInfo = getAuthProviderInfo(provider.type);
                                 return (
                                     <ProviderButton
                                         key={provider.id}
-                                        name={providerInfo.displayName}
+                                        name={provider.displayName ?? providerInfo.displayName}
                                         logo={providerInfo.icon}
                                         onClick={() => {
                                             onSignInWithOauth(provider.id);

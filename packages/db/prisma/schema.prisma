@@ -457,9 +457,9 @@ model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
-  /// @note: this field generally matches the `provider` field of the `IdentityProviderConfig` schema
-  provider          String
+  providerId        String
   providerAccountId String
+  providerType      String
   refresh_token     String?
   access_token      String?
   expires_at        Int?
@@ -492,7 +492,7 @@ model Account {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
+  @@unique([providerId, providerAccountId])
 }
 
 // @see : https://authjs.dev/concepts/database-models#verificationtoken

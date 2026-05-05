@@ -1,8 +1,12 @@
 import { getProviders } from "@/auth";
 
 export interface IdentityProviderMetadata {
+    /** Unique instance id (e.g., 'github', 'gitlab-corp') — used for `signIn(id)`. */
     id: string;
-    name: string;
+    /** Provider type (e.g., 'github', 'gitlab') — used to pick icons / event names. */
+    type: string;
+    /** Optional admin-supplied display name from config; overrides type-derived defaults in the UI. */
+    displayName?: string;
     purpose: "sso" | "account_linking";
     required: boolean;
 }
@@ -10,21 +14,12 @@ export interface IdentityProviderMetadata {
 export const getIdentityProviderMetadata = async (): Promise<IdentityProviderMetadata[]> => {
     const providers = await getProviders();
     return providers.map((provider) => {
-        if (typeof provider.provider === "function") {
-            const providerInfo = provider.provider();
-            return {
-                id: providerInfo.id,
-                name: providerInfo.name,
-                purpose: provider.purpose,
-                required: provider.required ?? false,
-            };
-        } else {
-            return {
-                id: provider.provider.id,
-                name: provider.provider.name,
-                purpose: provider.purpose,
-                required: provider.required ?? false,
-            };
-        }
+        return {
+            id: provider.id,
+            type: provider.type,
+            displayName: provider.displayName,
+            purpose: provider.purpose,
+            required: provider.required ?? false,
+        };
     });
-}; 
+};

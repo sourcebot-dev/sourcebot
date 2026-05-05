@@ -15,6 +15,10 @@ export type IdentityProviderConfig =
 
 export interface GitHubIdentityProviderConfig {
   provider: "github";
+  /**
+   * Optional human-readable label shown on the login screen. Defaults to 'GitHub'.
+   */
+  displayName?: string;
   purpose: "sso" | "account_linking";
   clientId:
     | {
@@ -50,6 +54,10 @@ export interface GitHubIdentityProviderConfig {
 }
 export interface GitLabIdentityProviderConfig {
   provider: "gitlab";
+  /**
+   * Optional human-readable label shown on the login screen. Defaults to 'GitLab'.
+   */
+  displayName?: string;
   purpose: "sso" | "account_linking";
   clientId:
     | {
@@ -85,6 +93,10 @@ export interface GitLabIdentityProviderConfig {
 }
 export interface GoogleIdentityProviderConfig {
   provider: "google";
+  /**
+   * Optional human-readable label shown on the login screen. Defaults to 'Google'.
+   */
+  displayName?: string;
   purpose: "sso";
   clientId:
     | {
@@ -115,6 +127,10 @@ export interface GoogleIdentityProviderConfig {
 }
 export interface OktaIdentityProviderConfig {
   provider: "okta";
+  /**
+   * Optional human-readable label shown on the login screen. Defaults to 'Okta'.
+   */
+  displayName?: string;
   purpose: "sso";
   clientId:
     | {
@@ -158,6 +174,10 @@ export interface OktaIdentityProviderConfig {
 }
 export interface KeycloakIdentityProviderConfig {
   provider: "keycloak";
+  /**
+   * Optional human-readable label shown on the login screen. Defaults to 'Keycloak'.
+   */
+  displayName?: string;
   purpose: "sso";
   clientId:
     | {
@@ -201,6 +221,10 @@ export interface KeycloakIdentityProviderConfig {
 }
 export interface MicrosoftEntraIDIdentityProviderConfig {
   provider: "microsoft-entra-id";
+  /**
+   * Optional human-readable label shown on the login screen. Defaults to 'Microsoft Entra ID'.
+   */
+  displayName?: string;
   purpose: "sso";
   clientId:
     | {
@@ -244,6 +268,10 @@ export interface MicrosoftEntraIDIdentityProviderConfig {
 }
 export interface GCPIAPIdentityProviderConfig {
   provider: "gcp-iap";
+  /**
+   * Optional human-readable label shown on the login screen. Defaults to 'Google Cloud IAP'.
+   */
+  displayName?: string;
   purpose: "sso";
   audience:
     | {
@@ -261,6 +289,10 @@ export interface GCPIAPIdentityProviderConfig {
 }
 export interface AuthentikIdentityProviderConfig {
   provider: "authentik";
+  /**
+   * Optional human-readable label shown on the login screen. Defaults to 'Authentik'.
+   */
+  displayName?: string;
   purpose: "sso";
   clientId:
     | {
@@ -304,6 +336,10 @@ export interface AuthentikIdentityProviderConfig {
 }
 export interface BitbucketCloudIdentityProviderConfig {
   provider: "bitbucket-cloud";
+  /**
+   * Optional human-readable label shown on the login screen and account settings. Defaults to 'Bitbucket Cloud'.
+   */
+  displayName?: string;
   purpose: "sso" | "account_linking";
   clientId:
     | {
@@ -335,6 +371,10 @@ export interface BitbucketCloudIdentityProviderConfig {
 }
 export interface JumpCloudIdentityProviderConfig {
   provider: "jumpcloud";
+  /**
+   * Optional human-readable label shown on the login screen. Defaults to 'JumpCloud'.
+   */
+  displayName?: string;
   purpose: "sso";
   clientId:
     | {
@@ -378,6 +418,10 @@ export interface JumpCloudIdentityProviderConfig {
 }
 export interface BitbucketServerIdentityProviderConfig {
   provider: "bitbucket-server";
+  /**
+   * Optional human-readable label shown on the login screen and account settings. Defaults to 'Bitbucket Server'.
+   */
+  displayName?: string;
   purpose: "sso" | "account_linking";
   clientId:
     | {

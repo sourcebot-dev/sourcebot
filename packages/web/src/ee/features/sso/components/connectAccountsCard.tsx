@@ -48,7 +48,7 @@ export const ConnectAccountsCard = ({ linkedAccounts, callbackUrl }: ConnectAcco
                         .sort((a, b) => (b.required ? 1 : 0) - (a.required ? 1 : 0))
                         .map(account => (
                             <LinkedAccountProviderCard
-                                key={account.provider}
+                                key={account.providerId}
                                 linkedAccount={account}
                                 callbackUrl={callbackUrl}
                             />
