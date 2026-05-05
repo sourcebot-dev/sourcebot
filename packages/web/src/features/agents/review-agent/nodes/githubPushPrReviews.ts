@@ -4,8 +4,21 @@ import { createLogger } from "@sourcebot/shared";
 
 const logger = createLogger('github-push-pr-reviews');
 
-export const githubPushPrReviews = async (octokit: Octokit, pr_payload: sourcebot_pr_payload, file_diff_reviews: sourcebot_file_diff_review[]) => {
+export const githubPushPrReviews = async (octokit: Octokit, pr_payload: sourcebot_pr_payload, file_diff_reviews: sourcebot_file_diff_review[], summary?: string) => {
     logger.info("Executing github_push_pr_reviews");
+
+    if (summary) {
+        try {
+            await octokit.rest.issues.createComment({
+                owner: pr_payload.owner,
+                repo: pr_payload.repo,
+                issue_number: pr_payload.number,
+                body: summary,
+            });
+        } catch (error) {
+            logger.error(`Error posting PR summary comment: ${error}`);
+        }
+    }
 
     try {
         for (const file_diff_review of file_diff_reviews) {

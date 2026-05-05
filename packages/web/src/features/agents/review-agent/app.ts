@@ -1,6 +1,7 @@
 import { Octokit } from "octokit";
 import { Gitlab } from "@gitbeaker/rest";
 import { generatePrReviews } from "@/features/agents/review-agent/nodes/generatePrReview";
+import { generatePrSummary } from "@/features/agents/review-agent/nodes/generatePrSummary";
 import { githubPushPrReviews } from "@/features/agents/review-agent/nodes/githubPushPrReviews";
 import { githubPrParser } from "@/features/agents/review-agent/nodes/githubPrParser";
 import { getReviewAgentLogDir } from "@/features/agents/review-agent/nodes/invokeDiffReviewLlm";
@@ -55,7 +56,17 @@ export async function processGitHubPullRequest(octokit: Octokit, pullRequest: Gi
 
     const prPayload = await githubPrParser(octokit, pullRequest);
     const fileDiffReviews = await generatePrReviews(reviewAgentLogPath, prPayload, rules);
-    await githubPushPrReviews(octokit, prPayload, fileDiffReviews);
+
+    let summary: string | undefined;
+    if (env.REVIEW_AGENT_SUMMARY_ENABLED) {
+        try {
+            summary = await generatePrSummary(prPayload);
+        } catch (error) {
+            logger.error(`Error generating PR summary: ${error}`);
+        }
+    }
+
+    await githubPushPrReviews(octokit, prPayload, fileDiffReviews, summary);
 }
 
 export async function processGitLabMergeRequest(
@@ -70,5 +81,15 @@ export async function processGitLabMergeRequest(
 
     const prPayload = await gitlabMrParser(gitlabClient, mrPayload, hostDomain);
     const fileDiffReviews = await generatePrReviews(reviewAgentLogPath, prPayload, rules);
-    await gitlabPushMrReviews(gitlabClient, projectId, prPayload, fileDiffReviews);
+
+    let summary: string | undefined;
+    if (env.REVIEW_AGENT_SUMMARY_ENABLED) {
+        try {
+            summary = await generatePrSummary(prPayload);
+        } catch (error) {
+            logger.error(`Error generating MR summary: ${error}`);
+        }
+    }
+
+    await gitlabPushMrReviews(gitlabClient, projectId, prPayload, fileDiffReviews, summary);
 }
