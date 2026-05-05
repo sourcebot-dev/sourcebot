@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Add missing schema changes introduced in [#1170](https://github.com/sourcebot-dev/sourcebot/pull/1170). [#1176](https://github.com/sourcebot-dev/sourcebot/pull/1176)
+
 ## [4.17.1] - 2026-05-04
 
 ### Added
