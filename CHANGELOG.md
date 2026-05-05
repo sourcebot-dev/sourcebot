@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1097](https://github.com/sourcebot-dev/sourcebot/pull/1097)
 - Expired offline license keys no longer crash the process. An expired key now degrades to the unlicensed state. [#1109](https://github.com/sourcebot-dev/sourcebot/pull/1109)
 
+## [4.17.1] - 2026-05-04
+
+### Added
+- Added three new audit actions covering the full org membership lifecycle: `org.member_added`, `org.member_removed`, and `org.member_left`. [#1165](https://github.com/sourcebot-dev/sourcebot/pull/1165)
+- Added per-user JWT session versioning so admin-driven member removals (and voluntary leaves) invalidate the removed user's active JWT cookies, personal API keys, and OAuth tokens atomically on their next request. [#1168](https://github.com/sourcebot-dev/sourcebot/pull/1168)
+
+### Fixed
+- Fixed Azure DevOps connection schema to allow spaces in project and repository names. [#1170](https://github.com/sourcebot-dev/sourcebot/pull/1170)
+
 ## [4.17.0] - 2026-04-30
 
 ### Added

@@ -96,6 +96,16 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                 type: "org"
             }
         });
+
+        await createAudit({
+            action: "org.member_added",
+            actor: { id: user.id, type: "user" },
+            target: { id: user.id, type: "user" },
+            orgId: SINGLE_TENANT_ORG_ID,
+            metadata: {
+                message: `${user.id} joined the organization as the initial owner`,
+            },
+        });
     }
 
     // Subsequent users auto-join as MEMBER only when the org is in open
@@ -117,6 +127,16 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                 orgId: SINGLE_TENANT_ORG_ID,
                 role: OrgRole.MEMBER,
             }
+        });
+
+        await createAudit({
+            action: "org.member_added",
+            actor: { id: user.id, type: "user" },
+            target: { id: user.id, type: "user" },
+            orgId: SINGLE_TENANT_ORG_ID,
+            metadata: {
+                message: `${user.id} joined the organization (member approval not required)`,
+            },
         });
     }
 

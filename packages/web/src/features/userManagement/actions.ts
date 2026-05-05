@@ -20,7 +20,7 @@ import { createTransport } from "nodemailer";
 const logger = createLogger('user-management');
 
 export const removeMemberFromOrg = async (memberId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
-    withAuth(async ({ org, role, prisma }) =>
+    withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const guardError = await _removeUserFromOrg(prisma, {
                 orgId: org.id,
@@ -31,6 +31,16 @@ export const removeMemberFromOrg = async (memberId: string): Promise<{ success: 
             if (guardError) {
                 return guardError;
             }
+
+            await createAudit({
+                action: "org.member_removed",
+                actor: { id: user.id, type: "user" },
+                target: { id: memberId, type: "user" },
+                orgId: org.id,
+                metadata: {
+                    message: `${user.id} removed ${memberId} from the organization`,
+                },
+            });
 
             return { success: true };
         }))
@@ -47,6 +57,16 @@ export const leaveOrg = async (): Promise<{ success: boolean } | ServiceError> =
         if (guardError) {
             return guardError;
         }
+
+        await createAudit({
+            action: "org.member_left",
+            actor: { id: user.id, type: "user" },
+            target: { id: user.id, type: "user" },
+            orgId: org.id,
+            metadata: {
+                message: `${user.id} left the organization`,
+            },
+        });
 
         return {
             success: true,
@@ -88,6 +108,10 @@ const _removeUserFromOrg = async (
                 } satisfies ServiceError;
             }
         }
+
+        await invalidateAllSessionsForUser(tx, userId);
+        await revokeUserOAuthTokens(tx, userId);
+        await revokeUserApiKeysInOrg(tx, userId, orgId);
 
         await tx.userToOrg.delete({
             where: {
@@ -178,6 +202,30 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
                 return addUserToOrgRes;
             }
 
+
+            await createAudit({
+                action: "user.join_request_approved",
+                actor: {
+                    id: user.id,
+                    type: "user"
+                },
+                orgId: org.id,
+                target: {
+                    id: requestId,
+                    type: "account_join_request"
+                }
+            });
+
+            await createAudit({
+                action: "org.member_added",
+                actor: { id: user.id, type: "user" },
+                target: { id: request.requestedById, type: "user" },
+                orgId: org.id,
+                metadata: {
+                    message: `${user.id} approved join request ${requestId} for ${request.requestedById}`,
+                },
+            });
+
             // Send approval email to the user
             const smtpConnectionUrl = getSMTPConnectionURL();
             if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS) {
@@ -208,18 +256,6 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
                 logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping approval email to ${request.requestedBy.email}`);
             }
 
-            await createAudit({
-                action: "user.join_request_approved",
-                actor: {
-                    id: user.id,
-                    type: "user"
-                },
-                orgId: org.id,
-                target: {
-                    id: requestId,
-                    type: "account_join_request"
-                }
-            });
             return {
                 success: true,
             }
@@ -490,3 +526,54 @@ export const getOrgAccountRequests = async () => sew(() =>
                 image: request.requestedBy.image ?? undefined,
             }));
         })));
+
+/**
+ * Invalidates every active JWT cookie for the given user by incrementing
+ * their `sessionVersion`. The next request from any of their active
+ * sessions will compare the cookie's baked-in version against the
+ * (now-bumped) value on the User row, fail, and be treated as logged out.
+ */
+const invalidateAllSessionsForUser = async (
+    prisma: Prisma.TransactionClient,
+    userId: string,
+): Promise<void> => {
+    await prisma.user.update({
+        where: { id: userId },
+        data: { sessionVersion: { increment: 1 } },
+    });
+};
+
+const revokeUserApiKeysInOrg = async (
+    prisma: Prisma.TransactionClient,
+    userId: string,
+    orgId: number,
+): Promise<void> => {
+    await prisma.apiKey.deleteMany({
+        where: {
+            createdById: userId,
+            orgId,
+        }
+    });
+};
+
+const revokeUserOAuthTokens = async (
+    prisma: Prisma.TransactionClient,
+    userId: string,
+): Promise<void> => {
+    await prisma.oAuthToken.deleteMany({
+        where: {
+            userId
+        }
+    });
+    await prisma.oAuthRefreshToken.deleteMany({
+        where: {
+            userId
+        }
+    });
+    await prisma.oAuthAuthorizationCode.deleteMany({
+        where: {
+            userId
+        }
+    });
+};
+
