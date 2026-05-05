@@ -87,6 +87,7 @@ export type GitLabMergeRequestPayload = z.infer<typeof gitLabMergeRequestPayload
 export const gitLabNotePayloadSchema = z.object({
     object_kind: z.literal('note'),
     object_attributes: z.object({
+        id: z.number(),
         note: z.string(),
         noteable_type: z.literal('MergeRequest'),
     }),
