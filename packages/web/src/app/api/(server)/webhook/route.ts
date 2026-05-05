@@ -130,6 +130,16 @@ if (env.GITLAB_REVIEW_AGENT_TOKEN) {
     }
 }
 
+const ACK_TIMEOUT_MS = 1500;
+
+const ackWithTimeout = (promise: Promise<unknown>, label: string): Promise<void> => {
+    const timeout = new Promise<void>(resolve => setTimeout(resolve, ACK_TIMEOUT_MS));
+    return Promise.race([promise, timeout]).then(
+        () => { /* success or timeout — proceed */ },
+        (error) => { logger.warn(`${label}: ${error}`); },
+    );
+};
+
 export const POST = async (request: NextRequest) => {
     const body = await request.json();
     const headers = Object.fromEntries(Array.from(request.headers.entries(), ([key, value]) => [key.toLowerCase(), value]));
@@ -186,16 +196,15 @@ export const POST = async (request: NextRequest) => {
 
                 const octokit = await githubApp.getInstallationOctokit(body.installation.id);
 
-                try {
-                    await octokit.rest.reactions.createForIssueComment({
+                await ackWithTimeout(
+                    octokit.rest.reactions.createForIssueComment({
                         owner,
                         repo: repositoryName,
                         comment_id: body.comment.id,
                         content: env.REVIEW_AGENT_ACK_REACTION as "-1" | "+1" | "laugh" | "confused" | "heart" | "hooray" | "rocket" | "eyes",
-                    });
-                } catch (error) {
-                    logger.warn(`Failed to add acknowledgment reaction to GitHub comment: ${error}`);
-                }
+                    }),
+                    'Failed to add acknowledgment reaction to GitHub comment',
+                );
 
                 const { data: pullRequest } = await octokit.rest.pulls.get({
                     owner,
@@ -258,16 +267,15 @@ export const POST = async (request: NextRequest) => {
             if (noteBody === `/${env.REVIEW_AGENT_REVIEW_COMMAND}`) {
                 logger.info('Review agent review command received on GitLab MR, processing');
 
-                try {
-                    await gitlabClient.MergeRequestNoteAwardEmojis.award(
+                await ackWithTimeout(
+                    gitlabClient.MergeRequestNoteAwardEmojis.award(
                         parsed.data.project.id,
                         parsed.data.merge_request.iid,
                         parsed.data.object_attributes.id,
                         env.REVIEW_AGENT_ACK_REACTION,
-                    );
-                } catch (error) {
-                    logger.warn(`Failed to add acknowledgment emoji to GitLab note: ${error}`);
-                }
+                    ),
+                    'Failed to add acknowledgment emoji to GitLab note',
+                );
 
                 const mrPayload: GitLabMergeRequestPayload = {
                     object_kind: "merge_request",
