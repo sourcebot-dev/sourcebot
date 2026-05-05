@@ -14,12 +14,26 @@ export const gitlabPushMrReviews = async (
     logger.info("Executing gitlab_push_mr_reviews");
 
     if (summary) {
+        const SUMMARY_MARKER = "<!-- sourcebot-review-summary -->";
         try {
-            await gitlabClient.MergeRequestNotes.create(
-                projectId,
-                prPayload.number,
-                summary,
-            );
+            const notes = await gitlabClient.MergeRequestNotes.all(projectId, prPayload.number);
+            const existing = notes.find(n => n.body?.includes(SUMMARY_MARKER));
+            const action = existing ? "Updated" : "Created";
+            const body = `${SUMMARY_MARKER}\n${summary}\n\n---\n*${action}: ${new Date().toUTCString()}*`;
+            if (existing) {
+                await gitlabClient.MergeRequestNotes.edit(
+                    projectId,
+                    prPayload.number,
+                    existing.id,
+                    { body },
+                );
+            } else {
+                await gitlabClient.MergeRequestNotes.create(
+                    projectId,
+                    prPayload.number,
+                    body,
+                );
+            }
         } catch (error) {
             logger.error(`Error posting MR summary note: ${error}`);
         }

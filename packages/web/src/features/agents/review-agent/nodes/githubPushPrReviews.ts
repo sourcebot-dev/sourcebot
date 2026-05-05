@@ -8,13 +8,31 @@ export const githubPushPrReviews = async (octokit: Octokit, pr_payload: sourcebo
     logger.info("Executing github_push_pr_reviews");
 
     if (summary) {
+        const SUMMARY_MARKER = "<!-- sourcebot-review-summary -->";
         try {
-            await octokit.rest.issues.createComment({
+            const { data: comments } = await octokit.rest.issues.listComments({
                 owner: pr_payload.owner,
                 repo: pr_payload.repo,
                 issue_number: pr_payload.number,
-                body: summary,
             });
+            const existing = comments.find(c => c.body?.includes(SUMMARY_MARKER));
+            const action = existing ? "Updated" : "Created";
+            const body = `${SUMMARY_MARKER}\n${summary}\n\n---\n*${action}: ${new Date().toUTCString()}*`;
+            if (existing) {
+                await octokit.rest.issues.updateComment({
+                    owner: pr_payload.owner,
+                    repo: pr_payload.repo,
+                    comment_id: existing.id,
+                    body,
+                });
+            } else {
+                await octokit.rest.issues.createComment({
+                    owner: pr_payload.owner,
+                    repo: pr_payload.repo,
+                    issue_number: pr_payload.number,
+                    body,
+                });
+            }
         } catch (error) {
             logger.error(`Error posting PR summary comment: ${error}`);
         }
