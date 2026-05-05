@@ -185,6 +185,18 @@ export const POST = async (request: NextRequest) => {
                 const owner = body.repository.owner.login;
 
                 const octokit = await githubApp.getInstallationOctokit(body.installation.id);
+
+                try {
+                    await octokit.rest.reactions.createForIssueComment({
+                        owner,
+                        repo: repositoryName,
+                        comment_id: body.comment.id,
+                        content: env.REVIEW_AGENT_ACK_REACTION as Parameters<typeof octokit.rest.reactions.createForIssueComment>[0]['content'],
+                    });
+                } catch (error) {
+                    logger.warn(`Failed to add acknowledgment reaction to GitHub comment: ${error}`);
+                }
+
                 const { data: pullRequest } = await octokit.rest.pulls.get({
                     owner,
                     repo: repositoryName,
@@ -245,6 +257,17 @@ export const POST = async (request: NextRequest) => {
             const noteBody = parsed.data.object_attributes.note;
             if (noteBody === `/${env.REVIEW_AGENT_REVIEW_COMMAND}`) {
                 logger.info('Review agent review command received on GitLab MR, processing');
+
+                try {
+                    await gitlabClient.MergeRequestNoteAwardEmojis.award(
+                        parsed.data.project.id,
+                        parsed.data.merge_request.iid,
+                        parsed.data.object_attributes.id,
+                        env.REVIEW_AGENT_ACK_REACTION,
+                    );
+                } catch (error) {
+                    logger.warn(`Failed to add acknowledgment emoji to GitLab note: ${error}`);
+                }
 
                 const mrPayload: GitLabMergeRequestPayload = {
                     object_kind: "merge_request",
