@@ -191,7 +191,7 @@ export const POST = async (request: NextRequest) => {
                         owner,
                         repo: repositoryName,
                         comment_id: body.comment.id,
-                        content: env.REVIEW_AGENT_ACK_REACTION as Parameters<typeof octokit.rest.reactions.createForIssueComment>[0]['content'],
+                        content: env.REVIEW_AGENT_ACK_REACTION as "-1" | "+1" | "laugh" | "confused" | "heart" | "hooray" | "rocket" | "eyes",
                     });
                 } catch (error) {
                     logger.warn(`Failed to add acknowledgment reaction to GitHub comment: ${error}`);
