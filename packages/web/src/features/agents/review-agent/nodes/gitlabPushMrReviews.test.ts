@@ -34,7 +34,7 @@ const SINGLE_REVIEW: sourcebot_file_diff_review[] = [
     },
 ];
 
-function makeMockClient(discussionResult: 'resolve' | 'reject' = 'resolve') {
+function makeMockClient(discussionResult: 'resolve' | 'reject' = 'resolve', existingNotes: { id: number; body: string }[] = []) {
     return {
         MergeRequestDiscussions: {
             create: discussionResult === 'resolve'
@@ -42,7 +42,9 @@ function makeMockClient(discussionResult: 'resolve' | 'reject' = 'resolve') {
                 : vi.fn().mockRejectedValue(new Error('400 Bad Request')),
         },
         MergeRequestNotes: {
+            all: vi.fn().mockResolvedValue(existingNotes),
             create: vi.fn().mockResolvedValue({}),
+            edit: vi.fn().mockResolvedValue({}),
         },
     } as any;
 }
@@ -177,11 +179,63 @@ describe('gitlabPushMrReviews', () => {
     test('does not throw when both discussion and note creation fail', async () => {
         const client = {
             MergeRequestDiscussions: { create: vi.fn().mockRejectedValue(new Error('500')) },
-            MergeRequestNotes: { create: vi.fn().mockRejectedValue(new Error('500')) },
+            MergeRequestNotes: { all: vi.fn().mockResolvedValue([]), create: vi.fn().mockRejectedValue(new Error('500')), edit: vi.fn() },
         } as any;
 
         await expect(
             gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, SINGLE_REVIEW),
+        ).resolves.not.toThrow();
+    });
+});
+
+describe('gitlabPushMrReviews – summary note', () => {
+    const SUMMARY_MARKER = '<!-- sourcebot-review-summary -->';
+
+    test('does not call MergeRequestNotes API when summary is undefined', async () => {
+        const client = makeMockClient();
+
+        await gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, [], undefined);
+
+        expect(client.MergeRequestNotes.all).not.toHaveBeenCalled();
+        expect(client.MergeRequestNotes.create).not.toHaveBeenCalled();
+        expect(client.MergeRequestNotes.edit).not.toHaveBeenCalled();
+    });
+
+    test('creates a new note including the marker when no existing note found', async () => {
+        const client = makeMockClient('resolve', []);
+
+        await gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, [], 'Summary text');
+
+        expect(client.MergeRequestNotes.all).toHaveBeenCalledWith(101, 42);
+        expect(client.MergeRequestNotes.create).toHaveBeenCalledOnce();
+        const body = client.MergeRequestNotes.create.mock.calls[0][2] as string;
+        expect(body).toContain(SUMMARY_MARKER);
+        expect(body).toContain('Summary text');
+        expect(body).toContain('Created:');
+        expect(body).not.toContain('Updated:');
+        expect(client.MergeRequestNotes.edit).not.toHaveBeenCalled();
+    });
+
+    test('updates the existing note when the marker is already present', async () => {
+        const existingNotes = [{ id: 55, body: `${SUMMARY_MARKER}\nOld summary` }];
+        const client = makeMockClient('resolve', existingNotes);
+
+        await gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, [], 'New summary');
+
+        expect(client.MergeRequestNotes.edit).toHaveBeenCalledOnce();
+        const editOptions = client.MergeRequestNotes.edit.mock.calls[0][3] as { body: string };
+        expect(editOptions.body).toContain('New summary');
+        expect(editOptions.body).toContain('Updated:');
+        expect(editOptions.body).not.toContain('Created:');
+        expect(client.MergeRequestNotes.create).not.toHaveBeenCalled();
+    });
+
+    test('does not throw when MergeRequestNotes.all fails', async () => {
+        const client = makeMockClient();
+        client.MergeRequestNotes.all = vi.fn().mockRejectedValue(new Error('403 Forbidden'));
+
+        await expect(
+            gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, [], 'Summary text'),
         ).resolves.not.toThrow();
     });
 });

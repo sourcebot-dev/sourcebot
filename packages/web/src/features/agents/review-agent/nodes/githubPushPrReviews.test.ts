@@ -29,13 +29,18 @@ const SINGLE_REVIEW: sourcebot_file_diff_review[] = [
     },
 ];
 
-function makeMockOctokit(createReviewCommentResult: 'resolve' | 'reject' = 'resolve') {
+function makeMockOctokit(createReviewCommentResult: 'resolve' | 'reject' = 'resolve', existingComments: { id: number; body: string }[] = []) {
     return {
         rest: {
             pulls: {
                 createReviewComment: createReviewCommentResult === 'resolve'
                     ? vi.fn().mockResolvedValue({})
                     : vi.fn().mockRejectedValue(new Error('Unprocessable Entity')),
+            },
+            issues: {
+                listComments: vi.fn().mockResolvedValue({ data: existingComments }),
+                createComment: vi.fn().mockResolvedValue({}),
+                updateComment: vi.fn().mockResolvedValue({}),
             },
         },
     } as any;
@@ -144,5 +149,64 @@ describe('githubPushPrReviews', () => {
         await githubPushPrReviews(octokit, MOCK_PAYLOAD, []);
 
         expect(octokit.rest.pulls.createReviewComment).not.toHaveBeenCalled();
+    });
+});
+
+describe('githubPushPrReviews – summary comment', () => {
+    const SUMMARY_MARKER = '<!-- sourcebot-review-summary -->';
+
+    test('does not call issues API when summary is undefined', async () => {
+        const octokit = makeMockOctokit();
+
+        await githubPushPrReviews(octokit, MOCK_PAYLOAD, [], undefined);
+
+        expect(octokit.rest.issues.listComments).not.toHaveBeenCalled();
+        expect(octokit.rest.issues.createComment).not.toHaveBeenCalled();
+        expect(octokit.rest.issues.updateComment).not.toHaveBeenCalled();
+    });
+
+    test('creates a new comment including the marker when no existing comment found', async () => {
+        const octokit = makeMockOctokit('resolve', []);
+
+        await githubPushPrReviews(octokit, MOCK_PAYLOAD, [], 'Summary text');
+
+        expect(octokit.rest.issues.listComments).toHaveBeenCalledWith({
+            owner: 'my-org',
+            repo: 'my-repo',
+            issue_number: 7,
+        });
+        expect(octokit.rest.issues.createComment).toHaveBeenCalledOnce();
+        const body = octokit.rest.issues.createComment.mock.calls[0][0].body as string;
+        expect(body).toContain(SUMMARY_MARKER);
+        expect(body).toContain('Summary text');
+        expect(body).toContain('Created:');
+        expect(body).not.toContain('Updated:');
+        expect(octokit.rest.issues.updateComment).not.toHaveBeenCalled();
+    });
+
+    test('updates the existing comment when the marker is already present', async () => {
+        const existingComments = [{ id: 99, body: `${SUMMARY_MARKER}\nOld summary` }];
+        const octokit = makeMockOctokit('resolve', existingComments);
+
+        await githubPushPrReviews(octokit, MOCK_PAYLOAD, [], 'New summary');
+
+        expect(octokit.rest.issues.updateComment).toHaveBeenCalledOnce();
+        expect(octokit.rest.issues.updateComment).toHaveBeenCalledWith(
+            expect.objectContaining({ comment_id: 99 }),
+        );
+        const body = octokit.rest.issues.updateComment.mock.calls[0][0].body as string;
+        expect(body).toContain('New summary');
+        expect(body).toContain('Updated:');
+        expect(body).not.toContain('Created:');
+        expect(octokit.rest.issues.createComment).not.toHaveBeenCalled();
+    });
+
+    test('does not throw when listComments fails', async () => {
+        const octokit = makeMockOctokit();
+        octokit.rest.issues.listComments = vi.fn().mockRejectedValue(new Error('403 Forbidden'));
+
+        await expect(
+            githubPushPrReviews(octokit, MOCK_PAYLOAD, [], 'Summary text'),
+        ).resolves.not.toThrow();
     });
 });
