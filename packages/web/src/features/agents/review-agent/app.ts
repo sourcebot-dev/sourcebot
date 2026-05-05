@@ -7,7 +7,7 @@ import { githubPrParser } from "@/features/agents/review-agent/nodes/githubPrPar
 import { getReviewAgentLogDir } from "@/features/agents/review-agent/nodes/invokeDiffReviewLlm";
 import { gitlabMrParser } from "@/features/agents/review-agent/nodes/gitlabMrParser";
 import { gitlabPushMrReviews } from "@/features/agents/review-agent/nodes/gitlabPushMrReviews";
-import { GitHubPullRequest, GitLabMergeRequestPayload } from "@/features/agents/review-agent/types";
+import { GitHubPullRequest, GitLabMergeRequestPayload, sourcebot_pr_payload } from "@/features/agents/review-agent/types";
 import { env } from "@sourcebot/shared";
 import path from "path";
 import fs from "fs";
@@ -24,6 +24,18 @@ const rules = [
 ]
 
 const logger = createLogger('review-agent');
+
+async function generateSummarySafely(payload: sourcebot_pr_payload, label: string): Promise<string | undefined> {
+    if (!env.REVIEW_AGENT_SUMMARY_ENABLED) {
+        return undefined;
+    }
+    try {
+        return await generatePrSummary(payload);
+    } catch (error) {
+        logger.error(`Error generating ${label} summary: ${error}`);
+        return undefined;
+    }
+}
 
 function getReviewAgentLogPath(identifier: string): string | undefined {
     if (!env.REVIEW_AGENT_LOGGING_ENABLED) {
@@ -57,15 +69,7 @@ export async function processGitHubPullRequest(octokit: Octokit, pullRequest: Gi
     const prPayload = await githubPrParser(octokit, pullRequest);
     const fileDiffReviews = await generatePrReviews(reviewAgentLogPath, prPayload, rules);
 
-    let summary: string | undefined;
-    if (env.REVIEW_AGENT_SUMMARY_ENABLED) {
-        try {
-            summary = await generatePrSummary(prPayload);
-        } catch (error) {
-            logger.error(`Error generating PR summary: ${error}`);
-        }
-    }
-
+    const summary = await generateSummarySafely(prPayload, "PR");
     await githubPushPrReviews(octokit, prPayload, fileDiffReviews, summary);
 }
 
@@ -82,14 +86,6 @@ export async function processGitLabMergeRequest(
     const prPayload = await gitlabMrParser(gitlabClient, mrPayload, hostDomain);
     const fileDiffReviews = await generatePrReviews(reviewAgentLogPath, prPayload, rules);
 
-    let summary: string | undefined;
-    if (env.REVIEW_AGENT_SUMMARY_ENABLED) {
-        try {
-            summary = await generatePrSummary(prPayload);
-        } catch (error) {
-            logger.error(`Error generating MR summary: ${error}`);
-        }
-    }
-
+    const summary = await generateSummarySafely(prPayload, "MR");
     await gitlabPushMrReviews(gitlabClient, projectId, prPayload, fileDiffReviews, summary);
 }
