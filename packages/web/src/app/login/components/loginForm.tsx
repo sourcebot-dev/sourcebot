@@ -41,9 +41,9 @@ export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnable
         }
     }, [error]);
 
-    // Helper function to get the correct analytics event name
-    const getLoginEventName = (providerId: string) => {
-        switch (providerId) {
+    // Helper function to get the correct analytics event name based on provider type.
+    const getLoginEventName = (providerType: string) => {
+        switch (providerType) {
             case "github":
                 return "wa_login_with_github" as const;
             case "google":
@@ -65,7 +65,8 @@ export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnable
 
     // Analytics callback for provider clicks
     const handleProviderClick = (providerId: string) => {
-        captureEvent(getLoginEventName(providerId), {});
+        const providerType = providers.find(p => p.id === providerId)?.type ?? providerId;
+        captureEvent(getLoginEventName(providerType), {});
     };
 
     return (

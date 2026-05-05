@@ -25,10 +25,24 @@ import { captureEvent } from '@/lib/posthog';
 export const runtime = 'nodejs';
 
 export type IdentityProvider = {
-    provider: Provider;
+    /** Provider type (e.g., 'github', 'gitlab') — used to pick icon / display defaults. */
+    type: string;
+    /** Provider instance id (e.g., 'github', 'gitlab-corp') — used for `signIn(provider)`. */
+    id: string;
+    /** Optional admin-supplied display name from config; overrides type-derived defaults in the UI. */
+    displayName?: string;
     purpose: "sso" | "account_linking";
     issuerUrl?: string;
     required?: boolean;
+    /**
+     * @warning don't use this field directly - this is meant to be
+     * passed directly to auth.js. Use the fields directly on the
+     * IdentityProvider type (i.e., `type`, `id`, etc.)
+     * 
+     * @deprecated this field isn't actually deprected, but adding
+     * this tag to dissuade usage.
+     */
+    __provider: Provider;
 }
 
 export type SessionUser = {
@@ -61,7 +75,7 @@ export const getProviders = async () => {
     const smtpConnectionUrl = getSMTPConnectionURL();
     if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
         providers.push({
-            provider: EmailProvider({
+            __provider: EmailProvider({
                 server: smtpConnectionUrl,
                 from: env.EMAIL_FROM_ADDRESS,
                 maxAge: 60 * 10,
@@ -84,14 +98,17 @@ export const getProviders = async () => {
                     if (failed.length) {
                         throw new Error(`Email(s) (${failed.join(", ")}) could not be sent`);
                     }
-                }
-            }), purpose: "sso"
+                },
+            }),
+            type: "nodemailer",
+            id: "nodemailer",
+            purpose: "sso",
         });
     }
 
     if (env.AUTH_CREDENTIALS_LOGIN_ENABLED === 'true') {
         providers.push({
-            provider: Credentials({
+            __provider: Credentials({
                 credentials: {
                     email: {},
                     password: {}
@@ -146,7 +163,10 @@ export const getProviders = async () => {
                         };
                     }
                 }
-            }), purpose: "sso"
+            }),
+            type: "credentials",
+            id: "credentials",
+            purpose: "sso"
         });
     }
 
@@ -178,12 +198,12 @@ const nextAuthResult = NextAuth(async () => ({
                 account.provider !== 'credentials' &&
                 account.providerAccountId
             ) {
-                const issuerUrl = await getIssuerUrlForAccount(account);
+                const issuerUrl = await getIssuerUrlForProviderId(account.provider);
 
                 await __unsafePrisma.account.update({
                     where: {
-                        provider_providerAccountId: {
-                            provider: account.provider,
+                        providerId_providerAccountId: {
+                            providerId: account.provider,
                             providerAccountId: account.providerAccountId,
                         },
                     },
@@ -268,7 +288,7 @@ const nextAuthResult = NextAuth(async () => ({
     callbacks: {
         async signIn({ account }) {
             const matchingProvider = account
-                ? (await getProviders()).find((p) => getEffectiveProviderId(p.provider) === account.provider)
+                ? (await getProviders()).find((p) => p.id === account.provider)
                 : undefined;
 
             // Refuse OAuth signin for providers configured purely for account
@@ -372,7 +392,7 @@ const nextAuthResult = NextAuth(async () => ({
                 // above scopes this to only accounts that still need it,
                 // so the loop is a no-op once everyone is backfilled.
                 for (const account of dbUser.accounts) {
-                    const issuerUrl = await getIssuerUrlForAccount(account);
+                    const issuerUrl = await getIssuerUrlForProviderId(account.providerId);
                     if (issuerUrl) {
                         await __unsafePrisma.account.update({
                             where: {
@@ -401,7 +421,7 @@ const nextAuthResult = NextAuth(async () => ({
             return session;
         },
     },
-    providers: (await getProviders()).map((provider) => provider.provider),
+    providers: (await getProviders()).map((provider) => provider.__provider),
     pages: {
         signIn: "/login",
         // We set redirect to false in signInOptions so we can pass the email in as a param
@@ -426,29 +446,12 @@ export const auth = cache(async (): Promise<Session | null> => {
     return nextAuthResult.auth();
 });
 
-// NextAuth/Auth.js provider factories (e.g. Bitbucket, GitHub, GitLab) hardcode
-// a default `id` at the top of the returned object and nest the caller's
-// options (including any `id` override) under `.options`. At runtime the
-// framework merges options over the top-level defaults, so the effective
-// provider id can live under either field depending on whether the caller
-// passed an override. Read `.options.id` first and fall back to the top-level
-// `id`. The function form of `Provider` is part of the NextAuth type union but
-// unused in this codebase; we handle it for type completeness.
-const getEffectiveProviderId = (provider: Provider): string | undefined => {
-    const config = (
-        typeof provider === 'function'
-            ? (provider as unknown as () => unknown)()
-            : provider
-    ) as { id?: string; options?: { id?: string } };
-    return config.options?.id ?? config.id;
-}
-
 /**
- * Returns the issuer URL for a given auth.js account
+ * Returns the issuer URL for a given identity provider id (i.e., the auth.js
+ * provider id, which is also what we store in `Account.providerId`).
  */
-const getIssuerUrlForAccount = async (account: { provider: string; }) => {
-    const matchingProvider = (await getProviders()).find(
-        (p) => getEffectiveProviderId(p.provider) === account.provider
-    );
+const getIssuerUrlForProviderId = async (providerId: string) => {
+    const providers = await getProviders();
+    const matchingProvider = providers.find((provider) => provider.id === providerId);
     return matchingProvider?.issuerUrl;
 }
