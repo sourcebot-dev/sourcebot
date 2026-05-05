@@ -7,10 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [4.17.1] - 2026-05-04
-
 ### Fixed
 - Add missing schema changes introduced in [#1170](https://github.com/sourcebot-dev/sourcebot/pull/1170). [#1176](https://github.com/sourcebot-dev/sourcebot/pull/1176)
+
+## [4.17.1] - 2026-05-04
 
 ### Added
 - Added three new audit actions covering the full org membership lifecycle: `org.member_added`, `org.member_removed`, and `org.member_left`. [#1165](https://github.com/sourcebot-dev/sourcebot/pull/1165)
