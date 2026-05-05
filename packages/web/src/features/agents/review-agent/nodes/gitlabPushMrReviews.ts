@@ -9,8 +9,21 @@ export const gitlabPushMrReviews = async (
     projectId: number,
     prPayload: sourcebot_pr_payload,
     fileDiffReviews: sourcebot_file_diff_review[],
+    summary?: string,
 ): Promise<void> => {
     logger.info("Executing gitlab_push_mr_reviews");
+
+    if (summary) {
+        try {
+            await gitlabClient.MergeRequestNotes.create(
+                projectId,
+                prPayload.number,
+                summary,
+            );
+        } catch (error) {
+            logger.error(`Error posting MR summary note: ${error}`);
+        }
+    }
 
     if (!prPayload.diff_refs) {
         logger.error("diff_refs is missing from pr_payload, cannot post inline GitLab MR reviews");
