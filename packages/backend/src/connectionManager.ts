@@ -137,7 +137,7 @@ export class ConnectionManager {
         });
 
         for (const job of jobs) {
-            logger.info(`Scheduling job ${job.id} for connection ${job.connection.name} (id: ${job.connectionId})`);
+            logger.debug(`Scheduling job ${job.id} for connection ${job.connection.name} (id: ${job.connectionId})`);
             await this.queue.add(
                 'connection-sync-job',
                 {
@@ -158,7 +158,7 @@ export class ConnectionManager {
     private async runJob(job: Job<JobPayload>): Promise<JobResult> {
         const { jobId, connectionName } = job.data;
         const logger = createJobLogger(jobId);
-        logger.info(`Running connection sync job ${jobId} for connection ${connectionName} (id: ${job.data.connectionId})`);
+        logger.debug(`Running connection sync job ${jobId} for connection ${connectionName} (id: ${job.data.connectionId})`);
 
         const currentStatus = await this.db.connectionSyncJob.findUniqueOrThrow({
             where: {
@@ -261,7 +261,7 @@ export class ConnectionManager {
                 }
             });
             const deleteDuration = performance.now() - deleteStart;
-            logger.info(`Deleted all RepoToConnection records for connection ${connectionName} (id: ${job.data.connectionId}) in ${deleteDuration}ms`);
+            logger.debug(`Deleted all RepoToConnection records for connection ${connectionName} (id: ${job.data.connectionId}) in ${deleteDuration}ms`);
 
             const totalUpsertStart = performance.now();
             for (const repo of repoData) {
@@ -281,7 +281,7 @@ export class ConnectionManager {
                 logger.debug(`Upserted repo ${repo.displayName} (id: ${repo.external_id}) in ${upsertDuration}ms`);
             }
             const totalUpsertDuration = performance.now() - totalUpsertStart;
-            logger.info(`Upserted ${repoData.length} repos for connection ${connectionName} (id: ${job.data.connectionId}) in ${totalUpsertDuration}ms`);
+            logger.debug(`Upserted ${repoData.length} repos for connection ${connectionName} (id: ${job.data.connectionId}) in ${totalUpsertDuration}ms`);
         }, { timeout: env.CONNECTION_MANAGER_UPSERT_TIMEOUT_MS });
 
         return {
@@ -330,7 +330,7 @@ export class ConnectionManager {
                 }
             }
 
-            logger.info(`Connection sync job ${job.id} for connection ${job.data.connectionName} (id: ${job.data.connectionId}) completed`);
+            logger.debug(`Connection sync job ${job.id} for connection ${job.data.connectionName} (id: ${job.data.connectionId}) completed`);
 
             this.promClient.activeConnectionSyncJobs.dec({ connection: connectionName });
             this.promClient.connectionSyncJobSuccessTotal.inc({ connection: connectionName });

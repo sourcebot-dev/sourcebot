@@ -28,7 +28,7 @@ export class ConfigManager {
         });
 
         this.watcher.on('change', async () => {
-            logger.info(`Config file ${configPath} changed. Syncing config.`);
+            logger.debug(`Config file ${configPath} changed. Syncing config.`);
             try {
                 await this.syncConfig(configPath);
             } catch (error) {
@@ -101,7 +101,7 @@ export class ConfigManager {
                     });
 
                 if (connectionNeedsSyncing) {
-                    logger.info(`Change detected for connection '${key}' (id: ${connection.id}). Creating sync job.`);
+                    logger.debug(`Change detected for connection '${key}' (id: ${connection.id}). Creating sync job.`);
                     await this.connectionManager.createJobs([connection]);
                 }
             }
@@ -119,7 +119,7 @@ export class ConfigManager {
         });
 
         for (const connection of deletedConnections) {
-            logger.info(`Deleting connection with name '${connection.name}'. Connection ID: ${connection.id}`);
+            logger.debug(`Deleting connection with name '${connection.name}'. Connection ID: ${connection.id}`);
             await this.db.connection.delete({
                 where: {
                     id: connection.id,
