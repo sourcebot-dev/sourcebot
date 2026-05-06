@@ -23,7 +23,7 @@ export class AuditLogPruner {
             return;
         }
 
-        logger.info(`Audit log pruner started. Retaining logs for ${env.SOURCEBOT_EE_AUDIT_RETENTION_DAYS} days.`);
+        logger.debug(`Audit log pruner started. Retaining logs for ${env.SOURCEBOT_EE_AUDIT_RETENTION_DAYS} days.`);
 
         // Run immediately on startup, then every 24 hours
         this.pruneOldAuditLogs();
@@ -41,7 +41,7 @@ export class AuditLogPruner {
         const cutoff = new Date(Date.now() - env.SOURCEBOT_EE_AUDIT_RETENTION_DAYS * ONE_DAY_MS);
         let totalDeleted = 0;
 
-        logger.info(`Pruning audit logs older than ${cutoff.toISOString()}...`);
+        logger.debug(`Pruning audit logs older than ${cutoff.toISOString()}...`);
 
         // Delete in batches to avoid long-running transactions
         while (true) {
@@ -63,9 +63,9 @@ export class AuditLogPruner {
         }
 
         if (totalDeleted > 0) {
-            logger.info(`Pruned ${totalDeleted} audit log records.`);
+            logger.debug(`Pruned ${totalDeleted} audit log records.`);
         } else {
-            logger.info('No audit log records to prune.');
+            logger.debug('No audit log records to prune.');
         }
     }
 }

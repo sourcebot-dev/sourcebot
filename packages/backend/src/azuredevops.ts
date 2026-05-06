@@ -291,7 +291,7 @@ async function getRepos(
     const results = await Promise.allSettled(repoList.map(async (repo) => {
         try {
             const [org, projectName, repoName] = repo.split('/');
-            logger.info(`Fetching repository info for ${repo}...`);
+            logger.debug(`Fetching repository info for ${repo}...`);
 
             const { durationMs, data: result } = await measure(async () => {
                 const fetchFn = async () => {
@@ -306,7 +306,7 @@ async function getRepos(
                 return fetchWithRetry(fetchFn, repo, logger);
             });
 
-            logger.info(`Found info for repository ${repo} in ${durationMs}ms`);
+            logger.debug(`Found info for repository ${repo} in ${durationMs}ms`);
             return {
                 type: 'valid' as const,
                 data: [result]

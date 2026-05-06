@@ -42,7 +42,7 @@ export class Api {
         app.post(`/api/experimental/add-github-repo`, this.experimental_addGithubRepo.bind(this));
 
         this.server = app.listen(PORT, () => {
-            logger.info(`API server is running on port ${PORT}`);
+            logger.debug(`API server is running on port ${PORT}`);
         });
     }
 

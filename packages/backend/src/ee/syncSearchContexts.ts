@@ -205,7 +205,7 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
     });
 
     for (const context of deletedContexts) {
-        logger.info(`Deleting search context with name '${context.name}'. ID: ${context.id}`);
+        logger.debug(`Deleting search context with name '${context.name}'. ID: ${context.id}`);
         await db.searchContext.delete({
             where: {
                 id: context.id,

@@ -6,7 +6,7 @@ import { createLogger } from "@sourcebot/shared";
 const logger = createLogger('health-check');
 
 export const GET = apiHandler(async () => {
-    logger.info('health check');
+    logger.debug('health check');
     return Response.json({ status: 'ok' });
 }, { track: false });
 
