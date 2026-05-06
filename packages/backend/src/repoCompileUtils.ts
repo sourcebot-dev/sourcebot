@@ -609,7 +609,7 @@ export const compileGenericGitHostConfig_file = async (
         };
     }
 
-    logger.info(`Found ${repoPaths.length} path(s) matching pattern '${configUrl.pathname}'`);
+    logger.debug(`Found ${repoPaths.length} path(s) matching pattern '${configUrl.pathname}'`);
 
     await Promise.all(repoPaths.map((repoPath) => gitOperationLimit(async () => {
         const stat = await fs.stat(repoPath).catch(() => null);
@@ -691,7 +691,7 @@ export const compileGenericGitHostConfig_file = async (
         logger.warn(warning);
         warnings.push(warning);
     } else {
-        logger.info(`Successfully found ${repos.length} valid git repository(s) from ${repoPaths.length} matched path(s)`);
+        logger.debug(`Successfully found ${repos.length} valid git repository(s) from ${repoPaths.length} matched path(s)`);
     }
 
     return {

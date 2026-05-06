@@ -186,7 +186,7 @@ export class RepoPermissionSyncer {
             throw new Error(`Repo ${id} not found`);
         }
 
-        logger.info(`Syncing permissions for repo ${repo.displayName}...`);
+        logger.debug(`Syncing permissions for repo ${repo.displayName}...`);
 
         const credentials = await getAuthCredentialsForRepo(repo, logger);
         if (!credentials) {
@@ -388,7 +388,7 @@ export class RepoPermissionSyncer {
             }
         });
 
-        logger.info(`Permissions synced for repo ${repo.displayName ?? repo.name}`);
+        logger.debug(`Permissions synced for repo ${repo.displayName ?? repo.name}`);
     }
 
     private async onJobFailed(job: Job<RepoPermissionSyncJob> | undefined, err: Error) {

@@ -72,12 +72,12 @@ export const cleanupTempShards = async (repo: Repo) => {
         
         for (const file of tempFiles) {
             const filePath = `${INDEX_CACHE_DIR}/${file}`;
-            logger.info(`Cleaning up temp shard file: ${filePath}`);
+            logger.debug(`Cleaning up temp shard file: ${filePath}`);
             await rm(filePath, { force: true });
         }
         
         if (tempFiles.length > 0) {
-            logger.info(`Cleaned up ${tempFiles.length} temp shard file(s) for repo ${repo.id}`);
+            logger.debug(`Cleaned up ${tempFiles.length} temp shard file(s) for repo ${repo.id}`);
         }
     } catch (error) {
         // Log but don't throw - cleanup is best effort
