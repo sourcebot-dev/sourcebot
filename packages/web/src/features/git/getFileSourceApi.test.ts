@@ -58,10 +58,8 @@ vi.mock('@/middleware/sew', () => ({
 vi.mock('@/middleware/withAuth', () => ({
     withOptionalAuth: vi.fn(),
 }));
-vi.mock('@/ee/features/audit/factory', () => ({
-    getAuditService: () => ({
-        createAudit: vi.fn(),
-    }),
+vi.mock('@/ee/features/audit/audit', () => ({
+    createAudit: vi.fn(),
 }));
 
 import { getFileSourceForRepo } from './getFileSourceApi';

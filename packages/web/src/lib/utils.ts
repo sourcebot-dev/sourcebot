@@ -506,6 +506,34 @@ export const getShortenedNumberDisplayString = (number: number, fractionDigits: 
     }
 }
 
+/**
+ * Formats a Stripe currency amount for display.
+ *
+ * Stripe reports amounts in the currency's smallest unit (cents for USD,
+ * yen for JPY, fils for BHD, etc). The divisor is derived from the
+ * currency's fraction digits rather than hard-coded, so zero-decimal and
+ * three-decimal currencies render correctly.
+ *
+ * By default the currency's natural number of decimal places is shown.
+ * Pass `minimumFractionDigits: 0` to suppress trailing zeros on whole
+ * amounts (e.g. "$10" instead of "$10.00").
+ */
+export const formatCurrency = (
+    amountSmallestUnit: number,
+    currency: string,
+    options: { minimumFractionDigits?: number } = {},
+): string => {
+    const formatter = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency.toUpperCase(),
+        ...(options.minimumFractionDigits !== undefined && {
+            minimumFractionDigits: options.minimumFractionDigits,
+        }),
+    });
+    const fractionDigits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
+    return formatter.format(amountSmallestUnit / Math.pow(10, fractionDigits));
+}
+
 export const measureSync = <T>(cb: () => T, measureName: string, outputLog: boolean = true) => {
     const startMark = `${measureName}.start`;
     const endMark = `${measureName}.end`;
@@ -596,10 +624,40 @@ export const getOrgMetadata = (org: Org): OrgMetadata | null => {
     return currentMetadata.success ? currentMetadata.data : null;
 }
 
-
 export const isHttpError = (error: unknown, status: number): boolean => {
     return error !== null
         && typeof error === 'object'
         && 'status' in error
         && error.status === status;
+}
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Retry only on transient failures: network errors, 5xx responses, and the
+// two 4xx codes that are known to be retry-safe (408 Request Timeout, 429
+// Too Many Requests). Other 4xx responses are deterministic client errors
+// and should be surfaced to the caller immediately.
+const isRetryableStatus = (status: number): boolean =>
+    status >= 500 || status === 408 || status === 429;
+
+export const fetchWithRetry = async (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+    { retries = 3, backoffMs = 1000 }: { retries?: number; backoffMs?: number } = {},
+): Promise<Response> => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            const response = await fetch(input, init);
+            if (response.ok || !isRetryableStatus(response.status) || attempt === retries) {
+                return response;
+            }
+        } catch (error) {
+            if (attempt === retries) {
+                throw error;
+            }
+        }
+        await sleep(backoffMs * Math.pow(2, attempt));
+    }
+    // Unreachable, but TypeScript needs it
+    throw new Error('fetchWithRetry: exhausted retries');
 }

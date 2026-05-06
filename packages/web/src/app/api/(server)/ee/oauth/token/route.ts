@@ -1,14 +1,15 @@
 import { verifyAndExchangeCode, verifyAndRotateRefreshToken } from '@/ee/features/oauth/server';
 import { oauthApiHandler } from '@/ee/features/oauth/apiHandler';
-import { env, hasEntitlement } from '@sourcebot/shared';
+import { env } from '@sourcebot/shared';
 import { NextRequest } from 'next/server';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
+import { hasEntitlement } from '@/lib/entitlements';
 
 // OAuth 2.0 Token Endpoint
 // Supports grant_type=authorization_code with PKCE (RFC 7636).
 // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-3.2
 export const POST = oauthApiHandler(async (request: NextRequest) => {
-    if (!hasEntitlement('oauth')) {
+    if (!await hasEntitlement('oauth')) {
         return Response.json(
             { error: 'access_denied', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
             { status: 403 }

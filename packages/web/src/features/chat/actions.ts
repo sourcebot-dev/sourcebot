@@ -1,7 +1,7 @@
 'use server';
 
 import { sew } from "@/middleware/sew";
-import { getAuditService } from "@/ee/features/audit/factory";
+import { createAudit } from "@/ee/features/audit/audit";
 import { getAnonymousId, getOrCreateAnonymousId } from "@/lib/anonymousId";
 import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
@@ -12,8 +12,7 @@ import { env } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
 import { SBChatMessage } from "./types";
 import { generateChatNameFromMessage, getConfiguredLanguageModels, isChatSharedWithUser, isOwnerOfChat } from "./utils.server";
-
-const auditService = getAuditService();
+import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 
 export const createChat = async ({ source }: { source?: string } = {}) => sew(() =>
     withOptionalAuth(async ({ org, user, prisma }) => {
@@ -34,7 +33,7 @@ export const createChat = async ({ source }: { source?: string } = {}) => sew(()
 
         // Only create audit log for authenticated users
         if (!isGuestUser) {
-            await auditService.createAudit({
+            await createAudit({
                 action: "user.created_ask_chat",
                 actor: {
                     id: user.id,
@@ -90,27 +89,6 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
             isOwner,
             isSharedWithUser,
         };
-    })
-);
-
-export const getUserChatHistory = async () => sew(() =>
-    withAuth(async ({ org, user, prisma }) => {
-        const chats = await prisma.chat.findMany({
-            where: {
-                orgId: org.id,
-                createdById: user.id,
-            },
-            orderBy: {
-                updatedAt: 'desc',
-            },
-        });
-
-        return chats.map((chat) => ({
-            id: chat.id,
-            createdAt: chat.createdAt,
-            name: chat.name,
-            visibility: chat.visibility,
-        }))
     })
 );
 
@@ -178,7 +156,7 @@ export const updateChatVisibility = async ({ chatId, visibility }: { chatId: str
             },
         });
 
-        await auditService.createAudit({
+        await createAudit({
             action: "chat.visibility_updated",
             actor: { id: user.id, type: "user" },
             target: { id: chatId, type: "chat" },
@@ -265,7 +243,7 @@ export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
             },
         });
 
-        await auditService.createAudit({
+        await createAudit({
             action: "chat.deleted",
             actor: { id: user.id, type: "user" },
             target: { id: chatId, type: "chat" },
@@ -439,7 +417,7 @@ export const shareChatWithUsers = async ({ chatId, userIds }: { chatId: string, 
             skipDuplicates: true,
         });
 
-        await auditService.createAudit({
+        await createAudit({
             action: "chat.shared_with_users",
             actor: { id: user.id, type: "user" },
             target: { id: chatId, type: "chat" },
@@ -479,7 +457,7 @@ export const unshareChatWithUser = async ({ chatId, userId }: { chatId: string, 
             },
         });
 
-        await auditService.createAudit({
+        await createAudit({
             action: "chat.unshared_with_user",
             actor: { id: user.id, type: "user" },
             target: { id: chatId, type: "chat" },
@@ -556,7 +534,7 @@ export const getAskGhLoginWallData = async () => sew(async () => {
         return { isEnabled: false as const, providers: [] };
     }
 
-    const { getIdentityProviderMetadata } = await import('@/lib/identityProviders');
-    return { isEnabled: true as const, providers: getIdentityProviderMetadata() };
+    const providers = await getIdentityProviderMetadata();
+    return { isEnabled: true as const, providers };
 });
 

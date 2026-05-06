@@ -27,6 +27,21 @@ export function encrypt(text: string): { iv: string; encryptedData: string } {
     return { iv: iv.toString('hex'), encryptedData: encrypted };
 }
 
+export function decrypt(iv: string, encryptedText: string): string {
+    const encryptionKey = Buffer.from(env.SOURCEBOT_ENCRYPTION_KEY, 'ascii');
+
+    const ivBuffer = Buffer.from(iv, 'hex');
+    const encryptedBuffer = Buffer.from(encryptedText, 'hex');
+
+    const decipher = crypto.createDecipheriv(algorithm, encryptionKey, ivBuffer);
+
+    let decrypted = decipher.update(encryptedBuffer, undefined, 'utf8');
+    decrypted += decipher.final('utf8');
+
+    return decrypted;
+}
+
+
 export function hashSecret(text: string): string {
     return crypto.createHmac('sha256', env.SOURCEBOT_ENCRYPTION_KEY).update(text).digest('hex');
 }
@@ -59,20 +74,6 @@ export function generateOAuthRefreshToken(): { token: string; hash: string } {
         token: `${OAUTH_REFRESH_TOKEN_PREFIX}${secret}`,
         hash,
     };
-}
-
-export function decrypt(iv: string, encryptedText: string): string {
-    const encryptionKey = Buffer.from(env.SOURCEBOT_ENCRYPTION_KEY, 'ascii');
-
-    const ivBuffer = Buffer.from(iv, 'hex');
-    const encryptedBuffer = Buffer.from(encryptedText, 'hex');
-
-    const decipher = crypto.createDecipheriv(algorithm, encryptionKey, ivBuffer);
-
-    let decrypted = decipher.update(encryptedBuffer, undefined, 'utf8');
-    decrypted += decipher.final('utf8');
-
-    return decrypted;
 }
 
 export function verifySignature(data: string, signature: string, publicKeyPath: string): boolean {
@@ -225,4 +226,14 @@ export function decryptOAuthToken(encryptedText: string | null | undefined): str
         // Decryption failed - likely a plaintext token, return as-is
         return encryptedText;
     }
+}
+
+export function encryptActivationCode(code: string): string {
+    const { iv, encryptedData } = encrypt(code);
+    return Buffer.from(JSON.stringify({ iv, encryptedData })).toString('base64');
+}
+
+export function decryptActivationCode(encrypted: string): string {
+    const { iv, encryptedData } = JSON.parse(Buffer.from(encrypted, 'base64').toString('utf8'));
+    return decrypt(iv, encryptedData);
 }

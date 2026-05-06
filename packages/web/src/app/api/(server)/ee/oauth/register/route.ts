@@ -1,7 +1,7 @@
 import { oauthApiHandler } from '@/ee/features/oauth/apiHandler';
 import { requestBodySchemaValidationError, serviceErrorResponse } from '@/lib/serviceError';
 import { __unsafePrisma } from '@/prisma';
-import { hasEntitlement } from '@sourcebot/shared';
+import { hasEntitlement } from '@/lib/entitlements';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE, UNPERMITTED_SCHEMES } from '@/ee/features/oauth/constants';
@@ -15,7 +15,7 @@ const registerRequestSchema = z.object({
 });
 
 export const POST = oauthApiHandler(async (request: NextRequest) => {
-    if (!hasEntitlement('oauth')) {
+    if (!await hasEntitlement('oauth')) {
         return Response.json(
             { error: 'access_denied', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
             { status: 403 }

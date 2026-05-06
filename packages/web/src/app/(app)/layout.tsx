@@ -18,27 +18,30 @@ import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { notFound, redirect } from "next/navigation";
 import { PendingApprovalCard } from "./components/pendingApproval";
 import { SubmitJoinRequest } from "./components/submitJoinRequest";
-import { hasEntitlement } from "@sourcebot/shared";
-import { env } from "@sourcebot/shared";
+import { env, getOfflineLicenseMetadata } from "@sourcebot/shared";
+import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { GcpIapAuth } from "./components/gcpIapAuth";
-import { getAnonymousAccessStatus, getMemberApprovalRequired } from "@/actions";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { GitHubStarToast } from "./components/githubStarToast";
 import { UpgradeToast } from "./components/upgradeToast";
 import { getLinkedAccounts } from "@/ee/features/sso/actions";
-import { PermissionSyncBanner } from "./components/permissionSyncBanner";
+import { BannerSlot } from "./components/banners/bannerSlot";
 import { getPermissionSyncStatus } from "../api/(server)/ee/permissionSyncStatus/api";
+import { OrgRole } from "@sourcebot/db";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { ConnectAccountsCard } from "@/ee/features/sso/components/connectAccountsCard";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 interface LayoutProps {
-    children: React.ReactNode,
+    children: React.ReactNode;
+    sidebar: React.ReactNode;
 }
 
 export default async function Layout(props: LayoutProps) {
     const {
-        children
+        children,
+        sidebar,
     } = props;
 
     const org = await __unsafePrisma.org.findUnique({
@@ -50,18 +53,9 @@ export default async function Layout(props: LayoutProps) {
     }
 
     const session = await auth();
-    const anonymousAccessEnabled = await (async () => {
-        if (!hasEntitlement("anonymous-access")) {
-            return false;
-        }
+    const anonymousAccessEnabled = await isAnonymousAccessEnabled();
 
-        const status = await getAnonymousAccessStatus();
-        if (isServiceError(status)) {
-            return false;
-        }
-
-        return status;
-    })();
+    let role: OrgRole | null = null;
 
     // If the user is authenticated, we must check if they're a member of the org
     if (session) {
@@ -82,8 +76,7 @@ export default async function Layout(props: LayoutProps) {
         // the join organization card to allow them to join the org if seat capacity is freed up. This card handles checking if the org has available seats.
         // 2. The org requires member approval, and they haven't been approved yet. In this case, we allow them to submit a request to join the org.
         if (!membership) {
-            const memberApprovalRequired = await getMemberApprovalRequired();
-            if (!memberApprovalRequired) {
+            if (!org.memberApprovalRequired) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-6">
                         <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
@@ -105,6 +98,8 @@ export default async function Layout(props: LayoutProps) {
                 }
             }
         }
+
+        role = membership.role;
     } else {
         // If the user isn't authenticated and anonymous access isn't enabled, we need to redirect them to the login page.
         if (!anonymousAccessEnabled) {
@@ -126,7 +121,7 @@ export default async function Layout(props: LayoutProps) {
         )
     }
 
-    if (session && hasEntitlement("sso")) {
+    if (session && await hasEntitlement("sso")) {
         const linkedAccounts = await getLinkedAccounts();
         if (isServiceError(linkedAccounts)) {
             throw new ServiceErrorException(linkedAccounts);
@@ -160,22 +155,40 @@ export default async function Layout(props: LayoutProps) {
             <MobileUnsupportedSplashScreen />
         )
     }
-    const isPermissionSyncBannerVisible = session && hasEntitlement("permission-syncing");
-    const hasPendingFirstSync = isPermissionSyncBannerVisible ? (await getPermissionSyncStatus()) : null;
+    const hasPermissionSyncEntitlement = !!session && await hasEntitlement("permission-syncing");
+    const permissionSyncStatus = hasPermissionSyncEntitlement ? await getPermissionSyncStatus() : null;
+    const hasPendingFirstSync =
+        permissionSyncStatus !== null && !isServiceError(permissionSyncStatus)
+            ? permissionSyncStatus.hasPendingFirstSync
+            : false;
+
+    const offlineLicense = getOfflineLicenseMetadata();
+    const license = offlineLicense
+        ? null
+        : await __unsafePrisma.license.findUnique({ where: { orgId: org.id } });
 
     return (
         <SyntaxGuideProvider>
-            {
-                isPermissionSyncBannerVisible ? (
-                    <PermissionSyncBanner
-                        initialHasPendingFirstSync={(isServiceError(hasPendingFirstSync) || hasPendingFirstSync === null) ?
-                            false :
-                            hasPendingFirstSync.hasPendingFirstSync
-                        }
-                    />
-                ) : null
-            }
-            {children}
+
+            <div className="fixed inset-0 flex bg-shell">
+                <SidebarProvider defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}>
+                    {sidebar}
+                    <div className="flex-1 min-h-0 flex flex-col pt-2 pb-2 pr-2">
+                        <div className="flex-1 min-h-0 bg-background flex flex-col border border-[#e6e6e6] dark:border-[#1d1d1f] rounded-xl overflow-hidden">
+                            <BannerSlot
+                                role={role}
+                                license={license}
+                                offlineLicense={offlineLicense}
+                                hasPermissionSyncEntitlement={hasPermissionSyncEntitlement}
+                                hasPendingFirstSync={hasPendingFirstSync}
+                            />
+                            <div className="flex-1 min-h-0 overflow-y-auto">
+                                {children}
+                            </div>
+                        </div>
+                    </div>
+                </SidebarProvider>
+            </div>
             <SyntaxReferenceGuide />
             <GitHubStarToast />
             {env.EXPERIMENT_ASK_GH_ENABLED !== 'true' && <UpgradeToast />}

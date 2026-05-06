@@ -7,6 +7,7 @@ import { injectUserData } from "./scripts/inject-user-data";
 import { confirmAction } from "./utils";
 import { injectRepoData } from "./scripts/inject-repo-data";
 import { testRepoQueryPerf } from "./scripts/test-repo-query-perf";
+import { injectChatData } from "./scripts/inject-chat-data";
 
 export interface Script {
     run: (prisma: PrismaClient) => Promise<void>;
@@ -19,12 +20,13 @@ export const scripts: Record<string, Script> = {
     "inject-user-data": injectUserData,
     "inject-repo-data": injectRepoData,
     "test-repo-query-perf": testRepoQueryPerf,
+    "inject-chat-data": injectChatData,
 }
 
 const parser = new ArgumentParser();
 parser.add_argument("--url", { required: true, help: "Database URL" });
 parser.add_argument("--script", { required: true, help: "Script to run" });
-const args = parser.parse_args();
+const [args] = parser.parse_known_args();
 
 (async () => {
     if (!(args.script in scripts)) {

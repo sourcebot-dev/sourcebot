@@ -12,6 +12,7 @@ export default defineConfig({
             NODE_ENV: 'test',
             CONFIG_PATH: '/tmp/test-config.json',
             SOURCEBOT_ENCRYPTION_KEY: 'test-encryption-key-32-characters!',
+            SOURCEBOT_LIGHTHOUSE_URL: 'http://localhost:3003',
         }
     }
 });

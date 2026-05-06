@@ -5,7 +5,8 @@ import { OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME } from "@/lib/constants";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
-import { createLogger, env, hasEntitlement, IdentityProviderType, loadConfig, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
+import { createLogger, env, IdentityProviderType, loadConfig, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
+import { hasEntitlement } from "@/lib/entitlements";
 import { cookies } from "next/headers";
 
 const logger = createLogger('web-ee-sso-actions');
@@ -42,7 +43,7 @@ export const getLinkedAccounts = async () => sew(() =>
 
             const permissionSyncEnabled =
                 env.PERMISSION_SYNC_ENABLED === 'true' &&
-                hasEntitlement('permission-syncing');
+                await hasEntitlement('permission-syncing');
 
             const accountsByProvider = new Map(accounts.map(a => [a.provider, a]));
             const result: LinkedAccount[] = [];

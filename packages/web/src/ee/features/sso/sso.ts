@@ -3,7 +3,8 @@ import { onCreateUser } from "@/lib/authUtils";
 import { __unsafePrisma } from "@/prisma";
 import { AuthentikIdentityProviderConfig, BitbucketCloudIdentityProviderConfig, BitbucketServerIdentityProviderConfig, GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, JumpCloudIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
 import type { IdentityProviderType } from "@sourcebot/shared";
-import { createLogger, env, getTokenFromConfig, hasEntitlement, loadConfig } from "@sourcebot/shared";
+import { createLogger, env, getTokenFromConfig, loadConfig } from "@sourcebot/shared";
+import { hasEntitlement } from "@/lib/entitlements";
 import { OAuth2Client } from "google-auth-library";
 import type { User as AuthJsUser } from "next-auth";
 import type { Provider } from "next-auth/providers";
@@ -33,7 +34,7 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
             const baseUrl = (providerConfig.baseUrl ?? 'https://github.com').replace(/\/+$/, '');
             providers.push({
-                provider: createGitHubProvider(clientId, clientSecret, baseUrl),
+                provider: await createGitHubProvider(clientId, clientSecret, baseUrl),
                 purpose: providerConfig.purpose,
                 required: providerConfig.accountLinkingRequired ?? false,
                 issuerUrl: baseUrl,
@@ -46,7 +47,7 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
             const baseUrl = (providerConfig.baseUrl ?? 'https://gitlab.com').replace(/\/+$/, '');
             providers.push({
-                provider: createGitLabProvider(clientId, clientSecret, baseUrl),
+                provider: await createGitLabProvider(clientId, clientSecret, baseUrl),
                 purpose: providerConfig.purpose,
                 required: providerConfig.accountLinkingRequired ?? false,
                 issuerUrl: baseUrl,
@@ -114,7 +115,7 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
             const clientId = await getTokenFromConfig(providerConfig.clientId);
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
             providers.push({
-                provider: createBitbucketCloudProvider(clientId, clientSecret),
+                provider: await createBitbucketCloudProvider(clientId, clientSecret),
                 purpose: providerConfig.purpose,
                 required: providerConfig.accountLinkingRequired ?? false,
                 issuerUrl: 'https://bitbucket.org'
@@ -151,7 +152,7 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
             const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
             const baseUrl = providerConfig.baseUrl.replace(/\/+$/, '');
             providers.push({
-                provider: createBitbucketServerProvider(clientId, clientSecret, baseUrl),
+                provider: await createBitbucketServerProvider(clientId, clientSecret, baseUrl),
                 purpose: providerConfig.purpose,
                 required: providerConfig.accountLinkingRequired ?? false,
                 issuerUrl: baseUrl
@@ -167,7 +168,7 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
         if (env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
             const baseUrl = (env.AUTH_EE_GITHUB_BASE_URL ?? 'https://github.com').replace(/\/+$/, '');
             providers.push({
-                provider: createGitHubProvider(
+                provider: await createGitHubProvider(
                     env.AUTH_EE_GITHUB_CLIENT_ID,
                     env.AUTH_EE_GITHUB_CLIENT_SECRET,
                     baseUrl
@@ -180,7 +181,7 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
         if (env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
             const baseUrl = (env.AUTH_EE_GITLAB_BASE_URL ?? 'https://gitlab.com').replace(/\/+$/, '');
             providers.push({
-                provider: createGitLabProvider(
+                provider: await createGitLabProvider(
                     env.AUTH_EE_GITLAB_CLIENT_ID,
                     env.AUTH_EE_GITLAB_CLIENT_SECRET,
                     baseUrl,
@@ -236,7 +237,7 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
     return providers;
 }
 
-const createGitHubProvider = (clientId: string, clientSecret: string, baseUrl: string) => {
+const createGitHubProvider = async (clientId: string, clientSecret: string, baseUrl: string) => {
     return GitHub({
         id: 'github' satisfies IdentityProviderType,
         clientId: clientId,
@@ -253,7 +254,7 @@ const createGitHubProvider = (clientId: string, clientSecret: string, baseUrl: s
                     // Permission syncing requires the `repo` scope in order to fetch repositories
                     // for the authenticated user.
                     // @see: https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-the-authenticated-user
-                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
+                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && await hasEntitlement('permission-syncing') ?
                         ['repo'] :
                         []
                     ),
@@ -264,7 +265,7 @@ const createGitHubProvider = (clientId: string, clientSecret: string, baseUrl: s
     });
 }
 
-const createGitLabProvider = (clientId: string, clientSecret: string, baseUrl: string) => {
+const createGitLabProvider = async (clientId: string, clientSecret: string, baseUrl: string) => {
     return Gitlab({
         id: 'gitlab' satisfies IdentityProviderType,
         clientId: clientId,
@@ -277,7 +278,7 @@ const createGitLabProvider = (clientId: string, clientSecret: string, baseUrl: s
                     // Permission syncing requires the `read_api` scope in order to fetch projects
                     // for the authenticated user and project members.
                     // @see: https://docs.gitlab.com/ee/api/projects.html#list-all-projects
-                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
+                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && await hasEntitlement('permission-syncing') ?
                         ['read_api'] :
                         []
                     ),
@@ -333,7 +334,7 @@ const createMicrosoftEntraIDProvider = (clientId: string, clientSecret: string, 
     });
 }
 
-const createBitbucketCloudProvider = (clientId: string, clientSecret: string): Provider => {
+const createBitbucketCloudProvider = async (clientId: string, clientSecret: string): Promise<Provider> => {
     return Bitbucket({
         id: 'bitbucket-cloud' satisfies IdentityProviderType,
         name: "Bitbucket Cloud",
@@ -345,7 +346,7 @@ const createBitbucketCloudProvider = (clientId: string, clientSecret: string): P
                 scope: [
                     "account",
                     "email",
-                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ?
+                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && await hasEntitlement('permission-syncing') ?
                         ['repository'] :
                         []
                     ),
@@ -356,7 +357,7 @@ const createBitbucketCloudProvider = (clientId: string, clientSecret: string): P
     });
 }
 
-const createBitbucketServerProvider = (clientId: string, clientSecret: string, baseUrl: string): Provider => {
+const createBitbucketServerProvider = async (clientId: string, clientSecret: string, baseUrl: string): Promise<Provider> => {
     return {
         id: 'bitbucket-server' satisfies IdentityProviderType,
         name: "Bitbucket Server",
@@ -370,7 +371,7 @@ const createBitbucketServerProvider = (clientId: string, clientSecret: string, b
                 // @see: https://confluence.atlassian.com/bitbucketserver/bitbucket-oauth-2-0-provider-api-1108483661.html
                 scope: [
                     "PUBLIC_REPOS",
-                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')
+                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && await hasEntitlement('permission-syncing')
                         ? ['REPO_READ']
                         : []),
                 ].join(' ')

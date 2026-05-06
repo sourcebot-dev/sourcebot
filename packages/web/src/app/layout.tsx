@@ -9,59 +9,60 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "next-auth/react";
 import { env, SOURCEBOT_VERSION } from "@sourcebot/shared";
 import { PlanProvider } from "@/features/entitlements/planProvider";
-import { getEntitlements } from "@sourcebot/shared";
+import { getEntitlements } from "@/lib/entitlements";
 
 export const metadata: Metadata = {
-  metadataBase: env.AUTH_URL ? new URL(env.AUTH_URL) : undefined,
-  // Using the title.template will allow child pages to set the title
-  // while keeping a consistent suffix.
-  title: {
-    default: "Sourcebot",
-    template: "%s | Sourcebot",
-  },
-  description:
-    "Sourcebot is a self-hosted code understanding tool. Ask questions about your codebase and get rich Markdown answers with inline citations.",
-  manifest: "/manifest.json",
+    metadataBase: env.AUTH_URL ? new URL(env.AUTH_URL) : undefined,
+    // Using the title.template will allow child pages to set the title
+    // while keeping a consistent suffix.
+    title: {
+        default: "Sourcebot",
+        template: "%s | Sourcebot",
+    },
+    description:
+        "Sourcebot is a self-hosted code understanding tool. Ask questions about your codebase and get rich Markdown answers with inline citations.",
+    manifest: "/manifest.json",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    const entitlements = await getEntitlements();
+
     return (
         <html
             lang="en"
             // @see : https://github.com/pacocoursey/next-themes?tab=readme-ov-file#with-app
             suppressHydrationWarning
         >
-      <head>
-        {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_SCAN === 'true' && (
-          <Script
-            src="//unpkg.com/react-scan/dist/auto.global.js"
-            crossOrigin="anonymous"
-            strategy="beforeInteractive"
-          />
-        )}
-
-        {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_GRAB === 'true' && (
-          <Script
-            src="//unpkg.com/react-grab/dist/index.global.js"
-            crossOrigin="anonymous"
-            strategy="beforeInteractive"
-          />
-        )}
-        {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_GRAB === 'true' && (
-          <Script
-            src="//unpkg.com/@react-grab/mcp/dist/client.global.js"
-            strategy="lazyOnload"
-          />
-        )}
-      </head>
+            <head>
+                {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_SCAN === 'true' && (
+                    <Script
+                        src="//unpkg.com/react-scan/dist/auto.global.js"
+                        crossOrigin="anonymous"
+                        strategy="beforeInteractive"
+                    />
+                )}
+                {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_GRAB === 'true' && (
+                    <Script
+                        src="//unpkg.com/react-grab/dist/index.global.js"
+                        crossOrigin="anonymous"
+                        strategy="beforeInteractive"
+                    />
+                )}
+                {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_GRAB === 'true' && (
+                    <Script
+                        src="//unpkg.com/@react-grab/mcp/dist/client.global.js"
+                        strategy="lazyOnload"
+                    />
+                )}
+            </head>
             <body>
                 <Toaster />
                 <SessionProvider>
-                    <PlanProvider entitlements={getEntitlements()}>
+                    <PlanProvider entitlements={entitlements}>
                         <PostHogProvider
                             isDisabled={env.SOURCEBOT_TELEMETRY_DISABLED === 'true'}
                             isPiiEnabled={env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true'}

@@ -291,12 +291,40 @@ model Org {
   searchContexts SearchContext[]
 
   chats Chat[]
+
+  license License?
+
+  /// Set the first time this instance is seen to be on a trial subscription.
+  /// Never cleared. Used to gate the "Start trial" CTA in the UI.
+  trialUsedAt DateTime?
+}
+
+model License {
+  id                String      @id @default(cuid())
+  orgId             Int      @unique
+  org               Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  activationCode    String
+  entitlements      String[]
+  seats             Int?
+  status            String? /// See LicenseStatus in packages/shared/src/types.ts
+  planName          String?
+  unitAmount        Int?
+  currency          String?
+  interval          String?
+  intervalCount     Int?
+  nextRenewalAt     DateTime?
+  nextRenewalAmount Int?
+  cancelAt          DateTime?
+  trialEnd          DateTime?
+  hasPaymentMethod  Boolean?
+  lastSyncAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 enum OrgRole {
   OWNER
   MEMBER
-  GUEST
 }
 
 model UserToOrg {

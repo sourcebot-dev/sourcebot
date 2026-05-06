@@ -1,7 +1,7 @@
 import 'server-only';
 import { env, getDBConnectionString } from "@sourcebot/shared";
 import { Prisma, PrismaClient, UserWithAccounts } from "@sourcebot/db";
-import { hasEntitlement } from "@sourcebot/shared";
+import { hasEntitlement } from "@/lib/entitlements";
 
 // @see: https://authjs.dev/getting-started/adapters/prisma
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
@@ -28,12 +28,14 @@ if (env.NODE_ENV !== "production") globalForPrisma.prisma = __unsafePrisma
  * Creates a prisma client extension that scopes queries to striclty information
  * a given user should be able to access.
  */
-export const userScopedPrismaClientExtension = (user?: UserWithAccounts) => {
+export const userScopedPrismaClientExtension = async (user?: UserWithAccounts) => {
+    const hasPermissionSyncing = env.PERMISSION_SYNC_ENABLED === 'true' && await hasEntitlement('permission-syncing');
+
     return Prisma.defineExtension(
         (prisma) => {
             return prisma.$extends({
                 query: {
-                    ...(env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing') ? {
+                    ...(hasPermissionSyncing ? {
                         repo: {
                             async $allOperations({ args, query }) {
                                 const argsWithWhere = args as Record<string, unknown> & {

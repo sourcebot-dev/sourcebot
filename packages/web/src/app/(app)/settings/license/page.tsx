@@ -1,118 +1,95 @@
-import { getLicenseKey, getEntitlements, getPlan, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
-import { Button } from "@/components/ui/button";
-import { Info, Mail } from "lucide-react";
-import { getOrgMembers } from "@/actions";
-import { isServiceError } from "@/lib/utils";
-import { ServiceErrorException } from "@/lib/serviceError";
 import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
+import { getOfflineLicenseMetadata } from "@sourcebot/shared";
+import { Button } from "@/components/ui/button";
+import { ExternalLink } from "lucide-react";
+import { redirect } from "next/navigation";
+import { ActivationCodeCard } from "./activationCodeCard";
+import { CurrentPlanCard } from "./currentPlanCard";
+import { OfflineLicenseCard } from "./offlineLicenseCard";
+import { RecentInvoicesCard } from "./recentInvoicesCard";
+import { getAllInvoices } from "@/ee/features/lighthouse/actions";
+import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
+import { isServiceError } from "@/lib/utils";
 
-export default authenticatedPage(async () => {
-    const licenseKey = getLicenseKey();
-    const entitlements = getEntitlements();
-    const plan = getPlan();
+type LicensePageProps = {
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+} & Record<string, unknown>;
 
-    if (!licenseKey) {
-        return (
-            <div className="flex flex-col gap-6">
-                <div>
-                    <h3 className="text-lg font-medium">License</h3>
-                    <p className="text-sm text-muted-foreground">View your license details.</p>
-                </div>
+export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props) => {
+    const searchParams = await props.searchParams;
+    if (searchParams?.refresh === 'true' || searchParams?.trial_used === 'true') {
+        // Side-trips to the Stripe portal (add PM, manage sub) include
+        // ?refresh=true so we resync immediately instead of waiting for
+        // the daily ping. Trial checkout returns add ?trial_used=true so
+        // we can flag the org as having used its trial even before the
+        // license row exists (the user still needs to enter the
+        // activation code from email before syncWithLighthouse has
+        // anything to pull).
+        if (searchParams.refresh === 'true') {
+            await syncWithLighthouse(org.id).catch(() => {
+                // ignore failure
+            });
+        }
+        if (searchParams.trial_used === 'true' && org.trialUsedAt === null) {
+            await prisma.org.update({
+                where: { id: org.id, trialUsedAt: null },
+                data: { trialUsedAt: new Date() },
+            }).catch(() => {
+                // No-op: the flag was already set by another path.
+            });
+        }
 
-                <div className="flex flex-col items-center justify-center p-8 border rounded-md bg-card">
-                    <Info className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No License Found</h3>
-                    <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-                        Check out the <a href="https://docs.sourcebot.dev/docs/license-key" target="_blank" rel="noopener noreferrer" className="text-primary">docs</a> for more information.
+        // Strip our params but preserve anything else (e.g. `checkout=success`).
+        const preserved = new URLSearchParams(searchParams as Record<string, string>);
+        preserved.delete('refresh');
+        preserved.delete('trial_used');
+        const suffix = preserved.toString();
+        redirect(suffix ? `/settings/license?${suffix}` : '/settings/license');
+    }
+
+    const offlineLicense = getOfflineLicenseMetadata();
+    const isOfflineLicenseExpired = offlineLicense
+        ? new Date(offlineLicense.expiryDate).getTime() < Date.now()
+        : false;
+
+    const license = offlineLicense
+        ? null
+        : await prisma.license.findUnique({ where: { orgId: org.id } });
+
+    const invoicesResult = license ? await getAllInvoices() : null;
+    const invoices = invoicesResult && !isServiceError(invoicesResult) ? invoicesResult : [];
+
+    const isTrialEligible = !offlineLicense && org.trialUsedAt === null;
+
+    return (
+        <div className="flex flex-col gap-6">
+            <div>
+                <h3 className="text-lg font-medium">License</h3>
+                <div className="flex items-center justify-between gap-6">
+                    <p className="text-sm text-muted-foreground">
+                        For questions about licenses or billing,{" "}
+                        <a href="mailto:support@sourcebot.dev" className="text-primary hover:underline">
+                            contact us
+                        </a>
                     </p>
-                    <div className="mb-8 max-w-md rounded-lg bg-slate-50 p-4 dark:bg-slate-800">
-                        <p className="text-base text-center">
-                            Want to try out Sourcebot&apos;s enterprise features? Reach out to us and we&apos;ll get back to you within
-                            a couple hours with a trial license.
-                        </p>
-                    </div>
-                    <Button asChild>
-                        <a href={`https://sourcebot.dev/contact`} target="_blank" rel="noopener noreferrer">
-                            <Mail className="h-4 w-4 mr-2" />
-                            Request a trial license
+                    <Button variant="ghost" size="sm" className="text-muted-foreground h-6" asChild>
+                        <a href="https://www.sourcebot.dev/pricing" target="_blank" rel="noopener noreferrer">
+                            All plans
+                            <ExternalLink className="h-3.5 w-3.5" />
                         </a>
                     </Button>
                 </div>
             </div>
-        )
-    }
-
-    const members = await getOrgMembers();
-    if (isServiceError(members)) {
-        throw new ServiceErrorException(members);
-    }
-
-    const numMembers = members.length;
-    const expiryDate = new Date(licenseKey.expiryDate);
-    const isExpired = expiryDate < new Date();
-    const seats = licenseKey.seats;
-    const isUnlimited = seats === SOURCEBOT_UNLIMITED_SEATS;
-
-    return (
-        <div className="flex flex-col gap-6">
-            <div className="flex items-start justify-between">
-                <div>
-                    <h3 className="text-lg font-medium">License</h3>
-                    <p className="text-sm text-muted-foreground">View your license details.</p>
-                </div>
-
-                <Button asChild>
-                    <a href={`mailto:team@sourcebot.dev?subject=License Support - ${licenseKey.id}&body=License ID: ${licenseKey.id}`}>
-                        <Mail className="h-4 w-4 mr-2" />
-                        Contact Support
-                    </a>
-                </Button>
-            </div>
-
-            <div className="grid gap-6">
-                <div className="border rounded-md p-6 bg-card">
-                    <h4 className="text-base font-medium mb-4">License Details</h4>
-
-                    <div className="grid gap-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="text-sm text-muted-foreground">License ID</div>
-                            <div className="text-sm font-mono">{licenseKey.id}</div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="text-sm text-muted-foreground">Plan</div>
-                            <div className="text-sm font-mono">{plan}</div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="text-sm text-muted-foreground">Entitlements</div>
-                            <div className="text-sm font-mono">{entitlements?.join(", ") || "None"}</div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="text-sm text-muted-foreground">Seats</div>
-                            <div className="text-sm font-mono">
-                                {isUnlimited ? 'Unlimited' : `${numMembers} / ${seats}`}
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="text-sm text-muted-foreground">Expiry Date</div>
-                            <div className={`text-sm font-mono ${isExpired ? 'text-destructive' : ''}`}>
-                                {expiryDate.toLocaleString("en-US", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    month: "long",
-                                    day: "numeric",
-                                    year: "numeric",
-                                    timeZoneName: "short"
-                                })} {isExpired && '(Expired)'}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {offlineLicense && (
+                <OfflineLicenseCard license={offlineLicense} isExpired={isOfflineLicenseExpired} />
+            )}
+            {license && <CurrentPlanCard license={license} />}
+            {license && <RecentInvoicesCard invoices={invoices} />}
+            {!offlineLicense && !license && <ActivationCodeCard isTrialEligible={isTrialEligible} />}
         </div>
-    )
-}, { minRole: OrgRole.OWNER, redirectTo: '/settings' });
+    );
+}, {
+    minRole: OrgRole.OWNER,
+    redirectTo: '/settings'
+});

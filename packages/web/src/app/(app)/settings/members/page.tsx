@@ -1,18 +1,19 @@
 import { MembersList } from "./components/membersList";
-import { getOrgMembers } from "@/actions";
+import { getOrgMembers, getOrgInvites, getOrgAccountRequests } from "@/features/userManagement/actions";
 import { isServiceError } from "@/lib/utils";
 import { InviteMemberCard } from "./components/inviteMemberCard";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { TabSwitcher } from "@/components/ui/tab-switcher";
 import { InvitesList } from "./components/invitesList";
-import { getOrgInvites, getMe, getOrgAccountRequests } from "@/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
-import { getSeats, hasEntitlement, SOURCEBOT_UNLIMITED_SEATS } from "@sourcebot/shared";
+import { hasEntitlement } from "@/lib/entitlements";
 import { RequestsList } from "./components/requestsList";
 import { OrgRole } from "@sourcebot/db";
 import { NotificationDot } from "../../components/notificationDot";
 import { Badge } from "@/components/ui/badge";
 import { authenticatedPage } from "@/middleware/authenticatedPage";
+import { orgHasAvailability } from "@/lib/authUtils";
+import { getSeatCap } from "@sourcebot/shared";
 
 type MembersSettingsPageProps = {
     searchParams: Promise<{
@@ -20,17 +21,12 @@ type MembersSettingsPageProps = {
     }>
 }
 
-export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role }, props) => {
+export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role, user }, props) => {
     const searchParams = await props.searchParams;
 
     const {
         tab
     } = searchParams;
-
-    const me = await getMe();
-    if (isServiceError(me)) {
-        throw new ServiceErrorException(me);
-    }
 
     const members = await getOrgMembers();
     if (isServiceError(members)) {
@@ -49,9 +45,8 @@ export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role },
 
     const currentTab = tab || "members";
 
-    const seats = getSeats();
-    const usedSeats = members.length
-    const seatsAvailable = seats === SOURCEBOT_UNLIMITED_SEATS || usedSeats < seats;
+    const hasAvailability = await orgHasAvailability(org.id);
+    const seatCap = getSeatCap();
 
     return (
         <div className="flex flex-col gap-6">
@@ -60,12 +55,12 @@ export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role },
                     <h3 className="text-lg font-medium">Members</h3>
                     <p className="text-sm text-muted-foreground">Invite and manage members of your organization.</p>
                 </div>
-                {seats && seats !== SOURCEBOT_UNLIMITED_SEATS && (
+                {seatCap && (
                     <div className="bg-card px-4 py-2 rounded-md border shadow-sm">
                         <div className="text-sm">
-                            <span className="text-foreground font-medium">{usedSeats}</span>
+                            <span className="text-foreground font-medium">{members.length}</span>
                             <span className="text-muted-foreground"> of </span>
-                            <span className="text-foreground font-medium">{seats}</span>
+                            <span className="text-foreground font-medium">{seatCap}</span>
                             <span className="text-muted-foreground"> seats used</span>
                         </div>
                     </div>
@@ -74,7 +69,7 @@ export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role },
 
             <InviteMemberCard
                 currentUserRole={role}
-                seatsAvailable={seatsAvailable}
+                seatsAvailable={hasAvailability}
             />
 
             <Tabs value={currentTab}>
@@ -131,10 +126,10 @@ export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role },
                 <TabsContent value="members">
                     <MembersList
                         members={members}
-                        currentUserId={me.id}
+                        currentUserId={user.id}
                         currentUserRole={role}
                         orgName={org.name}
-                        hasOrgManagement={hasEntitlement('org-management')}
+                        hasOrgManagement={await hasEntitlement('org-management')}
                     />
                 </TabsContent>
 
@@ -158,4 +153,7 @@ export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role },
             </Tabs>
         </div>
     )
-}, { minRole: OrgRole.OWNER, redirectTo: '/settings' });
+}, {
+    minRole: OrgRole.OWNER,
+    redirectTo: '/settings'
+});

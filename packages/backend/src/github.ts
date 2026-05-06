@@ -4,7 +4,8 @@ import * as Sentry from "@sentry/node";
 import { getTokenFromConfig } from "@sourcebot/shared";
 import { createLogger } from "@sourcebot/shared";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
-import { env, hasEntitlement } from "@sourcebot/shared";
+import { env } from "@sourcebot/shared";
+import { hasEntitlement } from "./entitlements.js";
 import micromatch from "micromatch";
 import pLimit from "p-limit";
 import { processPromiseResults, throwIfAnyFailed } from "./connectionUtils.js";
@@ -124,7 +125,7 @@ const getOctokitWithGithubApp = async (
     url: string | undefined,
     context: string
 ): Promise<Octokit> => {
-    if (!hasEntitlement('github-app') || !GithubAppManager.getInstance().appsConfigured()) {
+    if (!await hasEntitlement('github-app') || !GithubAppManager.getInstance().appsConfigured()) {
         return octokit;
     }
 
