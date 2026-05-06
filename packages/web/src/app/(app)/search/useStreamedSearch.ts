@@ -1,6 +1,6 @@
 'use client';
 
-import { RepositoryInfo, SearchRequest, SearchResultFile, SearchStats, StreamedSearchResponse } from '@/features/search';
+import type { RepositoryInfo, SearchRequest, SearchResultFile, SearchStats, StreamedSearchResponse } from '@/features/search/types';
 import { ServiceErrorException } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
 import * as Sentry from '@sentry/nextjs';
@@ -14,6 +14,7 @@ interface CacheEntry {
     timeToFirstSearchResultMs: number;
     timestamp: number;
     isExhaustive: boolean;
+    stats?: SearchStats;
 }
 
 const searchCache = new Map<string, CacheEntry>();
@@ -101,6 +102,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                     timeToSearchCompletionMs: cachedEntry.timeToSearchCompletionMs,
                     timeToFirstSearchResultMs: cachedEntry.timeToFirstSearchResultMs,
                     numMatches: cachedEntry.numMatches,
+                    stats: cachedEntry.stats,
                 });
                 return;
             }
@@ -114,6 +116,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                 timeToSearchCompletionMs: 0,
                 timeToFirstSearchResultMs: 0,
                 numMatches: 0,
+                stats: undefined,
             });
 
             try {
@@ -242,6 +245,7 @@ export const useStreamedSearch = ({ query, matches, contextLines, whole, isRegex
                         timeToFirstSearchResultMs: prev.timeToFirstSearchResultMs,
                         timeToSearchCompletionMs,
                         timestamp: Date.now(),
+                        stats: prev.stats,
                     });
                     return {
                         ...prev,

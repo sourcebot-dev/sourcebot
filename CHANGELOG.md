@@ -105,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.16.8] - 2026-04-09
 
 ### Added
+- Search results show an informational alert when a query may be incomplete (for example due to match limits, skipped index shards, or streaming flush), and non-exhaustive Zoekt searches are logged for operators. [#1098](https://github.com/sourcebot-dev/sourcebot/pull/1098)
 - Linear issue links in chat responses now render as a rich card-style UI showing the Linear logo, issue identifier, and title instead of plain hyperlinks. [#1060](https://github.com/sourcebot-dev/sourcebot/pull/1060)
 - Added `reasoningEffort` configuration option for the Azure OpenAI provider. [#1101](https://github.com/sourcebot-dev/sourcebot/pull/1101)
 - Added `reasoningSummary` configuration option for the OpenAI and Azure OpenAI providers. [#1102](https://github.com/sourcebot-dev/sourcebot/pull/1102)
