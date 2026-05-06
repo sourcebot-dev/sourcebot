@@ -7,6 +7,10 @@ import { BLAME_AGE_BG_CLASSES, computeAgeBucket } from "./blameAgeColors";
 
 type LineEntry = {
     hash: string;
+    // The file path as it existed at `hash`. May differ from the current file
+    // path if the file was renamed in or after that commit, so we use it
+    // (rather than the current path) when navigating to the commit's diff.
+    path: string;
     // Set only on the first line of a contiguous range; null on continuation
     // lines so they render as empty filler cells.
     message: string | null;
@@ -29,7 +33,7 @@ const FILE_STACK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="14" heigh
 
 const buildCellDom = (
     entry: LineEntry,
-    onCommitClick: (hash: string) => void,
+    onCommitClick: (commit: { hash: string; path: string }) => void,
     onReblameClick: (previous: { hash: string; path: string }) => void,
 ): HTMLElement => {
     const cell = document.createElement('div');
@@ -80,7 +84,7 @@ const buildCellDom = (
     messageEl.type = 'button';
     messageEl.className = 'flex-1 min-w-0 truncate text-left bg-transparent border-0 p-0 m-0 font-[inherit] text-inherit cursor-pointer hover:text-foreground hover:underline';
     messageEl.textContent = entry.message;
-    messageEl.addEventListener('click', () => onCommitClick(entry.hash));
+    messageEl.addEventListener('click', () => onCommitClick({ hash: entry.hash, path: entry.path }));
     cell.appendChild(messageEl);
 
     if (entry.previous) {
@@ -103,7 +107,7 @@ const buildCellDom = (
 class BlameMarker extends GutterMarker {
     constructor(
         readonly entry: LineEntry,
-        readonly onCommitClick: (hash: string) => void,
+        readonly onCommitClick: (commit: { hash: string; path: string }) => void,
         readonly onReblameClick: (previous: { hash: string; path: string }) => void,
     ) {
         super();
@@ -117,6 +121,7 @@ class BlameMarker extends GutterMarker {
         const b = other.entry;
         return (
             a.hash === b.hash &&
+            a.path === b.path &&
             a.message === b.message &&
             a.date === b.date &&
             a.authorEmail === b.authorEmail &&
@@ -199,6 +204,7 @@ const buildLineIndex = (blame: FileBlameResponse): Map<number, LineEntry> => {
             if (isFirstLineOfRange && commit) {
                 index.set(lineNumber, {
                     hash: range.hash,
+                    path: range.path,
                     message: commit.message,
                     date: commit.date,
                     authorEmail: commit.authorEmail,
@@ -209,6 +215,7 @@ const buildLineIndex = (blame: FileBlameResponse): Map<number, LineEntry> => {
             } else {
                 index.set(lineNumber, {
                     hash: range.hash,
+                    path: range.path,
                     message: null,
                     date: null,
                     authorEmail: null,
@@ -236,7 +243,7 @@ const blameTheme = EditorView.theme({
 
 export const blameGutterExtension = (
     blame: FileBlameResponse,
-    onCommitClick: (hash: string) => void,
+    onCommitClick: (commit: { hash: string; path: string }) => void,
     onReblameClick: (previous: { hash: string; path: string }) => void,
 ): Extension => {
     const lineIndex = buildLineIndex(blame);
