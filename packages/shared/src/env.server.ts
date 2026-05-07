@@ -235,10 +235,11 @@ const options = {
         GITLAB_REVIEW_AGENT_TOKEN: z.string().optional(),
         GITLAB_REVIEW_AGENT_HOST: z.string().default('gitlab.com').transform(s => s.replace(/^https?:\/\//, '').replace(/\/+$/, '')).refine(s => /^[a-z0-9.-]+$/i.test(s), { message: 'invalid hostname' }),
         // Review agent config
-        REVIEW_AGENT_MODEL: z.string().optional(),
+        REVIEW_AGENT_ACK_REACTION: z.string().default('eyes'),
         REVIEW_AGENT_API_KEY: z.string().optional(),
-        REVIEW_AGENT_LOGGING_ENABLED: booleanSchema.default('true'),
         REVIEW_AGENT_AUTO_REVIEW_ENABLED: booleanSchema.default('false'),
+        REVIEW_AGENT_LOGGING_ENABLED: booleanSchema.default('true'),
+        REVIEW_AGENT_MODEL: z.string().optional(),
         REVIEW_AGENT_REVIEW_COMMAND: z.string().default('review'),
 
         ANTHROPIC_API_KEY: z.string().optional(),

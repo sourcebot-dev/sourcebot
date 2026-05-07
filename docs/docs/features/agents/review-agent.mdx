@@ -141,7 +141,8 @@ You can also trigger a review manually by commenting `/review` on any PR or MR. 
 
 | Variable | Default | Description |
 |---|---|---|
+| `REVIEW_AGENT_ACK_REACTION` | `eyes` | Reaction/emoji added to acknowledge receipt of the review command |
 | `REVIEW_AGENT_AUTO_REVIEW_ENABLED` | `false` | Automatically review new and updated PRs/MRs |
-| `REVIEW_AGENT_REVIEW_COMMAND` | `review` | Comment command that triggers a manual review (without the `/`) |
-| `REVIEW_AGENT_MODEL` | first configured model | `displayName` of the language model to use for reviews |
 | `REVIEW_AGENT_LOGGING_ENABLED` | unset | Write prompt and response logs to disk for debugging |
+| `REVIEW_AGENT_MODEL` | first configured model | `displayName` of the language model to use for reviews |
+| `REVIEW_AGENT_REVIEW_COMMAND` | `review` | Comment command that triggers a manual review (without the `/`) |
