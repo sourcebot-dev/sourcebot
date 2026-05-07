@@ -240,6 +240,8 @@ const options = {
         REVIEW_AGENT_LOGGING_ENABLED: booleanSchema.default('true'),
         REVIEW_AGENT_AUTO_REVIEW_ENABLED: booleanSchema.default('false'),
         REVIEW_AGENT_REVIEW_COMMAND: z.string().default('review'),
+        REVIEW_AGENT_SUMMARY_ENABLED: booleanSchema.default('false'),
+        REVIEW_AGENT_SUMMARY_MAX_LENGTH: numberSchema.default(250),
 
         ANTHROPIC_API_KEY: z.string().optional(),
         ANTHROPIC_AUTH_TOKEN: z.string().optional(),

@@ -74,6 +74,8 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `REVIEW_AGENT_AUTO_REVIEW_ENABLED` | `false` | <p>Enables/disables automatic code reviews by the review agent.</p> |
 | `REVIEW_AGENT_LOGGING_ENABLED` | `true` | <p>Enables/disables logging for the review agent. Logs are saved in `DATA_CACHE_DIR/review-agent`</p> |
 | `REVIEW_AGENT_REVIEW_COMMAND` | `review` | <p>The command used to trigger a code review by the review agent.</p> |
+| `REVIEW_AGENT_SUMMARY_ENABLED` | `false` | <p>Enables/disables posting a concise summary comment on the PR/MR after each review.</p> |
+| `REVIEW_AGENT_SUMMARY_MAX_LENGTH` | `250` | <p>Maximum character length of the summary comment posted by the review agent.</p> |
 
 ### Overriding environment variables from the config
 
