@@ -10,7 +10,7 @@ export const githubPushPrReviews = async (octokit: Octokit, pr_payload: sourcebo
     if (summary) {
         const SUMMARY_MARKER = "<!-- sourcebot-review-summary -->";
         try {
-            const { data: comments } = await octokit.rest.issues.listComments({
+            const comments = await octokit.paginate(octokit.rest.issues.listComments, {
                 owner: pr_payload.owner,
                 repo: pr_payload.repo,
                 issue_number: pr_payload.number,

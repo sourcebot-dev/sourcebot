@@ -31,7 +31,8 @@ const SINGLE_REVIEW: sourcebot_file_diff_review[] = [
 ];
 
 function makeMockOctokit(createReviewCommentResult: 'resolve' | 'reject' = 'resolve', existingComments: { id: number; body: string }[] = []) {
-    return {
+    const octokit = {
+        paginate: vi.fn().mockResolvedValue(existingComments),
         rest: {
             pulls: {
                 createReviewComment: createReviewCommentResult === 'resolve'
@@ -39,12 +40,13 @@ function makeMockOctokit(createReviewCommentResult: 'resolve' | 'reject' = 'reso
                     : vi.fn().mockRejectedValue(new Error('Unprocessable Entity')),
             },
             issues: {
-                listComments: vi.fn().mockResolvedValue({ data: existingComments }),
+                listComments: vi.fn(),
                 createComment: vi.fn().mockResolvedValue({}),
                 updateComment: vi.fn().mockResolvedValue({}),
             },
         },
-    } as unknown as Octokit;
+    } as any;
+    return octokit;
 }
 
 describe('githubPushPrReviews', () => {
@@ -161,7 +163,7 @@ describe('githubPushPrReviews – summary comment', () => {
 
         await githubPushPrReviews(octokit, MOCK_PAYLOAD, [], undefined);
 
-        expect(octokit.rest.issues.listComments).not.toHaveBeenCalled();
+        expect(octokit.paginate).not.toHaveBeenCalled();
         expect(octokit.rest.issues.createComment).not.toHaveBeenCalled();
         expect(octokit.rest.issues.updateComment).not.toHaveBeenCalled();
     });
@@ -171,11 +173,10 @@ describe('githubPushPrReviews – summary comment', () => {
 
         await githubPushPrReviews(octokit, MOCK_PAYLOAD, [], 'Summary text');
 
-        expect(octokit.rest.issues.listComments).toHaveBeenCalledWith({
-            owner: 'my-org',
-            repo: 'my-repo',
-            issue_number: 7,
-        });
+        expect(octokit.paginate).toHaveBeenCalledWith(
+            octokit.rest.issues.listComments,
+            { owner: 'my-org', repo: 'my-repo', issue_number: 7 },
+        );
         expect(octokit.rest.issues.createComment).toHaveBeenCalledOnce();
         const body = octokit.rest.issues.createComment.mock.calls[0][0].body as string;
         expect(body).toContain(SUMMARY_MARKER);
@@ -202,9 +203,9 @@ describe('githubPushPrReviews – summary comment', () => {
         expect(octokit.rest.issues.createComment).not.toHaveBeenCalled();
     });
 
-    test('does not throw when listComments fails', async () => {
+    test('does not throw when paginate fails', async () => {
         const octokit = makeMockOctokit();
-        octokit.rest.issues.listComments = vi.fn().mockRejectedValue(new Error('403 Forbidden'));
+        octokit.paginate = vi.fn().mockRejectedValue(new Error('403 Forbidden'));
 
         await expect(
             githubPushPrReviews(octokit, MOCK_PAYLOAD, [], 'Summary text'),
