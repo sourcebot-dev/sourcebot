@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [Experimental] Added support for generating a summary comment to the AI Code review agent. [#1175](https://github.com/sourcebot-dev/sourcebot/pull/1175)
+
 ### Fixed
 - Add missing schema changes introduced in [#1170](https://github.com/sourcebot-dev/sourcebot/pull/1170). [#1176](https://github.com/sourcebot-dev/sourcebot/pull/1176)
 - Fixed blame gutter commit navigation to use the file path as it existed at the attributing commit, so clicking a blame line whose commit predates a rename resolves to the correct historical path. [#1178](https://github.com/sourcebot-dev/sourcebot/pull/1178)
