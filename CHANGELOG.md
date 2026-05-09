@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped transitive `fast-uri` dependency to `^3.1.2`. [#1181](https://github.com/sourcebot-dev/sourcebot/pull/1181)
 - Upgraded `simple-git` to `3.36.0` to address CVE-2026-6951. [#1183](https://github.com/sourcebot-dev/sourcebot/pull/1183)
 - Upgraded `hono` to `^4.12.18` to address CVE-2026-44455, CVE-2026-44456, CVE-2026-44457, CVE-2026-44458. [#1186](https://github.com/sourcebot-dev/sourcebot/pull/1186)
+- Upgraded `ip-address` to `^10.2.0` to address CVE-2026-42338. [#1189](https://github.com/sourcebot-dev/sourcebot/pull/1189)
 
 ### Changed
 - Reduced the log verbosity of the worker by changing various log messages from info to debug. [#1179](https://github.com/sourcebot-dev/sourcebot/pull/1179)
