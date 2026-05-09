@@ -263,9 +263,19 @@ When fixing a CVE in a transitive dependency, prefer a real top-level upgrade ov
 
    "Top-level" means a package **literally listed in this repo's root or workspace `package.json`** under `dependencies`, `devDependencies`, or `peerDependencies` — not just any ancestor in the chain. If the chain is `vulnerable-pkg → mid-pkg → top-pkg`, do not stop at `mid-pkg`; keep walking until you reach `top-pkg`.
 
-2. **Prefer bumping that top-level dependency** to a version whose transitive tree no longer includes the vulnerable version. This is a real, supported upgrade and avoids forcing a version on a consumer that may not expect it. Verify the upgrade actually removes the vulnerable version with `yarn why <vulnerable-package>` after running `yarn install`.
+2. **Check whether the existing ranges already allow a patched version.** Often the lockfile is just stale: every `^x.y.z` range in the chain still admits the patched version, but `yarn.lock` was written before that version existed. In that case, refresh the lockfile entry — no `package.json` change, no `resolutions` override:
 
-3. **Fall back to a `resolutions` override** only if no top-level bump resolves it (no compatible version exists, or it would require a breaking major). Use the **qualified** form keyed to the existing source range (not a bare key, which overrides every requester unnecessarily), and pin with `^`, not `>=`:
+   ```bash
+   yarn up <intermediate-or-vulnerable-pkg>
+   # or, to refresh many at once:
+   yarn dedupe
+   ```
+
+   This is the lightest-weight fix: it doesn't force a version, it just bumps the lock to the latest version that satisfies the constraints already in the tree. Verify with `yarn why <vulnerable-package>` afterward — if every instance is now patched, you're done.
+
+3. **If a refresh isn't enough, bump the top-level dependency** to a version whose transitive tree no longer includes the vulnerable version. This is also a real, supported upgrade. Verify the upgrade actually removes the vulnerable version with `yarn why <vulnerable-package>` after running `yarn install`.
+
+4. **Fall back to a `resolutions` override** only if neither a refresh nor a top-level bump resolves it (no compatible version exists in the existing ranges, or a top-level upgrade would require a breaking major). Use the **qualified** form keyed to the existing source range (not a bare key, which overrides every requester unnecessarily), and pin with `^`, not `>=`:
 
    ```json
    "resolutions": {
