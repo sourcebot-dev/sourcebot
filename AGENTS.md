@@ -1,5 +1,7 @@
 # Agents
 
+See [CLAUDE.md](./CLAUDE.md) for project-wide conventions (code style, file naming, API route handlers, auth, PR workflow, etc.). Follow it as if it were part of this file.
+
 ## Cursor Cloud specific instructions
 
 ### Overview
