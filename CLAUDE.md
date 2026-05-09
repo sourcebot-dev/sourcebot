@@ -255,21 +255,25 @@ Images added to `.mdx` files in `docs/` should be wrapped in a `<Frame>` compone
 
 When fixing a CVE in a transitive dependency, prefer a real top-level upgrade over a forced `resolutions` override.
 
-1. **Trace the dependency chain** to find which top-level package in `package.json` brings in the vulnerable transitive dep:
+1. **Trace the dependency chain to a package in your own `package.json`.** Run:
 
    ```bash
    yarn why <vulnerable-package> --recursive
    ```
 
-2. **Prefer bumping the top-level dependency** to a version whose transitive tree no longer includes the vulnerable version. This is a real, supported upgrade and avoids forcing a version on a consumer that may not expect it.
+   "Top-level" means a package **literally listed in this repo's root or workspace `package.json`** under `dependencies`, `devDependencies`, or `peerDependencies` — not just any ancestor in the chain. If the chain is `vulnerable-pkg → mid-pkg → top-pkg`, do not stop at `mid-pkg`; keep walking until you reach `top-pkg`.
 
-3. **Fall back to a `resolutions` override** only if no top-level bump resolves it (no compatible version exists, or it would require a breaking major). Match the existing format in `package.json` and pin with `^`, not `>=`:
+2. **Prefer bumping that top-level dependency** to a version whose transitive tree no longer includes the vulnerable version. This is a real, supported upgrade and avoids forcing a version on a consumer that may not expect it. Verify the upgrade actually removes the vulnerable version with `yarn why <vulnerable-package>` after running `yarn install`.
+
+3. **Fall back to a `resolutions` override** only if no top-level bump resolves it (no compatible version exists, or it would require a breaking major). Use the **qualified** form keyed to the existing source range (not a bare key, which overrides every requester unnecessarily), and pin with `^`, not `>=`:
 
    ```json
    "resolutions": {
-       "<pkg>@npm:<existing-range>": "^<patched>"
+       "<pkg>@npm:<existing-source-range>": "^<patched>"
    }
    ```
+
+   The `<existing-source-range>` is whatever range is currently requesting the vulnerable version (find it in `yarn.lock`, e.g. `^2.8.3`). Avoid the bare-key form `"<pkg>": "^x.y.z"`.
 
 ### Branch naming for CVE fixes
 
