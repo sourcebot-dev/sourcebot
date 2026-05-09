@@ -271,9 +271,53 @@ When fixing a CVE in a transitive dependency, prefer a real top-level upgrade ov
    }
    ```
 
+### Branch naming for CVE fixes
+
+Use a **package-keyed** branch name, not a CVE-keyed one:
+
+```
+cursor/cve/<package>
+```
+
+Multiple CVEs against the same package commonly land in one upstream release, so package-keyed branches let sibling work join the same PR (see "Batching CVEs" below). Do not include the CVE ID or a Linear issue ID in the branch name.
+
+### Batching CVEs that share a package
+
+CVEs often arrive in clusters because one package release fixes several at once. Before opening a new PR, check whether a sibling PR is already addressing the same package.
+
+1. **Extract** `<package>` and `<min-patched-version>` from the Linear issue (the Dependabot-sourced body lists both — affected package and fixed version).
+
+2. **Look for a sibling PR**:
+
+   ```bash
+   gh pr list --state open --search '<package> in:title' --json number,title,headRefName
+   ```
+
+3. **Decide based on the result**:
+
+   - **Sibling PR exists and its branch already pins ≥ `<min-patched-version>`**:
+     - `gh pr checkout <number>`
+     - Add a CHANGELOG entry for *this* CVE on the same branch (one line per CVE).
+     - `gh pr edit <number>` to append the CVE ID to the title and body, and add a `Fixes <LINEAR-ID>` line to the PR body alongside any existing `Fixes` lines (this auto-links the Linear issue and Linear will mark it Done when the PR merges).
+     - Do not transition the Linear issue manually — leave it for the merge to close.
+     - **Do not open a new PR.**
+
+   - **Sibling PR exists but its pin is too low to cover this CVE**:
+     - Check out the branch.
+     - Bump the resolution / package version higher to cover both.
+     - Add a CHANGELOG entry. Update the PR title and body, and add `Fixes <LINEAR-ID>` to the PR body.
+     - Do not transition the Linear issue manually — leave it for the merge to close.
+
+   - **No sibling PR exists**:
+     - Create a new `cursor/cve/<package>` branch and open the PR as usual.
+
+4. **Post-flight (race-window backstop)**: After opening a new PR, re-run step 2. If a competing PR with a *lower* number appeared while you were working, close yours, push your CHANGELOG entry and Linear link onto the older PR.
+
 ### CHANGELOG and PR conventions for CVE fixes
 
 - CHANGELOG entry (under `[Unreleased] → Fixed`): `Upgraded \`<pkg>\` to \`^x.y.z\` to address CVE-XXXX-XXXXX. [#<PR>]`
+- One CHANGELOG line per CVE, even when multiple CVEs share a PR.
+- PR title format: `chore: upgrade <pkg> to ^x.y.z to address CVE-A, CVE-B, ...` (list every CVE the PR resolves).
 - Keep entries short. The CVE ID is enough.
 
 ## Branches and Pull Requests
