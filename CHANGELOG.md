@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed blame gutter commit navigation to use the file path as it existed at the attributing commit, so clicking a blame line whose commit predates a rename resolves to the correct historical path. [#1178](https://github.com/sourcebot-dev/sourcebot/pull/1178)
 - Bumped transitive `fast-uri` dependency to `^3.1.2`. [#1181](https://github.com/sourcebot-dev/sourcebot/pull/1181)
 - Upgraded `simple-git` to `3.36.0` to address CVE-2026-6951. [#1183](https://github.com/sourcebot-dev/sourcebot/pull/1183)
+- Upgraded `hono` to `^4.12.18` to address CVE-2026-44455, CVE-2026-44456, CVE-2026-44457, CVE-2026-44458. [#1186](https://github.com/sourcebot-dev/sourcebot/pull/1186)
+- Upgraded `ip-address` to `^10.2.0` to address CVE-2026-42338. [#1189](https://github.com/sourcebot-dev/sourcebot/pull/1189)
+- Upgraded `fast-xml-builder` to `^1.2.0` to address CVE-2026-44664, CVE-2026-44665. [#1184](https://github.com/sourcebot-dev/sourcebot/pull/1184)
 - Added `postcss` resolutions override to force all instances to `^8.5.10` to address CVE-2026-41305. [#1191](https://github.com/sourcebot-dev/sourcebot/pull/1191)
 
 ### Changed
