@@ -251,6 +251,31 @@ Images added to `.mdx` files in `docs/` should be wrapped in a `<Frame>` compone
 </Frame>
 ```
 
+## Fixing CVEs
+
+When fixing a CVE in a transitive dependency, prefer a real top-level upgrade over a forced `resolutions` override.
+
+1. **Trace the dependency chain** to find which top-level package in `package.json` brings in the vulnerable transitive dep:
+
+   ```bash
+   yarn why <vulnerable-package> --recursive
+   ```
+
+2. **Prefer bumping the top-level dependency** to a version whose transitive tree no longer includes the vulnerable version. This is a real, supported upgrade and avoids forcing a version on a consumer that may not expect it.
+
+3. **Fall back to a `resolutions` override** only if no top-level bump resolves it (no compatible version exists, or it would require a breaking major). Match the existing format in `package.json` and pin with `^`, not `>=`:
+
+   ```json
+   "resolutions": {
+       "<pkg>@npm:<existing-range>": "^<patched>"
+   }
+   ```
+
+### CHANGELOG and PR conventions for CVE fixes
+
+- CHANGELOG entry (under `[Unreleased] → Fixed`): `Upgraded \`<pkg>\` to \`^x.y.z\` to address CVE-XXXX-XXXXX. [#<PR>]`
+- Keep entries short. The CVE ID is enough.
+
 ## Branches and Pull Requests
 
 When creating a branch or opening a PR, ask the user for:
