@@ -255,26 +255,84 @@ Images added to `.mdx` files in `docs/` should be wrapped in a `<Frame>` compone
 
 When fixing a CVE in a transitive dependency, prefer a real top-level upgrade over a forced `resolutions` override.
 
-1. **Trace the dependency chain** to find which top-level package in `package.json` brings in the vulnerable transitive dep:
+1. **Trace the dependency chain to a package in your own `package.json`.** Run:
 
    ```bash
    yarn why <vulnerable-package> --recursive
    ```
 
-2. **Prefer bumping the top-level dependency** to a version whose transitive tree no longer includes the vulnerable version. This is a real, supported upgrade and avoids forcing a version on a consumer that may not expect it.
+   "Top-level" means a package **literally listed in this repo's root or workspace `package.json`** under `dependencies`, `devDependencies`, or `peerDependencies` — not just any ancestor in the chain. If the chain is `vulnerable-pkg → mid-pkg → top-pkg`, do not stop at `mid-pkg`; keep walking until you reach `top-pkg`.
 
-3. **Fall back to a `resolutions` override** only if no top-level bump resolves it (no compatible version exists, or it would require a breaking major). Match the existing format in `package.json` and pin with `^`, not `>=`:
+2. **Check whether the existing ranges already allow a patched version.** Often the lockfile is just stale: every `^x.y.z` range in the chain still admits the patched version, but `yarn.lock` was written before that version existed. In that case, refresh the lockfile entry — no `package.json` change, no `resolutions` override:
+
+   ```bash
+   yarn up <intermediate-or-vulnerable-pkg>
+   # or, to refresh many at once:
+   yarn dedupe
+   ```
+
+   This is the lightest-weight fix: it doesn't force a version, it just bumps the lock to the latest version that satisfies the constraints already in the tree. Verify with `yarn why <vulnerable-package>` afterward — if every instance is now patched, you're done.
+
+3. **If a refresh isn't enough, bump the top-level dependency** to a version whose transitive tree no longer includes the vulnerable version. This is also a real, supported upgrade. Verify the upgrade actually removes the vulnerable version with `yarn why <vulnerable-package>` after running `yarn install`.
+
+4. **Fall back to a `resolutions` override** only if neither a refresh nor a top-level bump resolves it (no compatible version exists in the existing ranges, or a top-level upgrade would require a breaking major). Use the **qualified** form keyed to the existing source range (not a bare key, which overrides every requester unnecessarily), and pin with `^`, not `>=`:
 
    ```json
    "resolutions": {
-       "<pkg>@npm:<existing-range>": "^<patched>"
+       "<pkg>@npm:<existing-source-range>": "^<patched>"
    }
    ```
 
+   The `<existing-source-range>` is whatever range is currently requesting the vulnerable version (find it in `yarn.lock`, e.g. `^2.8.3`). Avoid the bare-key form `"<pkg>": "^x.y.z"`.
+
+### Branch naming for CVE fixes
+
+Use a **package-keyed** branch name, not a CVE-keyed one:
+
+```
+cursor/cve/<package>
+```
+
+Multiple CVEs against the same package commonly land in one upstream release, so package-keyed branches let sibling work join the same PR (see "Batching CVEs" below). Do not include the CVE ID or a Linear issue ID in the branch name.
+
+### Batching CVEs that share a package
+
+CVEs often arrive in clusters because one package release fixes several at once. Before opening a new PR, check whether a sibling PR is already addressing the same package.
+
+1. **Extract** `<package>` and `<min-patched-version>` from the Linear issue (the Dependabot-sourced body lists both — affected package and fixed version).
+
+2. **Look for a sibling PR**:
+
+   ```bash
+   gh pr list --state open --search '<package> in:title' --json number,title,headRefName
+   ```
+
+3. **Decide based on the result**:
+
+   - **Sibling PR exists and its branch already pins ≥ `<min-patched-version>`**:
+     - `gh pr checkout <number>`
+     - **Edit** the existing CHANGELOG line for this PR — append this CVE ID to the comma-separated list. Do not add a new CHANGELOG line.
+     - `gh pr edit <number>` to append the CVE ID to the title and body, and add a `Fixes <LINEAR-ID>` line to the PR body alongside any existing `Fixes` lines (this auto-links the Linear issue and Linear will mark it Done when the PR merges).
+     - Do not transition the Linear issue manually — leave it for the merge to close.
+     - **Do not open a new PR.**
+
+   - **Sibling PR exists but its pin is too low to cover this CVE**:
+     - Check out the branch.
+     - Bump the resolution / package version higher to cover both.
+     - **Edit** the existing CHANGELOG line — append this CVE and update the version. Update the PR title and body, and add `Fixes <LINEAR-ID>` to the PR body.
+     - Do not transition the Linear issue manually — leave it for the merge to close.
+
+   - **No sibling PR exists**:
+     - Create a new `cursor/cve/<package>` branch and open the PR as usual.
+
+4. **Post-flight (race-window backstop)**: After opening a new PR, re-run step 2. If a competing PR with a *lower* number appeared while you were working, close yours, push your CHANGELOG entry and Linear link onto the older PR.
+
 ### CHANGELOG and PR conventions for CVE fixes
 
-- CHANGELOG entry (under `[Unreleased] → Fixed`): `Upgraded \`<pkg>\` to \`^x.y.z\` to address CVE-XXXX-XXXXX. [#<PR>]`
-- Keep entries short. The CVE ID is enough.
+- CHANGELOG entry (under `[Unreleased] → Fixed`): `Upgraded \`<pkg>\` to \`^x.y.z\` to address CVE-A, CVE-B, .... [#<PR>]`
+- **One CHANGELOG line per PR**, not per CVE. When the PR addresses multiple CVEs (batched), list all of them comma-separated on a single line.
+- PR title format: `chore: upgrade <pkg> to ^x.y.z to address CVE-A, CVE-B, ...` (list every CVE the PR resolves).
+- Keep entries short. The CVE IDs are enough.
 
 ## Branches and Pull Requests
 
