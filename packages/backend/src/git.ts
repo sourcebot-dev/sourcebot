@@ -14,6 +14,8 @@ const logger = createLogger('git-utils');
  * by default to prevent common git vulnerabilities by throwing a exception. To
  * maintain backwards compatibility, we opt to permit these env vars but raise a
  * warning message s.t., system admins are aware.
+ * 
+ * @see https://github.com/steveukx/git-js/blob/main/docs/PLUGIN-UNSAFE-ACTIONS.md
  */
 const { vulnerabilities: envVulnerabilities } = parseEnv(process.env);
 const unsafe = Object.fromEntries(
