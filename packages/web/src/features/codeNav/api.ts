@@ -153,6 +153,24 @@ const parseRelatedSymbolsSearchResponse = (searchResult: SearchResponse): FindRe
 // Expands the language filter to include all variants of the language.
 const getExpandedLanguageFilter = (language: string): QueryIR => {
     switch (language) {
+        case "C":
+        case "C++":
+            return {
+                or: {
+                    children: [
+                        {
+                            language: {
+                                language: "C++"
+                            }
+                        },
+                        {
+                            language: {
+                                language: "C"
+                            }
+                        }
+                    ]
+                }
+            }
         case "TypeScript":
         case "JavaScript":
         case "JSX":
