@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `hono` to `^4.12.18` to address CVE-2026-44455, CVE-2026-44456, CVE-2026-44457, CVE-2026-44458. [#1186](https://github.com/sourcebot-dev/sourcebot/pull/1186)
 - Upgraded `ip-address` to `^10.2.0` to address CVE-2026-42338. [#1189](https://github.com/sourcebot-dev/sourcebot/pull/1189)
 - Upgraded `fast-xml-builder` to `^1.2.0` to address CVE-2026-44664, CVE-2026-44665. [#1184](https://github.com/sourcebot-dev/sourcebot/pull/1184)
+- Fixed inconsistent left padding in preview window file path truncation. [#1196](https://github.com/sourcebot-dev/sourcebot/issues/1196)
 
 ### Changed
 - Reduced the log verbosity of the worker by changing various log messages from info to debug. [#1179](https://github.com/sourcebot-dev/sourcebot/pull/1179)
