@@ -8,7 +8,7 @@ import { Redis } from 'ioredis';
 import micromatch from 'micromatch';
 import Redlock, { ExecutionError } from 'redlock';
 import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, WORKER_STOP_GRACEFUL_TIMEOUT_MS } from './constants.js';
-import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLatestCommitTimestamp, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, isRepoEmpty, unsetGitConfig, upsertGitConfig } from './git.js';
+import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLatestCommitTimestamp, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, isRepoEmpty, unsetGitConfig, upsertGitConfig, writeCommitGraph } from './git.js';
 import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
 import { RepoWithConnections, Settings } from "./types.js";
@@ -396,6 +396,19 @@ export class RepoIndexManager {
             const fetchDuration_s = durationMs / 1000;
 
             logger.debug(`Fetched ${repo.name} (id: ${repo.id}) in ${fetchDuration_s}s`);
+
+            // Update the commit-graph after fetch. Force a full backfill the first time we
+            // see this repo after the --changed-paths rollout, so historical commits get
+            // Bloom filters. Subsequent fetches do a cheap incremental write.
+            const needsBackfill = !metadata.commitGraphChangedPathsBackfilledAt;
+            if (needsBackfill) {
+                logger.debug(`Backfilling changed-path Bloom filters for ${repo.name} (id: ${repo.id})...`);
+            }
+            await writeCommitGraph({
+                path: repoPath,
+                forceBackfill: needsBackfill,
+                signal,
+            });
         } else if (!isReadOnly) {
             logger.debug(`Cloning ${repo.name} (id: ${repo.id})...`);
 
@@ -411,6 +424,27 @@ export class RepoIndexManager {
             const cloneDuration_s = durationMs / 1000;
 
             logger.debug(`Cloned ${repo.name} (id: ${repo.id}) in ${cloneDuration_s}s`);
+
+            // Write the commit-graph for the freshly cloned repo.
+            await writeCommitGraph({
+                path: repoPath,
+                signal,
+            });
+        }
+
+        // Record that this repo's commit-graph now includes changed-path Bloom filters
+        // for its full history (either freshly written during clone, or backfilled above
+        // during fetch).
+        if (!isReadOnly && !metadata.commitGraphChangedPathsBackfilledAt) {
+            await this.db.repo.update({
+                where: { id: repo.id },
+                data: {
+                    metadata: {
+                        ...metadata,
+                        commitGraphChangedPathsBackfilledAt: new Date().toISOString(),
+                    } satisfies RepoMetadata,
+                },
+            });
         }
 
         // Regardless of clone or fetch, always upsert the git config for the repo.
