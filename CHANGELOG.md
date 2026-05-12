@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added warning message that fires on startup when host environment contains env vars that simple-git flags as unsafe. [#1193](https://github.com/sourcebot-dev/sourcebot/pull/1193)
+
 ### Fixed
 - Add missing schema changes introduced in [#1170](https://github.com/sourcebot-dev/sourcebot/pull/1170). [#1176](https://github.com/sourcebot-dev/sourcebot/pull/1176)
 - Fixed blame gutter commit navigation to use the file path as it existed at the attributing commit, so clicking a blame line whose commit predates a rename resolves to the correct historical path. [#1178](https://github.com/sourcebot-dev/sourcebot/pull/1178)
@@ -18,9 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Reduced the log verbosity of the worker by changing various log messages from info to debug. [#1179](https://github.com/sourcebot-dev/sourcebot/pull/1179)
-
-### Added
-- Added warning message that fires on startup when host environment contains env vars that simple-git flags unsafe. [#1193](https://github.com/sourcebot-dev/sourcebot/pull/1193)
 
 ## [4.17.1] - 2026-05-04
 
