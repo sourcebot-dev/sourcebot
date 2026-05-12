@@ -3,10 +3,32 @@ import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { CheckRepoActions, GitConfigScope, simpleGit, SimpleGitProgressEvent } from 'simple-git';
+import { parseEnv } from '@simple-git/argv-parser';
 
 type onProgressFn = (event: SimpleGitProgressEvent) => void;
 
 const logger = createLogger('git-utils');
+
+/**
+ * simple-git blocks certain env vars (e.g., GIT_SSH_COMMAND, GIT_ASKPASS, etc.)
+ * by default to prevent common git vulnerabilities by throwing a exception. To
+ * maintain backwards compatibility, we opt to permit these env vars but raise a
+ * warning message s.t., system admins are aware.
+ * 
+ * @see https://github.com/steveukx/git-js/blob/main/docs/PLUGIN-UNSAFE-ACTIONS.md
+ */
+const { vulnerabilities: envVulnerabilities } = parseEnv(process.env);
+const unsafe = Object.fromEntries(
+    envVulnerabilities.map(v => [v.category, true] as const)
+);
+
+if (envVulnerabilities.length > 0) {
+    const details = envVulnerabilities.map(v => `  - ${v.category}: ${v.message}`).join('\n');
+    logger.warn(
+        `Opting in to unsafe simple-git categories based on inherited environment:\n${details}\n` +
+        `See https://github.com/steveukx/git-js/blob/main/docs/PLUGIN-UNSAFE-ACTIONS.md`
+    );
+}
 
 /**
  * Creates a simple-git client that has it's working directory
@@ -22,6 +44,7 @@ const createGitClientForPath = (path: string, onProgress?: onProgressFn, signal?
     const git = simpleGit({
         progress: onProgress,
         abort: signal,
+        unsafe,
     })
         .env({
             ...process.env,
