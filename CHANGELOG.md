@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added warning message that fires on startup when host environment contains env vars that simple-git flags as unsafe. [#1193](https://github.com/sourcebot-dev/sourcebot/pull/1193)
+- Added a loading skeleton to the latest commit info bar in the code browser. [#1195](https://github.com/sourcebot-dev/sourcebot/pull/1195)
 
 ### Fixed
 - Add missing schema changes introduced in [#1170](https://github.com/sourcebot-dev/sourcebot/pull/1170). [#1176](https://github.com/sourcebot-dev/sourcebot/pull/1176)
