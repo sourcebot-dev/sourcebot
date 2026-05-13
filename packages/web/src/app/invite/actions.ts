@@ -13,6 +13,7 @@ import { getAuditService } from "@/ee/features/audit/factory";
 
 const auditService = getAuditService();
 
+// eslint-disable-next-line authz/require-auth-wrapper -- runs pre-org-membership; uses getAuthenticatedUser() directly since withAuth requires a user-to-org link this call is establishing
 export const joinOrganization = async (inviteLinkId?: string) => sew(async () => {
     const authResult = await getAuthenticatedUser();
     if (!authResult) {
@@ -71,6 +72,7 @@ export const joinOrganization = async (inviteLinkId?: string) => sew(async () =>
     }
 });
 
+// eslint-disable-next-line authz/require-auth-wrapper -- runs pre-org-membership; uses getAuthenticatedUser() directly since withAuth requires a user-to-org link this call is establishing
 export const redeemInvite = async (inviteId: string): Promise<{ success: boolean; } | ServiceError> => sew(async () => {
     const authResult = await getAuthenticatedUser();
     if (!authResult) {
@@ -161,6 +163,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
 });
 
 
+// eslint-disable-next-line authz/require-auth-wrapper -- runs pre-org-membership; uses getAuthenticatedUser() directly since the invitee is not yet a member
 export const getInviteInfo = async (inviteId: string) => sew(async () => {
     const authResult = await getAuthenticatedUser();
     if (!authResult) {
