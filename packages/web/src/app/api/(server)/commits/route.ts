@@ -6,6 +6,7 @@ import { serviceErrorResponse, queryParamsSchemaValidationError } from "@/lib/se
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 
+// eslint-disable-next-line authz/require-auth-wrapper -- delegates to listCommits() which calls withOptionalAuth
 export const GET = apiHandler(async (request: NextRequest): Promise<Response> => {
     const rawParams = Object.fromEntries(
         Object.keys(listCommitsQueryParamsSchema.shape).map(key => [

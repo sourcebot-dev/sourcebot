@@ -10,6 +10,7 @@ const queryParamsSchema = z.object({
     jobId: z.string(),
 });
 
+// eslint-disable-next-line authz/require-auth-wrapper -- delegates to getAccountSyncStatus() which calls withAuth
 export const GET = apiHandler(async (request: NextRequest) => {
     const rawParams = {
         jobId: request.nextUrl.searchParams.get('jobId') ?? undefined,

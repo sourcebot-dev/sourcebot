@@ -4,6 +4,7 @@ import { serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 
+// eslint-disable-next-line authz/require-auth-wrapper -- delegates to getRepoInfo() which calls withOptionalAuth
 export const GET = apiHandler(async (
     _request: NextRequest,
     { params }: { params: Promise<{ repoId: string }> }

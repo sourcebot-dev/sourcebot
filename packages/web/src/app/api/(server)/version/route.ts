@@ -9,6 +9,7 @@ import { GetVersionResponse } from "@/lib/types";
 // @see: https://nextjs.org/docs/14/app/building-your-application/routing/route-handlers#caching
 export const dynamic = "force-dynamic";
 
+// eslint-disable-next-line authz/require-auth-wrapper -- public Sourcebot version string, no user data
 export const GET = apiHandler(async () => {
     return Response.json({
         version: SOURCEBOT_VERSION,

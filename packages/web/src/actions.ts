@@ -817,6 +817,7 @@ export const getOrgAccountRequests = async () => sew(() =>
         }));
     }));
 
+// eslint-disable-next-line authz/require-auth-wrapper -- calls getAuthenticatedUser() directly; runs pre-org-membership so cannot use withAuth
 export const createAccountRequest = async () => sew(async () => {
     const authResult = await getAuthenticatedUser();
     if (!authResult) {
@@ -920,6 +921,7 @@ export const createAccountRequest = async () => sew(async () => {
     }
 });
 
+// eslint-disable-next-line authz/require-auth-wrapper -- public org-config bit consulted on login/signup screens before any session exists
 export const getMemberApprovalRequired = async (): Promise<boolean | ServiceError> => sew(async () => {
     const org = await __unsafePrisma.org.findUnique({
         where: {
@@ -1181,6 +1183,7 @@ export const getRepoImage = async (repoId: number): Promise<ArrayBuffer | Servic
     })
 });
 
+// eslint-disable-next-line authz/require-auth-wrapper -- public org-config bit consulted before authentication to decide whether to gate the UI
 export const getAnonymousAccessStatus = async (): Promise<boolean | ServiceError> => sew(async () => {
     const org = await __unsafePrisma.org.findUnique({
         where: { id: SINGLE_TENANT_ORG_ID },
@@ -1244,6 +1247,7 @@ export const setAnonymousAccessStatus = async (enabled: boolean): Promise<Servic
     });
 });
 
+// eslint-disable-next-line authz/require-auth-wrapper -- UI-only preference cookie, no DB access
 export const setAgenticSearchTutorialDismissedCookie = async (dismissed: boolean) => sew(async () => {
     const cookieStore = await cookies();
     cookieStore.set(AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, dismissed ? "true" : "false", {
@@ -1253,6 +1257,7 @@ export const setAgenticSearchTutorialDismissedCookie = async (dismissed: boolean
     return true;
 });
 
+// eslint-disable-next-line authz/require-auth-wrapper -- UI-only preference cookie, no DB access
 export const dismissMobileUnsupportedSplashScreen = async () => sew(async () => {
     const cookieStore = await cookies();
     cookieStore.set(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, 'true');
