@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added warning message that fires on startup when host environment contains env vars that simple-git flags as unsafe. [#1193](https://github.com/sourcebot-dev/sourcebot/pull/1193)
 - Added a loading skeleton to the latest commit info bar in the code browser. [#1195](https://github.com/sourcebot-dev/sourcebot/pull/1195)
-- Added `authz/require-auth-wrapper` ESLint rule that flags API route handlers and server actions missing a `withAuth`/`withOptionalAuth` wrapper at the export boundary. [#1199](https://github.com/sourcebot-dev/sourcebot/pull/1199)
 
 ### Fixed
 - Add missing schema changes introduced in [#1170](https://github.com/sourcebot-dev/sourcebot/pull/1170). [#1176](https://github.com/sourcebot-dev/sourcebot/pull/1176)
