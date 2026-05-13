@@ -52,6 +52,7 @@ export type sourcebot_diff_review = z.infer<typeof sourcebot_diff_review_schema>
 
 export const sourcebot_file_diff_review_schema = z.object({
     filename: z.string(),
+    oldFilename: z.string().optional(),
     reviews: z.array(sourcebot_diff_review_schema),
 });
 export type sourcebot_file_diff_review = z.infer<typeof sourcebot_file_diff_review_schema>;
