@@ -47,6 +47,7 @@ const makeLicense = (overrides: Partial<License> = {}): License => ({
     trialEnd: null,
     hasPaymentMethod: null,
     lastSyncAt: NOW,
+    lastSyncErrorCode: null,
     createdAt: NOW,
     updatedAt: NOW,
     ...overrides,
@@ -444,6 +445,81 @@ describe('resolveActiveBanner', () => {
                 hasPendingFirstSync: true,
             }));
             expect(result?.id).toBe('permissionSync');
+        });
+    });
+
+    describe('license rebound elsewhere', () => {
+        test('lastSyncErrorCode is rebound code → banner (non-dismissible, everyone)', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'active',
+                    lastSyncErrorCode: 'ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE',
+                }),
+            }));
+            expect(result?.id).toBe('licenseReboundElsewhere');
+            expect(result?.dismissible).toBe(false);
+            expect(result?.audience).toBe('everyone');
+        });
+
+        test('null lastSyncErrorCode → no rebound banner', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({ status: 'active', lastSyncErrorCode: null }),
+            }));
+            expect(result?.id).not.toBe('licenseReboundElsewhere');
+        });
+
+        test('other lastSyncErrorCode does not fire rebound banner', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'active',
+                    lastSyncErrorCode: 'UNKNOWN_STRIPE_PRODUCT',
+                }),
+            }));
+            expect(result?.id).not.toBe('licenseReboundElsewhere');
+        });
+
+        test('offline license suppresses rebound banner', () => {
+            const result = resolveActiveBanner(makeContext({
+                offlineLicense: makeOfflineLicense(),
+                license: makeLicense({
+                    status: 'active',
+                    lastSyncErrorCode: 'ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE',
+                }),
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('rebound banner shown to non-owners', () => {
+            // This is a hard lockout — everyone sees it.
+            const result = resolveActiveBanner(makeContext({
+                role: OrgRole.MEMBER,
+                license: makeLicense({
+                    status: 'active',
+                    lastSyncErrorCode: 'ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE',
+                }),
+            }));
+            expect(result?.id).toBe('licenseReboundElsewhere');
+        });
+
+        test('rebound outranks enforced ping staleness', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'active',
+                    lastSyncAt: new Date(NOW.getTime() - 14 * 24 * 60 * 60 * 1000),
+                    lastSyncErrorCode: 'ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE',
+                }),
+            }));
+            expect(result?.id).toBe('licenseReboundElsewhere');
+        });
+
+        test('license expired outranks rebound', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'canceled',
+                    lastSyncErrorCode: 'ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE',
+                }),
+            }));
+            expect(result?.id).toBe('licenseExpired');
         });
     });
 

@@ -6,6 +6,7 @@ type BannerSlotProps = Omit<BannerContext, 'dismissals' | 'today' | 'now'>;
 
 const KNOWN_BANNER_IDS: BannerId[] = [
     'licenseExpired',
+    'licenseReboundElsewhere',
     'invoicePastDue',
     'permissionSync',
     'licenseExpiryHeadsUp',

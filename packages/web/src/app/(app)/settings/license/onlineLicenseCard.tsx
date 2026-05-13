@@ -7,11 +7,11 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { SettingsCard } from "../components/settingsCard";
 import { PlanActionsMenu } from "./planActionsMenu";
 
-interface CurrentPlanCardProps {
+interface OnlineLicenseCardProps {
     license: License;
 }
 
-export function CurrentPlanCard({ license }: CurrentPlanCardProps) {
+export function OnlineLicenseCard({ license }: OnlineLicenseCardProps) {
     const {
         planName,
         unitAmount,

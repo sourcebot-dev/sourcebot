@@ -318,6 +318,7 @@ model License {
   trialEnd          DateTime?
   hasPaymentMethod  Boolean?
   lastSyncAt        DateTime?
+  lastSyncErrorCode String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
