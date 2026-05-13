@@ -7,6 +7,7 @@ import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants
 // RFC 7009: OAuth 2.0 Token Revocation
 // Always returns 200 regardless of whether the token existed.
 // @see: https://datatracker.ietf.org/doc/html/rfc7009
+// eslint-disable-next-line authz/require-auth-wrapper -- RFC 7009 token revocation, no user session required
 export const POST = oauthApiHandler(async (request: NextRequest) => {
     if (!hasEntitlement('oauth')) {
         return Response.json(

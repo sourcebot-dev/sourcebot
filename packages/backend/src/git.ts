@@ -105,12 +105,6 @@ export const cloneRepository = async (
             keys: ["remote.origin.url"],
             signal,
         });
-
-        // @note: operations that need to iterate over a lot of commits (e.g., rev-list --count)
-        // can be slow on larger repositories. Commit graphs are a acceleration structure that
-        // speed up these operations.
-        // @see: https://git-scm.com/docs/commit-graph
-        await writeCommitGraph({ path, signal });
     } catch (error: unknown) {
         const baseLog = `Failed to clone repository: ${path}`;
 
@@ -151,9 +145,6 @@ export const fetchRepository = async (
             "+refs/heads/*:refs/heads/*",
             "--prune",
             "--progress",
-            // On fetch, ensure the commit graph is up to date.
-            // @see: https://git-scm.com/docs/commit-graph
-            "--write-commit-graph"
         ]);
 
         // Update HEAD to match the remote's default branch. This handles the case where the remote's
@@ -490,20 +481,42 @@ export const isRepoEmpty = async ({
  * Writes or updates the commit-graph file for the repository.
  * This pre-computes commit metadata to speed up operations like
  * rev-list --count, log, and merge-base.
+ *
+ * Also writes changed-path Bloom filters (--changed-paths), which let git
+ * quickly skip commits that didn't touch a given path. This accelerates
+ * `git log -- <path>` dramatically and `git blame` modestly on large repos.
+ *
+ * For incremental writes (the default), Bloom filters are only computed for
+ * commits being added in this write. Repos that already have a Bloom-less
+ * commit-graph from a prior version need a one-time `forceBackfill: true`
+ * write to backfill filters for their historical commits.
+ *
+ * @see: https://git-scm.com/docs/commit-graph
  */
 export const writeCommitGraph = async ({
     path,
+    forceBackfill,
     onProgress,
     signal,
 }: {
     path: string,
+    forceBackfill?: boolean,
     onProgress?: onProgressFn,
     signal?: AbortSignal,
 }): Promise<void> => {
     const git = createGitClientForPath(path, onProgress, signal);
 
     try {
-        await git.raw(['commit-graph', 'write', '--reachable']);
+        const args = ['commit-graph', 'write', '--reachable', '--changed-paths'];
+        if (forceBackfill) {
+            // --split=replace consolidates any existing layers into a single new layer,
+            // which forces git to recompute Bloom filters for every commit (not just commits
+            // added since the last write). Used for the one-time migration of repos that have
+            // a Bloom-less commit-graph from before --changed-paths was enabled.
+            // @see: https://git-scm.com/docs/git-commit-graph#Documentation/git-commit-graph.txt-write
+            args.push('--split=replace');
+        }
+        await git.raw(args);
     } catch (error) {
         // Don't throw an exception here since this is just a performance optimization.
         logger.debug(`Failed to write commit-graph for ${path}:`, error);

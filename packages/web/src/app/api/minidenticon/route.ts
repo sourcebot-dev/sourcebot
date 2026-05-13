@@ -7,6 +7,7 @@ import { apiHandler } from '@/lib/apiHandler';
 
 // Generates a minidenticon avatar PNG from an email address.
 // Used as a fallback avatar in emails where data URIs aren't supported.
+// eslint-disable-next-line authz/require-auth-wrapper -- public identicon generator, no user data returned
 export const GET = apiHandler(async (request: NextRequest) => {
     const email = request.nextUrl.searchParams.get('email');
     if (!email) {

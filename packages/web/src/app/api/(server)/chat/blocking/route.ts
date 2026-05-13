@@ -37,6 +37,7 @@ const blockingChatRequestSchema = z.object({
  * The chat session is persisted to the database, allowing users to view the full
  * conversation (including tool calls and reasoning) in the web UI.
  */
+// eslint-disable-next-line authz/require-auth-wrapper -- delegates to askCodebase() which calls withOptionalAuth
 export const POST = apiHandler(async (request: NextRequest) => {
     const requestBody = await request.json();
     const parsed = await blockingChatRequestSchema.safeParseAsync(requestBody);

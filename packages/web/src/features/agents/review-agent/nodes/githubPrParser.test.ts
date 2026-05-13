@@ -1,4 +1,5 @@
 import { expect, test, vi, describe } from 'vitest';
+import { Octokit } from 'octokit';
 import { githubPrParser } from './githubPrParser';
 import { GitHubPullRequest } from '../types';
 
@@ -50,7 +51,7 @@ function makePullRequest(overrides: Partial<{
 function makeMockOctokit(diffText: string) {
     return {
         request: vi.fn().mockResolvedValue({ data: diffText }),
-    } as any;
+    } as unknown as Octokit;
 }
 
 describe('githubPrParser', () => {
@@ -80,7 +81,7 @@ describe('githubPrParser', () => {
 
     test('fetches diff using the pull request diff_url', async () => {
         const mockRequest = vi.fn().mockResolvedValue({ data: '' });
-        const octokit = { request: mockRequest } as any;
+        const octokit = { request: mockRequest } as unknown as Octokit;
         const pr = makePullRequest({ diff_url: 'https://github.com/my-org/my-repo/pull/7.diff' });
 
         await githubPrParser(octokit, pr);
@@ -184,7 +185,7 @@ describe('githubPrParser', () => {
     test('throws when the diff request fails', async () => {
         const octokit = {
             request: vi.fn().mockRejectedValue(new Error('Network error')),
-        } as any;
+        } as unknown as Octokit;
         const pr = makePullRequest();
 
         await expect(githubPrParser(octokit, pr)).rejects.toThrow('Network error');

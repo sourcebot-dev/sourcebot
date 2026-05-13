@@ -7,6 +7,7 @@ import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/se
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 
+// eslint-disable-next-line authz/require-auth-wrapper -- delegates to getFileBlame() which calls withOptionalAuth
 export const GET = apiHandler(async (request: NextRequest) => {
     const rawParams = Object.fromEntries(
         Object.keys(fileBlameRequestSchema.shape).map(key => [

@@ -7,6 +7,7 @@ import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants
 // OAuth 2.0 Token Endpoint
 // Supports grant_type=authorization_code with PKCE (RFC 7636).
 // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-3.2
+// eslint-disable-next-line authz/require-auth-wrapper -- OAuth token endpoint, authenticated via PKCE code / refresh token, not user session
 export const POST = oauthApiHandler(async (request: NextRequest) => {
     if (!hasEntitlement('oauth')) {
         return Response.json(
