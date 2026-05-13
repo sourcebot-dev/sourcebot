@@ -1,6 +1,9 @@
 import { expect, test, vi, describe } from 'vitest';
+import { Gitlab } from '@gitbeaker/rest';
 import { gitlabPushMrReviews } from './gitlabPushMrReviews';
 import { sourcebot_pr_payload, sourcebot_file_diff_review } from '../types';
+
+type GitlabClient = InstanceType<typeof Gitlab>;
 
 vi.mock('@sourcebot/shared', () => ({
     createLogger: () => ({
@@ -44,7 +47,7 @@ function makeMockClient(discussionResult: 'resolve' | 'reject' = 'resolve') {
         MergeRequestNotes: {
             create: vi.fn().mockResolvedValue({}),
         },
-    } as any;
+    } as unknown as GitlabClient;
 }
 
 describe('gitlabPushMrReviews', () => {
@@ -165,7 +168,7 @@ describe('gitlabPushMrReviews', () => {
         const client = {
             MergeRequestDiscussions: { create: mockCreate },
             MergeRequestNotes: { create: vi.fn().mockResolvedValue({}) },
-        } as any;
+        } as unknown as GitlabClient;
 
         await gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, twoReviews);
 
@@ -178,7 +181,7 @@ describe('gitlabPushMrReviews', () => {
         const client = {
             MergeRequestDiscussions: { create: vi.fn().mockRejectedValue(new Error('500')) },
             MergeRequestNotes: { create: vi.fn().mockRejectedValue(new Error('500')) },
-        } as any;
+        } as unknown as GitlabClient;
 
         await expect(
             gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, SINGLE_REVIEW),
