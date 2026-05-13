@@ -4,7 +4,7 @@ import { sew } from "@/middleware/sew";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
-import { ServiceError } from "@/lib/serviceError";
+import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
 import { encryptActivationCode, decryptActivationCode, env } from "@sourcebot/shared";
@@ -36,11 +36,23 @@ export const activateLicense = async (activationCode: string): Promise<{ success
                 },
             });
 
-            // Immediately ping Lighthouse to validate and sync license data
             try {
+                // Bind the activation code to this install. This is the only
+                // call that mutates the binding on the Lighthouse side; the
+                // subsequent ping is pure read.
+                const activateResult = await client.activate({
+                    activationCode,
+                    installId: env.SOURCEBOT_INSTALL_ID,
+                });
+
+                if (isServiceError(activateResult)) {
+                    throw new ServiceErrorException(activateResult);
+                }
+
+                // Immediately sync license data from Lighthouse.
                 await syncWithLighthouse(org.id);
             } catch (e) {
-                // If the ping fails, remove the license record
+                // If activation or initial sync fails, remove the license record
                 await prisma.license.delete({
                     where: { orgId: org.id },
                 });
