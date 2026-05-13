@@ -6,6 +6,7 @@
     "scripts": {
         "build": "cross-env SKIP_ENV_VALIDATION=1 yarn workspaces foreach --all --topological run build",
         "test": "yarn workspaces foreach --all --topological run test",
+        "lint": "yarn workspaces foreach --all --topological run lint",
         "dev": "concurrently --kill-others --names \"zoekt,worker,web,schemas\" 'yarn dev:zoekt' 'yarn dev:backend' 'yarn dev:web' 'yarn watch:schemas'",
         "with-env": "cross-env PATH=\"$PWD/bin:$PATH\" dotenv -e .env.development -c --",
         "dev:zoekt": "yarn with-env zoekt-webserver -index .sourcebot/index -rpc",
