@@ -11,6 +11,7 @@ const PROTECTED_RESOURCES = new Set([
     'api/mcp'
 ]);
 
+// eslint-disable-next-line authz/require-auth-wrapper -- RFC 9728 public metadata endpoint
 export const GET = oauthApiHandler(async (_request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) => {
     if (!await hasEntitlement('oauth')) {
         return Response.json(

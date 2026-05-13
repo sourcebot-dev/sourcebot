@@ -134,6 +134,7 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
 // supported. Per the MCP Streamable HTTP spec, servers that do not offer a GET SSE
 // stream MUST return 405 Method Not Allowed.
 // @see: https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#listening-for-messages-from-the-server
+// eslint-disable-next-line authz/require-auth-wrapper -- MCP spec mandates 405 for GET when SSE stream is unsupported; no user data
 export const GET = apiHandler(async (_request: NextRequest) => {
     return new Response(null, {
         status: StatusCodes.METHOD_NOT_ALLOWED,

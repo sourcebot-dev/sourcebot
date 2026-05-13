@@ -599,6 +599,10 @@
                   "type": "string",
                   "description": "The hash of the commit that last modified the lines in this range."
                 },
+                "path": {
+                  "type": "string",
+                  "description": "The file path as it existed at the attributing commit. May differ from the current path due to renames."
+                },
                 "startLine": {
                   "type": "integer",
                   "minimum": 0,
@@ -614,6 +618,7 @@
               },
               "required": [
                 "hash",
+                "path",
                 "startLine",
                 "lineCount"
               ]

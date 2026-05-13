@@ -69,9 +69,32 @@ in the GitHub identity provider config.
 
             When asked to provide a callback url, provide `<sourcebot_url>/api/auth/callback/github` (ex. https://sourcebot.coolcorp.com/api/auth/callback/github)
 
+            <Frame>
+              <img src="/images/github_app_callback_url.png" alt="GitHub App callback URL configuration" />
+            </Frame>
+
+            Select "Request user authorization (OAuth) during installation"
+
+            <Frame>
+              <img src="/images/github_app_request_user_auth.png" alt="GitHub App request user authorization during installation" />
+            </Frame>
+
             Set the following fine-grained permissions in the GitHub App:
                 - `“Email addresses” account permissions (read)`
-                - `"Metadata" repository permissions (read)` (only needed if using permission syncing)
+
+                  <Frame>
+                    <img src="/images/github_app_perm_email.png" alt="Email addresses account permission set to Read-only" />
+                  </Frame>
+                - `"Metadata" repository permissions (read)` (only needed if using [permission syncing](/docs/features/permission-syncing))
+
+                  <Frame>
+                    <img src="/images/github_app_perm_metadata.png" alt="Metadata repository permission set to Read-only" />
+                  </Frame>
+                - `"Contents" repository permissions (read)` (only needed if using the app to [authenticate a connection](/docs/connections/github#github-app))
+
+                  <Frame>
+                    <img src="/images/github_app_perm_contents.png" alt="Contents repository permission set to Read-only" />
+                  </Frame>
         </Tab>
         <Tab title="GitHub OAuth App">
             Follow [this guide](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) by GitHub to create an OAuth App.

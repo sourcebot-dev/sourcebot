@@ -35,7 +35,7 @@ if (!existsSync(indexPath)) {
 
 try {
     await redis.ping();
-    logger.info('Connected to redis');
+    logger.debug('Connected to redis');
 } catch (err: unknown) {
     logger.error('Failed to connect to redis. Error:', err);
     process.exit(1);

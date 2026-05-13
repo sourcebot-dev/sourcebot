@@ -8,11 +8,12 @@ import { isServiceError } from "@/lib/utils";
 import { useBrowseParams } from "../hooks/useBrowseParams";
 import { formatAuthorsText, getCommitAuthors } from "./commitAuthors";
 import { AuthorsAvatarGroup } from "./commitParts";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const LatestCommitInfo = () => {
     const { repoName, revisionName, path } = useBrowseParams();
 
-    const { data: commit } = useQuery({
+    const { data: commit, isPending } = useQuery({
         queryKey: ['latestCommitInfo', repoName, revisionName ?? null, path],
         queryFn: async () => {
             const result = await listCommits({
@@ -33,6 +34,17 @@ export const LatestCommitInfo = () => {
         () => (commit ? getCommitAuthors(commit) : []),
         [commit],
     );
+
+    if (isPending) {
+        return (
+            <div className="flex flex-row items-center gap-2 min-w-0 overflow-hidden">
+                <Skeleton className="h-5 w-5 rounded-full" />
+                <Skeleton className="h-4 w-24 flex-shrink-0" />
+                <Skeleton className="h-4 w-64 max-w-full" />
+                <Skeleton className="h-4 w-20 flex-shrink-0" />
+            </div>
+        );
+    }
 
     if (!commit) {
         return null;

@@ -1,6 +1,9 @@
 import { expect, test, vi, describe } from 'vitest';
+import { Gitlab } from '@gitbeaker/rest';
 import { gitlabMrParser } from './gitlabMrParser';
 import { GitLabMergeRequestPayload } from '../types';
+
+type GitlabClient = InstanceType<typeof Gitlab>;
 
 vi.mock('@sourcebot/shared', () => ({
     createLogger: () => ({
@@ -51,7 +54,7 @@ function makeMockGitlabClient(allDiffsResult: unknown, mrOverrides: Partial<type
             show: vi.fn().mockResolvedValue({ ...MOCK_MR_API_RESPONSE, ...mrOverrides }),
             allDiffs: vi.fn().mockResolvedValue(allDiffsResult),
         },
-    } as any;
+    } as unknown as GitlabClient;
 }
 
 describe('gitlabMrParser', () => {
@@ -100,7 +103,7 @@ describe('gitlabMrParser', () => {
     test('calls show and allDiffs with the correct project id and MR iid', async () => {
         const mockShow = vi.fn().mockResolvedValue(MOCK_MR_API_RESPONSE);
         const mockAllDiffs = vi.fn().mockResolvedValue([]);
-        const client = { MergeRequests: { show: mockShow, allDiffs: mockAllDiffs } } as any;
+        const client = { MergeRequests: { show: mockShow, allDiffs: mockAllDiffs } } as unknown as GitlabClient;
 
         await gitlabMrParser(client, MOCK_MR_PAYLOAD, 'gitlab.com');
 
@@ -244,7 +247,7 @@ describe('gitlabMrParser', () => {
                 show: vi.fn().mockResolvedValue(MOCK_MR_API_RESPONSE),
                 allDiffs: vi.fn().mockRejectedValue(new Error('Network error')),
             },
-        } as any;
+        } as unknown as GitlabClient;
 
         await expect(gitlabMrParser(client, MOCK_MR_PAYLOAD, 'gitlab.com')).rejects.toThrow('Network error');
     });

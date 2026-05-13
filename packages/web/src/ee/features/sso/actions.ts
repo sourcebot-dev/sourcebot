@@ -101,6 +101,7 @@ export const unlinkLinkedAccountProvider = async (provider: string) => sew(() =>
     )
 );
 
+// eslint-disable-next-line authz/require-auth-wrapper -- UI-only preference cookie, no DB access
 export const skipOptionalProvidersLink = async () => sew(async () => {
     const cookieStore = await cookies();
     cookieStore.set(OPTIONAL_PROVIDERS_LINK_SKIPPED_COOKIE_NAME, 'true', {

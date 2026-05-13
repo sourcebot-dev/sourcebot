@@ -528,6 +528,7 @@ export const submitFeedback = async ({
     })
 )
 
+// eslint-disable-next-line authz/require-auth-wrapper -- returns identity provider metadata for the login wall, consulted before auth
 export const getAskGhLoginWallData = async () => sew(async () => {
     const isEnabled = env.EXPERIMENT_ASK_GH_ENABLED === 'true';
     if (!isEnabled) {

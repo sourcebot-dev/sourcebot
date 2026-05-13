@@ -8,7 +8,7 @@ import { Redis } from 'ioredis';
 import micromatch from 'micromatch';
 import Redlock, { ExecutionError } from 'redlock';
 import { INDEX_CACHE_DIR, REPOS_CACHE_DIR, WORKER_STOP_GRACEFUL_TIMEOUT_MS } from './constants.js';
-import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLatestCommitTimestamp, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, isRepoEmpty, unsetGitConfig, upsertGitConfig } from './git.js';
+import { cloneRepository, fetchRepository, getBranches, getCommitHashForRefName, getLatestCommitTimestamp, getLocalDefaultBranch, getTags, isPathAValidGitRepoRoot, isRepoEmpty, unsetGitConfig, upsertGitConfig, writeCommitGraph } from './git.js';
 import { captureEvent } from './posthog.js';
 import { PromClient } from './promClient.js';
 import { RepoWithConnections, Settings } from "./types.js";
@@ -279,7 +279,7 @@ export class RepoIndexManager {
     private async runJob(job: Job<JobPayload>, signal: AbortSignal) {
         const id = job.data.jobId;
         const logger = createJobLogger(id);
-        logger.info(`Running ${job.data.type} job ${id} for repo ${job.data.repoName} (id: ${job.data.repoId})`);
+        logger.debug(`Running ${job.data.type} job ${id} for repo ${job.data.repoName} (id: ${job.data.repoId})`);
 
         const currentStatus = await this.db.repoIndexingJob.findUniqueOrThrow({
             where: {
@@ -383,7 +383,7 @@ export class RepoIndexManager {
                 signal,
             });
 
-            logger.info(`Fetching ${repo.name} (id: ${repo.id})...`);
+            logger.debug(`Fetching ${repo.name} (id: ${repo.id})...`);
             const { durationMs } = await measure(() => fetchRepository({
                 cloneUrl: cloneUrlMaybeWithToken,
                 authHeader,
@@ -395,10 +395,22 @@ export class RepoIndexManager {
             }));
             const fetchDuration_s = durationMs / 1000;
 
-            process.stdout.write('\n');
-            logger.info(`Fetched ${repo.name} (id: ${repo.id}) in ${fetchDuration_s}s`);
+            logger.debug(`Fetched ${repo.name} (id: ${repo.id}) in ${fetchDuration_s}s`);
+
+            // Update the commit-graph after fetch. Force a full backfill the first time we
+            // see this repo after the --changed-paths rollout, so historical commits get
+            // Bloom filters. Subsequent fetches do a cheap incremental write.
+            const needsBackfill = !metadata.commitGraphChangedPathsBackfilledAt;
+            if (needsBackfill) {
+                logger.debug(`Backfilling changed-path Bloom filters for ${repo.name} (id: ${repo.id})...`);
+            }
+            await writeCommitGraph({
+                path: repoPath,
+                forceBackfill: needsBackfill,
+                signal,
+            });
         } else if (!isReadOnly) {
-            logger.info(`Cloning ${repo.name} (id: ${repo.id})...`);
+            logger.debug(`Cloning ${repo.name} (id: ${repo.id})...`);
 
             const { durationMs } = await measure(() => cloneRepository({
                 cloneUrl: cloneUrlMaybeWithToken,
@@ -411,8 +423,28 @@ export class RepoIndexManager {
             }));
             const cloneDuration_s = durationMs / 1000;
 
-            process.stdout.write('\n');
-            logger.info(`Cloned ${repo.name} (id: ${repo.id}) in ${cloneDuration_s}s`);
+            logger.debug(`Cloned ${repo.name} (id: ${repo.id}) in ${cloneDuration_s}s`);
+
+            // Write the commit-graph for the freshly cloned repo.
+            await writeCommitGraph({
+                path: repoPath,
+                signal,
+            });
+        }
+
+        // Record that this repo's commit-graph now includes changed-path Bloom filters
+        // for its full history (either freshly written during clone, or backfilled above
+        // during fetch).
+        if (!isReadOnly && !metadata.commitGraphChangedPathsBackfilledAt) {
+            await this.db.repo.update({
+                where: { id: repo.id },
+                data: {
+                    metadata: {
+                        ...metadata,
+                        commitGraphChangedPathsBackfilledAt: new Date().toISOString(),
+                    } satisfies RepoMetadata,
+                },
+            });
         }
 
         // Regardless of clone or fetch, always upsert the git config for the repo.
@@ -478,11 +510,11 @@ export class RepoIndexManager {
             revisions = revisions.slice(0, 64);
         }
 
-        logger.info(`Indexing ${repo.name} (id: ${repo.id})...`);
+        logger.debug(`Indexing ${repo.name} (id: ${repo.id})...`);
         try {
             const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, revisions, signal));
             const indexDuration_s = durationMs / 1000;
-            logger.info(`Indexed ${repo.name} (id: ${repo.id}) in ${indexDuration_s}s`);
+            logger.debug(`Indexed ${repo.name} (id: ${repo.id}) in ${indexDuration_s}s`);
         } catch (error) {
             // Clean up any temporary shard files left behind by the failed indexing operation.
             // Zoekt creates .tmp files during indexing which can accumulate if indexing fails repeatedly.
@@ -497,7 +529,7 @@ export class RepoIndexManager {
     private async cleanupRepository(repo: Repo, logger: Logger) {
         const { path: repoPath, isReadOnly } = getRepoPath(repo);
         if (existsSync(repoPath) && !isReadOnly) {
-            logger.info(`Deleting repo directory ${repoPath}`);
+            logger.debug(`Deleting repo directory ${repoPath}`);
             await rm(repoPath, { recursive: true, force: true });
         }
 
@@ -505,7 +537,7 @@ export class RepoIndexManager {
         const files = (await readdir(INDEX_CACHE_DIR)).filter(file => file.startsWith(shardPrefix));
         for (const file of files) {
             const filePath = `${INDEX_CACHE_DIR}/${file}`;
-            logger.info(`Deleting shard file ${filePath}`);
+            logger.debug(`Deleting shard file ${filePath}`);
             await rm(filePath, { force: true });
         }
     }
@@ -564,14 +596,14 @@ export class RepoIndexManager {
                     }
                 });
 
-                logger.info(`Completed index job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id})`);
+                logger.debug(`Completed index job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id})`);
             }
             else if (jobData.type === RepoIndexingJobType.CLEANUP) {
                 const repo = await this.db.repo.delete({
                     where: { id: jobData.repoId },
                 });
 
-                logger.info(`Completed cleanup job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id})`);
+                logger.debug(`Completed cleanup job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id})`);
             }
 
             // Track metrics for successful job
@@ -604,7 +636,7 @@ export class RepoIndexManager {
             // or if it is being retried.
             const jobState = await job.getState();
             if (jobState !== 'failed') {
-                jobLogger.warn(`Job ${job.id} for repo ${job.data.repoName} (id: ${job.data.repoId}) failed. Retrying...`);
+                jobLogger.warn(`Job ${job.id} for repo ${job.data.repoName} (id: ${job.data.repoId}) failed. Retrying... Reason: ${error.message}`);
                 return;
             }
 
@@ -626,7 +658,7 @@ export class RepoIndexManager {
             this.promClient.activeRepoIndexJobs.dec({ repo: job.data.repoName, type: jobTypeLabel });
             this.promClient.repoIndexJobFailTotal.inc({ repo: job.data.repoName, type: jobTypeLabel });
 
-            jobLogger.error(`Failed job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id}).`);
+            jobLogger.error(`Failed job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id}). Reason: ${error.message}`);
 
             captureEvent('backend_repo_index_job_failed', {
                 repoId: job.data.repoId,
@@ -664,7 +696,7 @@ export class RepoIndexManager {
                 const existingIds = new Set(existingRepos.map(r => r.id));
                 for (const [repoId, repoPath] of repoIdToPath) {
                     if (!existingIds.has(repoId)) {
-                        logger.info(`Removing orphaned repo directory with no DB record: ${repoPath}`);
+                        logger.debug(`Removing orphaned repo directory with no DB record: ${repoPath}`);
                         await rm(repoPath, { recursive: true, force: true });
                     }
                 }
@@ -695,7 +727,7 @@ export class RepoIndexManager {
                     if (!existingIds.has(repoId)) {
                         for (const entry of shards) {
                             const shardPath = `${INDEX_CACHE_DIR}/${entry}`;
-                            logger.info(`Removing orphaned index shard with no DB record: ${shardPath}`);
+                            logger.debug(`Removing orphaned index shard with no DB record: ${shardPath}`);
                             await rm(shardPath, { force: true });
                         }
                     }
