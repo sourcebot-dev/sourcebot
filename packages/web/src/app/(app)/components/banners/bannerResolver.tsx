@@ -9,9 +9,14 @@ import { BannerPriority, type BannerDescriptor, type BannerId } from "./types";
 import { PermissionSyncBanner } from "./permissionSyncBanner";
 import { LicenseExpiredBanner } from "./licenseExpiredBanner";
 import { LicenseExpiryHeadsUpBanner } from "./licenseExpiryHeadsUpBanner";
+import { LicenseReboundElsewhereBanner } from "./licenseReboundElsewhereBanner";
 import { InvoicePastDueBanner } from "./invoicePastDueBanner";
 import { ServicePingFailedBanner } from "./servicePingFailedBanner";
 import { TrialBanner } from "./trialBanner";
+
+// Mirrors the value in `lighthouse: lambda/serviceError.ts` and the gating
+// constant in `packages/shared/src/entitlements.ts`.
+const LICENSE_REBOUND_ELSEWHERE_ERROR_CODE = 'ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE';
 
 const EXPIRY_HEADS_UP_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -63,6 +68,19 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
                     expiresAt={expiryState.expiresAt.toISOString()}
                 />
             ),
+        });
+    }
+
+    if (
+        !ctx.offlineLicense
+        && ctx.license?.lastSyncErrorCode === LICENSE_REBOUND_ELSEWHERE_ERROR_CODE
+    ) {
+        banners.push({
+            id: 'licenseReboundElsewhere',
+            priority: BannerPriority.LICENSE_REBOUND_ELSEWHERE,
+            dismissible: false,
+            audience: 'everyone',
+            render: (props) => <LicenseReboundElsewhereBanner {...props} />,
         });
     }
 

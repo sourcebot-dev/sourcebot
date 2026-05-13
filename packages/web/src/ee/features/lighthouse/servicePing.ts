@@ -36,6 +36,14 @@ export const syncWithLighthouse = async (orgId: number) => {
     const response = await client.ping(payload);
     if (isServiceError(response)) {
         logger.error(`Service ping failed:\n ${JSON.stringify(response, null, 2)}`)
+
+        if (license) {
+            await __unsafePrisma.license.update({
+                where: { orgId },
+                data: { lastSyncErrorCode: response.errorCode },
+            });
+        }
+
         throw new ServiceErrorException(response);
     }
 
@@ -78,6 +86,7 @@ export const syncWithLighthouse = async (orgId: number) => {
                 trialEnd: trialEnd ? new Date(trialEnd) : null,
                 hasPaymentMethod,
                 lastSyncAt: new Date(),
+                lastSyncErrorCode: null,
             },
         });
 

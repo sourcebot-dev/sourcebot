@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ActivationCodeCard } from "./activationCodeCard";
-import { CurrentPlanCard } from "./currentPlanCard";
+import { OnlineLicenseCard } from "./onlineLicenseCard";
 import { OfflineLicenseCard } from "./offlineLicenseCard";
 import { RecentInvoicesCard } from "./recentInvoicesCard";
 import { getAllInvoices } from "@/ee/features/lighthouse/actions";
@@ -84,7 +84,7 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
             {offlineLicense && (
                 <OfflineLicenseCard license={offlineLicense} isExpired={isOfflineLicenseExpired} />
             )}
-            {license && <CurrentPlanCard license={license} />}
+            {license && <OnlineLicenseCard license={license} />}
             {license && <RecentInvoicesCard invoices={invoices} />}
             {!offlineLicense && !license && <ActivationCodeCard isTrialEligible={isTrialEligible} />}
         </div>

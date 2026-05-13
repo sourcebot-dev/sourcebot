@@ -1,6 +1,9 @@
 import { fetchWithRetry, isServiceError } from "@/lib/utils";
 import { env } from "@sourcebot/shared";
 import {
+    ActivateRequest,
+    ActivateResponse,
+    activateResponseSchema,
     CheckoutRequest,
     CheckoutResponse,
     checkoutResponseSchema,
@@ -20,6 +23,16 @@ import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 
 export const client = {
+    activate: async (body: ActivateRequest): Promise<ActivateResponse | ServiceError> => {
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/activate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        return parseResponseBody(response, activateResponseSchema);
+    },
+
     ping: async (body: ServicePingRequest): Promise<ServicePingResponse | ServiceError> => {
         const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/ping`, {
             method: 'POST',

@@ -8,6 +8,18 @@ export const servicePingRequestSchema = z.object({
 });
 export type ServicePingRequest = z.infer<typeof servicePingRequestSchema>;
 
+export const activateRequestSchema = z.object({
+    activationCode: z.string(),
+    installId: z.string(),
+});
+export type ActivateRequest = z.infer<typeof activateRequestSchema>;
+
+export const activateResponseSchema = z.object({
+    status: z.literal('ok'),
+    reactivationsRemaining: z.number().int(),
+});
+export type ActivateResponse = z.infer<typeof activateResponseSchema>;
+
 export const servicePingResponseSchema = z.object({
     license: z.object({
         entitlements: z.string().array(),

@@ -107,7 +107,8 @@ const getValidOnlineLicense = (_license: License | null): License | null => {
         _license.status &&
         ACTIVE_ONLINE_LICENSE_STATUSES.includes(_license.status as LicenseStatus) &&
         _license.lastSyncAt &&
-        (Date.now() - _license.lastSyncAt.getTime()) <= STALE_ONLINE_LICENSE_THRESHOLD_MS
+        (Date.now() - _license.lastSyncAt.getTime()) <= STALE_ONLINE_LICENSE_THRESHOLD_MS &&
+        _license.lastSyncErrorCode !== 'ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE'
     ) {
         return _license;
     }

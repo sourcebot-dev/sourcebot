@@ -3,6 +3,7 @@ import type { OrgRole } from "@sourcebot/db";
 
 export const BannerPriority = {
     LICENSE_EXPIRED:          100,
+    LICENSE_REBOUND_ELSEWHERE: 97,
     SERVICE_PING_ENFORCED:     95,
     INVOICE_PAST_DUE:          90,
     PERMISSION_SYNC:           50,
@@ -13,6 +14,7 @@ export const BannerPriority = {
 
 export type BannerId =
     | 'licenseExpired'
+    | 'licenseReboundElsewhere'
     | 'invoicePastDue'
     | 'permissionSync'
     | 'licenseExpiryHeadsUp'
