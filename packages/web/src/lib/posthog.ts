@@ -100,6 +100,7 @@ export async function captureEvent<E extends PosthogEvent>(event: E, properties:
                 $host: host,
             },
             distinctId,
+            groups: { company: env.SOURCEBOT_INSTALL_ID },
         });
     } catch (error) {
         logger.error('Failed to capture PostHog event:', error);

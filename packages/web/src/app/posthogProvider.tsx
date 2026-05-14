@@ -77,6 +77,7 @@ export function PostHogProvider({
                         sourcebot_version: sourcebotVersion,
                         install_id: sourcebotInstallId,
                     });
+                    posthog.group('company', sourcebotInstallId);
                 }
             });
         } else {

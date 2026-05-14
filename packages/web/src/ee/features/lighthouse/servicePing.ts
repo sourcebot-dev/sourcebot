@@ -1,3 +1,4 @@
+import { existsSync } from "fs";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { isServiceError } from "@/lib/utils";
 import { __unsafePrisma } from "@/prisma";
@@ -10,17 +11,25 @@ const logger = createLogger('service-ping');
 
 const SERVICE_PING_INTERVAL_MS = 24 * 60 * 60 * 1000; // 1 day
 
+
 export const syncWithLighthouse = async (orgId: number) => {
     // Look up the activation code from the License record
     const license = await __unsafePrisma.license.findUnique({
         where: { orgId },
     });
 
-    const userCount = await __unsafePrisma.userToOrg.count({
-        where: {
-            orgId,
-        },
-    });
+    const [userCount, repoCount] = await Promise.all([
+        __unsafePrisma.userToOrg.count({
+            where: {
+                orgId,
+            },
+        }),
+        __unsafePrisma.repo.count({
+            where: {
+                orgId,
+            },
+        }),
+    ]);
 
     const activationCode = license?.activationCode
         ? decryptActivationCode(license.activationCode)
@@ -30,6 +39,9 @@ export const syncWithLighthouse = async (orgId: number) => {
         installId: env.SOURCEBOT_INSTALL_ID,
         version: SOURCEBOT_VERSION,
         userCount,
+        repoCount,
+        deploymentType: inferDeploymentType(),
+        isTelemetryEnabled: env.SOURCEBOT_TELEMETRY_DISABLED === 'false',
         ...(activationCode && { activationCode }),
     };
 
@@ -110,4 +122,14 @@ export const startServicePingCronJob = () => {
         () => syncWithLighthouse(SINGLE_TENANT_ORG_ID).catch(() => { /* ignore error */ }),
         SERVICE_PING_INTERVAL_MS
     );
+};
+
+const inferDeploymentType = (): string => {
+    if (process.env.KUBERNETES_SERVICE_HOST) {
+        return 'kubernetes';
+    }
+    if (existsSync('/.dockerenv')) {
+        return 'docker';
+    }
+    return 'other';
 };

@@ -4,6 +4,9 @@ export const servicePingRequestSchema = z.object({
     installId: z.string(),
     version: z.string(),
     userCount: z.number(),
+    repoCount: z.number(),
+    deploymentType: z.string(),
+    isTelemetryEnabled: z.boolean(),
     activationCode: z.string().optional(),
 });
 export type ServicePingRequest = z.infer<typeof servicePingRequestSchema>;
