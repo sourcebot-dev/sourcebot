@@ -6,6 +6,7 @@ import React, { useCallback, useMemo, useRef } from "react";
 import { FileTreeItemComponent } from "./fileTreeItemComponent";
 import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
 import { useBrowseParams } from "@/app/(app)/browse/hooks/useBrowseParams";
+import { useProgress } from "@bprogress/next";
 
 const renderLoadingSkeleton = (depth: number) => {
     return (
@@ -27,6 +28,7 @@ interface PureFileTreePanelProps {
 export const PureFileTreePanel = ({ tree, openPaths, path, onTreeNodeClicked }: PureFileTreePanelProps) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { repoName, revisionName } = useBrowseParams();
+    const { stop } = useProgress();
 
     const renderTree = useCallback((nodes: FileTreeNode, depth = 0): React.ReactNode => {
         return (
@@ -61,6 +63,7 @@ export const PureFileTreePanel = ({ tree, openPaths, path, onTreeNodeClicked }: 
                                 onNavigate={(e) => {
                                     if (node.type === 'tree') {
                                         e.preventDefault();
+                                        stop();
                                     }
                                 }}
                                 parentRef={scrollAreaRef}
@@ -77,7 +80,7 @@ export const PureFileTreePanel = ({ tree, openPaths, path, onTreeNodeClicked }: 
                 })}
             </>
         );
-    }, [onTreeNodeClicked, path, repoName, revisionName, openPaths]);
+    }, [onTreeNodeClicked, path, repoName, revisionName, openPaths, stop]);
 
     const renderedTree = useMemo(() => renderTree(tree), [tree, renderTree]);
 

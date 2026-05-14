@@ -1328,6 +1328,39 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@bprogress/core@npm:^1.3.4":
+  version: 1.3.4
+  resolution: "@bprogress/core@npm:1.3.4"
+  checksum: 10c0/fae88e83375c5d67b31a7186b6e6fad0f1ef59daee7408c9d6fe150ab3e1b368acfebd1b73ef913567c340803dac96841d81acc05268cdb99118431a26e3f258
+  languageName: node
+  linkType: hard
+
+"@bprogress/next@npm:^3.2.12":
+  version: 3.2.12
+  resolution: "@bprogress/next@npm:3.2.12"
+  dependencies:
+    "@bprogress/core": "npm:^1.3.4"
+    "@bprogress/react": "npm:^1.2.7"
+  peerDependencies:
+    next: ">=13.0.0"
+    react: ">=18.0.0"
+    react-dom: ">=18.0.0"
+  checksum: 10c0/8d993202a81125aae9543814d2248ee9e72e395ba570789362dbaaa9f09dd553f21b6a5c510843eb5fcb0eedfd21b0a7499ac0aa8a924a581910fb2531949aec
+  languageName: node
+  linkType: hard
+
+"@bprogress/react@npm:^1.2.7":
+  version: 1.2.7
+  resolution: "@bprogress/react@npm:1.2.7"
+  dependencies:
+    "@bprogress/core": "npm:^1.3.4"
+  peerDependencies:
+    react: ">=18.0.0"
+    react-dom: ">=18.0.0"
+  checksum: 10c0/f7683197118ab3a7355dfb8d12e4330ffa543ea4262bc8e04a54fb7a1caf0853e77e9a7648dcb2bba6082e0af1cf6adc5adfba80c63d45f953431e7c7a865419
+  languageName: node
+  linkType: hard
+
 "@cfworker/json-schema@npm:^4.0.2":
   version: 4.1.1
   resolution: "@cfworker/json-schema@npm:4.1.1"
@@ -9008,6 +9041,7 @@ __metadata:
     "@asteasolutions/zod-to-openapi": "npm:7.3.4"
     "@auth/prisma-adapter": "npm:^2.11.1"
     "@aws-sdk/credential-providers": "npm:^3.1036.0"
+    "@bprogress/next": "npm:^3.2.12"
     "@codemirror/commands": "npm:^6.6.0"
     "@codemirror/lang-cpp": "npm:^6.0.2"
     "@codemirror/lang-css": "npm:^6.3.0"

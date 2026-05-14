@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
+import { ProgressBarProvider } from "./progressBarProvider";
 import { QueryClientProvider } from "./queryClientProvider";
 import { PostHogProvider } from "./posthogProvider";
 import { Toaster } from "@/components/ui/toaster";
@@ -80,7 +81,9 @@ export default async function RootLayout({
                             >
                                 <QueryClientProvider>
                                     <TooltipProvider>
-                                        {children}
+                                        <ProgressBarProvider>
+                                            {children}
+                                        </ProgressBarProvider>
                                     </TooltipProvider>
                                 </QueryClientProvider>
                             </ThemeProvider>
