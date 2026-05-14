@@ -101,10 +101,14 @@ export function SidebarBase({ session, collapsible = "icon", headerContent, chil
 
 function CollapseSidebarButton() {
     const { toggleSidebar, state } = useSidebar();
+    const [tooltipOpen, setTooltipOpen] = useState(false);
     return (
         <SidebarMenu>
             <SidebarMenuItem>
-                <Tooltip open={state === "expanded" ? false : undefined}>
+                <Tooltip
+                    open={state === "expanded" ? false : tooltipOpen}
+                    onOpenChange={setTooltipOpen}
+                >
                     <TooltipTrigger asChild>
                         <SidebarMenuButton onClick={toggleSidebar}>
                             {state === "expanded" ? (

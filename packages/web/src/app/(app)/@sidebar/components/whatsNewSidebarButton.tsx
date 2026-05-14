@@ -60,6 +60,7 @@ const setReadItems = (readItems: string[]) => {
 export function WhatsNewSidebarButton() {
     const { state } = useSidebar()
     const [isOpen, setIsOpen] = useState(false)
+    const [tooltipOpen, setTooltipOpen] = useState(false)
     const [readItems, setReadItemsState] = useState<string[]>([])
     const [isInitialized, setIsInitialized] = useState(false)
 
@@ -114,7 +115,10 @@ export function WhatsNewSidebarButton() {
         <SidebarMenu>
             <SidebarMenuItem>
                 <Popover open={isOpen} onOpenChange={setIsOpen}>
-                    <Tooltip open={state === "expanded" ? false : undefined}>
+                    <Tooltip
+                        open={state === "expanded" ? false : tooltipOpen}
+                        onOpenChange={setTooltipOpen}
+                    >
                         <TooltipTrigger asChild>
                             <PopoverTrigger asChild>
                                 <SidebarMenuButton>

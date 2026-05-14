@@ -103,7 +103,7 @@ export function Nav({ isSettingsNotificationVisible, isSignedIn, homeView }: Nav
                     (item.key === "settings" && isSettingsNotificationVisible);
                 return (
                     <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild isActive={isActive(item.href)}>
+                        <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.title}>
                             <Link
                                 href={item.href}
                             >
