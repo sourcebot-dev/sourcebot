@@ -9129,6 +9129,7 @@ __metadata:
     "@tanstack/react-virtual": "npm:^3.10.8"
     "@testing-library/dom": "npm:^10.4.1"
     "@testing-library/react": "npm:^16.3.0"
+    "@types/canvas-confetti": "npm:^1.9.0"
     "@types/glob-to-regexp": "npm:^0.4.4"
     "@types/micromatch": "npm:^4.0.9"
     "@types/node": "npm:^20"
@@ -9147,6 +9148,7 @@ __metadata:
     ai: "npm:^6.0.167"
     ajv: "npm:^8.17.1"
     bcryptjs: "npm:^3.0.2"
+    canvas-confetti: "npm:^1.9.4"
     class-variance-authority: "npm:^0.7.1"
     client-only: "npm:^0.0.1"
     clsx: "npm:^2.1.1"
@@ -9473,6 +9475,13 @@ __metadata:
   version: 3.0.5
   resolution: "@types/braces@npm:3.0.5"
   checksum: 10c0/fff17426731376b452abf747e862f0116b80ccc68a2c8e6b56aff240048c26c983d61c456c6792dffe9df407d80c1a504bea21e8c1a56afaed1f311dfe75bc68
+  languageName: node
+  linkType: hard
+
+"@types/canvas-confetti@npm:^1.9.0":
+  version: 1.9.0
+  resolution: "@types/canvas-confetti@npm:1.9.0"
+  checksum: 10c0/ffe2c674d466b8e13472c81ab2a97056f3433fd40a3513dbc1bb76764e4e7c3ff0a2a58d37b16ea6a245c831077c553db321b069dda6572eab59f2be61137b2e
   languageName: node
   linkType: hard
 
@@ -11389,6 +11398,13 @@ __metadata:
   version: 1.0.30001707
   resolution: "caniuse-lite@npm:1.0.30001707"
   checksum: 10c0/a1beaf84bad4f6617bbc5616d6bc0c9cab73e73f7e9e09b6466af5195b1bc393e0f6f19643d7a1c88bd3f4bfa122d7bea81cf6225ec3ade57d5b1dd3478c1a1b
+  languageName: node
+  linkType: hard
+
+"canvas-confetti@npm:^1.9.4":
+  version: 1.9.4
+  resolution: "canvas-confetti@npm:1.9.4"
+  checksum: 10c0/08f11b5fa20b365922108828d7488f9b3eac2afdf39bc478339268c1250b5215df82682d7074520a3f0f72f4728f9703bbc937dcfe793f196b44e6e8ac0b1f7b
   languageName: node
   linkType: hard
 

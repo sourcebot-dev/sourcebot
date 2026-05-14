@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ActivationCodeCard } from "./activationCodeCard";
+import { CheckoutSuccessModal } from "./checkoutSuccessModal";
 import { OnlineLicenseCard } from "./onlineLicenseCard";
 import { OfflineLicenseCard } from "./offlineLicenseCard";
 import { RecentInvoicesCard } from "./recentInvoicesCard";
@@ -16,7 +17,7 @@ type LicensePageProps = {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 } & Record<string, unknown>;
 
-export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props) => {
+export default authenticatedPage<LicensePageProps>(async ({ prisma, org, user }, props) => {
     const searchParams = await props.searchParams;
     if (searchParams?.refresh === 'true' || searchParams?.trial_used === 'true') {
         // Side-trips to the Stripe portal (add PM, manage sub) include
@@ -61,6 +62,7 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
     const invoices = invoicesResult && !isServiceError(invoicesResult) ? invoicesResult : [];
 
     const isTrialEligible = !offlineLicense && org.trialUsedAt === null;
+    const showCheckoutSuccess = searchParams?.checkout === 'success' && !license;
 
     return (
         <div className="flex flex-col gap-6">
@@ -87,6 +89,7 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
             {license && <OnlineLicenseCard license={license} />}
             {license && <RecentInvoicesCard invoices={invoices} />}
             {!offlineLicense && !license && <ActivationCodeCard isTrialEligible={isTrialEligible} />}
+            {showCheckoutSuccess && <CheckoutSuccessModal userEmail={user.email} />}
         </div>
     );
 }, {

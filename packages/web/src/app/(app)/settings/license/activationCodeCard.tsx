@@ -38,7 +38,7 @@ export function ActivationCodeCard({ isTrialEligible }: ActivationCodeCardProps)
                     });
                 } else {
                     toast({
-                        description: "License activated successfully.",
+                        description: "✅ License activated successfully.",
                     });
                     setActivationCode("");
                     router.refresh();
