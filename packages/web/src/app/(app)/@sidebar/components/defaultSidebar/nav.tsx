@@ -10,6 +10,7 @@ import { usePathname } from "next/navigation";
 import { HomeView } from "@/hooks/useHomeView";
 import { NotificationDot } from "../../../components/notificationDot";
 import { useMemo } from "react";
+import Link from "next/link";
 
 interface NavItem {
     title: string;
@@ -103,11 +104,13 @@ export function Nav({ isSettingsNotificationVisible, isSignedIn, homeView }: Nav
                 return (
                     <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton asChild isActive={isActive(item.href)}>
-                            <a href={item.href}>
+                            <Link
+                                href={item.href}
+                            >
                                 <item.icon />
                                 <span>{item.title}</span>
                                 {showNotification && <NotificationDot className="ml-1.5" />}
-                            </a>
+                            </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 );
