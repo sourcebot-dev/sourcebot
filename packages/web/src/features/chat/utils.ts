@@ -244,13 +244,23 @@ export const createFileReference = ({ repo, path, startLine, endLine }: { repo: 
  * Markdown format. Practically, this means converting references into Markdown
  * links and removing the answer tag.
  */
-export const convertLLMOutputToPortableMarkdown = (text: string, baseUrl: string): string => {
+export const convertLLMOutputToPortableMarkdown = (text: string, baseUrl: string, sources: FileSource[]): string => {
     return text
         .replace(ANSWER_TAG, '')
         .replace(FILE_REFERENCE_REGEX, (_, repo, fileName, startLine, endLine) => {
-            const displayName = fileName.split('/').pop() || fileName;
+            const reference = createFileReference({
+                repo,
+                path: fileName,
+                startLine,
+                endLine
+            });
 
-            let linkText = displayName;
+            const source = tryResolveFileReference(reference, sources);
+            if (!source) {
+                return fileName;
+            }
+
+            let linkText = source.name;
             if (startLine) {
                 if (endLine && startLine !== endLine) {
                     linkText += `:${startLine}-${endLine}`;
@@ -268,6 +278,7 @@ export const convertLLMOutputToPortableMarkdown = (text: string, baseUrl: string
             // Construct full browse URL
             const browsePath = getBrowsePath({
                 repoName: repo,
+                revisionName: source.revision,
                 path: fileName,
                 pathType: 'blob',
                 highlightRange,
