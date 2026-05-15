@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `ip-address` to `^10.2.0` to address CVE-2026-42338. [#1189](https://github.com/sourcebot-dev/sourcebot/pull/1189)
 - Upgraded `fast-xml-builder` to `^1.2.0` to address CVE-2026-44664, CVE-2026-44665. [#1184](https://github.com/sourcebot-dev/sourcebot/pull/1184)
 - Fixed file citations from the `get_diff` tool not being reliably citable in chat answers. [#1205](https://github.com/sourcebot-dev/sourcebot/pull/1205)
+- Upgraded `next` to `^16.2.6` to address CVE-2026-45109. [#1203](https://github.com/sourcebot-dev/sourcebot/pull/1203)
 
 ### Changed
 - Reduced the log verbosity of the worker by changing various log messages from info to debug. [#1179](https://github.com/sourcebot-dev/sourcebot/pull/1179)
