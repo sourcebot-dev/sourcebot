@@ -4939,14 +4939,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@posthog/ai@npm:^7.15.0":
-  version: 7.15.0
-  resolution: "@posthog/ai@npm:7.15.0"
+"@posthog/ai@npm:^7.18.7":
+  version: 7.18.7
+  resolution: "@posthog/ai@npm:7.18.7"
   dependencies:
     "@anthropic-ai/sdk": "npm:^0.78.0"
     "@google/genai": "npm:^1.43.0"
     "@langchain/core": "npm:^1.1.29"
-    "@posthog/core": "npm:1.25.2"
+    "@posthog/core": "npm:1.29.2"
     langchain: "npm:^1.2.28"
     openai: "npm:^6.25.0"
     uuid: "npm:^11.1.0"
@@ -4955,7 +4955,7 @@ __metadata:
     "@ai-sdk/provider": ^2.0.0 || ^3.0.0
     "@openai/agents": ^0.8.0
     "@opentelemetry/api": ^1.9.0
-    "@opentelemetry/exporter-trace-otlp-http": ^0.200.0
+    "@opentelemetry/exporter-trace-otlp-http": ">=0.200.0 <1.0.0"
     "@opentelemetry/sdk-trace-base": ^2.0.0
     posthog-node: ^5.0.0
   peerDependenciesMeta:
@@ -4969,7 +4969,7 @@ __metadata:
       optional: true
     "@opentelemetry/sdk-trace-base":
       optional: true
-  checksum: 10c0/2c55cf9e5cfdad1ae1515222aa5a67b385c9e75d26acbdec4e27dc78dd1861bdf93dce70941f1bc0b684eaa781a006b3e03c2427fde5b08dc042e966425b4ebb
+  checksum: 10c0/c5b34327b26e3ba9af842043f19f1fe980b8da2c081fb0583569632ac173cf17111d6bfe529cfdfa9756d623756fef8caed7b61f12c5d16af0422d0b1e704b9e
   languageName: node
   linkType: hard
 
@@ -4989,10 +4989,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@posthog/core@npm:1.29.2":
+  version: 1.29.2
+  resolution: "@posthog/core@npm:1.29.2"
+  dependencies:
+    "@posthog/types": "npm:1.373.5"
+  checksum: 10c0/eb598df780c90838d1fad7f135e0c6d3a3a505182902778543b5e10d0588057b032c618baf45cb58bb19efb80b0dcd88af9f328886524a3d99bafde90b59e02f
+  languageName: node
+  linkType: hard
+
 "@posthog/types@npm:1.369.0":
   version: 1.369.0
   resolution: "@posthog/types@npm:1.369.0"
   checksum: 10c0/dcb3de271b87ea5faa7562a79f201c4de74b045bb6182fdf880176b2059674f6e408905c791e49ccef2e742615a63fd793ce04a7ca94fad853b43d00b099abcc
+  languageName: node
+  linkType: hard
+
+"@posthog/types@npm:1.373.5":
+  version: 1.373.5
+  resolution: "@posthog/types@npm:1.373.5"
+  checksum: 10c0/5627050abb167a9b6b8c419be5f6b1933ad32107154eaff58c4c8f54b3e97ee3a41444bbb64db726fdc80d0ca15e644ab74d5c9890f517be0e3060a5e40bdcd9
   languageName: node
   linkType: hard
 
@@ -8817,7 +8833,7 @@ __metadata:
     "@opentelemetry/api-logs": "npm:^0.203.0"
     "@opentelemetry/instrumentation": "npm:^0.203.0"
     "@opentelemetry/sdk-logs": "npm:^0.203.0"
-    "@posthog/ai": "npm:^7.15.0"
+    "@posthog/ai": "npm:^7.18.7"
     "@radix-ui/react-accordion": "npm:^1.2.11"
     "@radix-ui/react-alert-dialog": "npm:^1.1.5"
     "@radix-ui/react-avatar": "npm:^1.1.2"
@@ -15740,12 +15756,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"langsmith@npm:^0.5.19":
-  version: 0.5.19
-  resolution: "langsmith@npm:0.5.19"
+"langsmith@npm:>=0.5.0 <1.0.0":
+  version: 0.7.1
+  resolution: "langsmith@npm:0.7.1"
   dependencies:
     p-queue: "npm:6.6.2"
-    uuid: "npm:10.0.0"
   peerDependencies:
     "@opentelemetry/api": "*"
     "@opentelemetry/exporter-trace-otlp-proto": "*"
@@ -15763,7 +15778,7 @@ __metadata:
       optional: true
     ws:
       optional: true
-  checksum: 10c0/d130e15dfa88fde6c9a4b7ef3689bb34a5eec52bf5c16f04017eeeb62d2aeecc36112fa820d8af00fa115c3cbcf09ec3c04549a5ebaeda029d51a42934c668ec
+  checksum: 10c0/386be4928535311d47c8dabd9d8990d71445b8814b78d9e6e03341d663125e79dac6151176febed69baed4608fd955826a80decdb8e0bb18cc068b222df11f4a
   languageName: node
   linkType: hard
 
