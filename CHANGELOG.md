@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced the log verbosity of the worker by changing various log messages from info to debug. [#1179](https://github.com/sourcebot-dev/sourcebot/pull/1179)
 - [EE] Switched symbol hover detection to use Lezer highlight tags, broadening identifier coverage. [#1194](https://github.com/sourcebot-dev/sourcebot/pull/1194)
 - Improved git history and blame performance on large repositories. [#1198](https://github.com/sourcebot-dev/sourcebot/pull/1198)
-- Upgraded `react-email` to `^6.1.4`, dropping the separate `@react-email/preview-server` devDependency (now bundled). [#1206](https://github.com/sourcebot-dev/sourcebot/pull/1206)
+- Upgraded `react-email` to `^6.1.4`. [#1206](https://github.com/sourcebot-dev/sourcebot/pull/1206)
 
 ## [4.17.1] - 2026-05-04
 
