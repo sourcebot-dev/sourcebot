@@ -266,9 +266,7 @@ When fixing a CVE in a transitive dependency, prefer a real top-level upgrade ov
 2. **Check whether the existing ranges already allow a patched version.** Often the lockfile is just stale: every `^x.y.z` range in the chain still admits the patched version, but `yarn.lock` was written before that version existed. In that case, refresh the lockfile entry — no `package.json` change, no `resolutions` override:
 
    ```bash
-   yarn up <intermediate-or-vulnerable-pkg>
-   # or, to refresh many at once:
-   yarn dedupe
+   yarn up -R <vulnerable-pkg>
    ```
 
    This is the lightest-weight fix: it doesn't force a version, it just bumps the lock to the latest version that satisfies the constraints already in the tree. Verify with `yarn why <vulnerable-package>` afterward — if every instance is now patched, you're done.
