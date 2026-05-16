@@ -20,6 +20,7 @@ CREATE TABLE "License" (
     "trialEnd" TIMESTAMP(3),
     "hasPaymentMethod" BOOLEAN,
     "lastSyncAt" TIMESTAMP(3),
+    "lastSyncErrorCode" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
