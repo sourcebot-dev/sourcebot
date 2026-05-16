@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
@@ -20,7 +19,6 @@ export function ActivationCodeCard({ isTrialEligible }: ActivationCodeCardProps)
     const [activationCode, setActivationCode] = useState("");
     const [isActivating, setIsActivating] = useState(false);
     const [isCheckoutSessionCreating, setIsCheckoutSessionCreating] = useState(false);
-    const router = useRouter();
     const { toast } = useToast();
 
     const handleActivate = useCallback(() => {
@@ -41,13 +39,12 @@ export function ActivationCodeCard({ isTrialEligible }: ActivationCodeCardProps)
                         description: "✅ License activated successfully.",
                     });
                     setActivationCode("");
-                    router.refresh();
                 }
             })
             .finally(() => {
                 setIsActivating(false);
             });
-    }, [activationCode, toast, router]);
+    }, [activationCode, toast]);
 
     const onCreateCheckoutSession = useCallback(() => {
         setIsCheckoutSessionCreating(true);

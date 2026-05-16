@@ -10,6 +10,7 @@ import { ErrorCode } from "@/lib/errorCodes";
 import { encryptActivationCode, decryptActivationCode, env } from "@sourcebot/shared";
 import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
 import { isServiceError } from "@/lib/utils";
+import { revalidatePath } from "next/cache";
 import { client } from "./client";
 import { Invoice } from "./types";
 
@@ -59,6 +60,10 @@ export const activateLicense = async (activationCode: string): Promise<{ success
 
                 throw e;
             }
+
+            // Invalidate the (app) layout so BannerSlot re-resolves with the
+            // new license.
+            revalidatePath('/settings/license', 'layout');
 
             return { success: true };
         })
