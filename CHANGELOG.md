@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1097](https://github.com/sourcebot-dev/sourcebot/pull/1097)
+- Expired offline license keys no longer crash the process. An expired key now degrades to the unlicensed state. [#1109](https://github.com/sourcebot-dev/sourcebot/pull/1109)
+
+## [4.17.2] - 2026-05-16
+
 ### Added
 - Added warning message that fires on startup when host environment contains env vars that simple-git flags as unsafe. [#1193](https://github.com/sourcebot-dev/sourcebot/pull/1193)
 - Added a loading skeleton to the latest commit info bar in the code browser. [#1195](https://github.com/sourcebot-dev/sourcebot/pull/1195)
@@ -20,13 +26,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `hono` to `^4.12.18` to address CVE-2026-44455, CVE-2026-44456, CVE-2026-44457, CVE-2026-44458. [#1186](https://github.com/sourcebot-dev/sourcebot/pull/1186)
 - Upgraded `ip-address` to `^10.2.0` to address CVE-2026-42338. [#1189](https://github.com/sourcebot-dev/sourcebot/pull/1189)
 - Upgraded `fast-xml-builder` to `^1.2.0` to address CVE-2026-44664, CVE-2026-44665. [#1184](https://github.com/sourcebot-dev/sourcebot/pull/1184)
+- Fixed file citations from the `get_diff` tool not being reliably citable in chat answers. [#1205](https://github.com/sourcebot-dev/sourcebot/pull/1205)
+- Upgraded `next` to `^16.2.6` to address CVE-2026-45109. [#1203](https://github.com/sourcebot-dev/sourcebot/pull/1203)
 
 ### Changed
 - Reduced the log verbosity of the worker by changing various log messages from info to debug. [#1179](https://github.com/sourcebot-dev/sourcebot/pull/1179)
 - [EE] Switched symbol hover detection to use Lezer highlight tags, broadening identifier coverage. [#1194](https://github.com/sourcebot-dev/sourcebot/pull/1194)
 - Improved git history and blame performance on large repositories. [#1198](https://github.com/sourcebot-dev/sourcebot/pull/1198)
-- Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1097](https://github.com/sourcebot-dev/sourcebot/pull/1097)
-- Expired offline license keys no longer crash the process. An expired key now degrades to the unlicensed state. [#1109](https://github.com/sourcebot-dev/sourcebot/pull/1109)
+- Upgraded `react-email` to `^6.1.4`. [#1206](https://github.com/sourcebot-dev/sourcebot/pull/1206)
+- Upgraded `@posthog/ai` to `^7.18.7`. [#1207](https://github.com/sourcebot-dev/sourcebot/pull/1207)
 
 ## [4.17.1] - 2026-05-04
 

@@ -196,8 +196,15 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 : undefined;
             const answerText = answerPart?.text ?? '';
 
+            const fileSources = finalMessages.flatMap((message) =>
+                message.parts
+                    .filter((part) => part.type === 'data-source')
+                    .map((part) => part.data)
+                    .filter((source) => source.type === 'file')
+            );
+
             const baseUrl = env.AUTH_URL;
-            const portableAnswer = convertLLMOutputToPortableMarkdown(answerText, baseUrl);
+            const portableAnswer = convertLLMOutputToPortableMarkdown(answerText, baseUrl, fileSources);
             const chatUrl = `${baseUrl}/chat/${chat.id}`;
 
             logger.debug(`Completed blocking agent for chat ${chat.id}`, { chatId: chat.id });

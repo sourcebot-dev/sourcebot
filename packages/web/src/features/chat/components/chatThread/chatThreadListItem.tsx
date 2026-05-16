@@ -371,6 +371,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                                 chatId={chatId}
                                 messageId={assistantMessage.id}
                                 traceId={assistantMessage.metadata?.traceId}
+                                sources={referencedFileSources}
                             />
                         ) : !isStreaming && (
                             <p className="text-destructive">Error: No answer response was provided</p>

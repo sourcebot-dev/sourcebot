@@ -18,12 +18,14 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { LangfuseWeb } from "langfuse";
 import { env } from "@sourcebot/shared/client";
 import isEqual from "fast-deep-equal/react";
+import { FileSource } from "../../types";
 
 interface AnswerCardProps {
     answerText: string;
     messageId: string;
     chatId: string;
     traceId?: string;
+    sources: FileSource[];
 }
 
 const langfuseWeb = env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY ? new LangfuseWeb({
@@ -36,6 +38,7 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
     messageId,
     chatId,
     traceId,
+    sources,
 }, forwardedRef) => {
     const markdownRendererRef = useRef<HTMLDivElement>(null);
     // eslint-disable-next-line react-hooks/refs -- ref.current is passed to a custom hook, not used directly in render output
@@ -53,14 +56,14 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
 
     const onCopyAnswer = useCallback(() => {
         const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        const markdownText = convertLLMOutputToPortableMarkdown(answerText, baseUrl);
+        const markdownText = convertLLMOutputToPortableMarkdown(answerText, baseUrl, sources);
         navigator.clipboard.writeText(markdownText);
         toast({
             description: "✅ Copied to clipboard",
         });
         captureEvent('wa_chat_copy_answer_pressed', { chatId });
         return true;
-    }, [answerText, chatId, captureEvent, toast]);
+    }, [answerText, sources, chatId, captureEvent, toast]);
 
     const onFeedback = useCallback(async (feedbackType: 'like' | 'dislike') => {
         setIsSubmittingFeedback(true);
