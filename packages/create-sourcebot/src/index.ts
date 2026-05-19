@@ -16,6 +16,10 @@ import { randomBytes } from 'crypto';
 import { existsSync, writeFileSync } from 'fs';
 import { writeFile } from 'fs/promises';
 
+// @nocheckin: change this to main
+const DOCKER_COMPOSE_BRANCH = 'bkellam/setup-wizard'
+const DOCKER_COMPOSE_URL = `https://raw.githubusercontent.com/sourcebot-dev/sourcebot/${DOCKER_COMPOSE_BRANCH}/docker-compose.yml`;
+
 type ConnectionConfig = Record<string, unknown>;
 type EnvVars = Record<string, string>;
 type CollectResult = { config: ConnectionConfig; env: EnvVars };
@@ -706,7 +710,6 @@ async function main() {
 
     s.stop(`Wrote config.json and ${envPath}`);
 
-    const dockerComposeUrl = 'https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/docker-compose.yml';
     let downloadedCompose = false;
 
     if (!existsSync('docker-compose.yml')) {
@@ -719,7 +722,7 @@ async function main() {
             const ds = spinner();
             ds.start('Downloading docker-compose.yml...');
             try {
-                const res = await fetch(dockerComposeUrl);
+                const res = await fetch(DOCKER_COMPOSE_URL);
                 if (!res.ok) {
                     throw new Error(`HTTP ${res.status}`);
                 }
@@ -739,7 +742,7 @@ async function main() {
 
     if (!downloadedCompose) {
         nextSteps.push(`${step++}. Download docker-compose.yml:`);
-        nextSteps.push(`   curl -o docker-compose.yml ${dockerComposeUrl}`);
+        nextSteps.push(`   curl -o docker-compose.yml ${DOCKER_COMPOSE_URL}`);
         nextSteps.push('');
     }
 
