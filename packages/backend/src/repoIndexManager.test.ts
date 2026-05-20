@@ -56,6 +56,7 @@ vi.mock('./git.js', () => ({
 
 vi.mock('./zoekt.js', () => ({
     indexGitRepository: vi.fn().mockResolvedValue({ stdout: '', stderr: '' }),
+    cleanupTempShards: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('./posthog.js', () => ({
