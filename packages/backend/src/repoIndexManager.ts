@@ -516,11 +516,15 @@ export class RepoIndexManager {
             const indexDuration_s = durationMs / 1000;
             logger.debug(`Indexed ${repo.name} (id: ${repo.id}) in ${indexDuration_s}s`);
         } catch (error) {
-            // Clean up any temporary shard files left behind by the failed indexing operation.
-            // Zoekt creates .tmp files during indexing which can accumulate if indexing fails repeatedly.
-            logger.warn(`Indexing failed for ${repo.name} (id: ${repo.id}), cleaning up temp shard files...`);
-            await cleanupTempShards(repo);
+            logger.warn(`Indexing failed for ${repo.name} (id: ${repo.id}).`);
             throw error;
+        } finally {
+            // Zoekt writes shards to a .tmp file first, then atomically renames them to their final
+            // name. If the process is killed or interrupted during the rename loop, some .tmp files
+            // may be left behind that zoekt won't clean up on the next run (it only tracks temp
+            // files from the current build). Running cleanup here ensures orphans from previous
+            // interrupted runs are removed.
+            await cleanupTempShards(repo);
         }
 
         return revisions;
