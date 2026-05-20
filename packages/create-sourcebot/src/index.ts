@@ -1,425 +1,29 @@
 #!/usr/bin/env node
-import {
-    cancel,
-    confirm,
-    intro,
-    isCancel,
-    multiselect,
-    note,
-    outro,
-    password,
-    select,
-    spinner,
-    text,
-} from '@clack/prompts';
-import { randomBytes } from 'crypto';
+import { confirm, input, password, select } from '@inquirer/prompts';
+import chalk from 'chalk';
+import ora from 'ora';
 import { existsSync, writeFileSync } from 'fs';
 import { writeFile } from 'fs/promises';
+import { collectAzureDevOpsConfig } from './azuredevops.js';
+import { collectBitbucketConfig } from './bitbucket.js';
+import { collectGenericGitConfig } from './genericGit.js';
+import { collectGerritConfig } from './gerrit.js';
+import { collectGiteaConfig } from './gitea.js';
+import { collectGitHubConfig } from './github.js';
+import { collectGitLabConfig } from './gitlab.js';
+import { collectLocalReposConfig } from './localRepos.js';
+import {
+    type CollectResult,
+    type ConnectionConfig,
+    type EnvVars,
+    generateConnectionName,
+    generateSecret,
+    note,
+} from './utils.js';
 
 // @nocheckin: change this to main
-const DOCKER_COMPOSE_BRANCH = 'bkellam/setup-wizard'
+const DOCKER_COMPOSE_BRANCH = 'bkellam/setup-wizard';
 const DOCKER_COMPOSE_URL = `https://raw.githubusercontent.com/sourcebot-dev/sourcebot/${DOCKER_COMPOSE_BRANCH}/docker-compose.yml`;
-
-type ConnectionConfig = Record<string, unknown>;
-type EnvVars = Record<string, string>;
-type CollectResult = { config: ConnectionConfig; env: EnvVars };
-
-function generateSecret(bytes: number): string {
-    return randomBytes(bytes).toString('base64');
-}
-
-function checkCancel<T>(value: T | symbol): T {
-    if (isCancel(value)) {
-        cancel('Setup cancelled.');
-        process.exit(0);
-    }
-    return value as T;
-}
-
-function parseCommaSeparated(input: string): string[] {
-    return input.split(',').map(s => s.trim()).filter(Boolean);
-}
-
-function toEnvKey(connectionName: string, suffix: string): string {
-    return `${connectionName.toUpperCase().replace(/-/g, '_')}_${suffix}`;
-}
-
-function generateConnectionName(platform: string, existing: Record<string, unknown>): string {
-    if (!existing[platform]) {
-        return platform;
-    }
-    let i = 1;
-    while (existing[`${platform}-${i}`]) {
-        i++;
-    }
-    return `${platform}-${i}`;
-}
-
-async function collectGitHubConfig(connectionName: string): Promise<CollectResult> {
-    const env: EnvVars = {};
-    const config: ConnectionConfig = { type: 'github' };
-
-    const url = checkCancel(await text({
-        message: 'GitHub URL',
-        initialValue: 'https://github.com',
-        validate: v => {
-            if (!v?.trim()) {
-                return 'URL is required';
-            }
-            if (!/^https?:\/\//.test(v)) {
-                return 'Must start with http:// or https://';
-            }
-        },
-    })) as string;
-    if (url !== 'https://github.com') {
-        config.url = url;
-    }
-
-    note(
-        [
-            'Fine-grained PAT (recommended):',
-            `  ${url}/settings/personal-access-tokens/new`,
-            '  Required permissions: Contents (read), Metadata (read)',
-            '',
-            'Classic PAT:',
-            `  ${url}/settings/tokens/new`,
-            '  Required scope: repo',
-        ].join('\n'),
-        'Create a GitHub Personal Access Token'
-    );
-
-    const envKey = toEnvKey(connectionName, 'TOKEN');
-    const token = checkCancel(await password({
-        message: `GitHub Personal Access Token (stored as ${envKey}, leave blank for public repos only)`,
-    }));
-    if ((token as string | undefined)?.trim()) {
-        env[envKey] = token as string;
-        config.token = { env: envKey };
-    }
-
-    const targets = checkCancel(await multiselect({
-        message: 'What do you want to index?',
-        options: [
-            { value: 'repos', label: 'Specific repositories', hint: 'e.g. org/repo' },
-            { value: 'orgs', label: 'Organizations', hint: 'all repos in an org' },
-            { value: 'users', label: 'Users', hint: 'all repos owned by a user' },
-        ],
-        required: true,
-    })) as string[];
-
-    if (targets.includes('repos')) {
-        const input = checkCancel(await text({
-            message: 'Repositories (comma-separated, owner/repo)',
-            placeholder: 'sourcebot-dev/sourcebot, torvalds/linux',
-            validate: v => {
-                if (!v?.trim()) {
-                    return 'At least one repository is required';
-                }
-                for (const r of parseCommaSeparated(v)) {
-                    if (!/^[\w.-]+\/[\w.-]+$/.test(r)) {
-                        return `Invalid format: "${r}" — expected owner/repo`;
-                    }
-                }
-            },
-        }));
-        config.repos = parseCommaSeparated(input as string);
-    }
-
-    if (targets.includes('orgs')) {
-        const input = checkCancel(await text({
-            message: 'Organizations (comma-separated)',
-            placeholder: 'my-org, another-org',
-            validate: v => !v?.trim() ? 'At least one organization is required' : undefined,
-        }));
-        config.orgs = parseCommaSeparated(input as string);
-    }
-
-    if (targets.includes('users')) {
-        const input = checkCancel(await text({
-            message: 'GitHub users (comma-separated)',
-            placeholder: 'torvalds, DHH',
-            validate: v => !v?.trim() ? 'At least one user is required' : undefined,
-        }));
-        config.users = parseCommaSeparated(input as string);
-    }
-
-    return { config, env };
-}
-
-async function collectGitLabConfig(connectionName: string): Promise<CollectResult> {
-    const env: EnvVars = {};
-    const config: ConnectionConfig = { type: 'gitlab' };
-
-    const url = checkCancel(await text({
-        message: 'GitLab URL',
-        initialValue: 'https://gitlab.com',
-        validate: v => {
-            if (!v?.trim()) {
-                return 'URL is required';
-            }
-            if (!/^https?:\/\//.test(v)) {
-                return 'Must start with http:// or https://';
-            }
-        },
-    })) as string;
-    if (url !== 'https://gitlab.com') {
-        config.url = url;
-    }
-
-    const gitlabEnvKey = toEnvKey(connectionName, 'TOKEN');
-    const gitlabToken = checkCancel(await password({
-        message: `GitLab Personal Access Token (stored as ${gitlabEnvKey}, leave blank for public repos only)`,
-    }));
-    if ((gitlabToken as string | undefined)?.trim()) {
-        env[gitlabEnvKey] = gitlabToken as string;
-        config.token = { env: gitlabEnvKey };
-    }
-
-    const targets = checkCancel(await multiselect({
-        message: 'What do you want to index?',
-        options: [
-            { value: 'groups', label: 'Groups', hint: 'all projects in a group' },
-            { value: 'projects', label: 'Specific projects', hint: 'e.g. group/project' },
-            { value: 'users', label: 'Users', hint: 'all projects owned by a user' },
-        ],
-        required: true,
-    })) as string[];
-
-    if (targets.includes('groups')) {
-        const input = checkCancel(await text({
-            message: 'Groups (comma-separated)',
-            placeholder: 'my-group, another-group',
-            validate: v => !v?.trim() ? 'At least one group is required' : undefined,
-        }));
-        config.groups = parseCommaSeparated(input as string);
-    }
-
-    if (targets.includes('projects')) {
-        const input = checkCancel(await text({
-            message: 'Projects (comma-separated, group/project)',
-            placeholder: 'my-group/my-project',
-            validate: v => !v?.trim() ? 'At least one project is required' : undefined,
-        }));
-        config.projects = parseCommaSeparated(input as string);
-    }
-
-    if (targets.includes('users')) {
-        const input = checkCancel(await text({
-            message: 'Users (comma-separated)',
-            placeholder: 'john.doe, jane.smith',
-            validate: v => !v?.trim() ? 'At least one user is required' : undefined,
-        }));
-        config.users = parseCommaSeparated(input as string);
-    }
-
-    return { config, env };
-}
-
-async function collectBitbucketConfig(connectionName: string): Promise<CollectResult> {
-    const env: EnvVars = {};
-    const config: ConnectionConfig = { type: 'bitbucket' };
-
-    const userEnvKey = toEnvKey(connectionName, 'USERNAME');
-    const username = checkCancel(await text({
-        message: `Bitbucket username (stored as ${userEnvKey})`,
-        placeholder: 'your-username',
-        validate: v => !v?.trim() ? 'Username is required' : undefined,
-    }));
-    env[userEnvKey] = username as string;
-    config.user = { env: userEnvKey };
-
-    const tokenEnvKey = toEnvKey(connectionName, 'APP_PASSWORD');
-    const token = checkCancel(await password({
-        message: `Bitbucket App Password (stored as ${tokenEnvKey})`,
-        validate: v => !v?.trim() ? 'App Password is required' : undefined,
-    }));
-    env[tokenEnvKey] = token as string;
-    config.token = { env: tokenEnvKey };
-
-    const targets = checkCancel(await multiselect({
-        message: 'What do you want to index?',
-        options: [
-            { value: 'workspaces', label: 'Workspaces', hint: 'all repos in a workspace' },
-            { value: 'repos', label: 'Specific repositories', hint: 'workspace/repo format' },
-        ],
-        required: true,
-    })) as string[];
-
-    if (targets.includes('workspaces')) {
-        const input = checkCancel(await text({
-            message: 'Workspaces (comma-separated)',
-            placeholder: 'my-workspace',
-            validate: v => !v?.trim() ? 'At least one workspace is required' : undefined,
-        }));
-        config.workspaces = parseCommaSeparated(input as string);
-    }
-
-    if (targets.includes('repos')) {
-        const input = checkCancel(await text({
-            message: 'Repositories (comma-separated, workspace/repo)',
-            placeholder: 'my-workspace/my-repo',
-            validate: v => !v?.trim() ? 'At least one repository is required' : undefined,
-        }));
-        config.repos = parseCommaSeparated(input as string);
-    }
-
-    return { config, env };
-}
-
-async function collectGiteaConfig(connectionName: string): Promise<CollectResult> {
-    const env: EnvVars = {};
-    const config: ConnectionConfig = { type: 'gitea' };
-
-    const url = checkCancel(await text({
-        message: 'Gitea URL',
-        initialValue: 'https://gitea.com',
-        validate: v => {
-            if (!v?.trim()) {
-                return 'URL is required';
-            }
-            if (!/^https?:\/\//.test(v)) {
-                return 'Must start with http:// or https://';
-            }
-        },
-    })) as string;
-    if (url !== 'https://gitea.com') {
-        config.url = url;
-    }
-
-    const giteaEnvKey = toEnvKey(connectionName, 'TOKEN');
-    const giteaToken = checkCancel(await password({
-        message: `Gitea Access Token (stored as ${giteaEnvKey}, leave blank for public repos only)`,
-    }));
-    if ((giteaToken as string | undefined)?.trim()) {
-        env[giteaEnvKey] = giteaToken as string;
-        config.token = { env: giteaEnvKey };
-    }
-
-    const targets = checkCancel(await multiselect({
-        message: 'What do you want to index?',
-        options: [
-            { value: 'orgs', label: 'Organizations' },
-            { value: 'repos', label: 'Specific repositories', hint: 'owner/repo format' },
-            { value: 'users', label: 'Users' },
-        ],
-        required: true,
-    })) as string[];
-
-    if (targets.includes('orgs')) {
-        const input = checkCancel(await text({
-            message: 'Organizations (comma-separated)',
-            placeholder: 'my-org',
-            validate: v => !v?.trim() ? 'At least one organization is required' : undefined,
-        }));
-        config.orgs = parseCommaSeparated(input as string);
-    }
-
-    if (targets.includes('repos')) {
-        const input = checkCancel(await text({
-            message: 'Repositories (comma-separated, owner/repo)',
-            placeholder: 'owner/repo',
-            validate: v => !v?.trim() ? 'At least one repository is required' : undefined,
-        }));
-        config.repos = parseCommaSeparated(input as string);
-    }
-
-    if (targets.includes('users')) {
-        const input = checkCancel(await text({
-            message: 'Users (comma-separated)',
-            placeholder: 'username',
-            validate: v => !v?.trim() ? 'At least one user is required' : undefined,
-        }));
-        config.users = parseCommaSeparated(input as string);
-    }
-
-    return { config, env };
-}
-
-async function collectAzureDevOpsConfig(connectionName: string): Promise<CollectResult> {
-    const env: EnvVars = {};
-    const config: ConnectionConfig = { type: 'azuredevops' };
-
-    const envKey = toEnvKey(connectionName, 'TOKEN');
-    const token = checkCancel(await password({
-        message: `Azure DevOps Personal Access Token (stored as ${envKey})`,
-        validate: v => !v?.trim() ? 'Token is required' : undefined,
-    }));
-    env[envKey] = token as string;
-    config.token = { env: envKey };
-
-    const targets = checkCancel(await multiselect({
-        message: 'What do you want to index?',
-        options: [
-            { value: 'orgs', label: 'Organizations', hint: 'all projects in an org' },
-            { value: 'projects', label: 'Specific projects', hint: 'org/project format' },
-            { value: 'repos', label: 'Specific repositories', hint: 'org/project/repo format' },
-        ],
-        required: true,
-    })) as string[];
-
-    if (targets.includes('orgs')) {
-        const input = checkCancel(await text({
-            message: 'Organizations (comma-separated)',
-            placeholder: 'my-org',
-            validate: v => !v?.trim() ? 'At least one organization is required' : undefined,
-        }));
-        config.orgs = parseCommaSeparated(input as string);
-    }
-
-    if (targets.includes('projects')) {
-        const input = checkCancel(await text({
-            message: 'Projects (comma-separated, org/project)',
-            placeholder: 'my-org/my-project',
-            validate: v => !v?.trim() ? 'At least one project is required' : undefined,
-        }));
-        config.projects = parseCommaSeparated(input as string);
-    }
-
-    if (targets.includes('repos')) {
-        const input = checkCancel(await text({
-            message: 'Repositories (comma-separated, org/project/repo)',
-            placeholder: 'my-org/my-project/my-repo',
-            validate: v => !v?.trim() ? 'At least one repository is required' : undefined,
-        }));
-        config.repos = parseCommaSeparated(input as string);
-    }
-
-    return { config, env };
-}
-
-async function collectGerritConfig(): Promise<CollectResult> {
-    const config: ConnectionConfig = { type: 'gerrit' };
-
-    const url = checkCancel(await text({
-        message: 'Gerrit URL',
-        placeholder: 'https://gerrit.example.com',
-        validate: v => {
-            if (!v?.trim()) {
-                return 'URL is required';
-            }
-            if (!/^https?:\/\//.test(v)) {
-                return 'Must start with http:// or https://';
-            }
-        },
-    }));
-    config.url = url;
-
-    const indexAll = checkCancel(await confirm({
-        message: 'Index all projects?',
-        initialValue: true,
-    }));
-
-    if (!indexAll) {
-        const input = checkCancel(await text({
-            message: 'Projects to index (comma-separated)',
-            placeholder: 'my-project, another-project',
-            validate: v => !v?.trim() ? 'At least one project is required' : undefined,
-        }));
-        config.projects = parseCommaSeparated(input as string);
-    }
-
-    return { config, env: {} };
-}
 
 type ModelConfig = Record<string, unknown>;
 
@@ -448,10 +52,10 @@ async function collectModels(): Promise<{ models: ModelConfig[]; env: EnvVars }>
     const models: ModelConfig[] = [];
     const env: EnvVars = {};
 
-    const wantsAI = checkCancel(await confirm({
+    const wantsAI = await confirm({
         message: 'Would you like to configure AI features?',
-        initialValue: true,
-    }));
+        default: true,
+    });
 
     if (!wantsAI) {
         return { models, env };
@@ -459,115 +63,115 @@ async function collectModels(): Promise<{ models: ModelConfig[]; env: EnvVars }>
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-        const provider = checkCancel(await select({
+        const provider = await select<string>({
             message: 'Which AI provider?',
-            options: [
-                { value: 'anthropic', label: 'Anthropic', hint: 'Claude' },
-                { value: 'openai', label: 'OpenAI', hint: 'GPT-4o, o1' },
-                { value: 'google-generative-ai', label: 'Google Gemini' },
-                { value: 'deepseek', label: 'DeepSeek' },
-                { value: 'mistral', label: 'Mistral' },
-                { value: 'xai', label: 'xAI', hint: 'Grok' },
-                { value: 'openrouter', label: 'OpenRouter' },
-                { value: 'openai-compatible', label: 'OpenAI-compatible', hint: 'self-hosted / custom endpoint' },
-                { value: 'amazon-bedrock', label: 'Amazon Bedrock' },
-                { value: 'azure', label: 'Azure OpenAI' },
+            choices: [
+                { value: 'anthropic', name: 'Anthropic', description: 'Claude' },
+                { value: 'openai', name: 'OpenAI', description: 'GPT-4o, o1' },
+                { value: 'google-generative-ai', name: 'Google Gemini' },
+                { value: 'deepseek', name: 'DeepSeek' },
+                { value: 'mistral', name: 'Mistral' },
+                { value: 'xai', name: 'xAI', description: 'Grok' },
+                { value: 'openrouter', name: 'OpenRouter' },
+                { value: 'openai-compatible', name: 'OpenAI-compatible', description: 'self-hosted / custom endpoint' },
+                { value: 'amazon-bedrock', name: 'Amazon Bedrock' },
+                { value: 'azure', name: 'Azure OpenAI' },
             ],
-        })) as string;
+        });
 
         const modelConfig: ModelConfig = { provider };
 
         const defaultModel = PROVIDER_DEFAULT_MODELS[provider];
-        const model = checkCancel(await text({
+        const model = await input({
             message: 'Model name',
-            initialValue: defaultModel ?? '',
-            placeholder: defaultModel ? undefined : 'model-name',
-            validate: v => !v?.trim() ? 'Model name is required' : undefined,
-        }));
+            default: defaultModel ?? '',
+            validate: (v) => !v?.trim() ? 'Model name is required' : true,
+        });
         modelConfig.model = model;
 
         if (provider === 'openai-compatible') {
-            const baseUrl = checkCancel(await text({
-                message: 'Base URL',
-                placeholder: 'https://your-endpoint.example.com/v1',
-                validate: v => {
+            const baseUrl = await input({
+                message: 'Base URL (e.g. https://your-endpoint.example.com/v1)',
+                validate: (v) => {
                     if (!v?.trim()) {
                         return 'Base URL is required';
                     }
                     if (!/^https?:\/\//.test(v)) {
                         return 'Must start with http:// or https://';
                     }
+                    return true;
                 },
-            }));
+            });
             modelConfig.baseUrl = baseUrl;
         }
 
         if (provider === 'azure') {
-            const resourceName = checkCancel(await text({
+            const resourceName = await input({
                 message: 'Azure resource name',
-                placeholder: 'my-azure-resource',
-                validate: v => !v?.trim() ? 'Resource name is required' : undefined,
-            }));
+                validate: (v) => !v?.trim() ? 'Resource name is required' : true,
+            });
             modelConfig.resourceName = resourceName;
 
-            const apiVersion = checkCancel(await text({
+            const apiVersion = await input({
                 message: 'API version',
-                initialValue: '2024-08-01-preview',
-                validate: v => !v?.trim() ? 'API version is required' : undefined,
-            }));
+                default: '2024-08-01-preview',
+                validate: (v) => !v?.trim() ? 'API version is required' : true,
+            });
             modelConfig.apiVersion = apiVersion;
         }
 
         if (provider === 'amazon-bedrock') {
-            const useDefaultChain = checkCancel(await confirm({
+            const useDefaultChain = await confirm({
                 message: 'Use the default AWS credential chain? (No to provide Access Key ID and Secret explicitly)',
-                initialValue: true,
-            }));
+                default: true,
+            });
 
             if (!useDefaultChain) {
                 if (!env['AWS_ACCESS_KEY_ID']) {
-                    const keyId = checkCancel(await text({
+                    const keyId = await input({
                         message: 'AWS Access Key ID (stored as AWS_ACCESS_KEY_ID)',
-                        validate: v => !v?.trim() ? 'Access Key ID is required' : undefined,
-                    }));
-                    env['AWS_ACCESS_KEY_ID'] = keyId as string;
+                        validate: (v) => !v?.trim() ? 'Access Key ID is required' : true,
+                    });
+                    env['AWS_ACCESS_KEY_ID'] = keyId;
                 }
                 modelConfig.accessKeyId = { env: 'AWS_ACCESS_KEY_ID' };
 
                 if (!env['AWS_SECRET_ACCESS_KEY']) {
-                    const secret = checkCancel(await password({
+                    const secret = await password({
                         message: 'AWS Secret Access Key (stored as AWS_SECRET_ACCESS_KEY)',
-                        validate: v => !v?.trim() ? 'Secret Access Key is required' : undefined,
-                    }));
-                    env['AWS_SECRET_ACCESS_KEY'] = secret as string;
+                        mask: true,
+                        validate: (v) => !v?.trim() ? 'Secret Access Key is required' : true,
+                    });
+                    env['AWS_SECRET_ACCESS_KEY'] = secret;
                 }
                 modelConfig.accessKeySecret = { env: 'AWS_SECRET_ACCESS_KEY' };
             }
 
-            const region = checkCancel(await text({
+            const region = await input({
                 message: 'AWS region',
-                initialValue: 'us-east-1',
-                validate: v => !v?.trim() ? 'Region is required' : undefined,
-            }));
+                default: 'us-east-1',
+                validate: (v) => !v?.trim() ? 'Region is required' : true,
+            });
             modelConfig.region = region;
         } else {
             const envKey = PROVIDER_ENV_KEYS[provider] ?? `${provider.toUpperCase().replace(/-/g, '_')}_API_KEY`;
             if (!env[envKey]) {
-                const apiKey = checkCancel(await password({
+                const apiKey = await password({
                     message: `API key (stored as ${envKey})`,
-                    validate: v => !v?.trim() ? 'API key is required' : undefined,
-                }));
-                env[envKey] = apiKey as string;
+                    mask: true,
+                    validate: (v) => !v?.trim() ? 'API key is required' : true,
+                });
+                env[envKey] = apiKey;
             }
             modelConfig.token = { env: envKey };
         }
 
         models.push(modelConfig);
 
-        const addAnother = checkCancel(await confirm({
+        const addAnother = await confirm({
             message: 'Add another model?',
-            initialValue: false,
-        }));
+            default: false,
+        });
 
         if (!addAnother) {
             break;
@@ -580,31 +184,44 @@ async function collectModels(): Promise<{ models: ModelConfig[]; env: EnvVars }>
 const PLATFORM_LABELS: Record<string, string> = {
     github: 'GitHub',
     gitlab: 'GitLab',
-    bitbucket: 'Bitbucket Cloud',
+    bitbucket: 'Bitbucket',
     gitea: 'Gitea',
     azuredevops: 'Azure DevOps',
     gerrit: 'Gerrit',
+    local: 'Local Git repositories',
+    git: 'Other Git host',
 };
 
 async function main() {
-    intro('Create Sourcebot Configuration');
+    console.log(String.raw`
+███████╗ ██████╗ ██╗   ██╗██████╗  ██████╗███████╗██████╗  ██████╗ ████████╗
+██╔════╝██╔═══██╗██║   ██║██╔══██╗██╔════╝██╔════╝██╔══██╗██╔═══██╗╚══██╔══╝
+███████╗██║   ██║██║   ██║██████╔╝██║     █████╗  ██████╔╝██║   ██║   ██║
+╚════██║██║   ██║██║   ██║██╔══██╗██║     ██╔══╝  ██╔══██╗██║   ██║   ██║
+███████║╚██████╔╝╚██████╔╝██║  ██║╚██████╗███████╗██████╔╝╚██████╔╝   ██║██╗
+╚══════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚══════╝╚═════╝  ╚═════╝    ╚═╝╚═╝
+`);
 
     const connections: Record<string, ConnectionConfig> = {};
     const allEnv: EnvVars = {};
+    const localRepoHostPaths: string[] = [];
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-        const platform = checkCancel(await select({
-            message: 'Which platform do you want to connect?',
-            options: [
-                { value: 'github', label: 'GitHub', hint: 'github.com or GitHub Enterprise' },
-                { value: 'gitlab', label: 'GitLab', hint: 'gitlab.com or self-hosted' },
-                { value: 'bitbucket', label: 'Bitbucket Cloud', hint: 'bitbucket.org' },
-                { value: 'gitea', label: 'Gitea', hint: 'self-hosted Gitea' },
-                { value: 'azuredevops', label: 'Azure DevOps', hint: 'dev.azure.com' },
-                { value: 'gerrit', label: 'Gerrit', hint: 'self-hosted Gerrit' },
+        const platform = await select<string>({
+            message: 'Which code host do you want to connect?',
+            loop: false,
+            choices: [
+                { value: 'github', name: 'GitHub', description: 'github.com or GitHub Enterprise' },
+                { value: 'gitlab', name: 'GitLab', description: 'gitlab.com or self-hosted' },
+                { value: 'local', name: 'Local Git repositories', description: 'A folder of cloned repos on the host filesystem' },
+                { value: 'git', name: 'Other Git host', description: 'Any git clone URL (catch-all for unsupported hosts)' },
+                { value: 'azuredevops', name: 'Azure DevOps', description: 'dev.azure.com' },
+                { value: 'bitbucket', name: 'Bitbucket', description: 'Cloud (bitbucket.org) or self-hosted Data Center' },
+                { value: 'gitea', name: 'Gitea', description: 'self-hosted Gitea' },
+                { value: 'gerrit', name: 'Gerrit', description: 'self-hosted Gerrit' },
             ],
-        })) as string;
+        });
 
         const connectionName = generateConnectionName(platform, connections);
 
@@ -631,17 +248,31 @@ async function main() {
             case 'gerrit':
                 result = await collectGerritConfig();
                 break;
+            case 'local':
+                result = await collectLocalReposConfig();
+                break;
+            case 'git':
+                result = await collectGenericGitConfig();
+                break;
             default:
                 continue;
         }
 
-        connections[connectionName] = result.config;
+        for (const { name, config } of result.connections) {
+            const finalName = name
+                ? generateConnectionName(name, connections)
+                : connectionName;
+            connections[finalName] = config;
+        }
         Object.assign(allEnv, result.env);
+        if (result.localRepoHostPath) {
+            localRepoHostPaths.push(result.localRepoHostPath);
+        }
 
-        const addAnother = checkCancel(await confirm({
-            message: 'Add another connection?',
-            initialValue: false,
-        }));
+        const addAnother = await confirm({
+            message: 'Add another code host?',
+            default: false,
+        });
 
         if (!addAnother) {
             break;
@@ -652,18 +283,42 @@ async function main() {
     Object.assign(allEnv, modelEnv);
 
     if (existsSync('config.json')) {
-        const overwrite = checkCancel(await confirm({
+        const overwrite = await confirm({
             message: 'config.json already exists. Overwrite?',
-            initialValue: false,
-        }));
+            default: true,
+        });
         if (!overwrite) {
-            cancel('config.json was not overwritten.');
+            console.log();
+            console.log(chalk.red('✗ ') + 'config.json was not overwritten.');
             process.exit(0);
         }
     }
 
-    const s = spinner();
-    s.start('Writing configuration files...');
+    if (existsSync('.env')) {
+        const overwrite = await confirm({
+            message: '.env already exists. Overwrite?',
+            default: true,
+        });
+        if (!overwrite) {
+            console.log();
+            console.log(chalk.red('✗ ') + '.env was not overwritten.');
+            process.exit(0);
+        }
+    }
+
+    if (localRepoHostPaths.length > 0 && existsSync('docker-compose.override.yml')) {
+        const overwrite = await confirm({
+            message: 'docker-compose.override.yml already exists. Overwrite?',
+            default: true,
+        });
+        if (!overwrite) {
+            console.log();
+            console.log(chalk.red('✗ ') + 'docker-compose.override.yml was not overwritten.');
+            process.exit(0);
+        }
+    }
+
+    const s = ora('Writing configuration files...').start();
 
     const configOutput: Record<string, unknown> = {
         $schema: 'https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json',
@@ -704,33 +359,47 @@ async function main() {
     }
 
     writeFileSync('config.json', configJson + '\n');
+    writeFileSync('.env', envLines.join('\n') + '\n');
 
-    const envPath = existsSync('.env') ? '.env.sourcebot' : '.env';
-    writeFileSync(envPath, envLines.join('\n') + '\n');
+    const writtenFiles = ['config.json', '.env'];
 
-    s.stop(`Wrote config.json and ${envPath}`);
+    if (localRepoHostPaths.length > 0) {
+        const uniquePaths = [...new Set(localRepoHostPaths)];
+        const overrideYaml = [
+            '# Generated by create-sourcebot',
+            '# Merged with docker-compose.yml at `docker compose up` time.',
+            'services:',
+            '  sourcebot:',
+            '    volumes:',
+            ...uniquePaths.map((p) => `      - ${p}:/repos:ro`),
+            '',
+        ].join('\n');
+        writeFileSync('docker-compose.override.yml', overrideYaml);
+        writtenFiles.push('docker-compose.override.yml');
+    }
+
+    s.succeed(`Wrote ${writtenFiles.join(', ')}`);
 
     let downloadedCompose = false;
 
     if (!existsSync('docker-compose.yml')) {
-        const download = checkCancel(await confirm({
+        const download = await confirm({
             message: 'Download docker-compose.yml?',
-            initialValue: true,
-        }));
+            default: true,
+        });
 
         if (download) {
-            const ds = spinner();
-            ds.start('Downloading docker-compose.yml...');
+            const ds = ora('Downloading docker-compose.yml...').start();
             try {
                 const res = await fetch(DOCKER_COMPOSE_URL);
                 if (!res.ok) {
                     throw new Error(`HTTP ${res.status}`);
                 }
                 await writeFile('docker-compose.yml', await res.text());
-                ds.stop('Downloaded docker-compose.yml');
+                ds.succeed('Downloaded docker-compose.yml');
                 downloadedCompose = true;
             } catch {
-                ds.stop('Download failed — you can get it manually (see next steps)');
+                ds.fail('Download failed — you can get it manually (see next steps)');
             }
         }
     } else {
@@ -746,12 +415,6 @@ async function main() {
         nextSteps.push('');
     }
 
-    if (envPath === '.env.sourcebot') {
-        nextSteps.push(`${step++}. Rename ${envPath} to .env:`);
-        nextSteps.push(`   mv ${envPath} .env`);
-        nextSteps.push('');
-    }
-
     nextSteps.push(`${step++}. Start Sourcebot:`);
     nextSteps.push('   docker compose up');
     nextSteps.push('');
@@ -759,10 +422,16 @@ async function main() {
 
     note(nextSteps.join('\n'), 'Next steps');
 
-    outro('Your Sourcebot configuration is ready!');
+    console.log();
+    console.log(chalk.green('✓ ') + chalk.bold('Your Sourcebot configuration is ready!'));
 }
 
 main().catch(err => {
+    if (err instanceof Error && err.name === 'ExitPromptError') {
+        console.log();
+        console.log(chalk.red('✗ ') + 'Setup cancelled.');
+        process.exit(0);
+    }
     console.error(err);
     process.exit(1);
 });

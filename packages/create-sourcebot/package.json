@@ -6,10 +6,15 @@
     "bin": "./dist/index.js",
     "scripts": {
         "build": "tsc",
+        "watch": "tsc --watch",
         "dev": "tsx src/index.ts"
     },
     "dependencies": {
-        "@clack/prompts": "^1.4.0"
+        "@inquirer/prompts": "^8.4.3",
+        "@sourcebot/schemas": "workspace:^",
+        "chalk": "^5.6.2",
+        "inquirer-select-pro": "^1.0.0-alpha.9",
+        "ora": "^9.4.0"
     },
     "devDependencies": {
         "@types/node": "^22.7.5",
