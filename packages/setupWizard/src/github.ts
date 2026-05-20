@@ -34,7 +34,7 @@ async function searchGitHub(
     }
 
     const headers: Record<string, string> = {
-        'User-Agent': 'create-sourcebot',
+        'User-Agent': 'setup-sourcebot',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
     const url = type === 'repo'

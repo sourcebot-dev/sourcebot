@@ -31,7 +31,7 @@ async function searchGitLab(
     }
 
     const headers: Record<string, string> = {
-        'User-Agent': 'create-sourcebot',
+        'User-Agent': 'setup-sourcebot',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 

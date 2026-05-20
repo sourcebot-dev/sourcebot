@@ -12473,23 +12473,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"create-sourcebot@workspace:packages/create-sourcebot":
-  version: 0.0.0-use.local
-  resolution: "create-sourcebot@workspace:packages/create-sourcebot"
-  dependencies:
-    "@inquirer/prompts": "npm:^8.4.3"
-    "@sourcebot/schemas": "workspace:^"
-    "@types/node": "npm:^22.7.5"
-    chalk: "npm:^5.6.2"
-    inquirer-select-pro: "npm:^1.0.0-alpha.9"
-    ora: "npm:^9.4.0"
-    tsx: "npm:^4.21.0"
-    typescript: "npm:^5.6.2"
-  bin:
-    create-sourcebot: ./dist/index.js
-  languageName: unknown
-  linkType: soft
-
 "crelt@npm:^1.0.5":
   version: 1.0.6
   resolution: "crelt@npm:1.0.6"
@@ -20873,6 +20856,23 @@ __metadata:
   checksum: 10c0/68733173026766fa0d9ecaeb07f0483f4c2dc70ca376b3b7c40b7cda909f94b0918f6c5ad5ce27a9160bdfb475efaa9d5e705a11d8eaae18f9835d20976028bc
   languageName: node
   linkType: hard
+
+"setup-sourcebot@workspace:packages/setupWizard":
+  version: 0.0.0-use.local
+  resolution: "setup-sourcebot@workspace:packages/setupWizard"
+  dependencies:
+    "@inquirer/prompts": "npm:^8.4.3"
+    "@sourcebot/schemas": "workspace:^"
+    "@types/node": "npm:^22.7.5"
+    chalk: "npm:^5.6.2"
+    inquirer-select-pro: "npm:^1.0.0-alpha.9"
+    ora: "npm:^9.4.0"
+    tsx: "npm:^4.21.0"
+    typescript: "npm:^5.6.2"
+  bin:
+    setup-sourcebot: ./dist/index.js
+  languageName: unknown
+  linkType: soft
 
 "sharp@npm:^0.33.5":
   version: 0.33.5

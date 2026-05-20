@@ -1,5 +1,5 @@
 {
-    "name": "create-sourcebot",
+    "name": "setup-sourcebot",
     "version": "0.1.0",
     "description": "CLI wizard for creating a Sourcebot configuration",
     "type": "module",
