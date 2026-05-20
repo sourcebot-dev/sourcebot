@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "outDir": "dist",
+        "rootDir": "src",
         "declaration": true,
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
