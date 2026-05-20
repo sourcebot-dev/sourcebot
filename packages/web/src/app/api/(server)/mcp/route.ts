@@ -9,16 +9,17 @@ import { StatusCodes } from 'http-status-codes';
 import { NextRequest } from 'next/server';
 import { sew } from "@/middleware/sew";
 import { apiHandler } from '@/lib/apiHandler';
-import { env, hasEntitlement } from '@sourcebot/shared';
+import { env } from '@sourcebot/shared';
+import { hasEntitlement } from '@/lib/entitlements';
 
 // On 401, tell MCP clients where to find the OAuth protected resource metadata (RFC 9728)
 // so they can discover the authorization server and initiate the authorization code flow.
 // Only advertised when the oauth entitlement is active.
 // @see: https://modelcontextprotocol.io/specification/2025-03-26/basic/authentication
 // @see: https://datatracker.ietf.org/doc/html/rfc9728
-function mcpErrorResponse(error: ServiceError): Response {
+async function mcpErrorResponse(error: ServiceError): Promise<Response> {
     const response = serviceErrorResponse(error);
-    if (error.statusCode === StatusCodes.UNAUTHORIZED && hasEntitlement('oauth')) {
+    if (error.statusCode === StatusCodes.UNAUTHORIZED && await hasEntitlement('oauth')) {
         const issuer = env.AUTH_URL.replace(/\/$/, '');
         response.headers.set(
             'WWW-Authenticate',
@@ -87,7 +88,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
     );
 
     if (isServiceError(response)) {
-        return mcpErrorResponse(response);
+        return await mcpErrorResponse(response);
     }
 
     return response;
@@ -123,7 +124,7 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
     );
 
     if (isServiceError(result)) {
-        return mcpErrorResponse(result);
+        return await mcpErrorResponse(result);
     }
 
     return result;

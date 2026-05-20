@@ -29,7 +29,7 @@ export default async function InvitePage(props: InvitePageProps) {
 
     const session = await auth();
     if (!session) {
-        const providers = getIdentityProviderMetadata();
+        const providers = await getIdentityProviderMetadata();
         return <WelcomeCard inviteLinkId={inviteLinkId} providers={providers} />;
     }
 

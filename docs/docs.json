@@ -126,6 +126,7 @@
                                 ]
                             },
                             "docs/license-key",
+                            "docs/billing",
                             "docs/configuration/transactional-emails",
                             "docs/configuration/structured-logging",
                             "docs/configuration/audit-logs"

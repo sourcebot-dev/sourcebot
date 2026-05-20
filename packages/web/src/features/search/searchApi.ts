@@ -1,9 +1,10 @@
 import { sew } from "@/middleware/sew";
-import { getAuditService } from "@/ee/features/audit/factory";
+import { createAudit } from "@/ee/features/audit/audit";
 import { getRepoPermissionFilterForUser } from "@/prisma";
 import { withOptionalAuth } from "@/middleware/withAuth";
 import { PrismaClient, UserWithAccounts } from "@sourcebot/db";
-import { env, hasEntitlement } from "@sourcebot/shared";
+import { env } from "@sourcebot/shared";
+import { hasEntitlement } from "@/lib/entitlements";
 import { headers } from "next/headers";
 import { QueryIR } from './ir';
 import { parseQuerySyntaxIntoIR } from './parser';
@@ -32,7 +33,7 @@ export const search = (request: SearchRequest) => sew(() =>
     withOptionalAuth(async ({ prisma, user, org }) => {
         if (user) {
             const source = request.source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
-            getAuditService().createAudit({
+            await createAudit({
                 action: 'user.performed_code_search',
                 actor: { id: user.id, type: 'user' },
                 target: { id: org.id.toString(), type: 'org' },
@@ -63,7 +64,7 @@ export const streamSearch = (request: SearchRequest) => sew(() =>
     withOptionalAuth(async ({ prisma, user, org }) => {
         if (user) {
             const source = request.source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
-            getAuditService().createAudit({
+            await createAudit({
                 action: 'user.performed_code_search',
                 actor: { id: user.id, type: 'user' },
                 target: { id: org.id.toString(), type: 'org' },
@@ -97,7 +98,7 @@ export const streamSearch = (request: SearchRequest) => sew(() =>
 const getAccessibleRepoNamesForUser = async ({ user, prisma }: { user?: UserWithAccounts, prisma: PrismaClient }) => {
     if (
         env.PERMISSION_SYNC_ENABLED !== 'true' ||
-        !hasEntitlement('permission-syncing')
+        !await hasEntitlement('permission-syncing')
     ) {
         return undefined;
     }

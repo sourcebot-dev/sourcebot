@@ -442,7 +442,7 @@ export function AnalyticsContent() {
 
     if (isPending) {
         return (
-            <div className="min-h-screen bg-background p-6">
+            <div className="bg-background p-6">
                 <LoadingSkeleton />
             </div>
         )
@@ -450,7 +450,7 @@ export function AnalyticsContent() {
 
     if (isError) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="bg-background flex items-center justify-center">
                 <Card className="bg-destructive/10 border-destructive/20 p-8">
                     <div className="text-center">
                         <div className="p-3 rounded-full bg-destructive/20 w-fit mx-auto mb-4">

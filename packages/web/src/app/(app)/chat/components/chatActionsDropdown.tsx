@@ -21,7 +21,7 @@ export const ChatActionsDropdown = ({
     align = "start",
 }: ChatActionsDropdownProps) => {
     return (
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
                 {children}
             </DropdownMenuTrigger>

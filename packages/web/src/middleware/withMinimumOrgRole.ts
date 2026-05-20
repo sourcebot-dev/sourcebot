@@ -11,8 +11,6 @@ export const withMinimumOrgRole = async <T>(
 
     const getAuthorizationPrecedence = (role: OrgRole): number => {
         switch (role) {
-            case OrgRole.GUEST:
-                return 0;
             case OrgRole.MEMBER:
                 return 1;
             case OrgRole.OWNER:

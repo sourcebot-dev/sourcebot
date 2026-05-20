@@ -1,5 +1,5 @@
 import { sew } from "@/middleware/sew";
-import { getAuditService } from "@/ee/features/audit/factory";
+import { createAudit } from "@/ee/features/audit/audit";
 import { ListReposQueryParams, RepositoryQuery } from "@/lib/types";
 import { withOptionalAuth } from "@/middleware/withAuth";
 import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
@@ -10,7 +10,7 @@ export const listRepos = async ({ query, page, perPage, sort, direction, source 
     withOptionalAuth(async ({ org, prisma, user }) => {
         if (user) {
             const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
-            getAuditService().createAudit({
+            await createAudit({
                 action: 'user.listed_repos',
                 actor: { id: user.id, type: 'user' },
                 target: { id: org.id.toString(), type: 'org' },

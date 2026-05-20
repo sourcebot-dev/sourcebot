@@ -7,7 +7,7 @@ import { BarChart3, Mail } from "lucide-react"
 export function AnalyticsEntitlementMessage() {
     return (
         <div className="flex items-center justify-center min-h-[60vh] py-12">
-            <Card className="w-full max-w-lg bg-card border-border shadow-xl p-2">
+            <Card className="w-full max-w-lg bg-card border-border p-2">
                 <CardHeader className="text-center pb-4">
                     <div className="flex justify-center mb-4">
                         <div className="p-3 rounded-full bg-muted">

@@ -1,8 +1,9 @@
 import "./instrument.js";
 
 import * as Sentry from "@sentry/node";
-import { PrismaClient } from "@sourcebot/db";
-import { createLogger, env, getConfigSettings, getDBConnectionString, hasEntitlement } from "@sourcebot/shared";
+import { createLogger, env, getConfigSettings } from "@sourcebot/shared";
+import { hasEntitlement } from "./entitlements.js";
+import { prisma } from "./prisma.js";
 import 'express-async-errors';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
@@ -31,13 +32,6 @@ if (!existsSync(indexPath)) {
     await mkdir(indexPath, { recursive: true });
 }
 
-const prisma = new PrismaClient({
-    datasources: {
-        db: {
-            url: getDBConnectionString(),
-        },
-    },
-});
 
 try {
     await redis.ping();
@@ -51,7 +45,7 @@ const promClient = new PromClient();
 
 const settings = await getConfigSettings(env.CONFIG_PATH);
 
-if (hasEntitlement('github-app')) {
+if (await hasEntitlement('github-app')) {
     await GithubAppManager.getInstance().init(prisma);
 }
 
@@ -66,15 +60,15 @@ connectionManager.startScheduler();
 await repoIndexManager.startScheduler();
 auditLogPruner.startScheduler();
 
-if (env.PERMISSION_SYNC_ENABLED === 'true' && !hasEntitlement('permission-syncing')) {
+if (env.PERMISSION_SYNC_ENABLED === 'true' && !await hasEntitlement('permission-syncing')) {
     logger.error('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
     process.exit(1);
 }
-else if (env.PERMISSION_SYNC_ENABLED === 'true' && hasEntitlement('permission-syncing')) {
+else if (env.PERMISSION_SYNC_ENABLED === 'true' && await hasEntitlement('permission-syncing')) {
     if (env.PERMISSION_SYNC_REPO_DRIVEN_ENABLED === 'true') {
-        repoPermissionSyncer.startScheduler();
+        await repoPermissionSyncer.startScheduler();
     }
-    accountPermissionSyncer.startScheduler();
+    await accountPermissionSyncer.startScheduler();
 }
 
 const api = new Api(

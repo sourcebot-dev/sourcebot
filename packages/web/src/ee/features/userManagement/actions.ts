@@ -1,16 +1,14 @@
 'use server';
 
 import { sew } from "@/middleware/sew";
-import { getAuditService } from "@/ee/features/audit/factory";
+import { createAudit } from "@/ee/features/audit/audit";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, ServiceError } from "@/lib/serviceError";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole, Prisma } from "@sourcebot/db";
-import { hasEntitlement } from "@sourcebot/shared";
+import { hasEntitlement } from "@/lib/entitlements";
 import { StatusCodes } from "http-status-codes";
-
-const auditService = getAuditService();
 
 const orgManagementNotAvailable = (): ServiceError => ({
     statusCode: StatusCodes.FORBIDDEN,
@@ -21,7 +19,7 @@ const orgManagementNotAvailable = (): ServiceError => ({
 export const promoteToOwner = async (memberId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            if (!hasEntitlement('org-management')) {
+            if (!await hasEntitlement('org-management')) {
                 return orgManagementNotAvailable();
             }
 
@@ -66,7 +64,7 @@ export const promoteToOwner = async (memberId: string): Promise<{ success: boole
                 },
             });
 
-            await auditService.createAudit({
+            await createAudit({
                 action: "org.member_promoted_to_owner",
                 actor: { id: user.id, type: "user" },
                 target: { id: memberId, type: "user" },
@@ -83,7 +81,7 @@ export const promoteToOwner = async (memberId: string): Promise<{ success: boole
 export const demoteToMember = async (memberId: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            if (!hasEntitlement('org-management')) {
+            if (!await hasEntitlement('org-management')) {
                 return orgManagementNotAvailable();
             }
 
@@ -143,7 +141,7 @@ export const demoteToMember = async (memberId: string): Promise<{ success: boole
                 return guardError;
             }
 
-            await auditService.createAudit({
+            await createAudit({
                 action: "org.owner_demoted_to_member",
                 actor: { id: user.id, type: "user" },
                 target: { id: memberId, type: "user" },

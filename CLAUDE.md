@@ -63,6 +63,18 @@ if (condition) doSomething();
 - Events fired from multiple sources (web app, MCP server, API) must NOT use the `wa_` prefix (e.g., `ask_message_sent`, `tool_used`).
 - Multi-source events should include a `source` property to identify the origin (e.g., `'sourcebot-web-client'`, `'sourcebot-mcp-server'`, `'sourcebot-ask-agent'`).
 
+## Conditional ClassNames
+
+Use `cn()` from `@/lib/utils` for conditional classNames instead of template literal interpolation:
+
+```tsx
+// Correct
+className={cn("border-b transition-colors", isActive ? "border-foreground" : "border-transparent")}
+
+// Incorrect
+className={`border-b transition-colors ${isActive ? "border-foreground" : "border-transparent"}`}
+```
+
 ## Tailwind CSS
 
 Use Tailwind color classes directly instead of CSS variable syntax:
