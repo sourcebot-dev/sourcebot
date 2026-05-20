@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { confirm, input, password, select } from '@inquirer/prompts';
+import { confirm, select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import ora from 'ora';
 import { existsSync, writeFileSync } from 'fs';
@@ -12,6 +12,7 @@ import { collectGiteaConfig } from './gitea.js';
 import { collectGitHubConfig } from './github.js';
 import { collectGitLabConfig } from './gitlab.js';
 import { collectLocalReposConfig } from './localRepos.js';
+import { collectModels, PROVIDER_ENV_KEYS } from './models.js';
 import {
     type CollectResult,
     type ConnectionConfig,
@@ -24,162 +25,6 @@ import {
 // @nocheckin: change this to main
 const DOCKER_COMPOSE_BRANCH = 'bkellam/setup-wizard';
 const DOCKER_COMPOSE_URL = `https://raw.githubusercontent.com/sourcebot-dev/sourcebot/${DOCKER_COMPOSE_BRANCH}/docker-compose.yml`;
-
-type ModelConfig = Record<string, unknown>;
-
-const PROVIDER_DEFAULT_MODELS: Record<string, string> = {
-    'anthropic': 'claude-sonnet-4-6',
-    'openai': 'gpt-4o',
-    'google-generative-ai': 'gemini-2.0-flash',
-    'deepseek': 'deepseek-chat',
-    'mistral': 'mistral-large-latest',
-    'xai': 'grok-2-latest',
-};
-
-const PROVIDER_ENV_KEYS: Record<string, string> = {
-    'anthropic': 'ANTHROPIC_API_KEY',
-    'openai': 'OPENAI_API_KEY',
-    'google-generative-ai': 'GOOGLE_GENERATIVE_AI_API_KEY',
-    'deepseek': 'DEEPSEEK_API_KEY',
-    'mistral': 'MISTRAL_API_KEY',
-    'xai': 'XAI_API_KEY',
-    'openrouter': 'OPENROUTER_API_KEY',
-    'openai-compatible': 'OPENAI_COMPATIBLE_API_KEY',
-    'azure': 'AZURE_OPENAI_API_KEY',
-};
-
-async function collectModels(): Promise<{ models: ModelConfig[]; env: EnvVars }> {
-    const models: ModelConfig[] = [];
-    const env: EnvVars = {};
-
-    const wantsAI = await confirm({
-        message: 'Would you like to configure AI features?',
-        default: true,
-    });
-
-    if (!wantsAI) {
-        return { models, env };
-    }
-
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-        const provider = await select<string>({
-            message: 'Which AI provider?',
-            choices: [
-                { value: 'anthropic', name: 'Anthropic', description: 'Claude' },
-                { value: 'openai', name: 'OpenAI', description: 'GPT-4o, o1' },
-                { value: 'google-generative-ai', name: 'Google Gemini' },
-                { value: 'deepseek', name: 'DeepSeek' },
-                { value: 'mistral', name: 'Mistral' },
-                { value: 'xai', name: 'xAI', description: 'Grok' },
-                { value: 'openrouter', name: 'OpenRouter' },
-                { value: 'openai-compatible', name: 'OpenAI-compatible', description: 'self-hosted / custom endpoint' },
-                { value: 'amazon-bedrock', name: 'Amazon Bedrock' },
-                { value: 'azure', name: 'Azure OpenAI' },
-            ],
-        });
-
-        const modelConfig: ModelConfig = { provider };
-
-        const defaultModel = PROVIDER_DEFAULT_MODELS[provider];
-        const model = await input({
-            message: 'Model name',
-            default: defaultModel ?? '',
-            validate: (v) => !v?.trim() ? 'Model name is required' : true,
-        });
-        modelConfig.model = model;
-
-        if (provider === 'openai-compatible') {
-            const baseUrl = await input({
-                message: 'Base URL (e.g. https://your-endpoint.example.com/v1)',
-                validate: (v) => {
-                    if (!v?.trim()) {
-                        return 'Base URL is required';
-                    }
-                    if (!/^https?:\/\//.test(v)) {
-                        return 'Must start with http:// or https://';
-                    }
-                    return true;
-                },
-            });
-            modelConfig.baseUrl = baseUrl;
-        }
-
-        if (provider === 'azure') {
-            const resourceName = await input({
-                message: 'Azure resource name',
-                validate: (v) => !v?.trim() ? 'Resource name is required' : true,
-            });
-            modelConfig.resourceName = resourceName;
-
-            const apiVersion = await input({
-                message: 'API version',
-                default: '2024-08-01-preview',
-                validate: (v) => !v?.trim() ? 'API version is required' : true,
-            });
-            modelConfig.apiVersion = apiVersion;
-        }
-
-        if (provider === 'amazon-bedrock') {
-            const useDefaultChain = await confirm({
-                message: 'Use the default AWS credential chain? (No to provide Access Key ID and Secret explicitly)',
-                default: true,
-            });
-
-            if (!useDefaultChain) {
-                if (!env['AWS_ACCESS_KEY_ID']) {
-                    const keyId = await input({
-                        message: 'AWS Access Key ID (stored as AWS_ACCESS_KEY_ID)',
-                        validate: (v) => !v?.trim() ? 'Access Key ID is required' : true,
-                    });
-                    env['AWS_ACCESS_KEY_ID'] = keyId;
-                }
-                modelConfig.accessKeyId = { env: 'AWS_ACCESS_KEY_ID' };
-
-                if (!env['AWS_SECRET_ACCESS_KEY']) {
-                    const secret = await password({
-                        message: 'AWS Secret Access Key (stored as AWS_SECRET_ACCESS_KEY)',
-                        mask: true,
-                        validate: (v) => !v?.trim() ? 'Secret Access Key is required' : true,
-                    });
-                    env['AWS_SECRET_ACCESS_KEY'] = secret;
-                }
-                modelConfig.accessKeySecret = { env: 'AWS_SECRET_ACCESS_KEY' };
-            }
-
-            const region = await input({
-                message: 'AWS region',
-                default: 'us-east-1',
-                validate: (v) => !v?.trim() ? 'Region is required' : true,
-            });
-            modelConfig.region = region;
-        } else {
-            const envKey = PROVIDER_ENV_KEYS[provider] ?? `${provider.toUpperCase().replace(/-/g, '_')}_API_KEY`;
-            if (!env[envKey]) {
-                const apiKey = await password({
-                    message: `API key (stored as ${envKey})`,
-                    mask: true,
-                    validate: (v) => !v?.trim() ? 'API key is required' : true,
-                });
-                env[envKey] = apiKey;
-            }
-            modelConfig.token = { env: envKey };
-        }
-
-        models.push(modelConfig);
-
-        const addAnother = await confirm({
-            message: 'Add another model?',
-            default: false,
-        });
-
-        if (!addAnother) {
-            break;
-        }
-    }
-
-    return { models, env };
-}
 
 const PLATFORM_LABELS: Record<string, string> = {
     github: 'GitHub',
