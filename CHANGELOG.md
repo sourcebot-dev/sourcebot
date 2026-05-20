@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Cleaned up orphaned zoekt `.tmp` shard files on every indexing attempt, not just on failure, so leftovers from previously interrupted runs are removed. [#1214](https://github.com/sourcebot-dev/sourcebot/pull/1214)
+
 ## [4.17.2] - 2026-05-16
 
 ### Added
