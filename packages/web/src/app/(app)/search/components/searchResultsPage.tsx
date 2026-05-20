@@ -11,7 +11,9 @@ import {
 } from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search";
+import { getSearchLimitExplanation } from "@/features/search/searchLimitExplanation";
+import type { RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search/types";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
@@ -205,6 +207,7 @@ export const SearchResultsPage = ({
                     searchStats={stats}
                     isMoreResultsButtonVisible={!isExhaustive}
                     isBranchFilteringEnabled={isBranchFilteringEnabled}
+                    maxMatchDisplayCount={maxMatchCount}
                 />
             )}
         </div>
@@ -221,6 +224,7 @@ interface PanelGroupProps {
     searchDurationMs: number;
     numMatches: number;
     searchStats?: SearchStats;
+    maxMatchDisplayCount: number;
 }
 
 const PanelGroup = ({
@@ -233,6 +237,7 @@ const PanelGroup = ({
     searchDurationMs: _searchDurationMs,
     numMatches,
     searchStats,
+    maxMatchDisplayCount,
 }: PanelGroupProps) => {
     const [previewedFile, setPreviewedFile] = useState<SearchResultFile | undefined>(undefined);
     const filteredFileMatches = useFilteredMatches(fileMatches);
@@ -257,6 +262,13 @@ const PanelGroup = ({
     const searchDurationMs = useMemo(() => {
         return Math.round(_searchDurationMs);
     }, [_searchDurationMs]);
+
+    const limitExplanation = useMemo(() => {
+        if (isStreaming || !isMoreResultsButtonVisible) {
+            return null;
+        }
+        return getSearchLimitExplanation(searchStats, maxMatchDisplayCount);
+    }, [isStreaming, isMoreResultsButtonVisible, searchStats, maxMatchDisplayCount]);
 
     return (
         <ResizablePanelGroup
@@ -368,6 +380,19 @@ const PanelGroup = ({
                             </>
                         )}
                     </div>
+                    {limitExplanation && (
+                        <div className="px-2 pb-2 shrink-0">
+                            <Alert variant="default" className="border-amber-200/80 bg-amber-50/80 dark:border-amber-900/50 dark:bg-amber-950/40">
+                                <AlertTriangleIcon className="text-amber-700 dark:text-amber-500" />
+                                <AlertTitle className="text-amber-950 dark:text-amber-100">{limitExplanation.summary}</AlertTitle>
+                                {limitExplanation.detail && (
+                                    <AlertDescription className="text-amber-900/90 dark:text-amber-200/90">
+                                        {limitExplanation.detail}
+                                    </AlertDescription>
+                                )}
+                            </Alert>
+                        </div>
+                    )}
                     <div className="flex-1 min-h-0">
                         {filteredFileMatches.length > 0 ? (
                             <SearchResultsPanel
