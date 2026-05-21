@@ -24,7 +24,7 @@ import {
 } from './utils.js';
 
 // @nocheckin: change this to main
-const DOCKER_COMPOSE_BRANCH = 'bkellam/setup-wizard';
+const DOCKER_COMPOSE_BRANCH = 'v5';
 const DOCKER_COMPOSE_URL = `https://raw.githubusercontent.com/sourcebot-dev/sourcebot/${DOCKER_COMPOSE_BRANCH}/docker-compose.yml`;
 
 const SOURCEBOT_URL = 'http://localhost:3000';
