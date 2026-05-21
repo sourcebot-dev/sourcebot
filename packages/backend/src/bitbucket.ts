@@ -52,9 +52,8 @@ type ServerGetRequestPath = ClientPathsWithMethod<ServerAPI, "get">;
 export const throwOnHttpError: Middleware = {
     async onResponse({ response }) {
         if (!response.ok) {
-            const body = await response.clone().text();
             throw Object.assign(
-                new Error(`Bitbucket API ${response.status}: ${body}`),
+                new Error(`Bitbucket API ${response.status}: ${response.statusText}`),
                 { status: response.status },
             );
         }
