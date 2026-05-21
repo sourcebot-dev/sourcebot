@@ -27,3 +27,4 @@ const getStatus = (err: unknown): number | null => {
 
 export const isUnauthorized = (err: unknown): boolean => getStatus(err) === 401;
 export const isForbidden = (err: unknown): boolean => getStatus(err) === 403;
+export const isGone = (err: unknown): boolean => getStatus(err) === 410;

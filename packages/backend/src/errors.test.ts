@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { RequestError } from '@octokit/request-error';
 import { GitbeakerRequestError } from '@gitbeaker/requester-utils';
-import { isForbidden, isUnauthorized } from './errors';
+import { isForbidden, isGone, isUnauthorized } from './errors';
 import { throwOnHttpError } from './bitbucket';
 
 // Helper: invoke the openapi-fetch middleware against a synthetic Response and
@@ -145,6 +145,56 @@ describe('isForbidden', () => {
             request: { method: 'GET', url: 'https://api.github.com/user/repos', headers: {} },
         });
         expect(isForbidden(err)).toBe(false);
+    });
+});
+
+describe('isGone', () => {
+    test('Octokit RequestError with status 410', () => {
+        const err = new RequestError('Gone', 410, {
+            request: { method: 'GET', url: 'https://api.github.com/user/repos', headers: {} },
+        });
+        expect(isGone(err)).toBe(true);
+    });
+
+    test('Octokit RequestError with status 401 is NOT gone', () => {
+        const err = new RequestError('Unauthorized', 401, {
+            request: { method: 'GET', url: 'https://api.github.com/user/repos', headers: {} },
+        });
+        expect(isGone(err)).toBe(false);
+    });
+
+    test('Bitbucket middleware throws an isGone error on 410 Response', async () => {
+        // Real-world case: Bitbucket Cloud's CHANGE-2770 removed
+        // /2.0/user/permissions/repositories and now returns 410 Gone.
+        const err = await invokeMiddleware(new Response('CHANGE-2770 - Functionality has been deprecated', { status: 410 }));
+        expect(err).toBeInstanceOf(Error);
+        expect(isGone(err)).toBe(true);
+    });
+
+    test('real GitbeakerRequestError with response status 410', () => {
+        const err = new GitbeakerRequestError('Gone', {
+            cause: {
+                description: 'Gone',
+                request: new Request('https://gitlab.com/api/v4/projects'),
+                response: new Response(null, { status: 410 }),
+            },
+        });
+        expect(isGone(err)).toBe(true);
+    });
+
+    test('plain Error without status is NOT gone', () => {
+        expect(isGone(new Error('Missing required scope'))).toBe(false);
+    });
+
+    test('null is NOT gone', () => {
+        expect(isGone(null)).toBe(false);
+    });
+
+    test('Octokit RequestError with status 500 is NOT gone', () => {
+        const err = new RequestError('Internal Server Error', 500, {
+            request: { method: 'GET', url: 'https://api.github.com/user/repos', headers: {} },
+        });
+        expect(isGone(err)).toBe(false);
     });
 });
 
