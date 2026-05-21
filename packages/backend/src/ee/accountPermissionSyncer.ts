@@ -17,7 +17,7 @@ import {
 import { createBitbucketCloudClient, createBitbucketServerClient, getReposForAuthenticatedBitbucketCloudUser, getReposForAuthenticatedBitbucketServerUser } from "../bitbucket.js";
 import { Settings } from "../types.js";
 import { setIntervalAsync } from "../utils.js";
-import { isUnauthorized, isForbidden } from "../errors.js";
+import { isUnauthorized, isForbidden, isGone } from "../errors.js";
 
 const LOG_TAG = 'user-permission-syncer';
 const logger = createLogger(LOG_TAG);
@@ -191,12 +191,14 @@ export class AccountPermissionSyncer {
         } catch (error) {
             // Fail-closed: when the code-host layer signals that the upstream
             // account is permanently unauthorized (token revoked, user
-            // deprovisioned, OAuth grant dead), clear the account's existing
-            // permission rows so the read-side filter stops matching through
-            // them.
+            // deprovisioned, OAuth grant dead) or that the endpoint we depend
+            // on is gone (e.g. Bitbucket Cloud's CHANGE-2770), clear the
+            // account's existing permission rows so the read-side filter stops
+            // matching through them.
             if (
                 isUnauthorized(error) ||
                 isForbidden(error) ||
+                isGone(error) ||
                 error instanceof RefreshTokenError
             ) {
                 await this.db.account.update({
