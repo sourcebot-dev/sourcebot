@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed issue where repo permissions could go stale when authentication or token refresh related errors occured. [#1215](https://github.com/sourcebot-dev/sourcebot/pull/1215)
+
 ## [4.17.2] - 2026-05-16
 
 ### Added

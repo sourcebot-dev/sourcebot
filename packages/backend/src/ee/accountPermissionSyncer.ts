@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/node";
-import { PrismaClient, AccountPermissionSyncJobStatus, Account, PermissionSyncSource} from "@sourcebot/db";
+import { PrismaClient, AccountPermissionSyncJobStatus, Account, PermissionSyncSource } from "@sourcebot/db";
 import { env, hasEntitlement, createLogger, loadConfig, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
 import { ensureFreshAccountToken } from "./tokenRefresh.js";
 import { Job, Queue, Worker } from "bullmq";
@@ -17,6 +17,7 @@ import {
 import { createBitbucketCloudClient, createBitbucketServerClient, getReposForAuthenticatedBitbucketCloudUser, getReposForAuthenticatedBitbucketServerUser } from "../bitbucket.js";
 import { Settings } from "../types.js";
 import { setIntervalAsync } from "../utils.js";
+import { isUnauthorized, isForbidden } from "../errors.js";
 
 const LOG_TAG = 'user-permission-syncer';
 const logger = createLogger(LOG_TAG);
@@ -27,6 +28,12 @@ const POLLING_INTERVAL_MS = 1000;
 
 type AccountPermissionSyncJob = {
     jobId: string;
+}
+
+class RefreshTokenError extends Error {
+    constructor(message: string) {
+        super(message);
+    }
 }
 
 export class AccountPermissionSyncer {
@@ -179,13 +186,55 @@ export class AccountPermissionSyncer {
             }
         });
 
+        try {
+            await this.syncAccountPermissions(account, logger);
+        } catch (error) {
+            // Fail-closed: when the code-host layer signals that the upstream
+            // account is permanently unauthorized (token revoked, user
+            // deprovisioned, OAuth grant dead), clear the account's existing
+            // permission rows so the read-side filter stops matching through
+            // them.
+            if (
+                isUnauthorized(error) ||
+                isForbidden(error) ||
+                error instanceof RefreshTokenError
+            ) {
+                await this.db.account.update({
+                    where: { id: account.id },
+                    data: {
+                        accessibleRepos: {
+                            deleteMany: {},
+                        },
+                    },
+                });
+            }
+            throw error;
+        }
+    }
+
+    private async syncAccountPermissions(
+        account: Account & { user: { email: string | null } },
+        logger: ReturnType<typeof createJobLogger>,
+    ) {
         const config = await loadConfig(env.CONFIG_PATH);
 
         logger.debug(`Syncing permissions for ${account.provider} account (id: ${account.id}) for user ${account.user.email}...`);
 
         // Ensure the OAuth token is fresh, refreshing it if it is expired or near expiry.
-        // Throws and sets Account.tokenRefreshErrorMessage if the refresh fails.
-        const accessToken = await ensureFreshAccountToken(account, this.db);
+        //
+        // @note(SOU-1177) re-throwing as a RefreshTokenError here is required to flag to the caller
+        // (runJob) that the account's permissions should be cleared. The side-effect with this
+        // approach is that permissions will be cleared for any error thrown in the
+        // ensureFreshAccountToken path. A better approach would be to look at the response
+        // from the oauth call and determining if the host returned a invalid_grant.
+        //
+        // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
+        let accessToken;
+        try {
+            accessToken = await ensureFreshAccountToken(account, this.db);
+        } catch (error) {
+            throw new RefreshTokenError(error instanceof Error ? error.message : 'Failed to refresh token with unknown error.');
+        }
 
         // Get a list of all repos that the user has access to from all connected accounts.
         const repoIds = await (async () => {
@@ -214,21 +263,7 @@ export class AccountPermissionSyncer {
                 // @note: we only care about the private repos since we don't need to build a mapping
                 // for public repos.
                 // @see: packages/web/src/prisma.ts
-                let githubRepos;
-                try {
-                    githubRepos = await getReposForAuthenticatedUser(/* visibility = */ 'private', octokit);
-                } catch (error) {
-                    if (error && typeof error === 'object' && 'status' in error) {
-                        const status = (error as { status: number }).status;
-                        if (status === 401 || status === 403) {
-                            throw new Error(
-                                `GitHub API returned ${status} error. Your token may have expired or lacks the required permissions. ` +
-                                `Please re-authorize with GitHub to grant the necessary access.`
-                            );
-                        }
-                    }
-                    throw error;
-                }
+                const githubRepos = await getReposForAuthenticatedUser(/* visibility = */ 'private', octokit);
                 const gitHubRepoIds = githubRepos.map(repo => repo.id.toString());
 
                 const repos = await this.db.repo.findMany({
