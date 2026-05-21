@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed issue where repo permissions could go stale when authentication or token refresh related errors occured. [#1215](https://github.com/sourcebot-dev/sourcebot/pull/1215)
-- [EE] Account-driven permission syncer now also cleans up an account's permission rows when an upstream endpoint returns HTTP 410 Gone, so permissions don't get stuck after an API is removed (e.g. Bitbucket Cloud's CHANGE-2770).
+- [EE] Account-driven permission syncer now also cleans up an account's permission rows when an upstream endpoint returns HTTP 410 Gone, so permissions don't get stuck after an API is removed (e.g. Bitbucket Cloud's CHANGE-2770). [#1216](https://github.com/sourcebot-dev/sourcebot/pull/1216)
 
 ## [4.17.2] - 2026-05-16
 
