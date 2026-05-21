@@ -195,20 +195,19 @@ export class AccountPermissionSyncer {
             // on is gone (e.g. Bitbucket Cloud's CHANGE-2770), clear the
             // account's existing permission rows so the read-side filter stops
             // matching through them.
-            if (
-                isUnauthorized(error) ||
-                isForbidden(error) ||
-                isGone(error) ||
-                error instanceof RefreshTokenError
-            ) {
-                await this.db.account.update({
-                    where: { id: account.id },
-                    data: {
-                        accessibleRepos: {
-                            deleteMany: {},
-                        },
-                    },
+            const reason =
+                error instanceof RefreshTokenError ? 'token refresh failure' :
+                isUnauthorized(error) ? 'HTTP 401 Unauthorized' :
+                isForbidden(error) ? 'HTTP 403 Forbidden' :
+                isGone(error) ? 'HTTP 410 Gone' :
+                null;
+
+            if (reason !== null) {
+                const { count } = await this.db.accountToRepoPermission.deleteMany({
+                    where: { accountId: account.id },
                 });
+                const message = error instanceof Error ? error.message : String(error);
+                logger.warn(`Cleared ${count} permission row(s) for account ${account.id} (user ${account.user.email ?? 'unknown'}) — fail-closed cleanup triggered by ${reason}: ${message}`);
             }
             throw error;
         }
