@@ -64,7 +64,9 @@ async function findGitRepos(root: string, maxDepth: number): Promise<string[]> {
     return repos.sort();
 }
 
-export async function collectLocalReposConfig(): Promise<CollectResult> {
+export async function collectLocalReposConfig(
+    localRepoIndex: Map<string, number>,
+): Promise<CollectResult> {
     note(
         [
             'Point at a directory on your machine that contains git repositories.',
@@ -108,8 +110,30 @@ export async function collectLocalReposConfig(): Promise<CollectResult> {
         break;
     }
 
+    let index = localRepoIndex.get(hostPath);
+    if (index === undefined) {
+        index = localRepoIndex.size;
+        localRepoIndex.set(hostPath, index);
+    }
+    const containerRoot = `/repos/${index}`;
+
+    const hostPathIsRepo = repos.length === 1 && repos[0] === hostPath;
+    if (hostPathIsRepo) {
+        return {
+            connections: [{
+                name: basename(hostPath),
+                config: {
+                    type: 'git',
+                    url: `file://${containerRoot}`,
+                } satisfies GenericGitHostConnectionConfig,
+            }],
+            env: {},
+            localRepoHostPath: hostPath,
+        };
+    }
+
     const choices = repos.map((repoPath) => ({
-        name: relative(hostPath, repoPath),
+        name: relative(hostPath, repoPath) || basename(repoPath),
         value: repoPath,
         checked: true,
     }));
@@ -122,21 +146,22 @@ export async function collectLocalReposConfig(): Promise<CollectResult> {
         loop: false,
     });
 
+    const posixRel = (p: string): string => relative(hostPath, p).split('\\').join('/');
+
     const allSelected = selected.length === repos.length;
-    const allAtDepthOne = repos.every((p) => !relative(hostPath, p).includes('/'));
+    const allAtDepthOne = repos.every((p) => !posixRel(p).includes('/'));
 
     const connections = allSelected && allAtDepthOne
         ? [{
             config: {
                 type: 'git',
-                url: 'file:///repos/*',
+                url: `file://${containerRoot}/*`,
             } satisfies GenericGitHostConnectionConfig,
         }]
         : selected.map((repoPath) => {
-            const rel = relative(hostPath, repoPath);
             const config: GenericGitHostConnectionConfig = {
                 type: 'git',
-                url: `file:///repos/${rel}`,
+                url: `file://${containerRoot}/${posixRel(repoPath)}`,
             };
             return { name: basename(repoPath), config };
         });
