@@ -29,6 +29,7 @@ const POLLING_INTERVAL_MS = 1000;
 type AccountPermissionSyncJob = {
     jobId: string;
 }
+
 class RefreshTokenError extends Error {
     constructor(message: string) {
         super(message);
@@ -192,7 +193,7 @@ export class AccountPermissionSyncer {
             // account is permanently unauthorized (token revoked, user
             // deprovisioned, OAuth grant dead), clear the account's existing
             // permission rows so the read-side filter stops matching through
-            // them. Re-throw so the job is marked FAILED via onJobFailed.
+            // them.
             if (
                 isUnauthorized(error) ||
                 isForbidden(error) ||
@@ -220,6 +221,14 @@ export class AccountPermissionSyncer {
         logger.debug(`Syncing permissions for ${account.provider} account (id: ${account.id}) for user ${account.user.email}...`);
 
         // Ensure the OAuth token is fresh, refreshing it if it is expired or near expiry.
+        //
+        // @note(SOU-1177) re-throwing as a RefreshTokenError here is required to flag to the caller
+        // (runJob) that the account's permissions should be cleared. The side-effect with this
+        // approach is that permissions will be cleared for any error thrown in the
+        // ensureFreshAccountToken path. A better approach would be to look at the response
+        // from the oauth call and determining if the host returned a invalid_grant.
+        //
+        // @see: https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
         let accessToken;
         try {
             accessToken = await ensureFreshAccountToken(account, this.db);
