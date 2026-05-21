@@ -657,7 +657,7 @@ export const getExplicitUserPermissionsForCloudRepo = async (
 };
 
 /**
- * Returns the UUIDs of all repositories accessible to the authenticated Bitbucket Cloud user.
+ * Returns the UUIDs of all private repositories accessible to the authenticated Bitbucket Cloud user.
  * Used for account-driven permission syncing.
  *
  * @see https://developer.atlassian.com/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get
@@ -693,7 +693,7 @@ export const getReposForAuthenticatedBitbucketCloudUser = async (
                 const { data } = await client.apiClient.GET(path, {
                     params: {
                         path: { workspace },
-                        query: { role: 'member', ...query },
+                        query: { role: 'member', q: 'is_private=true', ...query },
                     },
                 });
                 return data;
