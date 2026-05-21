@@ -1,22 +1,23 @@
 {
     "name": "setup-sourcebot",
-    "version": "0.1.0",
-    "description": "CLI wizard for creating a Sourcebot configuration",
+    "version": "0.1.1",
+    "description": "CLI wizard for creating a Sourcebot configuration.",
     "type": "module",
     "bin": "./dist/index.js",
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
-        "dev": "tsx src/index.ts"
+        "dev": "tsx src/index.ts",
+        "prepublishOnly": "yarn build"
     },
     "dependencies": {
         "@inquirer/prompts": "^8.4.3",
-        "@sourcebot/schemas": "workspace:^",
         "chalk": "^5.6.2",
         "inquirer-select-pro": "^1.0.0-alpha.9",
         "ora": "^9.4.0"
     },
     "devDependencies": {
+        "@sourcebot/schemas": "workspace:^",
         "@types/node": "^22.7.5",
         "tsx": "^4.21.0",
         "typescript": "^5.6.2"
@@ -25,6 +26,7 @@
         "node": ">=18"
     },
     "files": [
-        "dist"
+        "dist",
+        "README.md"
     ]
 }

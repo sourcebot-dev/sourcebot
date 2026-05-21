@@ -2,6 +2,7 @@
 import { confirm, select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import ora from 'ora';
+import { spawn } from 'node:child_process';
 import { existsSync, writeFileSync } from 'fs';
 import { writeFile } from 'fs/promises';
 import { collectAzureDevOpsConfig } from './azuredevops.js';
@@ -25,6 +26,32 @@ import {
 // @nocheckin: change this to main
 const DOCKER_COMPOSE_BRANCH = 'bkellam/setup-wizard';
 const DOCKER_COMPOSE_URL = `https://raw.githubusercontent.com/sourcebot-dev/sourcebot/${DOCKER_COMPOSE_BRANCH}/docker-compose.yml`;
+
+const SOURCEBOT_URL = 'http://localhost:3000';
+
+function openBrowser(url: string): void {
+    const cmd = process.platform === 'darwin' ? 'open'
+        : process.platform === 'win32' ? 'cmd'
+            : 'xdg-open';
+    const args = process.platform === 'win32' ? ['/c', 'start', '""', url] : [url];
+    spawn(cmd, args, { stdio: 'ignore', detached: true }).unref();
+}
+
+async function openBrowserWhenReady(url: string, timeoutMs = 120_000): Promise<void> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+        try {
+            const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
+            if (res.status < 500) {
+                openBrowser(url);
+                return;
+            }
+        } catch {
+            // not yet ready
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+    }
+}
 
 const PLATFORM_LABELS: Record<string, string> = {
     github: 'GitHub',
@@ -57,14 +84,14 @@ async function main() {
             message: 'Which code host do you want to connect?',
             loop: false,
             choices: [
-                { value: 'github', name: 'GitHub', description: 'github.com or GitHub Enterprise' },
-                { value: 'gitlab', name: 'GitLab', description: 'gitlab.com or self-hosted' },
-                { value: 'local', name: 'Local Git repositories', description: 'A folder of cloned repos on the host filesystem' },
-                { value: 'git', name: 'Other Git host', description: 'Any git clone URL (catch-all for unsupported hosts)' },
-                { value: 'azuredevops', name: 'Azure DevOps', description: 'dev.azure.com' },
-                { value: 'bitbucket', name: 'Bitbucket', description: 'Cloud (bitbucket.org) or self-hosted Data Center' },
-                { value: 'gitea', name: 'Gitea', description: 'self-hosted Gitea' },
-                { value: 'gerrit', name: 'Gerrit', description: 'self-hosted Gerrit' },
+                { value: 'github', name: 'GitHub', description: 'github.com, GitHub Enterprise Server, or GitHub Enterprise Cloud' },
+                { value: 'gitlab', name: 'GitLab', description: 'gitlab.com, GitLab Self Managed, or GitLab Dedicated' },
+                { value: 'local', name: 'Local git repositories', description: 'git repositories in a local directory' },
+                { value: 'git', name: 'Remote git repository', description: 'Arbitrary git URL' },
+                { value: 'azuredevops', name: 'Azure DevOps', description: 'dev.azure.com or Azure Devops Server' },
+                { value: 'bitbucket', name: 'Bitbucket', description: 'Bitbucket Cloud or Bitbucket Data Center' },
+                { value: 'gitea', name: 'Gitea', description: 'Gitea Cloud or Gitea self-hosted' },
+                { value: 'gerrit', name: 'Gerrit' },
             ],
         });
 
@@ -251,6 +278,33 @@ async function main() {
         downloadedCompose = true;
     }
 
+    console.log();
+    console.log(chalk.green('✓ ') + chalk.bold('Your Sourcebot configuration is ready!'));
+
+    if (downloadedCompose) {
+        const startNow = await confirm({
+            message: 'Start Sourcebot now? (runs `docker compose up`)',
+            default: true,
+        });
+
+        if (startNow) {
+            note(
+                `Sourcebot will open at ${SOURCEBOT_URL} once it's ready.\nPress Ctrl+C to stop.`,
+                'Starting Sourcebot',
+            );
+            void openBrowserWhenReady(SOURCEBOT_URL).catch(() => { /* best effort */ });
+            await new Promise<void>((resolve) => {
+                const child = spawn('docker', ['compose', 'up'], { stdio: 'inherit' });
+                child.on('exit', () => resolve());
+                child.on('error', (err) => {
+                    console.error(chalk.red('✗ ') + 'Failed to run `docker compose up`: ' + (err instanceof Error ? err.message : String(err)));
+                    resolve();
+                });
+            });
+            return;
+        }
+    }
+
     const nextSteps: string[] = [];
     let step = 1;
 
@@ -266,13 +320,12 @@ async function main() {
     nextSteps.push(`${step}. Open http://localhost:3000`);
 
     note(nextSteps.join('\n'), 'Next steps');
-
-    console.log();
-    console.log(chalk.green('✓ ') + chalk.bold('Your Sourcebot configuration is ready!'));
 }
 
 main().catch(err => {
-    if (err instanceof Error && err.name === 'ExitPromptError') {
+    const isExitPrompt = err instanceof Error
+        && (err.name === 'ExitPromptError' || err.message?.startsWith('User force closed the prompt'));
+    if (isExitPrompt) {
         console.log();
         console.log(chalk.red('✗ ') + 'Setup cancelled.');
         process.exit(0);
