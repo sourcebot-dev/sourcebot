@@ -9,7 +9,6 @@ import micromatch from "micromatch";
 import {
     SchemaRepository as CloudRepository,
     SchemaRepositoryUserPermission as CloudRepositoryUserPermission,
-    SchemaRepositoryPermission as CloudRepositoryPermission,
 } from "@coderabbitai/bitbucket/cloud/openapi";
 import { SchemaRestRepository as ServerRepository } from "@coderabbitai/bitbucket/server/openapi";
 import { processPromiseResults } from "./connectionUtils.js";
@@ -658,26 +657,82 @@ export const getExplicitUserPermissionsForCloudRepo = async (
 };
 
 /**
- * Returns the UUIDs of all private repositories accessible to the authenticated Bitbucket Cloud user.
+ * Returns the UUIDs of all repositories accessible to the authenticated Bitbucket Cloud user.
  * Used for account-driven permission syncing.
- * 
- * @see https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-user-permissions-repositories-get
+ *
+ * @note Atlassian's CHANGE-2770 removed `GET /2.0/user/permissions/repositories`
+ * (the previous single-call cross-workspace endpoint) and has stated there is no
+ * direct replacement. The recommended path is two-step: enumerate the workspaces
+ * the user is a member of, then enumerate the repositories the user can see
+ * within each workspace.
+ *
+ * `?role=member` returns repositories where the user has at least explicit read
+ * access (including access inherited from workspace admin, project membership,
+ * or group membership). Bitbucket treats workspace admins as having implicit
+ * read on every repo in the workspace, so this query naturally returns the
+ * admin's full set without needing a special case. Conversely, a user with no
+ * grant on a given repo gets nothing back for it, even if the workspace is
+ * shared — Bitbucket enforces the access filter server-side.
+ *
+ * Visibility (public vs. private) is intentionally not filtered server-side.
+ * Sourcebot's read-side prisma extension already short-circuits public repos to
+ * org-wide access, so an ACCOUNT_DRIVEN row on a public repo is harmless; but
+ * not filtering means that during a public↔private visibility flip, the user
+ * never has a window where they're missing an ACCOUNT_DRIVEN row for a repo
+ * they can see upstream.
+ *
+ * @see https://developer.atlassian.com/cloud/bitbucket/changelog/#CHANGE-2770
+ * @see https://developer.atlassian.com/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get
+ * @see https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get
  */
 export const getReposForAuthenticatedBitbucketCloudUser = async (
     client: BitbucketClient,
 ): Promise<Array<{ uuid: string }>> => {
-    const path = `/user/permissions/repositories` as CloudGetRequestPath;
+    // The `/user/workspaces` path is not in the openapi-fetch typed surface
+    // (the package's bundled types still describe the deprecated paths under
+    // /user/permissions/*), so we cast to CloudGetRequestPath and narrow the
+    // response shape locally to just the fields we use.
+    interface CloudUserWorkspaceAccess {
+        readonly workspace?: { readonly slug?: string };
+    }
 
-    const permissions = await fetchWithRetry(() => getPaginatedCloud<CloudRepositoryPermission>(path, async (p, query) => {
-        const { data } = await client.apiClient.GET(p, {
-            params: { query },
-        });
-        return data;
-    }), 'user repository permissions', logger);
+    const memberships = await fetchWithRetry(
+        () => getPaginatedCloud<CloudUserWorkspaceAccess>(
+            `/user/workspaces` as CloudGetRequestPath,
+            async (path, query) => {
+                const { data } = await client.apiClient.GET(path, { params: { query } });
+                return data;
+            },
+        ),
+        'user workspace memberships',
+        logger,
+    );
 
-    return permissions
-        .filter(p => p.repository?.uuid != null)
-        .map(p => ({ uuid: p.repository!.uuid as string }));
+    const slugs = memberships
+        .map(m => m.workspace?.slug)
+        .filter((slug): slug is string => typeof slug === 'string');
+
+    const reposByWorkspace = await Promise.all(slugs.map(workspace => fetchWithRetry(
+        () => getPaginatedCloud<CloudRepository>(
+            `/repositories/${workspace}` as CloudGetRequestPath,
+            async (path, query) => {
+                const { data } = await client.apiClient.GET(path, {
+                    params: {
+                        path: { workspace },
+                        query: { role: 'member', ...query },
+                    },
+                });
+                return data;
+            },
+        ),
+        `repos for workspace ${workspace}`,
+        logger,
+    )));
+
+    return reposByWorkspace
+        .flat()
+        .filter(repo => repo.uuid != null)
+        .map(repo => ({ uuid: repo.uuid as string }));
 };
 
 /**
