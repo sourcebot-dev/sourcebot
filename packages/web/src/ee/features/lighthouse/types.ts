@@ -91,3 +91,19 @@ export const invoicesResponseSchema = z.object({
     hasMore: z.boolean(),
 });
 export type InvoicesResponse = z.infer<typeof invoicesResponseSchema>;
+
+export const pricingRequestSchema = z.object({
+    installId: z.string(),
+});
+export type PricingRequest = z.infer<typeof pricingRequestSchema>;
+
+const pricingTierSchema = z.object({
+    unitAmount: z.number().int(),
+    currency: z.string(),
+});
+
+export const pricingResponseSchema = z.object({
+    monthly: pricingTierSchema,
+    annual: pricingTierSchema,
+});
+export type PricingResponse = z.infer<typeof pricingResponseSchema>;

@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUpCircle, CircleCheck, CircleX, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Switch } from "@/components/ui/switch";
-import { cn, isServiceError } from "@/lib/utils";
+import { cn, formatCurrency, isServiceError, unwrapServiceError } from "@/lib/utils";
 import { createCheckoutSession } from "@/ee/features/lighthouse/actions";
+import { getPricing } from "@/app/api/(client)/client";
 import { useToast } from "@/components/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     Dialog,
     DialogContent,
@@ -72,14 +75,34 @@ interface UpsellDialogProps {
 
 type BillingInterval = "year" | "month";
 
+function formatPrice(unitAmount: number, currency: string, interval: BillingInterval): string {
+    const options = { minimumFractionDigits: 0 };
+    if (interval === "year") {
+        return `${formatCurrency(Math.round(unitAmount / 12), currency, options)} per user/month, annually`;
+    }
+    return `${formatCurrency(unitAmount, currency, options)} per user/month`;
+}
+
 export function UpsellDialog({ open, onOpenChange, trialAvailable }: UpsellDialogProps) {
     const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
     const [isCheckoutSessionCreating, setIsCheckoutSessionCreating] = useState(false);
     const { toast } = useToast();
 
-    const enterprisePrice = billingInterval === "year"
-        ? "$16 per user/month, annually"
-        : "$20 per user/month";
+    const { data: pricing, isPending, isError } = useQuery({
+        queryKey: ["pricing"],
+        queryFn: async () => unwrapServiceError(getPricing()),
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const enterprisePrice = isPending
+        ? <Skeleton className="h-4 w-36 mt-1" />
+        : isError
+            ? <span className="text-destructive">Failed to load pricing</span>
+            : formatPrice(
+                billingInterval === "year" ? pricing!.annual.unitAmount : pricing!.monthly.unitAmount,
+                billingInterval === "year" ? pricing!.annual.currency : pricing!.monthly.currency,
+                billingInterval,
+            );
 
     const handlePrimaryAction = useCallback(() => {
         setIsCheckoutSessionCreating(true);
