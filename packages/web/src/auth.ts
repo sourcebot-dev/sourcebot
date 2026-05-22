@@ -241,18 +241,15 @@ const nextAuthResult = NextAuth({
     callbacks: {
         async signIn({ account }) {
             const matchingProvider = account
-            ? getProviders().find((p) => {
-                const providerId = typeof p.provider === 'function'
-                ? p.provider().id
-                : p.provider.id;
-                return providerId === account.provider;
-            })
-            : undefined;
-            
-            const isAccountLinkingAttempt =
-            (account?.type === 'oauth' || account?.type === 'oidc') &&
-            matchingProvider?.purpose === 'account_linking';
-            
+                ? getProviders().find((p) => {
+                    const providerId = typeof p.provider === 'function'
+                        ? p.provider().id
+                        : p.provider.id;
+                    return providerId === account.provider;
+                })
+                : undefined;
+
+
             // Refuse OAuth signin for providers configured purely for account
             // linking when no authenticated user is present on the request.
             //
@@ -272,6 +269,7 @@ const nextAuthResult = NextAuth({
             // `AccessDenied` before handleLoginOrRegister can run, redirecting
             // the user to the error page instead of leaving them stranded as a
             // new orphan identity with no UserToOrg row.
+            const isAccountLinkingAttempt = matchingProvider?.purpose === 'account_linking';
             const session = await auth();
             if (isAccountLinkingAttempt && session === null) {
                 return false;
