@@ -244,9 +244,9 @@ const nextAuthResult = NextAuth({
         //
         // Background: @auth/core's handleLoginOrRegister (callback/handle-login.js)
         // reads the session token from the request and, if it can't decode it
-        // (e.g., the session cookie expired browser-side while the user was
-        // mid-OAuth-dance, or it never made it across the cross-site redirect),
-        // falls through to `createUser({ ...profile })` — silently spawning a
+        // (e.g., the session cookie expired browser-side mid auth flow, or it
+        // never made it across the cross-site redirect),
+        // falls through to `createUser({ ...profile })`, silently spawning a
         // new orphan User row from the OAuth profile. That's correct behavior
         // for `purpose: "sso"` providers (an unauthenticated user logging in
         // via SSO should become a new Sourcebot user). It's wrong for
