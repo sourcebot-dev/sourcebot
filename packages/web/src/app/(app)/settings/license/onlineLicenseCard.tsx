@@ -1,10 +1,14 @@
 import { License } from "@sourcebot/db";
-import { LicenseStatus, STALE_ONLINE_LICENSE_WARNING_THRESHOLD_MS } from "@sourcebot/shared";
+import {
+    LicenseStatus,
+    STALE_ONLINE_LICENSE_WARNING_THRESHOLD_MS,
+    _isValidLicenseActive
+} from "@sourcebot/shared";
 import { formatDistanceToNow } from "date-fns";
 import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatCurrency } from "@/lib/utils";
-import { SettingsCard } from "../components/settingsCard";
+import { LicenseInactiveBanner } from "./licenseInactiveBanner";
 import { PlanActionsMenu } from "./planActionsMenu";
 
 interface OnlineLicenseCardProps {
@@ -37,6 +41,8 @@ export function OnlineLicenseCard({ license }: OnlineLicenseCardProps) {
         return null;
     }
 
+    const isLicenseActive = _isValidLicenseActive(license);
+
     const monthlyPerSeat = normalizeToMonthly(unitAmount, interval, intervalCount);
     const statusBadge = getStatusBadge(license.status);
     const isActivelyBilling =
@@ -45,72 +51,75 @@ export function OnlineLicenseCard({ license }: OnlineLicenseCardProps) {
         || license.status === 'past_due';
 
     return (
-        <SettingsCard>
-            <div className="flex items-center justify-between gap-6">
-                <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                        <p className="font-medium">{planName} plan</p>
-                        {statusBadge && (
-                            <Badge variant="outline" className={statusBadge.className}>
-                                {statusBadge.label}
-                            </Badge>
-                        )}
-                    </div>
-                    {monthlyPerSeat !== null ? (
-                        <p className="text-sm text-muted-foreground">
-                            {formatCurrency(monthlyPerSeat, currency, { minimumFractionDigits: 0 })} per user/mo, billed {formatCadence(interval, intervalCount)}
-                        </p>
-                    ) : (
-                        <p className="text-sm text-muted-foreground">
-                            {formatCurrency(unitAmount, currency, { minimumFractionDigits: 0 })} per user, billed {formatCadence(interval, intervalCount)}
-                        </p>
-                    )}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                        <code className="font-mono">sb_act_••••</code>
-                        {license.lastSyncAt && (
-                            <>
-                                <span>·</span>
-                                <span className={cn("inline-flex items-center gap-1", isLastSyncStale(license.lastSyncAt) && "text-warning")}>
-                                    {isLastSyncStale(license.lastSyncAt) && (
-                                        <AlertTriangle className="h-3 w-3" />
-                                    )}
-                                    Verified {formatDistanceToNow(license.lastSyncAt, { addSuffix: true })}
-                                </span>
-                            </>
-                        )}
-                    </div>
-                </div>
-                <div className="flex items-center gap-4">
-                    {isActivelyBilling && (nextRenewalAt || cancelAt || trialEnd) && (
-                        <div className="flex items-center gap-12">
-                            <div className="flex flex-col items-end">
-                                <p className="text-xs text-muted-foreground">Billed seats</p>
-                                <p className="text-sm">{seats ?? 0}</p>
-                            </div>
-                            {nextRenewalAt ? (
-                                <div className="flex flex-col items-end">
-                                    <p className="text-xs text-muted-foreground">Next renewal</p>
-                                    <p className="text-sm">
-                                        {formatCurrency(nextRenewalAmount ?? 0, currency, { minimumFractionDigits: 0 })} on {formatDate(nextRenewalAt)}
-                                    </p>
-                                </div>
-                            ) : cancelAt ? (
-                                <div className="flex flex-col items-end">
-                                    <p className="text-xs text-muted-foreground">Cancels on</p>
-                                    <p className="text-sm">{formatDate(cancelAt)}</p>
-                                </div>
-                            ) : trialEnd && (
-                                <div className="flex flex-col items-end">
-                                    <p className="text-xs text-muted-foreground">Trial ends on</p>
-                                    <p className="text-sm">{formatDate(trialEnd)}</p>
-                                </div>
+        <div className="rounded-lg border border-border overflow-hidden">
+            <div className="bg-card p-4">
+                <div className="flex items-center justify-between gap-6">
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                            <p className="font-medium">{planName} plan</p>
+                            {statusBadge && (
+                                <Badge variant="outline" className={statusBadge.className}>
+                                    {statusBadge.label}
+                                </Badge>
                             )}
                         </div>
-                    )}
-                    <PlanActionsMenu />
+                        {monthlyPerSeat !== null ? (
+                            <p className="text-sm text-muted-foreground">
+                                {formatCurrency(monthlyPerSeat, currency, { minimumFractionDigits: 0 })} per user/mo, billed {formatCadence(interval, intervalCount)}
+                            </p>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
+                                {formatCurrency(unitAmount, currency, { minimumFractionDigits: 0 })} per user, billed {formatCadence(interval, intervalCount)}
+                            </p>
+                        )}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                            <code className="font-mono">sb_act_••••</code>
+                            {license.lastSyncAt && (
+                                <>
+                                    <span>·</span>
+                                    <span className={cn("inline-flex items-center gap-1", isLastSyncStale(license.lastSyncAt) && "text-warning")}>
+                                        {isLastSyncStale(license.lastSyncAt) && (
+                                            <AlertTriangle className="h-3 w-3" />
+                                        )}
+                                        Verified {formatDistanceToNow(license.lastSyncAt, { addSuffix: true })}
+                                    </span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        {isActivelyBilling && (nextRenewalAt || cancelAt || trialEnd) && (
+                            <div className="flex items-center gap-12">
+                                <div className="flex flex-col items-end">
+                                    <p className="text-xs text-muted-foreground">Billed seats</p>
+                                    <p className="text-sm">{seats ?? 0}</p>
+                                </div>
+                                {nextRenewalAt ? (
+                                    <div className="flex flex-col items-end">
+                                        <p className="text-xs text-muted-foreground">Next renewal</p>
+                                        <p className="text-sm">
+                                            {formatCurrency(nextRenewalAmount ?? 0, currency, { minimumFractionDigits: 0 })} on {formatDate(nextRenewalAt)}
+                                        </p>
+                                    </div>
+                                ) : cancelAt ? (
+                                    <div className="flex flex-col items-end">
+                                        <p className="text-xs text-muted-foreground">Cancels on</p>
+                                        <p className="text-sm">{formatDate(cancelAt)}</p>
+                                    </div>
+                                ) : trialEnd && (
+                                    <div className="flex flex-col items-end">
+                                        <p className="text-xs text-muted-foreground">Trial ends on</p>
+                                        <p className="text-sm">{formatDate(trialEnd)}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        <PlanActionsMenu />
+                    </div>
                 </div>
             </div>
-        </SettingsCard>
+            {!isLicenseActive && <LicenseInactiveBanner />}
+        </div>
     );
 }
 

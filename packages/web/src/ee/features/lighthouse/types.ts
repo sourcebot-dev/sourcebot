@@ -47,6 +47,7 @@ export const checkoutRequestSchema = z.object({
     installId: z.string(),
     quantity: z.number().int().positive(),
     requestTrial: z.boolean().default(false),
+    interval: z.enum(['month', 'year']).default('month'),
     successUrl: z.string().url(),
     cancelUrl: z.string().url(),
 });

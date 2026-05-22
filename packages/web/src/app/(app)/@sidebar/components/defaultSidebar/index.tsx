@@ -6,14 +6,13 @@ import { getConnectionStats } from "@/actions";
 import { getOrgAccountRequests } from "@/features/userManagement/actions";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
-import { __unsafePrisma } from "@/prisma";
-import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { OrgRole } from "@prisma/client";
 import { SidebarBase } from "@/app/(app)/@sidebar/components/sidebarBase";
 import { Nav } from "./nav";
 import { ChatHistory } from "./chatHistory";
-import { withAuth } from "@/middleware/withAuth";
+import { getAuthContext, withAuth } from "@/middleware/withAuth";
 import { sew } from "@/middleware/sew";
+import { isValidLicenseActive } from "@/lib/entitlements";
 
 const SIDEBAR_CHAT_LIMIT = 30;
 
@@ -27,15 +26,14 @@ export async function DefaultSidebar() {
         throw new ServiceErrorException(chatHistory);
     }
 
+    const licenseActive = await isValidLicenseActive();
+
+    const authContext = await getAuthContext();
+    const isOwner = !isServiceError(authContext) && authContext.role === OrgRole.OWNER;
+    const trialAvailable = !isServiceError(authContext) && authContext.org.trialUsedAt === null;
+
     const isSettingsNotificationVisible = await (async () => {
-        if (!session) {
-            return false;
-        }
-        const membership = await __unsafePrisma.userToOrg.findUnique({
-            where: { orgId_userId: { orgId: SINGLE_TENANT_ORG_ID, userId: session.user.id } },
-            select: { role: true },
-        });
-        if (membership?.role !== OrgRole.OWNER) {
+        if (!isOwner) {
             return false;
         }
         const connectionStats = await getConnectionStats();
@@ -49,6 +47,9 @@ export async function DefaultSidebar() {
         <SidebarBase
             session={session}
             collapsible="icon"
+            isValidLicenseActive={licenseActive}
+            isOwner={isOwner}
+            trialAvailable={trialAvailable}
             headerContent={
                 <Nav
                     isSettingsNotificationVisible={isSettingsNotificationVisible}
