@@ -303,7 +303,8 @@ const nextAuthResult = NextAuth({
                 // invalidated since the JWT was minted. Returning null here
                 // is what makes invalidation visible at /api/auth/session,
                 // not just at withAuth-gated endpoints.
-                if (!user && (token.sessionVersion ?? 0) !== dbUser.sessionVersion) {
+                const tokenSessionVersion = token.sessionVersion ?? 0;
+                if (!user && tokenSessionVersion !== dbUser.sessionVersion) {
                     return null;
                 }
 
