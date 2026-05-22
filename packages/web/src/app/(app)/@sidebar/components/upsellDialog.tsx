@@ -64,7 +64,7 @@ function SupportIcon({ supported }: SupportIconProps) {
     );
 }
 
-interface FreePlanDialogProps {
+interface UpsellDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     trialAvailable: boolean;
@@ -72,7 +72,7 @@ interface FreePlanDialogProps {
 
 type BillingInterval = "year" | "month";
 
-export function FreePlanDialog({ open, onOpenChange, trialAvailable }: FreePlanDialogProps) {
+export function UpsellDialog({ open, onOpenChange, trialAvailable }: UpsellDialogProps) {
     const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
     const [isCheckoutSessionCreating, setIsCheckoutSessionCreating] = useState(false);
     const { toast } = useToast();

@@ -44,7 +44,7 @@ import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { WhatsNewSidebarButton } from "./whatsNewSidebarButton";
-import { FreePlanDialog } from "./freePlanDialog";
+import { UpsellDialog } from "./upsellDialog";
 
 interface SidebarBaseProps {
     session: Session | null;
@@ -119,7 +119,7 @@ function FreePlanBadge({ trialAvailable }: { trialAvailable: boolean }) {
                     {label}
                 </button>
             </div>
-            <FreePlanDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} trialAvailable={trialAvailable} />
+            <UpsellDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} trialAvailable={trialAvailable} />
         </>
     );
 }
