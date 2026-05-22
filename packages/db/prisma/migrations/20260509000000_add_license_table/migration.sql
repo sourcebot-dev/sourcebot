@@ -1,6 +1,3 @@
--- AlterTable
-ALTER TABLE "Org" ADD COLUMN     "trialUsedAt" TIMESTAMP(3);
-
 -- CreateTable
 CREATE TABLE "License" (
     "id" TEXT NOT NULL,

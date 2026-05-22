@@ -19,32 +19,18 @@ type LicensePageProps = {
 
 export default authenticatedPage<LicensePageProps>(async ({ prisma, org, user }, props) => {
     const searchParams = await props.searchParams;
-    if (searchParams?.refresh === 'true' || searchParams?.trial_used === 'true') {
+    if (searchParams?.refresh === 'true') {
         // Side-trips to the Stripe portal (add PM, manage sub) include
         // ?refresh=true so we resync immediately instead of waiting for
-        // the daily ping. Trial checkout returns add ?trial_used=true so
-        // we can flag the org as having used its trial even before the
-        // license row exists (the user still needs to enter the
-        // activation code from email before syncWithLighthouse has
-        // anything to pull).
+        // the daily ping.
         if (searchParams.refresh === 'true') {
             await syncWithLighthouse(org.id).catch(() => {
                 // ignore failure
             });
         }
-        if (searchParams.trial_used === 'true' && org.trialUsedAt === null) {
-            await prisma.org.update({
-                where: { id: org.id, trialUsedAt: null },
-                data: { trialUsedAt: new Date() },
-            }).catch(() => {
-                // No-op: the flag was already set by another path.
-            });
-        }
-
         // Strip our params but preserve anything else (e.g. `checkout=success`).
         const preserved = new URLSearchParams(searchParams as Record<string, string>);
         preserved.delete('refresh');
-        preserved.delete('trial_used');
         const suffix = preserved.toString();
         redirect(suffix ? `/settings/license?${suffix}` : '/settings/license');
     }
@@ -61,7 +47,6 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org, user },
     const invoicesResult = license ? await getAllInvoices() : null;
     const invoices = invoicesResult && !isServiceError(invoicesResult) ? invoicesResult : [];
 
-    const isTrialEligible = !offlineLicense && org.trialUsedAt === null;
     const showCheckoutSuccess = searchParams?.checkout === 'success' && !license;
 
     return (
@@ -88,7 +73,7 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org, user },
             )}
             {license && <OnlineLicenseCard license={license} />}
             {license && <RecentInvoicesCard invoices={invoices} />}
-            {!offlineLicense && !license && <ActivationCodeCard isTrialEligible={isTrialEligible} />}
+            {!offlineLicense && !license && <ActivationCodeCard />}
             {showCheckoutSuccess && <CheckoutSuccessModal userEmail={user.email} />}
         </div>
     );

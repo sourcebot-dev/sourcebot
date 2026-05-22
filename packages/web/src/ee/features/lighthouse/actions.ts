@@ -92,7 +92,13 @@ export const refreshLicense = async (): Promise<{ success: boolean } | ServiceEr
     )
 );
 
-export const createCheckoutSession = async (requestTrial = false): Promise<{ url: string } | ServiceError> => sew(() =>
+export const createCheckoutSession = async ({
+    requestTrial = false,
+    interval = 'month',
+}: {
+    requestTrial?: boolean;
+    interval?: 'month' | 'year';
+}): Promise<{ url: string } | ServiceError> => sew(() =>
     withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             if (!user.email) {
@@ -114,8 +120,9 @@ export const createCheckoutSession = async (requestTrial = false): Promise<{ url
                 installId: env.SOURCEBOT_INSTALL_ID,
                 quantity: Math.max(memberCount, 1),
                 requestTrial,
+                interval,
                 successUrl: requestTrial
-                    ? `${env.AUTH_URL}/settings/license?checkout=success&refresh=true&trial_used=true`
+                    ? `${env.AUTH_URL}/settings/license?checkout=success&refresh=true`
                     : `${env.AUTH_URL}/settings/license?checkout=success&refresh=true`,
                 cancelUrl: `${env.AUTH_URL}/settings/license?refresh=true`,
             });

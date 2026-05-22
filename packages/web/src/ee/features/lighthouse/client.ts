@@ -10,6 +10,9 @@ import {
     InvoicesRequest,
     InvoicesResponse,
     invoicesResponseSchema,
+    OffersQuery,
+    OffersResponse,
+    offersResponseSchema,
     PortalRequest,
     PortalResponse,
     portalResponseSchema,
@@ -71,6 +74,15 @@ export const client = {
         });
 
         return parseResponseBody(response, invoicesResponseSchema);
+    },
+
+    offers: async (query: OffersQuery): Promise<OffersResponse | ServiceError> => {
+        const params = new URLSearchParams(query);
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/offers?${params}`, {
+            method: 'GET',
+        });
+
+        return parseResponseBody(response, offersResponseSchema);
     },
 }
 

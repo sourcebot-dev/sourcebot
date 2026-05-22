@@ -31,7 +31,7 @@ import { useKeymapType } from "@/hooks/useKeymapType";
 import { KeymapType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
-    ArrowLeftToLineIcon, ArrowRightToLineIcon, ChevronsUpDown, CodeIcon,
+    ArrowLeftToLineIcon, ArrowRightToLineIcon, ArrowUpCircle, ChevronsUpDown, CodeIcon,
     Laptop, LogIn, LogOut, Moon, SettingsIcon, Sun, UserIcon
 } from "lucide-react";
 import { Session } from "next-auth";
@@ -44,15 +44,18 @@ import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { WhatsNewSidebarButton } from "./whatsNewSidebarButton";
+import { UpsellBadge } from "./upsellBadge";
 
 interface SidebarBaseProps {
     session: Session | null;
     collapsible?: "icon" | "offcanvas" | "none";
     headerContent: ReactNode;
     children: ReactNode;
+    isValidLicenseActive: boolean;
+    isOwner: boolean;
 }
 
-export function SidebarBase({ session, collapsible = "icon", headerContent, children }: SidebarBaseProps) {
+export function SidebarBase({ session, collapsible = "icon", headerContent, children, isValidLicenseActive, isOwner }: SidebarBaseProps) {
     const [isScrolled, setIsScrolled] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
 
@@ -86,6 +89,7 @@ export function SidebarBase({ session, collapsible = "icon", headerContent, chil
                 {children}
             </SidebarContent>
             <SidebarFooter className="border-t border-sidebar-border">
+                {!isValidLicenseActive && isOwner && <UpsellBadge />}
                 {collapsible !== "none" && <CollapseSidebarButton />}
                 <WhatsNewSidebarButton />
                 {session ? (

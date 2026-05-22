@@ -11,19 +11,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/hooks/use-toast";
-import { refreshLicense, createPortalSession, deactivateLicense } from "@/ee/features/lighthouse/actions";
+import { refreshLicense, createPortalSession } from "@/ee/features/lighthouse/actions";
 import { isServiceError, cn } from "@/lib/utils";
+import { RemoveActivationCodeDialog } from "./removeActivationCodeDialog";
 
 export function PlanActionsMenu() {
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -31,23 +22,6 @@ export function PlanActionsMenu() {
     const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
-
-    const handleRemove = useCallback(() => {
-        deactivateLicense()
-            .then((response) => {
-                if (isServiceError(response)) {
-                    toast({
-                        description: `Failed to remove activation code: ${response.message}`,
-                        variant: "destructive",
-                    });
-                } else {
-                    toast({
-                        description: "Activation code removed successfully.",
-                    });
-                    router.refresh();
-                }
-            });
-    }, [router, toast]);
 
     const handleRefresh = useCallback(() => {
         setIsRefreshing(true);
@@ -132,25 +106,7 @@ export function PlanActionsMenu() {
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Remove activation code</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Are you sure you want to remove this activation code? Your deployment will no longer have a registered license.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={handleRemove}
-                        >
-                            Remove
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <RemoveActivationCodeDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen} />
         </>
     );
 }

@@ -29,6 +29,7 @@ import type {
     SearchChatShareableMembersQueryParams,
     SearchChatShareableMembersResponse,
 } from "../(server)/ee/chat/[chatId]/searchMembers/route";
+import { OffersResponse } from "@/ee/features/lighthouse/types";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -214,4 +215,17 @@ export const listChats = async (queryParams: ListChatsQueryParams): Promise<List
     }).then(response => response.json());
 
     return result as ListChatsResponse | ServiceError;
+}
+
+export const getOffers = async (): Promise<OffersResponse | ServiceError> => {
+    const url = new URL("/api/offers", window.location.origin);
+
+    const result = await fetch(url, {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    }).then(response => response.json());
+
+    return result as OffersResponse | ServiceError;
 }

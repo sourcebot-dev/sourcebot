@@ -102,16 +102,6 @@ export const syncWithLighthouse = async (orgId: number) => {
             },
         });
 
-        if (trialEnd) {
-            await __unsafePrisma.org.update({
-                where: { id: orgId, trialUsedAt: null },
-                data: { trialUsedAt: new Date() },
-            }).catch(() => {
-                // No-op: the `where` matched zero rows because trialUsedAt
-                // was already set. Safe to ignore.
-            });
-        }
-
         logger.info(`License synced: entitlements=${entitlements.join(',')}, seats=${seats}, status=${status}`);
     }
 };

@@ -47,6 +47,7 @@ export const checkoutRequestSchema = z.object({
     installId: z.string(),
     quantity: z.number().int().positive(),
     requestTrial: z.boolean().default(false),
+    interval: z.enum(['month', 'year']).default('month'),
     successUrl: z.string().url(),
     cancelUrl: z.string().url(),
 });
@@ -90,3 +91,26 @@ export const invoicesResponseSchema = z.object({
     hasMore: z.boolean(),
 });
 export type InvoicesResponse = z.infer<typeof invoicesResponseSchema>;
+
+const pricingTierSchema = z.object({
+    unitAmount: z.number().int(),
+    currency: z.string(),
+});
+
+export const offersQuerySchema = z.object({
+    installId: z.string(),
+});
+export type OffersQuery = z.infer<typeof offersQuerySchema>;
+
+export const offersResponseSchema = z.object({
+    pricing: z.object({
+        monthly: pricingTierSchema,
+        annual: pricingTierSchema,
+    }),
+    trial: z.object({
+        durationDays: z.number().int(),
+        eligible: z.boolean(),
+        creditCardRequired: z.boolean(),
+    }),
+});
+export type OffersResponse = z.infer<typeof offersResponseSchema>;
