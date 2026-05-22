@@ -214,6 +214,15 @@ const nextAuthResult = NextAuth({
         signOut: async (message) => {
             const token = message as { token: { userId: string } | null };
             if (token?.token?.userId) {
+                // Bump sessionVersion so any JWT minted before this signout
+                // is treated as invalid by the jwt callback's DB cross-check
+                // on its next request, even if the cookie value was captured
+                // and is being replayed.
+                await __unsafePrisma.user.update({
+                    where: { id: token.token.userId },
+                    data: { sessionVersion: { increment: 1 } },
+                });
+
                 await auditService.createAudit({
                     action: "user.signed_out",
                     actor: {
@@ -259,20 +268,51 @@ const nextAuthResult = NextAuth({
                 token.sessionVersion = user.sessionVersion ?? 0;
             }
 
-            // @note The following performs a lazy migration of the issuerUrl
-            // in the user's accounts. The issuerUrl was introduced in v4.15.4
-            // and will not be present for accounts created prior to this version.
-            //
-            // @see https://github.com/sourcebot-dev/sourcebot/pull/993
             if (token.userId) {
-                const accountsWithoutIssuerUrl = await __unsafePrisma.account.findMany({
+                // Single query: fetch the user's current sessionVersion for
+                // the cross-check below, plus any accounts that still need
+                // the issuerUrl lazy migration.
+                //
+                // @see https://github.com/sourcebot-dev/sourcebot/pull/993
+                const dbUser = await __unsafePrisma.user.findUnique({
                     where: {
-                        userId: token.userId,
-                        issuerUrl: null,
+                        id: token.userId as string,
+                    },
+                    select: {
+                        sessionVersion: true,
+                        accounts: {
+                            where: {
+                                issuerUrl: null,
+                            },
+                        },
                     },
                 });
 
-                for (const account of accountsWithoutIssuerUrl) {
+                // The user row was removed (e.g., deleted via /api/ee/user
+                // or org-removal cascade). Treat the JWT as invalid so
+                // /api/auth/session reports logged-out and @auth/core clears
+                // the cookie from the browser.
+                if (!dbUser) {
+                    return null;
+                }
+
+                // On every non-login request, cross-check the JWT's
+                // sessionVersion against the user's current sessionVersion in
+                // the database. A mismatch means the user signed out, was
+                // removed from the org, or their sessions were otherwise
+                // invalidated since the JWT was minted. Returning null here
+                // is what makes invalidation visible at /api/auth/session,
+                // not just at withAuth-gated endpoints.
+                const tokenSessionVersion = token.sessionVersion ?? 0;
+                if (!user && tokenSessionVersion !== dbUser.sessionVersion) {
+                    return null;
+                }
+
+                // Lazy migration of issuerUrl on accounts created before
+                // the column was introduced in v4.15.4. The where clause
+                // above scopes this to only accounts that still need it,
+                // so the loop is a no-op once everyone is backfilled.
+                for (const account of dbUser.accounts) {
                     const issuerUrl = await getIssuerUrlForAccount(account);
                     if (issuerUrl) {
                         await __unsafePrisma.account.update({
@@ -313,35 +353,18 @@ const nextAuthResult = NextAuth({
 export const { handlers, signIn, signOut } = nextAuthResult;
 
 /**
- * Wrapped session resolver that enforces JWT versioning at the auth layer.
+ * Per-request memoized session resolver.
  *
- * Every JWT cookie carries the `sessionVersion` it was minted with. This
- * wrapper compares it against the user's current `sessionVersion` in the
- * database; if the user's version has been bumped (e.g., they were removed
- * from the org), we return null so every caller of `auth()` sees the
- * session as logged out.
+ * JWT validity (including the `sessionVersion` cross-check against the
+ * database and the existence of the underlying `User` row) is enforced in
+ * the `jwt` callback above. If that callback returns `null`, NextAuth's
+ * core resolves the session to `null` here and also clears the cookie on
+ * the response. We therefore only need to memoize the result within a
+ * single request so that multiple `auth()` callers share the same answer
+ * without re-running the upstream resolver.
  */
 export const auth = cache(async (): Promise<Session | null> => {
-    const session = await nextAuthResult.auth();
-    if (!session) {
-        return null;
-    }
-
-    const dbUser = await __unsafePrisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { sessionVersion: true },
-    });
-
-    if (!dbUser) {
-        return null;
-    }
-
-    const tokenVersion = session.sessionVersion ?? 0;
-    if (tokenVersion !== dbUser.sessionVersion) {
-        return null;
-    }
-
-    return session;
+    return nextAuthResult.auth();
 });
 
 /**
