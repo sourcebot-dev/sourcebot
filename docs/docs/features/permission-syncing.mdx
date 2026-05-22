@@ -206,8 +206,6 @@ The sync intervals can be configured using the following settings in the [config
 | `repoDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
 | `userDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
 
-<Note>How Sourcebot handles errors during a permission sync depends on the type of error. Authentication errors (such as `401`, `403`, `410`, or a token refresh failure) cause Sourcebot to immediately revoke the affected user's access to repositories on that code host. Other errors (such as rate limits or `5xx` responses) are treated as transient: Sourcebot keeps the user's existing access until the next successful sync, so that a brief code host outage does not lock users out.</Note>
-
 # FAQ
 
 ### What happens if there are transient errors with the code host?
@@ -219,4 +217,4 @@ It depends on the type of error:
 
 ### When is a visibility change of a repo (switching from public to private) reflected within Sourcebot?
 
-The visibility state of a repository is updated when the [connection](/docs/connections/overview#connection-syncing) belonging to that repository is synced, not when the repository's permissions are synced. Until the next connection sync runs, Sourcebot continues to apply the repository's previous public-or-private classification. The connection sync interval is configurable via the `resyncConnectionIntervalMs` setting in the [config file](/docs/configuration/config-file) and defaults to 24 hours. Lower this value if your deployment expects faster propagation of visibility changes.
+The visibility state of a repository is updated when the [connection](/docs/connections/overview#connection-syncing) belonging to that repository is synced, not when the repository's permissions are synced. Until the next connection sync runs, Sourcebot continues to apply the repository's previous public/private classification. The connection sync interval is configurable via the `resyncConnectionIntervalMs` setting in the [config file](/docs/configuration/config-file) and defaults to 24 hours. Lower this value if your deployment expects faster propagation of visibility changes.
