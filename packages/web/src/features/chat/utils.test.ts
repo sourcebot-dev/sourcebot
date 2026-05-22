@@ -1,5 +1,5 @@
-import { expect, test, vi } from 'vitest'
-import { fileReferenceToString, getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences } from './utils'
+import { expect, test, describe, vi } from 'vitest'
+import { createUIMessage, fileReferenceToString, getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences } from './utils'
 import { FILE_REFERENCE_REGEX, ANSWER_TAG } from './constants';
 import { SBChatMessage, SBChatMessagePart } from './types';
 
@@ -350,4 +350,32 @@ test('repairReferences handles malformed inline code blocks', () => {
     const input = 'See `@file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts`} for details.';
     const expected = 'See @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts} for details.';
     expect(repairReferences(input)).toBe(expected);
+});
+
+describe('createUIMessage', () => {
+    test('includes disabledMcpServerIds in metadata when provided', () => {
+        const result = createUIMessage('hello', [], [], ['server1', 'server2']);
+
+        expect(result.metadata?.disabledMcpServerIds).toEqual(['server1', 'server2']);
+    });
+
+    test('defaults disabledMcpServerIds to empty array when omitted', () => {
+        const result = createUIMessage('hello', [], []);
+
+        expect(result.metadata?.disabledMcpServerIds).toEqual([]);
+    });
+
+    test('passes through empty array', () => {
+        const result = createUIMessage('hello', [], [], []);
+
+        expect(result.metadata?.disabledMcpServerIds).toEqual([]);
+    });
+
+    test('includes both selectedSearchScopes and disabledMcpServerIds in metadata', () => {
+        const scopes = [{ type: 'repo' as const, value: 'org/repo', name: 'repo', codeHostType: 'github' }];
+        const result = createUIMessage('hello', [], scopes, ['disabled1']);
+
+        expect(result.metadata?.selectedSearchScopes).toEqual(scopes);
+        expect(result.metadata?.disabledMcpServerIds).toEqual(['disabled1']);
+    });
 });

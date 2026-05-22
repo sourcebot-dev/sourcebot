@@ -82,6 +82,12 @@ export const getSidebarNavGroups = async () =>
                             icon: "link" as const,
                         }
                     ] : []),
+                    ...(await hasEntitlement("oauth") ? [
+                        {
+                            title: "MCP Servers",
+                            href: `/settings/mcpServers`,
+                        }
+                    ] : []),
                 ],
             },
         ];
