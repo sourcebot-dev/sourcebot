@@ -18,6 +18,8 @@ that they have access to on the code host. Practically, this means:
 - Ask Sourcebot (and the underlying LLM) will only have access to repositories that the user has access to.
 - File browsing is scoped to the repositories that the user has access to.
 
+<Note>A repository's public-vs-private state is refreshed by [connection sync](/docs/connections/overview#connection-syncing), not by permission sync. After a visibility change at the code host, Sourcebot continues to apply its previous classification until the next connection sync runs (configurable via `resyncConnectionIntervalMs`, default 24 hours). Lower this value if your deployment expects faster propagation of visibility changes.</Note>
+
 Permission syncing can be enabled by setting the `PERMISSION_SYNC_ENABLED` environment variable to `true`.
 
 ```bash
@@ -178,10 +180,6 @@ These flags are useful when you want different enforcement behavior across conne
 }
 ```
 
-<Note>When `enforcePermissionsForPublicRepos` is `true`, public repositories are visible to any user who has linked an account on the same code host. The check is at the host level rather than per-repo, so users do not need explicit upstream read access to each public repository individually.</Note>
-
-<Note>A repository's public-vs-private state is refreshed by [connection sync](/docs/connections/overview#connection-syncing), not by permission sync. After a visibility change at the code host, Sourcebot continues to apply its previous classification until the next connection sync runs (configurable via `resyncConnectionIntervalMs`, default 24 hours). Lower this value if your deployment expects faster propagation of visibility changes.</Note>
-
 The table below shows when permissions are enforced based on the combination of `PERMISSION_SYNC_ENABLED`, `enforcePermissions`, and `enforcePermissionsForPublicRepos`:
 
 | `PERMISSION_SYNC_ENABLED` | `enforcePermissions` | `enforcePermissionsForPublicRepos` | Private repos enforced? | Public repos enforced? |
@@ -210,4 +208,13 @@ The sync intervals can be configured using the following settings in the [config
 | `repoDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
 | `userDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
 
-<Note>Permission syncing fails closed only on authentication-related errors (`401`, `403`, `410`, or OAuth token refresh failures), in which case Sourcebot clears the affected account's permission rows immediately. Transient errors such as rate limits or `5xx` responses leave the previous permission state in effect until the next successful sync, so that brief upstream incidents do not strand users without access.</Note>
+<Note>How Sourcebot handles errors during a permission sync depends on the type of error. Authentication errors (such as `401`, `403`, `410`, or a token refresh failure) cause Sourcebot to immediately revoke the affected user's access to repositories on that code host. Other errors (such as rate limits or `5xx` responses) are treated as transient: Sourcebot keeps the user's existing access until the next successful sync, so that a brief code host outage does not lock users out.</Note>
+
+# FAQ
+
+### What happens if there are transient errors with the code host?
+
+It depends on the type of error.
+
+- **Authentication errors** (such as `401`, `403`, `410`, or a token refresh failure): Sourcebot immediately revokes the affected user's access to repositories on that code host.
+- **Rate limits or `5xx` responses**: Sourcebot keeps the user's existing access until the next successful sync runs.
