@@ -10,12 +10,12 @@ import {
     InvoicesRequest,
     InvoicesResponse,
     invoicesResponseSchema,
+    OffersQuery,
+    OffersResponse,
+    offersResponseSchema,
     PortalRequest,
     PortalResponse,
     portalResponseSchema,
-    PricingRequest,
-    PricingResponse,
-    pricingResponseSchema,
     ServicePingRequest,
     ServicePingResponse,
     servicePingResponseSchema,
@@ -76,14 +76,14 @@ export const client = {
         return parseResponseBody(response, invoicesResponseSchema);
     },
 
-    pricing: async (body: PricingRequest): Promise<PricingResponse | ServiceError> => {
-        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/pricing`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
+    offers: async (query: OffersQuery, init?: Omit<RequestInit, 'method'>): Promise<OffersResponse | ServiceError> => {
+        const params = new URLSearchParams(query);
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/offers?${params}`, {
+            method: 'GET',
+            ...init
         });
 
-        return parseResponseBody(response, pricingResponseSchema);
+        return parseResponseBody(response, offersResponseSchema);
     },
 }
 

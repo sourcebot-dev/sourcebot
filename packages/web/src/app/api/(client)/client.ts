@@ -29,7 +29,7 @@ import type {
     SearchChatShareableMembersQueryParams,
     SearchChatShareableMembersResponse,
 } from "../(server)/ee/chat/[chatId]/searchMembers/route";
-import type { PricingResponse } from "@/ee/features/lighthouse/types";
+import { OffersResponse } from "@/ee/features/lighthouse/types";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -199,16 +199,6 @@ export const searchChatShareableMembers = async (
     return result as SearchChatShareableMembersResponse | ServiceError;
 }
 
-export const getPricing = async (): Promise<PricingResponse | ServiceError> => {
-    const result = await fetch("/api/ee/pricing", {
-        method: "GET",
-        headers: {
-            "X-Sourcebot-Client-Source": "sourcebot-web-client",
-        },
-    }).then(response => response.json());
-    return result as PricingResponse | ServiceError;
-}
-
 export const listChats = async (queryParams: ListChatsQueryParams): Promise<ListChatsResponse | ServiceError> => {
     const url = new URL("/api/chats", window.location.origin);
     for (const [key, value] of Object.entries(queryParams)) {
@@ -225,4 +215,17 @@ export const listChats = async (queryParams: ListChatsQueryParams): Promise<List
     }).then(response => response.json());
 
     return result as ListChatsResponse | ServiceError;
+}
+
+export const getOffers = async (): Promise<OffersResponse | ServiceError> => {
+    const url = new URL("/api/offers", window.location.origin);
+
+    const result = await fetch(url, {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    }).then(response => response.json());
+
+    return result as OffersResponse | ServiceError;
 }

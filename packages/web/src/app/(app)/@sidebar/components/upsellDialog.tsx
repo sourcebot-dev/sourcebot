@@ -1,16 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useCallback, useMemo, useState } from "react";
 import { ArrowUpCircle, CircleCheck, CircleX, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Switch } from "@/components/ui/switch";
-import { cn, formatCurrency, isServiceError, unwrapServiceError } from "@/lib/utils";
+import { cn, formatCurrency, isServiceError } from "@/lib/utils";
 import { createCheckoutSession } from "@/ee/features/lighthouse/actions";
-import { getPricing } from "@/app/api/(client)/client";
 import { useToast } from "@/components/hooks/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
     Dialog,
     DialogContent,
@@ -27,6 +24,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { OffersResponse } from "@/ee/features/lighthouse/types";
 
 interface FeatureLinkProps {
     text: string;
@@ -70,7 +68,7 @@ function SupportIcon({ supported }: SupportIconProps) {
 interface UpsellDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    trialAvailable: boolean;
+    offers: OffersResponse,
 }
 
 type BillingInterval = "year" | "month";
@@ -83,31 +81,21 @@ function formatPrice(unitAmount: number, currency: string, interval: BillingInte
     return `${formatCurrency(unitAmount, currency, options)} per user/month`;
 }
 
-export function UpsellDialog({ open, onOpenChange, trialAvailable }: UpsellDialogProps) {
+export function UpsellDialog({ open, onOpenChange, offers }: UpsellDialogProps) {
     const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
     const [isCheckoutSessionCreating, setIsCheckoutSessionCreating] = useState(false);
     const { toast } = useToast();
 
-    const { data: pricing, isPending, isError } = useQuery({
-        queryKey: ["pricing"],
-        queryFn: async () => unwrapServiceError(getPricing()),
-        staleTime: 5 * 60 * 1000,
-    });
-
-    const enterprisePrice = isPending
-        ? <Skeleton className="h-4 w-36 mt-1" />
-        : isError
-            ? <span className="text-destructive">Failed to load pricing</span>
-            : formatPrice(
-                billingInterval === "year" ? pricing!.annual.unitAmount : pricing!.monthly.unitAmount,
-                billingInterval === "year" ? pricing!.annual.currency : pricing!.monthly.currency,
-                billingInterval,
-            );
+    const enterprisePrice = formatPrice(
+        billingInterval === "year" ? offers.pricing.annual.unitAmount : offers.pricing.monthly.unitAmount,
+        billingInterval === "year" ? offers.pricing.annual.currency : offers.pricing.monthly.currency,
+        billingInterval,
+    );
 
     const handlePrimaryAction = useCallback(() => {
         setIsCheckoutSessionCreating(true);
         createCheckoutSession({
-            requestTrial: trialAvailable,
+            requestTrial: offers.trial.eligible,
             interval: billingInterval,
         })
             .then((response) => {
@@ -128,7 +116,34 @@ export function UpsellDialog({ open, onOpenChange, trialAvailable }: UpsellDialo
                 });
                 setIsCheckoutSessionCreating(false);
             })
-    }, [trialAvailable, billingInterval, toast]);
+    }, [billingInterval, offers.trial.eligible, toast]);
+
+    const { title, description, buttonText } = useMemo(() => {
+        // trial, no cc
+        if (offers.trial.eligible && !offers.trial.creditCardRequired) {
+            return {
+                title: "Try Sourcebot Enterprise free",
+                description: `Get full access free for ${offers.trial.durationDays} days. No credit card required.`,
+                buttonText: "Start free trial"
+            }
+        }
+        // trial, cc
+        else if ( offers.trial.eligible && offers.trial.creditCardRequired) {
+            return {
+                title: "Try Sourcebot Enterprise free",
+                description: `Get full access free for ${offers.trial.durationDays} days. Card required, cancel anytime.`,
+                buttonText: "Start free trial"
+            }
+        }
+        // no trial
+        else {
+            return {
+                title: "Your workspace is on the free plan",
+                description: "Upgrade to unlock more features.",
+                buttonText: "Upgrade"
+            }
+        }
+    }, [offers.trial.creditCardRequired, offers.trial.durationDays, offers.trial.eligible]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -136,14 +151,10 @@ export function UpsellDialog({ open, onOpenChange, trialAvailable }: UpsellDialo
                 <DialogHeader className="gap-1">
                     <ArrowUpCircle className="h-6 w-6 bg-blue-500 text-gray-100 rounded-full" />
                     <DialogTitle>
-                        {trialAvailable
-                            ? "Try Sourcebot Enterprise free"
-                            : "Your workspace is on the free plan"}
+                        {title}
                     </DialogTitle>
                     <DialogDescription className="text-base">
-                        {trialAvailable
-                            ? "Get full access. No credit card required."
-                            : "Upgrade to unlock more features."}
+                        {description}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -225,7 +236,7 @@ export function UpsellDialog({ open, onOpenChange, trialAvailable }: UpsellDialo
                         </a>
                     </Button>
                     <LoadingButton onClick={handlePrimaryAction} loading={isCheckoutSessionCreating}>
-                        {trialAvailable ? "Start free trial" : "Upgrade"}
+                        {buttonText}
                     </LoadingButton>
                 </DialogFooter>
             </DialogContent>

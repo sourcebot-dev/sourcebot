@@ -10,16 +10,15 @@ import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, ExternalLink } from "lucide-react";
+import { useOffers } from "@/ee/features/lighthouse/useOffers";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface ActivationCodeCardProps {
-    isTrialEligible: boolean;
-}
-
-export function ActivationCodeCard({ isTrialEligible }: ActivationCodeCardProps) {
+export function ActivationCodeCard() {
     const [activationCode, setActivationCode] = useState("");
     const [isActivating, setIsActivating] = useState(false);
     const [isCheckoutSessionCreating, setIsCheckoutSessionCreating] = useState(false);
     const { toast } = useToast();
+    const { data: offers, isPending, isError } = useOffers();
 
     const handleActivate = useCallback(() => {
         if (!activationCode.trim()) {
@@ -46,7 +45,7 @@ export function ActivationCodeCard({ isTrialEligible }: ActivationCodeCardProps)
             });
     }, [activationCode, toast]);
 
-    const onCreateCheckoutSession = useCallback(() => {
+    const onCreateCheckoutSession = useCallback((isTrialEligible: boolean) => {
         setIsCheckoutSessionCreating(true);
 
         createCheckoutSession({
@@ -73,7 +72,7 @@ export function ActivationCodeCard({ isTrialEligible }: ActivationCodeCardProps)
             .finally(() => {
                 setIsCheckoutSessionCreating(false);
             });
-    }, [toast, isTrialEligible]);
+    }, [toast]);
 
     return (
         <SettingsCard>
@@ -106,22 +105,30 @@ export function ActivationCodeCard({ isTrialEligible }: ActivationCodeCardProps)
                             Activate
                         </LoadingButton>
                     </div>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                        Don&apos;t have an activation code?
-                        <Button
-                            variant="link"
-                            className="h-auto p-0 gap-1"
-                            onClick={onCreateCheckoutSession}
-                            disabled={isCheckoutSessionCreating}
-                        >
-                            {isTrialEligible ? "Start a free trial" : "Purchase a license"}
-                            {isCheckoutSessionCreating ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                                <ExternalLink className="h-3 w-3" />
-                            )}
-                        </Button>
-                    </p>
+                    {
+                        isPending ? (
+                            <Skeleton className="h-5 w-80" />
+                        ) : isError ? (
+                            <span className="text-destructive text-sm">Failed to load pricing information.</span>
+                        ) : (
+                            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                Don&apos;t have an activation code?
+                                <Button
+                                    variant="link"
+                                    className="h-auto p-0 gap-1"
+                                    onClick={() => onCreateCheckoutSession(offers.trial.eligible)}
+                                    disabled={isCheckoutSessionCreating}
+                                >
+                                    {offers.trial.eligible ? "Start a free trial" : "Purchase a license"}
+                                    {isCheckoutSessionCreating ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                        <ExternalLink className="h-3 w-3" />
+                                    )}
+                                </Button>
+                            </p>
+                        )
+                    }
                 </div>
             </div>
         </SettingsCard>

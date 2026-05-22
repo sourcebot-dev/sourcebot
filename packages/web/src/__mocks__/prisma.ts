@@ -21,7 +21,6 @@ export const MOCK_ORG: Org = {
     memberApprovalRequired: false,
     inviteLinkEnabled: false,
     inviteLinkId: null,
-    trialUsedAt: null,
 }
 
 export const MOCK_API_KEY: ApiKey = {

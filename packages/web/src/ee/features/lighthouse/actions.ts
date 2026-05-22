@@ -12,7 +12,7 @@ import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
 import { isServiceError } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { client } from "./client";
-import { Invoice, PricingResponse } from "./types";
+import { Invoice } from "./types";
 
 export const activateLicense = async (activationCode: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async ({ org, role, prisma }) =>
@@ -122,7 +122,7 @@ export const createCheckoutSession = async ({
                 requestTrial,
                 interval,
                 successUrl: requestTrial
-                    ? `${env.AUTH_URL}/settings/license?checkout=success&refresh=true&trial_used=true`
+                    ? `${env.AUTH_URL}/settings/license?checkout=success&refresh=true`
                     : `${env.AUTH_URL}/settings/license?checkout=success&refresh=true`,
                 cancelUrl: `${env.AUTH_URL}/settings/license?refresh=true`,
             });
@@ -193,21 +193,6 @@ export const createPortalSession = async (): Promise<{ url: string } | ServiceEr
         })
     )
 );
-
-export const getPricing = async (): Promise<PricingResponse | ServiceError> => sew(() =>
-    withAuth(async ({ role }) =>
-        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            const result = await client.pricing({
-                installId: env.SOURCEBOT_INSTALL_ID,
-            });
-
-            if (isServiceError(result)) {
-                return result;
-            }
-
-            return result;
-        })
-    ));
 
 export const getAllInvoices = async (): Promise<Invoice[] | ServiceError> => sew(() =>
     withAuth(async ({ org, role, prisma }) =>

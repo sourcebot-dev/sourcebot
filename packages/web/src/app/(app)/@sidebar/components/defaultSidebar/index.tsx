@@ -30,7 +30,6 @@ export async function DefaultSidebar() {
 
     const authContext = await getAuthContext();
     const isOwner = !isServiceError(authContext) && authContext.role === OrgRole.OWNER;
-    const trialAvailable = !isServiceError(authContext) && authContext.org.trialUsedAt === null;
 
     const isSettingsNotificationVisible = await (async () => {
         if (!isOwner) {
@@ -49,7 +48,6 @@ export async function DefaultSidebar() {
             collapsible="icon"
             isValidLicenseActive={licenseActive}
             isOwner={isOwner}
-            trialAvailable={trialAvailable}
             headerContent={
                 <Nav
                     isSettingsNotificationVisible={isSettingsNotificationVisible}

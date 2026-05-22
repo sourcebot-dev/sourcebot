@@ -21,7 +21,6 @@ export async function SettingsSidebar() {
 
     const authContext = await getAuthContext();
     const isOwner = !isServiceError(authContext) && authContext.role === OrgRole.OWNER;
-    const trialAvailable = !isServiceError(authContext) && authContext.org.trialUsedAt === null;
 
     return (
         <SidebarBase
@@ -29,7 +28,6 @@ export async function SettingsSidebar() {
             collapsible="none"
             isValidLicenseActive={licenseActive}
             isOwner={isOwner}
-            trialAvailable={trialAvailable}
             headerContent={<SettingsSidebarHeader />}
         >
             <Nav groups={sidebarNavGroups} />

@@ -102,8 +102,20 @@ const pricingTierSchema = z.object({
     currency: z.string(),
 });
 
-export const pricingResponseSchema = z.object({
-    monthly: pricingTierSchema,
-    annual: pricingTierSchema,
+export const offersQuerySchema = z.object({
+    installId: z.string(),
 });
-export type PricingResponse = z.infer<typeof pricingResponseSchema>;
+export type OffersQuery = z.infer<typeof offersQuerySchema>;
+
+export const offersResponseSchema = z.object({
+    pricing: z.object({
+        monthly: pricingTierSchema,
+        annual: pricingTierSchema,
+    }),
+    trial: z.object({
+        durationDays: z.number().int(),
+        eligible: z.boolean(),
+        creditCardRequired: z.boolean(),
+    }),
+});
+export type OffersResponse = z.infer<typeof offersResponseSchema>;

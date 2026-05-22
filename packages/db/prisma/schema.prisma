@@ -293,10 +293,6 @@ model Org {
   chats Chat[]
 
   license License?
-
-  /// Set the first time this instance is seen to be on a trial subscription.
-  /// Never cleared. Used to gate the "Start trial" CTA in the UI.
-  trialUsedAt DateTime?
 }
 
 model License {
