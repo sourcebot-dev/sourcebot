@@ -18,8 +18,6 @@ that they have access to on the code host. Practically, this means:
 - Ask Sourcebot (and the underlying LLM) will only have access to repositories that the user has access to.
 - File browsing is scoped to the repositories that the user has access to.
 
-<Note>A repository's public-vs-private state is refreshed by [connection sync](/docs/connections/overview#connection-syncing), not by permission sync. After a visibility change at the code host, Sourcebot continues to apply its previous classification until the next connection sync runs (configurable via `resyncConnectionIntervalMs`, default 24 hours). Lower this value if your deployment expects faster propagation of visibility changes.</Note>
-
 Permission syncing can be enabled by setting the `PERMISSION_SYNC_ENABLED` environment variable to `true`.
 
 ```bash
@@ -214,7 +212,11 @@ The sync intervals can be configured using the following settings in the [config
 
 ### What happens if there are transient errors with the code host?
 
-It depends on the type of error.
+It depends on the type of error:
 
 - **Authentication errors** (such as `401`, `403`, `410`, or a token refresh failure): Sourcebot immediately revokes the affected user's access to repositories on that code host.
-- **Rate limits or `5xx` responses**: Sourcebot keeps the user's existing access until the next successful sync runs.
+- **Rate limits or `5xx` responses**: Sourcebot keeps the user's existing access.
+
+### When is a visibility change of a repo (switching from public to private) reflected within Sourcebot?
+
+The visibility state of a repository is updated when the [connection](/docs/connections/overview#connection-syncing) belonging to that repository is synced, not when the repository's permissions are synced. Until the next connection sync runs, Sourcebot continues to apply the repository's previous public-or-private classification. The connection sync interval is configurable via the `resyncConnectionIntervalMs` setting in the [config file](/docs/configuration/config-file) and defaults to 24 hours. Lower this value if your deployment expects faster propagation of visibility changes.
