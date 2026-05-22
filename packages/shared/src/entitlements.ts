@@ -88,12 +88,12 @@ const getValidOfflineLicense = (): getValidOfflineLicense | null => {
     return payload;
 }
 
-// If the license hasn't successfully synced with Lighthouse for this long,                                                                                                                                                            
-// the locally-cached state is no longer trusted. This guards against an                                                                                                                                                             
-// operator blocking egress to prevent the license row from hearing about                                                                                                                                                            
-// a canceled or past-due subscription. 7 days absorbs week-long transient                                                                                                                                                             
-// outages (weekends, firewall rollouts) without punishing legitimate                                                                                                                                                                  
-// customers.                                                                                                                                                                                                                          
+// If the license hasn't successfully synced with Lighthouse for this long,
+// the locally-cached state is no longer trusted. This guards against an
+// operator blocking egress to prevent the license row from hearing about
+// a canceled or past-due subscription. 7 days absorbs week-long transient
+// outages (weekends, firewall rollouts) without punishing legitimate
+// customers.
 export const STALE_ONLINE_LICENSE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
 
 // Surface a UI warning (banner + "refreshed" timestamp color) when the
@@ -114,6 +114,13 @@ const getValidOnlineLicense = (_license: License | null): License | null => {
     }
 
     return null;
+}
+
+export const isValidLicenseActive = (_license: License | null): boolean => {
+    return (
+        getValidOfflineLicense() !== null ||
+        getValidOnlineLicense(_license) !== null
+    );
 }
 
 export const isAnonymousAccessAvailable = (_license: License | null): boolean => {

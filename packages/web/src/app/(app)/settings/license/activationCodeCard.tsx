@@ -49,7 +49,9 @@ export function ActivationCodeCard({ isTrialEligible }: ActivationCodeCardProps)
     const onCreateCheckoutSession = useCallback(() => {
         setIsCheckoutSessionCreating(true);
 
-        createCheckoutSession(isTrialEligible)
+        createCheckoutSession({
+            requestTrial: isTrialEligible
+        })
             .then((response) => {
                 if (isServiceError(response)) {
                     toast({

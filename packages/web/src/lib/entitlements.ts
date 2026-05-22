@@ -2,6 +2,7 @@ import {
     _getEntitlements,
     _hasEntitlement,
     _isAnonymousAccessAvailable,
+    _isValidLicenseActive,
     createLogger,
     Entitlement,
     env,
@@ -61,4 +62,9 @@ export const isAnonymousAccessEnabled = async () => {
     const metadata = getOrgMetadata(org);
 
     return !!metadata?.anonymousAccessEnabled;
+}
+
+export const isValidLicenseActive = async () => {
+    const license = await getSingleTenantLicense();
+    return _isValidLicenseActive(license);
 }

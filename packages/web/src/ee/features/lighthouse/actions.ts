@@ -12,7 +12,7 @@ import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
 import { isServiceError } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { client } from "./client";
-import { Invoice } from "./types";
+import { Invoice, PricingResponse } from "./types";
 
 export const activateLicense = async (activationCode: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async ({ org, role, prisma }) =>
@@ -92,7 +92,13 @@ export const refreshLicense = async (): Promise<{ success: boolean } | ServiceEr
     )
 );
 
-export const createCheckoutSession = async (requestTrial = false): Promise<{ url: string } | ServiceError> => sew(() =>
+export const createCheckoutSession = async ({
+    requestTrial = false,
+    interval = 'month',
+}: {
+    requestTrial?: boolean;
+    interval?: 'month' | 'year';
+}): Promise<{ url: string } | ServiceError> => sew(() =>
     withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             if (!user.email) {
@@ -114,6 +120,7 @@ export const createCheckoutSession = async (requestTrial = false): Promise<{ url
                 installId: env.SOURCEBOT_INSTALL_ID,
                 quantity: Math.max(memberCount, 1),
                 requestTrial,
+                interval,
                 successUrl: requestTrial
                     ? `${env.AUTH_URL}/settings/license?checkout=success&refresh=true&trial_used=true`
                     : `${env.AUTH_URL}/settings/license?checkout=success&refresh=true`,
@@ -186,6 +193,21 @@ export const createPortalSession = async (): Promise<{ url: string } | ServiceEr
         })
     )
 );
+
+export const getPricing = async (): Promise<PricingResponse | ServiceError> => sew(() =>
+    withAuth(async ({ role }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            const result = await client.pricing({
+                installId: env.SOURCEBOT_INSTALL_ID,
+            });
+
+            if (isServiceError(result)) {
+                return result;
+            }
+
+            return result;
+        })
+    ));
 
 export const getAllInvoices = async (): Promise<Invoice[] | ServiceError> => sew(() =>
     withAuth(async ({ org, role, prisma }) =>

@@ -31,7 +31,7 @@ import { useKeymapType } from "@/hooks/useKeymapType";
 import { KeymapType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
-    ArrowLeftToLineIcon, ArrowRightToLineIcon, ChevronsUpDown, CodeIcon,
+    ArrowLeftToLineIcon, ArrowRightToLineIcon, ArrowUpCircle, ChevronsUpDown, CodeIcon,
     Laptop, LogIn, LogOut, Moon, SettingsIcon, Sun, UserIcon
 } from "lucide-react";
 import { Session } from "next-auth";
@@ -44,15 +44,19 @@ import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { WhatsNewSidebarButton } from "./whatsNewSidebarButton";
+import { UpsellDialog } from "./upsellDialog";
 
 interface SidebarBaseProps {
     session: Session | null;
     collapsible?: "icon" | "offcanvas" | "none";
     headerContent: ReactNode;
     children: ReactNode;
+    isValidLicenseActive: boolean;
+    isOwner: boolean;
+    trialAvailable: boolean;
 }
 
-export function SidebarBase({ session, collapsible = "icon", headerContent, children }: SidebarBaseProps) {
+export function SidebarBase({ session, collapsible = "icon", headerContent, children, isValidLicenseActive, isOwner, trialAvailable }: SidebarBaseProps) {
     const [isScrolled, setIsScrolled] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
 
@@ -86,6 +90,7 @@ export function SidebarBase({ session, collapsible = "icon", headerContent, chil
                 {children}
             </SidebarContent>
             <SidebarFooter className="border-t border-sidebar-border">
+                {!isValidLicenseActive && isOwner && <FreePlanBadge trialAvailable={trialAvailable} />}
                 {collapsible !== "none" && <CollapseSidebarButton />}
                 <WhatsNewSidebarButton />
                 {session ? (
@@ -96,6 +101,26 @@ export function SidebarBase({ session, collapsible = "icon", headerContent, chil
             </SidebarFooter>
             {collapsible !== "none" && <SidebarRail />}
         </Sidebar>
+    );
+}
+
+function FreePlanBadge({ trialAvailable }: { trialAvailable: boolean }) {
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const label = trialAvailable ? "Try Enterprise" : "Free plan";
+    return (
+        <>
+            <div className="group-data-[state=collapsed]:hidden px-2 pt-1">
+                <button
+                    type="button"
+                    onClick={() => setIsDialogOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground text-nowrap transition-colors hover:border-foreground hover:text-foreground"
+                >
+                    <ArrowUpCircle className="h-3.5 w-3.5" />
+                    {label}
+                </button>
+            </div>
+            <UpsellDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} trialAvailable={trialAvailable} />
+        </>
     );
 }
 
