@@ -129,7 +129,7 @@ export const getProviders = () => {
                     } else {
                         if (!user.hashedPassword) {
                             return null;
-                        }
+                    }
 
                         if (!bcrypt.compareSync(password, user.hashedPassword)) {
                             return null;
@@ -241,24 +241,7 @@ const nextAuthResult = NextAuth({
     callbacks: {
         async signIn({ account }) {
             const matchingProvider = account
-                ? getProviders().find((p) => {
-                    // NextAuth/Auth.js provider factories (e.g. Bitbucket,
-                    // GitHub, GitLab) hardcode a default `id` at the top of
-                    // the returned object and nest the caller's options
-                    // (including any `id` override) under `.options`. At
-                    // runtime the framework merges options over the
-                    // top-level defaults, so the effective provider id can
-                    // live under either field depending on whether the
-                    // caller passed an override. Read `.options.id` first
-                    // and fall back to the top-level `id`.
-                    const config = (
-                        typeof p.provider === 'function'
-                            ? (p.provider as unknown as () => unknown)()
-                            : p.provider
-                    ) as { id?: string; options?: { id?: string } };
-                    const providerId = config.options?.id ?? config.id;
-                    return providerId === account.provider;
-                })
+                ? getProviders().find((p) => getEffectiveProviderId(p.provider) === account.provider)
                 : undefined;
 
             // Refuse OAuth signin for providers configured purely for account
@@ -282,7 +265,6 @@ const nextAuthResult = NextAuth({
             // new orphan identity with no UserToOrg row.
             const isAccountLinkingAttempt = matchingProvider?.purpose === 'account_linking';
             const session = await auth();
-
             if (isAccountLinkingAttempt && session === null) {
                 return false;
             }
@@ -417,18 +399,29 @@ export const auth = cache(async (): Promise<Session | null> => {
     return nextAuthResult.auth();
 });
 
+// NextAuth/Auth.js provider factories (e.g. Bitbucket, GitHub, GitLab) hardcode
+// a default `id` at the top of the returned object and nest the caller's
+// options (including any `id` override) under `.options`. At runtime the
+// framework merges options over the top-level defaults, so the effective
+// provider id can live under either field depending on whether the caller
+// passed an override. Read `.options.id` first and fall back to the top-level
+// `id`. The function form of `Provider` is part of the NextAuth type union but
+// unused in this codebase; we handle it for type completeness.
+const getEffectiveProviderId = (provider: Provider): string | undefined => {
+    const config = (
+        typeof provider === 'function'
+            ? (provider as unknown as () => unknown)()
+            : provider
+    ) as { id?: string; options?: { id?: string } };
+    return config.options?.id ?? config.id;
+}
+
 /**
  * Returns the issuer URL for a given auth.js account
  */
 const getIssuerUrlForAccount = async (account: { provider: string; }) => {
-    const providers = getProviders();
-    const matchingProvider = providers.find((provider) => {
-        if (typeof provider.provider === "function") {
-            const providerInfo = provider.provider();
-            return providerInfo.id === account.provider;
-        } else {
-            return provider.provider.id === account.provider;
-        }
-    });
+    const matchingProvider = getProviders().find(
+        (p) => getEffectiveProviderId(p.provider) === account.provider
+    );
     return matchingProvider?.issuerUrl;
 }
