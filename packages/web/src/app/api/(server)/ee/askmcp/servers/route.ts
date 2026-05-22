@@ -32,20 +32,20 @@ export const GET = apiHandler(async () => {
         const userServers = await prisma.userMcpServer.findMany({
             where: { userId: user.id },
             orderBy: { createdAt: 'desc' },
-            include: {
+            select: {
+                name: true,
+                tokens: true,
+                tokensExpiresAt: true,
                 server: {
-                    include: {
-                        credentials: {
-                            where: { userId: user.id },
-                            take: 1,
-                        },
+                    select: {
+                        id: true,
+                        serverUrl: true,
                     },
                 },
             },
         });
 
         return userServers.map((us): McpServerWithStatus => {
-            const credential = us.server.credentials[0] ?? null;
             const sanitizedName = sanitizeMcpServerName(us.name);
             const origin = new URL(us.server.serverUrl).origin;
             const faviconUrl = `https://www.google.com/s2/favicons?domain=${origin}&sz=32`;
@@ -53,14 +53,14 @@ export const GET = apiHandler(async () => {
             let isConnected = false;
             let isAuthExpired = false;
 
-            if (credential?.tokens) {
+            if (us.tokens) {
                 try {
-                    const decrypted = decryptOAuthToken(credential.tokens);
+                    const decrypted = decryptOAuthToken(us.tokens);
                     if (decrypted) {
                         const tokens: OAuthTokens = JSON.parse(decrypted);
-                        if (tokens.refresh_token || !credential.tokensExpiresAt) {
+                        if (tokens.refresh_token || !us.tokensExpiresAt) {
                             isConnected = true;
-                        } else if (new Date() > credential.tokensExpiresAt) {
+                        } else if (new Date() > us.tokensExpiresAt) {
                             isAuthExpired = true;
                         } else {
                             isConnected = true;

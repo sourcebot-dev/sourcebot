@@ -45,6 +45,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                     serverId: mcpServer.id,
                 },
             },
+            select: { userId: true },
         });
         if (!userServer) {
             return notFound('MCP server not found');

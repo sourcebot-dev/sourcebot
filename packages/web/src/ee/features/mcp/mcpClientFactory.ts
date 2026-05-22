@@ -32,18 +32,21 @@ export function isTokenExpiredWithNoRefresh(tokens: OAuthTokens, tokensExpiresAt
  * Does NOT connect — connection is deferred to createMCPClient.
  */
 export async function getConnectedMcpClients(userId: string, orgId: number): Promise<McpToolSet[]> {
-    const credentials = await __unsafePrisma.mcpServerCredential.findMany({
+    const userServers = await __unsafePrisma.userMcpServer.findMany({
         where: {
             userId,
             tokens: { not: null },
+            server: { orgId },
         },
-        include: {
+        select: {
+            serverId: true,
+            name: true,
+            tokens: true,
+            tokensExpiresAt: true,
             server: {
-                include: {
-                    userMcpServers: {
-                        where: { userId },
-                        take: 1,
-                    },
+                select: {
+                    orgId: true,
+                    serverUrl: true,
                 },
             },
         },
@@ -51,22 +54,16 @@ export async function getConnectedMcpClients(userId: string, orgId: number): Pro
 
     const clients: McpToolSet[] = [];
 
-    for (const credential of credentials) {
+    for (const userServer of userServers) {
         // Skip servers that don't belong to the current org.
-        if (credential.server.orgId !== orgId) {
-            continue;
-        }
-
-        const userServer = credential.server.userMcpServers[0];
-        // Skip if the user has removed this server from their list.
-        if (!userServer) {
+        if (userServer.server.orgId !== orgId) {
             continue;
         }
 
         const serverName = userServer.name;
 
         try {
-            const decrypted = decryptOAuthToken(credential.tokens);
+            const decrypted = decryptOAuthToken(userServer.tokens);
             if (!decrypted) {
                 logger.warn(`Could not decrypt tokens for MCP server ${serverName}, skipping.`);
                 continue;
@@ -74,26 +71,26 @@ export async function getConnectedMcpClients(userId: string, orgId: number): Pro
 
             const tokens: OAuthTokens = JSON.parse(decrypted);
 
-            if (isTokenExpiredWithNoRefresh(tokens, credential.tokensExpiresAt)) {
+            if (isTokenExpiredWithNoRefresh(tokens, userServer.tokensExpiresAt)) {
                 logger.warn(`Access token for MCP server ${serverName} is expired and has no refresh token. User ${userId} needs to re-authorize.`);
                 continue;
             }
 
             const provider = new PrismaOAuthClientProvider(
-                credential.serverId,
+                userServer.serverId,
                 userId,
                 `${env.AUTH_URL}/api/ee/askmcp/callback`,
             );
 
             const transport = new StreamableHTTPClientTransport(
-                new URL(credential.server.serverUrl),
+                new URL(userServer.server.serverUrl),
                 { authProvider: provider },
             );
 
             clients.push({
-                serverId: credential.serverId,
+                serverId: userServer.serverId,
                 serverName,
-                serverUrl: credential.server.serverUrl,
+                serverUrl: userServer.server.serverUrl,
                 transport,
             });
         } catch (error) {

@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const logger = createLogger('mcp-oauth-callback');
 
+// eslint-disable-next-line authz/require-auth-wrapper -- OAuth redirect callback validates the active session with auth() and filters all queries by userId.
 export const GET = apiHandler(async (request: NextRequest) => {
     if (!(await hasEntitlement('oauth'))) {
         return Response.json(
@@ -50,24 +51,24 @@ export const GET = apiHandler(async (request: NextRequest) => {
         );
     }
 
-    const credential = await prisma.mcpServerCredential.findFirst({
+    const userServer = await prisma.userMcpServer.findFirst({
         where: {
             state,
             userId: session.user.id,
         },
-        include: {
+        select: {
+            serverId: true,
+            name: true,
             server: {
-                include: {
-                    userMcpServers: {
-                        where: { userId: session.user.id },
-                        take: 1,
-                    },
+                select: {
+                    orgId: true,
+                    serverUrl: true,
                 },
             },
         },
     });
 
-    if (!credential) {
+    if (!userServer) {
         return Response.json(
             { error: 'invalid_state', error_description: 'No pending authorization found for this state.' },
             { status: 400 }
@@ -77,7 +78,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
     const orgMembership = await prisma.userToOrg.findUnique({
         where: {
             orgId_userId: {
-                orgId: credential.server.orgId,
+                orgId: userServer.server.orgId,
                 userId: session.user.id,
             },
         },
@@ -91,13 +92,13 @@ export const GET = apiHandler(async (request: NextRequest) => {
     }
 
     const provider = new PrismaOAuthClientProvider(
-        credential.serverId,
+        userServer.serverId,
         session.user.id,
         `${env.AUTH_URL}/api/ee/askmcp/callback`,
     );
 
     const result = await mcpAuth(provider, {
-        serverUrl: new URL(credential.server.serverUrl),
+        serverUrl: new URL(userServer.server.serverUrl),
         authorizationCode: code,
         callbackState: state,
     });
@@ -108,7 +109,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
     const settingsUrl = new URL(`/settings/mcpServers`, env.AUTH_URL);
 
     if (result === 'AUTHORIZED') {
-        const displayName = credential.server.userMcpServers[0]?.name ?? credential.server.serverUrl;
+        const displayName = userServer.name || userServer.server.serverUrl;
         logger.info(`Successfully authorized MCP server ${displayName} for user ${session.user.id}.`);
         settingsUrl.searchParams.set('status', 'connected');
         settingsUrl.searchParams.set('server', displayName);

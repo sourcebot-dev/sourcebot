@@ -15,7 +15,7 @@ import { encryptOAuthToken, decryptOAuthToken } from '@sourcebot/shared';
  * Prisma-backed OAuthClientProvider for connecting to external MCP servers.
  *
  * Stores dynamic client registration (client_id/secret) on McpServer (per-org),
- * and per-user tokens + ephemeral PKCE state on McpServerCredential.
+ * and per-user tokens + ephemeral PKCE state on UserMcpServer.
  */
 export class PrismaOAuthClientProvider implements OAuthClientProvider {
   constructor(
@@ -46,7 +46,9 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
       where: { id: this.serverId },
       select: { clientInfo: true },
     });
-    if (!server?.clientInfo) return undefined;
+    if (!server?.clientInfo) {
+      return undefined;
+    }
 
     const decrypted = decryptOAuthToken(server.clientInfo);
     return decrypted ? JSON.parse(decrypted) : undefined;
@@ -61,10 +63,12 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
   }
 
   async tokens(): Promise<OAuthTokens | undefined> {
-    const cred = await this.getOrCreateCredential();
-    if (!cred.tokens) return undefined;
+    const userServer = await this.getUserServer();
+    if (!userServer?.tokens) {
+      return undefined;
+    }
 
-    const decrypted = decryptOAuthToken(cred.tokens);
+    const decrypted = decryptOAuthToken(userServer.tokens);
     return decrypted ? JSON.parse(decrypted) : undefined;
   }
 
@@ -73,22 +77,22 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     const tokensExpiresAt = tokens.expires_in
       ? new Date(Date.now() + tokens.expires_in * 1000)
       : null;
-    await __unsafePrisma.mcpServerCredential.update({
+    await __unsafePrisma.userMcpServer.update({
       where: { userId_serverId: { userId: this.userId, serverId: this.serverId } },
       data: { tokens: encrypted, tokensExpiresAt },
     });
   }
 
   async codeVerifier(): Promise<string> {
-    const cred = await this.getOrCreateCredential();
-    if (!cred.codeVerifier) {
+    const userServer = await this.getUserServer();
+    if (!userServer?.codeVerifier) {
       throw new Error('No code verifier found');
     }
-    return cred.codeVerifier;
+    return userServer.codeVerifier;
   }
 
   async saveCodeVerifier(codeVerifier: string): Promise<void> {
-    await this.upsertCredential({ codeVerifier });
+    await this.updateUserServer({ codeVerifier });
   }
 
   async state(): Promise<string> {
@@ -96,12 +100,12 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
   }
 
   async saveState(state: string): Promise<void> {
-    await this.upsertCredential({ state });
+    await this.updateUserServer({ state });
   }
 
   async storedState(): Promise<string | undefined> {
-    const cred = await this.getOrCreateCredential();
-    return cred.state ?? undefined;
+    const userServer = await this.getUserServer();
+    return userServer?.state ?? undefined;
   }
 
   async redirectToAuthorization(url: URL): Promise<void> {
@@ -134,35 +138,38 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     }
 
     if (scope === 'all' || scope === 'tokens') {
-      await this.upsertCredential({ tokens: null });
+      await this.updateUserServer({ tokens: null, tokensExpiresAt: null });
     }
 
     if (scope === 'all' || scope === 'verifier') {
-      await this.upsertCredential({ codeVerifier: null, state: null });
+      await this.updateUserServer({ codeVerifier: null, state: null });
     }
   }
 
-  private async getOrCreateCredential() {
-    return __unsafePrisma.mcpServerCredential.upsert({
+  private async getUserServer() {
+    return __unsafePrisma.userMcpServer.findUnique({
       where: {
         userId_serverId: { userId: this.userId, serverId: this.serverId },
       },
-      create: { userId: this.userId, serverId: this.serverId },
-      update: {},
+      select: {
+        tokens: true,
+        codeVerifier: true,
+        state: true,
+      },
     });
   }
 
-  private async upsertCredential(data: {
+  private async updateUserServer(data: {
     tokens?: string | null;
+    tokensExpiresAt?: Date | null;
     codeVerifier?: string | null;
     state?: string | null;
   }) {
-    await __unsafePrisma.mcpServerCredential.upsert({
+    await __unsafePrisma.userMcpServer.update({
       where: {
         userId_serverId: { userId: this.userId, serverId: this.serverId },
       },
-      create: { userId: this.userId, serverId: this.serverId, ...data },
-      update: data,
+      data,
     });
   }
 }

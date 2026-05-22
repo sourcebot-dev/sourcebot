@@ -410,7 +410,6 @@ model User {
   /// claim baked into the JWT cookie at mint time.
   sessionVersion Int @default(0)
 
-  mcpServerCredentials McpServerCredential[]
   userMcpServers       UserMcpServer[]
 
   createdAt DateTime @default(now())
@@ -662,7 +661,6 @@ model McpServer {
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
 
-  credentials McpServerCredential[]
   userMcpServers UserMcpServer[]
 
   createdAt DateTime @default(now())
@@ -671,7 +669,8 @@ model McpServer {
   @@unique([serverUrl, orgId])
 }
 
-/// Junction table: a user's personal reference to an MCP server with their chosen display name.
+/// A user's personal connection to an MCP server.
+/// Stores the user-chosen display name plus per-user OAuth tokens and ephemeral auth-flow state.
 model UserMcpServer {
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId   String
@@ -680,22 +679,6 @@ model UserMcpServer {
   serverId String
 
   name     String    /// User-chosen display name (e.g., "Linear")
-
-  createdAt DateTime @default(now())
-
-  @@id([userId, serverId])
-}
-
-/// Per-user OAuth credentials for an external MCP server.
-/// Stores tokens (long-lived) and ephemeral auth-flow state separately.
-model McpServerCredential {
-  id String @id @default(cuid())
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
-
-  server   McpServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  serverId String
 
   /// OAuth tokens (access_token, refresh_token, etc.) — encrypted JSON of OAuthTokens.
   tokens String?
@@ -713,6 +696,6 @@ model McpServerCredential {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, serverId])
+  @@id([userId, serverId])
   @@index([state])
 }

@@ -41,23 +41,20 @@ const FUTURE = new Date('2099-01-01');
 const TOKEN_NO_REFRESH: OAuthTokens = { access_token: 'tok', token_type: 'Bearer' };
 const TOKEN_WITH_REFRESH: OAuthTokens = { access_token: 'tok', token_type: 'Bearer', refresh_token: 'ref' };
 
-function makeCredential(overrides: {
+function makeUserServer(overrides: {
     tokens?: OAuthTokens;
     tokensExpiresAt?: Date | null;
     orgId?: number;
-    hasUserServer?: boolean;
 }) {
     return {
         serverId: 'srv-1',
         userId: 'user-1',
+        name: 'MyServer',
         tokens: JSON.stringify(overrides.tokens ?? TOKEN_NO_REFRESH),
         tokensExpiresAt: overrides.tokensExpiresAt ?? null,
-        codeVerifier: null,
-        state: null,
         server: {
             orgId: overrides.orgId ?? 1,
             serverUrl: 'https://example.com/mcp',
-            userMcpServers: overrides.hasUserServer === false ? [] : [{ name: 'MyServer' }],
         },
     };
 }
@@ -86,8 +83,8 @@ describe('isTokenExpiredWithNoRefresh', () => {
 
 describe('getConnectedMcpClients', () => {
     test('skips server when access token expired and no refresh token', async () => {
-        prisma.mcpServerCredential.findMany.mockResolvedValue([
-            makeCredential({ tokens: TOKEN_NO_REFRESH, tokensExpiresAt: PAST }),
+        prisma.userMcpServer.findMany.mockResolvedValue([
+            makeUserServer({ tokens: TOKEN_NO_REFRESH, tokensExpiresAt: PAST }),
         ] as never);
 
         const result = await getConnectedMcpClients('user-1', 1);
@@ -95,8 +92,8 @@ describe('getConnectedMcpClients', () => {
     });
 
     test('includes server when refresh_token present even if access token expired', async () => {
-        prisma.mcpServerCredential.findMany.mockResolvedValue([
-            makeCredential({ tokens: TOKEN_WITH_REFRESH, tokensExpiresAt: PAST }),
+        prisma.userMcpServer.findMany.mockResolvedValue([
+            makeUserServer({ tokens: TOKEN_WITH_REFRESH, tokensExpiresAt: PAST }),
         ] as never);
 
         const result = await getConnectedMcpClients('user-1', 1);
@@ -104,8 +101,8 @@ describe('getConnectedMcpClients', () => {
     });
 
     test('includes server when tokensExpiresAt is null', async () => {
-        prisma.mcpServerCredential.findMany.mockResolvedValue([
-            makeCredential({ tokensExpiresAt: null }),
+        prisma.userMcpServer.findMany.mockResolvedValue([
+            makeUserServer({ tokensExpiresAt: null }),
         ] as never);
 
         const result = await getConnectedMcpClients('user-1', 1);
@@ -113,20 +110,24 @@ describe('getConnectedMcpClients', () => {
     });
 
     test('skips server belonging to a different org', async () => {
-        prisma.mcpServerCredential.findMany.mockResolvedValue([
-            makeCredential({ orgId: 999 }),
+        prisma.userMcpServer.findMany.mockResolvedValue([
+            makeUserServer({ orgId: 999 }),
         ] as never);
 
         const result = await getConnectedMcpClients('user-1', 1);
         expect(result).toHaveLength(0);
     });
 
-    test('skips server the user has removed from their list', async () => {
-        prisma.mcpServerCredential.findMany.mockResolvedValue([
-            makeCredential({ hasUserServer: false }),
+    test('returns server metadata from the user MCP server row', async () => {
+        prisma.userMcpServer.findMany.mockResolvedValue([
+            makeUserServer({ tokens: TOKEN_WITH_REFRESH }),
         ] as never);
 
         const result = await getConnectedMcpClients('user-1', 1);
-        expect(result).toHaveLength(0);
+        expect(result[0]).toMatchObject({
+            serverId: 'srv-1',
+            serverName: 'MyServer',
+            serverUrl: 'https://example.com/mcp',
+        });
     });
 });

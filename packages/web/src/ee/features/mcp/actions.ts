@@ -52,6 +52,7 @@ export const createMcpServer = async (name: string, serverUrl: string) => sew(()
                     serverId: mcpServer.id,
                 },
             },
+            select: { userId: true },
         });
 
         if (existingUserServer) {
@@ -103,6 +104,7 @@ export const deleteMcpServer = async (serverId: string) => sew(() =>
                     serverId,
                 },
             },
+            select: { userId: true },
         });
 
         if (!userServer) {
@@ -113,24 +115,16 @@ export const deleteMcpServer = async (serverId: string) => sew(() =>
             } satisfies ServiceError;
         }
 
-        // Delete the user's reference and their credentials. The McpServer row stays
-        // because other users may reference the same endpoint.
-        await prisma.$transaction([
-            prisma.mcpServerCredential.deleteMany({
-                where: {
+        // Delete the user's connection row. The McpServer row stays because other
+        // users may reference the same endpoint.
+        await prisma.userMcpServer.delete({
+            where: {
+                userId_serverId: {
                     userId: user.id,
                     serverId,
                 },
-            }),
-            prisma.userMcpServer.delete({
-                where: {
-                    userId_serverId: {
-                        userId: user.id,
-                        serverId,
-                    },
-                },
-            }),
-        ]);
+            },
+        });
 
         return { success: true };
     }));
