@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.17.3] - 2026-05-22
+
 ### Fixed
 - Fixed issue where repo permissions could go stale when authentication or token refresh related errors occured. [#1215](https://github.com/sourcebot-dev/sourcebot/pull/1215)
 - [EE] Fixed issue where repo permissions could go stale when an upstream endpoint returned HTTP 410 Gone (e.g. Bitbucket Cloud's CHANGE-2770). [#1216](https://github.com/sourcebot-dev/sourcebot/pull/1216)
