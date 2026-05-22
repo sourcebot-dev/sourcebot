@@ -239,6 +239,44 @@ const nextAuthResult = NextAuth({
         }
     },
     callbacks: {
+        async signIn({ account }) {
+            const matchingProvider = account
+                ? getProviders().find((p) => {
+                    const providerId = typeof p.provider === 'function'
+                        ? p.provider().id
+                        : p.provider.id;
+                    return providerId === account.provider;
+                })
+                : undefined;
+
+
+            // Refuse OAuth signin for providers configured purely for account
+            // linking when no authenticated user is present on the request.
+            //
+            // Background: @auth/core's handleLoginOrRegister (callback/handle-login.js)
+            // reads the session token from the request and, if it can't decode it
+            // (e.g., the session cookie expired browser-side mid auth flow, or it
+            // never made it across the cross-site redirect),
+            // falls through to `createUser({ ...profile })`, silently spawning a
+            // new orphan User row from the OAuth profile. That's correct behavior
+            // for `purpose: "sso"` providers (an unauthenticated user logging in
+            // via SSO should become a new Sourcebot user). It's wrong for
+            // `purpose: "account_linking"` providers: by definition, those should
+            // only ever attach an upstream identity to an *existing* signed-in
+            // user, never mint a new Sourcebot user.
+            //
+            // Returning `false` here short-circuits the callback action with an
+            // `AccessDenied` before handleLoginOrRegister can run, redirecting
+            // the user to the error page instead of leaving them stranded as a
+            // new orphan identity with no UserToOrg row.
+            const isAccountLinkingAttempt = matchingProvider?.purpose === 'account_linking';
+            const session = await auth();
+            if (isAccountLinkingAttempt && session === null) {
+                return false;
+            }
+
+            return true;
+        },
         // Restrict post-auth redirects (sign-in / sign-out, `callbackUrl`,
         // `redirectTo`) to the same origin as the application. This mirrors
         // Auth.js's documented default; we set it explicitly so the protection
