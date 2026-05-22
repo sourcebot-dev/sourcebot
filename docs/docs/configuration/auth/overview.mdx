@@ -24,7 +24,11 @@ Sourcebot's built-in authentication system gates your deployment, and allows adm
 
 # Session lifetime
 
-<Note>Session cookies are guaranteed to be valid for at least `AUTH_SESSION_MAX_AGE_SECONDS`, but may be accepted for a brief additional window before expiring. This is because the JWT verifier applies a small clock-skew tolerance when checking expiry.</Note>
+By default, session cookies remain valid for 30 days from the time they are issued, after which the user is signed out and must authenticate again.
+
+You can change this by setting the [`AUTH_SESSION_MAX_AGE_SECONDS`](/docs/configuration/environment-variables) environment variable to the desired lifetime in seconds.
+
+A session is guaranteed to remain valid for at least its configured lifetime. The JWT verifier applies a small clock-skew tolerance when checking expiry, so a session may continue to be accepted for a brief additional window past that point before it is rejected.
 
 # Troubleshooting
 
