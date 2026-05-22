@@ -92,11 +92,6 @@ export const invoicesResponseSchema = z.object({
 });
 export type InvoicesResponse = z.infer<typeof invoicesResponseSchema>;
 
-export const pricingRequestSchema = z.object({
-    installId: z.string(),
-});
-export type PricingRequest = z.infer<typeof pricingRequestSchema>;
-
 const pricingTierSchema = z.object({
     unitAmount: z.number().int(),
     currency: z.string(),

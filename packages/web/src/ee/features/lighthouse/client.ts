@@ -76,11 +76,10 @@ export const client = {
         return parseResponseBody(response, invoicesResponseSchema);
     },
 
-    offers: async (query: OffersQuery, init?: Omit<RequestInit, 'method'>): Promise<OffersResponse | ServiceError> => {
+    offers: async (query: OffersQuery): Promise<OffersResponse | ServiceError> => {
         const params = new URLSearchParams(query);
         const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/offers?${params}`, {
             method: 'GET',
-            ...init
         });
 
         return parseResponseBody(response, offersResponseSchema);
