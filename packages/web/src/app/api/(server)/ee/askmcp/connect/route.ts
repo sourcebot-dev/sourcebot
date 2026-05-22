@@ -52,6 +52,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
         }
 
         const provider = new PrismaOAuthClientProvider(
+            prisma,
             mcpServer.id,
             user.id,
             `${env.AUTH_URL}/api/ee/askmcp/callback`,

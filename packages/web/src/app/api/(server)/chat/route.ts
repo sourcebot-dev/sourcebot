@@ -108,6 +108,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                     selectedSearchScopes,
                 },
                 selectedRepos: expandedRepos,
+                prisma,
                 disabledMcpServerIds,
                 model,
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,

@@ -92,6 +92,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
     }
 
     const provider = new PrismaOAuthClientProvider(
+        prisma,
         userServer.serverId,
         session.user.id,
         `${env.AUTH_URL}/api/ee/askmcp/callback`,

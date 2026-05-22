@@ -1,8 +1,8 @@
-import { __unsafePrisma } from '@/prisma';
 import { createLogger, env, decryptOAuthToken } from '@sourcebot/shared';
 import { PrismaOAuthClientProvider } from '@/features/mcp/prismaOAuthClientProvider';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { OAuthTokens } from '@ai-sdk/mcp';
+import type { PrismaClient } from '@sourcebot/db';
 
 const logger = createLogger('mcp-client-factory');
 
@@ -31,8 +31,8 @@ export function isTokenExpiredWithNoRefresh(tokens: OAuthTokens, tokensExpiresAt
  * Skips servers with clearly expired tokens and no refresh token.
  * Does NOT connect — connection is deferred to createMCPClient.
  */
-export async function getConnectedMcpClients(userId: string, orgId: number): Promise<McpToolSet[]> {
-    const userServers = await __unsafePrisma.userMcpServer.findMany({
+export async function getConnectedMcpClients(prisma: PrismaClient, userId: string, orgId: number): Promise<McpToolSet[]> {
+    const userServers = await prisma.userMcpServer.findMany({
         where: {
             userId,
             tokens: { not: null },
@@ -77,6 +77,7 @@ export async function getConnectedMcpClients(userId: string, orgId: number): Pro
             }
 
             const provider = new PrismaOAuthClientProvider(
+                prisma,
                 userServer.serverId,
                 userId,
                 `${env.AUTH_URL}/api/ee/askmcp/callback`,

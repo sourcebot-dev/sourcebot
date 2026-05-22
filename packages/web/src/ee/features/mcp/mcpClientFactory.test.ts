@@ -4,11 +4,6 @@ import type { OAuthTokens } from '@ai-sdk/mcp';
 
 // --- Mocks ---
 
-vi.mock('@/prisma', async () => {
-    const actual = await vi.importActual<typeof import('@/__mocks__/prisma')>('@/__mocks__/prisma');
-    return { ...actual };
-});
-
 vi.mock('@sourcebot/shared', () => ({
     createLogger: () => ({
         info: vi.fn(),
@@ -87,7 +82,7 @@ describe('getConnectedMcpClients', () => {
             makeUserServer({ tokens: TOKEN_NO_REFRESH, tokensExpiresAt: PAST }),
         ] as never);
 
-        const result = await getConnectedMcpClients('user-1', 1);
+        const result = await getConnectedMcpClients(prisma, 'user-1', 1);
         expect(result).toHaveLength(0);
     });
 
@@ -96,7 +91,7 @@ describe('getConnectedMcpClients', () => {
             makeUserServer({ tokens: TOKEN_WITH_REFRESH, tokensExpiresAt: PAST }),
         ] as never);
 
-        const result = await getConnectedMcpClients('user-1', 1);
+        const result = await getConnectedMcpClients(prisma, 'user-1', 1);
         expect(result).toHaveLength(1);
     });
 
@@ -105,7 +100,7 @@ describe('getConnectedMcpClients', () => {
             makeUserServer({ tokensExpiresAt: null }),
         ] as never);
 
-        const result = await getConnectedMcpClients('user-1', 1);
+        const result = await getConnectedMcpClients(prisma, 'user-1', 1);
         expect(result).toHaveLength(1);
     });
 
@@ -114,7 +109,7 @@ describe('getConnectedMcpClients', () => {
             makeUserServer({ orgId: 999 }),
         ] as never);
 
-        const result = await getConnectedMcpClients('user-1', 1);
+        const result = await getConnectedMcpClients(prisma, 'user-1', 1);
         expect(result).toHaveLength(0);
     });
 
@@ -123,7 +118,7 @@ describe('getConnectedMcpClients', () => {
             makeUserServer({ tokens: TOKEN_WITH_REFRESH }),
         ] as never);
 
-        const result = await getConnectedMcpClients('user-1', 1);
+        const result = await getConnectedMcpClients(prisma, 'user-1', 1);
         expect(result[0]).toMatchObject({
             serverId: 'srv-1',
             serverName: 'MyServer',

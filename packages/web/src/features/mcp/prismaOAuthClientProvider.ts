@@ -5,10 +5,7 @@ import type {
   OAuthClientMetadata,
   OAuthTokens,
 } from '@ai-sdk/mcp';
-// Note: We use the raw (unscoped) prisma client here intentionally. The user-scoped
-// prisma extension only filters Repo queries, and all MCP queries in this file already
-// filter explicitly by userId and/or serverId, so scoping would be a no-op.
-import { __unsafePrisma } from '@/prisma';
+import type { PrismaClient } from '@sourcebot/db';
 import { encryptOAuthToken, decryptOAuthToken } from '@sourcebot/shared';
 
 /**
@@ -19,6 +16,7 @@ import { encryptOAuthToken, decryptOAuthToken } from '@sourcebot/shared';
  */
 export class PrismaOAuthClientProvider implements OAuthClientProvider {
   constructor(
+    private readonly prisma: PrismaClient,
     private readonly serverId: string,
     private readonly userId: string,
     private readonly callbackUrl: string,
@@ -42,7 +40,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
   }
 
   async clientInformation(): Promise<OAuthClientInformation | undefined> {
-    const server = await __unsafePrisma.mcpServer.findUnique({
+    const server = await this.prisma.mcpServer.findUnique({
       where: { id: this.serverId },
       select: { clientInfo: true },
     });
@@ -56,7 +54,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
 
   async saveClientInformation(info: OAuthClientInformation): Promise<void> {
     const encrypted = encryptOAuthToken(JSON.stringify(info));
-    await __unsafePrisma.mcpServer.update({
+    await this.prisma.mcpServer.update({
       where: { id: this.serverId },
       data: { clientInfo: encrypted },
     });
@@ -77,7 +75,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     const tokensExpiresAt = tokens.expires_in
       ? new Date(Date.now() + tokens.expires_in * 1000)
       : null;
-    await __unsafePrisma.userMcpServer.update({
+    await this.prisma.userMcpServer.update({
       where: { userId_serverId: { userId: this.userId, serverId: this.serverId } },
       data: { tokens: encrypted, tokensExpiresAt },
     });
@@ -131,7 +129,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     scope: 'all' | 'client' | 'tokens' | 'verifier',
   ): Promise<void> {
     if (scope === 'all' || scope === 'client') {
-      await __unsafePrisma.mcpServer.update({
+      await this.prisma.mcpServer.update({
         where: { id: this.serverId },
         data: { clientInfo: null },
       });
@@ -147,7 +145,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
   }
 
   private async getUserServer() {
-    return __unsafePrisma.userMcpServer.findUnique({
+    return this.prisma.userMcpServer.findUnique({
       where: {
         userId_serverId: { userId: this.userId, serverId: this.serverId },
       },
@@ -165,7 +163,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     codeVerifier?: string | null;
     state?: string | null;
   }) {
-    await __unsafePrisma.userMcpServer.update({
+    await this.prisma.userMcpServer.update({
       where: {
         userId_serverId: { userId: this.userId, serverId: this.serverId },
       },

@@ -155,6 +155,7 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                     selectedSearchScopes: selectedRepos,
                 },
                 selectedRepos: selectedRepos.map(r => r.value),
+                prisma,
                 model,
                 modelName,
                 modelProviderOptions: providerOptions,

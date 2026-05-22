@@ -4,6 +4,7 @@ import { getFileSource } from '@/features/git';
 import { isServiceError } from "@/lib/utils";
 import { LanguageModelV3 as AISDKLanguageModelV3 } from "@ai-sdk/provider";
 import { ProviderOptions } from "@ai-sdk/provider-utils";
+import type { PrismaClient } from "@sourcebot/db";
 import { createLogger, env } from "@sourcebot/shared";
 import {
     convertToModelMessages,
@@ -45,6 +46,7 @@ interface CreateMessageStreamResponseProps {
     chatId: string;
     messages: SBChatMessage[];
     selectedRepos: string[];
+    prisma: PrismaClient;
     // When undefined, MCP tools are disabled entirely (e.g. programmatic callers like askCodebase).
     // When an array, MCP tools are enabled for all servers not in the list.
     disabledMcpServerIds?: string[];
@@ -64,6 +66,7 @@ export const createMessageStream = async ({
     messages,
     metadata,
     selectedRepos,
+    prisma,
     disabledMcpServerIds,
     model,
     modelName,
@@ -161,6 +164,7 @@ export const createMessageStream = async ({
                 },
                 traceId,
                 chatId,
+                prisma,
                 userId,
                 orgId,
             });
@@ -212,6 +216,7 @@ interface AgentOptions {
     onMcpServerFailed: (serverName: string) => void;
     traceId: string;
     chatId: string;
+    prisma: PrismaClient;
     userId?: string;
     orgId?: number;
 }
@@ -228,7 +233,8 @@ const createAgentStream = async ({
     onMcpServerDiscovered,
     onMcpServerFailed,
     traceId,
-    chatId,
+    chatId: _chatId,
+    prisma,
     userId,
     orgId,
 }: AgentOptions) => {
@@ -260,7 +266,7 @@ const createAgentStream = async ({
     let mcpToolSetsObj: McpToolsResult = { tools: {}, failedServers: [], serverFaviconUrls: {}, cleanup: async () => {} };
     if (userId && orgId && await hasEntitlement('oauth') && disabledMcpServerIds !== undefined) {
         try {
-            const allMcpClients = await getConnectedMcpClients(userId, orgId);
+            const allMcpClients = await getConnectedMcpClients(prisma, userId, orgId);
             const mcpClients = allMcpClients.filter((c) => !disabledMcpServerIds.includes(c.serverId));
             mcpToolSetsObj = await getMcpTools(mcpClients);
 
