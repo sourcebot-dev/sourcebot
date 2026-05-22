@@ -9,7 +9,6 @@ import micromatch from "micromatch";
 import {
     SchemaRepository as CloudRepository,
     SchemaRepositoryUserPermission as CloudRepositoryUserPermission,
-    SchemaRepositoryPermission as CloudRepositoryPermission,
 } from "@coderabbitai/bitbucket/cloud/openapi";
 import { SchemaRestRepository as ServerRepository } from "@coderabbitai/bitbucket/server/openapi";
 import { processPromiseResults } from "./connectionUtils.js";
@@ -660,24 +659,54 @@ export const getExplicitUserPermissionsForCloudRepo = async (
 /**
  * Returns the UUIDs of all private repositories accessible to the authenticated Bitbucket Cloud user.
  * Used for account-driven permission syncing.
- * 
- * @see https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-user-permissions-repositories-get
+ *
+ * @see https://developer.atlassian.com/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get
+ * @see https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get
  */
 export const getReposForAuthenticatedBitbucketCloudUser = async (
     client: BitbucketClient,
 ): Promise<Array<{ uuid: string }>> => {
-    const path = `/user/permissions/repositories` as CloudGetRequestPath;
+    interface CloudUserWorkspaceAccess {
+        readonly workspace?: { readonly slug?: string };
+    }
 
-    const permissions = await fetchWithRetry(() => getPaginatedCloud<CloudRepositoryPermission>(path, async (p, query) => {
-        const { data } = await client.apiClient.GET(p, {
-            params: { query },
-        });
-        return data;
-    }), 'user repository permissions', logger);
+    const memberships = await fetchWithRetry(
+        () => getPaginatedCloud<CloudUserWorkspaceAccess>(
+            `/user/workspaces` as CloudGetRequestPath,
+            async (path, query) => {
+                const { data } = await client.apiClient.GET(path, { params: { query } });
+                return data;
+            },
+        ),
+        'user workspace memberships',
+        logger,
+    );
 
-    return permissions
-        .filter(p => p.repository?.uuid != null)
-        .map(p => ({ uuid: p.repository!.uuid as string }));
+    const slugs = memberships
+        .map(m => m.workspace?.slug)
+        .filter((slug): slug is string => typeof slug === 'string');
+
+    const reposByWorkspace = await Promise.all(slugs.map(workspace => fetchWithRetry(
+        () => getPaginatedCloud<CloudRepository>(
+            `/repositories/${workspace}` as CloudGetRequestPath,
+            async (path, query) => {
+                const { data } = await client.apiClient.GET(path, {
+                    params: {
+                        path: { workspace },
+                        query: { role: 'member', q: 'is_private=true', ...query },
+                    },
+                });
+                return data;
+            },
+        ),
+        `repos for workspace ${workspace}`,
+        logger,
+    )));
+
+    return reposByWorkspace
+        .flat()
+        .filter(repo => repo.uuid != null)
+        .map(repo => ({ uuid: repo.uuid as string }));
 };
 
 /**
