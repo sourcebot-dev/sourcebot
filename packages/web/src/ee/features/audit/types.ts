@@ -18,6 +18,8 @@ export const auditMetadataSchema = z.object({
     api_key: z.string().optional(),
     emails: z.string().optional(), // comma separated list of emails
     source: z.string().optional(), // request source (e.g., 'mcp') from X-Sourcebot-Client-Source header
+    provider: z.string().optional(), // OAuth provider id (e.g., 'github')
+    providerAccountId: z.string().optional(), // upstream identity id within the provider
 })
 export type AuditMetadata = z.infer<typeof auditMetadataSchema>;
 

@@ -1,4 +1,4 @@
-import type { User as AuthJsUser } from "next-auth";
+import type { Account as AuthJsAccount, User as AuthJsUser } from "next-auth";
 import { __unsafePrisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { SINGLE_TENANT_ORG_ID, SOURCEBOT_GUEST_USER_EMAIL, SOURCEBOT_GUEST_USER_ID, SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants";
@@ -7,6 +7,7 @@ import { isServiceError } from "@/lib/utils";
 import { orgNotFound, ServiceError, userNotFound } from "@/lib/serviceError";
 import { createLogger } from "@sourcebot/shared";
 import { getAuditService } from "@/ee/features/audit/factory";
+import type { AuditEvent } from "@/ee/features/audit/types";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
 
@@ -239,6 +240,45 @@ export const orgHasAvailability = async (): Promise<boolean> => {
 
     return true;
 }
+
+/**
+ * Decides whether an OAuth account-link attempt should be audited as a
+ * conflict (the upstream identity is already linked to a different Sourcebot
+ * user). Pure for testability — the caller is responsible for fetching the
+ * existing Account row and the current session.
+ */
+export const computeOAuthLinkConflictAudit = ({
+    account,
+    existingLinkedUserId,
+    currentUserId,
+}: {
+    account: Pick<AuthJsAccount, "provider" | "providerAccountId" | "type"> | null | undefined;
+    existingLinkedUserId: string | null;
+    currentUserId: string | undefined;
+}): Omit<AuditEvent, "sourcebotVersion"> | null => {
+    if (!account?.provider || !account.providerAccountId) {
+        return null;
+    }
+    if (account.type !== "oauth" && account.type !== "oidc") {
+        return null;
+    }
+    if (!existingLinkedUserId || !currentUserId) {
+        return null;
+    }
+    if (existingLinkedUserId === currentUserId) {
+        return null;
+    }
+    return {
+        action: "account.link_failed_already_linked",
+        actor: { id: currentUserId, type: "user" },
+        target: { id: existingLinkedUserId, type: "user" },
+        orgId: SINGLE_TENANT_ORG_ID,
+        metadata: {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+        },
+    };
+};
 
 export const addUserToOrganization = async (userId: string, orgId: number): Promise<{ success: boolean } | ServiceError> => {
     const user = await __unsafePrisma.user.findUnique({

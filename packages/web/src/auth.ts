@@ -4,7 +4,7 @@ import NextAuth, { DefaultSession, Session, User as AuthJsUser } from "next-auth
 import Credentials from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/nodemailer";
 import { __unsafePrisma } from "@/prisma";
-import { env, getSMTPConnectionURL } from "@sourcebot/shared";
+import { createLogger, env, getSMTPConnectionURL } from "@sourcebot/shared";
 import { User } from '@sourcebot/db';
 import 'next-auth/jwt';
 import type { Provider } from "next-auth/providers";
@@ -15,11 +15,12 @@ import MagicLinkEmail from './emails/magicLinkEmail';
 import bcrypt from 'bcryptjs';
 import { getEEIdentityProviders } from '@/ee/features/sso/sso';
 import { hasEntitlement } from '@sourcebot/shared';
-import { onCreateUser } from '@/lib/authUtils';
+import { computeOAuthLinkConflictAudit, onCreateUser } from '@/lib/authUtils';
 import { getAuditService } from '@/ee/features/audit/factory';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
 import { EncryptedPrismaAdapter, encryptAccountData } from '@/lib/encryptedPrismaAdapter';
 
+const logger = createLogger('web-auth');
 const auditService = getAuditService();
 const eeIdentityProviders = hasEntitlement("sso") ? await getEEIdentityProviders() : [];
 
@@ -239,6 +240,51 @@ const nextAuthResult = NextAuth({
         }
     },
     callbacks: {
+        // Detect OAuth account-link conflicts before @auth/core throws
+        // OAuthAccountNotLinked. When a currently signed-in user attempts to
+        // sign in via an OAuth provider whose (provider, providerAccountId) is
+        // already linked to a different Sourcebot user, emit an audit row so
+        // identity-hijack attempts are recoverable from the audit log instead
+        // of only the `[auth][error]` container logs.
+        //
+        // We return true unconditionally so @auth/core still raises
+        // OAuthAccountNotLinked downstream, preserving the existing login-page
+        // error UX.
+        async signIn({ account }) {
+            try {
+                if (
+                    account?.provider &&
+                    account.providerAccountId &&
+                    (account.type === 'oauth' || account.type === 'oidc')
+                ) {
+                    const [existing, currentSession] = await Promise.all([
+                        __unsafePrisma.account.findUnique({
+                            where: {
+                                provider_providerAccountId: {
+                                    provider: account.provider,
+                                    providerAccountId: account.providerAccountId,
+                                },
+                            },
+                            select: { userId: true },
+                        }),
+                        nextAuthResult.auth(),
+                    ]);
+
+                    const auditEvent = computeOAuthLinkConflictAudit({
+                        account,
+                        existingLinkedUserId: existing?.userId ?? null,
+                        currentUserId: currentSession?.user?.id,
+                    });
+
+                    if (auditEvent) {
+                        await auditService.createAudit(auditEvent);
+                    }
+                }
+            } catch (error) {
+                logger.error(`Failed to audit OAuth account-link conflict: ${error}`);
+            }
+            return true;
+        },
         // Restrict post-auth redirects (sign-in / sign-out, `callbackUrl`,
         // `redirectTo`) to the same origin as the application. This mirrors
         // Auth.js's documented default; we set it explicitly so the protection
