@@ -242,13 +242,24 @@ const nextAuthResult = NextAuth({
         async signIn({ account }) {
             const matchingProvider = account
                 ? getProviders().find((p) => {
-                    const providerId = typeof p.provider === 'function'
-                        ? p.provider().id
-                        : p.provider.id;
+                    // NextAuth/Auth.js provider factories (e.g. Bitbucket,
+                    // GitHub, GitLab) hardcode a default `id` at the top of
+                    // the returned object and nest the caller's options
+                    // (including any `id` override) under `.options`. At
+                    // runtime the framework merges options over the
+                    // top-level defaults, so the effective provider id can
+                    // live under either field depending on whether the
+                    // caller passed an override. Read `.options.id` first
+                    // and fall back to the top-level `id`.
+                    const config = (
+                        typeof p.provider === 'function'
+                            ? (p.provider as unknown as () => unknown)()
+                            : p.provider
+                    ) as { id?: string; options?: { id?: string } };
+                    const providerId = config.options?.id ?? config.id;
                     return providerId === account.provider;
                 })
                 : undefined;
-
 
             // Refuse OAuth signin for providers configured purely for account
             // linking when no authenticated user is present on the request.
@@ -271,6 +282,7 @@ const nextAuthResult = NextAuth({
             // new orphan identity with no UserToOrg row.
             const isAccountLinkingAttempt = matchingProvider?.purpose === 'account_linking';
             const session = await auth();
+
             if (isAccountLinkingAttempt && session === null) {
                 return false;
             }
