@@ -11,6 +11,9 @@ import { HomeView } from "@/hooks/useHomeView";
 import { NotificationDot } from "../../../components/notificationDot";
 import { useMemo } from "react";
 import Link from "next/link";
+import { useEntitlements } from "@/features/entitlements/useEntitlements";
+import { Entitlement } from "@sourcebot/shared";
+import { UpgradeBadge } from "../upsell/upgradeBadge";
 
 interface NavItem {
     title: string;
@@ -18,6 +21,7 @@ interface NavItem {
     icon: LucideIcon;
     key: string;
     requiresAuth?: boolean;
+    requiredEntitlement?: Entitlement;
 }
 
 interface NavProps {
@@ -26,8 +30,13 @@ interface NavProps {
     homeView: HomeView;
 }
 
-export function Nav({ isSettingsNotificationVisible, isSignedIn, homeView }: NavProps) {
+export function Nav({
+    isSettingsNotificationVisible,
+    isSignedIn,
+    homeView
+}: NavProps) {
     const pathname = usePathname();
+    const entitlements = useEntitlements();
 
     const baseItems = useMemo((): NavItem[] => {
 
@@ -42,7 +51,8 @@ export function Nav({ isSettingsNotificationVisible, isSignedIn, homeView }: Nav
             title: "Ask",
             href: "/chat",
             icon: MessageCircleIcon,
-            key: "chat"
+            key: "chat",
+            requiredEntitlement: "ask"
         }
 
         return [
@@ -101,6 +111,10 @@ export function Nav({ isSettingsNotificationVisible, isSignedIn, homeView }: Nav
             {baseItems.filter((item) => !item.requiresAuth || isSignedIn).map((item) => {
                 const showNotification =
                     (item.key === "settings" && isSettingsNotificationVisible);
+
+                const showUpgradeBadge =
+                    (item.requiredEntitlement && !entitlements.includes(item.requiredEntitlement));
+
                 return (
                     <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.title}>
@@ -109,6 +123,7 @@ export function Nav({ isSettingsNotificationVisible, isSignedIn, homeView }: Nav
                             >
                                 <item.icon />
                                 <span>{item.title}</span>
+                                {showUpgradeBadge && <UpgradeBadge />}
                                 {showNotification && <NotificationDot className="ml-1.5" />}
                             </Link>
                         </SidebarMenuButton>

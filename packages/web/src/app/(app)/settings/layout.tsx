@@ -112,6 +112,7 @@ export const getSidebarNavGroups = async () =>
                         title: "Analytics",
                         href: `/settings/analytics`,
                         icon: "chart-area" as const,
+                        requiredEntitlement: 'analytics'
                     },
                     {
                         title: "License",

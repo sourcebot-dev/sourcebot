@@ -21,6 +21,10 @@ import { useSuggestionsData } from "./useSuggestionsData";
 import { useToast } from "@/components/hooks/use-toast";
 import { SearchContextQuery } from "@/lib/types";
 import isEqual from "fast-deep-equal/react";
+import { LoginModal } from "./loginModal";
+import { usePathname } from "next/navigation";
+import { PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY } from "@/features/chat/constants";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface ChatBoxProps {
     onSubmit: (children: Descendant[], editor: CustomEditor) => void;
@@ -33,6 +37,8 @@ interface ChatBoxProps {
     languageModels: LanguageModelInfo[];
     selectedSearchScopes: SearchScope[];
     searchContexts: SearchContextQuery[];
+    isLoginWallEnabled: boolean;
+    isAuthenticated: boolean;
 }
 
 const ChatBoxComponent = ({
@@ -43,6 +49,8 @@ const ChatBoxComponent = ({
     isRedirecting,
     isGenerating,
     isDisabled,
+    isLoginWallEnabled,
+    isAuthenticated,
     languageModels,
     selectedSearchScopes,
     searchContexts,
@@ -50,6 +58,7 @@ const ChatBoxComponent = ({
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
     const editor = useSlate();
+    const captureEvent = useCaptureEvent();
     const { suggestionQuery, suggestionMode, range } = useSuggestionModeAndQuery();
     const { suggestions, isLoading } = useSuggestionsData({
         suggestionMode,
@@ -73,6 +82,9 @@ const ChatBoxComponent = ({
         languageModels,
     });
     const { toast } = useToast();
+
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+    const pathname = usePathname();
 
     // Reset the index when the suggestion mode changes.
     useEffect(() => {
@@ -158,8 +170,48 @@ const ChatBoxComponent = ({
             return;
         }
 
+        if (isLoginWallEnabled && !isAuthenticated) {
+            sessionStorage.setItem(
+                PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY,
+                JSON.stringify({ pathname, children: editor.children }),
+            );
+            captureEvent('wa_askgh_login_wall_prompted', {});
+            setIsLoginModalOpen(true);
+            return;
+        }
+
         _onSubmit(editor.children, editor);
-    }, [_onSubmit, editor, isSubmitDisabled, isSubmitDisabledReason, toast]);
+    }, [
+        isSubmitDisabled,
+        isLoginWallEnabled,
+        isAuthenticated,
+        _onSubmit,
+        editor,
+        isSubmitDisabledReason,
+        toast,
+        pathname,
+        captureEvent
+    ]);
+
+    useEffect(() => {
+        const stored = sessionStorage.getItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
+        if (!stored) {
+            return;
+        }
+
+        try {
+            const { pathname: storedPathname, children } = JSON.parse(stored) as { pathname: string; children: Descendant[] };
+            if (storedPathname !== pathname) {
+                return;
+            }
+
+            sessionStorage.removeItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
+            _onSubmit(children, editor);
+        } catch (error) {
+            console.error('Failed to restore pending chat submission:', error);
+            sessionStorage.removeItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
+        }
+    }, [isAuthenticated, pathname, editor, _onSubmit]);
 
     const onInsertSuggestion = useCallback((suggestion: Suggestion) => {
         switch (suggestion.type) {
@@ -272,76 +324,87 @@ const ChatBoxComponent = ({
     }, [editor, index, range, preferredSuggestionsBoxPlacement]);
 
     return (
-        <div
-            className={cn("flex flex-col justify-between gap-0.5 w-full px-3 py-2", className)}
-        >
-            <Editable
-                className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm max-h-64 overflow-y-auto"
-                placeholder="Ask a question about your code. @mention files or select search scopes to refine your query."
-                renderElement={renderElement}
-                renderLeaf={renderLeaf}
-                onKeyDown={onKeyDown}
-                readOnly={isDisabled}
-            />
-            <div className="ml-auto z-10">
-                {isRedirecting ? (
-                    <Button
-                        variant="default"
-                        disabled={true}
-                        size="icon"
-                        className="w-6 h-6"
-                    >
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                    </Button>
-                ) :
-                    isGenerating ? (
+        <>
+            <div
+                className={cn("flex flex-col justify-between gap-0.5 w-full px-3 py-2", className)}
+            >
+                <Editable
+                    className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm max-h-64 overflow-y-auto"
+                    placeholder="Ask a question about your code. @mention files or select search scopes to refine your query."
+                    renderElement={renderElement}
+                    renderLeaf={renderLeaf}
+                    onKeyDown={onKeyDown}
+                    readOnly={isDisabled}
+                />
+                <div className="ml-auto z-10">
+                    {isRedirecting ? (
                         <Button
                             variant="default"
-                            size="sm"
-                            className="h-8"
-                            onClick={onStop}
+                            disabled={true}
+                            size="icon"
+                            className="w-6 h-6"
                         >
-                            <StopCircleIcon className="w-4 h-4" />
-                            Stop
+                            <Loader2 className="w-4 h-4 animate-spin" />
                         </Button>
-                    ) : (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div
-                                    onClick={() => {
-                                        // @hack: When submission is disabled, we still want to issue
-                                        // a warning to the user as to why the submission is disabled.
-                                        // onSubmit on the Button will not be called because of the
-                                        // disabled prop, hence the call here.
-                                        if (isSubmitDisabled) {
-                                            onSubmit();
-                                        }
-                                    }}
-                                >
-                                    <Button
-                                        variant={isSubmitDisabled ? "outline" : "default"}
-                                        size="sm"
-                                        className="w-6 h-6"
-                                        onClick={onSubmit}
-                                        disabled={isSubmitDisabled}
+                    ) :
+                        isGenerating ? (
+                            <Button
+                                variant="default"
+                                size="sm"
+                                className="h-8"
+                                onClick={onStop}
+                            >
+                                <StopCircleIcon className="w-4 h-4" />
+                                Stop
+                            </Button>
+                        ) : (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div
+                                        onClick={() => {
+                                            // @hack: When submission is disabled, we still want to issue
+                                            // a warning to the user as to why the submission is disabled.
+                                            // onSubmit on the Button will not be called because of the
+                                            // disabled prop, hence the call here.
+                                            if (isSubmitDisabled) {
+                                                onSubmit();
+                                            }
+                                        }}
                                     >
-                                        <ArrowUp className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </TooltipTrigger>
-                        </Tooltip>
-                    )}
+                                        <Button
+                                            variant={isSubmitDisabled ? "outline" : "default"}
+                                            size="sm"
+                                            className="w-6 h-6"
+                                            onClick={onSubmit}
+                                            disabled={isSubmitDisabled}
+                                        >
+                                            <ArrowUp className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </TooltipTrigger>
+                            </Tooltip>
+                        )}
+                </div>
+                {suggestionMode !== "none" && (
+                    <SuggestionBox
+                        ref={suggestionsBoxRef}
+                        selectedIndex={index}
+                        onInsertSuggestion={onInsertSuggestion}
+                        isLoading={isLoading}
+                        suggestions={suggestions}
+                    />
+                )}
             </div>
-            {suggestionMode !== "none" && (
-                <SuggestionBox
-                    ref={suggestionsBoxRef}
-                    selectedIndex={index}
-                    onInsertSuggestion={onInsertSuggestion}
-                    isLoading={isLoading}
-                    suggestions={suggestions}
-                />
-            )}
-        </div>
+            <LoginModal
+                isOpen={isLoginModalOpen}
+                onOpenChange={(open) => {
+                    setIsLoginModalOpen(open);
+                    if (!open) {
+                        sessionStorage.removeItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
+                    }
+                }}
+            />
+        </>
     )
 }
 
