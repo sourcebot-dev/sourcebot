@@ -7,6 +7,8 @@ import { CommitsPanel } from "./components/commitHistoryPanel/commitsPanel";
 import { Loader2 } from "lucide-react";
 import { TreePreviewPanel } from "./components/treePreviewPanel/treePreviewPanel";
 import { Metadata } from "next";
+import { TrackRepoVisit } from "./components/trackRepoVisit";
+import { auth } from "@/auth";
 
 /**
  * Parses the URL path to generate a descriptive title.
@@ -94,7 +96,7 @@ interface BrowsePageProps {
 }
 
 export default async function BrowsePage(props: BrowsePageProps) {
-    const [params, searchParams] = await Promise.all([props.params, props.searchParams]);
+    const [params, searchParams, session] = await Promise.all([props.params, props.searchParams, auth()]);
 
     const {
         path: _rawPath,
@@ -114,6 +116,7 @@ export default async function BrowsePage(props: BrowsePageProps) {
 
     return (
         <div className="flex flex-col h-full">
+            <TrackRepoVisit repoName={repoName} isAuthenticated={!!session} />
             <Suspense fallback={
                 <div className="flex flex-col w-full min-h-full items-center justify-center">
                     <Loader2 className="w-4 h-4 animate-spin" />
