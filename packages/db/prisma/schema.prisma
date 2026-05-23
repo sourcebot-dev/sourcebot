@@ -74,6 +74,7 @@ model Repo {
   orgId Int
 
   searchContexts SearchContext[]
+  visits RepoVisit[]
 
   @@unique([external_id, external_codeHostUrl, orgId])
   @@index([orgId])
@@ -291,6 +292,7 @@ model Org {
   searchContexts SearchContext[]
 
   chats Chat[]
+  repoVisits RepoVisit[]
 
   license License?
 }
@@ -395,6 +397,7 @@ model User {
 
   chats Chat[]
   sharedChats ChatAccess[]
+  repoVisits RepoVisit[]
 
   oauthTokens        OAuthToken[]
   oauthAuthCodes     OAuthAuthorizationCode[]
@@ -499,6 +502,27 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model RepoVisit {
+  id        String   @id @default(cuid())
+  /// visitedAt is updated everytime a repo is visited.
+  visitedAt DateTime @default(now()) @updatedAt
+  // lastPromotedAt is updated only when a repo is promoted into the top k
+  // most recently viewed repositories.
+  lastPromotedAt DateTime @default(now())
+
+  repo   Repo   @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId Int
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  @@unique([repoId, userId])
+  @@index([userId, orgId, visitedAt])
 }
 
 model Chat {
