@@ -21,10 +21,13 @@ import { useSuggestionsData } from "./useSuggestionsData";
 import { useToast } from "@/components/hooks/use-toast";
 import { SearchContextQuery } from "@/lib/types";
 import isEqual from "fast-deep-equal/react";
-import { LoginModal } from "./loginModal";
+import { LoginDialog } from "./loginDialog";
 import { usePathname } from "next/navigation";
 import { PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY } from "@/features/chat/constants";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
+import { UpsellDialog } from "@/app/(app)/@sidebar/components/upsell/upsellDialog";
+import { useOffers } from "@/ee/features/lighthouse/useOffers";
 
 interface ChatBoxProps {
     onSubmit: (children: Descendant[], editor: CustomEditor) => void;
@@ -82,8 +85,9 @@ const ChatBoxComponent = ({
         languageModels,
     });
     const { toast } = useToast();
-
-    const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+    const isAskEnabled = useHasEntitlement('ask');
+    const [isLoginDialogOpen, setIsLoginDialogOpen] = useState<boolean>(false);
+    const [isUpsellDialogOpen, setIsUpsellDialogOpen] = useState<boolean>(false);
     const pathname = usePathname();
 
     // Reset the index when the suggestion mode changes.
@@ -176,7 +180,12 @@ const ChatBoxComponent = ({
                 JSON.stringify({ pathname, children: editor.children }),
             );
             captureEvent('wa_askgh_login_wall_prompted', {});
-            setIsLoginModalOpen(true);
+            setIsLoginDialogOpen(true);
+            return;
+        }
+
+        if (!isAskEnabled) {
+            setIsUpsellDialogOpen(true);
             return;
         }
 
@@ -185,6 +194,7 @@ const ChatBoxComponent = ({
         isSubmitDisabled,
         isLoginWallEnabled,
         isAuthenticated,
+        isAskEnabled,
         _onSubmit,
         editor,
         isSubmitDisabledReason,
@@ -395,12 +405,33 @@ const ChatBoxComponent = ({
                     />
                 )}
             </div>
-            <LoginModal
-                isOpen={isLoginModalOpen}
+            <LoginDialog
+                isOpen={isLoginDialogOpen}
                 onOpenChange={(open) => {
-                    setIsLoginModalOpen(open);
+                    setIsLoginDialogOpen(open);
                     if (!open) {
                         sessionStorage.removeItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
+                    }
+                }}
+            />
+            <UpsellDialog
+                open={isUpsellDialogOpen}
+                onOpenChange={setIsUpsellDialogOpen}
+                offers={{
+                    pricing: {
+                        annual: {
+                            unitAmount: 0,
+                            currency: 'usd'
+                        },
+                        monthly: {
+                            unitAmount: 0,
+                            currency: 'usd'
+                        }
+                    },
+                    trial: {
+                        creditCardRequired: false,
+                        durationDays: 2,
+                        eligible: false
                     }
                 }}
             />

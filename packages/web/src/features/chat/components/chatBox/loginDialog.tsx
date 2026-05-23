@@ -11,15 +11,15 @@ import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import { useIdentityProviders } from "@/features/auth/useIdentityProviders";
 import { usePathname } from "next/navigation";
 
-interface LoginModalProps {
+interface LoginDialogProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
 }
 
-export const LoginModal = ({
+export const LoginDialog = ({
     isOpen,
     onOpenChange,
-}: LoginModalProps) => {
+}: LoginDialogProps) => {
     const providers = useIdentityProviders();
     const pathname = usePathname();
 
