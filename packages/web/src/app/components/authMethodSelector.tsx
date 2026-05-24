@@ -8,11 +8,10 @@ import { CredentialsForm } from "@/app/login/components/credentialsForm";
 import { DividerSet } from "@/app/components/dividerSet";
 import { ProviderButton } from "@/app/components/providerButton";
 import { AuthSecurityNotice } from "@/app/components/authSecurityNotice";
-import type { IdentityProviderMetadata } from "@/lib/identityProviders";
 import Link from "next/link";
+import { useIdentityProviders } from "@/features/auth/useIdentityProviders";
 
 interface AuthMethodSelectorProps {
-    providers: IdentityProviderMetadata[];
     callbackUrl?: string;
     context: "login" | "signup";
     onProviderClick?: (providerId: string) => void;
@@ -21,13 +20,14 @@ interface AuthMethodSelectorProps {
 }
 
 export const AuthMethodSelector = ({
-    providers,
     callbackUrl,
     context,
     onProviderClick,
     securityNoticeClosable = false,
     hideSecurityNotice = false
 }: AuthMethodSelectorProps) => {
+    const providers = useIdentityProviders();
+
     const onSignInWithOauth = useCallback((provider: string) => {
         // Call the optional analytics callback first
         onProviderClick?.(provider);

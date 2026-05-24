@@ -8,7 +8,6 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
-import { useIdentityProviders } from "@/features/auth/useIdentityProviders";
 import { usePathname } from "next/navigation";
 
 interface LoginDialogProps {
@@ -20,7 +19,6 @@ export const LoginDialog = ({
     isOpen,
     onOpenChange,
 }: LoginDialogProps) => {
-    const providers = useIdentityProviders();
     const pathname = usePathname();
 
     return (
@@ -34,7 +32,6 @@ export const LoginDialog = ({
                 </DialogHeader>
                 <div className="mt-4">
                     <AuthMethodSelector
-                        providers={providers}
                         context="login"
                         callbackUrl={pathname}
                         hideSecurityNotice={true}
