@@ -34,9 +34,10 @@ interface McpServersPageProps {
     callbackStatus?: string;
     callbackServer?: string;
     callbackMessage?: string;
+    canManageMcpServers: boolean;
 }
 
-export function McpServersPage({ callbackStatus, callbackServer, callbackMessage }: McpServersPageProps) {
+export function McpServersPage({ callbackStatus, callbackServer, callbackMessage, canManageMcpServers }: McpServersPageProps) {
     const { toast } = useToast();
     const didHandleCallbackRef = useRef(false);
 
@@ -132,50 +133,54 @@ export function McpServersPage({ callbackStatus, callbackServer, callbackMessage
                 <div>
                     <h3 className="text-lg font-medium">MCP Servers</h3>
                     <p className="text-sm text-muted-foreground max-w-lg">
-                        Connect external MCP servers to use with Ask Sourcebot.
+                        {canManageMcpServers
+                            ? "Approve external MCP servers for your workspace."
+                            : "Connect to workspace-approved MCP servers to use them with Ask Sourcebot."}
                     </p>
                 </div>
 
-                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button onClick={() => setIsCreateDialogOpen(true)}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add MCP Server
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                            <DialogTitle>Add MCP Server</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="mcp-name">Name</Label>
-                                <Input
-                                    id="mcp-name"
-                                    value={newServerName}
-                                    onChange={(e) => setNewServerName(e.target.value)}
-                                    placeholder="e.g. Linear"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="mcp-url">Server URL</Label>
-                                <Input
-                                    id="mcp-url"
-                                    value={newServerUrl}
-                                    onChange={(e) => setNewServerUrl(e.target.value)}
-                                    placeholder="https://mcp.linear.app/mcp"
-                                />
-                            </div>
-                        </div>
-                        <DialogFooter className="sm:justify-between">
-                            <Button variant="outline" onClick={handleCloseCreateDialog}>Cancel</Button>
-                            <Button onClick={handleCreate} disabled={isCreating || !newServerUrl.trim()}>
-                                {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                                Add
+                {canManageMcpServers && (
+                    <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button onClick={() => setIsCreateDialogOpen(true)}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add MCP Server
                             </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Add MCP Server</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="mcp-name">Name</Label>
+                                    <Input
+                                        id="mcp-name"
+                                        value={newServerName}
+                                        onChange={(e) => setNewServerName(e.target.value)}
+                                        placeholder="e.g. Linear"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="mcp-url">Server URL</Label>
+                                    <Input
+                                        id="mcp-url"
+                                        value={newServerUrl}
+                                        onChange={(e) => setNewServerUrl(e.target.value)}
+                                        placeholder="https://mcp.linear.app/mcp"
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter className="sm:justify-between">
+                                <Button variant="outline" onClick={handleCloseCreateDialog}>Cancel</Button>
+                                <Button onClick={handleCreate} disabled={isCreating || !newServerName.trim() || !newServerUrl.trim()}>
+                                    {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                                    Add
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                )}
             </div>
 
             {/* Server list */}
@@ -201,7 +206,9 @@ export function McpServersPage({ callbackStatus, callbackServer, callbackMessage
                         </div>
                         <p className="text-sm font-medium text-foreground mb-1">No MCP servers yet</p>
                         <p className="text-sm text-muted-foreground max-w-sm">
-                            Click &quot;Add MCP Server&quot; above to connect an external MCP server.
+                            {canManageMcpServers
+                                ? "Add an MCP server above to make it available to workspace members."
+                                : "No MCP servers have been approved for this workspace yet."}
                         </p>
                     </CardContent>
                 </Card>
@@ -218,35 +225,37 @@ export function McpServersPage({ callbackStatus, callbackServer, callbackMessage
                                             <CardDescription>{server.serverUrl}</CardDescription>
                                         </div>
                                     </div>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-destructive hover:text-destructive"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Delete MCP Server</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    Are you sure you want to remove <span className="font-semibold text-foreground">{server.name || server.serverUrl}</span>? This will remove the server and your credentials from your list.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction
-                                                    onClick={() => handleDelete(server.id)}
-                                                    disabled={deletingServerId === server.id}
-                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    {canManageMcpServers && (
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-destructive hover:text-destructive"
                                                 >
-                                                    {deletingServerId === server.id ? "Deleting..." : "Delete"}
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Delete MCP Server</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Are you sure you want to remove <span className="font-semibold text-foreground">{server.name || server.serverUrl}</span>? Workspace members will lose access and stored credentials for this server.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        onClick={() => handleDelete(server.id)}
+                                                        disabled={deletingServerId === server.id}
+                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                    >
+                                                        {deletingServerId === server.id ? "Deleting..." : "Delete"}
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    )}
                                 </div>
                             </CardHeader>
                             <CardContent className="pt-0 pb-2">

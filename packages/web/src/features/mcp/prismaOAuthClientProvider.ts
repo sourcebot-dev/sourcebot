@@ -7,23 +7,120 @@ import type {
 } from '@ai-sdk/mcp';
 import type { PrismaClient } from '@sourcebot/db';
 import { encryptOAuthToken, decryptOAuthToken } from '@sourcebot/shared';
+import { __unsafePrisma } from '@/prisma';
+
+type McpOAuthPrismaClient = Pick<PrismaClient, 'mcpServer' | 'userMcpServer'>;
+
+interface PrismaOAuthClientProviderOptions {
+  prisma: McpOAuthPrismaClient;
+  serverId: string;
+  orgId: number;
+  userId: string;
+  callbackUrl: string;
+  allowClientRegistration?: boolean;
+  clientInvalidationPrisma?: McpOAuthPrismaClient;
+}
+
+export interface ClearMcpServerClientCredentialsOptions {
+  prisma?: McpOAuthPrismaClient;
+  serverId: string;
+  orgId: number;
+  observedClientInfo: string | undefined;
+}
+
+export async function clearMcpServerClientCredentialsForObservedClient({
+  prisma = __unsafePrisma,
+  serverId,
+  orgId,
+  observedClientInfo,
+}: ClearMcpServerClientCredentialsOptions): Promise<boolean> {
+  if (!observedClientInfo) {
+    return false;
+  }
+
+  const result = await prisma.mcpServer.updateMany({
+    where: {
+      id: serverId,
+      orgId,
+      clientInfo: observedClientInfo,
+    },
+    data: { clientInfo: null },
+  });
+
+  if (result.count === 0) {
+    return false;
+  }
+
+  await prisma.userMcpServer.updateMany({
+    where: {
+      serverId,
+      server: { orgId },
+    },
+    data: {
+      tokens: null,
+      tokensExpiresAt: null,
+    },
+  });
+
+  return true;
+}
 
 /**
  * Prisma-backed OAuthClientProvider for connecting to external MCP servers.
  *
- * Stores dynamic client registration (client_id/secret) on McpServer (per-org),
- * and per-user tokens + ephemeral PKCE state on UserMcpServer.
+ * Stores dynamic client registration on McpServer (per-org), and per-user
+ * tokens + ephemeral PKCE state on UserMcpServer.
  */
 export class PrismaOAuthClientProvider implements OAuthClientProvider {
-  constructor(
-    private readonly prisma: PrismaClient,
-    private readonly serverId: string,
-    private readonly userId: string,
-    private readonly callbackUrl: string,
-  ) {}
+  private readonly prisma: McpOAuthPrismaClient;
+  private readonly clientInvalidationPrisma: McpOAuthPrismaClient;
+  private readonly serverId: string;
+  private readonly orgId: number;
+  private readonly userId: string;
+  private readonly callbackUrl: string;
+  private observedClientInfo: string | undefined;
 
   /** Populated by redirectToAuthorization — read after auth() returns 'REDIRECT'. */
   public authorizationUrl: string | undefined;
+
+  /** Only present in connect mode. If absent, the SDK cannot perform DCR. */
+  declare saveClientInformation?: (info: OAuthClientInformation) => Promise<void>;
+
+  constructor({
+    prisma,
+    serverId,
+    orgId,
+    userId,
+    callbackUrl,
+    allowClientRegistration = false,
+    clientInvalidationPrisma = __unsafePrisma,
+  }: PrismaOAuthClientProviderOptions) {
+    this.prisma = prisma;
+    this.clientInvalidationPrisma = clientInvalidationPrisma;
+    this.serverId = serverId;
+    this.orgId = orgId;
+    this.userId = userId;
+    this.callbackUrl = callbackUrl;
+
+    if (allowClientRegistration) {
+      this.saveClientInformation = async (info: OAuthClientInformation) => {
+        const encrypted = encryptOAuthToken(JSON.stringify(info));
+        if (!encrypted) {
+          throw new Error('Failed to encrypt OAuth client information');
+        }
+
+        const result = await this.prisma.mcpServer.updateMany({
+          where: { id: this.serverId, orgId: this.orgId },
+          data: { clientInfo: encrypted },
+        });
+        if (result.count === 0) {
+          throw new Error('MCP server not found');
+        }
+
+        this.observedClientInfo = encrypted;
+      };
+    }
+  }
 
   get redirectUrl(): string | URL {
     return this.callbackUrl;
@@ -40,24 +137,18 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
   }
 
   async clientInformation(): Promise<OAuthClientInformation | undefined> {
-    const server = await this.prisma.mcpServer.findUnique({
-      where: { id: this.serverId },
+    const server = await this.prisma.mcpServer.findFirst({
+      where: { id: this.serverId, orgId: this.orgId },
       select: { clientInfo: true },
     });
     if (!server?.clientInfo) {
+      this.observedClientInfo = undefined;
       return undefined;
     }
 
+    this.observedClientInfo = server.clientInfo;
     const decrypted = decryptOAuthToken(server.clientInfo);
     return decrypted ? JSON.parse(decrypted) : undefined;
-  }
-
-  async saveClientInformation(info: OAuthClientInformation): Promise<void> {
-    const encrypted = encryptOAuthToken(JSON.stringify(info));
-    await this.prisma.mcpServer.update({
-      where: { id: this.serverId },
-      data: { clientInfo: encrypted },
-    });
   }
 
   async tokens(): Promise<OAuthTokens | undefined> {
@@ -72,13 +163,14 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
 
   async saveTokens(tokens: OAuthTokens): Promise<void> {
     const encrypted = encryptOAuthToken(JSON.stringify(tokens));
+    if (!encrypted) {
+      throw new Error('Failed to encrypt OAuth tokens');
+    }
+
     const tokensExpiresAt = tokens.expires_in
       ? new Date(Date.now() + tokens.expires_in * 1000)
       : null;
-    await this.prisma.userMcpServer.update({
-      where: { userId_serverId: { userId: this.userId, serverId: this.serverId } },
-      data: { tokens: encrypted, tokensExpiresAt },
-    });
+    await this.updateUserServer({ tokens: encrypted, tokensExpiresAt });
   }
 
   async codeVerifier(): Promise<string> {
@@ -115,27 +207,30 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
       url.searchParams.set('prompt', 'consent');
     }
 
-    // Clear any stale tokens from the database. This is called when the SDK determines
-    // that existing tokens are no longer valid (e.g., the access token expired and the
-    // refresh token was revoked). Clearing them ensures the UI reflects "not connected"
-    // so the user knows to re-authenticate, rather than staying stuck in a state where
-    // the server appears connected but all tool calls fail.
+    // Clear stale tokens before starting a new authorization flow so the UI reflects
+    // that the user needs to complete OAuth again.
     await this.invalidateCredentials('tokens');
 
     this.authorizationUrl = url.toString();
   }
 
   async invalidateCredentials(
-    scope: 'all' | 'client' | 'tokens' | 'verifier',
+    scope: 'all' | 'client' | 'tokens' | 'verifier' | 'discovery',
   ): Promise<void> {
+    if (scope === 'discovery') {
+      return;
+    }
+
     if (scope === 'all' || scope === 'client') {
-      await this.prisma.mcpServer.update({
-        where: { id: this.serverId },
-        data: { clientInfo: null },
+      await clearMcpServerClientCredentialsForObservedClient({
+        prisma: this.clientInvalidationPrisma,
+        serverId: this.serverId,
+        orgId: this.orgId,
+        observedClientInfo: this.observedClientInfo,
       });
     }
 
-    if (scope === 'all' || scope === 'tokens') {
+    if (scope === 'tokens') {
       await this.updateUserServer({ tokens: null, tokensExpiresAt: null });
     }
 

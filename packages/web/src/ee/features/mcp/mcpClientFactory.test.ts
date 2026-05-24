@@ -44,11 +44,12 @@ function makeUserServer(overrides: {
     return {
         serverId: 'srv-1',
         userId: 'user-1',
-        name: 'MyServer',
         tokens: JSON.stringify(overrides.tokens ?? TOKEN_NO_REFRESH),
         tokensExpiresAt: overrides.tokensExpiresAt ?? null,
         server: {
             orgId: overrides.orgId ?? 1,
+            name: 'MyServer',
+            sanitizedName: 'myserver',
             serverUrl: 'https://example.com/mcp',
         },
     };
@@ -122,6 +123,7 @@ describe('getConnectedMcpClients', () => {
         expect(result[0]).toMatchObject({
             serverId: 'srv-1',
             serverName: 'MyServer',
+            sanitizedName: 'myserver',
             serverUrl: 'https://example.com/mcp',
         });
     });

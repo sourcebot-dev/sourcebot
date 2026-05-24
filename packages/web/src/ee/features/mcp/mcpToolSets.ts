@@ -1,7 +1,6 @@
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
 import { McpToolSet } from './mcpClientFactory';
 import { createLogger, env } from '@sourcebot/shared';
-import { sanitizeMcpServerName } from './utils';
 import Ajv from 'ajv';
 import { jsonSchema, ToolExecutionOptions } from 'ai';
 import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
@@ -35,7 +34,7 @@ export async function getMcpTools(clients: McpToolSet[]): Promise<McpToolsResult
 
     const connectionTimeoutMs = env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS;
 
-    for (const { serverName, serverUrl, transport } of clients) {
+    for (const { serverName, sanitizedName, serverUrl, transport } of clients) {
         try {
             const mcpClient = await Promise.race([
                 createMCPClient({ transport }),
@@ -52,7 +51,6 @@ export async function getMcpTools(clients: McpToolSet[]): Promise<McpToolsResult
                 ),
             ]);
             const tools = mcpClient.toolsFromDefinitions(toolDefinitions);
-            const sanitizedName = sanitizeMcpServerName(serverName);
             const prefix = `mcp_${sanitizedName}`;
 
             for (const [toolName, tool] of Object.entries(tools)) {

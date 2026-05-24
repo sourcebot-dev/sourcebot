@@ -55,6 +55,7 @@ function createMockMcpClient(toolDefs: MockToolDef[]) {
 function createMockClient(overrides: Partial<McpToolSet> & { serverName: string }): McpToolSet {
     return {
         serverId: 'server-id',
+        sanitizedName: overrides.serverName.toLowerCase(),
         serverUrl: `https://${overrides.serverName.toLowerCase()}.example.com/mcp`,
         transport: {} as McpToolSet['transport'],
         ...overrides,

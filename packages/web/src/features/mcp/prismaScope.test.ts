@@ -106,11 +106,11 @@ describe('getMcpPrismaQueryExtension', () => {
         const query = resetQuery();
 
         await expect(anonymousExtension.userMcpServer.create({
-            args: { data: { userId: 'user-1', serverId: 'server-1', name: 'Linear' } },
+            args: { data: { userId: 'user-1', serverId: 'server-1' } },
             query,
         })).rejects.toThrow('requires an authenticated user');
         await expect(extension.userMcpServer.create({
-            args: { data: { userId: 'user-2', serverId: 'server-1', name: 'Linear' } },
+            args: { data: { userId: 'user-2', serverId: 'server-1' } },
             query,
         })).rejects.toThrow('must create UserMcpServer rows for the authenticated user');
 
@@ -123,7 +123,6 @@ describe('getMcpPrismaQueryExtension', () => {
             data: {
                 user: { connect: { id: 'user-1' } },
                 server: { connect: { id: 'server-1' } },
-                name: 'Linear',
             },
         };
 
@@ -142,7 +141,6 @@ describe('getMcpPrismaQueryExtension', () => {
                 data: {
                     user: { connect: { id: 'user-2' } },
                     server: { connect: { id: 'server-1' } },
-                    name: 'Linear',
                 },
             },
             query,
@@ -152,7 +150,6 @@ describe('getMcpPrismaQueryExtension', () => {
                 data: {
                     user: { create: { id: 'user-1', email: 'test@example.com' } },
                     server: { connect: { id: 'server-1' } },
-                    name: 'Linear',
                 },
             },
             query,
@@ -168,7 +165,7 @@ describe('getMcpPrismaQueryExtension', () => {
         await expect(extension.userMcpServer.update({
             args: {
                 where: { userId_serverId: { userId: 'user-2', serverId: 'server-1' } },
-                data: { name: 'Linear' },
+                data: { state: null },
             },
             query,
         })).rejects.toThrow('cannot access UserMcpServer rows for another user');
@@ -200,7 +197,7 @@ describe('getMcpPrismaQueryExtension', () => {
         await expect(extension.userMcpServer.upsert({
             args: {
                 where: { userId_serverId: { userId: 'user-1', serverId: 'server-1' } },
-                create: { userId: 'user-1', serverId: 'server-1', name: 'Linear' },
+                create: { userId: 'user-1', serverId: 'server-1' },
                 update: { user: { connect: { id: 'user-2' } } },
             },
             query: resetQuery(),
@@ -239,7 +236,7 @@ describe('getMcpPrismaQueryExtension', () => {
         const extension = getMcpPrismaQueryExtension(user);
 
         await expect(extension.userMcpServer.createManyAndReturn({
-            args: { data: { userId: 'user-2', serverId: 'server-1', name: 'Linear' } },
+            args: { data: { userId: 'user-2', serverId: 'server-1' } },
             query: resetQuery(),
         })).rejects.toThrow('must create UserMcpServer rows for the authenticated user');
         await expect(extension.userMcpServer.updateManyAndReturn({
@@ -285,7 +282,7 @@ describe('getMcpPrismaQueryExtension', () => {
             'update',
             {
                 where: { id: 'server-1' },
-                data: { userMcpServers: { create: { userId: 'user-1', name: 'Linear' } } },
+                data: { userMcpServers: { create: { userId: 'user-1' } } },
             },
             query,
         )).rejects.toThrow('cannot access UserMcpServer rows through a parent relation');
@@ -319,7 +316,7 @@ describe('getMcpPrismaQueryExtension', () => {
             'update',
             {
                 where: { id: 'user-1' },
-                data: { userMcpServers: { create: { serverId: 'server-1', name: 'Linear' } } },
+                data: { userMcpServers: { create: { serverId: 'server-1' } } },
             },
             query,
         )).rejects.toThrow('cannot access UserMcpServer rows through a parent relation');
@@ -354,9 +351,11 @@ describe('getMcpPrismaQueryExtension', () => {
                 data: {
                     mcpServers: {
                         create: {
+                            name: 'Linear',
+                            sanitizedName: 'linear',
                             serverUrl: 'https://mcp.linear.app/mcp',
                             userMcpServers: {
-                                create: { userId: 'user-1', name: 'Linear' },
+                                create: { userId: 'user-1' },
                             },
                         },
                     },

@@ -4,127 +4,105 @@ import { sew } from '@/middleware/sew';
 import { ErrorCode } from '@/lib/errorCodes';
 import { ServiceError } from '@/lib/serviceError';
 import { withAuth } from '@/middleware/withAuth';
+import { withMinimumOrgRole } from '@/middleware/withMinimumOrgRole';
+import { __unsafePrisma } from '@/prisma';
+import { OrgRole } from '@sourcebot/db';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { sanitizeMcpServerName } from './utils';
 
 export const createMcpServer = async (name: string, serverUrl: string) => sew(() =>
-    withAuth(async ({ org, user, prisma }) => {
-        const urlResult = z.string().url().safeParse(serverUrl);
-        if (!urlResult.success || !serverUrl.startsWith('https://')) {
-            return {
-                statusCode: StatusCodes.BAD_REQUEST,
-                errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                message: 'Invalid server URL. Must be a valid HTTPS URL.',
-            } satisfies ServiceError;
-        }
+    withAuth(async ({ org, role, prisma }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            const displayName = name.trim();
+            const normalizedServerUrl = serverUrl.trim();
+            const urlResult = z.string().url().safeParse(normalizedServerUrl);
+            const protocol = urlResult.success ? new URL(normalizedServerUrl).protocol : undefined;
+            if (!urlResult.success || protocol !== 'https:') {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: 'Invalid server URL. Must be a valid HTTPS URL.',
+                } satisfies ServiceError;
+            }
 
-        const sanitizedName = sanitizeMcpServerName(name);
-        const alphanumericCount = (sanitizedName.match(/[a-z0-9]/g) ?? []).length;
-        if (alphanumericCount < 3) {
-            return {
-                statusCode: StatusCodes.BAD_REQUEST,
-                errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                message: 'Server name must contain at least 3 alphanumeric characters.',
-            } satisfies ServiceError;
-        }
+            const sanitizedName = sanitizeMcpServerName(displayName);
+            const alphanumericCount = (sanitizedName.match(/[a-z0-9]/g) ?? []).length;
+            if (alphanumericCount < 3) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: 'Server name must contain at least 3 alphanumeric characters.',
+                } satisfies ServiceError;
+            }
 
-        // Upsert the McpServer record — reuse if the endpoint already exists for this org.
-        const mcpServer = await prisma.mcpServer.upsert({
-            where: {
-                serverUrl_orgId: {
-                    serverUrl,
+            const existingServer = await prisma.mcpServer.findUnique({
+                where: {
+                    serverUrl_orgId: {
+                        serverUrl: normalizedServerUrl,
+                        orgId: org.id,
+                    },
+                },
+                select: { id: true },
+            });
+            if (existingServer) {
+                return {
+                    statusCode: StatusCodes.CONFLICT,
+                    errorCode: ErrorCode.MCP_SERVER_ALREADY_EXISTS,
+                    message: `An MCP server with URL "${normalizedServerUrl}" already exists.`,
+                } satisfies ServiceError;
+            }
+
+            const existingName = await prisma.mcpServer.findFirst({
+                where: {
+                    orgId: org.id,
+                    sanitizedName,
+                },
+                select: { id: true },
+            });
+            if (existingName) {
+                return {
+                    statusCode: StatusCodes.CONFLICT,
+                    errorCode: ErrorCode.MCP_SERVER_ALREADY_EXISTS,
+                    message: `An MCP server with a similar name already exists. Please choose a more distinct name.`,
+                } satisfies ServiceError;
+            }
+
+            const mcpServer = await prisma.mcpServer.create({
+                data: {
+                    name: displayName,
+                    sanitizedName,
+                    serverUrl: normalizedServerUrl,
+                    clientInfo: null,
                     orgId: org.id,
                 },
-            },
-            update: {},
-            create: {
-                serverUrl,
-                orgId: org.id,
-            },
-        });
+            });
 
-        // Check if this user already has this server in their list.
-        const existingUserServer = await prisma.userMcpServer.findUnique({
-            where: {
-                userId_serverId: {
-                    userId: user.id,
-                    serverId: mcpServer.id,
-                },
-            },
-            select: { userId: true },
-        });
-
-        if (existingUserServer) {
             return {
-                statusCode: StatusCodes.CONFLICT,
-                errorCode: ErrorCode.MCP_SERVER_ALREADY_EXISTS,
-                message: `You have already added an MCP server with URL "${serverUrl}".`,
-            } satisfies ServiceError;
-        }
-
-        // Ensure the sanitized name is unique within the user's own servers to prevent
-        // tool-name collisions (e.g. "My Server" and "My-Server" both become "my_server").
-        const userServers = await prisma.userMcpServer.findMany({
-            where: { userId: user.id },
-            select: { name: true },
-        });
-        const nameCollision = userServers.some(
-            (s) => sanitizeMcpServerName(s.name) === sanitizedName
-        );
-        if (nameCollision) {
-            return {
-                statusCode: StatusCodes.CONFLICT,
-                errorCode: ErrorCode.MCP_SERVER_ALREADY_EXISTS,
-                message: `You already have an MCP server with a similar name. Please choose a more distinct name.`,
-            } satisfies ServiceError;
-        }
-
-        await prisma.userMcpServer.create({
-            data: {
-                userId: user.id,
-                serverId: mcpServer.id,
-                name,
-            },
-        });
-
-        return {
-            id: mcpServer.id,
-            name,
-            serverUrl: mcpServer.serverUrl,
-        };
-    }));
+                id: mcpServer.id,
+                name: displayName,
+                sanitizedName,
+                serverUrl: mcpServer.serverUrl,
+            };
+        })));
 
 export const deleteMcpServer = async (serverId: string) => sew(() =>
-    withAuth(async ({ user, prisma }) => {
-        const userServer = await prisma.userMcpServer.findUnique({
-            where: {
-                userId_serverId: {
-                    userId: user.id,
-                    serverId,
+    withAuth(async ({ org, role }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            const result = await __unsafePrisma.mcpServer.deleteMany({
+                where: {
+                    id: serverId,
+                    orgId: org.id,
                 },
-            },
-            select: { userId: true },
-        });
+            });
 
-        if (!userServer) {
-            return {
-                statusCode: StatusCodes.NOT_FOUND,
-                errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
-                message: 'MCP server not found',
-            } satisfies ServiceError;
-        }
+            if (result.count === 0) {
+                return {
+                    statusCode: StatusCodes.NOT_FOUND,
+                    errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
+                    message: 'MCP server not found',
+                } satisfies ServiceError;
+            }
 
-        // Delete the user's connection row. The McpServer row stays because other
-        // users may reference the same endpoint.
-        await prisma.userMcpServer.delete({
-            where: {
-                userId_serverId: {
-                    userId: user.id,
-                    serverId,
-                },
-            },
-        });
-
-        return { success: true };
-    }));
+            return { success: true };
+        })));

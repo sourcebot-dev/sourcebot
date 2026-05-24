@@ -12,6 +12,14 @@ import { auth } from '@/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
 const logger = createLogger('mcp-oauth-callback');
+const reconnectMessage = 'This MCP server authorization could not be completed. Please reconnect the server.';
+
+function redirectToSettingsError(message: string) {
+    const settingsUrl = new URL(`/settings/mcpServers`, env.AUTH_URL);
+    settingsUrl.searchParams.set('status', 'error');
+    settingsUrl.searchParams.set('message', message);
+    return NextResponse.redirect(settingsUrl);
+}
 
 // eslint-disable-next-line authz/require-auth-wrapper -- OAuth redirect callback validates the active session with auth() and filters all queries by userId.
 export const GET = apiHandler(async (request: NextRequest) => {
@@ -58,10 +66,10 @@ export const GET = apiHandler(async (request: NextRequest) => {
         },
         select: {
             serverId: true,
-            name: true,
             server: {
                 select: {
                     orgId: true,
+                    name: true,
                     serverUrl: true,
                 },
             },
@@ -91,26 +99,42 @@ export const GET = apiHandler(async (request: NextRequest) => {
         );
     }
 
-    const provider = new PrismaOAuthClientProvider(
+    const provider = new PrismaOAuthClientProvider({
         prisma,
-        userServer.serverId,
-        session.user.id,
-        `${env.AUTH_URL}/api/ee/askmcp/callback`,
-    );
-
-    const result = await mcpAuth(provider, {
-        serverUrl: new URL(userServer.server.serverUrl),
-        authorizationCode: code,
-        callbackState: state,
+        serverId: userServer.serverId,
+        orgId: userServer.server.orgId,
+        userId: session.user.id,
+        callbackUrl: `${env.AUTH_URL}/api/ee/askmcp/callback`,
     });
 
-    // Always clear ephemeral PKCE/state regardless of outcome to prevent replay.
-    await provider.invalidateCredentials('verifier');
-
     const settingsUrl = new URL(`/settings/mcpServers`, env.AUTH_URL);
+    let result: Awaited<ReturnType<typeof mcpAuth>>;
+
+    try {
+        result = await mcpAuth(provider, {
+            serverUrl: new URL(userServer.server.serverUrl),
+            authorizationCode: code,
+            callbackState: state,
+        });
+    } catch (error) {
+        logger.warn(`Failed to authorize MCP server ${userServer.server.name} for user ${session.user.id}:`, error);
+        try {
+            await provider.invalidateCredentials('verifier');
+        } catch (cleanupError) {
+            logger.warn(`Failed to clear MCP OAuth verifier for user ${session.user.id}:`, cleanupError);
+        }
+        return redirectToSettingsError(reconnectMessage);
+    }
+
+    // Always clear ephemeral PKCE/state regardless of outcome to prevent replay.
+    try {
+        await provider.invalidateCredentials('verifier');
+    } catch (cleanupError) {
+        logger.warn(`Failed to clear MCP OAuth verifier for user ${session.user.id}:`, cleanupError);
+    }
 
     if (result === 'AUTHORIZED') {
-        const displayName = userServer.name || userServer.server.serverUrl;
+        const displayName = userServer.server.name || userServer.server.serverUrl;
         logger.info(`Successfully authorized MCP server ${displayName} for user ${session.user.id}.`);
         settingsUrl.searchParams.set('status', 'connected');
         settingsUrl.searchParams.set('server', displayName);

@@ -9,6 +9,7 @@ const logger = createLogger('mcp-client-factory');
 export interface McpToolSet {
     serverId: string;
     serverName: string;
+    sanitizedName: string;
     serverUrl: string;
     transport: StreamableHTTPClientTransport;
 }
@@ -36,16 +37,20 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
         where: {
             userId,
             tokens: { not: null },
-            server: { orgId },
+            server: {
+                orgId,
+                clientInfo: { not: null },
+            },
         },
         select: {
             serverId: true,
-            name: true,
             tokens: true,
             tokensExpiresAt: true,
             server: {
                 select: {
                     orgId: true,
+                    name: true,
+                    sanitizedName: true,
                     serverUrl: true,
                 },
             },
@@ -60,7 +65,7 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
             continue;
         }
 
-        const serverName = userServer.name;
+        const serverName = userServer.server.name;
 
         try {
             const decrypted = decryptOAuthToken(userServer.tokens);
@@ -76,12 +81,13 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
                 continue;
             }
 
-            const provider = new PrismaOAuthClientProvider(
+            const provider = new PrismaOAuthClientProvider({
                 prisma,
-                userServer.serverId,
+                serverId: userServer.serverId,
+                orgId,
                 userId,
-                `${env.AUTH_URL}/api/ee/askmcp/callback`,
-            );
+                callbackUrl: `${env.AUTH_URL}/api/ee/askmcp/callback`,
+            });
 
             const transport = new StreamableHTTPClientTransport(
                 new URL(userServer.server.serverUrl),
@@ -91,6 +97,7 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
             clients.push({
                 serverId: userServer.serverId,
                 serverName,
+                sanitizedName: userServer.server.sanitizedName,
                 serverUrl: userServer.server.serverUrl,
                 transport,
             });
