@@ -10,6 +10,7 @@ import { createCheckoutSession } from "@/ee/features/lighthouse/actions";
 import { useToast } from "@/components/hooks/use-toast";
 import {
     Dialog,
+    DialogClose,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -26,6 +27,8 @@ import {
 } from "@/components/ui/table";
 import { OffersResponse } from "@/ee/features/lighthouse/types";
 import { useOffers } from "@/ee/features/lighthouse/useOffers";
+import { useRole } from "@/features/auth/useRole";
+import { OrgRole } from "@sourcebot/db";
 
 interface FeatureLinkProps {
     text: string;
@@ -128,6 +131,8 @@ function UpsellDialogContent({ offers, returnPath }: UpsellDialogContentProps) {
     const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
     const [isCheckoutSessionCreating, setIsCheckoutSessionCreating] = useState(false);
     const { toast } = useToast();
+    const role = useRole();
+    const isOwner = role === OrgRole.OWNER;
 
     const enterprisePrice = formatPrice(
         billingInterval === "year" ? offers.pricing.annual.unitAmount : offers.pricing.monthly.unitAmount,
@@ -163,6 +168,15 @@ function UpsellDialogContent({ offers, returnPath }: UpsellDialogContentProps) {
     }, [billingInterval, offers.trial.eligible, returnPath, toast]);
 
     const { title, description, buttonText } = useMemo(() => {
+        // Members can't upgrade the workspace themselves — show them the feature
+        // table so they understand what's gated, but route them to the owner.
+        if (!isOwner) {
+            return {
+                title: "Enterprise feature",
+                description: "Ask your workspace owner to upgrade to Enterprise.",
+                buttonText: "Got it",
+            }
+        }
         // trial, no cc
         if (offers.trial.eligible && !offers.trial.creditCardRequired) {
             return {
@@ -187,7 +201,7 @@ function UpsellDialogContent({ offers, returnPath }: UpsellDialogContentProps) {
                 buttonText: "Upgrade"
             }
         }
-    }, [offers.trial.creditCardRequired, offers.trial.durationDays, offers.trial.eligible]);
+    }, [isOwner, offers.trial.creditCardRequired, offers.trial.durationDays, offers.trial.eligible]);
 
     return (
         <>
@@ -278,9 +292,15 @@ function UpsellDialogContent({ offers, returnPath }: UpsellDialogContentProps) {
                         <ExternalLink className="h-3.5 w-3.5 ml-2" />
                     </a>
                 </Button>
-                <LoadingButton onClick={handlePrimaryAction} loading={isCheckoutSessionCreating}>
-                    {buttonText}
-                </LoadingButton>
+                {isOwner ? (
+                    <LoadingButton onClick={handlePrimaryAction} loading={isCheckoutSessionCreating}>
+                        {buttonText}
+                    </LoadingButton>
+                ) : (
+                    <DialogClose asChild>
+                        <Button>{buttonText}</Button>
+                    </DialogClose>
+                )}
             </DialogFooter>
         </>
     );

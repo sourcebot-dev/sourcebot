@@ -89,7 +89,7 @@ export function SidebarBase({ session, collapsible = "icon", headerContent, chil
                 {children}
             </SidebarContent>
             <SidebarFooter className="border-t border-sidebar-border">
-                {!isValidLicenseActive && isOwner && <UpgradeButton />}
+                {!isValidLicenseActive && <UpgradeButton />}
                 {collapsible !== "none" && <CollapseSidebarButton />}
                 <WhatsNewSidebarButton />
                 {session ? (
