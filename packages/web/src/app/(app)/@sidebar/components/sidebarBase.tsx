@@ -44,7 +44,7 @@ import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { WhatsNewSidebarButton } from "./whatsNewSidebarButton";
-import { UpgradeButton } from "./upsell/upgradeButton";
+import { UpgradeButton } from "./upgradeButton";
 
 interface SidebarBaseProps {
     session: Session | null;

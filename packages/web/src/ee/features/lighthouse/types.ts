@@ -23,6 +23,17 @@ export const activateResponseSchema = z.object({
 });
 export type ActivateResponse = z.infer<typeof activateResponseSchema>;
 
+export const claimActivationCodeRequestSchema = z.object({
+    sessionId: z.string(),
+    installId: z.string(),
+});
+export type ClaimActivationCodeRequest = z.infer<typeof claimActivationCodeRequestSchema>;
+
+export const claimActivationCodeResponseSchema = z.object({
+    activationCode: z.string(),
+});
+export type ClaimActivationCodeResponse = z.infer<typeof claimActivationCodeResponseSchema>;
+
 export const servicePingResponseSchema = z.object({
     license: z.object({
         entitlements: z.string().array(),

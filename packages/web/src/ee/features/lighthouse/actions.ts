@@ -70,6 +70,23 @@ export const activateLicense = async (activationCode: string): Promise<{ success
     )
 );
 
+export const claimActivationCode = async (sessionId: string): Promise<{ activationCode: string } | ServiceError> => sew(() =>
+    withAuth(async ({ role }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            const result = await client.claimActivationCode({
+                sessionId,
+                installId: env.SOURCEBOT_INSTALL_ID,
+            });
+
+            if (isServiceError(result)) {
+                return result;
+            }
+
+            return { activationCode: result.activationCode };
+        })
+    )
+);
+
 export const refreshLicense = async (): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async ({ org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
@@ -94,10 +111,12 @@ export const refreshLicense = async (): Promise<{ success: boolean } | ServiceEr
 
 export const createCheckoutSession = async ({
     requestTrial = false,
-    interval = 'month',
+    interval = 'year',
+    returnPath: _returnPath = '/settings/license'
 }: {
     requestTrial?: boolean;
     interval?: 'month' | 'year';
+    returnPath?: string;
 }): Promise<{ url: string } | ServiceError> => sew(() =>
     withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
@@ -115,16 +134,39 @@ export const createCheckoutSession = async ({
                 },
             });
 
+            // Resolve the candidate against AUTH_URL so absolute paths, protocol-
+            // relative paths (`//evil.com`), and bare relative paths all get
+            // normalized through the URL parser. Reject anything that lands off-
+            // origin or carries its own query / fragment — we own those.
+            let returnPath: string;
+            try {
+                const candidate = new URL(_returnPath, env.AUTH_URL);
+                const authOrigin = new URL(env.AUTH_URL).origin;
+                if (candidate.origin !== authOrigin) {
+                    throw new Error('returnPath escapes AUTH_URL origin');
+                }
+                if (candidate.search || candidate.hash) {
+                    throw new Error('returnPath must not include query string or fragment');
+                }
+                returnPath = candidate.pathname;
+            } catch {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.UNEXPECTED_ERROR,
+                    message: "Invalid returnPath.",
+                } satisfies ServiceError;
+            }
+
             const result = await client.checkout({
                 email: user.email,
                 installId: env.SOURCEBOT_INSTALL_ID,
                 quantity: Math.max(memberCount, 1),
                 requestTrial,
                 interval,
-                successUrl: requestTrial
-                    ? `${env.AUTH_URL}/settings/license?checkout=success&refresh=true`
-                    : `${env.AUTH_URL}/settings/license?checkout=success&refresh=true`,
-                cancelUrl: `${env.AUTH_URL}/settings/license?refresh=true`,
+                // `{CHECKOUT_SESSION_ID}` is substituted server-side by Stripe at
+                // redirect time with the real session ID.
+                successUrl: `${env.AUTH_URL}${returnPath}?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+                cancelUrl: `${env.AUTH_URL}${returnPath}`,
             });
 
             if (isServiceError(result)) {

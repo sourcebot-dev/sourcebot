@@ -26,8 +26,7 @@ import { usePathname } from "next/navigation";
 import { PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY } from "@/features/chat/constants";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
-import { UpsellDialog } from "@/app/(app)/@sidebar/components/upsell/upsellDialog";
-import { useOffers } from "@/ee/features/lighthouse/useOffers";
+import { UpsellDialog } from "@/ee/features/lighthouse/upsellDialog";
 
 interface ChatBoxProps {
     onSubmit: (children: Descendant[], editor: CustomEditor) => void;
@@ -162,6 +161,18 @@ const ChatBoxComponent = ({
 
     }, [editor.children, isRedirecting, isGenerating, selectedLanguageModel])
 
+    const {
+        requiresLogin,
+        requiresUpgrade
+    } = useMemo(() => ({
+        requiresLogin: isLoginWallEnabled && !isAuthenticated,
+        requiresUpgrade: !isAskEnabled,
+    }), [
+        isAuthenticated,
+        isLoginWallEnabled,
+        isAskEnabled
+    ])
+
     const onSubmit = useCallback(() => {
         if (isSubmitDisabled) {
             if (isSubmitDisabledReason === "no-language-model-selected") {
@@ -174,7 +185,7 @@ const ChatBoxComponent = ({
             return;
         }
 
-        if (isLoginWallEnabled && !isAuthenticated) {
+        if (requiresLogin) {
             sessionStorage.setItem(
                 PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY,
                 JSON.stringify({ pathname, children: editor.children }),
@@ -184,7 +195,11 @@ const ChatBoxComponent = ({
             return;
         }
 
-        if (!isAskEnabled) {
+        if (requiresUpgrade) {
+            sessionStorage.setItem(
+                PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY,
+                JSON.stringify({ pathname, children: editor.children }),
+            );
             setIsUpsellDialogOpen(true);
             return;
         }
@@ -192,9 +207,8 @@ const ChatBoxComponent = ({
         _onSubmit(editor.children, editor);
     }, [
         isSubmitDisabled,
-        isLoginWallEnabled,
-        isAuthenticated,
-        isAskEnabled,
+        requiresLogin,
+        requiresUpgrade,
         _onSubmit,
         editor,
         isSubmitDisabledReason,
@@ -204,6 +218,13 @@ const ChatBoxComponent = ({
     ]);
 
     useEffect(() => {
+        if (
+            requiresLogin ||
+            requiresUpgrade
+        ) {
+            return;
+        }
+
         const stored = sessionStorage.getItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
         if (!stored) {
             return;
@@ -221,7 +242,14 @@ const ChatBoxComponent = ({
             console.error('Failed to restore pending chat submission:', error);
             sessionStorage.removeItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
         }
-    }, [isAuthenticated, pathname, editor, _onSubmit]);
+    }, [
+        pathname,
+        editor,
+        _onSubmit,
+        requiresLogin,
+        requiresUpgrade,
+        isSubmitDisabled
+    ]);
 
     const onInsertSuggestion = useCallback((suggestion: Suggestion) => {
         switch (suggestion.type) {
@@ -416,24 +444,13 @@ const ChatBoxComponent = ({
             />
             <UpsellDialog
                 open={isUpsellDialogOpen}
-                onOpenChange={setIsUpsellDialogOpen}
-                offers={{
-                    pricing: {
-                        annual: {
-                            unitAmount: 0,
-                            currency: 'usd'
-                        },
-                        monthly: {
-                            unitAmount: 0,
-                            currency: 'usd'
-                        }
-                    },
-                    trial: {
-                        creditCardRequired: false,
-                        durationDays: 2,
-                        eligible: false
+                onOpenChange={(open) => {
+                    setIsUpsellDialogOpen(open);
+                    if (!open) {
+                        sessionStorage.removeItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
                     }
                 }}
+                returnPath={pathname}
             />
         </>
     )

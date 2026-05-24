@@ -13,7 +13,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useEntitlements } from "@/features/entitlements/useEntitlements";
 import { Entitlement } from "@sourcebot/shared";
-import { UpgradeBadge } from "../upsell/upgradeBadge";
+import { UpgradeBadge } from "../upgradeBadge";
 
 interface NavItem {
     title: string;

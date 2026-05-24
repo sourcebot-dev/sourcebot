@@ -2,7 +2,7 @@
 
 import { ArrowUpCircle } from "lucide-react";
 import { useState } from "react";
-import { UpsellDialog } from "./upsellDialog";
+import { UpsellDialog } from "@/ee/features/lighthouse/upsellDialog";
 import { useOffers } from "@/ee/features/lighthouse/useOffers";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -34,7 +34,7 @@ export const UpgradeButton = () => {
                     {label}
                 </button>
             </div>
-            <UpsellDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} offers={offers}/>
+            <UpsellDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
         </>
     );
 }

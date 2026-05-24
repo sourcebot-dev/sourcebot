@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UpgradeBadge } from "../upsell/upgradeBadge";
+import { UpgradeBadge } from "../upgradeBadge";
 
 const iconMap = {
     "link": LinkIcon,
