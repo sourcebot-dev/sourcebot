@@ -11,13 +11,13 @@ import { useLocalStorage } from "usehooks-ts";
 import { SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY } from "@/features/chat/constants";
 import { SearchModeSelector } from "../../components/searchModeSelector";
 import { NotConfiguredErrorBanner } from "@/features/chat/components/notConfiguredErrorBanner";
-import { LoginModal } from "@/app/components/loginModal";
 
 interface LandingPageChatBox {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
     isAuthenticated: boolean;
+    isLoginWallEnabled: boolean;
 }
 
 export const LandingPageChatBox = ({
@@ -25,8 +25,9 @@ export const LandingPageChatBox = ({
     repos,
     searchContexts,
     isAuthenticated,
+    isLoginWallEnabled,
 }: LandingPageChatBox) => {
-    const { createNewChatThread, isLoading, loginWall } = useCreateNewChatThread({ isAuthenticated });
+    const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [selectedSearchScopes, setSelectedSearchScopes] = useLocalStorage<SearchScope[]>(SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY, [], { initializeWithValue: false });
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
     const isChatBoxDisabled = languageModels.length === 0;
@@ -36,7 +37,7 @@ export const LandingPageChatBox = ({
             <div className="border rounded-md w-full shadow-sm">
                 <ChatBox
                     onSubmit={(children) => {
-                        createNewChatThread(children, selectedSearchScopes);
+                        createNewChatThread(children);
                     }}
                     className="min-h-[50px]"
                     isRedirecting={isLoading}
@@ -44,6 +45,8 @@ export const LandingPageChatBox = ({
                     selectedSearchScopes={selectedSearchScopes}
                     searchContexts={searchContexts}
                     isDisabled={isChatBoxDisabled}
+                    isAuthenticated={isAuthenticated}
+                    isLoginWallEnabled={isLoginWallEnabled}
                 />
                 <Separator />
                 <div className="relative">
@@ -68,13 +71,6 @@ export const LandingPageChatBox = ({
             {isChatBoxDisabled && (
                 <NotConfiguredErrorBanner className="mt-4" />
             )}
-
-            <LoginModal
-                isOpen={loginWall.isOpen}
-                onOpenChange={loginWall.onOpenChange}
-                providers={loginWall.providers}
-                callbackUrl={typeof window !== 'undefined' ? window.location.href : ''}
-            />
         </div >
     )
 }

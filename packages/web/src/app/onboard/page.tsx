@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { AuthMethodSelector } from "@/app/components/authMethodSelector"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { auth } from "@/auth";
-import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 import { OrganizationAccessSettings } from "@/app/components/organizationAccessSettings";
 import { CompleteOnboardingButton } from "./components/completeOnboardingButton";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
@@ -40,7 +39,6 @@ interface ResourceCard {
 
 export default async function Onboarding(props: OnboardingProps) {
     const searchParams = await props.searchParams;
-    const providers = await getIdentityProviderMetadata();
     const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
     const session = await auth();
 
@@ -143,7 +141,6 @@ export default async function Onboarding(props: OnboardingProps) {
             component: (
                 <div className="space-y-6">
                     <AuthMethodSelector
-                        providers={providers}
                         callbackUrl="/onboard"
                         context="signup"
                         securityNoticeClosable={false}

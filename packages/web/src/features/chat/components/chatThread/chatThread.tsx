@@ -28,15 +28,10 @@ import { NotConfiguredErrorBanner } from '../notConfiguredErrorBanner';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { SignInPromptBanner } from './signInPromptBanner';
 import { DuplicateChatDialog } from '@/app/(app)/chat/components/duplicateChatDialog';
-import { LoginModal } from '@/app/components/loginModal';
-import type { IdentityProviderMetadata } from '@/lib/identityProviders';
-import { getAskGhLoginWallData } from '../../actions';
 
 type ChatHistoryState = {
     scrollOffset?: number;
 }
-
-const PENDING_MESSAGE_STORAGE_KEY = "askgh_chat_pending_message";
 
 interface ChatThreadProps {
     id?: string | undefined;
@@ -48,7 +43,8 @@ interface ChatThreadProps {
     selectedSearchScopes: SearchScope[];
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     isOwner?: boolean;
-    isAuthenticated?: boolean;
+    isAuthenticated: boolean;
+    isLoginWallEnabled: boolean;
     chatName?: string;
 }
 
@@ -62,7 +58,8 @@ export const ChatThread = ({
     selectedSearchScopes,
     onSelectedSearchScopesChange,
     isOwner = true,
-    isAuthenticated = false,
+    isAuthenticated,
+    isLoginWallEnabled,
     chatName,
 }: ChatThreadProps) => {
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
@@ -72,9 +69,6 @@ export const ChatThread = ({
     const router = useRouter();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
     const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
-    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-    const [loginWallProviders, setLoginWallProviders] = useState<IdentityProviderMetadata[]>([]);
-    const hasRestoredPendingMessage = useRef(false);
     const captureEvent = useCaptureEvent();
 
     // Initial state is from attachments that exist in in the chat history.
@@ -207,38 +201,6 @@ export const ChatThread = ({
         hasSubmittedInputMessage.current = true;
     }, [inputMessage, scrollToBottom, sendMessage]);
 
-    // Restore pending message after OAuth redirect (askgh login wall)
-    useEffect(() => {
-        if (!isAuthenticated || !isOwner || hasRestoredPendingMessage.current) {
-            return;
-        }
-
-        const stored = sessionStorage.getItem(PENDING_MESSAGE_STORAGE_KEY);
-        if (!stored) {
-            return;
-        }
-
-        hasRestoredPendingMessage.current = true;
-        sessionStorage.removeItem(PENDING_MESSAGE_STORAGE_KEY);
-
-        try {
-            const { chatId: storedChatId, children } = JSON.parse(stored) as { chatId: string; children: Descendant[] };
-
-            // Only restore if we're on the same chat that stored the pending message
-            if (storedChatId !== chatId) {
-                return;
-            }
-
-            const text = slateContentToString(children);
-            const mentions = getAllMentionElements(children);
-            const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes);
-            sendMessage(message);
-            scrollToBottom();
-        } catch (error) {
-            console.error('Failed to restore pending message:', error);
-        }
-    }, [isAuthenticated, isOwner, chatId, sendMessage, selectedSearchScopes, scrollToBottom]);
-
     // Track scroll position for history state restoration.
     useEffect(() => {
         const scrollElement = scrollRef.current;
@@ -305,17 +267,6 @@ export const ChatThread = ({
     }, [error]);
 
     const onSubmit = useCallback(async (children: Descendant[], editor: CustomEditor) => {
-        if (!isAuthenticated) {
-            const result = await getAskGhLoginWallData();
-            if (!isServiceError(result) && result.isEnabled) {
-                captureEvent('wa_askgh_login_wall_prompted', {});
-                sessionStorage.setItem(PENDING_MESSAGE_STORAGE_KEY, JSON.stringify({ chatId, children }));
-                setLoginWallProviders(result.providers);
-                setIsLoginModalOpen(true);
-                return;
-            }
-        }
-
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
@@ -325,7 +276,7 @@ export const ChatThread = ({
         scrollToBottom();
 
         resetEditor(editor);
-    }, [sendMessage, selectedSearchScopes, isAuthenticated, captureEvent, chatId, scrollToBottom]);
+    }, [sendMessage, selectedSearchScopes, scrollToBottom]);
 
     const onDuplicate = useCallback(async (newName: string): Promise<string | null> => {
         if (!defaultChatId) {
@@ -437,6 +388,8 @@ export const ChatThread = ({
                                     selectedSearchScopes={selectedSearchScopes}
                                     searchContexts={searchContexts}
                                     isDisabled={languageModels.length === 0}
+                                    isAuthenticated={isAuthenticated}
+                                    isLoginWallEnabled={isLoginWallEnabled}
                                 />
                                 <div className="w-full flex flex-row items-center bg-accent rounded-b-md px-2">
                                     <ChatBoxToolbar
@@ -473,13 +426,6 @@ export const ChatThread = ({
                     </div>
                 )}
             </div>
-
-            <LoginModal
-                isOpen={isLoginModalOpen}
-                onOpenChange={setIsLoginModalOpen}
-                providers={loginWallProviders}
-                callbackUrl={typeof window !== 'undefined' ? window.location.href : ''}
-            />
         </>
     );
 }

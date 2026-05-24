@@ -160,6 +160,7 @@ export default async function Page(props: PageProps) {
                 messages={messages}
                 isOwner={isOwner}
                 isAuthenticated={!!session}
+                isLoginWallEnabled={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
                 chatName={name ?? undefined}
             />
         </div>

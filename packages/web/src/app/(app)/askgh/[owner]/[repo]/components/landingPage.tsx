@@ -5,7 +5,6 @@ import { SearchModeSelector } from "@/app/(app)/components/searchModeSelector";
 import { Separator } from "@/components/ui/separator";
 import { ChatBox } from "@/features/chat/components/chatBox";
 import { ChatBoxToolbar } from "@/features/chat/components/chatBox/chatBoxToolbar";
-import { LoginModal } from "@/app/components/loginModal";
 import { NotConfiguredErrorBanner } from "@/features/chat/components/notConfiguredErrorBanner";
 import { LanguageModelInfo, RepoSearchScope } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
@@ -29,7 +28,7 @@ export const LandingPage = ({
     repoId,
     isAuthenticated,
 }: LandingPageProps) => {
-    const { createNewChatThread, isLoading, loginWall } = useCreateNewChatThread({ isAuthenticated });
+    const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
     const isChatBoxDisabled = languageModels.length === 0;
 
@@ -77,6 +76,8 @@ export const LandingPage = ({
                             selectedSearchScopes={selectedSearchScopes}
                             searchContexts={[]}
                             isDisabled={isChatBoxDisabled}
+                            isAuthenticated={isAuthenticated}
+                            isLoginWallEnabled={true}
                         />
                         <Separator />
                         <div className="relative">
@@ -103,13 +104,6 @@ export const LandingPage = ({
                     )}
                 </div>
             </div>
-
-            <LoginModal
-                isOpen={loginWall.isOpen}
-                onOpenChange={loginWall.onOpenChange}
-                providers={loginWall.providers}
-                callbackUrl={typeof window !== 'undefined' ? window.location.href : ''}
-            />
         </div>
     )
 }

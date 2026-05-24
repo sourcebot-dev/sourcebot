@@ -9,6 +9,8 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useEntitlements } from "@/features/entitlements/useEntitlements";
+import { Entitlement } from "@sourcebot/shared";
 import {
     ChartAreaIcon,
     KeyRoundIcon,
@@ -23,6 +25,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { UpgradeBadge } from "../upgradeBadge";
 
 const iconMap = {
     "link": LinkIcon,
@@ -44,6 +47,7 @@ export type NavItem = {
     title: React.ReactNode;
     icon?: NavIconName;
     isNotificationDotVisible?: boolean;
+    requiredEntitlement?: Entitlement;
 };
 
 export type NavGroup = {
@@ -57,6 +61,7 @@ interface NavProps {
 
 export function Nav({ groups }: NavProps) {
     const pathname = usePathname();
+    const entitlements = useEntitlements();
 
     return (
         <>
@@ -69,6 +74,10 @@ export function Nav({ groups }: NavProps) {
                                 const isActive = item.hrefRegex
                                     ? new RegExp(item.hrefRegex).test(pathname)
                                     : pathname === item.href;
+
+                                const showUpgradeBadge =
+                                    (item.requiredEntitlement && !entitlements.includes(item.requiredEntitlement));
+                                
                                 const Icon = item.icon ? iconMap[item.icon] : undefined;
                                 return (
                                     <SidebarMenuItem key={item.href}>
@@ -76,6 +85,7 @@ export function Nav({ groups }: NavProps) {
                                             <Link href={item.href}>
                                                 {Icon && <Icon />}
                                                 <span>{item.title}</span>
+                                                {showUpgradeBadge && <UpgradeBadge />}
                                                 {item.isNotificationDotVisible && <NotificationDot className="ml-1.5" />}
                                             </Link>
                                         </SidebarMenuButton>

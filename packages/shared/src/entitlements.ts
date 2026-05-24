@@ -25,6 +25,9 @@ const ACTIVE_ONLINE_LICENSE_STATUSES: LicenseStatus[] = [
     'past_due',
 ];
 
+// @WARNING: when adding a new entitlement to this list, make sure
+// lighthouse/lambda/entitlements.ts is also updated && deployed
+// prior to rolling a new Sourcebot version.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ALL_ENTITLEMENTS = [
     "search-contexts",
@@ -37,6 +40,7 @@ const ALL_ENTITLEMENTS = [
     "chat-sharing",
     "org-management",
     "oauth",
+    "ask"
 ] as const;
 export type Entitlement = (typeof ALL_ENTITLEMENTS)[number];
 

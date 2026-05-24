@@ -69,6 +69,7 @@ export async function ChatLandingPage() {
                             repos={allRepos}
                             searchContexts={searchContexts}
                             isAuthenticated={!!session}
+                            isLoginWallEnabled={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
                         />
                     </CustomSlateEditor>
 

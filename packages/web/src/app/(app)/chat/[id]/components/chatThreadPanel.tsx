@@ -16,6 +16,7 @@ interface ChatThreadPanelProps {
     messages: SBChatMessage[];
     isOwner: boolean;
     isAuthenticated: boolean;
+    isLoginWallEnabled: boolean;
     chatName?: string;
 }
 
@@ -26,6 +27,7 @@ export const ChatThreadPanel = ({
     messages,
     isOwner,
     isAuthenticated,
+    isLoginWallEnabled,
     chatName,
 }: ChatThreadPanelProps) => {
     // @note: we are guaranteed to have a chatId because this component will only be
@@ -74,6 +76,7 @@ export const ChatThreadPanel = ({
                 onSelectedSearchScopesChange={setSelectedSearchScopes}
                 isOwner={isOwner}
                 isAuthenticated={isAuthenticated}
+                isLoginWallEnabled={isLoginWallEnabled}
                 chatName={chatName}
             />
         </div>

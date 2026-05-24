@@ -8,35 +8,32 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
-import type { IdentityProviderMetadata } from "@/lib/identityProviders";
+import { usePathname } from "next/navigation";
 
-interface LoginModalProps {
+interface LoginDialogProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
-    providers: IdentityProviderMetadata[];
-    callbackUrl: string;
 }
 
-export const LoginModal = ({
+export const LoginDialog = ({
     isOpen,
     onOpenChange,
-    providers,
-    callbackUrl,
-}: LoginModalProps) => {
+}: LoginDialogProps) => {
+    const pathname = usePathname();
+
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle className="mb-3">Sign up to continue</DialogTitle>
+                    <DialogTitle className="mb-3">Sign in to continue</DialogTitle>
                     <DialogDescription>
                         Sign into your account to continue.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="mt-4">
                     <AuthMethodSelector
-                        providers={providers}
-                        callbackUrl={callbackUrl}
                         context="login"
+                        callbackUrl={pathname}
                         hideSecurityNotice={true}
                     />
                 </div>

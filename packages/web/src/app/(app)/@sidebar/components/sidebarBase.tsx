@@ -31,7 +31,7 @@ import { useKeymapType } from "@/hooks/useKeymapType";
 import { KeymapType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
-    ArrowLeftToLineIcon, ArrowRightToLineIcon, ArrowUpCircle, ChevronsUpDown, CodeIcon,
+    ArrowLeftToLineIcon, ArrowRightToLineIcon, ChevronsUpDown, CodeIcon,
     Laptop, LogIn, LogOut, Moon, SettingsIcon, Sun, UserIcon
 } from "lucide-react";
 import { Session } from "next-auth";
@@ -44,7 +44,7 @@ import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { WhatsNewSidebarButton } from "./whatsNewSidebarButton";
-import { UpsellBadge } from "./upsellBadge";
+import { UpgradeButton } from "./upgradeButton";
 
 interface SidebarBaseProps {
     session: Session | null;
@@ -89,7 +89,7 @@ export function SidebarBase({ session, collapsible = "icon", headerContent, chil
                 {children}
             </SidebarContent>
             <SidebarFooter className="border-t border-sidebar-border">
-                {!isValidLicenseActive && isOwner && <UpsellBadge />}
+                {!isValidLicenseActive && isOwner && <UpgradeButton />}
                 {collapsible !== "none" && <CollapseSidebarButton />}
                 <WhatsNewSidebarButton />
                 {session ? (

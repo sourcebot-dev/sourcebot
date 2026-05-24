@@ -32,6 +32,7 @@ import { OrgRole } from "@sourcebot/db";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { ConnectAccountsCard } from "@/ee/features/sso/components/connectAccountsCard";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { CheckoutReturnHandler } from "@/ee/features/lighthouse/checkoutReturnHandler";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -192,6 +193,7 @@ export default async function Layout(props: LayoutProps) {
             <SyntaxReferenceGuide />
             <GitHubStarToast />
             {env.EXPERIMENT_ASK_GH_ENABLED !== 'true' && <UpgradeToast />}
+            <CheckoutReturnHandler userEmail={session?.user.email} />
         </SyntaxGuideProvider>
     )
 }

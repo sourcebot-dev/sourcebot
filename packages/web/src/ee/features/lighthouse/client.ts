@@ -7,6 +7,9 @@ import {
     CheckoutRequest,
     CheckoutResponse,
     checkoutResponseSchema,
+    ClaimActivationCodeRequest,
+    ClaimActivationCodeResponse,
+    claimActivationCodeResponseSchema,
     InvoicesRequest,
     InvoicesResponse,
     invoicesResponseSchema,
@@ -34,6 +37,16 @@ export const client = {
         });
 
         return parseResponseBody(response, activateResponseSchema);
+    },
+
+    claimActivationCode: async (body: ClaimActivationCodeRequest): Promise<ClaimActivationCodeResponse | ServiceError> => {
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/claim-activation-code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        return parseResponseBody(response, claimActivationCodeResponseSchema);
     },
 
     ping: async (body: ServicePingRequest): Promise<ServicePingResponse | ServiceError> => {
