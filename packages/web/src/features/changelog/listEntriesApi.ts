@@ -6,7 +6,8 @@ export type ChangelogEntryDto = {
     slug: string;
     title: string;
     publishedAt: string;
-    summary: string | null;
+    summary: string;
+    version: string;
     bodyMarkdown: string;
 };
 
@@ -32,6 +33,7 @@ export const listChangelogEntries = async () =>
                     title: entry.title,
                     publishedAt: entry.publishedAt.toISOString(),
                     summary: entry.summary,
+                    version: entry.version,
                     bodyMarkdown: entry.bodyMarkdown,
                 })),
                 entriesBaseUrl,

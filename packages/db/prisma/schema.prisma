@@ -630,7 +630,8 @@ model ChangelogEntry {
   slug         String   @id
   title        String
   publishedAt  DateTime
-  summary      String?
+  summary      String
+  version      String
   bodyMarkdown String
 
   /// Updated each time the entry is upserted from the feed.

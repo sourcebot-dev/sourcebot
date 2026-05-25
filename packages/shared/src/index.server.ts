@@ -68,3 +68,9 @@ export {
 export {
     SOURCEBOT_VERSION,
 } from "./version.js";
+export {
+    parseVersion,
+    formatVersion,
+    compareVersions,
+} from "./versionUtils.js";
+export type { Version } from "./versionUtils.js";

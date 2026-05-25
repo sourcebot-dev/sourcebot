@@ -29,7 +29,8 @@ const upsertEntry = async (entry: ChangelogFeedIndexEntry, baseUrl: string): Pro
         slug: entry.slug,
         title: entry.title,
         publishedAt: new Date(entry.publishedAt),
-        summary: entry.summary ?? null,
+        summary: entry.summary,
+        version: entry.version,
         bodyMarkdown,
     };
 

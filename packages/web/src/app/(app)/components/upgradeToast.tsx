@@ -6,16 +6,10 @@ import { useEffect } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { getVersion } from "@/app/api/(client)/client";
 import { useQuery } from "@tanstack/react-query";
+import { compareVersions, formatVersion, parseVersion } from "@sourcebot/shared/client";
 
 const GITHUB_TAGS_URL = "https://api.github.com/repos/sourcebot-dev/sourcebot/tags";
-const SEMVER_REGEX = /^v(\d+)\.(\d+)\.(\d+)$/;
 const TOAST_TIMEOUT_MS = 1000 * 60 * 60 * 24;
-
-type Version = {
-    major: number;
-    minor: number;
-    patch: number;
-};
 
 export const UpgradeToast = () => {
     const { toast } = useToast();
@@ -35,7 +29,7 @@ export const UpgradeToast = () => {
             return;
         }
 
-        const currentVersion = getVersionFromString(versionString);
+        const currentVersion = parseVersion(versionString);
         if (!currentVersion) {
             return;
         }
@@ -48,7 +42,7 @@ export const UpgradeToast = () => {
             .then((response) => response.json())
             .then((data: { name: string }[]) => {
                 const versions = data
-                    .map(({ name }) => getVersionFromString(name))
+                    .map(({ name }) => parseVersion(name))
                     .filter((version) => version !== null)
                     .sort((a, b) => compareVersions(a, b))
                     .reverse();
@@ -64,7 +58,7 @@ export const UpgradeToast = () => {
 
                 toast({
                     title: "New version available 📣 ",
-                    description: `Upgrade from ${getVersionString(currentVersion)} to ${getVersionString(latestVersion)}`,
+                    description: `Upgrade from ${formatVersion(currentVersion)} to ${formatVersion(latestVersion)}`,
                     duration: 10 * 1000,
                     action: (
                         <div className="flex flex-col gap-1">
@@ -87,28 +81,3 @@ export const UpgradeToast = () => {
     return null;
 }
 
-const getVersionFromString = (version: string): Version | null => {
-    const match = version.match(SEMVER_REGEX);
-    if (!match) {
-        return null;
-    }
-    return {
-        major: parseInt(match[1]),
-        minor: parseInt(match[2]),
-        patch: parseInt(match[3]),
-    } satisfies Version;
-}
-
-const getVersionString = (version: Version) => {
-    return `v${version.major}.${version.minor}.${version.patch}`;
-}
-
-const compareVersions = (a: Version, b: Version) => {
-    if (a.major !== b.major) {
-        return a.major - b.major;
-    }
-    if (a.minor !== b.minor) {
-        return a.minor - b.minor;
-    }
-    return a.patch - b.patch;
-}

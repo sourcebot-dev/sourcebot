@@ -3,7 +3,8 @@ CREATE TABLE "ChangelogEntry" (
     "slug" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "publishedAt" TIMESTAMP(3) NOT NULL,
-    "summary" TEXT,
+    "summary" TEXT NOT NULL,
+    "version" TEXT NOT NULL,
     "bodyMarkdown" TEXT NOT NULL,
     "fetchedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

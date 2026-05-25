@@ -1,15 +1,20 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import type { ChangelogEntryDto } from "@/features/changelog/listEntriesApi";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { ArrowUpRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
+import { compareVersions, parseVersion, SOURCEBOT_VERSION } from "@sourcebot/shared/client";
 
 const VIDEO_EXTENSIONS_RE = /\.(mp4|webm|ogg|mov)$/i;
 const ABSOLUTE_URL_RE = /^(?:[a-z][a-z0-9+\-.]*:|\/\/|#)/i;
@@ -109,15 +114,51 @@ interface ChangelogEntryDialogProps {
 export function ChangelogEntryDialog({ entry, entriesBaseUrl, open, onOpenChange }: ChangelogEntryDialogProps) {
     const urlTransform = useMemo(() => buildUrlTransform(entriesBaseUrl), [entriesBaseUrl]);
 
+    const upgradeAvailable = useMemo(() => {
+        if (!entry) {
+            return false;
+        }
+        const entryVersion = parseVersion(entry.version);
+        const currentVersion = parseVersion(SOURCEBOT_VERSION);
+        if (!entryVersion || !currentVersion) {
+            return false;
+        }
+        return compareVersions(entryVersion, currentVersion) > 0;
+    }, [entry]);
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col gap-0 p-0 focus:outline-none">
                 {entry && (
                     <>
                         <DialogHeader className="px-6 pt-4 pb-4 border-b space-y-1">
-                            <p className="text-xs text-muted-foreground">
-                                {format(new Date(entry.publishedAt), "MMM d, yyyy")}
-                            </p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{format(new Date(entry.publishedAt), "MMM d")}</span>
+                                {upgradeAvailable && (
+                                    <>
+                                        <span>·</span>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <a
+                                                    href={`https://github.com/sourcebot-dev/sourcebot/releases/tag/${entry.version}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 hover:bg-purple-500/30 gap-0.5">
+                                                        Upgrade
+                                                        <ArrowUpRight className="h-3 w-3" />
+                                                    </Badge>
+                                                </a>
+                                            </TooltipTrigger>
+                                            <TooltipPrimitive.Portal>
+                                                <TooltipContent side="bottom">
+                                                    This update requires <span className="font-mono">{entry.version}</span>. Your instance is on <span className="font-mono">{SOURCEBOT_VERSION}</span>.
+                                                </TooltipContent>
+                                            </TooltipPrimitive.Portal>
+                                        </Tooltip>
+                                    </>
+                                )}
+                            </div>
                             <DialogTitle className="sr-only">{entry.title}</DialogTitle>
                         </DialogHeader>
                         <div className="overflow-y-auto px-6 py-5">
