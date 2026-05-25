@@ -23,6 +23,7 @@ import {
     ListCommitsQueryParams,
     ListCommitsResponse,
 } from "@/features/git";
+import type { ListChangelogEntriesResponse } from "@/features/changelog/listEntriesApi";
 import type { PermissionSyncStatusResponse } from "../(server)/ee/permissionSyncStatus/api";
 import type { AccountSyncStatusResponse } from "../(server)/ee/accountPermissionSyncJobStatus/api";
 import type {
@@ -90,6 +91,17 @@ export const getVersion = async (): Promise<GetVersionResponse> => {
         },
     }).then(response => response.json());
     return result as GetVersionResponse;
+}
+
+export const listChangelogEntries = async (): Promise<ListChangelogEntriesResponse | ServiceError> => {
+    const result = await fetch("/api/changelog/entries", {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    }).then(response => response.json());
+    return result as ListChangelogEntriesResponse | ServiceError;
 }
 
 export const findSearchBasedSymbolReferences = async (body: FindRelatedSymbolsRequest): Promise<FindRelatedSymbolsResponse | ServiceError> => {

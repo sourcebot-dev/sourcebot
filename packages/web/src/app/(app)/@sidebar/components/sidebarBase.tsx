@@ -52,10 +52,9 @@ interface SidebarBaseProps {
     headerContent: ReactNode;
     children: ReactNode;
     isValidLicenseActive: boolean;
-    isOwner: boolean;
 }
 
-export function SidebarBase({ session, collapsible = "icon", headerContent, children, isValidLicenseActive, isOwner }: SidebarBaseProps) {
+export function SidebarBase({ session, collapsible = "icon", headerContent, children, isValidLicenseActive }: SidebarBaseProps) {
     const [isScrolled, setIsScrolled] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
 

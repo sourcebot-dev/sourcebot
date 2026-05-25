@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added progress bar when navigating between pages. [#1204](https://github.com/sourcebot-dev/sourcebot/pull/1204)
+- Added a integrated changelog into the sidebar. [#1227](https://github.com/sourcebot-dev/sourcebot/pull/1227)
 
 ### Changed
 - Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1097](https://github.com/sourcebot-dev/sourcebot/pull/1097)

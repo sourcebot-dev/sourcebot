@@ -54,7 +54,6 @@ export async function DefaultSidebar() {
             session={session}
             collapsible="icon"
             isValidLicenseActive={licenseActive}
-            isOwner={isOwner}
             headerContent={
                 <Nav
                     isSettingsNotificationVisible={isSettingsNotificationVisible}

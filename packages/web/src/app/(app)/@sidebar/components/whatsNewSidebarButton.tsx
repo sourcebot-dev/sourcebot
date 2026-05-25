@@ -11,58 +11,26 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
-import { newsData } from "@/lib/newsData"
-import { NewsItem } from "@/lib/types"
+import { listChangelogEntries } from "@/app/api/(client)/client"
+import { unwrapServiceError } from "@/lib/utils"
 import { env, SOURCEBOT_VERSION } from "@sourcebot/shared/client"
-import { Compass, Mail, MailOpen } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
+import { Compass, Loader2, Mail, MailOpen } from "lucide-react"
 import Link from "next/link"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useHotkeys } from "react-hotkeys-hook"
+import { useLocalStorage } from "usehooks-ts"
 import { KeyboardShortcutHint } from "@/app/components/keyboardShortcutHint"
+import { ChangelogEntryDialog } from "./changelogEntryDialog"
 
-const COOKIE_NAME = "whats-new-read-items"
-
-const getReadItems = (): string[] => {
-    if (typeof document === "undefined") {
-        return []
-    }
-
-    const cookies = document.cookie.split(';').map(cookie => cookie.trim())
-    const targetCookie = cookies.find(cookie => cookie.startsWith(`${COOKIE_NAME}=`))
-
-    if (!targetCookie) {
-        return []
-    }
-
-    try {
-        const cookieValue = targetCookie.substring(`${COOKIE_NAME}=`.length)
-        return JSON.parse(decodeURIComponent(cookieValue))
-    } catch {
-        return []
-    }
-}
-
-const setReadItems = (readItems: string[]) => {
-    if (typeof document === "undefined") {
-        return
-    }
-
-    try {
-        const expires = new Date()
-        expires.setFullYear(expires.getFullYear() + 1)
-        const cookieValue = encodeURIComponent(JSON.stringify(readItems))
-        document.cookie = `${COOKIE_NAME}=${cookieValue}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`
-    } catch {
-        // ignore
-    }
-}
+const STORAGE_KEY = "whats-new-read-items"
 
 export function WhatsNewSidebarButton() {
     const { state } = useSidebar()
     const [isOpen, setIsOpen] = useState(false)
     const [tooltipOpen, setTooltipOpen] = useState(false)
-    const [readItems, setReadItemsState] = useState<string[]>([])
-    const [isInitialized, setIsInitialized] = useState(false)
+    const [readItems, setReadItems] = useLocalStorage<string[]>(STORAGE_KEY, [], { initializeWithValue: false })
+    const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
 
     const toggleOpen = useCallback(() => {
         setIsOpen(prev => !prev)
@@ -73,42 +41,56 @@ export function WhatsNewSidebarButton() {
         toggleOpen();
     });
 
-    useEffect(() => {
-        const items = getReadItems()
-        setReadItemsState(items)
-        setIsInitialized(true)
-    }, [])
-
-    useEffect(() => {
-        if (isInitialized) {
-            setReadItems(readItems)
+    const {
+        data: { entries, entriesBaseUrl } = {
+            entries: [],
+            entriesBaseUrl: ""
+        },
+        isPending
+    } = useQuery({
+        queryKey: ["changelog-entries"],
+        queryFn: () => unwrapServiceError(listChangelogEntries()),
+        select: (response) => {
+            return {
+                entries: response.entries.map((entry) => ({
+                    ...entry,
+                    read: readItems.includes(entry.slug)
+                })),
+                entriesBaseUrl: response.entriesBaseUrl,
+            }
         }
-    }, [readItems, isInitialized])
+    })
 
-    const newsItemsWithReadState = newsData.map((item) => ({
-        ...item,
-        read: readItems.includes(item.unique_id),
-    }))
+    const selectedEntry = useMemo(
+        () => entries.find((entry) => entry.slug === selectedSlug) ?? null,
+        [entries, selectedSlug]
+    )
 
-    const unreadCount = newsItemsWithReadState.filter((item) => !item.read).length
+    const unreadCount = entries.filter((item) => !item.read).length
 
-    const markAsRead = (itemId: string) => {
-        setReadItemsState((prev) => {
-            if (!prev.includes(itemId)) {
-                return [...prev, itemId]
+    const markAsRead = (slug: string) => {
+        setReadItems((prev) => {
+            if (!prev.includes(slug)) {
+                return [...prev, slug]
             }
             return prev
         })
     }
 
     const markAllAsRead = () => {
-        const allIds = newsData.map((item) => item.unique_id)
-        setReadItemsState(allIds)
+        setReadItems(entries.map((entry) => entry.slug))
     }
 
-    const handleNewsItemClick = (item: NewsItem) => {
-        window.open(item.url, "_blank", "noopener,noreferrer")
-        markAsRead(item.unique_id)
+    const handleEntryClick = (slug: string) => {
+        setIsOpen(false)
+        setSelectedSlug(slug)
+        markAsRead(slug)
+    }
+
+    const handleDialogOpenChange = (open: boolean) => {
+        if (!open) {
+            setSelectedSlug(null)
+        }
     }
 
     return (
@@ -133,51 +115,59 @@ export function WhatsNewSidebarButton() {
                             <span>{"What's new"}</span>
                         </TooltipContent>
                     </Tooltip>
-                    {isInitialized && unreadCount > 0 && (
+                    {unreadCount > 0 && (
                         <SidebarMenuBadge className="rounded-full bg-blue-500 text-white peer-hover/menu-button:text-white px-1.5">
                             {unreadCount > 9 ? "9+" : unreadCount}
                         </SidebarMenuBadge>
                     )}
                     <PopoverContent className="w-80 p-0" side="right" align="end" sideOffset={8}>
-                        <div className="border-b p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="font-semibold text-sm">{"What's New"}</h3>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        {unreadCount > 0 ? `${unreadCount} unread update${unreadCount === 1 ? "" : "s"}` : "All caught up"}
-                                    </p>
-                                </div>
-                                {unreadCount > 0 && (
-                                    <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs h-7">
-                                        Mark all read
-                                    </Button>
-                                )}
+                        {isPending ? (
+                            <div className="flex items-center justify-center p-8">
+                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                             </div>
-                        </div>
-                        <div className="max-h-[32rem] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
-                            {newsItemsWithReadState.length === 0 ? (
-                                <div className="p-4 text-center text-sm text-muted-foreground">No recent updates</div>
-                            ) : (
-                                <div className="space-y-1 p-2">
-                                    {newsItemsWithReadState.map((item, index) => (
+                        ) : (
+                            <>
+                                <div className="border-b p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h3 className="font-semibold text-sm">{"What's New"}</h3>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                {unreadCount > 0 ? `${unreadCount} unread update${unreadCount === 1 ? "" : "s"}` : "All caught up"}
+                                            </p>
+                                        </div>
+                                        {unreadCount > 0 && (
+                                            <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs h-7">
+                                                Mark all read
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="max-h-[32rem] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+                                    {entries.length === 0 ? (
+                                        <div className="p-4 text-center text-sm text-muted-foreground">No recent updates</div>
+                                    ) : (
+                                        <div className="space-y-1 p-2">
+                                            {entries.map((entry, index) => (
                                         <div
-                                            key={item.unique_id}
-                                            className={`relative rounded-md transition-colors ${item.read ? "opacity-60" : ""} ${index !== newsItemsWithReadState.length - 1 ? "border-b border-border/50" : ""}`}
+                                            key={entry.slug}
+                                            className={`relative rounded-md transition-colors ${entry.read ? "opacity-60" : ""} ${index !== entries.length - 1 ? "border-b border-border/50" : ""}`}
                                         >
-                                            {!item.read && <div className="absolute left-2 top-3 h-2 w-2 bg-blue-500 rounded-full" />}
+                                            {!entry.read && <div className="absolute left-2 top-3 h-2 w-2 bg-blue-500 rounded-full" />}
                                             <button
-                                                onClick={() => handleNewsItemClick(item)}
+                                                onClick={() => handleEntryClick(entry.slug)}
                                                 className="w-full text-left p-3 pl-6 rounded-md hover:bg-muted transition-colors group"
                                             >
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div className="flex-1 min-w-0">
-                                                        <h4 className={`font-medium text-sm leading-tight group-hover:text-primary ${item.read ? "text-muted-foreground" : ""}`}>
-                                                            {item.header}
+                                                        <h4 className={`font-medium text-sm leading-tight group-hover:text-primary ${entry.read ? "text-muted-foreground" : ""}`}>
+                                                            {entry.title}
                                                         </h4>
-                                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.sub_header}</p>
+                                                        {entry.summary && (
+                                                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{entry.summary}</p>
+                                                        )}
                                                     </div>
-                                                    <div className="flex items-center gap-1 flex-shrink-0">
-                                                        {item.read ? (
+                                                    <div className="flex items-center gap-1 flex-shrink-0 mt-1">
+                                                        {entry.read ? (
                                                             <MailOpen className="h-3 w-3 text-muted-foreground group-hover:text-primary" />
                                                         ) : (
                                                             <Mail className="h-3 w-3 text-muted-foreground group-hover:text-primary" />
@@ -187,9 +177,11 @@ export function WhatsNewSidebarButton() {
                                             </button>
                                         </div>
                                     ))}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+                            </>
+                        )}
                         <Separator />
                         <div className="px-2 py-2 text-xs text-muted-foreground">
                             Current version: {SOURCEBOT_VERSION}
@@ -205,6 +197,12 @@ export function WhatsNewSidebarButton() {
                     </PopoverContent>
                 </Popover>
             </SidebarMenuItem>
+            <ChangelogEntryDialog
+                entry={selectedEntry}
+                entriesBaseUrl={entriesBaseUrl}
+                open={selectedSlug !== null}
+                onOpenChange={handleDialogOpenChange}
+            />
         </SidebarMenu>
     )
 }
