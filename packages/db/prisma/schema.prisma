@@ -623,3 +623,18 @@ model OAuthToken {
   createdAt  DateTime    @default(now())
   lastUsedAt DateTime?
 }
+
+/// Local cache of changelog entries fetched from the public feed at
+/// `CHANGELOG_FEED_URL`. Shared across all users of an instance.
+model ChangelogEntry {
+  slug         String   @id
+  title        String
+  publishedAt  DateTime
+  summary      String?
+  bodyMarkdown String
+
+  /// Updated each time the entry is upserted from the feed.
+  fetchedAt DateTime @default(now()) @updatedAt
+
+  @@index([publishedAt])
+}

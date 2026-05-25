@@ -221,6 +221,10 @@ const options = {
         // Misc UI flags
         SECURITY_CARD_ENABLED: booleanSchema.default('false'),
 
+        // Changelog feed
+        CHANGELOG_ENABLED: booleanSchema.default('true'),
+        CHANGELOG_FEED_URL: z.string().url().default('https://static.sourcebot.dev/changelog/index.json'),
+
         // EE License
         SOURCEBOT_EE_LICENSE_KEY: z.string().optional(),
         SOURCEBOT_EE_AUDIT_LOGGING_ENABLED: booleanSchema.default('true'),
