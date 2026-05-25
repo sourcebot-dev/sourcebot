@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { confirm, select } from '@inquirer/prompts';
+import { confirm, input, select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import ora from 'ora';
 import { spawn } from 'node:child_process';
@@ -151,6 +151,21 @@ async function main() {
     const { models, env: modelEnv } = await collectModels();
     Object.assign(allEnv, modelEnv);
 
+    const authUrl = await input({
+        message: 'What URL will Sourcebot be hosted at?',
+        default: SOURCEBOT_URL,
+        validate: (v) => {
+            if (!v?.trim()) {
+                return 'URL is required';
+            }
+            if (!/^https?:\/\//.test(v)) {
+                return 'Must start with http:// or https://';
+            }
+            return true;
+        },
+    });
+    allEnv.AUTH_URL = authUrl;
+
     if (existsSync('config.json')) {
         const overwrite = await confirm({
             message: 'config.json already exists. Overwrite?',
@@ -198,8 +213,9 @@ async function main() {
     }
     const configJson = JSON.stringify(configOutput, null, 4);
 
+    const TOP_LEVEL_ENV_KEYS = ['AUTH_URL'];
     const connectionEnv = Object.fromEntries(
-        Object.entries(allEnv).filter(([k]) => !Object.values(PROVIDER_ENV_KEYS).includes(k) && !['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'].includes(k))
+        Object.entries(allEnv).filter(([k]) => !Object.values(PROVIDER_ENV_KEYS).includes(k) && !['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'].includes(k) && !TOP_LEVEL_ENV_KEYS.includes(k))
     );
     const aiEnv = Object.fromEntries(
         Object.entries(allEnv).filter(([k]) => Object.values(PROVIDER_ENV_KEYS).includes(k) || ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'].includes(k))
@@ -211,6 +227,9 @@ async function main() {
         '# Auto-generated secrets — do not change after first run',
         `AUTH_SECRET=${generateSecret(33)}`,
         `SOURCEBOT_ENCRYPTION_KEY=${generateSecret(24)}`,
+        '',
+        '# Public URL where Sourcebot is hosted',
+        `AUTH_URL=${allEnv.AUTH_URL}`,
     ];
 
     if (Object.keys(connectionEnv).length > 0) {
