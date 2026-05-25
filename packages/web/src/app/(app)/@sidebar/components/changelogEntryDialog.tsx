@@ -3,7 +3,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import type { ChangelogEntryDto } from "@/features/changelog/listEntriesApi";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -150,11 +149,14 @@ export function ChangelogEntryDialog({ entry, entriesBaseUrl, open, onOpenChange
                                                     </Badge>
                                                 </a>
                                             </TooltipTrigger>
-                                            <TooltipPrimitive.Portal>
-                                                <TooltipContent side="bottom">
-                                                    This update requires <span className="font-mono">{entry.version}</span>. Your instance is on <span className="font-mono">{SOURCEBOT_VERSION}</span>.
-                                                </TooltipContent>
-                                            </TooltipPrimitive.Portal>
+                                            <TooltipContent side="bottom">
+                                                <div className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1 text-sm items-center">
+                                                    <span className="text-muted-foreground">Current version</span>
+                                                    <span className="font-mono text-[11px] bg-muted rounded px-1.5 py-0.5 justify-self-start">{SOURCEBOT_VERSION}</span>
+                                                    <span className="text-muted-foreground">Required version</span>
+                                                    <span className="font-mono text-[11px] bg-muted rounded px-1.5 py-0.5 justify-self-start">{entry.version}</span>
+                                                </div>
+                                            </TooltipContent>
                                         </Tooltip>
                                     </>
                                 )}
