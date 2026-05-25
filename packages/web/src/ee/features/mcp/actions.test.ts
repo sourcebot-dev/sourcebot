@@ -4,6 +4,7 @@ import { ErrorCode } from '@/lib/errorCodes';
 
 const mocks = vi.hoisted(() => ({
     authContext: undefined as unknown,
+    hasEntitlement: vi.fn(),
     unsafePrisma: {
         mcpServer: {
             deleteMany: vi.fn(),
@@ -14,6 +15,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock('server-only', () => ({}));
 vi.mock('@/middleware/withAuth', () => ({
     withAuth: vi.fn((callback: (context: unknown) => unknown) => callback(mocks.authContext)),
+}));
+vi.mock('@/lib/entitlements', () => ({
+    hasEntitlement: mocks.hasEntitlement,
 }));
 vi.mock('@/prisma', () => ({
     __unsafePrisma: mocks.unsafePrisma,
@@ -47,6 +51,7 @@ function setAuthContext(role: OrgRole, prisma = createPrismaMock()) {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    mocks.hasEntitlement.mockResolvedValue(true);
 });
 
 describe('createMcpServer', () => {
@@ -82,6 +87,19 @@ describe('createMcpServer', () => {
         });
         expect(prisma.mcpServer.create).not.toHaveBeenCalled();
     });
+
+    test('owners cannot add org MCP servers when OAuth is unsupported', async () => {
+        const prisma = setAuthContext(OrgRole.OWNER);
+        mocks.hasEntitlement.mockResolvedValue(false);
+
+        const result = await createMcpServer('Linear', 'https://mcp.linear.app/mcp');
+
+        expect(result).toMatchObject({
+            statusCode: 403,
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+        });
+        expect(prisma.mcpServer.create).not.toHaveBeenCalled();
+    });
 });
 
 describe('deleteMcpServer', () => {
@@ -104,6 +122,19 @@ describe('deleteMcpServer', () => {
         const result = await deleteMcpServer('server-1');
 
         expect(result).toMatchObject({
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+        });
+        expect(mocks.unsafePrisma.mcpServer.deleteMany).not.toHaveBeenCalled();
+    });
+
+    test('owners cannot delete org MCP servers when OAuth is unsupported', async () => {
+        setAuthContext(OrgRole.OWNER);
+        mocks.hasEntitlement.mockResolvedValue(false);
+
+        const result = await deleteMcpServer('server-1');
+
+        expect(result).toMatchObject({
+            statusCode: 403,
             errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
         });
         expect(mocks.unsafePrisma.mcpServer.deleteMany).not.toHaveBeenCalled();

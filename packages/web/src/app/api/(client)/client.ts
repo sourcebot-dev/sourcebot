@@ -33,6 +33,7 @@ import type {
 import { OffersResponse } from "@/ee/features/lighthouse/types";
 import { ConnectMcpResponse } from "../(server)/ee/askmcp/connect/types";
 import type { GetMcpServersResponse } from "../(server)/ee/askmcp/servers/route";
+import type { GetMcpConfigurationResponse } from "@/ee/features/mcp/types";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -271,4 +272,15 @@ export const getMcpServersWithStatus = async (): Promise<GetMcpServersResponse |
     }).then(response => response.json());
 
     return result as GetMcpServersResponse | ServiceError;
+}
+
+export const getMcpConfiguration = async (): Promise<GetMcpConfigurationResponse | ServiceError> => {
+    const result = await fetch('/api/ee/askmcp/configuration', {
+        method: 'GET',
+        headers: {
+            'X-Sourcebot-Client-Source': 'sourcebot-web-client',
+        },
+    }).then(response => response.json());
+
+    return result as GetMcpConfigurationResponse | ServiceError;
 }

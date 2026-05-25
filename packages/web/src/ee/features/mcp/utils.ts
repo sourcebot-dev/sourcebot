@@ -9,3 +9,12 @@
 export function sanitizeMcpServerName(name: string): string {
     return name.toLowerCase().replace(/[^a-z0-9]/g, '_');
 }
+
+export function getMcpFaviconUrl(serverUrl: string): string | undefined {
+    try {
+        const origin = new URL(serverUrl).origin;
+        return `https://www.google.com/s2/favicons?domain=${origin}&sz=32`;
+    } catch {
+        return undefined;
+    }
+}

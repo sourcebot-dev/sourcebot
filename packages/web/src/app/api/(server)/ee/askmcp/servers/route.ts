@@ -6,20 +6,22 @@ import { hasEntitlement } from '@/lib/entitlements';
 import { decryptOAuthToken } from '@sourcebot/shared';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
 import type { OAuthTokens } from '@ai-sdk/mcp';
+import { getMcpFaviconUrl } from '@/ee/features/mcp/utils';
+import type { NextRequest } from 'next/server';
 
 export interface McpServerWithStatus {
     id: string;
     name: string;
     serverUrl: string;
     sanitizedName: string;
-    faviconUrl: string;
+    faviconUrl: string | undefined;
     isConnected: boolean;
     isAuthExpired: boolean;
 }
 
 export type GetMcpServersResponse = McpServerWithStatus[];
 
-export const GET = apiHandler(async () => {
+export const GET = apiHandler(async (_request: NextRequest) => {
     if (!(await hasEntitlement('oauth'))) {
         return Response.json(
             { error: 'access_denied', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
@@ -51,8 +53,7 @@ export const GET = apiHandler(async () => {
 
         return orgServers.map((server): McpServerWithStatus => {
             const userServer = userServerByServerId.get(server.id);
-            const origin = new URL(server.serverUrl).origin;
-            const faviconUrl = `https://www.google.com/s2/favicons?domain=${origin}&sz=32`;
+            const faviconUrl = getMcpFaviconUrl(server.serverUrl);
 
             let isConnected = false;
             let isAuthExpired = false;

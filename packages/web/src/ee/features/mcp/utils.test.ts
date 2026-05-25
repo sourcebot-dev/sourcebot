@@ -1,5 +1,5 @@
 import { expect, test, describe } from 'vitest';
-import { sanitizeMcpServerName } from './utils';
+import { getMcpFaviconUrl, sanitizeMcpServerName } from './utils';
 
 describe('sanitizeMcpServerName', () => {
     test('lowercases ASCII letters', () => {
@@ -32,5 +32,15 @@ describe('sanitizeMcpServerName', () => {
 
     test('returns already sanitized name unchanged', () => {
         expect(sanitizeMcpServerName('linear')).toBe('linear');
+    });
+});
+
+describe('getMcpFaviconUrl', () => {
+    test('returns a Google favicon URL for a valid server URL', () => {
+        expect(getMcpFaviconUrl('https://mcp.linear.app/mcp')).toBe('https://www.google.com/s2/favicons?domain=https://mcp.linear.app&sz=32');
+    });
+
+    test('returns undefined for a malformed server URL', () => {
+        expect(getMcpFaviconUrl('not a url')).toBeUndefined();
     });
 });

@@ -10,10 +10,16 @@ import { OrgRole } from '@sourcebot/db';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { sanitizeMcpServerName } from './utils';
+import { hasEntitlement } from '@/lib/entitlements';
+import { oauthNotSupported } from './errors';
 
 export const createMcpServer = async (name: string, serverUrl: string) => sew(() =>
     withAuth(async ({ org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            if (!(await hasEntitlement('oauth'))) {
+                return oauthNotSupported();
+            }
+
             const displayName = name.trim();
             const normalizedServerUrl = serverUrl.trim();
             const urlResult = z.string().url().safeParse(normalizedServerUrl);
@@ -89,6 +95,10 @@ export const createMcpServer = async (name: string, serverUrl: string) => sew(()
 export const deleteMcpServer = async (serverId: string) => sew(() =>
     withAuth(async ({ org, role }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            if (!(await hasEntitlement('oauth'))) {
+                return oauthNotSupported();
+            }
+
             const result = await __unsafePrisma.mcpServer.deleteMany({
                 where: {
                     id: serverId,

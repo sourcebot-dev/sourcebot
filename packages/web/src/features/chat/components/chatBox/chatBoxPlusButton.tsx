@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { getMcpServersWithStatus } from "@/app/api/(client)/client";
+import { mcpQueryKeys } from "@/ee/features/mcp/queryKeys";
 import { isServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -34,7 +35,7 @@ export const ChatBoxPlusButton = ({
     const router = useRouter();
 
     const { data: servers, isError, refetch } = useQuery({
-        queryKey: ['mcpServersWithStatus'],
+        queryKey: mcpQueryKeys.serversWithStatus,
         queryFn: async () => {
             const result = await getMcpServersWithStatus();
             if (isServiceError(result)) {

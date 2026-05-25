@@ -121,6 +121,13 @@ export const getSidebarNavGroups = async () =>
                         icon: "chart-area" as const,
                         requiredEntitlement: 'analytics'
                     },
+                    ...(await hasEntitlement("oauth") ? [
+                        {
+                            title: "MCP Configuration",
+                            href: `/settings/mcpConfiguration`,
+                            icon: "server" as const,
+                        }
+                    ] : []),
                     {
                         title: "License",
                         href: `/settings/license`,

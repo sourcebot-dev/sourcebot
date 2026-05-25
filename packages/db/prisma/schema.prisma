@@ -698,5 +698,6 @@ model UserMcpServer {
   updatedAt DateTime @updatedAt
 
   @@id([userId, serverId])
+  @@index([serverId])
   @@index([state])
 }
