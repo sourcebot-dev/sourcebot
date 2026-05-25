@@ -13,4 +13,5 @@ export interface GetMcpConfigurationResponse {
     servers: McpConfigurationServer[];
     totalSavedConnectionCount: number;
     allowedMode: McpConfigurationAllowedMode;
+    isOAuthAvailable: boolean;
 }

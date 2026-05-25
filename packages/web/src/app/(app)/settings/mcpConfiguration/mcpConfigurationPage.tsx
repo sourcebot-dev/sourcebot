@@ -20,7 +20,7 @@ import { McpFavicon } from "@/ee/features/mcp/components/mcpFavicon";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/mcp/queryKeys";
 import { isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, MinusIcon, PlusIcon, ServerIcon } from "lucide-react";
+import { AlertTriangleIcon, Loader2, MinusIcon, PlusIcon, ServerIcon } from "lucide-react";
 
 function pluralize(count: number, singular: string, plural = `${singular}s`) {
     return count === 1 ? singular : plural;
@@ -48,6 +48,8 @@ export function McpConfigurationPage() {
 
     const servers = data?.servers ?? [];
     const totalSavedConnectionCount = data?.totalSavedConnectionCount ?? 0;
+    const canCreateMcpServers = data?.isOAuthAvailable === true;
+    const isOAuthUnavailable = data?.isOAuthAvailable === false;
 
     const handleCloseCreateDialog = () => {
         setIsCreateDialogOpen(false);
@@ -108,6 +110,20 @@ export function McpConfigurationPage() {
                 </p>
             </div>
 
+            {!isLoading && isOAuthUnavailable && (
+                <Card className="bg-muted/40">
+                    <CardContent className="flex items-start gap-3 p-4">
+                        <AlertTriangleIcon className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div>
+                            <p className="text-sm font-medium">OAuth MCP is unavailable</p>
+                            <p className="text-sm text-muted-foreground">
+                                You can remove existing approved servers and stored credentials, but cannot add new MCP servers.
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             <Card>
                 <CardContent className="p-0 divide-y">
                     <div className="flex items-center justify-between gap-4 p-5">
@@ -129,7 +145,9 @@ export function McpConfigurationPage() {
                         <div>
                             <p className="font-medium">Allowed MCP servers</p>
                             <p className="text-sm text-muted-foreground">
-                                Sourcebot Ask can use only workspace-approved MCP servers.
+                                {isOAuthUnavailable
+                                    ? "Existing workspace-approved MCP servers are available for cleanup."
+                                    : "Sourcebot Ask can use only workspace-approved MCP servers."}
                             </p>
                         </div>
                         <p className="text-sm text-muted-foreground whitespace-nowrap">Only approved servers</p>
@@ -141,47 +159,57 @@ export function McpConfigurationPage() {
                 <CardHeader className="flex flex-row items-center justify-between gap-4">
                     <div>
                         <CardTitle>{isLoading ? "Allowed servers" : `${servers.length} allowed ${pluralize(servers.length, "server")}`}</CardTitle>
-                        <CardDescription>Approve server URLs that workspace members can connect to.</CardDescription>
+                        <CardDescription>
+                            {isOAuthUnavailable
+                                ? "Remove existing server approvals and their stored credentials."
+                                : "Approve server URLs that workspace members can connect to."}
+                        </CardDescription>
                     </div>
-                    <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button size="icon" variant="ghost" aria-label="Add MCP server">
-                                <PlusIcon className="h-4 w-4" />
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
-                                <DialogTitle>Add MCP Server</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="mcp-configuration-name">Name</Label>
-                                    <Input
-                                        id="mcp-configuration-name"
-                                        value={newServerName}
-                                        onChange={(event) => setNewServerName(event.target.value)}
-                                        placeholder="e.g. Linear"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="mcp-configuration-url">Server URL</Label>
-                                    <Input
-                                        id="mcp-configuration-url"
-                                        value={newServerUrl}
-                                        onChange={(event) => setNewServerUrl(event.target.value)}
-                                        placeholder="https://mcp.linear.app/mcp"
-                                    />
-                                </div>
-                            </div>
-                            <DialogFooter className="sm:justify-between">
-                                <Button variant="outline" onClick={handleCloseCreateDialog}>Cancel</Button>
-                                <Button onClick={handleCreate} disabled={isCreating || !newServerName.trim() || !newServerUrl.trim()}>
-                                    {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                                    Add
+                    {canCreateMcpServers ? (
+                        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button size="icon" variant="ghost" aria-label="Add MCP server">
+                                    <PlusIcon className="h-4 w-4" />
                                 </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>Add MCP Server</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="mcp-configuration-name">Name</Label>
+                                        <Input
+                                            id="mcp-configuration-name"
+                                            value={newServerName}
+                                            onChange={(event) => setNewServerName(event.target.value)}
+                                            placeholder="e.g. Linear"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="mcp-configuration-url">Server URL</Label>
+                                        <Input
+                                            id="mcp-configuration-url"
+                                            value={newServerUrl}
+                                            onChange={(event) => setNewServerUrl(event.target.value)}
+                                            placeholder="https://mcp.linear.app/mcp"
+                                        />
+                                    </div>
+                                </div>
+                                <DialogFooter className="sm:justify-between">
+                                    <Button variant="outline" onClick={handleCloseCreateDialog}>Cancel</Button>
+                                    <Button onClick={handleCreate} disabled={isCreating || !newServerName.trim() || !newServerUrl.trim()}>
+                                        {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                                        Add
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    ) : (
+                        <Button size="icon" variant="ghost" disabled aria-label="Add MCP server unavailable">
+                            <PlusIcon className="h-4 w-4" />
+                        </Button>
+                    )}
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
@@ -204,7 +232,9 @@ export function McpConfigurationPage() {
                             </div>
                             <p className="text-sm font-medium text-foreground mb-1">No MCP servers configured yet</p>
                             <p className="text-sm text-muted-foreground max-w-sm">
-                                Add a workspace-approved MCP server so members can connect it to Ask Sourcebot.
+                                {isOAuthUnavailable
+                                    ? "OAuth MCP is unavailable on this Sourcebot instance."
+                                    : "Add a workspace-approved MCP server so members can connect it to Ask Sourcebot."}
                             </p>
                         </div>
                     ) : (

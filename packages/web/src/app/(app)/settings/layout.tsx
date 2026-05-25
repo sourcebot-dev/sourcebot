@@ -44,7 +44,7 @@ export default async function SettingsLayout(
 }
 
 export const getSidebarNavGroups = async () =>
-    withAuth(async ({ role }) => {
+    withAuth(async ({ org, role, prisma }) => {
         let numJoinRequests: number | undefined;
         if (role === OrgRole.OWNER) {
             const requests = await getOrgAccountRequests();
@@ -58,6 +58,12 @@ export const getSidebarNavGroups = async () =>
         if (isServiceError(connectionStats)) {
             throw new ServiceErrorException(connectionStats);
         }
+        const hasOAuthEntitlement = await hasEntitlement("oauth");
+        const hasApprovedMcpServers = role === OrgRole.OWNER && !hasOAuthEntitlement
+            ? await prisma.mcpServer.count({
+                where: { orgId: org.id },
+            }) > 0
+            : false;
 
         const groups: NavGroup[] = [
             {
@@ -82,7 +88,7 @@ export const getSidebarNavGroups = async () =>
                             icon: "link" as const,
                         }
                     ] : []),
-                    ...(await hasEntitlement("oauth") ? [
+                    ...(hasOAuthEntitlement ? [
                         {
                             title: "MCP Servers",
                             href: `/settings/mcpServers`,
@@ -121,7 +127,7 @@ export const getSidebarNavGroups = async () =>
                         icon: "chart-area" as const,
                         requiredEntitlement: 'analytics'
                     },
-                    ...(await hasEntitlement("oauth") ? [
+                    ...(hasOAuthEntitlement || hasApprovedMcpServers ? [
                         {
                             title: "MCP Configuration",
                             href: `/settings/mcpConfiguration`,

@@ -95,10 +95,6 @@ export const createMcpServer = async (name: string, serverUrl: string) => sew(()
 export const deleteMcpServer = async (serverId: string) => sew(() =>
     withAuth(async ({ org, role }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            if (!(await hasEntitlement('oauth'))) {
-                return oauthNotSupported();
-            }
-
             const result = await __unsafePrisma.mcpServer.deleteMany({
                 where: {
                     id: serverId,

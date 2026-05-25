@@ -1,11 +1,10 @@
 import { apiHandler } from '@/lib/apiHandler';
-import { serviceErrorResponse, type ServiceError } from '@/lib/serviceError';
+import { serviceErrorResponse } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
 import { hasEntitlement } from '@/lib/entitlements';
 import { withAuth } from '@/middleware/withAuth';
 import { withMinimumOrgRole } from '@/middleware/withMinimumOrgRole';
 import { __unsafePrisma } from '@/prisma';
-import { oauthNotSupported } from '@/ee/features/mcp/errors';
 import { getMcpFaviconUrl } from '@/ee/features/mcp/utils';
 import type { GetMcpConfigurationResponse } from '@/ee/features/mcp/types';
 import { OrgRole } from '@sourcebot/db';
@@ -13,10 +12,8 @@ import type { NextRequest } from 'next/server';
 
 export const GET = apiHandler(async (_request: NextRequest) => {
     const result = await withAuth(async ({ org, role, prisma }) =>
-        withMinimumOrgRole(role, OrgRole.OWNER, async (): Promise<GetMcpConfigurationResponse | ServiceError> => {
-            if (!(await hasEntitlement('oauth'))) {
-                return oauthNotSupported();
-            }
+        withMinimumOrgRole(role, OrgRole.OWNER, async (): Promise<GetMcpConfigurationResponse> => {
+            const isOAuthAvailable = await hasEntitlement('oauth');
 
             const orgServers = await prisma.mcpServer.findMany({
                 where: { orgId: org.id },
@@ -63,6 +60,7 @@ export const GET = apiHandler(async (_request: NextRequest) => {
                 servers,
                 totalSavedConnectionCount: servers.reduce((total, server) => total + server.savedConnectionCount, 0),
                 allowedMode: 'approved_only',
+                isOAuthAvailable,
             };
         }));
 

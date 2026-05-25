@@ -114,6 +114,7 @@ describe('deleteMcpServer', () => {
                 orgId: 1,
             },
         });
+        expect(mocks.hasEntitlement).not.toHaveBeenCalled();
     });
 
     test('members cannot delete org MCP servers', async () => {
@@ -127,16 +128,19 @@ describe('deleteMcpServer', () => {
         expect(mocks.unsafePrisma.mcpServer.deleteMany).not.toHaveBeenCalled();
     });
 
-    test('owners cannot delete org MCP servers when OAuth is unsupported', async () => {
+    test('owners can delete org MCP servers when OAuth is unsupported', async () => {
         setAuthContext(OrgRole.OWNER);
         mocks.hasEntitlement.mockResolvedValue(false);
+        mocks.unsafePrisma.mcpServer.deleteMany.mockResolvedValue({ count: 1 });
 
-        const result = await deleteMcpServer('server-1');
+        await expect(deleteMcpServer('server-1')).resolves.toEqual({ success: true });
 
-        expect(result).toMatchObject({
-            statusCode: 403,
-            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+        expect(mocks.hasEntitlement).not.toHaveBeenCalled();
+        expect(mocks.unsafePrisma.mcpServer.deleteMany).toHaveBeenCalledWith({
+            where: {
+                id: 'server-1',
+                orgId: 1,
+            },
         });
-        expect(mocks.unsafePrisma.mcpServer.deleteMany).not.toHaveBeenCalled();
     });
 });

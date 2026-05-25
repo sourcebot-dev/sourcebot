@@ -105,6 +105,7 @@ describe('GET /api/ee/askmcp/configuration', () => {
         expect(body).toMatchObject({
             totalSavedConnectionCount: 2,
             allowedMode: 'approved_only',
+            isOAuthAvailable: true,
             servers: [
                 {
                     id: 'server-1',
@@ -158,7 +159,7 @@ describe('GET /api/ee/askmcp/configuration', () => {
         expect(mocks.unsafePrisma.userMcpServer.groupBy).not.toHaveBeenCalled();
     });
 
-    test('rejects entitled owners when OAuth is unsupported before data work', async () => {
+    test('allows entitled owners to list cleanup data when OAuth is unsupported', async () => {
         const prisma = createPrismaMock();
         mocks.authContext = {
             org: { id: 1 },
@@ -170,13 +171,24 @@ describe('GET /api/ee/askmcp/configuration', () => {
         const response = await GET(createRequest());
         const body = await response.json();
 
-        expect(response.status).toBe(403);
+        expect(response.status).toBe(200);
         expect(body).toMatchObject({
-            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+            isOAuthAvailable: false,
+            totalSavedConnectionCount: 2,
+            servers: [
+                {
+                    id: 'server-1',
+                    savedConnectionCount: 2,
+                },
+                {
+                    id: 'server-2',
+                    savedConnectionCount: 0,
+                },
+            ],
         });
         expect(mocks.withAuth).toHaveBeenCalled();
-        expect(prisma.mcpServer.findMany).not.toHaveBeenCalled();
-        expect(mocks.unsafePrisma.userMcpServer.groupBy).not.toHaveBeenCalled();
+        expect(prisma.mcpServer.findMany).toHaveBeenCalled();
+        expect(mocks.unsafePrisma.userMcpServer.groupBy).toHaveBeenCalled();
     });
 
     test('skips the unsafe aggregate query when there are no approved servers', async () => {
@@ -196,6 +208,7 @@ describe('GET /api/ee/askmcp/configuration', () => {
             servers: [],
             totalSavedConnectionCount: 0,
             allowedMode: 'approved_only',
+            isOAuthAvailable: true,
         });
     });
 });
