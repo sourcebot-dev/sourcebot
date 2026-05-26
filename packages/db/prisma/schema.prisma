@@ -411,6 +411,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// Last time the user performed an authenticated action.
+  lastActiveAt DateTime?
+
 }
 
 enum AccountPermissionSyncJobStatus {

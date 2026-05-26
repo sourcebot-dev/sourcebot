@@ -3,8 +3,11 @@ import { z } from "zod";
 export const servicePingRequestSchema = z.object({
     installId: z.string(),
     version: z.string(),
-    userCount: z.number(),
-    repoCount: z.number(),
+    userCount: z.number().int().nonnegative(),
+    repoCount: z.number().int().nonnegative(),
+    dauCount: z.number().int().nonnegative(),
+    wauCount: z.number().int().nonnegative(),
+    mauCount: z.number().int().nonnegative(),
     deploymentType: z.string(),
     isTelemetryEnabled: z.boolean(),
     activationCode: z.string().optional(),

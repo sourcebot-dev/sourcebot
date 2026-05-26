@@ -10,6 +10,8 @@ import { ErrorCode } from "../lib/errorCodes";
 import { getOrgMetadata, isServiceError } from "../lib/utils";
 import { hasEntitlement, isAnonymousAccessAvailable } from "@/lib/entitlements";
 
+const LAST_ACTIVE_AT_THRESHOLD_MS = 5 * 60 * 1000;
+
 type RequiredAuthContext = {
     user: UserWithAccounts;
     role: OrgRole;
@@ -107,10 +109,32 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
 
     const prisma = __unsafePrisma.$extends(await userScopedPrismaClientExtension(user)) as PrismaClient;
 
+    if (user) {
+        updateUserLastActiveAt(user);
+    }
+
     if (user && role) {
         return { user, org, role, prisma };
     }
     return { user, org, prisma };
+};
+
+const updateUserLastActiveAt = (user: UserWithAccounts) => {
+    const now = Date.now();
+    if (
+        user.lastActiveAt &&
+        (now - user.lastActiveAt.getTime()) < LAST_ACTIVE_AT_THRESHOLD_MS
+    ) {
+        return;
+    }
+
+    // Fired without a await to avoid blocking.
+    void __unsafePrisma.user
+        .update({
+            where: { id: user.id },
+            data: { lastActiveAt: new Date(now) },
+        })
+        .catch(() => { /* updaing the lastActiveAt is best effort. */ });
 };
 
 type AuthSource = 'session' | 'oauth' | 'api_key';
