@@ -6,6 +6,21 @@ export interface PrefabMcpServer {
 
 const prefabMcpServers = [
     {
+        id: "confluence",
+        name: "Confluence",
+        serverUrl: "https://mcp.atlassian.com/v1/mcp/authv2",
+    },
+    {
+        id: "jira",
+        name: "Jira",
+        serverUrl: "https://mcp.atlassian.com/v1/mcp/authv2",
+    },
+    {
+        id: "linear",
+        name: "Linear",
+        serverUrl: "https://mcp.linear.app/mcp",
+    },
+    {
         id: "slack",
         name: "Slack",
         serverUrl: "https://mcp.slack.com/mcp",

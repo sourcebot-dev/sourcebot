@@ -6,8 +6,23 @@ import {
 } from './prefabMcpServers';
 
 describe('prefab MCP servers', () => {
-    test('ships Slack as the initial prefab server', () => {
+    test('ships the supported prefab servers', () => {
         expect(PREFAB_MCP_SERVERS).toEqual([
+            {
+                id: 'confluence',
+                name: 'Confluence',
+                serverUrl: 'https://mcp.atlassian.com/v1/mcp/authv2',
+            },
+            {
+                id: 'jira',
+                name: 'Jira',
+                serverUrl: 'https://mcp.atlassian.com/v1/mcp/authv2',
+            },
+            {
+                id: 'linear',
+                name: 'Linear',
+                serverUrl: 'https://mcp.linear.app/mcp',
+            },
             {
                 id: 'slack',
                 name: 'Slack',
@@ -25,7 +40,13 @@ describe('prefab MCP servers', () => {
     test('hides already configured prefab servers after URL normalization', () => {
         const availableServers = getAvailablePrefabMcpServers(['https://mcp.slack.com/mcp/']);
 
-        expect(availableServers).toEqual([]);
+        expect(availableServers.map((server) => server.id)).toEqual(['confluence', 'jira', 'linear']);
+    });
+
+    test('hides both Atlassian prefab entries when the shared endpoint is configured', () => {
+        const availableServers = getAvailablePrefabMcpServers(['https://mcp.atlassian.com/v1/mcp/authv2/']);
+
+        expect(availableServers.map((server) => server.id)).toEqual(['linear', 'slack']);
     });
 
     test('normalizes server URLs for duplicate comparisons', () => {
