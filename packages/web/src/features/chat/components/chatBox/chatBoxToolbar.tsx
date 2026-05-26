@@ -43,6 +43,8 @@ export const ChatBoxToolbar = ({
             {disabledMcpServerIds !== undefined && onDisabledMcpServerIdsChange !== undefined && (
                 <>
                     <ChatBoxPlusButton
+                        selectedSearchScopes={selectedSearchScopes}
+                        onSelectedSearchScopesChange={onSelectedSearchScopesChange}
                         disabledMcpServerIds={disabledMcpServerIds}
                         onDisabledMcpServerIdsChange={onDisabledMcpServerIdsChange}
                     />

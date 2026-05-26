@@ -8,6 +8,7 @@ import type {
 import { McpServerClientInfoSource, type PrismaClient } from '@sourcebot/db';
 import { encryptOAuthToken, decryptOAuthToken } from '@sourcebot/shared';
 import { __unsafePrisma } from '@/prisma';
+import { createMcpOAuthState } from './mcpOAuthReturnTo';
 
 type McpOAuthPrismaClient = Pick<PrismaClient, 'mcpServer' | 'userMcpServer'>;
 
@@ -17,6 +18,7 @@ interface PrismaOAuthClientProviderOptions {
   orgId: number;
   userId: string;
   callbackUrl: string;
+  callbackReturnTo?: string;
   allowClientRegistration?: boolean;
   clientInvalidationPrisma?: McpOAuthPrismaClient;
 }
@@ -79,6 +81,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
   private readonly orgId: number;
   private readonly userId: string;
   private readonly callbackUrl: string;
+  private readonly callbackReturnTo: string | undefined;
   private observedClientInfo: string | undefined;
   private observedClientInfoSource: McpServerClientInfoSource | undefined;
 
@@ -94,6 +97,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     orgId,
     userId,
     callbackUrl,
+    callbackReturnTo,
     allowClientRegistration = false,
     clientInvalidationPrisma = __unsafePrisma,
   }: PrismaOAuthClientProviderOptions) {
@@ -103,6 +107,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     this.orgId = orgId;
     this.userId = userId;
     this.callbackUrl = callbackUrl;
+    this.callbackReturnTo = callbackReturnTo;
 
     if (allowClientRegistration) {
       this.saveClientInformation = async (info: OAuthClientInformation) => {
@@ -197,7 +202,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
   }
 
   async state(): Promise<string> {
-    return crypto.randomUUID();
+    return createMcpOAuthState(crypto.randomUUID(), this.callbackReturnTo);
   }
 
   async saveState(state: string): Promise<void> {

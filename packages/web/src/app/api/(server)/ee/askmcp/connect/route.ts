@@ -15,8 +15,12 @@ import { __unsafePrisma } from '@/prisma';
 import { getExternalMcpErrorLogFields } from '@/ee/features/mcp/externalMcpError';
 import { ErrorCode } from '@/lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
+import { normalizeMcpOAuthReturnTo } from '@/features/mcp/mcpOAuthReturnTo';
 
-const bodySchema = z.object({ serverId: z.string() });
+const bodySchema = z.object({
+    serverId: z.string(),
+    returnTo: z.string().optional(),
+});
 const logger = createLogger('mcp-connect');
 const MCP_AUTH_FETCH_TIMEOUT_MS = Math.min(env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS, 30000);
 const MCP_AUTH_TRANSACTION_MAX_WAIT_MS = 10000;
@@ -52,6 +56,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
 
     const result = await sew(() =>
     withAuth(async ({ user, org, prisma }) => {
+        const callbackReturnTo = normalizeMcpOAuthReturnTo(parsed.data.returnTo);
         const mcpServer = await prisma.mcpServer.findFirst({
             where: { id: parsed.data.serverId, orgId: org.id },
             select: {
@@ -96,6 +101,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 orgId: org.id,
                 userId: user.id,
                 callbackUrl: `${env.AUTH_URL}/api/ee/askmcp/callback`,
+                callbackReturnTo,
                 allowClientRegistration: true,
             });
 

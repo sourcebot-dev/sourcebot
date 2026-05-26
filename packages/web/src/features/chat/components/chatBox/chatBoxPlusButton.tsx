@@ -12,29 +12,72 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
-import { getMcpServersWithStatus } from "@/app/api/(client)/client";
+import { connectMcpToAsk, getMcpServersWithStatus } from "@/app/api/(client)/client";
+import { useToast } from "@/components/hooks/use-toast";
+import { McpFavicon } from "@/ee/features/mcp/components/mcpFavicon";
 import { mcpQueryKeys } from "@/ee/features/mcp/queryKeys";
 import { isServiceError } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlertTriangleIcon, Plug, PlusIcon, RefreshCwIcon, ServerIcon, SettingsIcon } from "lucide-react";
+import { AlertTriangleIcon, Loader2Icon, PlusCircleIcon, PlusIcon, RefreshCwIcon, ServerIcon, SettingsIcon } from "lucide-react";
 import { PlusButtonInfoCard } from "./plusButtonInfoCard";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSlate } from "slate-react";
+import { Editor } from "slate";
+import type { CustomEditor, SearchScope } from "@/features/chat/types";
+import {
+    clearMcpOAuthDraft,
+    consumeMcpOAuthDraftForPath,
+    createMcpOAuthDraftPath,
+    saveMcpOAuthDraft,
+} from "@/features/chat/mcpOAuthDraft";
+import { clearEditorHistory, resetEditor } from "@/features/chat/utils";
 
 interface ChatBoxPlusButtonProps {
+    selectedSearchScopes: SearchScope[];
+    onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     disabledMcpServerIds: string[];
     onDisabledMcpServerIdsChange: (ids: string[]) => void;
 }
 
+interface ChatMenuMcpServer {
+    isConnected: boolean;
+    isAuthExpired: boolean;
+}
+
+export function splitMcpServersForChatMenu<T extends ChatMenuMcpServer>(servers: T[]) {
+    return {
+        connectedServers: servers.filter((server) => server.isConnected || server.isAuthExpired),
+        connectableServers: servers.filter((server) => !server.isConnected && !server.isAuthExpired),
+    };
+}
+
+function restoreEditorChildren(editor: CustomEditor, children: CustomEditor['children']) {
+    editor.children = children;
+    editor.selection = {
+        anchor: Editor.end(editor, []),
+        focus: Editor.end(editor, []),
+    };
+    clearEditorHistory(editor);
+    editor.onChange();
+}
+
 export const ChatBoxPlusButton = ({
+    selectedSearchScopes,
+    onSelectedSearchScopesChange,
     disabledMcpServerIds,
     onDisabledMcpServerIdsChange,
 }: ChatBoxPlusButtonProps) => {
-    const [failedFavicons, setFailedFavicons] = useState<Set<string>>(new Set());
+    const [connectingServerId, setConnectingServerId] = useState<string | null>(null);
+    const editor = useSlate();
+    const hasRestoredMcpOAuthDraft = useRef(false);
+    const isMountedRef = useRef(false);
+    const queryClient = useQueryClient();
     const router = useRouter();
+    const { toast } = useToast();
 
-    const { data: servers, isError, refetch } = useQuery({
+    const { data: servers = [], isError, isLoading, refetch } = useQuery({
         queryKey: mcpQueryKeys.serversWithStatus,
         queryFn: async () => {
             const result = await getMcpServersWithStatus();
@@ -45,6 +88,42 @@ export const ChatBoxPlusButton = ({
         },
     });
 
+    useEffect(() => {
+        isMountedRef.current = true;
+
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (hasRestoredMcpOAuthDraft.current) {
+            return;
+        }
+
+        const currentPath = createMcpOAuthDraftPath(window.location.pathname, window.location.search);
+        if (!currentPath) {
+            return;
+        }
+
+        const draft = consumeMcpOAuthDraftForPath(currentPath);
+        if (!draft) {
+            return;
+        }
+
+        hasRestoredMcpOAuthDraft.current = true;
+
+        try {
+            restoreEditorChildren(editor, draft.children);
+            onSelectedSearchScopesChange(draft.selectedSearchScopes);
+            onDisabledMcpServerIdsChange(draft.disabledMcpServerIds);
+        } catch (error) {
+            resetEditor(editor);
+            editor.onChange();
+            console.error('Failed to restore MCP OAuth draft:', error);
+        }
+    }, [editor, onDisabledMcpServerIdsChange, onSelectedSearchScopesChange]);
+
     const onToggle = (serverId: string, checked: boolean) => {
         if (checked) {
             onDisabledMcpServerIdsChange(disabledMcpServerIds.filter((id) => id !== serverId));
@@ -53,12 +132,66 @@ export const ChatBoxPlusButton = ({
         }
     };
 
-    const onFaviconError = (serverId: string) => {
-        setFailedFavicons((prev) => new Set(prev).add(serverId));
+    const handleConnect = async (serverId: string) => {
+        setConnectingServerId(serverId);
+        const returnTo = createMcpOAuthDraftPath(window.location.pathname, window.location.search) ?? '/chat';
+
+        saveMcpOAuthDraft({
+            returnTo,
+            children: editor.children,
+            selectedSearchScopes,
+            disabledMcpServerIds,
+        });
+
+        try {
+            const result = await connectMcpToAsk({
+                serverId,
+                returnTo,
+            });
+
+            if (!isMountedRef.current) {
+                return;
+            }
+
+            if (isServiceError(result)) {
+                clearMcpOAuthDraft();
+                toast({
+                    description: `Failed to connect MCP server. ${result.message}`,
+                    variant: "destructive",
+                });
+                setConnectingServerId(null);
+                return;
+            }
+
+            if (result.authorizationUrl) {
+                window.location.href = result.authorizationUrl;
+                return;
+            }
+
+            clearMcpOAuthDraft();
+            toast({ description: 'MCP server is already connected.' });
+            await queryClient.invalidateQueries({ queryKey: mcpQueryKeys.serversWithStatus });
+            if (!isMountedRef.current) {
+                return;
+            }
+            setConnectingServerId(null);
+        } catch {
+            if (!isMountedRef.current) {
+                return;
+            }
+
+            clearMcpOAuthDraft();
+            toast({
+                description: "Failed to connect MCP server.",
+                variant: "destructive",
+            });
+            setConnectingServerId(null);
+            return;
+        }
     };
 
-    // Only surface servers the user has attempted to connect (connected or auth expired).
-    const relevantServers = servers?.filter((s) => s.isConnected || s.isAuthExpired) ?? [];
+    const { connectedServers, connectableServers } = splitMcpServersForChatMenu(servers);
+    const hasServers = connectedServers.length > 0 || connectableServers.length > 0;
 
     return (
         <DropdownMenu>
@@ -85,7 +218,7 @@ export const ChatBoxPlusButton = ({
                         MCP Servers
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent className="w-56">
-                        {isError && relevantServers.length === 0 ? (
+                        {isError && !hasServers ? (
                             <DropdownMenuItem
                                 onSelect={(e) => {
                                     e.preventDefault();
@@ -96,45 +229,65 @@ export const ChatBoxPlusButton = ({
                                 <RefreshCwIcon className="w-4 h-4" />
                                 Failed to load. Retry?
                             </DropdownMenuItem>
-                        ) : relevantServers.length === 0 ? (
+                        ) : isLoading ? (
                             <DropdownMenuItem disabled>
-                                No MCP servers connected
+                                Loading MCP servers...
+                            </DropdownMenuItem>
+                        ) : !hasServers ? (
+                            <DropdownMenuItem disabled>
+                                No MCP servers available
                             </DropdownMenuItem>
                         ) : (
-                            relevantServers.map((server) => {
-                                const isEnabled = !server.isAuthExpired && !disabledMcpServerIds.includes(server.id);
-                                return (
+                            <>
+                                {connectedServers.map((server) => {
+                                    const isEnabled = !server.isAuthExpired && !disabledMcpServerIds.includes(server.id);
+                                    return (
+                                        <DropdownMenuItem
+                                            key={server.id}
+                                            onSelect={(e) => e.preventDefault()}
+                                            disabled={server.isAuthExpired}
+                                            className="flex items-center justify-between gap-2"
+                                        >
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                {server.isAuthExpired ? (
+                                                    <AlertTriangleIcon className="w-4 h-4 shrink-0 text-yellow-500" />
+                                                ) : (
+                                                    <McpFavicon faviconUrl={server.faviconUrl} className="w-4 h-4 rounded-sm" />
+                                                )}
+                                                <span className="truncate text-sm">{server.name}</span>
+                                            </div>
+                                            <Switch
+                                                checked={isEnabled}
+                                                onCheckedChange={(checked) => onToggle(server.id, checked)}
+                                                disabled={server.isAuthExpired}
+                                                className="scale-75"
+                                            />
+                                        </DropdownMenuItem>
+                                    );
+                                })}
+                                {connectedServers.length > 0 && connectableServers.length > 0 && <DropdownMenuSeparator />}
+                                {connectableServers.map((server) => (
                                     <DropdownMenuItem
                                         key={server.id}
-                                        onSelect={(e) => e.preventDefault()}
-                                        disabled={server.isAuthExpired}
-                                        className="flex items-center justify-between gap-2"
+                                        onSelect={(e) => {
+                                            e.preventDefault();
+                                            void handleConnect(server.id);
+                                        }}
+                                        disabled={connectingServerId !== null}
+                                        className="group flex cursor-pointer items-center justify-between gap-2"
                                     >
                                         <div className="flex items-center gap-2 min-w-0">
-                                            {server.isAuthExpired ? (
-                                                <AlertTriangleIcon className="w-4 h-4 shrink-0 text-yellow-500" />
-                                            ) : failedFavicons.has(server.id) ? (
-                                                <Plug className="w-4 h-4 shrink-0 text-muted-foreground" />
-                                            ) : (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img
-                                                    src={server.faviconUrl}
-                                                    onError={() => onFaviconError(server.id)}
-                                                    className="w-4 h-4 shrink-0 rounded-sm"
-                                                    alt=""
-                                                />
-                                            )}
+                                            <McpFavicon faviconUrl={server.faviconUrl} className="w-4 h-4 rounded-sm" />
                                             <span className="truncate text-sm">{server.name}</span>
                                         </div>
-                                        <Switch
-                                            checked={isEnabled}
-                                            onCheckedChange={(checked) => onToggle(server.id, checked)}
-                                            disabled={server.isAuthExpired}
-                                            className="scale-75"
-                                        />
+                                        {connectingServerId === server.id ? (
+                                            <Loader2Icon className="w-4 h-4 shrink-0 animate-spin text-muted-foreground" />
+                                        ) : (
+                                            <PlusCircleIcon className="w-4 h-4 shrink-0 text-green-600/80 transition-colors group-focus:text-green-500 group-hover:text-green-500 dark:text-green-400/80 dark:group-focus:text-green-400 dark:group-hover:text-green-400" />
+                                        )}
                                     </DropdownMenuItem>
-                                );
-                            })
+                                ))}
+                            </>
                         )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem

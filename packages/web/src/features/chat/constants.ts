@@ -11,3 +11,4 @@ export const SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY = 'selectedSearchScopes';
 export const SET_CHAT_STATE_SESSION_STORAGE_KEY = 'setChatState';
 export const PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY = 'pendingChatSubmission';
 export const DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY = 'disabledMcpServerIds';
+export const MCP_OAUTH_DRAFT_SESSION_STORAGE_KEY = 'mcpOAuthDraft';

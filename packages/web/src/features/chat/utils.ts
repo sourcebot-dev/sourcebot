@@ -161,11 +161,16 @@ export const getAllMentionElements = (children: Descendant[]): MentionElement[] 
     });
 }
 
+export const clearEditorHistory = (editor: CustomEditor) => {
+    // slate-history exposes `history` publicly, but does not provide a clear API.
+    editor.history = { redos: [], undos: [] };
+}
+
 // @see: https://stackoverflow.com/a/74102147
 export const resetEditor = (editor: CustomEditor) => {
     const point = { path: [0, 0], offset: 0 }
     editor.selection = { anchor: point, focus: point };
-    editor.history = { redos: [], undos: [] };
+    clearEditorHistory(editor);
     editor.children = [{
         type: "paragraph",
         children: [{ text: "" }]

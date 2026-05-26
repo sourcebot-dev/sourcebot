@@ -239,17 +239,6 @@ export function McpConfigurationPage() {
                             </p>
                         )}
                     </div>
-                    <div className="flex items-center justify-between gap-4 p-5">
-                        <div>
-                            <p className="font-medium">Allowed MCP servers</p>
-                            <p className="text-sm text-muted-foreground">
-                                {isOAuthUnavailable
-                                    ? "Existing workspace-approved MCP servers are available for cleanup."
-                                    : "Sourcebot Ask can use only workspace-approved MCP servers."}
-                            </p>
-                        </div>
-                        <p className="text-sm text-muted-foreground whitespace-nowrap">Only approved servers</p>
-                    </div>
                 </CardContent>
             </Card>
 

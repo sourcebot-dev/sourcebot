@@ -44,12 +44,13 @@ vi.mock('@ai-sdk/mcp', () => ({
 }));
 
 const { POST } = await import('./route');
+const { getMcpOAuthReturnToFromState } = await import('@/features/mcp/mcpOAuthReturnTo');
 
-function createRequest() {
+function createRequest(body: { serverId: string; returnTo?: string } = { serverId: 'server-1' }) {
     return new NextRequest('http://localhost/api/ee/askmcp/connect', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ serverId: 'server-1' }),
+        body: JSON.stringify(body),
     });
 }
 
@@ -139,6 +140,70 @@ describe('POST /api/ee/askmcp/connect', () => {
             },
         });
         expect(body).toEqual({ authorizationUrl: 'https://oauth.example.com/authorize' });
+    });
+
+    test('encodes a safe return path into OAuth state', async () => {
+        const prisma = createPrismaMock();
+        const tx = createTransactionMock();
+        mocks.authContext = {
+            org: { id: 1 },
+            user: { id: 'user-1' },
+            prisma,
+        };
+        mocks.unsafePrisma.$transaction.mockImplementation(async (callback, _options) => callback(tx));
+        mocks.mcpAuth.mockImplementation(async (provider) => {
+            const state = await provider.state();
+            expect(getMcpOAuthReturnToFromState(state)).toBe('/chat');
+            await provider.saveState(state);
+
+            provider.authorizationUrl = 'https://oauth.example.com/authorize';
+            return 'REDIRECT';
+        });
+
+        const response = await POST(createRequest({ serverId: 'server-1', returnTo: '/chat' }));
+        const body = await response.json();
+
+        expect(body).toEqual({ authorizationUrl: 'https://oauth.example.com/authorize' });
+        expect(tx.userMcpServer.update).toHaveBeenCalledWith({
+            where: {
+                userId_serverId: { userId: 'user-1', serverId: 'server-1' },
+            },
+            data: {
+                state: expect.stringContaining('sourcebot_mcp.'),
+            },
+        });
+    });
+
+    test('ignores unsafe return paths', async () => {
+        const prisma = createPrismaMock();
+        const tx = createTransactionMock();
+        mocks.authContext = {
+            org: { id: 1 },
+            user: { id: 'user-1' },
+            prisma,
+        };
+        mocks.unsafePrisma.$transaction.mockImplementation(async (callback, _options) => callback(tx));
+        mocks.mcpAuth.mockImplementation(async (provider) => {
+            const state = await provider.state();
+            expect(getMcpOAuthReturnToFromState(state)).toBeUndefined();
+            await provider.saveState(state);
+
+            provider.authorizationUrl = 'https://oauth.example.com/authorize';
+            return 'REDIRECT';
+        });
+
+        const response = await POST(createRequest({ serverId: 'server-1', returnTo: 'https://evil.example.com/chat' }));
+        const body = await response.json();
+
+        expect(body).toEqual({ authorizationUrl: 'https://oauth.example.com/authorize' });
+        expect(tx.userMcpServer.update).toHaveBeenCalledWith({
+            where: {
+                userId_serverId: { userId: 'user-1', serverId: 'server-1' },
+            },
+            data: {
+                state: expect.not.stringContaining('sourcebot_mcp.'),
+            },
+        });
     });
 
     test('sanitizes external OAuth errors before logging', async () => {

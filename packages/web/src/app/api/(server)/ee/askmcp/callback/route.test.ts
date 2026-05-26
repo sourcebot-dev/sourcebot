@@ -53,9 +53,16 @@ vi.mock('@ai-sdk/mcp', () => ({
 }));
 
 const { GET } = await import('./route');
+const { createMcpOAuthState } = await import('@/features/mcp/mcpOAuthReturnTo');
 
-function createRequest() {
-    return new NextRequest('https://sourcebot.example.com/api/ee/askmcp/callback?code=code-1&state=state-1', {
+function createRequest(state = 'state-1') {
+    return new NextRequest(`https://sourcebot.example.com/api/ee/askmcp/callback?code=code-1&state=${encodeURIComponent(state)}`, {
+        method: 'GET',
+    });
+}
+
+function createOAuthErrorRequest(state: string) {
+    return new NextRequest(`https://sourcebot.example.com/api/ee/askmcp/callback?error=access_denied&error_description=Denied&state=${encodeURIComponent(state)}`, {
         method: 'GET',
     });
 }
@@ -77,6 +84,47 @@ beforeEach(() => {
 });
 
 describe('GET /api/ee/askmcp/callback', () => {
+    test('redirects successful chat-originated auth back to chat', async () => {
+        const state = createMcpOAuthState('state-1', '/chat');
+        mocks.mcpAuth.mockResolvedValue('AUTHORIZED');
+
+        const response = await GET(createRequest(state));
+        const location = response.headers.get('location');
+        const url = new URL(location ?? '');
+
+        expect(url.pathname).toBe('/chat');
+        expect(url.searchParams.get('status')).toBe('connected');
+        expect(url.searchParams.get('server')).toBe('Linear');
+        expect(mocks.unsafePrisma.userMcpServer.findFirst).toHaveBeenCalledWith({
+            where: {
+                state,
+                userId: 'user-1',
+            },
+            select: {
+                serverId: true,
+                server: {
+                    select: {
+                        orgId: true,
+                        name: true,
+                        serverUrl: true,
+                    },
+                },
+            },
+        });
+    });
+
+    test('redirects denied chat-originated auth back to chat', async () => {
+        const state = createMcpOAuthState('state-1', '/chat');
+
+        const response = await GET(createOAuthErrorRequest(state));
+        const url = new URL(response.headers.get('location') ?? '');
+
+        expect(url.pathname).toBe('/chat');
+        expect(url.searchParams.get('status')).toBe('error');
+        expect(url.searchParams.get('message')).toBe('Denied');
+        expect(mocks.mcpAuth).not.toHaveBeenCalled();
+    });
+
     test('redirects with a friendly reconnect error when callback auth cannot complete', async () => {
         mocks.mcpAuth.mockImplementation(async (provider) => {
             expect('saveClientInformation' in provider).toBe(false);

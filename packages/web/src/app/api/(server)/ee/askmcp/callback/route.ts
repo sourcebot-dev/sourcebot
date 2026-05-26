@@ -11,15 +11,30 @@ import { __unsafePrisma as prisma } from '@/prisma';
 import { auth } from '@/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { getExternalMcpErrorLogFields } from '@/ee/features/mcp/externalMcpError';
+import { getMcpOAuthReturnToFromState } from '@/features/mcp/mcpOAuthReturnTo';
 
 const logger = createLogger('mcp-oauth-callback');
 const reconnectMessage = 'This MCP server authorization could not be completed. Please reconnect the server.';
+const defaultMcpOAuthReturnTo = '/settings/mcpServers';
 
-function redirectToSettingsError(message: string) {
-    const settingsUrl = new URL(`/settings/mcpServers`, env.AUTH_URL);
-    settingsUrl.searchParams.set('status', 'error');
-    settingsUrl.searchParams.set('message', message);
-    return NextResponse.redirect(settingsUrl);
+function createMcpOAuthRedirectUrl(returnTo: string | undefined): URL {
+    return new URL(returnTo ?? defaultMcpOAuthReturnTo, env.AUTH_URL);
+}
+
+function setMcpOAuthStatusParams(url: URL, params: { status: 'connected' | 'error'; server?: string; message?: string }) {
+    url.searchParams.set('status', params.status);
+    if (params.server) {
+        url.searchParams.set('server', params.server);
+    }
+    if (params.message) {
+        url.searchParams.set('message', params.message);
+    }
+}
+
+function redirectToCallbackError(message: string, returnTo?: string) {
+    const url = createMcpOAuthRedirectUrl(returnTo);
+    setMcpOAuthStatusParams(url, { status: 'error', message });
+    return NextResponse.redirect(url);
 }
 
 // eslint-disable-next-line authz/require-auth-wrapper -- OAuth redirect callback validates the active session with auth() and filters all queries by userId.
@@ -43,14 +58,14 @@ export const GET = apiHandler(async (request: NextRequest) => {
     const oauthError = searchParams.get('error');
     const code = searchParams.get('code');
     const state = searchParams.get('state');
+    const callbackReturnTo = getMcpOAuthReturnToFromState(state);
 
     // Handle OAuth errors (e.g., user cancelled the authorization flow).
     if (oauthError) {
-        const settingsUrl = new URL(`/settings/mcpServers`, env.AUTH_URL);
-        settingsUrl.searchParams.set('status', 'error');
+        const url = createMcpOAuthRedirectUrl(callbackReturnTo);
         const errorDescription = searchParams.get('error_description') ?? 'Authorization was cancelled or denied.';
-        settingsUrl.searchParams.set('message', errorDescription);
-        return NextResponse.redirect(settingsUrl);
+        setMcpOAuthStatusParams(url, { status: 'error', message: errorDescription });
+        return NextResponse.redirect(url);
     }
 
     if (!code || !state) {
@@ -108,7 +123,6 @@ export const GET = apiHandler(async (request: NextRequest) => {
         callbackUrl: `${env.AUTH_URL}/api/ee/askmcp/callback`,
     });
 
-    const settingsUrl = new URL(`/settings/mcpServers`, env.AUTH_URL);
     let result: Awaited<ReturnType<typeof mcpAuth>>;
 
     try {
@@ -128,7 +142,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
         } catch (cleanupError) {
             logger.warn(`Failed to clear MCP OAuth verifier for user ${session.user.id}:`, cleanupError);
         }
-        return redirectToSettingsError(reconnectMessage);
+        return redirectToCallbackError(reconnectMessage, callbackReturnTo);
     }
 
     // Always clear ephemeral PKCE/state regardless of outcome to prevent replay.
@@ -141,13 +155,11 @@ export const GET = apiHandler(async (request: NextRequest) => {
     if (result === 'AUTHORIZED') {
         const displayName = userServer.server.name || userServer.server.serverUrl;
         logger.info(`Successfully authorized MCP server ${displayName} for user ${session.user.id}.`);
-        settingsUrl.searchParams.set('status', 'connected');
-        settingsUrl.searchParams.set('server', displayName);
-        return NextResponse.redirect(settingsUrl);
+        const url = createMcpOAuthRedirectUrl(callbackReturnTo);
+        setMcpOAuthStatusParams(url, { status: 'connected', server: displayName });
+        return NextResponse.redirect(url);
     }
 
     // If auth() didn't return AUTHORIZED, something went wrong
-    settingsUrl.searchParams.set('status', 'error');
-    settingsUrl.searchParams.set('message', 'Token exchange failed');
-    return NextResponse.redirect(settingsUrl);
+    return redirectToCallbackError('Token exchange failed', callbackReturnTo);
 });
