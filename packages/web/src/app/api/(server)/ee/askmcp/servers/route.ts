@@ -53,7 +53,7 @@ export const GET = apiHandler(async (_request: NextRequest) => {
 
         return orgServers.map((server): McpServerWithStatus => {
             const userServer = userServerByServerId.get(server.id);
-            const faviconUrl = getMcpFaviconUrl(server.serverUrl);
+            const faviconUrl = getMcpFaviconUrl(server.serverUrl, server.name);
 
             let isConnected = false;
             let isAuthExpired = false;

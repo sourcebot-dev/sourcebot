@@ -100,7 +100,7 @@ export function PrefabMcpServerPopover({
                                     className="cursor-pointer"
                                 >
                                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted">
-                                        <McpFavicon faviconUrl={getMcpFaviconUrl(server.serverUrl)} className="h-4 w-4" />
+                                        <McpFavicon faviconUrl={getMcpFaviconUrl(server.serverUrl, server.name)} className="h-4 w-4" />
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate font-medium">{server.name}</p>

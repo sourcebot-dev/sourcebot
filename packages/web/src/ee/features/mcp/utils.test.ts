@@ -40,6 +40,14 @@ describe('getMcpFaviconUrl', () => {
         expect(getMcpFaviconUrl('https://mcp.linear.app/mcp')).toBe('https://www.google.com/s2/favicons?domain=https://mcp.linear.app&sz=32');
     });
 
+    test('returns local product icons for known shared MCP endpoints', () => {
+        expect(getMcpFaviconUrl('https://mcp.atlassian.com/v1/mcp/authv2', 'Confluence')).toMatch(/^data:image\/svg\+xml,/);
+        expect(getMcpFaviconUrl('https://mcp.atlassian.com/v1/mcp/authv2', 'Jira')).toMatch(/^data:image\/svg\+xml,/);
+        expect(getMcpFaviconUrl('https://mcp.atlassian.com/v1/mcp/authv2', 'Confluence')).not.toBe(
+            getMcpFaviconUrl('https://mcp.atlassian.com/v1/mcp/authv2', 'Jira'),
+        );
+    });
+
     test('returns undefined for a malformed server URL', () => {
         expect(getMcpFaviconUrl('not a url')).toBeUndefined();
     });

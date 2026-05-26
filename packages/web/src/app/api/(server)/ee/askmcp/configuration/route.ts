@@ -51,7 +51,7 @@ export const GET = apiHandler(async (_request: NextRequest) => {
                 const savedConnectionCount = countByServerId.get(server.id) ?? 0;
                 return {
                     ...server,
-                    faviconUrl: getMcpFaviconUrl(server.serverUrl),
+                    faviconUrl: getMcpFaviconUrl(server.serverUrl, server.name),
                     savedConnectionCount,
                 };
             });

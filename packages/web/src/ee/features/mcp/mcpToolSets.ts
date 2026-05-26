@@ -5,6 +5,7 @@ import Ajv from 'ajv';
 import { jsonSchema, ToolExecutionOptions } from 'ai';
 import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import { getExternalMcpErrorLogFields } from './externalMcpError';
+import { getMcpFaviconUrl } from './utils';
 
 const logger = createLogger('mcp-tool-sets');
 const ajv = new Ajv({ allErrors: true, strict: false });
@@ -124,8 +125,10 @@ export async function getMcpTools(clients: McpToolSet[]): Promise<McpToolsResult
                 };
             }
 
-            const origin = new URL(serverUrl).origin;
-            serverFaviconUrls[sanitizedName] = `https://www.google.com/s2/favicons?domain=${origin}&sz=32`;
+            const faviconUrl = getMcpFaviconUrl(serverUrl, serverName);
+            if (faviconUrl) {
+                serverFaviconUrls[sanitizedName] = faviconUrl;
+            }
         } catch (error) {
             logger.error('Failed to get tools from MCP server.', {
                 serverId,
