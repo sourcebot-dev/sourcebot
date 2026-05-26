@@ -248,7 +248,7 @@ export default async function Onboarding(props: OnboardingProps) {
 
                         {/* Right Panel - Content */}
                         <div className="w-3/5 bg-background p-10">
-                            <div className={cn("h-full flex flex-col justify-center mx-auto", currentStepData.id === "trial" ? "max-w-xl" : "max-w-lg")}>
+                            <div className="h-full flex flex-col justify-center mx-auto max-w-xl">
                                 <div className="space-y-8">
                                     {/* Step Header */}
                                     <div className="space-y-6">
