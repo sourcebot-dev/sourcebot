@@ -12,6 +12,56 @@ import { z } from 'zod';
 import { sanitizeMcpServerName } from './utils';
 import { hasEntitlement } from '@/lib/entitlements';
 import { oauthNotSupported } from './errors';
+import { checkMcpServerDcrSupport } from './dcrDiscovery';
+import { env } from '@sourcebot/shared';
+
+const MCP_DCR_DISCOVERY_TIMEOUT_MS = Math.min(env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS, 10000);
+
+function createTimeoutFetch(timeoutMs: number): typeof fetch {
+    return async (input, init) => {
+        const timeoutSignal = AbortSignal.timeout(timeoutMs);
+        const signal = init?.signal
+            ? AbortSignal.any([init.signal, timeoutSignal])
+            : timeoutSignal;
+
+        return fetch(input, {
+            ...init,
+            signal,
+        });
+    };
+}
+
+export const checkMcpServerDynamicClientRegistration = async (serverUrl: string) => sew(() =>
+    withAuth(async ({ role }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            if (!(await hasEntitlement('oauth'))) {
+                return oauthNotSupported();
+            }
+
+            const normalizedServerUrl = serverUrl.trim();
+            const urlResult = z.string().url().safeParse(normalizedServerUrl);
+            const protocol = urlResult.success ? new URL(normalizedServerUrl).protocol : undefined;
+            if (!urlResult.success || protocol !== 'https:') {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: 'Invalid server URL. Must be a valid HTTPS URL.',
+                } satisfies ServiceError;
+            }
+
+            try {
+                return await checkMcpServerDcrSupport(
+                    normalizedServerUrl,
+                    createTimeoutFetch(MCP_DCR_DISCOVERY_TIMEOUT_MS),
+                );
+            } catch {
+                return {
+                    statusCode: StatusCodes.BAD_GATEWAY,
+                    errorCode: ErrorCode.UNEXPECTED_ERROR,
+                    message: 'Could not check whether this MCP server supports dynamic client registration.',
+                } satisfies ServiceError;
+            }
+        })));
 
 export const createMcpServer = async (name: string, serverUrl: string) => sew(() =>
     withAuth(async ({ org, role, prisma }) =>

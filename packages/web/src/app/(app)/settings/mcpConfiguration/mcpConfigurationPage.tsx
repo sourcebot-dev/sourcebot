@@ -10,17 +10,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-    Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { createMcpServer, deleteMcpServer } from "@/ee/features/mcp/actions";
+import { checkMcpServerDynamicClientRegistration, createMcpServer, deleteMcpServer } from "@/ee/features/mcp/actions";
 import { McpFavicon } from "@/ee/features/mcp/components/mcpFavicon";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/mcp/queryKeys";
 import { isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangleIcon, Loader2, MinusIcon, PlusIcon, ServerIcon } from "lucide-react";
+import { PrefabMcpServerPopover } from "./prefabMcpServerPopover";
+import type { PrefabMcpServer } from "@/ee/features/mcp/prefabMcpServers";
 
 function pluralize(count: number, singular: string, plural = `${singular}s`) {
     return count === 1 ? singular : plural;
@@ -32,6 +34,10 @@ export function McpConfigurationPage() {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [newServerName, setNewServerName] = useState("");
     const [newServerUrl, setNewServerUrl] = useState("");
+    const [isClientCredentialsDialogOpen, setIsClientCredentialsDialogOpen] = useState(false);
+    const [pendingClientCredentialsServer, setPendingClientCredentialsServer] = useState<{ name: string; serverUrl: string } | null>(null);
+    const [clientId, setClientId] = useState("");
+    const [clientSecret, setClientSecret] = useState("");
     const [isCreating, setIsCreating] = useState(false);
     const [deletingServerId, setDeletingServerId] = useState<string | null>(null);
 
@@ -51,33 +57,93 @@ export function McpConfigurationPage() {
     const canCreateMcpServers = data?.isOAuthAvailable === true;
     const isOAuthUnavailable = data?.isOAuthAvailable === false;
 
-    const handleCloseCreateDialog = () => {
-        setIsCreateDialogOpen(false);
-        setNewServerName("");
-        setNewServerUrl("");
+    const handleCreateDialogOpenChange = (open: boolean) => {
+        setIsCreateDialogOpen(open);
+
+        if (!open) {
+            setNewServerName("");
+            setNewServerUrl("");
+        }
     };
 
-    const handleCreate = async () => {
-        if (!newServerName.trim() || !newServerUrl.trim()) {
+    const handleCloseCreateDialog = () => {
+        handleCreateDialogOpenChange(false);
+    };
+
+    const handleCloseClientCredentialsDialog = () => {
+        setIsClientCredentialsDialogOpen(false);
+        setPendingClientCredentialsServer(null);
+        setClientId("");
+        setClientSecret("");
+    };
+
+    const handleOpenCustomUrlDialog = () => {
+        setNewServerName("");
+        setNewServerUrl("");
+        setIsCreateDialogOpen(true);
+    };
+
+    const handleCreateStaticOAuthServer = async () => {
+        toast({
+            title: "Static OAuth credentials required",
+            description: "Saving MCP OAuth client credentials will be added in a follow-up change.",
+        });
+    };
+
+    const handleCreateServer = async (
+        name: string,
+        serverUrl: string,
+        onSuccess?: () => void,
+        options: { checkDynamicClientRegistration?: boolean } = {},
+    ) => {
+        const displayName = name.trim();
+        const normalizedServerUrl = serverUrl.trim();
+
+        if (!displayName || !normalizedServerUrl) {
             toast({ title: "Error", description: "Name and server URL are required", variant: "destructive" });
             return;
         }
 
         setIsCreating(true);
         try {
-            const result = await createMcpServer(newServerName.trim(), newServerUrl.trim());
+            if (options.checkDynamicClientRegistration) {
+                const dcrSupport = await checkMcpServerDynamicClientRegistration(normalizedServerUrl);
+                if (isServiceError(dcrSupport)) {
+                    toast({ title: "Error", description: `Failed to check MCP server: ${dcrSupport.message}`, variant: "destructive" });
+                    return;
+                }
+
+                if (dcrSupport.isKnown && !dcrSupport.supportsDcr) {
+                    setPendingClientCredentialsServer({ name: displayName, serverUrl: normalizedServerUrl });
+                    setIsCreateDialogOpen(false);
+                    setIsClientCredentialsDialogOpen(true);
+                    return;
+                }
+            }
+
+            const result = await createMcpServer(displayName, normalizedServerUrl);
             if (isServiceError(result)) {
                 toast({ title: "Error", description: `Failed to add MCP server: ${result.message}`, variant: "destructive" });
                 return;
             }
 
             await invalidateMcpConfigurationQueries(queryClient);
-            handleCloseCreateDialog();
+            onSuccess?.();
         } catch (error) {
             toast({ title: "Error", description: `Failed to add MCP server: ${error}`, variant: "destructive" });
         } finally {
             setIsCreating(false);
         }
+    };
+
+    const handleCreate = async () => {
+        await handleCreateServer(newServerName, newServerUrl, handleCloseCreateDialog, {
+            checkDynamicClientRegistration: true,
+        });
+    };
+
+    const handleCreatePrefabServer = async (server: PrefabMcpServer) => {
+        await handleCreateServer(server.name, server.serverUrl);
     };
 
     const handleDelete = async (serverId: string) => {
@@ -166,45 +232,104 @@ export function McpConfigurationPage() {
                         </CardDescription>
                     </div>
                     {canCreateMcpServers ? (
-                        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button size="icon" variant="ghost" aria-label="Add MCP server">
-                                    <PlusIcon className="h-4 w-4" />
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-md">
-                                <DialogHeader>
-                                    <DialogTitle>Add MCP Server</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="mcp-configuration-name">Name</Label>
-                                        <Input
-                                            id="mcp-configuration-name"
-                                            value={newServerName}
-                                            onChange={(event) => setNewServerName(event.target.value)}
-                                            placeholder="e.g. Linear"
-                                        />
+                        <>
+                            <PrefabMcpServerPopover
+                                configuredServerUrls={servers.map((server) => server.serverUrl)}
+                                disabled={isCreating}
+                                onSelectCustomUrl={handleOpenCustomUrlDialog}
+                                onSelectPrefabServer={handleCreatePrefabServer}
+                            />
+                            <Dialog open={isCreateDialogOpen} onOpenChange={handleCreateDialogOpenChange}>
+                                <DialogContent className="sm:max-w-md">
+                                    <DialogHeader>
+                                        <DialogTitle>Add MCP Server</DialogTitle>
+                                        <DialogDescription>
+                                            Add a workspace-approved MCP server that members can connect to from Ask Sourcebot.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="mcp-configuration-name">Name</Label>
+                                            <Input
+                                                id="mcp-configuration-name"
+                                                value={newServerName}
+                                                onChange={(event) => setNewServerName(event.target.value)}
+                                                placeholder="e.g. Linear"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="mcp-configuration-url">Server URL</Label>
+                                            <Input
+                                                id="mcp-configuration-url"
+                                                value={newServerUrl}
+                                                onChange={(event) => setNewServerUrl(event.target.value)}
+                                                placeholder="https://mcp.linear.app/mcp"
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="mcp-configuration-url">Server URL</Label>
-                                        <Input
-                                            id="mcp-configuration-url"
-                                            value={newServerUrl}
-                                            onChange={(event) => setNewServerUrl(event.target.value)}
-                                            placeholder="https://mcp.linear.app/mcp"
-                                        />
+                                    <DialogFooter className="sm:justify-between">
+                                        <Button variant="outline" onClick={handleCloseCreateDialog}>Cancel</Button>
+                                        <Button onClick={handleCreate} disabled={isCreating || !newServerName.trim() || !newServerUrl.trim()}>
+                                            {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                                            {isCreating ? "Checking..." : "Add"}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                            <Dialog open={isClientCredentialsDialogOpen} onOpenChange={(open) => {
+                                if (!open) {
+                                    handleCloseClientCredentialsDialog();
+                                    return;
+                                }
+
+                                setIsClientCredentialsDialogOpen(true);
+                            }}>
+                                <DialogContent className="sm:max-w-md">
+                                    <DialogHeader>
+                                        <DialogTitle>OAuth Client Credentials Required</DialogTitle>
+                                        <DialogDescription>
+                                            This MCP server does not advertise dynamic client registration. Provide OAuth client credentials from a pre-registered app before members can connect to it.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        {pendingClientCredentialsServer && (
+                                            <div className="rounded-md border bg-muted/40 p-3">
+                                                <p className="text-sm font-medium truncate">{pendingClientCredentialsServer.name}</p>
+                                                <p className="text-sm text-muted-foreground truncate">{pendingClientCredentialsServer.serverUrl}</p>
+                                            </div>
+                                        )}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="mcp-configuration-client-id">Client ID</Label>
+                                            <Input
+                                                id="mcp-configuration-client-id"
+                                                value={clientId}
+                                                onChange={(event) => setClientId(event.target.value)}
+                                                placeholder="OAuth client ID"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="mcp-configuration-client-secret">Client Secret</Label>
+                                            <Input
+                                                id="mcp-configuration-client-secret"
+                                                type="password"
+                                                value={clientSecret}
+                                                onChange={(event) => setClientSecret(event.target.value)}
+                                                placeholder="OAuth client secret"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
-                                <DialogFooter className="sm:justify-between">
-                                    <Button variant="outline" onClick={handleCloseCreateDialog}>Cancel</Button>
-                                    <Button onClick={handleCreate} disabled={isCreating || !newServerName.trim() || !newServerUrl.trim()}>
-                                        {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                                        Add
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
+                                    <DialogFooter className="sm:justify-between">
+                                        <Button variant="outline" onClick={handleCloseClientCredentialsDialog}>Cancel</Button>
+                                        <Button
+                                            onClick={handleCreateStaticOAuthServer}
+                                            disabled={!clientId.trim() || !clientSecret.trim()}
+                                        >
+                                            Add
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </>
                     ) : (
                         <Button size="icon" variant="ghost" disabled aria-label="Add MCP server unavailable">
                             <PlusIcon className="h-4 w-4" />
