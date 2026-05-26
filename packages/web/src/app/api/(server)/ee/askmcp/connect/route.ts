@@ -65,7 +65,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
             },
         });
         if (!mcpServer) {
-            return notFound('MCP server not found');
+            return notFound('Connector not found');
         }
 
         await prisma.userMcpServer.upsert({
@@ -91,7 +91,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
             `;
 
             if (lockedRows.length === 0) {
-                throw new ServiceErrorException(notFound('MCP server not found'));
+                throw new ServiceErrorException(notFound('Connector not found'));
             }
 
             const provider = new PrismaOAuthClientProvider({
@@ -112,7 +112,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                     fetchFn: createTimeoutFetch(MCP_AUTH_FETCH_TIMEOUT_MS),
                 });
             } catch (error) {
-                logger.warn('Failed to start MCP authorization.', {
+                logger.warn('Failed to start connector authorization.', {
                     serverId: mcpServer.id,
                     orgId: org.id,
                     error: getExternalMcpErrorLogFields(error),
@@ -120,7 +120,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 throw new ServiceErrorException({
                     statusCode: StatusCodes.BAD_GATEWAY,
                     errorCode: ErrorCode.UNEXPECTED_ERROR,
-                    message: 'Could not start MCP authorization.',
+                    message: 'Could not start connector authorization.',
                 });
             }
 

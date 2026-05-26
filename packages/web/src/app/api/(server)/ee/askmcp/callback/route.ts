@@ -14,8 +14,8 @@ import { getExternalMcpErrorLogFields } from '@/ee/features/mcp/externalMcpError
 import { getMcpOAuthReturnToFromState } from '@/features/mcp/mcpOAuthReturnTo';
 
 const logger = createLogger('mcp-oauth-callback');
-const reconnectMessage = 'This MCP server authorization could not be completed. Please reconnect the server.';
-const defaultMcpOAuthReturnTo = '/settings/mcpServers';
+const reconnectMessage = 'This connector authorization could not be completed. Please reconnect the connector.';
+const defaultMcpOAuthReturnTo = '/settings/accountAskAgent';
 
 function createMcpOAuthRedirectUrl(returnTo: string | undefined): URL {
     return new URL(returnTo ?? defaultMcpOAuthReturnTo, env.AUTH_URL);
@@ -110,7 +110,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
 
     if (!orgMembership) {
         return Response.json(
-            { error: 'forbidden', error_description: 'You do not have access to this MCP server.' },
+            { error: 'forbidden', error_description: 'You do not have access to this connector.' },
             { status: 403 }
         );
     }

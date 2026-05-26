@@ -36,7 +36,7 @@ describe('MCP OAuth draft persistence', () => {
 
     test('normalizes chat paths and strips OAuth status params', () => {
         expect(normalizeMcpOAuthDraftPath('/chat/thread-1?scope=sourcebot&status=connected&server=Linear')).toBe('/chat/thread-1?scope=sourcebot');
-        expect(normalizeMcpOAuthDraftPath('/settings/mcpServers')).toBeUndefined();
+        expect(normalizeMcpOAuthDraftPath('/settings/accountAskAgent')).toBeUndefined();
         expect(normalizeMcpOAuthDraftPath('https://evil.example.com/chat')).toBeUndefined();
         expect(normalizeMcpOAuthDraftPath('//evil.example.com/chat')).toBeUndefined();
     });

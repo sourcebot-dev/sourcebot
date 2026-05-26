@@ -24,7 +24,7 @@ export const ToolSearchToolComponent = ({ query, results }: ToolSearchToolCompon
             <CollapsibleTrigger className="w-full">
                 <div className="flex items-center gap-2 select-none cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
                     <ChevronRight className={cn("w-3 h-3 flex-shrink-0 transition-transform", isOpen && "rotate-90")} />
-                    <span className="flex-shrink-0">Searched MCP tools: <span className="italic">{query}</span></span>
+                    <span className="flex-shrink-0">Searched connector tools: <span className="italic">{query}</span></span>
                     <span className="flex-1" />
                     <span className="text-xs flex-shrink-0">{results.length} result{results.length === 1 ? '' : 's'}</span>
                     <Separator orientation="vertical" className="h-3 flex-shrink-0" />

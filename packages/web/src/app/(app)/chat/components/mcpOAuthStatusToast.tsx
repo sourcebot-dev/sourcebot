@@ -30,7 +30,7 @@ export function McpOAuthStatusToast() {
         } else {
             toast({
                 title: "Connection failed",
-                description: message ?? 'Failed to connect MCP server.',
+                description: message ?? 'Failed to connect connector.',
                 variant: "destructive",
             });
         }

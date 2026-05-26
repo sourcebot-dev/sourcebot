@@ -1,4 +1,4 @@
-import { McpServersPage } from "./mcpServersPage";
+import { AccountAskAgentPage } from "./accountAskAgentPage";
 import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
 
@@ -13,11 +13,11 @@ interface PageProps extends Record<string, unknown> {
 export default authenticatedPage<PageProps>(async ({ role }, { searchParams }) => {
     const { status, server, message } = await searchParams;
     return (
-        <McpServersPage
+        <AccountAskAgentPage
             callbackStatus={status}
             callbackServer={server}
             callbackMessage={message}
-            canManageMcpServers={role === OrgRole.OWNER}
+            canManageConnectors={role === OrgRole.OWNER}
         />
     );
 });

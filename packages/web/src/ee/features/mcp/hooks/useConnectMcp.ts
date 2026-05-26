@@ -18,7 +18,7 @@ export function useConnectMcp() {
 
         if (isServiceError(result)) {
             toast({
-                description: `Failed to connect MCP server. ${result.message}`,
+                description: `Failed to connect connector. ${result.message}`,
             });
             setLoadingServerId(null);
             return;
@@ -28,7 +28,7 @@ export function useConnectMcp() {
             window.location.href = result.authorizationUrl;
         } else {
             toast({
-                description: 'MCP server is already connected.',
+                description: 'Connector is already connected.',
             });
             await invalidateMcpConfigurationQueries(queryClient);
             setLoadingServerId(null);

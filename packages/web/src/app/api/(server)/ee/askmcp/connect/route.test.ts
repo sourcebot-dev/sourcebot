@@ -231,9 +231,9 @@ describe('POST /api/ee/askmcp/connect', () => {
 
         expect(response.status).toBe(502);
         expect(body).toMatchObject({
-            message: 'Could not start MCP authorization.',
+            message: 'Could not start connector authorization.',
         });
-        expect(mocks.logger.warn).toHaveBeenCalledWith('Failed to start MCP authorization.', {
+        expect(mocks.logger.warn).toHaveBeenCalledWith('Failed to start connector authorization.', {
             serverId: 'server-1',
             orgId: 1,
             error: {

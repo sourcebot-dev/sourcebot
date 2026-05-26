@@ -8,7 +8,7 @@ export const PlusButtonInfoCard = () => {
                 <h4 className="text-sm font-semibold text-popover-foreground">Extra Features</h4>
             </div>
             <div className="text-sm text-popover-foreground leading-relaxed">
-                Add MCP servers, include files and more.
+                Add connectors, include files and more.
             </div>
         </div>
     );

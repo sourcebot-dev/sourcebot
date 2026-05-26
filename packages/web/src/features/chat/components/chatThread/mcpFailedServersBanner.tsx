@@ -15,8 +15,8 @@ export const McpFailedServersBanner = ({ serverNames, isVisible, onClose }: McpF
     }
 
     const message = serverNames.length === 1
-        ? `MCP server "${serverNames[0]}" failed to load tools`
-        : `${serverNames.length} MCP servers failed to load tools`;
+        ? `Connector "${serverNames[0]}" failed to load tools`
+        : `${serverNames.length} connectors failed to load tools`;
 
     return (
         <div className="bg-yellow-50 border-b border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-800">

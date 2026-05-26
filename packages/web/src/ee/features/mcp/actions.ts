@@ -120,13 +120,13 @@ async function prepareMcpServerCreate({
     const urlResult = z.string().url().safeParse(normalizedServerUrl);
     const protocol = urlResult.success ? new URL(normalizedServerUrl).protocol : undefined;
     if (!urlResult.success || protocol !== 'https:') {
-        return invalidRequest('Invalid server URL. Must be a valid HTTPS URL.');
+        return invalidRequest('Invalid connector URL. Must be a valid HTTPS URL.');
     }
 
     const sanitizedName = sanitizeMcpServerName(displayName);
     const alphanumericCount = (sanitizedName.match(/[a-z0-9]/g) ?? []).length;
     if (alphanumericCount < 3) {
-        return invalidRequest('Server name must contain at least 3 alphanumeric characters.');
+        return invalidRequest('Connector name must contain at least 3 alphanumeric characters.');
     }
 
     const existingServer = await prisma.mcpServer.findUnique({
@@ -142,7 +142,7 @@ async function prepareMcpServerCreate({
         return {
             statusCode: StatusCodes.CONFLICT,
             errorCode: ErrorCode.MCP_SERVER_ALREADY_EXISTS,
-            message: `An MCP server with URL "${normalizedServerUrl}" already exists.`,
+            message: `A connector with URL "${normalizedServerUrl}" already exists.`,
         } satisfies ServiceError;
     }
 
@@ -157,7 +157,7 @@ async function prepareMcpServerCreate({
         return {
             statusCode: StatusCodes.CONFLICT,
             errorCode: ErrorCode.MCP_SERVER_ALREADY_EXISTS,
-            message: 'An MCP server with a similar name already exists. Please choose a more distinct name.',
+            message: 'A connector with a similar name already exists. Please choose a more distinct name.',
         } satisfies ServiceError;
     }
 
@@ -182,7 +182,7 @@ export const checkMcpServerDynamicClientRegistration = async (serverUrl: string)
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
                     errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: 'Invalid server URL. Must be a valid HTTPS URL.',
+                    message: 'Invalid connector URL. Must be a valid HTTPS URL.',
                 } satisfies ServiceError;
             }
 
@@ -195,7 +195,7 @@ export const checkMcpServerDynamicClientRegistration = async (serverUrl: string)
                 return {
                     statusCode: StatusCodes.BAD_GATEWAY,
                     errorCode: ErrorCode.UNEXPECTED_ERROR,
-                    message: 'Could not check whether this MCP server supports dynamic client registration.',
+                    message: 'Could not check whether this connector supports dynamic client registration.',
                 } satisfies ServiceError;
             }
         })));
@@ -312,7 +312,7 @@ export const deleteMcpServer = async (serverId: string) => sew(() =>
                 return {
                     statusCode: StatusCodes.NOT_FOUND,
                     errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
-                    message: 'MCP server not found',
+                    message: 'Connector not found',
                 } satisfies ServiceError;
             }
 
@@ -333,7 +333,7 @@ export const disconnectMcpServer = async (serverId: string) => sew(() =>
             return {
                 statusCode: StatusCodes.NOT_FOUND,
                 errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
-                message: 'MCP server not found',
+                message: 'Connector not found',
             } satisfies ServiceError;
         }
 
@@ -348,7 +348,7 @@ export const disconnectMcpServer = async (serverId: string) => sew(() =>
             return {
                 statusCode: StatusCodes.NOT_FOUND,
                 errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
-                message: 'No connection found for this MCP server.',
+                message: 'No connection found for this connector.',
             } satisfies ServiceError;
         }
 

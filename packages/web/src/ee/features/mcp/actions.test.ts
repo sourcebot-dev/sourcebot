@@ -256,7 +256,7 @@ describe('createStaticOAuthMcpServer', () => {
         expect(result).toMatchObject({
             statusCode: 400,
             errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: 'Invalid server URL. Must be a valid HTTPS URL.',
+            message: 'Invalid connector URL. Must be a valid HTTPS URL.',
         });
         expect(prisma.mcpServer.findUnique).not.toHaveBeenCalled();
         expect(prisma.mcpServer.create).not.toHaveBeenCalled();
@@ -274,7 +274,7 @@ describe('createStaticOAuthMcpServer', () => {
         expect(result).toMatchObject({
             statusCode: 400,
             errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: 'Server name must contain at least 3 alphanumeric characters.',
+            message: 'Connector name must contain at least 3 alphanumeric characters.',
         });
         expect(prisma.mcpServer.findUnique).not.toHaveBeenCalled();
         expect(prisma.mcpServer.create).not.toHaveBeenCalled();
@@ -291,7 +291,7 @@ describe('createStaticOAuthMcpServer', () => {
         expect(result).toMatchObject({
             statusCode: 409,
             errorCode: ErrorCode.MCP_SERVER_ALREADY_EXISTS,
-            message: 'An MCP server with URL "https://mcp.slack.com/mcp" already exists.',
+            message: 'A connector with URL "https://mcp.slack.com/mcp" already exists.',
         });
         expect(prisma.mcpServer.findFirst).not.toHaveBeenCalled();
         expect(prisma.mcpServer.create).not.toHaveBeenCalled();
@@ -310,7 +310,7 @@ describe('createStaticOAuthMcpServer', () => {
         expect(result).toMatchObject({
             statusCode: 409,
             errorCode: ErrorCode.MCP_SERVER_ALREADY_EXISTS,
-            message: 'An MCP server with a similar name already exists. Please choose a more distinct name.',
+            message: 'A connector with a similar name already exists. Please choose a more distinct name.',
         });
         expect(prisma.mcpServer.findUnique).toHaveBeenCalledWith({
             where: {

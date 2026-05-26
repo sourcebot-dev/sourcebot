@@ -2,7 +2,7 @@
 
 import { ChartTooltip } from "@/components/ui/chart"
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
-import { Users, LucideIcon, Search, ArrowRight, Activity, Calendar, MessageCircle, Wrench, Key, Info } from "lucide-react"
+import { Users, LucideIcon, Activity, Calendar, Info } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer } from "@/components/ui/chart"
 import { useQuery } from "@tanstack/react-query"

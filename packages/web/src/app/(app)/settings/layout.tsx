@@ -59,7 +59,7 @@ export const getSidebarNavGroups = async () =>
             throw new ServiceErrorException(connectionStats);
         }
         const hasOAuthEntitlement = await hasEntitlement("oauth");
-        const hasApprovedMcpServers = role === OrgRole.OWNER && !hasOAuthEntitlement
+        const hasApprovedConnectors = role === OrgRole.OWNER && !hasOAuthEntitlement
             ? await prisma.mcpServer.count({
                 where: { orgId: org.id },
             }) > 0
@@ -90,9 +90,9 @@ export const getSidebarNavGroups = async () =>
                     ] : []),
                     ...(hasOAuthEntitlement ? [
                         {
-                            title: "MCP Servers",
-                            href: `/settings/mcpServers`,
-                            icon: "mcp" as const,
+                            title: "Ask Agent",
+                            href: `/settings/accountAskAgent`,
+                            icon: "bot" as const,
                         }
                     ] : []),
                 ],
@@ -127,11 +127,11 @@ export const getSidebarNavGroups = async () =>
                         icon: "chart-area" as const,
                         requiredEntitlement: 'analytics'
                     },
-                    ...(hasOAuthEntitlement || hasApprovedMcpServers ? [
+                    ...(hasOAuthEntitlement || hasApprovedConnectors ? [
                         {
-                            title: "MCP Configuration",
-                            href: `/settings/mcpConfiguration`,
-                            icon: "server" as const,
+                            title: "Ask Agent",
+                            href: `/settings/workspaceAskAgent`,
+                            icon: "bot" as const,
                         }
                     ] : []),
                     {

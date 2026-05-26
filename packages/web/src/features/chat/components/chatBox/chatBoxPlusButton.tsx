@@ -19,7 +19,7 @@ import { mcpQueryKeys } from "@/ee/features/mcp/queryKeys";
 import { isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlertTriangleIcon, Loader2Icon, PlusCircleIcon, PlusIcon, RefreshCwIcon, ServerIcon, SettingsIcon } from "lucide-react";
+import { AlertTriangleIcon, CableIcon, Loader2Icon, PlusCircleIcon, PlusIcon, RefreshCwIcon, SettingsIcon } from "lucide-react";
 import { PlusButtonInfoCard } from "./plusButtonInfoCard";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -82,7 +82,7 @@ export const ChatBoxPlusButton = ({
         queryFn: async () => {
             const result = await getMcpServersWithStatus();
             if (isServiceError(result)) {
-                throw new Error("Failed to load MCP servers");
+                throw new Error("Failed to load connectors");
             }
             return result;
         },
@@ -156,7 +156,7 @@ export const ChatBoxPlusButton = ({
             if (isServiceError(result)) {
                 clearMcpOAuthDraft();
                 toast({
-                    description: `Failed to connect MCP server. ${result.message}`,
+                    description: `Failed to connect connector. ${result.message}`,
                     variant: "destructive",
                 });
                 setConnectingServerId(null);
@@ -169,7 +169,7 @@ export const ChatBoxPlusButton = ({
             }
 
             clearMcpOAuthDraft();
-            toast({ description: 'MCP server is already connected.' });
+            toast({ description: 'Connector is already connected.' });
             await queryClient.invalidateQueries({ queryKey: mcpQueryKeys.serversWithStatus });
             if (!isMountedRef.current) {
                 return;
@@ -182,7 +182,7 @@ export const ChatBoxPlusButton = ({
 
             clearMcpOAuthDraft();
             toast({
-                description: "Failed to connect MCP server.",
+                description: "Failed to connect connector.",
                 variant: "destructive",
             });
             setConnectingServerId(null);
@@ -214,8 +214,8 @@ export const ChatBoxPlusButton = ({
             <DropdownMenuContent side="bottom" align="start" className="w-52" onCloseAutoFocus={(e) => e.preventDefault()}>
                 <DropdownMenuSub>
                     <DropdownMenuSubTrigger className="gap-2">
-                        <ServerIcon className="w-4 h-4 text-muted-foreground" />
-                        MCP Servers
+                        <CableIcon className="w-4 h-4 text-muted-foreground" />
+                        Connectors
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent className="w-56">
                         {isError && !hasServers ? (
@@ -231,11 +231,11 @@ export const ChatBoxPlusButton = ({
                             </DropdownMenuItem>
                         ) : isLoading ? (
                             <DropdownMenuItem disabled>
-                                Loading MCP servers...
+                                Loading connectors...
                             </DropdownMenuItem>
                         ) : !hasServers ? (
                             <DropdownMenuItem disabled>
-                                No MCP servers available
+                                No connectors available
                             </DropdownMenuItem>
                         ) : (
                             <>
@@ -292,10 +292,10 @@ export const ChatBoxPlusButton = ({
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                             className="gap-2 text-muted-foreground"
-                            onSelect={() => router.push(`/settings/mcpServers`)}
+                            onSelect={() => router.push(`/settings/accountAskAgent`)}
                         >
                             <SettingsIcon className="w-4 h-4" />
-                            Manage MCP servers
+                            Manage connectors
                         </DropdownMenuItem>
                     </DropdownMenuSubContent>
                 </DropdownMenuSub>

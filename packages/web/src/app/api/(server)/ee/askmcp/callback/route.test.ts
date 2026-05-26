@@ -143,9 +143,9 @@ describe('GET /api/ee/askmcp/callback', () => {
         const location = response.headers.get('location');
 
         expect(location).toBeTruthy();
-        expect(location).toContain('/settings/mcpServers');
+        expect(location).toContain('/settings/accountAskAgent');
         expect(location).toContain('status=error');
-        expect(new URL(location ?? '').searchParams.get('message')).toContain('Please reconnect the server');
+        expect(new URL(location ?? '').searchParams.get('message')).toContain('Please reconnect the connector');
         expect(mocks.unsafePrisma.userMcpServer.findFirst).toHaveBeenCalledWith({
             where: {
                 state: 'state-1',

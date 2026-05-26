@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, MoreHorizontal, SearchIcon, ServerIcon, Settings2Icon, Unplug } from "lucide-react";
+import { CableIcon, ExternalLink, MoreHorizontal, SearchIcon, Settings2Icon, Unplug } from "lucide-react";
 import { getMcpServersWithStatus } from "@/app/api/(client)/client";
 import { useToast } from "@/components/hooks/use-toast";
 import {
@@ -42,33 +42,33 @@ function clearCallbackParams() {
     window.history.replaceState({}, '', url.toString());
 }
 
-interface McpServersPageProps {
+interface AccountAskAgentPageProps {
     callbackStatus?: string;
     callbackServer?: string;
     callbackMessage?: string;
-    canManageMcpServers: boolean;
+    canManageConnectors: boolean;
 }
 
-export function McpServersEmptyState({ canManageMcpServers }: { canManageMcpServers: boolean }) {
+export function AccountAskAgentEmptyState({ canManageConnectors }: { canManageConnectors: boolean }) {
     return (
         <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="rounded-full bg-muted p-3 mb-4">
-                    <ServerIcon className="h-6 w-6 text-muted-foreground" />
+                    <CableIcon className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <p className="text-sm font-medium text-foreground mb-1">
-                    {canManageMcpServers ? "No MCP servers configured yet" : "No MCP servers available"}
+                    {canManageConnectors ? "No connectors configured yet" : "No connectors available"}
                 </p>
                 <p className="text-sm text-muted-foreground max-w-sm">
-                    {canManageMcpServers
-                        ? "Go to Workspace MCP Configuration to add servers before connecting them to Ask Sourcebot."
-                        : "No MCP servers have been approved for this workspace yet. Contact your workspace admin."}
+                    {canManageConnectors
+                        ? "Open Workspace Ask Agent to approve connectors for your workspace."
+                        : "No connectors have been approved for this workspace yet. Contact your workspace admin."}
                 </p>
-                {canManageMcpServers && (
+                {canManageConnectors && (
                     <Button asChild variant="outline" className="mt-4">
-                        <Link href="/settings/mcpConfiguration">
+                        <Link href="/settings/workspaceAskAgent">
                             <Settings2Icon className="h-4 w-4 mr-2" />
-                            Open MCP Configuration
+                            Open Workspace Ask Agent
                         </Link>
                     </Button>
                 )}
@@ -77,7 +77,7 @@ export function McpServersEmptyState({ canManageMcpServers }: { canManageMcpServ
     );
 }
 
-export function McpServersPage({ callbackStatus, callbackServer, callbackMessage, canManageMcpServers }: McpServersPageProps) {
+export function AccountAskAgentPage({ callbackStatus, callbackServer, callbackMessage, canManageConnectors }: AccountAskAgentPageProps) {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const didHandleCallbackRef = useRef(false);
@@ -97,7 +97,7 @@ export function McpServersPage({ callbackStatus, callbackServer, callbackMessage
             clearCallbackParams();
         } else if (callbackStatus === 'error') {
             didHandleCallbackRef.current = true;
-            toast({ title: "Connection failed", description: callbackMessage ?? 'Failed to connect MCP server.', variant: "destructive" });
+            toast({ title: "Connection failed", description: callbackMessage ?? 'Failed to connect connector.', variant: "destructive" });
             clearCallbackParams();
         }
     }, [callbackStatus, callbackServer, callbackMessage, toast]);
@@ -107,7 +107,7 @@ export function McpServersPage({ callbackStatus, callbackServer, callbackMessage
         queryFn: async () => {
             const result = await getMcpServersWithStatus();
             if (isServiceError(result)) {
-                throw new Error("Failed to load MCP servers");
+                throw new Error("Failed to load connectors");
             }
             return result;
         },
@@ -157,29 +157,37 @@ export function McpServersPage({ callbackStatus, callbackServer, callbackMessage
                 toast({ title: "Error", description: `Failed to disconnect: ${result.message}`, variant: "destructive" });
                 return;
             }
-            toast({ description: "MCP server disconnected." });
+            toast({ description: "Connector disconnected." });
             await invalidateMcpConfigurationQueries(queryClient);
         } catch {
-            toast({ title: "Error", description: "Failed to disconnect MCP server.", variant: "destructive" });
+            toast({ title: "Error", description: "Failed to disconnect connector.", variant: "destructive" });
         } finally {
             setDisconnectingServerId(null);
         }
     };
 
     if (isError) {
-        return <div>Error loading MCP servers</div>;
+        return <div>Error loading connectors</div>;
     }
 
     if (!isLoading && servers.length === 0) {
         return (
             <div className="flex flex-col gap-6">
                 <div>
-                    <h3 className="text-lg font-medium">MCP Servers</h3>
+                    <h3 className="text-lg font-medium">Ask Agent</h3>
                     <p className="text-sm text-muted-foreground max-w-lg">
-                        Connect to workspace-approved MCP servers to use them with Ask Sourcebot.
+                        Manage your personal Ask Agent setup.
                     </p>
                 </div>
-                <McpServersEmptyState canManageMcpServers={canManageMcpServers} />
+                <div className="space-y-3">
+                    <div>
+                        <h4 className="text-sm font-semibold text-foreground">Connectors</h4>
+                        <p className="text-sm text-muted-foreground max-w-lg">
+                            Manage workspace-approved connectors for use with Ask Agent.
+                        </p>
+                    </div>
+                    <AccountAskAgentEmptyState canManageConnectors={canManageConnectors} />
+                </div>
             </div>
         );
     }
@@ -187,48 +195,57 @@ export function McpServersPage({ callbackStatus, callbackServer, callbackMessage
     return (
         <div className="flex flex-col gap-6">
             <div>
-                <h3 className="text-lg font-medium">MCP Servers</h3>
+                <h3 className="text-lg font-medium">Ask Agent</h3>
                 <p className="text-sm text-muted-foreground max-w-lg">
-                    Connect to workspace-approved MCP servers to use them with Ask Sourcebot.
+                    Manage your personal Ask Agent setup.
                 </p>
             </div>
 
-            {/* Search + filter bar */}
-            <div className="flex items-center gap-3">
-                <div className="relative flex-1">
-                    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Search servers..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9"
-                    />
+            <div className="space-y-3">
+                <div>
+                    <h4 className="text-sm font-semibold text-foreground">Connectors</h4>
+                    <p className="text-sm text-muted-foreground max-w-lg">
+                        Manage workspace-approved connectors for use with Ask Agent.
+                    </p>
                 </div>
-                <div className="flex items-center rounded-md border border-border bg-muted/40 p-0.5">
-                    <button
-                        onClick={() => setActiveTab("all")}
-                        className={cn(
-                            "px-3 py-1.5 text-xs font-medium rounded-sm transition-colors",
-                            activeTab === "all"
-                                ? "bg-background text-foreground shadow-sm"
-                                : "text-muted-foreground hover:text-foreground",
-                        )}
-                    >
-                        All
-                        <span className="ml-1.5 text-muted-foreground">{servers.length}</span>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("connected")}
-                        className={cn(
-                            "px-3 py-1.5 text-xs font-medium rounded-sm transition-colors",
-                            activeTab === "connected"
-                                ? "bg-background text-foreground shadow-sm"
-                                : "text-muted-foreground hover:text-foreground",
-                        )}
-                    >
-                        Connected
-                        <span className="ml-1.5 text-muted-foreground">{connectedServers.length}</span>
-                    </button>
+
+                {/* Search + filter bar */}
+                <div className="flex items-center gap-3">
+                    <div className="relative flex-1">
+                        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search connectors..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9"
+                        />
+                    </div>
+                    <div className="flex items-center rounded-md border border-border bg-muted/40 p-0.5">
+                        <button
+                            onClick={() => setActiveTab("all")}
+                            className={cn(
+                                "px-3 py-1.5 text-xs font-medium rounded-sm transition-colors",
+                                activeTab === "all"
+                                    ? "bg-background text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground",
+                            )}
+                        >
+                            All
+                            <span className="ml-1.5 text-muted-foreground">{servers.length}</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("connected")}
+                            className={cn(
+                                "px-3 py-1.5 text-xs font-medium rounded-sm transition-colors",
+                                activeTab === "connected"
+                                    ? "bg-background text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground",
+                            )}
+                        >
+                            Connected
+                            <span className="ml-1.5 text-muted-foreground">{connectedServers.length}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -256,7 +273,7 @@ export function McpServersPage({ callbackStatus, callbackServer, callbackMessage
                                 Connected
                             </p>
                             <p className="text-xs text-muted-foreground">
-                                {connectedServers.length} {pluralize(connectedServers.length, "server")}
+                                {connectedServers.length} {pluralize(connectedServers.length, "connector")}
                             </p>
                         </div>
 
@@ -265,8 +282,8 @@ export function McpServersPage({ callbackStatus, callbackServer, callbackMessage
                                 <CardContent className="flex items-center justify-center py-8">
                                     <p className="text-sm text-muted-foreground">
                                         {searchQuery.trim()
-                                            ? "No connected servers match your search."
-                                            : "No servers connected yet."}
+                                            ? "No connected connectors match your search."
+                                            : "No connectors connected yet."}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -353,8 +370,8 @@ export function McpServersPage({ callbackStatus, callbackServer, callbackMessage
                                     <CardContent className="flex items-center justify-center py-8">
                                         <p className="text-sm text-muted-foreground">
                                             {searchQuery.trim()
-                                                ? "No suggested servers match your search."
-                                                : "All servers are connected."}
+                                                ? "No suggested connectors match your search."
+                                                : "All connectors are connected."}
                                         </p>
                                     </CardContent>
                                 </Card>
@@ -399,9 +416,9 @@ export function McpServersPage({ callbackStatus, callbackServer, callbackMessage
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Disconnect MCP Server</AlertDialogTitle>
+                        <AlertDialogTitle>Disconnect Connector</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to disconnect from <span className="font-semibold text-foreground">{confirmDisconnectServer?.name}</span>? Your stored credentials for this server will be removed.
+                            Are you sure you want to disconnect from <span className="font-semibold text-foreground">{confirmDisconnectServer?.name}</span>? Your stored credentials for this connector will be removed.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

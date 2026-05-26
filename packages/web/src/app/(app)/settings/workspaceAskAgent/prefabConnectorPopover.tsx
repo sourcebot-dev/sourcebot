@@ -19,7 +19,7 @@ import {
 import { getMcpFaviconUrl } from "@/ee/features/mcp/utils";
 import { PlusIcon } from "lucide-react";
 
-interface PrefabMcpServerPopoverProps {
+interface PrefabConnectorPopoverProps {
     configuredServerUrls: string[];
     disabled?: boolean;
     onSelectCustomUrl: () => void;
@@ -35,12 +35,12 @@ function getDisplayServerUrl(serverUrl: string) {
     }
 }
 
-export function PrefabMcpServerPopover({
+export function PrefabConnectorPopover({
     configuredServerUrls,
     disabled,
     onSelectCustomUrl,
     onSelectPrefabServer,
-}: PrefabMcpServerPopoverProps) {
+}: PrefabConnectorPopoverProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState("");
 
@@ -79,14 +79,14 @@ export function PrefabMcpServerPopover({
     return (
         <Popover open={isOpen} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
-                <Button size="icon" variant="ghost" disabled={disabled} aria-label="Add MCP server">
+                <Button size="icon" variant="ghost" disabled={disabled} aria-label="Add connector">
                     <PlusIcon className="h-4 w-4" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[360px] p-0" align="end">
                 <Command shouldFilter={false}>
                     <CommandInput
-                        placeholder="Search servers"
+                        placeholder="Search connectors"
                         value={search}
                         onValueChange={setSearch}
                     />
@@ -110,7 +110,7 @@ export function PrefabMcpServerPopover({
                             ))}
                             {search.trim() && filteredPrefabServers.length === 0 && (
                                 <div className="py-6 text-center text-sm text-muted-foreground">
-                                    No servers found.
+                                    No connectors found.
                                 </div>
                             )}
                         </CommandGroup>

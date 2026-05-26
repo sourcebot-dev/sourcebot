@@ -11,6 +11,10 @@ describe('MCP OAuth return paths', () => {
         expect(normalizeMcpOAuthReturnTo('/chat/thread-1?foo=bar')).toBe('/chat/thread-1?foo=bar');
     });
 
+    test('allows connector settings return paths', () => {
+        expect(normalizeMcpOAuthReturnTo('/settings/accountAskAgent?status=connected')).toBe('/settings/accountAskAgent?status=connected');
+    });
+
     test('rejects external and unrelated return paths', () => {
         expect(normalizeMcpOAuthReturnTo('https://evil.example.com/chat')).toBeUndefined();
         expect(normalizeMcpOAuthReturnTo('//evil.example.com/chat')).toBeUndefined();

@@ -2,7 +2,7 @@ const MCP_OAUTH_STATE_PREFIX = 'sourcebot_mcp.';
 const MCP_OAUTH_STATE_BASE_URL = 'https://sourcebot.local';
 
 function isAllowedMcpOAuthReturnPath(pathname: string): boolean {
-    return pathname === '/chat' || pathname.startsWith('/chat/') || pathname === '/settings/mcpServers';
+    return pathname === '/chat' || pathname.startsWith('/chat/') || pathname === '/settings/accountAskAgent';
 }
 
 export function normalizeMcpOAuthReturnTo(returnTo: unknown): string | undefined {

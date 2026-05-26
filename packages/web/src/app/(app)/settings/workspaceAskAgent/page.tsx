@@ -1,8 +1,8 @@
 import { hasEntitlement } from "@/lib/entitlements";
 import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
-import { McpConfigurationPage } from "./mcpConfigurationPage";
-import { McpConfigurationUnavailableMessage } from "./mcpConfigurationUnavailableMessage";
+import { WorkspaceAskAgentPage } from "./workspaceAskAgentPage";
+import { WorkspaceAskAgentUnavailableMessage } from "./workspaceAskAgentUnavailableMessage";
 
 export default authenticatedPage(async ({ org, prisma }) => {
     if (!(await hasEntitlement("oauth"))) {
@@ -11,9 +11,9 @@ export default authenticatedPage(async ({ org, prisma }) => {
         });
 
         if (serverCount === 0) {
-            return <McpConfigurationUnavailableMessage />;
+            return <WorkspaceAskAgentUnavailableMessage />;
         }
     }
 
-    return <McpConfigurationPage />;
+    return <WorkspaceAskAgentPage />;
 }, { minRole: OrgRole.OWNER, redirectTo: '/settings' });
