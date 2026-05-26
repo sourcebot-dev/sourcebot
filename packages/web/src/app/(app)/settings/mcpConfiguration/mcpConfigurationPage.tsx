@@ -143,7 +143,9 @@ export function McpConfigurationPage() {
     };
 
     const handleCreatePrefabServer = async (server: PrefabMcpServer) => {
-        await handleCreateServer(server.name, server.serverUrl);
+        await handleCreateServer(server.name, server.serverUrl, undefined, {
+            checkDynamicClientRegistration: true,
+        });
     };
 
     const handleDelete = async (serverId: string) => {
