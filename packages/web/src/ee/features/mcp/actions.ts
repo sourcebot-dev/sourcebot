@@ -318,3 +318,39 @@ export const deleteMcpServer = async (serverId: string) => sew(() =>
 
             return { success: true };
         })));
+
+export const disconnectMcpServer = async (serverId: string) => sew(() =>
+    withAuth(async ({ org, user }) => {
+        const server = await __unsafePrisma.mcpServer.findFirst({
+            where: {
+                id: serverId,
+                orgId: org.id,
+            },
+            select: { id: true },
+        });
+
+        if (!server) {
+            return {
+                statusCode: StatusCodes.NOT_FOUND,
+                errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
+                message: 'MCP server not found',
+            } satisfies ServiceError;
+        }
+
+        const result = await __unsafePrisma.userMcpServer.deleteMany({
+            where: {
+                serverId,
+                userId: user.id,
+            },
+        });
+
+        if (result.count === 0) {
+            return {
+                statusCode: StatusCodes.NOT_FOUND,
+                errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
+                message: 'No connection found for this MCP server.',
+            } satisfies ServiceError;
+        }
+
+        return { success: true };
+    }));
