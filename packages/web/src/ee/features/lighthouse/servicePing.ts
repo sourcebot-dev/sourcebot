@@ -18,7 +18,19 @@ export const syncWithLighthouse = async (orgId: number) => {
         where: { orgId },
     });
 
-    const [userCount, repoCount] = await Promise.all([
+    const now = Date.now();
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const dauCutoff = new Date(now - 1 * DAY_MS);
+    const wauCutoff = new Date(now - 7 * DAY_MS);
+    const mauCutoff = new Date(now - 30 * DAY_MS);
+
+    const [
+        userCount,
+        repoCount,
+        dauCount,
+        wauCount,
+        mauCount,
+    ] = await Promise.all([
         __unsafePrisma.userToOrg.count({
             where: {
                 orgId,
@@ -27,6 +39,24 @@ export const syncWithLighthouse = async (orgId: number) => {
         __unsafePrisma.repo.count({
             where: {
                 orgId,
+            },
+        }),
+        __unsafePrisma.user.count({
+            where: {
+                orgs: { some: { orgId } },
+                lastActiveAt: { gte: dauCutoff },
+            },
+        }),
+        __unsafePrisma.user.count({
+            where: {
+                orgs: { some: { orgId } },
+                lastActiveAt: { gte: wauCutoff },
+            },
+        }),
+        __unsafePrisma.user.count({
+            where: {
+                orgs: { some: { orgId } },
+                lastActiveAt: { gte: mauCutoff },
             },
         }),
     ]);
@@ -40,6 +70,9 @@ export const syncWithLighthouse = async (orgId: number) => {
         version: SOURCEBOT_VERSION,
         userCount,
         repoCount,
+        dauCount,
+        wauCount,
+        mauCount,
         deploymentType: inferDeploymentType(),
         isTelemetryEnabled: env.SOURCEBOT_TELEMETRY_DISABLED === 'false',
         ...(activationCode && { activationCode }),
