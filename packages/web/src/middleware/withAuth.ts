@@ -123,7 +123,7 @@ const updateUserLastActiveAt = (user: UserWithAccounts) => {
     const now = Date.now();
     if (
         user.lastActiveAt &&
-        now - user.lastActiveAt.getTime() < LAST_ACTIVE_AT_THRESHOLD_MS
+        (now - user.lastActiveAt.getTime()) < LAST_ACTIVE_AT_THRESHOLD_MS
     ) {
         return;
     }
