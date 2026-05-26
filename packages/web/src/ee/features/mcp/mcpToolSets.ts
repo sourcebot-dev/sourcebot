@@ -4,6 +4,7 @@ import { createLogger, env } from '@sourcebot/shared';
 import Ajv from 'ajv';
 import { jsonSchema, ToolExecutionOptions } from 'ai';
 import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
+import { getExternalMcpErrorLogFields } from './externalMcpError';
 
 const logger = createLogger('mcp-tool-sets');
 const ajv = new Ajv({ allErrors: true, strict: false });
@@ -34,7 +35,7 @@ export async function getMcpTools(clients: McpToolSet[]): Promise<McpToolsResult
 
     const connectionTimeoutMs = env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS;
 
-    for (const { serverName, sanitizedName, serverUrl, transport } of clients) {
+    for (const { serverId, serverName, sanitizedName, serverUrl, transport } of clients) {
         try {
             const mcpClient = await Promise.race([
                 createMCPClient({ transport }),
@@ -126,7 +127,11 @@ export async function getMcpTools(clients: McpToolSet[]): Promise<McpToolsResult
             const origin = new URL(serverUrl).origin;
             serverFaviconUrls[sanitizedName] = `https://www.google.com/s2/favicons?domain=${origin}&sz=32`;
         } catch (error) {
-            logger.error(`Failed to get tools from MCP server ${serverName}:`, error);
+            logger.error('Failed to get tools from MCP server.', {
+                serverId,
+                sanitizedName,
+                error: getExternalMcpErrorLogFields(error),
+            });
             failedServers.push(serverName);
         }
     }
@@ -137,7 +142,9 @@ export async function getMcpTools(clients: McpToolSet[]): Promise<McpToolsResult
                 try {
                     await client.close();
                 } catch (error) {
-                    logger.error('Error closing MCP client:', error);
+                    logger.error('Error closing MCP client.', {
+                        error: getExternalMcpErrorLogFields(error),
+                    });
                 }
             })
         );

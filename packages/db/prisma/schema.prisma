@@ -328,6 +328,11 @@ enum OrgRole {
   MEMBER
 }
 
+enum McpServerClientInfoSource {
+  DYNAMIC
+  STATIC
+}
+
 model UserToOrg {
   joinedAt DateTime @default(now())
 
@@ -655,10 +660,11 @@ model McpServer {
   sanitizedName String   /// Stable tool-name prefix (e.g., "linear")
   serverUrl     String   /// MCP server endpoint (e.g., "https://mcp.linear.app/mcp")
 
-  /// Dynamic client registration result (RFC 7591).
+  /// Dynamic client registration result (RFC 7591) or admin-provided static OAuth client credentials.
   /// Encrypted JSON of OAuthClientInformation: { client_id, client_secret, client_id_issued_at, client_secret_expires_at }
-  /// Null until first user in the org triggers registration.
-  clientInfo String?
+  /// Null for DYNAMIC rows until first user in the org triggers registration.
+  clientInfo       String?
+  clientInfoSource McpServerClientInfoSource @default(DYNAMIC)
 
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int

@@ -188,9 +188,9 @@ describe('checkMcpServerDcrSupport', () => {
                 return nestedOidcMetadata.promise;
             }
             return notFoundResponse();
-        }) as unknown as typeof fetch;
+        });
 
-        const resultPromise = checkMcpServerDcrSupport('https://mcp.example.com/mcp', fetchMock);
+        const resultPromise = checkMcpServerDcrSupport('https://mcp.example.com/mcp', fetchMock as unknown as typeof fetch);
         await vi.waitFor(() => {
             const requestedUrls = fetchMock.mock.calls.map(([input]) => input.toString());
 

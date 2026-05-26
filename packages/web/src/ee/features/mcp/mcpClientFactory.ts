@@ -3,6 +3,7 @@ import { PrismaOAuthClientProvider } from '@/features/mcp/prismaOAuthClientProvi
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { OAuthTokens } from '@ai-sdk/mcp';
 import type { PrismaClient } from '@sourcebot/db';
+import { getExternalMcpErrorLogFields } from './externalMcpError';
 
 const logger = createLogger('mcp-client-factory');
 
@@ -102,7 +103,11 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
                 transport,
             });
         } catch (error) {
-            logger.error(`Failed to connect to MCP server ${serverName}:`, error);
+            logger.error('Failed to prepare MCP server transport.', {
+                serverId: userServer.serverId,
+                sanitizedName: userServer.server.sanitizedName,
+                error: getExternalMcpErrorLogFields(error),
+            });
         }
     }
 

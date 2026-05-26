@@ -10,10 +10,14 @@ import { z } from 'zod';
 import { hasEntitlement } from '@/lib/entitlements';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
 import { ConnectMcpResponse } from "@/app/api/(server)/ee/askmcp/connect/types";
-import { env } from "@sourcebot/shared";
+import { createLogger, env } from "@sourcebot/shared";
 import { __unsafePrisma } from '@/prisma';
+import { getExternalMcpErrorLogFields } from '@/ee/features/mcp/externalMcpError';
+import { ErrorCode } from '@/lib/errorCodes';
+import { StatusCodes } from 'http-status-codes';
 
 const bodySchema = z.object({ serverId: z.string() });
+const logger = createLogger('mcp-connect');
 const MCP_AUTH_FETCH_TIMEOUT_MS = Math.min(env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS, 30000);
 const MCP_AUTH_TRANSACTION_MAX_WAIT_MS = 10000;
 const MCP_AUTH_TRANSACTION_TIMEOUT_MS = MCP_AUTH_FETCH_TIMEOUT_MS + 5000;
@@ -95,10 +99,24 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 allowClientRegistration: true,
             });
 
-            const authResult = await mcpAuth(provider, {
-                serverUrl: new URL(mcpServer.serverUrl),
-                fetchFn: createTimeoutFetch(MCP_AUTH_FETCH_TIMEOUT_MS),
-            });
+            let authResult: Awaited<ReturnType<typeof mcpAuth>>;
+            try {
+                authResult = await mcpAuth(provider, {
+                    serverUrl: new URL(mcpServer.serverUrl),
+                    fetchFn: createTimeoutFetch(MCP_AUTH_FETCH_TIMEOUT_MS),
+                });
+            } catch (error) {
+                logger.warn('Failed to start MCP authorization.', {
+                    serverId: mcpServer.id,
+                    orgId: org.id,
+                    error: getExternalMcpErrorLogFields(error),
+                });
+                throw new ServiceErrorException({
+                    statusCode: StatusCodes.BAD_GATEWAY,
+                    errorCode: ErrorCode.UNEXPECTED_ERROR,
+                    message: 'Could not start MCP authorization.',
+                });
+            }
 
             return {
                 authResult,

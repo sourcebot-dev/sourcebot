@@ -4,6 +4,12 @@ import { NextRequest } from 'next/server';
 const mocks = vi.hoisted(() => ({
     auth: vi.fn(),
     hasEntitlement: vi.fn(),
+    logger: {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+    },
     mcpAuth: vi.fn(),
     unsafePrisma: {
         mcpServer: {
@@ -38,12 +44,7 @@ vi.mock('@sourcebot/shared', () => ({
     env: {
         AUTH_URL: 'https://sourcebot.example.com',
     },
-    createLogger: () => ({
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        debug: vi.fn(),
-    }),
+    createLogger: () => mocks.logger,
     encryptOAuthToken: vi.fn((text: string | null | undefined) => text ? `encrypted:${text}` : undefined),
     decryptOAuthToken: vi.fn((text: string | null | undefined) => text?.startsWith('encrypted:') ? text.slice('encrypted:'.length) : text),
 }));
@@ -80,7 +81,14 @@ describe('GET /api/ee/askmcp/callback', () => {
         mocks.mcpAuth.mockImplementation(async (provider) => {
             expect('saveClientInformation' in provider).toBe(false);
             await provider.invalidateCredentials('all');
-            throw new Error('invalid_client');
+            const error = new Error('invalid_client client_secret=client-secret refresh_token=refresh-token');
+            Object.assign(error, {
+                response: {
+                    status: 401,
+                    body: 'client_secret=client-secret refresh_token=refresh-token',
+                },
+            });
+            throw error;
         });
 
         const response = await GET(createRequest());
@@ -115,5 +123,16 @@ describe('GET /api/ee/askmcp/callback', () => {
                 state: null,
             },
         });
+        expect(mocks.logger.warn).toHaveBeenCalledWith('Failed to authorize MCP server.', {
+            serverId: 'server-1',
+            orgId: 1,
+            error: {
+                errorClass: 'Error',
+                oauthError: 'invalid_client',
+                statusCode: 401,
+            },
+        });
+        expect(JSON.stringify(mocks.logger.warn.mock.calls)).not.toContain('client-secret');
+        expect(JSON.stringify(mocks.logger.warn.mock.calls)).not.toContain('refresh-token');
     });
 });

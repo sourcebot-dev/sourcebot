@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { checkMcpServerDynamicClientRegistration, createMcpServer, deleteMcpServer } from "@/ee/features/mcp/actions";
+import { checkMcpServerDynamicClientRegistration, createMcpServer, createStaticOAuthMcpServer, deleteMcpServer } from "@/ee/features/mcp/actions";
 import { McpFavicon } from "@/ee/features/mcp/components/mcpFavicon";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/mcp/queryKeys";
 import { isServiceError } from "@/lib/utils";
@@ -84,10 +84,40 @@ export function McpConfigurationPage() {
     };
 
     const handleCreateStaticOAuthServer = async () => {
-        toast({
-            title: "Static OAuth credentials required",
-            description: "Saving MCP OAuth client credentials will be added in a follow-up change.",
-        });
+        if (!pendingClientCredentialsServer) {
+            toast({ title: "Error", description: "Missing MCP server details", variant: "destructive" });
+            return;
+        }
+
+        if (process.env.NODE_ENV === "production" && window.location.protocol !== "https:") {
+            toast({
+                title: "HTTPS required",
+                description: "Static OAuth client credentials can only be submitted over HTTPS in production.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsCreating(true);
+        try {
+            const result = await createStaticOAuthMcpServer({
+                name: pendingClientCredentialsServer.name,
+                serverUrl: pendingClientCredentialsServer.serverUrl,
+                clientId,
+                clientSecret,
+            });
+            if (isServiceError(result)) {
+                toast({ title: "Error", description: `Failed to add MCP server: ${result.message}`, variant: "destructive" });
+                return;
+            }
+
+            await invalidateMcpConfigurationQueries(queryClient);
+            handleCloseClientCredentialsDialog();
+        } catch {
+            toast({ title: "Error", description: "Failed to add MCP server.", variant: "destructive" });
+        } finally {
+            setIsCreating(false);
+        }
     };
 
     const handleCreateServer = async (
@@ -305,6 +335,7 @@ export function McpConfigurationPage() {
                                             <Input
                                                 id="mcp-configuration-client-id"
                                                 value={clientId}
+                                                autoComplete="off"
                                                 onChange={(event) => setClientId(event.target.value)}
                                                 placeholder="OAuth client ID"
                                             />
@@ -315,6 +346,7 @@ export function McpConfigurationPage() {
                                                 id="mcp-configuration-client-secret"
                                                 type="password"
                                                 value={clientSecret}
+                                                autoComplete="new-password"
                                                 onChange={(event) => setClientSecret(event.target.value)}
                                                 placeholder="OAuth client secret"
                                             />
@@ -324,8 +356,9 @@ export function McpConfigurationPage() {
                                         <Button variant="outline" onClick={handleCloseClientCredentialsDialog}>Cancel</Button>
                                         <Button
                                             onClick={handleCreateStaticOAuthServer}
-                                            disabled={!clientId.trim() || !clientSecret.trim()}
+                                            disabled={isCreating || !clientId.trim() || !clientSecret.trim()}
                                         >
+                                            {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                                             Add
                                         </Button>
                                     </DialogFooter>

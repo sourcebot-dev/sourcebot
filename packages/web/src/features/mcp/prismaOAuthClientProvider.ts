@@ -5,7 +5,7 @@ import type {
   OAuthClientMetadata,
   OAuthTokens,
 } from '@ai-sdk/mcp';
-import type { PrismaClient } from '@sourcebot/db';
+import { McpServerClientInfoSource, type PrismaClient } from '@sourcebot/db';
 import { encryptOAuthToken, decryptOAuthToken } from '@sourcebot/shared';
 import { __unsafePrisma } from '@/prisma';
 
@@ -43,6 +43,7 @@ export async function clearMcpServerClientCredentialsForObservedClient({
       id: serverId,
       orgId,
       clientInfo: observedClientInfo,
+      clientInfoSource: McpServerClientInfoSource.DYNAMIC,
     },
     data: { clientInfo: null },
   });
@@ -79,6 +80,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
   private readonly userId: string;
   private readonly callbackUrl: string;
   private observedClientInfo: string | undefined;
+  private observedClientInfoSource: McpServerClientInfoSource | undefined;
 
   /** Populated by redirectToAuthorization — read after auth() returns 'REDIRECT'. */
   public authorizationUrl: string | undefined;
@@ -111,13 +113,17 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
 
         const result = await this.prisma.mcpServer.updateMany({
           where: { id: this.serverId, orgId: this.orgId },
-          data: { clientInfo: encrypted },
+          data: {
+            clientInfo: encrypted,
+            clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+          },
         });
         if (result.count === 0) {
           throw new Error('MCP server not found');
         }
 
         this.observedClientInfo = encrypted;
+        this.observedClientInfoSource = McpServerClientInfoSource.DYNAMIC;
       };
     }
   }
@@ -139,14 +145,19 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
   async clientInformation(): Promise<OAuthClientInformation | undefined> {
     const server = await this.prisma.mcpServer.findFirst({
       where: { id: this.serverId, orgId: this.orgId },
-      select: { clientInfo: true },
+      select: {
+        clientInfo: true,
+        clientInfoSource: true,
+      },
     });
     if (!server?.clientInfo) {
       this.observedClientInfo = undefined;
+      this.observedClientInfoSource = undefined;
       return undefined;
     }
 
     this.observedClientInfo = server.clientInfo;
+    this.observedClientInfoSource = server.clientInfoSource;
     const decrypted = decryptOAuthToken(server.clientInfo);
     return decrypted ? JSON.parse(decrypted) : undefined;
   }
@@ -222,12 +233,19 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     }
 
     if (scope === 'all' || scope === 'client') {
-      await clearMcpServerClientCredentialsForObservedClient({
+      const didClearDynamicClient = await clearMcpServerClientCredentialsForObservedClient({
         prisma: this.clientInvalidationPrisma,
         serverId: this.serverId,
         orgId: this.orgId,
         observedClientInfo: this.observedClientInfo,
       });
+      if (
+        scope === 'all' &&
+        !didClearDynamicClient &&
+        this.observedClientInfoSource === McpServerClientInfoSource.STATIC
+      ) {
+        await this.updateUserServer({ tokens: null, tokensExpiresAt: null });
+      }
     }
 
     if (scope === 'tokens') {

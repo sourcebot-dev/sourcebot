@@ -1,4 +1,5 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
+import { McpServerClientInfoSource } from '@sourcebot/db';
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/prisma', () => ({
@@ -82,6 +83,7 @@ describe('clearMcpServerClientCredentialsForObservedClient', () => {
                 id: 'server-1',
                 orgId: 1,
                 clientInfo: 'encrypted-client-info',
+                clientInfoSource: McpServerClientInfoSource.DYNAMIC,
             },
             data: { clientInfo: null },
         });
@@ -111,5 +113,67 @@ describe('clearMcpServerClientCredentialsForObservedClient', () => {
         expect(didClear).toBe(false);
         expect(prisma.mcpServer.updateMany).toHaveBeenCalledOnce();
         expect(prisma.userMcpServer.updateMany).not.toHaveBeenCalled();
+    });
+});
+
+describe('PrismaOAuthClientProvider static client information', () => {
+    test('clientInformation returns static OAuth client credentials', async () => {
+        const prisma = createPrismaMock();
+        prisma.mcpServer.findFirst.mockResolvedValue({
+            clientInfo: 'encrypted:{"client_id":"client-id","client_secret":"client-secret"}',
+            clientInfoSource: McpServerClientInfoSource.STATIC,
+        });
+        const provider = createProvider(prisma);
+
+        await expect(provider.clientInformation()).resolves.toEqual({
+            client_id: 'client-id',
+            client_secret: 'client-secret',
+        });
+    });
+
+    test('invalidate all preserves static client information and clears only the current user tokens and verifier', async () => {
+        const prisma = createPrismaMock();
+        prisma.mcpServer.findFirst.mockResolvedValue({
+            clientInfo: 'encrypted:{"client_id":"client-id","client_secret":"client-secret"}',
+            clientInfoSource: McpServerClientInfoSource.STATIC,
+        });
+        prisma.mcpServer.updateMany.mockResolvedValue({ count: 0 });
+        prisma.userMcpServer.update.mockResolvedValue({
+            userId: 'user-1',
+            serverId: 'server-1',
+        });
+        const provider = createProvider(prisma);
+
+        await provider.clientInformation();
+        await provider.invalidateCredentials('all');
+
+        expect(prisma.mcpServer.updateMany).toHaveBeenCalledWith({
+            where: {
+                id: 'server-1',
+                orgId: 1,
+                clientInfo: 'encrypted:{"client_id":"client-id","client_secret":"client-secret"}',
+                clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+            },
+            data: { clientInfo: null },
+        });
+        expect(prisma.userMcpServer.updateMany).not.toHaveBeenCalled();
+        expect(prisma.userMcpServer.update).toHaveBeenCalledWith({
+            where: {
+                userId_serverId: { userId: 'user-1', serverId: 'server-1' },
+            },
+            data: {
+                tokens: null,
+                tokensExpiresAt: null,
+            },
+        });
+        expect(prisma.userMcpServer.update).toHaveBeenCalledWith({
+            where: {
+                userId_serverId: { userId: 'user-1', serverId: 'server-1' },
+            },
+            data: {
+                codeVerifier: null,
+                state: null,
+            },
+        });
     });
 });

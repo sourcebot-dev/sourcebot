@@ -10,6 +10,7 @@ import { PrismaOAuthClientProvider } from '@/features/mcp/prismaOAuthClientProvi
 import { __unsafePrisma as prisma } from '@/prisma';
 import { auth } from '@/auth';
 import { NextRequest, NextResponse } from 'next/server';
+import { getExternalMcpErrorLogFields } from '@/ee/features/mcp/externalMcpError';
 
 const logger = createLogger('mcp-oauth-callback');
 const reconnectMessage = 'This MCP server authorization could not be completed. Please reconnect the server.';
@@ -117,7 +118,11 @@ export const GET = apiHandler(async (request: NextRequest) => {
             callbackState: state,
         });
     } catch (error) {
-        logger.warn(`Failed to authorize MCP server ${userServer.server.name} for user ${session.user.id}:`, error);
+        logger.warn('Failed to authorize MCP server.', {
+            serverId: userServer.serverId,
+            orgId: userServer.server.orgId,
+            error: getExternalMcpErrorLogFields(error),
+        });
         try {
             await provider.invalidateCredentials('verifier');
         } catch (cleanupError) {

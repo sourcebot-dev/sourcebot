@@ -1,9 +1,16 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { McpServerClientInfoSource } from '@sourcebot/db';
 
 const mocks = vi.hoisted(() => ({
     authContext: undefined as unknown,
     hasEntitlement: vi.fn(),
+    logger: {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+    },
     mcpAuth: vi.fn(),
     unsafePrisma: {
         $transaction: vi.fn(),
@@ -28,12 +35,7 @@ vi.mock('@sourcebot/shared', () => ({
         AUTH_URL: 'https://sourcebot.example.com',
         SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS: 5000,
     },
-    createLogger: () => ({
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        debug: vi.fn(),
-    }),
+    createLogger: () => mocks.logger,
     encryptOAuthToken: vi.fn((text: string | null | undefined) => text ? `encrypted:${text}` : undefined),
     decryptOAuthToken: vi.fn((text: string | null | undefined) => text?.startsWith('encrypted:') ? text.slice('encrypted:'.length) : text),
 }));
@@ -131,8 +133,53 @@ describe('POST /api/ee/askmcp/connect', () => {
         expect(tx.$queryRaw).toHaveBeenCalledOnce();
         expect(tx.mcpServer.updateMany).toHaveBeenCalledWith({
             where: { id: 'server-1', orgId: 1 },
-            data: { clientInfo: 'encrypted:{"client_id":"client-1"}' },
+            data: {
+                clientInfo: 'encrypted:{"client_id":"client-1"}',
+                clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+            },
         });
         expect(body).toEqual({ authorizationUrl: 'https://oauth.example.com/authorize' });
+    });
+
+    test('sanitizes external OAuth errors before logging', async () => {
+        const prisma = createPrismaMock();
+        const tx = createTransactionMock();
+        mocks.authContext = {
+            org: { id: 1 },
+            user: { id: 'user-1' },
+            prisma,
+        };
+        mocks.unsafePrisma.$transaction.mockImplementation(async (callback, _options) => callback(tx));
+        mocks.mcpAuth.mockImplementation(async () => {
+            const error = new Error('invalid_client client_secret=client-secret refresh_token=refresh-token');
+            Object.assign(error, {
+                response: {
+                    status: 400,
+                    body: 'client_secret=client-secret refresh_token=refresh-token',
+                },
+            });
+            throw error;
+        });
+
+        const response = await POST(createRequest());
+        const body = await response.json();
+
+        expect(response.status).toBe(502);
+        expect(body).toMatchObject({
+            message: 'Could not start MCP authorization.',
+        });
+        expect(mocks.logger.warn).toHaveBeenCalledWith('Failed to start MCP authorization.', {
+            serverId: 'server-1',
+            orgId: 1,
+            error: {
+                errorClass: 'Error',
+                oauthError: 'invalid_client',
+                statusCode: 400,
+            },
+        });
+        expect(JSON.stringify(mocks.logger.warn.mock.calls)).not.toContain('client-secret');
+        expect(JSON.stringify(mocks.logger.warn.mock.calls)).not.toContain('refresh-token');
+        expect(JSON.stringify(mocks.logger.error.mock.calls)).not.toContain('client-secret');
+        expect(JSON.stringify(mocks.logger.error.mock.calls)).not.toContain('refresh-token');
     });
 });

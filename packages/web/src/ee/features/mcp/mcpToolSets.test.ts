@@ -4,18 +4,19 @@ import type { McpToolSet } from './mcpClientFactory';
 // --- Mocks ---
 
 const mockCreateMCPClient = vi.fn();
+const mockLogger = vi.hoisted(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+}));
 
 vi.mock('@ai-sdk/mcp', () => ({
     createMCPClient: (...args: unknown[]) => mockCreateMCPClient(...args),
 }));
 
 vi.mock('@sourcebot/shared', () => ({
-    createLogger: () => ({
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        debug: vi.fn(),
-    }),
+    createLogger: () => mockLogger,
     env: {
         SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS: 5000,
     },
@@ -139,7 +140,14 @@ describe('getMcpTools', () => {
     });
 
     test('failed server connection adds to failedServers array', async () => {
-        mockCreateMCPClient.mockRejectedValue(new Error('Connection refused'));
+        const error = new Error('Connection refused client_secret=client-secret access_token=access-token');
+        Object.assign(error, {
+            response: {
+                status: 502,
+                body: 'client_secret=client-secret access_token=access-token',
+            },
+        });
+        mockCreateMCPClient.mockRejectedValue(error);
 
         const result = await getMcpTools([
             createMockClient({ serverName: 'BrokenServer' }),
@@ -147,6 +155,16 @@ describe('getMcpTools', () => {
 
         expect(result.failedServers).toEqual(['BrokenServer']);
         expect(Object.keys(result.tools)).toEqual([]);
+        expect(mockLogger.error).toHaveBeenCalledWith('Failed to get tools from MCP server.', {
+            serverId: 'server-id',
+            sanitizedName: 'brokenserver',
+            error: {
+                errorClass: 'Error',
+                statusCode: 502,
+            },
+        });
+        expect(JSON.stringify(mockLogger.error.mock.calls)).not.toContain('client-secret');
+        expect(JSON.stringify(mockLogger.error.mock.calls)).not.toContain('access-token');
     });
 
     test('failed server does not prevent other servers from working', async () => {
