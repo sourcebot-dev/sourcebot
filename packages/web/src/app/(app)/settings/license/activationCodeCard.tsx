@@ -49,7 +49,8 @@ export function ActivationCodeCard() {
         setIsCheckoutSessionCreating(true);
 
         createCheckoutSession({
-            requestTrial: isTrialEligible
+            requestTrial: isTrialEligible,
+            source: "license_settings"
         })
             .then((response) => {
                 if (isServiceError(response)) {

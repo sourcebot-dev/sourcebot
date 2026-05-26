@@ -1,5 +1,13 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 
+export type UpsellSource =
+    'sidebar' |
+    'analytics_settings' |
+    'chat_box' |
+    'onboard' |
+    'license_settings';
+
+
 export type PosthogEventMap = {
     search_finished: {
         contentBytesLoaded: number,
@@ -91,21 +99,22 @@ export type PosthogEventMap = {
     wa_invites_list_copy_email_success: {},
     wa_invites_list_copy_email_fail: {},
     //////////////////////////////////////////////////////////////////
-    wa_connect_code_host_button_pressed: {
-        name: string,
+    wa_upsell_dialog_viewed: {
+        source: UpsellSource,
     },
-    //////////////////////////////////////////////////////////////////
-    wa_onboard_checkout_success: {},
-    wa_onboard_checkout_fail: {
-        errorCode: string,
+    wa_upsell_checkout_started: {
+        source: UpsellSource,
+        requestTrial: boolean,
+        interval: 'month' | 'year',
+        returnPath: string,
+        quantity: number,
     },
-    //////////////////////////////////////////////////////////////////
-    wa_team_upgrade_card_pressed: {},
-    wa_team_upgrade_checkout_success: {},
-    wa_team_upgrade_checkout_fail: {
-        errorCode: string,
+    wa_onboard_trial_step_viewed: {
+        isTrialEligible: boolean,
     },
-    wa_enterprise_upgrade_card_pressed: {},
+    wa_onboard_trial_step_skipped: {
+        isTrialEligible: boolean,
+    },
     //////////////////////////////////////////////////////////////////
     wa_login_with_github: {},
     wa_login_with_google: {},

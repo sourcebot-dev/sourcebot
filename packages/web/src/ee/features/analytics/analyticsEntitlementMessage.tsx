@@ -48,6 +48,7 @@ export function AnalyticsEntitlementMessage() {
             <UpsellDialog
                 open={isUpsellDialogOpen}
                 onOpenChange={setIsUpsellDialogOpen}
+                source="analytics_settings"
                 returnPath="/settings/analytics"
             />
         </div>

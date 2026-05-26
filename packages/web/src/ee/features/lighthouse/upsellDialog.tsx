@@ -7,6 +7,7 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import { isServiceError } from "@/lib/utils";
 import { createCheckoutSession } from "@/ee/features/lighthouse/actions";
 import { useToast } from "@/components/hooks/use-toast";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 import {
     Dialog,
     DialogClose,
@@ -21,16 +22,25 @@ import { useOffers } from "@/ee/features/lighthouse/useOffers";
 import { BillingInterval, PlanComparisonTable } from "@/ee/features/lighthouse/planComparisonTable";
 import { useRole } from "@/features/auth/useRole";
 import { OrgRole } from "@sourcebot/db";
+import { UpsellSource } from "@/lib/posthogEvents";
 
 interface UpsellDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    source: UpsellSource;
     returnPath?: string;
 }
 
-export function UpsellDialog({ open, onOpenChange, returnPath }: UpsellDialogProps) {
+export function UpsellDialog({ open, onOpenChange, source, returnPath }: UpsellDialogProps) {
     const { data: offers, isPending, isError } = useOffers();
     const { toast } = useToast();
+    const captureEvent = useCaptureEvent();
+
+    useEffect(() => {
+        if (open) {
+            captureEvent('wa_upsell_dialog_viewed', { source });
+        }
+    }, [open, source, captureEvent]);
 
     // Surface pricing-fetch failures via a toast and dismiss the dialog. Without
     // closing it ourselves, the parent's `open` state would keep us mounted but
@@ -58,7 +68,7 @@ export function UpsellDialog({ open, onOpenChange, returnPath }: UpsellDialogPro
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                 ) : (
-                    <UpsellDialogContent offers={offers} returnPath={returnPath} />
+                    <UpsellDialogContent offers={offers} source={source} returnPath={returnPath} />
                 )}
             </DialogContent>
         </Dialog>
@@ -67,10 +77,11 @@ export function UpsellDialog({ open, onOpenChange, returnPath }: UpsellDialogPro
 
 interface UpsellDialogContentProps {
     offers: OffersResponse;
+    source: UpsellSource;
     returnPath?: string;
 }
 
-function UpsellDialogContent({ offers, returnPath }: UpsellDialogContentProps) {
+function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContentProps) {
     const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
     const [isCheckoutSessionCreating, setIsCheckoutSessionCreating] = useState(false);
     const { toast } = useToast();
@@ -80,6 +91,7 @@ function UpsellDialogContent({ offers, returnPath }: UpsellDialogContentProps) {
     const handlePrimaryAction = useCallback(() => {
         setIsCheckoutSessionCreating(true);
         createCheckoutSession({
+            source,
             requestTrial: offers.trial.eligible,
             interval: billingInterval,
             returnPath,
@@ -102,7 +114,7 @@ function UpsellDialogContent({ offers, returnPath }: UpsellDialogContentProps) {
                 });
                 setIsCheckoutSessionCreating(false);
             })
-    }, [billingInterval, offers.trial.eligible, returnPath, toast]);
+    }, [billingInterval, offers.trial.eligible, returnPath, toast, source]);
 
     const { title, description, buttonText } = useMemo(() => {
         // Members can't upgrade the workspace themselves — show them the feature

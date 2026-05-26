@@ -450,6 +450,7 @@ const ChatBoxComponent = ({
                         sessionStorage.removeItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
                     }
                 }}
+                source="chat_box"
                 returnPath={pathname}
             />
         </>

@@ -34,7 +34,7 @@ export const UpgradeButton = () => {
                     {label}
                 </button>
             </div>
-            <UpsellDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
+            <UpsellDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} source="sidebar" />
         </>
     );
 }

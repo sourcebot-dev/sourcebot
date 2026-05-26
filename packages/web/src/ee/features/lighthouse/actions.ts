@@ -11,6 +11,8 @@ import { encryptActivationCode, decryptActivationCode, env } from "@sourcebot/sh
 import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
 import { isServiceError } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
+import { captureEvent } from "@/lib/posthog";
+import { UpsellSource } from "@/lib/posthogEvents";
 import { client } from "./client";
 import { Invoice } from "./types";
 
@@ -110,10 +112,12 @@ export const refreshLicense = async (): Promise<{ success: boolean } | ServiceEr
 );
 
 export const createCheckoutSession = async ({
+    source,
     requestTrial = false,
     interval = 'year',
     returnPath: _returnPath = '/settings/license'
 }: {
+    source: UpsellSource;
     requestTrial?: boolean;
     interval?: 'month' | 'year';
     returnPath?: string;
@@ -133,6 +137,7 @@ export const createCheckoutSession = async ({
                     orgId: org.id,
                 },
             });
+            const quantity = Math.max(memberCount, 1);
 
             // Resolve the candidate against AUTH_URL so absolute paths, protocol-
             // relative paths (`//evil.com`), and bare relative paths all get
@@ -157,10 +162,18 @@ export const createCheckoutSession = async ({
                 } satisfies ServiceError;
             }
 
+            await captureEvent('wa_upsell_checkout_started', {
+                source,
+                requestTrial,
+                interval,
+                returnPath,
+                quantity,
+            });
+
             const result = await client.checkout({
                 email: user.email,
                 installId: env.SOURCEBOT_INSTALL_ID,
-                quantity: Math.max(memberCount, 1),
+                quantity,
                 requestTrial,
                 interval,
                 // `{CHECKOUT_SESSION_ID}` is substituted server-side by Stripe at

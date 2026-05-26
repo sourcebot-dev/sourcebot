@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { useOffers } from "@/ee/features/lighthouse/useOffers";
 import { BillingInterval, PlanComparisonTable } from "@/ee/features/lighthouse/planComparisonTable";
 import { useToast } from "@/components/hooks/use-toast";
 import { isServiceError } from "@/lib/utils";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 
 interface TrialStepCopy {
     title: string;
@@ -71,9 +72,22 @@ export function TrialStep({ memberCount }: TrialStepProps) {
     const { data: offers, isPending, isError } = useOffers();
     const { toast } = useToast();
     const router = useRouter();
+    const captureEvent = useCaptureEvent();
     const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
     const [isPrimaryLoading, setIsPrimaryLoading] = useState(false);
     const [isSkipLoading, setIsSkipLoading] = useState(false);
+
+    // Fire-once when offers resolve, so isTrialEligible is reliable and react-query
+    // refetches don't cause duplicate views.
+    const hasCapturedViewRef = useRef(false);
+    useEffect(() => {
+        if (offers && !hasCapturedViewRef.current) {
+            hasCapturedViewRef.current = true;
+            captureEvent('wa_onboard_trial_step_viewed', {
+                isTrialEligible: offers.trial.eligible,
+            });
+        }
+    }, [offers, captureEvent]);
 
     const onSkipCheckout = useCallback(async () => {
         setIsSkipLoading(true);
@@ -106,6 +120,7 @@ export function TrialStep({ memberCount }: TrialStepProps) {
         }
 
         const checkoutResult = await createCheckoutSession({
+            source: "onboard",
             requestTrial,
             interval: billingInterval,
             returnPath: "/",
@@ -173,7 +188,10 @@ export function TrialStep({ memberCount }: TrialStepProps) {
                 </LoadingButton>
                 <Button
                     variant="ghost"
-                    onClick={onSkipCheckout}
+                    onClick={() => {
+                        captureEvent('wa_onboard_trial_step_skipped', { isTrialEligible });
+                        onSkipCheckout();
+                    }}
                     disabled={isPrimaryLoading || isSkipLoading}
                     className="w-full text-muted-foreground hover:text-foreground"
                 >
