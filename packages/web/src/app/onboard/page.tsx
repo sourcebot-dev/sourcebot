@@ -7,15 +7,16 @@ import { AuthMethodSelector } from "@/app/components/authMethodSelector"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { auth } from "@/auth";
 import { OrganizationAccessSettings } from "@/app/components/organizationAccessSettings";
-import { CompleteOnboardingButton } from "./components/completeOnboardingButton";
+import { TrialStep, TrialStepTitle, TrialStepSubtitle } from "./components/trialStep";
+import { AlreadyLicensedStep } from "./components/alreadyLicensedStep";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { __unsafePrisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { redirect } from "next/navigation";
-import { BetweenHorizontalStart, Brain, GitBranchIcon, LockIcon } from "lucide-react";
 import { env } from "@sourcebot/shared";
-import { hasEntitlement } from "@/lib/entitlements";
+import { hasEntitlement, isValidLicenseActive } from "@/lib/entitlements";
+import { cn } from "@/lib/utils";
 import { GcpIapAuth } from "@/app/(app)/components/gcpIapAuth";
 
 interface OnboardingProps {
@@ -25,16 +26,9 @@ interface OnboardingProps {
 interface OnboardingStep {
     id: string
     title: string
+    headerTitle?: React.ReactNode
     subtitle: React.ReactNode
     component: React.ReactNode
-}
-
-interface ResourceCard {
-    id: string
-    title: string
-    description: string
-    href: string
-    icon?: React.ReactNode
 }
 
 export default async function Onboarding(props: OnboardingProps) {
@@ -78,36 +72,10 @@ export default async function Onboarding(props: OnboardingProps) {
     const stepParam = searchParams?.step ? parseInt(searchParams.step) : 0;
     const currentStep = session?.user ? Math.max(2, stepParam) : Math.max(0, Math.min(stepParam, 1));
 
-    const resourceCards: ResourceCard[] = [
-        {
-            id: "code-host-connections",
-            title: "Code Host Connections",
-            description: "Learn how to index repos across Sourcebot's supported platforms",
-            href: "https://docs.sourcebot.dev/docs/connections/overview",
-            icon: <GitBranchIcon className="w-4 h-4" />,
-        },
-        {
-            id: "language-models",
-            title: "Language Models",
-            description: "Learn how to configure your language model providers to start using Ask Sourcebot",
-            href: "https://docs.sourcebot.dev/docs/configuration/language-model-providers",
-            icon: <Brain className="w-4 h-4" />,
-        },
-        {
-            id: "authentication-system",
-            title: "Authentication System",
-            description: "Learn how to setup additional auth providers, invite members, and more",
-            href: "https://docs.sourcebot.dev/docs/configuration/auth",
-            icon: <LockIcon className="w-4 h-4" />,
-        },
-        {
-            id: "mcp-server",
-            title: "MCP Server",
-            description: "Learn how to setup Sourcebot's MCP server to provide code context to your AI agents",
-            href: "https://docs.sourcebot.dev/docs/features/mcp-server",
-            icon: <BetweenHorizontalStart className="w-4 h-4" />,
-        }
-    ]
+    const isLicensed = await isValidLicenseActive();
+    const memberCount = await __unsafePrisma.userToOrg.count({
+        where: { orgId: org.id },
+    });
 
     const steps: OnboardingStep[] = [
         {
@@ -173,58 +141,17 @@ export default async function Onboarding(props: OnboardingProps) {
                 </div>
             ),
         },
-        {
+        isLicensed ? {
             id: "complete",
-            title: "You're All Set!",
-            subtitle: (
-                <>
-                    Your Sourcebot deployment is ready. Check out these resources to learn how to get the most out of Sourcebot.
-                    <div className="text-center space-y-4 mt-6">
-                        <div className="w-16 h-16 mx-auto bg-primary rounded-full flex items-center justify-center">
-                            <svg className="w-8 h-8 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
-                    </div>
-                </>
-            ),
-            component: (
-                <div className="space-y-6">
-                    <div className="grid grid-cols-1 gap-3">
-                        {resourceCards.map((resourceCard) => (
-                            <a
-                                key={resourceCard.id}
-                                href={resourceCard.href}
-                                target="_blank"
-                                rel="noopener"
-                                className="p-4 rounded-lg bg-accent hover:bg-accent/80 border border-border hover:border-primary/20 transition-all duration-200 group"
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                    {resourceCard.icon && (
-                                        <div className="text-primary">
-                                            {resourceCard.icon}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex-1 text-left">
-                                    <div className="font-medium text-foreground text-sm group-hover:text-primary transition-colors">
-                                        {resourceCard.title}
-                                    </div>
-                                    <div className="text-muted-foreground text-xs mt-1 leading-4">
-                                        {resourceCard.description}
-                                    </div>
-                                </div>
-                                <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                </svg>
-                            </div>
-                            </a>
-                        ))}
-                    </div>
-                    <CompleteOnboardingButton />
-                </div>
-            ),
+            title: "You're all set",
+            subtitle: "Your Sourcebot deployment is ready to go.",
+            component: <AlreadyLicensedStep />,
+        } : {
+            id: "trial",
+            title: "Try Sourcebot Enterprise",
+            headerTitle: <TrialStepTitle />,
+            subtitle: <TrialStepSubtitle />,
+            component: <TrialStep memberCount={memberCount} />,
         },
     ]
 
@@ -321,7 +248,7 @@ export default async function Onboarding(props: OnboardingProps) {
 
                         {/* Right Panel - Content */}
                         <div className="w-3/5 bg-background p-10">
-                            <div className="h-full flex flex-col justify-center max-w-lg mx-auto">
+                            <div className={cn("h-full flex flex-col justify-center mx-auto", currentStepData.id === "trial" ? "max-w-xl" : "max-w-lg")}>
                                 <div className="space-y-8">
                                     {/* Step Header */}
                                     <div className="space-y-6">
@@ -333,7 +260,7 @@ export default async function Onboarding(props: OnboardingProps) {
                                         </div>
                                         <div className="space-y-3">
                                             <h1 className="text-3xl font-bold text-foreground leading-tight">
-                                                {currentStepData.title}
+                                                {currentStepData.headerTitle ?? currentStepData.title}
                                             </h1>
                                             <div className="text-muted-foreground text-base leading-relaxed">
                                                 {currentStepData.subtitle}
