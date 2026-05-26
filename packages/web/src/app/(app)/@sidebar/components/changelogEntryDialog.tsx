@@ -144,7 +144,7 @@ export function ChangelogEntryDialog({ entry, entriesBaseUrl, open, onOpenChange
                                                     rel="noopener noreferrer"
                                                 >
                                                     <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 hover:bg-purple-500/30 gap-0.5">
-                                                        Upgrade
+                                                        Update required
                                                         <ArrowUpRight className="h-3 w-3" />
                                                     </Badge>
                                                 </a>
