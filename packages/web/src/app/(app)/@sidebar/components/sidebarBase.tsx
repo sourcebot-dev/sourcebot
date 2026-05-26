@@ -32,8 +32,9 @@ import { KeymapType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
     ArrowLeftToLineIcon, ArrowRightToLineIcon, ChevronsUpDown, CodeIcon,
-    Laptop, LogIn, LogOut, Moon, SettingsIcon, Sun, UserIcon
+    Laptop, LogIn, LogOut, Menu, Moon, SettingsIcon, Sun, UserIcon
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Session } from "next-auth";
 import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
@@ -45,6 +46,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Separator } from "@/components/ui/separator";
 import { WhatsNewSidebarButton } from "./whatsNewSidebarButton";
 import { UpgradeButton } from "./upgradeButton";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SidebarBaseProps {
     session: Session | null;
@@ -57,6 +59,7 @@ interface SidebarBaseProps {
 export function SidebarBase({ session, collapsible = "icon", headerContent, children, isValidLicenseActive }: SidebarBaseProps) {
     const [isScrolled, setIsScrolled] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
+    const isMobile = useIsMobile();
 
     useEffect(() => {
         const el = contentRef.current;
@@ -69,36 +72,60 @@ export function SidebarBase({ session, collapsible = "icon", headerContent, chil
     }, []);
 
     return (
-        <Sidebar
-            collapsible={collapsible}
-            className="!border-r-0"
+        <>
+            <MobileSidebarTrigger />
+            <Sidebar
+                collapsible={collapsible}
+                className="!border-r-0"
+            >
+                <SidebarHeader className={cn("pt-4 border-b transition-[border-color] duration-200", isScrolled ? "border-sidebar-border" : "border-transparent")}>
+                    <Link href="/">
+                        <div className="group-data-[state=collapsed]:hidden">
+                            <SourcebotLogo className="w-fit h-8" size="large" />
+                        </div>
+                        <div className="hidden group-data-[state=collapsed]:block">
+                            <SourcebotLogo className="w-fit h-8" size="small" />
+                        </div>
+                    </Link>
+                    {headerContent}
+                </SidebarHeader>
+                <SidebarContent ref={contentRef}>
+                    {children}
+                </SidebarContent>
+                <SidebarFooter className="border-t border-sidebar-border">
+                    {!isValidLicenseActive && <UpgradeButton />}
+                    {
+                        (collapsible !== "none" && !isMobile) &&
+                        <CollapseSidebarButton />
+                    }
+                    <WhatsNewSidebarButton />
+                    {session ? (
+                        <MeControlDropdownMenu session={session} />
+                    ) : (
+                        <GuestDropdownMenu />
+                    )}
+                </SidebarFooter>
+                {collapsible !== "none" && <SidebarRail />}
+            </Sidebar>
+        </>
+    );
+}
+
+function MobileSidebarTrigger() {
+    const { isMobile, setOpenMobile } = useSidebar();
+    if (!isMobile) {
+        return null;
+    }
+    return (
+        <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setOpenMobile(true)}
+            className="fixed bottom-4 left-4 z-50 shadow-md rounded-full"
+            aria-label="Open sidebar"
         >
-            <SidebarHeader className={cn("pt-4 border-b transition-[border-color] duration-200", isScrolled ? "border-sidebar-border" : "border-transparent")}>
-                <Link href="/">
-                    <div className="group-data-[state=collapsed]:hidden">
-                        <SourcebotLogo className="w-fit h-8" size="large" />
-                    </div>
-                    <div className="hidden group-data-[state=collapsed]:block">
-                        <SourcebotLogo className="w-fit h-8" size="small" />
-                    </div>
-                </Link>
-                {headerContent}
-            </SidebarHeader>
-            <SidebarContent ref={contentRef}>
-                {children}
-            </SidebarContent>
-            <SidebarFooter className="border-t border-sidebar-border">
-                {!isValidLicenseActive && <UpgradeButton />}
-                {collapsible !== "none" && <CollapseSidebarButton />}
-                <WhatsNewSidebarButton />
-                {session ? (
-                    <MeControlDropdownMenu session={session} />
-                ) : (
-                    <GuestDropdownMenu />
-                )}
-            </SidebarFooter>
-            {collapsible !== "none" && <SidebarRail />}
-        </Sidebar>
+            <Menu className="h-4 w-4" />
+        </Button>
     );
 }
 

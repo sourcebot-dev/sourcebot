@@ -175,7 +175,7 @@ export default async function Layout(props: LayoutProps) {
                 <div className="fixed inset-0 flex bg-shell">
                     <SidebarProvider defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}>
                         {sidebar}
-                        <div className="flex-1 min-h-0 flex flex-col pt-2 pb-2 pr-2">
+                        <div className="flex-1 min-h-0 flex flex-col pt-2 pb-2 pr-2 pl-2 md:pl-0">
                             <div className="flex-1 min-h-0 bg-background flex flex-col border border-[#e6e6e6] dark:border-[#1d1d1f] rounded-xl overflow-hidden">
                                 <BannerSlot
                                     role={role}
