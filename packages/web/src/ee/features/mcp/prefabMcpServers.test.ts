@@ -9,13 +9,8 @@ describe('prefab MCP servers', () => {
     test('ships the supported prefab servers', () => {
         expect(PREFAB_MCP_SERVERS).toEqual([
             {
-                id: 'confluence',
-                name: 'Confluence',
-                serverUrl: 'https://mcp.atlassian.com/v1/mcp/authv2',
-            },
-            {
-                id: 'jira',
-                name: 'Jira',
+                id: 'atlassian',
+                name: 'Atlassian',
                 serverUrl: 'https://mcp.atlassian.com/v1/mcp/authv2',
             },
             {
@@ -40,10 +35,10 @@ describe('prefab MCP servers', () => {
     test('hides already configured prefab servers after URL normalization', () => {
         const availableServers = getAvailablePrefabMcpServers(['https://mcp.slack.com/mcp/']);
 
-        expect(availableServers.map((server) => server.id)).toEqual(['confluence', 'jira', 'linear']);
+        expect(availableServers.map((server) => server.id)).toEqual(['atlassian', 'linear']);
     });
 
-    test('hides both Atlassian prefab entries when the shared endpoint is configured', () => {
+    test('hides the Atlassian prefab entry when the shared endpoint is configured', () => {
         const availableServers = getAvailablePrefabMcpServers(['https://mcp.atlassian.com/v1/mcp/authv2/']);
 
         expect(availableServers.map((server) => server.id)).toEqual(['linear', 'slack']);
