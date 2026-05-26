@@ -372,6 +372,17 @@ export const getLanguageModelKey = (model: LanguageModelInfo) => {
 }
 
 /**
+ * Checks whether two language model infos refer to the same configured model.
+ *
+ * Unlike getLanguageModelKey, this intentionally ignores displayName because
+ * MCP clients can select models using only the externally visible provider and
+ * model fields.
+ */
+export const isSameLanguageModelIdentity = (a: LanguageModelInfo, b: LanguageModelInfo) => {
+    return a.provider === b.provider && a.model === b.model;
+}
+
+/**
  * Given a file reference and a list of file sources, attempts to resolve the file source that the reference points to.
  */
 export const tryResolveFileReference = (reference: FileReference, sources: FileSource[]): FileSource | undefined => {

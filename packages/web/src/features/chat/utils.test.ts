@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import { fileReferenceToString, getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences } from './utils'
+import { fileReferenceToString, getAnswerPartFromAssistantMessage, groupMessageIntoSteps, isSameLanguageModelIdentity, repairReferences } from './utils'
 import { FILE_REFERENCE_REGEX, ANSWER_TAG } from './constants';
 import { SBChatMessage, SBChatMessagePart } from './types';
 
@@ -42,6 +42,31 @@ test('fileReferenceToString matches FILE_REFERENCE_REGEX', () => {
             endLine: 60,
         }
     }))).toBe(true);
+});
+
+test('isSameLanguageModelIdentity ignores displayName', () => {
+    expect(isSameLanguageModelIdentity(
+        {
+            provider: 'anthropic',
+            model: 'claude-opus-4-7',
+            displayName: 'Claude Opus 4.7 (slow, highest quality)',
+        },
+        {
+            provider: 'anthropic',
+            model: 'claude-opus-4-7',
+        },
+    )).toBe(true);
+
+    expect(isSameLanguageModelIdentity(
+        {
+            provider: 'anthropic',
+            model: 'claude-opus-4-7',
+        },
+        {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-6',
+        },
+    )).toBe(false);
 });
 
 test('groupMessageIntoSteps returns an empty array when there are no parts', () => {

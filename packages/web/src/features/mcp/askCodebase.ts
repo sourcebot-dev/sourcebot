@@ -1,7 +1,7 @@
 import { sew } from "@/middleware/sew";
 import { getConfiguredLanguageModels, getAISDKLanguageModelAndOptions, generateChatNameFromMessage, updateChatMessages } from "@/features/chat/utils.server";
 import { LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
-import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
+import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, isSameLanguageModelIdentity } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
 import { withOptionalAuth } from "@/middleware/withAuth";
@@ -58,7 +58,7 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
             let languageModelConfig = configuredModels[0];
             if (requestedLanguageModel) {
                 const matchingModel = configuredModels.find(
-                    (m) => getLanguageModelKey(m) === getLanguageModelKey(requestedLanguageModel)
+                    (m) => isSameLanguageModelIdentity(m, requestedLanguageModel)
                 );
                 if (!matchingModel) {
                     return {
