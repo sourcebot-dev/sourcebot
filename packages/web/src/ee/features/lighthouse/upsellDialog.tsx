@@ -146,17 +146,17 @@ function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContent
         // trial, no cc
         if (offers.trial.eligible && !offers.trial.creditCardRequired) {
             return {
-                title: "Try Sourcebot Pro free",
-                description: `Get full access free for ${offers.trial.durationDays} days. No credit card required.`,
-                buttonText: "Start free trial"
+                title: "Try Sourcebot Pro",
+                description: "",
+                buttonText: `Start ${offers.trial.durationDays}-day free trial`
             }
         }
         // trial, cc
         else if (offers.trial.eligible && offers.trial.creditCardRequired) {
             return {
-                title: "Try Sourcebot Pro free",
-                description: `Get full access free for ${offers.trial.durationDays} days. Card required, cancel anytime.`,
-                buttonText: "Start free trial"
+                title: "Try Sourcebot Pro",
+                description: "Card required, cancel anytime.",
+                buttonText: `Start ${offers.trial.durationDays}-day free trial`
             }
         }
         // no trial
@@ -213,6 +213,7 @@ function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContent
                 <CheckoutDisclosures
                     sessionEmail={sessionEmail}
                     onEmailChanged={setCurrentEmail}
+                    showNoCreditCardRequired={offers.trial.eligible && !offers.trial.creditCardRequired}
                 />
             )}
         </>
