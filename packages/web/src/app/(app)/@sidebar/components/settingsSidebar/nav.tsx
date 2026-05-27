@@ -23,9 +23,11 @@ import {
     UserIcon,
     UsersIcon,
 } from "lucide-react";
+import { VscMcp } from "react-icons/vsc";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UpgradeBadge } from "../upgradeBadge";
+import { IconType } from "react-icons/lib";
 
 const iconMap = {
     "link": LinkIcon,
@@ -37,7 +39,8 @@ const iconMap = {
     "scroll-text": ScrollTextIcon,
     "settings": Settings2Icon,
     "user": UserIcon,
-} satisfies Record<string, LucideIcon>;
+    "mcp": VscMcp,
+} satisfies Record<string, LucideIcon | IconType>;
 
 export type NavIconName = keyof typeof iconMap;
 

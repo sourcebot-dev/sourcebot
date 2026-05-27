@@ -82,6 +82,11 @@ export const getSidebarNavGroups = async () =>
                             icon: "link" as const,
                         }
                     ] : []),
+                    {
+                        title: "MCP",
+                        href: `/settings/mcp`,
+                        icon: 'mcp' as const,
+                    }
                 ],
             },
         ];
