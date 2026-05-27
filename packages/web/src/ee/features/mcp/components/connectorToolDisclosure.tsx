@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
@@ -59,7 +60,7 @@ export function ConnectorToolTrigger({
             <CollapsibleTrigger asChild>
                 <button
                     type="button"
-                    className="inline-flex items-center gap-1 rounded-sm text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    className="inline-flex items-center gap-1 rounded-sm text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                     <WrenchIcon className="h-3 w-3" />
                     {getToolCountLabel(availableEntry)}
@@ -133,14 +134,37 @@ function ToolHintBadges({ tool }: { tool: ToolSummary }) {
     );
 }
 
+function ToolDetail({ tool }: { tool: ToolSummary }) {
+    const displayName = tool.title ?? tool.name;
+
+    return (
+        <div className="rounded-md border bg-muted/30 p-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+                <span className="break-all text-xs font-medium text-foreground">{displayName}</span>
+                {tool.title && tool.title !== tool.name && (
+                    <span className="break-all font-mono text-[10px] text-muted-foreground">{tool.name}</span>
+                )}
+                <ToolHintBadges tool={tool} />
+            </div>
+            {tool.description && (
+                <p className="mt-1 break-words text-xs text-muted-foreground">{tool.description}</p>
+            )}
+        </div>
+    );
+}
+
 interface ConnectorToolListProps {
     toolEntry?: ServerToolsEntry;
 }
 
 export function ConnectorToolList({ toolEntry }: ConnectorToolListProps) {
+    const [selectedTool, setSelectedTool] = useState<string | null>(null);
+
     if (toolEntry?.status !== 'available') {
         return null;
     }
+
+    const activeTool = toolEntry.tools.find((t) => t.name === selectedTool);
 
     return (
         <CollapsibleContent>
@@ -148,25 +172,32 @@ export function ConnectorToolList({ toolEntry }: ConnectorToolListProps) {
                 {toolEntry.tools.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No tools exposed by this connector.</p>
                 ) : (
-                    <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
-                        {toolEntry.tools.map((tool) => {
-                            const displayName = tool.title ?? tool.name;
+                    <div className="space-y-2">
+                        <div className="flex max-h-48 flex-wrap gap-1 overflow-y-auto pr-1">
+                            {toolEntry.tools.map((tool) => {
+                                const displayName = tool.title ?? tool.name;
+                                const isSelected = selectedTool === tool.name;
 
-                            return (
-                                <div key={tool.name} className="rounded-md border bg-muted/30 p-2">
-                                    <div className="flex flex-wrap items-center gap-1.5">
-                                        <span className="break-all text-xs font-medium text-foreground">{displayName}</span>
-                                        {tool.title && tool.title !== tool.name && (
-                                            <span className="break-all font-mono text-[10px] text-muted-foreground">{tool.name}</span>
+                                return (
+                                    <button
+                                        key={tool.name}
+                                        type="button"
+                                        onClick={() => setSelectedTool(isSelected ? null : tool.name)}
+                                        className={cn(
+                                            "rounded-md border border-border px-2 py-0.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                            isSelected
+                                                ? "bg-accent text-foreground"
+                                                : "bg-muted/30 text-muted-foreground hover:bg-accent hover:text-foreground"
                                         )}
-                                        <ToolHintBadges tool={tool} />
-                                    </div>
-                                    {tool.description && (
-                                        <p className="mt-1 break-words text-xs text-muted-foreground">{tool.description}</p>
-                                    )}
-                                </div>
-                            );
-                        })}
+                                    >
+                                        {displayName}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {activeTool && (
+                            <ToolDetail tool={activeTool} />
+                        )}
                     </div>
                 )}
             </div>

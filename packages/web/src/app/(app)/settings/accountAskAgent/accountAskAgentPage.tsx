@@ -168,11 +168,6 @@ function AccountConnectedConnectorCard({
                             </div>
                         </ConnectorRowInfo>
                         <div className="flex items-center gap-1.5 shrink-0">
-                            <Button variant="outline" size="sm" asChild className="h-8">
-                                <a href={server.serverUrl} target="_blank" rel="noopener noreferrer">
-                                    Manage
-                                </a>
-                            </Button>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">

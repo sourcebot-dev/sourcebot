@@ -112,19 +112,37 @@ describe('ConnectorToolTrigger', () => {
 });
 
 describe('ConnectorToolList', () => {
-    test('renders tool details and annotation badges', () => {
+    test('renders compact tool badges and expands detail on click', () => {
         render(
             <Collapsible open={true}>
                 <ConnectorToolList toolEntry={availableEntry()} />
             </Collapsible>,
         );
 
-        expect(screen.getByText('Search')).toBeTruthy();
-        expect(screen.getByText('search')).toBeTruthy();
+        // Both tool badges are visible
+        expect(screen.getByRole('button', { name: 'Search' })).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'delete_issue' })).toBeTruthy();
+
+        // No detail shown yet
+        expect(screen.queryByText('Search issues')).toBeNull();
+        expect(screen.queryByText('Read-only')).toBeNull();
+
+        // Click to expand detail
+        fireEvent.click(screen.getByRole('button', { name: 'Search' }));
         expect(screen.getByText('Search issues')).toBeTruthy();
+        expect(screen.getByText('search')).toBeTruthy();
         expect(screen.getByText('Read-only')).toBeTruthy();
+
+        // Click another tool — previous detail closes, new one opens
+        fireEvent.click(screen.getByRole('button', { name: 'delete_issue' }));
+        expect(screen.queryByText('Search issues')).toBeNull();
+        expect(screen.getByText('Delete an issue')).toBeTruthy();
         expect(screen.getByText('Destructive')).toBeTruthy();
         expect(screen.getByText('Idempotent')).toBeTruthy();
+
+        // Click same tool again to collapse
+        fireEvent.click(screen.getByRole('button', { name: 'delete_issue' }));
+        expect(screen.queryByText('Delete an issue')).toBeNull();
     });
 
     test('renders an empty-tools message for available servers with no tools', () => {
