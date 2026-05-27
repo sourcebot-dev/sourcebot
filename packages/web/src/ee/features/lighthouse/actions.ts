@@ -15,6 +15,7 @@ import { captureEvent } from "@/lib/posthog";
 import { UpsellSource } from "@/lib/posthogEvents";
 import { client } from "./client";
 import { Invoice } from "./types";
+import { z } from "zod";
 
 export const activateLicense = async (activationCode: string): Promise<{ success: boolean } | ServiceError> => sew(() =>
     withAuth(async ({ org, role, prisma }) =>
@@ -115,12 +116,14 @@ export const createCheckoutSession = async ({
     source,
     requestTrial = false,
     interval = 'year',
-    returnPath: _returnPath = '/settings/license'
+    returnPath: _returnPath = '/settings/license',
+    overrideEmail,
 }: {
     source: UpsellSource;
     requestTrial?: boolean;
     interval?: 'month' | 'year';
     returnPath?: string;
+    overrideEmail?: string;
 }): Promise<{ url: string } | ServiceError> => sew(() =>
     withAuth(async ({ user, org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
@@ -130,6 +133,21 @@ export const createCheckoutSession = async ({
                     errorCode: ErrorCode.UNEXPECTED_ERROR,
                     message: "User does not have an email address.",
                 } satisfies ServiceError;
+            }
+
+            // Validate the override on the server — never trust a client-supplied
+            // email. Fall back to the authenticated user's email when omitted.
+            let checkoutEmail = user.email;
+            if (overrideEmail !== undefined) {
+                const parsed = z.string().email().safeParse(overrideEmail);
+                if (!parsed.success) {
+                    return {
+                        statusCode: StatusCodes.BAD_REQUEST,
+                        errorCode: ErrorCode.UNEXPECTED_ERROR,
+                        message: "Invalid overrideEmail.",
+                    } satisfies ServiceError;
+                }
+                checkoutEmail = parsed.data;
             }
 
             const memberCount = await prisma.userToOrg.count({
@@ -185,7 +203,7 @@ export const createCheckoutSession = async ({
             const successQuerySeparator = returnSearch ? '&' : '?';
 
             const result = await client.checkout({
-                email: user.email,
+                email: checkoutEmail,
                 installId: env.SOURCEBOT_INSTALL_ID,
                 quantity,
                 requestTrial,

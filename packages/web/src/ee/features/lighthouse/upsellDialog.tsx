@@ -1,13 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowUpCircle, ExternalLink, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { LoadingButton } from "@/components/ui/loading-button";
-import { isServiceError } from "@/lib/utils";
-import { createCheckoutSession } from "@/ee/features/lighthouse/actions";
 import { useToast } from "@/components/hooks/use-toast";
-import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogClose,
@@ -17,12 +11,20 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { LoadingButton } from "@/components/ui/loading-button";
+import { createCheckoutSession } from "@/ee/features/lighthouse/actions";
+import { BillingInterval, PlanComparisonTable } from "@/ee/features/lighthouse/planComparisonTable";
 import { OffersResponse } from "@/ee/features/lighthouse/types";
 import { useOffers } from "@/ee/features/lighthouse/useOffers";
-import { BillingInterval, PlanComparisonTable } from "@/ee/features/lighthouse/planComparisonTable";
 import { useRole } from "@/features/auth/useRole";
-import { OrgRole } from "@sourcebot/db";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { UpsellSource } from "@/lib/posthogEvents";
+import { isServiceError } from "@/lib/utils";
+import { OrgRole } from "@sourcebot/db";
+import { ArrowUpCircle, ExternalLink, Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckoutDisclosures } from "./checkoutDisclosures";
 
 interface UpsellDialogProps {
     open: boolean;
@@ -62,7 +64,7 @@ export function UpsellDialog({ open, onOpenChange, source, returnPath }: UpsellD
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl gap-6">
+            <DialogContent className="max-w-2xl gap-6 focus:outline-none">
                 {isPending || !offers ? (
                     <div className="flex items-center justify-center py-12">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -84,9 +86,23 @@ interface UpsellDialogContentProps {
 function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContentProps) {
     const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
     const [isCheckoutSessionCreating, setIsCheckoutSessionCreating] = useState(false);
+    const { data: session } = useSession();
+    const sessionEmail = session?.user?.email ?? "";
+    const [currentEmail, setCurrentEmail] = useState<string>("");
     const { toast } = useToast();
     const role = useRole();
     const isOwner = role === OrgRole.OWNER;
+
+    // Only treat the email as an override when the user has actually changed it
+    // away from the canonical session email.
+    const overrideEmail =
+        (
+            sessionEmail &&
+            currentEmail &&
+            currentEmail !== sessionEmail
+        )
+            ? currentEmail
+            : undefined;
 
     const handlePrimaryAction = useCallback(() => {
         setIsCheckoutSessionCreating(true);
@@ -95,6 +111,7 @@ function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContent
             requestTrial: offers.trial.eligible,
             interval: billingInterval,
             returnPath,
+            overrideEmail,
         })
             .then((response) => {
                 if (isServiceError(response)) {
@@ -114,15 +131,15 @@ function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContent
                 });
                 setIsCheckoutSessionCreating(false);
             })
-    }, [billingInterval, offers.trial.eligible, returnPath, toast, source]);
+    }, [billingInterval, offers.trial.eligible, returnPath, toast, source, overrideEmail]);
 
     const { title, description, buttonText } = useMemo(() => {
         // Members can't upgrade the workspace themselves — show them the feature
         // table so they understand what's gated, but route them to the owner.
         if (!isOwner) {
             return {
-                title: "Pro feature",
-                description: "Ask your workspace owner to upgrade to Pro.",
+                title: "Sourcebot Pro",
+                description: "Ask your workspace owner to upgrade to Sourcebot Pro.",
                 buttonText: "Got it",
             }
         }
@@ -135,7 +152,7 @@ function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContent
             }
         }
         // trial, cc
-        else if ( offers.trial.eligible && offers.trial.creditCardRequired) {
+        else if (offers.trial.eligible && offers.trial.creditCardRequired) {
             return {
                 title: "Try Sourcebot Pro free",
                 description: `Get full access free for ${offers.trial.durationDays} days. Card required, cancel anytime.`,
@@ -191,6 +208,13 @@ function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContent
                     </DialogClose>
                 )}
             </DialogFooter>
+
+            {isOwner && (
+                <CheckoutDisclosures
+                    sessionEmail={sessionEmail}
+                    onEmailChanged={setCurrentEmail}
+                />
+            )}
         </>
     );
 }

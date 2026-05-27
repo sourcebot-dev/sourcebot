@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { completeOnboarding } from "@/actions";
 import { createCheckoutSession } from "@/ee/features/lighthouse/actions";
 import { useOffers } from "@/ee/features/lighthouse/useOffers";
 import { BillingInterval, PlanComparisonTable } from "@/ee/features/lighthouse/planComparisonTable";
+import { CheckoutDisclosures } from "@/ee/features/lighthouse/checkoutDisclosures";
 import { useToast } from "@/components/hooks/use-toast";
 import { isServiceError } from "@/lib/utils";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
@@ -63,11 +65,10 @@ export function TrialStepSubtitle() {
 }
 
 interface TrialStepProps {
-    memberCount: number;
     stepIndex: number;
 }
 
-export function TrialStep({ memberCount, stepIndex }: TrialStepProps) {
+export function TrialStep({ stepIndex }: TrialStepProps) {
     const { data: offers, isPending, isError } = useOffers();
     const { toast } = useToast();
     const router = useRouter();
@@ -76,6 +77,16 @@ export function TrialStep({ memberCount, stepIndex }: TrialStepProps) {
     const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
     const [isPrimaryLoading, setIsPrimaryLoading] = useState(false);
     const [isSkipLoading, setIsSkipLoading] = useState(false);
+    const { data: session } = useSession();
+    const sessionEmail = session?.user?.email ?? "";
+    const [currentEmail, setCurrentEmail] = useState<string>("");
+
+    // Only treat the email as an override when the user has actually changed it
+    // away from the canonical session email.
+    const overrideEmail =
+        sessionEmail && currentEmail && currentEmail !== sessionEmail
+            ? currentEmail
+            : undefined;
 
     const [isReturningFromCheckoutSuccess, setIsReturningFromCheckoutSuccess] = useState(searchParams.get('checkout') === 'success');
 
@@ -145,6 +156,7 @@ export function TrialStep({ memberCount, stepIndex }: TrialStepProps) {
             requestTrial,
             interval: billingInterval,
             returnPath: `/onboard?step=${stepIndex}`,
+            overrideEmail,
         });
 
         if (isServiceError(checkoutResult)) {
@@ -157,7 +169,7 @@ export function TrialStep({ memberCount, stepIndex }: TrialStepProps) {
         }
 
         window.location.assign(checkoutResult.url);
-    }, [billingInterval, stepIndex, toast]);
+    }, [billingInterval, stepIndex, toast, overrideEmail]);
 
     if (isPending) {
         return (
@@ -196,17 +208,21 @@ export function TrialStep({ memberCount, stepIndex }: TrialStepProps) {
                 onBillingIntervalChange={setBillingInterval}
             />
 
-            <div className="space-y-2">
+            <div className="flex flex-col">
                 <LoadingButton
                     onClick={() => onCheckout(isTrialEligible)}
                     loading={isPrimaryLoading || isReturningFromCheckoutSuccess}
                     disabled={isSkipLoading}
-                    className="w-full"
+                    className="w-full mb-4"
                 >
                     {primaryButtonText}
                 </LoadingButton>
+                <CheckoutDisclosures
+                    sessionEmail={sessionEmail}
+                    onEmailChanged={setCurrentEmail}
+                />
                 <LoadingButton
-                    variant="ghost"
+                    variant="link"
                     onClick={() => {
                         captureEvent('wa_onboard_trial_step_skipped', { isTrialEligible });
                         onSkipCheckout();
@@ -216,17 +232,11 @@ export function TrialStep({ memberCount, stepIndex }: TrialStepProps) {
                         isPrimaryLoading ||
                         isReturningFromCheckoutSuccess
                     }
-                    className="w-full text-muted-foreground hover:text-foreground"
+                    className="mx-auto text-muted-foreground hover:text-foreground mt-8"
                 >
                     Skip for now
                 </LoadingButton>
             </div>
-
-            {memberCount > 1 && (
-                <p className="text-xs text-muted-foreground text-center">
-                    Trial includes your team of {memberCount} members.
-                </p>
-            )}
         </div>
     );
 }

@@ -16,7 +16,6 @@ import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { redirect } from "next/navigation";
 import { env } from "@sourcebot/shared";
 import { hasEntitlement, isValidLicenseActive } from "@/lib/entitlements";
-import { cn } from "@/lib/utils";
 import { GcpIapAuth } from "@/app/(app)/components/gcpIapAuth";
 
 interface OnboardingProps {
@@ -73,9 +72,6 @@ export default async function Onboarding(props: OnboardingProps) {
     const currentStep = session?.user ? Math.max(2, stepParam) : Math.max(0, Math.min(stepParam, 1));
 
     const isLicensed = await isValidLicenseActive();
-    const memberCount = await __unsafePrisma.userToOrg.count({
-        where: { orgId: org.id },
-    });
 
     const steps: OnboardingStep[] = [];
 
@@ -156,7 +152,7 @@ export default async function Onboarding(props: OnboardingProps) {
         title: "Try Sourcebot Pro",
         headerTitle: <TrialStepTitle />,
         subtitle: <TrialStepSubtitle />,
-        component: <TrialStep memberCount={memberCount} stepIndex={finalStepIndex} />,
+        component: <TrialStep stepIndex={finalStepIndex} />,
     });
 
     const currentStepData = steps[currentStep]
