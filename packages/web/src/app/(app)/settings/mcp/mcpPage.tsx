@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/hooks/use-toast";
-import { type ConnectedMcpClient, revokeMcpClient } from "@/ee/features/oauth/actions";
+import { type ConnectedOauthClient, revokeMcpClient } from "@/ee/features/oauth/actions";
 import { isServiceError } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { Boxes, Check, Copy, Trash2 } from "lucide-react";
@@ -29,10 +29,13 @@ const DOCS_URL = "https://docs.sourcebot.dev/docs/features/mcp-server";
 
 interface McpPageProps {
     mcpServerUrl: string;
-    connectedClients: ConnectedMcpClient[];
+    connectedClients: ConnectedOauthClient[];
 }
 
-export function McpPage({ mcpServerUrl, connectedClients }: McpPageProps) {
+export function McpPage({
+    mcpServerUrl,
+    connectedClients
+}: McpPageProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [copied, setCopied] = useState(false);

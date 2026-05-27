@@ -5,7 +5,7 @@ import { generateAndStoreAuthCode } from '@/ee/features/oauth/server';
 import { withAuth } from '@/middleware/withAuth';
 import { UNPERMITTED_SCHEMES } from '@/ee/features/oauth/constants';
 
-export interface ConnectedMcpClient {
+export interface ConnectedOauthClient {
     id: string;
     name: string;
     logoUri: string | null;
@@ -81,12 +81,12 @@ export const denyAuthorization = async ({
     }))
 
 /**
- * Lists the OAuth clients (MCP clients) that the current user has authorized.
+ * Lists the OAuth clients that the current user has authorized.
  * A client is considered "connected" if it has at least one refresh token for
- * the user — refresh tokens outlive short-lived access tokens, so they're the
+ * the user. Refresh tokens outlive short-lived access tokens, so they're the
  * better signal of an active connection.
  */
-export const getConnectedMcpClients = async () => sew(() =>
+export const getConnectedOauthClients = async () => sew(() =>
     withAuth(async ({ user, prisma }) => {
         const clients = await prisma.oAuthClient.findMany({
             where: { refreshTokens: { some: { userId: user.id } } },
