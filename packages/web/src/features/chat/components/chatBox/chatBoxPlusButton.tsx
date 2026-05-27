@@ -294,8 +294,15 @@ export const ChatBoxPlusButton = ({
                             className="gap-2 text-muted-foreground"
                             onSelect={() => router.push(`/settings/accountAskAgent`)}
                         >
+                            <CableIcon className="w-4 h-4" />
+                            My connectors
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="gap-2 text-muted-foreground"
+                            onSelect={() => router.push(`/settings/workspaceAskAgent`)}
+                        >
                             <SettingsIcon className="w-4 h-4" />
-                            Manage connectors
+                            Workspace connectors
                         </DropdownMenuItem>
                     </DropdownMenuSubContent>
                 </DropdownMenuSub>
