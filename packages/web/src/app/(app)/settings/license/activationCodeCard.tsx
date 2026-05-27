@@ -5,20 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { SettingsCard } from "../components/settingsCard";
-import { activateLicense, createCheckoutSession } from "@/ee/features/lighthouse/actions";
+import { activateLicense } from "@/ee/features/lighthouse/actions";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, ExternalLink } from "lucide-react";
-import { useOffers } from "@/ee/features/lighthouse/useOffers";
-import { Skeleton } from "@/components/ui/skeleton";
+import { UpsellDialog } from "@/ee/features/lighthouse/upsellDialog";
 
 export function ActivationCodeCard() {
     const [activationCode, setActivationCode] = useState("");
     const [isActivating, setIsActivating] = useState(false);
-    const [isCheckoutSessionCreating, setIsCheckoutSessionCreating] = useState(false);
+    const [isUpsellOpen, setIsUpsellOpen] = useState(false);
     const { toast } = useToast();
-    const { data: offers, isPending, isError } = useOffers();
 
     const handleActivate = useCallback(() => {
         if (!activationCode.trim()) {
@@ -44,36 +41,6 @@ export function ActivationCodeCard() {
                 setIsActivating(false);
             });
     }, [activationCode, toast]);
-
-    const onCreateCheckoutSession = useCallback((isTrialEligible: boolean) => {
-        setIsCheckoutSessionCreating(true);
-
-        createCheckoutSession({
-            requestTrial: isTrialEligible,
-            source: "license_settings"
-        })
-            .then((response) => {
-                if (isServiceError(response)) {
-                    toast({
-                        description: `Failed to start checkout: ${response.message}`,
-                        variant: "destructive",
-                    });
-                } else {
-                    // Stripe Checkout is an external URL; use assign for a
-                    // full navigation rather than router.push.
-                    window.location.assign(response.url);
-                }
-            })
-            .catch(() => {
-                toast({
-                    description: "Failed to start checkout. Please try again.",
-                    variant: "destructive",
-                });
-            })
-            .finally(() => {
-                setIsCheckoutSessionCreating(false);
-            });
-    }, [toast]);
 
     return (
         <SettingsCard>
@@ -106,32 +73,24 @@ export function ActivationCodeCard() {
                             Activate
                         </LoadingButton>
                     </div>
-                    {
-                        isPending ? (
-                            <Skeleton className="h-5 w-80" />
-                        ) : isError ? (
-                            <span className="text-destructive text-sm">Failed to load pricing information.</span>
-                        ) : (
-                            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                                Don&apos;t have an activation code?
-                                <Button
-                                    variant="link"
-                                    className="h-auto p-0 gap-1"
-                                    onClick={() => onCreateCheckoutSession(offers.trial.eligible)}
-                                    disabled={isCheckoutSessionCreating}
-                                >
-                                    {offers.trial.eligible ? "Start a free trial" : "Purchase a license"}
-                                    {isCheckoutSessionCreating ? (
-                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                    ) : (
-                                        <ExternalLink className="h-3 w-3" />
-                                    )}
-                                </Button>
-                            </p>
-                        )
-                    }
+                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                        Don&apos;t have an activation code?
+                        <Button
+                            variant="link"
+                            className="h-auto p-0"
+                            onClick={() => setIsUpsellOpen(true)}
+                        >
+                            See plans
+                        </Button>
+                    </p>
                 </div>
             </div>
+            <UpsellDialog
+                open={isUpsellOpen}
+                onOpenChange={setIsUpsellOpen}
+                source="license_settings"
+                returnPath="/settings/license"
+            />
         </SettingsCard>
     );
 }
