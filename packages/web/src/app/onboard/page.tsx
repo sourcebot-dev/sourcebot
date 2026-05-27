@@ -148,7 +148,7 @@ export default async function Onboarding(props: OnboardingProps) {
             component: <AlreadyLicensedStep />,
         } : {
             id: "trial",
-            title: "Try Sourcebot Enterprise",
+            title: "Try Sourcebot Pro",
             headerTitle: <TrialStepTitle />,
             subtitle: <TrialStepSubtitle />,
             component: <TrialStep memberCount={memberCount} />,

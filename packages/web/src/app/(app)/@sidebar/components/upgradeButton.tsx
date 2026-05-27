@@ -21,7 +21,7 @@ export const UpgradeButton = () => {
         return null;
     }
 
-    const label = offers.trial.eligible ? "Try Enterprise" : "Upgrade to Enterprise";
+    const label = offers.trial.eligible ? "Try Pro" : "Upgrade to Pro";
     return (
         <>
             <div className="group-data-[state=collapsed]:hidden px-2 pt-1">

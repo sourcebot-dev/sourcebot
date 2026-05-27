@@ -4,19 +4,17 @@ import { OrgRole } from "@sourcebot/db";
 import { Button } from "@/components/ui/button";
 import { BannerShell } from "./bannerShell";
 import type { BannerProps } from "./types";
+import { OFFERINGS_DOCS_LINK } from "@/lib/constants";
 
 interface LicenseExpiredBannerProps extends BannerProps {
     source: 'offline' | 'online';
 }
 
-// @nocheckin: This should instead be a docs page that explains the enterprise offering.
-const ENTERPRISE_OFFERING_DOCS_LINK = "https://sourcebot.dev/pricing";
-
 export function LicenseExpiredBanner({ id, dismissible, role, source }: LicenseExpiredBannerProps) {
     const isOwner = role === OrgRole.OWNER;
 
     const whatsAffectedLink = (
-        <a href={ENTERPRISE_OFFERING_DOCS_LINK} target="_blank" rel="noopener noreferrer">
+        <a href={OFFERINGS_DOCS_LINK} target="_blank" rel="noopener noreferrer">
             What&apos;s affected?
         </a>
     );
@@ -24,12 +22,12 @@ export function LicenseExpiredBanner({ id, dismissible, role, source }: LicenseE
     const description = (() => {
         if (source === 'offline') {
             return isOwner
-                ? <>Your license has expired and enterprise features are disabled. Update <code className="font-mono text-xs">SOURCEBOT_EE_LICENSE_KEY</code> to restore access. {whatsAffectedLink}</>
-                : <>Your license has expired and enterprise features are disabled. Contact your organization administrator to restore access. {whatsAffectedLink}</>;
+                ? <>Your license has expired and paid features are disabled. Update <code className="font-mono text-xs">SOURCEBOT_EE_LICENSE_KEY</code> to restore access. {whatsAffectedLink}</>
+                : <>Your license has expired and paid features are disabled. Contact your organization administrator to restore access. {whatsAffectedLink}</>;
         }
         return isOwner
-            ? <>Your subscription has ended and enterprise features are disabled. Renew to restore access. {whatsAffectedLink}</>
-            : <>Your subscription has ended and enterprise features are disabled. Contact your organization administrator to restore access. {whatsAffectedLink}</>;
+            ? <>Your subscription has ended and paid features are disabled. Renew to restore access. {whatsAffectedLink}</>
+            : <>Your subscription has ended and paid features are disabled. Contact your organization administrator to restore access. {whatsAffectedLink}</>;
     })();
 
     return (

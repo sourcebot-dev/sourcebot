@@ -14,7 +14,7 @@ export function AnalyticsEntitlementMessage() {
 
     const buttonLabel = offers?.trial.eligible
         ? `Start ${offers.trial.durationDays} day trial`
-        : "Upgrade to Enterprise";
+        : "Upgrade to Pro";
 
     return (
         <div className="flex items-center justify-center min-h-[60vh] py-12">
@@ -26,7 +26,7 @@ export function AnalyticsEntitlementMessage() {
                         </div>
                     </div>
                     <CardTitle className="text-xl font-semibold text-card-foreground">
-                        Analytics is an Enterprise Feature
+                        Analytics is a Pro Feature
                     </CardTitle>
                     <CardDescription className="text-muted-foreground mt-2">
                         Get insights into your organization&apos;s usage patterns and activity. <a href="https://docs.sourcebot.dev/docs/features/analytics" target="_blank" rel="noopener" className="text-primary hover:underline">Learn more</a>

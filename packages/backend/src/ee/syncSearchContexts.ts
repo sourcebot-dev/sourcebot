@@ -18,7 +18,7 @@ export const syncSearchContexts = async (params: SyncSearchContextsParams) => {
 
     if (!await hasEntitlement("search-contexts")) {
         if (contexts) {
-            logger.warn(`Skipping search context sync. Reason: "Search contexts are not supported in your current plan. If you have a valid enterprise license key, pass it via SOURCEBOT_EE_LICENSE_KEY. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}."`);
+            logger.warn(`Skipping search context sync. Reason: "Search contexts are not supported in your current plan. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}."`);
         }
         return false;
     }

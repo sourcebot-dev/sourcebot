@@ -15,7 +15,7 @@ export function LicenseInactiveBanner() {
                     <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                     <div className="flex flex-col gap-0.5">
                         <p className="font-medium leading-none">License is not active</p>
-                        <p className="text-sm">Enterprise features are disabled for this deployment.</p>
+                        <p className="text-sm">Paid features are disabled for this deployment.</p>
                     </div>
                 </div>
                 <Button

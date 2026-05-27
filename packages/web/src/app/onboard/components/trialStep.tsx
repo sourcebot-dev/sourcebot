@@ -26,24 +26,24 @@ function useTrialStepCopy(): TrialStepCopy | null {
     }
     if (isError || !offers) {
         return {
-            title: "Upgrade to Sourcebot Enterprise",
+            title: "Upgrade to Sourcebot Pro",
             subtitle: "Unlock advanced features for your team. You can upgrade later from your license settings.",
         };
     }
     if (!offers.trial.eligible) {
         return {
-            title: "Upgrade to Sourcebot Enterprise",
+            title: "Upgrade to Sourcebot Pro",
             subtitle: "Unlock advanced features for your team.",
         };
     }
     if (offers.trial.creditCardRequired) {
         return {
-            title: "Try Sourcebot Enterprise free",
+            title: "Try Sourcebot Pro free",
             subtitle: `Get full access free for ${offers.trial.durationDays} days. Card required, cancel anytime.`,
         };
     }
     return {
-        title: "Try Sourcebot Enterprise free",
+        title: "Try Sourcebot Pro free",
         subtitle: `Get full access free for ${offers.trial.durationDays} days. No credit card required.`,
     };
 }

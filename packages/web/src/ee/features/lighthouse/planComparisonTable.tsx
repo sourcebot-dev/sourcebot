@@ -73,7 +73,7 @@ export function PlanComparisonTable({
     billingInterval,
     onBillingIntervalChange,
 }: PlanComparisonTableProps) {
-    const enterprisePrice = formatPrice(
+    const proPrice = formatPrice(
         billingInterval === "year" ? offers.pricing.annual.unitAmount : offers.pricing.monthly.unitAmount,
         billingInterval === "year" ? offers.pricing.annual.currency : offers.pricing.monthly.currency,
         billingInterval,
@@ -92,8 +92,8 @@ export function PlanComparisonTable({
                         <div className="text-xs text-muted-foreground font-normal mt-0.5">Free</div>
                     </TableHead>
                     <TableHead className="w-52 align-top">
-                        <span className="text-lg text-primary">Enterprise</span>
-                        <div className="text-xs text-muted-foreground font-normal mt-0.5">{enterprisePrice}</div>
+                        <span className="text-lg text-primary">Pro</span>
+                        <div className="text-xs text-muted-foreground font-normal mt-0.5">{proPrice}</div>
                         <div className="flex items-center my-1">
                             <Switch
                                 checked={billingInterval === "year"}

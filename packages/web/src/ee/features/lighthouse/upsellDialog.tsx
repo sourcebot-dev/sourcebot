@@ -121,15 +121,15 @@ function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContent
         // table so they understand what's gated, but route them to the owner.
         if (!isOwner) {
             return {
-                title: "Enterprise feature",
-                description: "Ask your workspace owner to upgrade to Enterprise.",
+                title: "Pro feature",
+                description: "Ask your workspace owner to upgrade to Pro.",
                 buttonText: "Got it",
             }
         }
         // trial, no cc
         if (offers.trial.eligible && !offers.trial.creditCardRequired) {
             return {
-                title: "Try Sourcebot Enterprise free",
+                title: "Try Sourcebot Pro free",
                 description: `Get full access free for ${offers.trial.durationDays} days. No credit card required.`,
                 buttonText: "Start free trial"
             }
@@ -137,7 +137,7 @@ function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContent
         // trial, cc
         else if ( offers.trial.eligible && offers.trial.creditCardRequired) {
             return {
-                title: "Try Sourcebot Enterprise free",
+                title: "Try Sourcebot Pro free",
                 description: `Get full access free for ${offers.trial.durationDays} days. Card required, cancel anytime.`,
                 buttonText: "Start free trial"
             }

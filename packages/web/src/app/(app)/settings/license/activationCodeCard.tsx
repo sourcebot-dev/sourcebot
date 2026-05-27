@@ -80,7 +80,7 @@ export function ActivationCodeCard() {
             <div className="flex flex-col gap-2">
                 <p className="font-medium">Activation code</p>
                 <p className="text-sm text-muted-foreground">
-                    Enter your activation code to enable your enterprise license.
+                    Enter your activation code to enable your Sourcebot license.
                 </p>
                 <Separator className="my-2" />
                 <div className="flex flex-col gap-3">
