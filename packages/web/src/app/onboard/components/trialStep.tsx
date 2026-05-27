@@ -1,9 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { completeOnboarding } from "@/actions";
@@ -66,28 +64,64 @@ export function TrialStepSubtitle() {
 
 interface TrialStepProps {
     memberCount: number;
+    stepIndex: number;
 }
 
-export function TrialStep({ memberCount }: TrialStepProps) {
+export function TrialStep({ memberCount, stepIndex }: TrialStepProps) {
     const { data: offers, isPending, isError } = useOffers();
     const { toast } = useToast();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const captureEvent = useCaptureEvent();
     const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
     const [isPrimaryLoading, setIsPrimaryLoading] = useState(false);
     const [isSkipLoading, setIsSkipLoading] = useState(false);
 
+    const [isReturningFromCheckoutSuccess, setIsReturningFromCheckoutSuccess] = useState(searchParams.get('checkout') === 'success');
+
     // Fire-once when offers resolve, so isTrialEligible is reliable and react-query
     // refetches don't cause duplicate views.
     const hasCapturedViewRef = useRef(false);
     useEffect(() => {
+        if (isReturningFromCheckoutSuccess) {
+            return;
+        }
         if (offers && !hasCapturedViewRef.current) {
             hasCapturedViewRef.current = true;
             captureEvent('wa_onboard_trial_step_viewed', {
                 isTrialEligible: offers.trial.eligible,
             });
         }
-    }, [offers, captureEvent]);
+    }, [offers, captureEvent, isReturningFromCheckoutSuccess]);
+
+    // Post-checkout: complete onboarding, then forward `session_id` to `/` so
+    // CheckoutReturnHandler (mounted in the (app) layout) can fire the activation
+    // dialog. We defer completeOnboarding until after Stripe actually returns
+    // success — abandoning checkout leaves the user on /onboard to retry.
+    const hasHandledReturnRef = useRef(false);
+    useEffect(() => {
+        if (!isReturningFromCheckoutSuccess || hasHandledReturnRef.current) {
+            return;
+        }
+        hasHandledReturnRef.current = true;
+
+        const sessionId = searchParams.get('session_id');
+        void (async () => {
+            const result = await completeOnboarding();
+            if (isServiceError(result)) {
+                toast({
+                    description: `Failed to complete onboarding: ${result.message}`,
+                    variant: "destructive",
+                });
+                setIsReturningFromCheckoutSuccess(false);
+                return;
+            }
+            const dest = sessionId
+                ? `/?session_id=${encodeURIComponent(sessionId)}`
+                : "/";
+            router.push(dest);
+        })();
+    }, [isReturningFromCheckoutSuccess, searchParams, router, toast]);
 
     const onSkipCheckout = useCallback(async () => {
         setIsSkipLoading(true);
@@ -106,24 +140,11 @@ export function TrialStep({ memberCount }: TrialStepProps) {
     const onCheckout = useCallback(async (requestTrial: boolean) => {
         setIsPrimaryLoading(true);
 
-        // Mark onboarding complete first so the post-checkout return lands inside
-        // the (app) layout where CheckoutReturnHandler can fire. Otherwise the
-        // layout's !isOnboarded guard would bounce them back to /onboard.
-        const completeResult = await completeOnboarding();
-        if (isServiceError(completeResult)) {
-            toast({
-                description: `Failed to complete onboarding: ${completeResult.message}`,
-                variant: "destructive",
-            });
-            setIsPrimaryLoading(false);
-            return;
-        }
-
         const checkoutResult = await createCheckoutSession({
             source: "onboard",
             requestTrial,
             interval: billingInterval,
-            returnPath: "/",
+            returnPath: `/onboard?step=${stepIndex}`,
         });
 
         if (isServiceError(checkoutResult)) {
@@ -131,14 +152,12 @@ export function TrialStep({ memberCount }: TrialStepProps) {
                 description: `Failed to start checkout: ${checkoutResult.message}`,
                 variant: "destructive",
             });
-            // Onboarding is already marked complete — send them to the app where
-            // they can retry the upgrade from /settings/license.
-            router.push("/");
+            setIsPrimaryLoading(false);
             return;
         }
 
         window.location.assign(checkoutResult.url);
-    }, [billingInterval, router, toast]);
+    }, [billingInterval, stepIndex, toast]);
 
     if (isPending) {
         return (
@@ -180,27 +199,27 @@ export function TrialStep({ memberCount }: TrialStepProps) {
             <div className="space-y-2">
                 <LoadingButton
                     onClick={() => onCheckout(isTrialEligible)}
-                    loading={isPrimaryLoading}
+                    loading={isPrimaryLoading || isReturningFromCheckoutSuccess}
                     disabled={isSkipLoading}
                     className="w-full"
                 >
                     {primaryButtonText}
                 </LoadingButton>
-                <Button
+                <LoadingButton
                     variant="ghost"
                     onClick={() => {
                         captureEvent('wa_onboard_trial_step_skipped', { isTrialEligible });
                         onSkipCheckout();
                     }}
-                    disabled={isPrimaryLoading || isSkipLoading}
+                    loading={isSkipLoading}
+                    disabled={
+                        isPrimaryLoading ||
+                        isReturningFromCheckoutSuccess
+                    }
                     className="w-full text-muted-foreground hover:text-foreground"
                 >
-                    {isSkipLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                        "Skip for now"
-                    )}
-                </Button>
+                    Skip for now
+                </LoadingButton>
             </div>
 
             {memberCount > 1 && (

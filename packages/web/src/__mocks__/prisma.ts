@@ -40,6 +40,7 @@ export const MOCK_USER_WITH_ACCOUNTS: User & { accounts: Account[] } = {
     updatedAt: new Date(),
     hashedPassword: null,
     emailVerified: null,
+    lastActiveAt: null,
     image: null,
     sessionVersion: 0,
     accounts: [],

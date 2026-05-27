@@ -77,83 +77,87 @@ export default async function Onboarding(props: OnboardingProps) {
         where: { orgId: org.id },
     });
 
-    const steps: OnboardingStep[] = [
-        {
-            id: "welcome",
-            title: "Welcome to Sourcebot",
-            subtitle: "This onboarding flow will guide you through creating your owner account and configuring your organization.",
-            component: (
-                <div className="space-y-6">
-                    <Button asChild className="w-full">
-                        <Link href="/onboard?step=1">Get Started →</Link>
-                    </Button>
-                </div>
-            ),
-        },
-        {
-            id: "owner-signup",
-            title: "Create Owner Account",
-            subtitle: (
-                <>
-                    Use your preferred authentication method to create your owner account. To set up additional authentication providers, check out our{" "}
-                    <a
-                        href="https://docs.sourcebot.dev/docs/configuration/auth/overview"
-                        target="_blank"
-                        rel="noopener"
-                        className="underline text-primary hover:text-primary/80 transition-colors"
-                    >
-                        documentation
-                    </a>.
-                </>
-            ),
-            component: (
-                <div className="space-y-6">
-                    <AuthMethodSelector
-                        callbackUrl="/onboard"
-                        context="signup"
-                        securityNoticeClosable={false}
-                    />
-                </div>
-            ),
-        },
-        {
-            id: "configure-org",
-            title: "Configure Access Settings",
-            subtitle: (
-                <>
-                    Set up your organization&apos;s access settings.{" "}
-                    <a
-                        href="https://docs.sourcebot.dev/docs/configuration/auth/access-settings"
-                        target="_blank"
-                        rel="noopener"
-                        className="underline text-primary hover:text-primary/80 transition-colors"
-                    >
-                        Learn more
-                    </a>
-                </>
-            ),
-            component: (
-                <div className="space-y-6">
-                    <OrganizationAccessSettings />
-                    <Button asChild className="w-full">
-                        <Link href="/onboard?step=3">Continue →</Link>
-                    </Button>
-                </div>
-            ),
-        },
-        isLicensed ? {
-            id: "complete",
-            title: "You're all set",
-            subtitle: "Your Sourcebot deployment is ready to go.",
-            component: <AlreadyLicensedStep />,
-        } : {
-            id: "trial",
-            title: "Try Sourcebot Pro",
-            headerTitle: <TrialStepTitle />,
-            subtitle: <TrialStepSubtitle />,
-            component: <TrialStep memberCount={memberCount} />,
-        },
-    ]
+    const steps: OnboardingStep[] = [];
+
+    steps.push({
+        id: "welcome",
+        title: "Welcome to Sourcebot",
+        subtitle: "This onboarding flow will guide you through creating your owner account and configuring your organization.",
+        component: (
+            <div className="space-y-6">
+                <Button asChild className="w-full">
+                    <Link href={`/onboard?step=${steps.length + 1}`}>Get Started →</Link>
+                </Button>
+            </div>
+        ),
+    });
+
+    steps.push({
+        id: "owner-signup",
+        title: "Create Owner Account",
+        subtitle: (
+            <>
+                Use your preferred authentication method to create your owner account. To set up additional authentication providers, check out our{" "}
+                <a
+                    href="https://docs.sourcebot.dev/docs/configuration/auth/overview"
+                    target="_blank"
+                    rel="noopener"
+                    className="underline text-primary hover:text-primary/80 transition-colors"
+                >
+                    documentation
+                </a>.
+            </>
+        ),
+        component: (
+            <div className="space-y-6">
+                <AuthMethodSelector
+                    callbackUrl={`/onboard?step=${steps.length + 1}`}
+                    context="signup"
+                    securityNoticeClosable={false}
+                />
+            </div>
+        ),
+    });
+
+    steps.push({
+        id: "configure-org",
+        title: "Configure Access Settings",
+        subtitle: (
+            <>
+                Set up your organization&apos;s access settings.{" "}
+                <a
+                    href="https://docs.sourcebot.dev/docs/configuration/auth/access-settings"
+                    target="_blank"
+                    rel="noopener"
+                    className="underline text-primary hover:text-primary/80 transition-colors"
+                >
+                    Learn more
+                </a>
+            </>
+        ),
+        component: (
+            <div className="space-y-6">
+                <OrganizationAccessSettings />
+                <Button asChild className="w-full">
+                    <Link href={`/onboard?step=${steps.length + 1}`}>Continue →</Link>
+                </Button>
+            </div>
+        ),
+    });
+
+    const finalStepIndex = steps.length;
+    steps.push(isLicensed ? {
+        id: "complete",
+        title: "You're all set",
+        subtitle: "Your Sourcebot deployment is ready to go.",
+        component: <AlreadyLicensedStep />,
+    } : {
+        id: "trial",
+        title: "Try Sourcebot Pro",
+        headerTitle: <TrialStepTitle />,
+        subtitle: <TrialStepSubtitle />,
+        component: <TrialStep memberCount={memberCount} stepIndex={finalStepIndex} />,
+    });
 
     const currentStepData = steps[currentStep]
 

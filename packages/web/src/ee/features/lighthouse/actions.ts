@@ -142,18 +142,26 @@ export const createCheckoutSession = async ({
             // Resolve the candidate against AUTH_URL so absolute paths, protocol-
             // relative paths (`//evil.com`), and bare relative paths all get
             // normalized through the URL parser. Reject anything that lands off-
-            // origin or carries its own query / fragment — we own those.
-            let returnPath: string;
+            // origin, carries a fragment, or already uses the reserved query keys
+            // we append below.
+            let returnPathname: string;
+            let returnSearch: string;
             try {
                 const candidate = new URL(_returnPath, env.AUTH_URL);
                 const authOrigin = new URL(env.AUTH_URL).origin;
                 if (candidate.origin !== authOrigin) {
                     throw new Error('returnPath escapes AUTH_URL origin');
                 }
-                if (candidate.search || candidate.hash) {
-                    throw new Error('returnPath must not include query string or fragment');
+                if (candidate.hash) {
+                    throw new Error('returnPath must not include a fragment');
                 }
-                returnPath = candidate.pathname;
+                for (const reservedKey of ['checkout', 'session_id']) {
+                    if (candidate.searchParams.has(reservedKey)) {
+                        throw new Error(`returnPath must not include reserved query parameter: ${reservedKey}`);
+                    }
+                }
+                returnPathname = candidate.pathname;
+                returnSearch = candidate.search;
             } catch {
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,
@@ -166,9 +174,15 @@ export const createCheckoutSession = async ({
                 source,
                 requestTrial,
                 interval,
-                returnPath,
+                returnPath: `${returnPathname}${returnSearch}`,
                 quantity,
             });
+
+            // Build success/cancel URLs as raw strings so Stripe's literal
+            // `{CHECKOUT_SESSION_ID}` placeholder isn't URL-encoded by URL/
+            // URLSearchParams (Stripe substitutes the raw token, not %7B...%7D).
+            const stripeSuccessQuery = 'checkout=success&session_id={CHECKOUT_SESSION_ID}';
+            const successQuerySeparator = returnSearch ? '&' : '?';
 
             const result = await client.checkout({
                 email: user.email,
@@ -176,10 +190,8 @@ export const createCheckoutSession = async ({
                 quantity,
                 requestTrial,
                 interval,
-                // `{CHECKOUT_SESSION_ID}` is substituted server-side by Stripe at
-                // redirect time with the real session ID.
-                successUrl: `${env.AUTH_URL}${returnPath}?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-                cancelUrl: `${env.AUTH_URL}${returnPath}`,
+                successUrl: `${env.AUTH_URL}${returnPathname}${returnSearch}${successQuerySeparator}${stripeSuccessQuery}`,
+                cancelUrl: `${env.AUTH_URL}${returnPathname}${returnSearch}`,
             });
 
             if (isServiceError(result)) {
