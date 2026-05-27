@@ -1,5 +1,4 @@
 import { SBChatMessage, SBChatMessageMetadata } from "@/features/chat/types";
-import { getAnswerPartFromAssistantMessage } from "@/features/chat/utils";
 import { getFileSource } from '@/features/git';
 import { isServiceError } from "@/lib/utils";
 import { LanguageModelV3 as AISDKLanguageModelV3 } from "@ai-sdk/provider";
@@ -21,7 +20,7 @@ import { randomUUID } from "crypto";
 import _dedent from "dedent";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX } from "./constants";
 import { Source } from "./types";
-import { addLineNumbers, fileReferenceToString } from "./utils";
+import { addLineNumbers, fileReferenceToString, getAnswerPartFromAssistantMessage, getTurnProgressState } from "./utils";
 import { createTools } from "./tools";
 import { getConnectedMcpClients } from "@/ee/features/mcp/mcpClientFactory";
 import { getMcpTools, McpToolsResult } from "@/ee/features/mcp/mcpToolSets";
@@ -86,8 +85,10 @@ export const createMessageStream = async ({
 
     // Extract user messages and assistant answers.
     // We will use this as the context we carry between messages.
+    // Server requests always receive persisted messages between client streams, so evaluate them in the ready state.
+    const incomingTurnProgress = getTurnProgressState({ messages, status: 'ready' });
     let messageHistory: ModelMessage[] =
-        messages.map((message): ModelMessage | undefined => {
+        messages.map((message, index): ModelMessage | undefined => {
             if (message.role === 'user') {
                 return {
                     role: 'user',
@@ -96,7 +97,10 @@ export const createMessageStream = async ({
             }
 
             if (message.role === 'assistant') {
-                const answerPart = getAnswerPartFromAssistantMessage(message, false);
+                const isLatestIncompleteAssistantMessage =
+                    index === messages.length - 1 &&
+                    incomingTurnProgress.isTurnInProgress;
+                const answerPart = getAnswerPartFromAssistantMessage(message, isLatestIncompleteAssistantMessage);
                 if (answerPart) {
                     return {
                         role: 'assistant',
@@ -111,16 +115,17 @@ export const createMessageStream = async ({
     // approved. We need to preserve the full tool call + approval so streamText can
     // execute the approved tool and continue.
     const lastMsg = messages[messages.length - 1];
-    const hasApprovalResponses = lastMsg?.role === 'assistant' &&
-        lastMsg.parts.some(p => p.type === 'dynamic-tool' && p.state === 'approval-responded');
+    const hasApprovalContinuationReady =
+        lastMsg?.role === 'assistant' &&
+        incomingTurnProgress.hasApprovalContinuationReady;
 
     // When continuing after tool approval, capture the prior turn's metadata
     // so we can aggregate token counts and response times across phases.
-    const priorMetadata = hasApprovalResponses
+    const priorMetadata = hasApprovalContinuationReady
         ? (lastMsg.metadata as SBChatMessageMetadata | undefined)
         : undefined;
 
-    if (hasApprovalResponses) {
+    if (hasApprovalContinuationReady) {
         const fullLastTurn = await convertToModelMessages(
             [lastMsg],
             { ignoreIncompleteToolCalls: true }

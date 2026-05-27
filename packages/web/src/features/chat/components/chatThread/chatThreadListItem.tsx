@@ -6,13 +6,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { CSSProperties, forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import scrollIntoView from 'scroll-into-view-if-needed';
-import { DynamicToolUIPart } from "ai";
 import { Reference, referenceSchema, SBChatMessage, Source } from "../../types";
 import { useExtractReferences } from '../../useExtractReferences';
-import { getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences, tryResolveFileReference } from '../../utils';
+import { getAnswerPartFromAssistantMessage, getLastStepParts, groupMessageIntoSteps, isSBChatToolPart, repairReferences, tryResolveFileReference } from '../../utils';
 import { AnswerCard } from './answerCard';
 import { DetailsCard } from './detailsCard';
-import { ToolApprovalBanner } from './toolApprovalBanner';
+import { ApprovalRequestedToolPart, ToolApprovalBanner } from './toolApprovalBanner';
 import { MarkdownRenderer, REFERENCE_PAYLOAD_ATTRIBUTE } from './markdownRenderer';
 import { ReferencedSourcesListView } from './referencedSourcesListView';
 import isEqual from "fast-deep-equal/react";
@@ -21,7 +20,9 @@ import { ANSWER_TAG } from '../../constants';
 interface ChatThreadListItemProps {
     userMessage: SBChatMessage;
     assistantMessage?: SBChatMessage;
-    isStreaming: boolean;
+    isTurnInProgress: boolean;
+    isNetworkActive: boolean;
+    isAwaitingToolApproval: boolean;
     sources: Source[];
     chatId: string;
     index: number;
@@ -30,7 +31,9 @@ interface ChatThreadListItemProps {
 const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListItemProps>(({
     userMessage,
     assistantMessage: _assistantMessage,
-    isStreaming,
+    isTurnInProgress,
+    isNetworkActive,
+    isAwaitingToolApproval,
     sources,
     chatId,
     index,
@@ -41,7 +44,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
 
     const [hoveredReference, setHoveredReference] = useState<Reference | undefined>(undefined);
     const [selectedReference, setSelectedReference] = useState<Reference | undefined>(undefined);
-    const [isDetailsPanelExpanded, _setIsDetailsPanelExpanded] = useState(isStreaming);
+    const [isDetailsPanelExpanded, _setIsDetailsPanelExpanded] = useState(isNetworkActive);
     const hasAutoCollapsed = useRef(false);
     const userHasManuallyExpanded = useRef(false);
 
@@ -80,8 +83,8 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
             return undefined;
         }
 
-        return getAnswerPartFromAssistantMessage(assistantMessage, isStreaming);
-    }, [assistantMessage, isStreaming]);
+        return getAnswerPartFromAssistantMessage(assistantMessage, isTurnInProgress);
+    }, [assistantMessage, isTurnInProgress]);
 
 
     // Groups parts into steps that are associated with thinking steps that
@@ -119,17 +122,17 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
 
     // "thinking" is when the agent is generating output that is not the answer.
     const isThinking = useMemo(() => {
-        return isStreaming && !answerPart
-    }, [answerPart, isStreaming]);
+        return isNetworkActive && !answerPart
+    }, [answerPart, isNetworkActive]);
 
     // Extract MCP tool parts that are waiting for user approval.
-    const approvalRequestedParts = useMemo((): DynamicToolUIPart[] => {
+    const approvalRequestedParts = useMemo((): ApprovalRequestedToolPart[] => {
         if (!assistantMessage) {
             return [];
         }
-        return assistantMessage.parts.filter(
-            (part): part is DynamicToolUIPart => part.type === 'dynamic-tool' && part.state === 'approval-requested'
-        );
+        return getLastStepParts(assistantMessage.parts)
+            .filter(isSBChatToolPart)
+            .filter((part): part is ApprovalRequestedToolPart => part.state === 'approval-requested');
     }, [assistantMessage]);
 
 
@@ -344,7 +347,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                         className="py-4 h-full"
                     >
                         <div className="flex flex-row gap-2 mb-4">
-                            {isStreaming ? (
+                            {isTurnInProgress ? (
                                 <Loader2 className="w-4 h-4 animate-spin flex-shrink-0 mt-1.5" />
                             ) : (
                                 <CheckCircle className="w-4 h-4 text-green-700 flex-shrink-0 mt-1.5" />
@@ -372,7 +375,9 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                             isExpanded={isDetailsPanelExpanded}
                             onExpandedChanged={onExpandDetailsPanel}
                             isThinking={isThinking}
-                            isStreaming={isStreaming}
+                            isTurnInProgress={isTurnInProgress}
+                            isNetworkActive={isNetworkActive}
+                            isAwaitingToolApproval={isAwaitingToolApproval}
                             thinkingSteps={uiVisibleThinkingSteps}
                             metadata={assistantMessage?.metadata}
                         />
@@ -390,7 +395,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                                 traceId={assistantMessage.metadata?.traceId}
                                 sources={referencedFileSources}
                             />
-                        ) : !isStreaming && approvalRequestedParts.length === 0 && (
+                        ) : !isTurnInProgress && approvalRequestedParts.length === 0 && (
                             <p className="text-destructive">Error: No answer response was provided</p>
                         )}
                     </div>
@@ -421,7 +426,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                                 onHoveredReferenceChanged={setHoveredReference}
                                 style={rightPanelStyle}
                             />
-                        ) : isStreaming ? (
+                        ) : isNetworkActive ? (
                             <div className="space-y-4">
                                 {Array.from({ length: 3 }).map((_, index) => (
                                     <Skeleton key={index} className="w-full h-48" />
@@ -449,15 +454,19 @@ const arePropsEqual = (
     prevProps: ChatThreadListItemProps,
     nextProps: ChatThreadListItemProps
 ): boolean => {
-    // Always re-render if streaming status changes
-    if (prevProps.isStreaming !== nextProps.isStreaming) {
+    // Always re-render if turn/network/approval status changes
+    if (
+        prevProps.isTurnInProgress !== nextProps.isTurnInProgress ||
+        prevProps.isNetworkActive !== nextProps.isNetworkActive ||
+        prevProps.isAwaitingToolApproval !== nextProps.isAwaitingToolApproval
+    ) {
         return false;
     }
 
-    // If currently streaming, always allow re-render
+    // If currently network-active, always allow re-render
     // This bypasses the fast-deep-equal reference check issue when useChat
     // mutates message objects in place during token streaming
-    if (nextProps.isStreaming) {
+    if (nextProps.isNetworkActive) {
         return false;
     }
 

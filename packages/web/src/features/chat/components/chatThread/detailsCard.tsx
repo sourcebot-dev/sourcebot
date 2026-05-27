@@ -9,7 +9,7 @@ import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { cn, getShortenedNumberDisplayString } from '@/lib/utils';
 import isEqual from "fast-deep-equal/react";
 import { useStickToBottom } from 'use-stick-to-bottom';
-import { Brain, ChevronDown, ChevronRight, Clock, InfoIcon, Loader2, ScanSearchIcon, Wrench, Zap } from 'lucide-react';
+import { Brain, ChevronDown, ChevronRight, Clock, InfoIcon, Loader2, ScanSearchIcon, ShieldQuestion, Wrench, Zap } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { usePrevious } from '@uidotdev/usehooks';
 import { SBChatMessageMetadata, SBChatMessagePart } from '../../types';
@@ -34,7 +34,9 @@ interface DetailsCardProps {
     isExpanded: boolean;
     onExpandedChanged: (isExpanded: boolean) => void;
     isThinking: boolean;
-    isStreaming: boolean;
+    isTurnInProgress: boolean;
+    isNetworkActive: boolean;
+    isAwaitingToolApproval: boolean;
     thinkingSteps: SBChatMessagePart[][];
     metadata?: SBChatMessageMetadata;
 }
@@ -44,7 +46,9 @@ const DetailsCardComponent = ({
     isExpanded,
     onExpandedChanged,
     isThinking,
-    isStreaming,
+    isTurnInProgress,
+    isNetworkActive,
+    isAwaitingToolApproval,
     metadata,
     thinkingSteps,
 }: DetailsCardProps) => {
@@ -79,6 +83,11 @@ const DetailsCardComponent = ({
                                             <Loader2 className="w-4 h-4 animate-spin mr-1 flex-shrink-0" />
                                             Thinking...
                                         </>
+                                    ) : isAwaitingToolApproval ? (
+                                        <>
+                                            <ShieldQuestion className="w-4 h-4 mr-1 flex-shrink-0" />
+                                            Awaiting permission...
+                                        </>
                                     ) : (
                                         <>
                                             <InfoIcon className="w-4 h-4 mr-1 flex-shrink-0" />
@@ -86,7 +95,7 @@ const DetailsCardComponent = ({
                                         </>
                                     )}
                                 </p>
-                                {!isStreaming && (
+                                {!isTurnInProgress && (
                                     <>
                                         <Separator orientation="vertical" className="h-4" />
                                         {(metadata?.selectedSearchScopes && metadata.selectedSearchScopes.length > 0) && (
@@ -171,7 +180,7 @@ const DetailsCardComponent = ({
                     <CardContent className="mt-2 p-0">
                         <ThinkingSteps
                             thinkingSteps={thinkingSteps}
-                            isStreaming={isStreaming}
+                            isNetworkActive={isNetworkActive}
                             isThinking={isThinking}
                         />
                     </CardContent>
@@ -184,7 +193,7 @@ const DetailsCardComponent = ({
 export const DetailsCard = memo(DetailsCardComponent, isEqual);
 
 
-const ThinkingSteps = ({ thinkingSteps, isStreaming, isThinking }: { thinkingSteps: SBChatMessagePart[][], isStreaming: boolean, isThinking: boolean }) => {
+const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking }: { thinkingSteps: SBChatMessagePart[][], isNetworkActive: boolean, isThinking: boolean }) => {
     const { scrollRef, contentRef, scrollToBottom } = useStickToBottom();
     const [shouldStick, setShouldStick] = useState(isThinking);
     const prevIsThinking = usePrevious(isThinking);
@@ -202,7 +211,7 @@ const ThinkingSteps = ({ thinkingSteps, isStreaming, isThinking }: { thinkingSte
         <div ref={scrollRef} className="max-h-[350px] overflow-y-auto px-6 py-2">
             <div ref={shouldStick ? contentRef : undefined}>
                 {thinkingSteps.length === 0 ? (
-                    isStreaming ? (
+                    isNetworkActive ? (
                         <Skeleton className="h-24 w-full" />
                     ) : (
                         <p className="text-sm text-muted-foreground">No thinking steps</p>

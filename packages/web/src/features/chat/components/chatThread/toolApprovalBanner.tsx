@@ -4,15 +4,20 @@ import { Button } from "@/components/ui/button";
 import { McpFavicon } from "@/ee/features/mcp/components/mcpFavicon";
 import { useMcpServerIconMap } from "@/features/chat/mcpServerIconContext";
 import { useToolApproval } from "@/features/chat/toolApprovalContext";
+import { SBChatToolPart } from "@/features/chat/utils";
 import { cn } from "@/lib/utils";
-import { DynamicToolUIPart } from "ai";
+import { getToolName } from "ai";
 import { ChevronRight } from "lucide-react";
 import { useCallback, useState } from "react";
 import { parseMcpToolName } from "./tools/mcpToolComponent";
 import { JsonHighlighter } from "./tools/jsonHighlighter";
 
+export type ApprovalRequestedToolPart = SBChatToolPart & {
+    state: 'approval-requested';
+};
+
 interface ToolApprovalBannerProps {
-    parts: DynamicToolUIPart[];
+    parts: ApprovalRequestedToolPart[];
 }
 
 export const ToolApprovalBanner = ({ parts }: ToolApprovalBannerProps) => {
@@ -42,18 +47,18 @@ const ToolApprovalItem = ({
     addToolApprovalResponse,
     iconMap,
 }: {
-    part: DynamicToolUIPart;
+    part: ApprovalRequestedToolPart;
     addToolApprovalResponse: ReturnType<typeof useToolApproval>;
     iconMap: Record<string, string | undefined>;
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const parsed = parseMcpToolName(part.toolName);
-    const serverName = parsed?.serverName ?? part.toolName;
-    const toolName = parsed?.toolName ?? part.toolName;
+    const partToolName = getToolName(part);
+    const parsed = parseMcpToolName(partToolName);
+    const serverName = parsed?.serverName ?? partToolName;
+    const toolName = parsed?.toolName ?? partToolName;
     const faviconUrl = parsed ? iconMap[parsed.serverName] : undefined;
 
-    const hasInput = part.state !== 'input-streaming';
-    const requestText = hasInput ? JSON.stringify(part.input, null, 2) : '';
+    const requestText = JSON.stringify(part.input, null, 2);
 
     const onToggle = useCallback(() => setIsExpanded(v => !v), []);
 
@@ -78,7 +83,15 @@ const ToolApprovalItem = ({
                 >
                     <McpFavicon faviconUrl={faviconUrl} className="w-4 h-4" />
                     <span className="text-sm text-foreground truncate">
-                        Agent wants to use <span className="font-medium">{toolName}</span> from <span className="font-medium">{serverName}</span>
+                        {parsed ? (
+                            <>
+                                Agent wants to use <span className="font-medium">{toolName}</span> from <span className="font-medium">{serverName}</span>
+                            </>
+                        ) : (
+                            <>
+                                Agent wants to use <span className="font-medium">{toolName}</span>
+                            </>
+                        )}
                     </span>
                     <ChevronRight className={cn("w-3.5 h-3.5 flex-shrink-0 text-muted-foreground transition-transform", isExpanded && "rotate-90")} />
                 </button>
@@ -91,7 +104,7 @@ const ToolApprovalItem = ({
                     </Button>
                 </div>
             </div>
-            {hasInput && isExpanded && (
+            {isExpanded && (
                 <div className="border-t border-border px-3 py-2 max-h-72 overflow-y-auto text-xs text-muted-foreground">
                     <JsonHighlighter text={requestText} />
                 </div>

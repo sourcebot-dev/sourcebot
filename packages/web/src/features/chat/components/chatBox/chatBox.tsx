@@ -34,7 +34,8 @@ interface ChatBoxProps {
     preferredSuggestionsBoxPlacement?: "top-start" | "bottom-start";
     className?: string;
     isRedirecting?: boolean;
-    isGenerating?: boolean;
+    isTurnInProgress?: boolean;
+    isNetworkActive?: boolean;
     isDisabled?: boolean;
     languageModels: LanguageModelInfo[];
     selectedSearchScopes: SearchScope[];
@@ -49,7 +50,8 @@ const ChatBoxComponent = ({
     preferredSuggestionsBoxPlacement = "bottom-start",
     className,
     isRedirecting,
-    isGenerating,
+    isTurnInProgress,
+    isNetworkActive,
     isDisabled,
     isLoginWallEnabled,
     isAuthenticated,
@@ -139,7 +141,7 @@ const ChatBoxComponent = ({
             }
         }
 
-        if (isGenerating) {
+        if (isTurnInProgress) {
             return {
                 isSubmitDisabled: true,
                 isSubmitDisabledReason: "generating",
@@ -159,7 +161,7 @@ const ChatBoxComponent = ({
             isSubmitDisabledReason: undefined,
         }
 
-    }, [editor.children, isRedirecting, isGenerating, selectedLanguageModel])
+    }, [editor.children, isRedirecting, isTurnInProgress, selectedLanguageModel])
 
     const {
         requiresLogin,
@@ -367,7 +369,7 @@ const ChatBoxComponent = ({
                 className={cn("flex flex-col justify-between gap-0.5 w-full px-3 py-2", className)}
             >
                 <Editable
-                    className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-sm disabled:cursor-not-allowed disabled:opacity-50 max-h-64 overflow-y-auto"
+                    className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm max-h-64 overflow-y-auto"
                     placeholder="Ask a question about your code. @mention files or select search scopes to refine your query."
                     renderElement={renderElement}
                     renderLeaf={renderLeaf}
@@ -385,7 +387,7 @@ const ChatBoxComponent = ({
                             <Loader2 className="w-4 h-4 animate-spin" />
                         </Button>
                     ) :
-                        isGenerating ? (
+                        isNetworkActive ? (
                             <Button
                                 variant="default"
                                 size="sm"

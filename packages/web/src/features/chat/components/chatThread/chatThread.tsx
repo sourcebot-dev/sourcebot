@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
 import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, SearchScope, Source } from '@/features/chat/types';
-import { createUIMessage, getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
+import { createUIMessage, getAllMentionElements, getTurnProgressState, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
 import { ArrowDownIcon, CopyIcon } from 'lucide-react';
@@ -129,19 +129,22 @@ export const ChatThread = ({
     useEffect(() => { modelRef.current = selectedLanguageModel; }, [selectedLanguageModel]);
     useEffect(() => { disabledMcpRef.current = disabledMcpServerIds; }, [disabledMcpServerIds]);
 
-    // Transport with dynamic body — resolved on every request (including auto-resends
-    // triggered by sendAutomaticallyWhen after tool approval).
+    const getTransportBody = useCallback(() => ({
+        selectedSearchScopes: searchScopesRef.current,
+        languageModel: modelRef.current,
+        disabledMcpServerIds: disabledMcpRef.current,
+    }), []);
+
+    // Transport with dynamic body, resolved on every request, including auto-resends
+    // triggered by sendAutomaticallyWhen after tool approval.
+    // eslint-disable-next-line react-hooks/refs -- DefaultChatTransport stores the body callback and invokes it during requests, not during render.
     const transport = useMemo(() => new DefaultChatTransport({
         api: '/api/chat',
         headers: {
             'X-Sourcebot-Client-Source': 'sourcebot-web-client',
         },
-        body: () => ({
-            selectedSearchScopes: searchScopesRef.current,
-            languageModel: modelRef.current,
-            disabledMcpServerIds: disabledMcpRef.current,
-        }),
-    }), []);
+        body: getTransportBody,
+    }), [getTransportBody]);
 
     const {
         messages,
@@ -237,6 +240,12 @@ export const ChatThread = ({
 
 
     const messagePairs = useMessagePairs(messages);
+    const {
+        isTurnInProgress,
+        isNetworkActive,
+        isAwaitingToolApproval,
+        shouldGuardNavigation,
+    } = useMemo(() => getTurnProgressState({ messages, status }), [messages, status]);
 
     useNavigationGuard({
         enabled: ({ type }) => {
@@ -248,7 +257,7 @@ export const ChatThread = ({
                 return false;
             }
 
-            return status === "streaming" || status === "submitted";
+            return shouldGuardNavigation;
         },
         confirm: () => window.confirm("You have unsaved changes that will be lost."),
     });
@@ -401,7 +410,9 @@ export const ChatThread = ({
                                 <>
                                     {messagePairs.map(([userMessage, assistantMessage], index) => {
                                         const isLastPair = index === messagePairs.length - 1;
-                                        const isStreaming = isLastPair && (status === "streaming" || status === "submitted");
+                                        const isPairTurnInProgress = isLastPair && isTurnInProgress;
+                                        const isPairNetworkActive = isLastPair && isNetworkActive;
+                                        const isPairAwaitingToolApproval = isLastPair && isAwaitingToolApproval;
                                         // Use a stable key based on user message ID
                                         const key = userMessage.id;
 
@@ -412,7 +423,9 @@ export const ChatThread = ({
                                                     chatId={chatId}
                                                     userMessage={userMessage}
                                                     assistantMessage={assistantMessage}
-                                                    isStreaming={isStreaming}
+                                                    isTurnInProgress={isPairTurnInProgress}
+                                                    isNetworkActive={isPairNetworkActive}
+                                                    isAwaitingToolApproval={isPairAwaitingToolApproval}
                                                     sources={sources}
                                                 />
                                                 {index !== messagePairs.length - 1 && (
@@ -427,7 +440,7 @@ export const ChatThread = ({
                     </div>
                 </div>
                 {
-                    (!isAtBottom && status === "streaming") && (
+                    (!isAtBottom && isNetworkActive) && (
                         <div className="absolute bottom-5 left-0 right-0 h-10 flex flex-row items-center justify-center">
                             <Button
                                 variant="outline"
@@ -447,7 +460,7 @@ export const ChatThread = ({
                     isAuthenticated={isAuthenticated}
                     isOwner={isOwner}
                     hasMessages={messages.length > 0}
-                    isStreaming={status === "streaming" || status === "submitted"}
+                    isTurnInProgress={isTurnInProgress}
                 />
                 {isOwner ? (
                     <>
@@ -461,7 +474,8 @@ export const ChatThread = ({
                                     onSubmit={onSubmit}
                                     className="min-h-[80px]"
                                     preferredSuggestionsBoxPlacement="top-start"
-                                    isGenerating={status === "streaming" || status === "submitted"}
+                                    isTurnInProgress={isTurnInProgress}
+                                    isNetworkActive={isNetworkActive}
                                     onStop={stop}
                                     languageModels={languageModels}
                                     selectedSearchScopes={selectedSearchScopes}

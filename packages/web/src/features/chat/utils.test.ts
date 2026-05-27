@@ -1,5 +1,5 @@
 import { expect, test, describe, vi } from 'vitest'
-import { createUIMessage, fileReferenceToString, getAnswerPartFromAssistantMessage, groupMessageIntoSteps, repairReferences } from './utils'
+import { createUIMessage, fileReferenceToString, getAnswerPartFromAssistantMessage, getLastStepParts, getTurnProgressState, groupMessageIntoSteps, repairReferences } from './utils'
 import { FILE_REFERENCE_REGEX, ANSWER_TAG } from './constants';
 import { SBChatMessage, SBChatMessagePart } from './types';
 
@@ -9,6 +9,95 @@ vi.mock('@sourcebot/shared', () => ({
         SOURCEBOT_CHAT_FILE_MAX_CHARACTERS: 4000,
     }
 }));
+
+const createAssistantMessage = (parts: SBChatMessagePart[]): SBChatMessage => ({
+    id: 'assistant-message',
+    role: 'assistant',
+    parts,
+});
+
+const createUserMessage = (): SBChatMessage => ({
+    id: 'user-message',
+    role: 'user',
+    parts: [
+        {
+            type: 'text',
+            text: 'Hello',
+        },
+    ],
+});
+
+const dynamicApprovalRequestedPart = {
+    type: 'dynamic-tool',
+    toolName: 'mcp_linear__save_issue',
+    toolCallId: 'tool-call-1',
+    state: 'approval-requested',
+    input: { title: 'Issue' },
+    approval: { id: 'approval-1' },
+} satisfies SBChatMessagePart;
+
+const dynamicApprovalRespondedPart = {
+    type: 'dynamic-tool',
+    toolName: 'mcp_linear__save_issue',
+    toolCallId: 'tool-call-1',
+    state: 'approval-responded',
+    input: { title: 'Issue' },
+    approval: { id: 'approval-1', approved: true },
+} satisfies SBChatMessagePart;
+
+const listReposInput = {
+    sort: 'name',
+    page: 1,
+    perPage: 30,
+    direction: 'asc',
+} as const;
+
+const listReposOutput = {
+    output: 'Done',
+    metadata: {
+        repos: [],
+        totalCount: 0,
+    },
+};
+
+const staticApprovalRequestedPart = {
+    type: 'tool-list_repos',
+    toolCallId: 'tool-call-2',
+    state: 'approval-requested',
+    input: listReposInput,
+    approval: { id: 'approval-2' },
+} satisfies SBChatMessagePart;
+
+const staticApprovalRespondedPart = {
+    type: 'tool-list_repos',
+    toolCallId: 'tool-call-2',
+    state: 'approval-responded',
+    input: listReposInput,
+    approval: { id: 'approval-2', approved: true },
+} satisfies SBChatMessagePart;
+
+const outputAvailablePart = {
+    type: 'tool-list_repos',
+    toolCallId: 'tool-call-3',
+    state: 'output-available',
+    input: listReposInput,
+    output: listReposOutput,
+} satisfies SBChatMessagePart;
+
+const outputErrorPart = {
+    type: 'tool-list_repos',
+    toolCallId: 'tool-call-5',
+    state: 'output-error',
+    input: listReposInput,
+    errorText: 'Tool failed',
+} satisfies SBChatMessagePart;
+
+const inputAvailablePart = {
+    type: 'tool-list_repos',
+    toolCallId: 'tool-call-4',
+    state: 'input-available',
+    input: listReposInput,
+} satisfies SBChatMessagePart;
 
 
 test('fileReferenceToString formats file references correctly', () => {
@@ -148,7 +237,212 @@ test('groupMessageIntoSteps returns a single group when there is no step-start p
     ]);
 });
 
-test('getAnswerPartFromAssistantMessage returns text part when it starts with ANSWER_TAG while not streaming', () => {
+test('getLastStepParts returns the last grouped step', () => {
+    const parts: SBChatMessagePart[] = [
+        {
+            type: 'step-start',
+        },
+        {
+            type: 'text',
+            text: 'First step',
+        },
+        {
+            type: 'step-start',
+        },
+        {
+            type: 'text',
+            text: 'Last step',
+        },
+    ];
+
+    const lastStep = getLastStepParts(parts);
+
+    expect(lastStep).toEqual([
+        {
+            type: 'step-start',
+        },
+        {
+            type: 'text',
+            text: 'Last step',
+        },
+    ]);
+});
+
+test('getTurnProgressState treats submitted and streaming as in progress and navigation guarded', () => {
+    expect(getTurnProgressState({ messages: [createUserMessage()], status: 'submitted' })).toMatchObject({
+        isNetworkActive: true,
+        isTurnInProgress: true,
+        shouldGuardNavigation: true,
+    });
+    expect(getTurnProgressState({ messages: [createUserMessage()], status: 'streaming' })).toMatchObject({
+        isNetworkActive: true,
+        isTurnInProgress: true,
+        shouldGuardNavigation: true,
+    });
+});
+
+test('getTurnProgressState returns idle for no messages and latest user message when ready', () => {
+    expect(getTurnProgressState({ messages: [], status: 'ready' })).toMatchObject({
+        isNetworkActive: false,
+        isTurnInProgress: false,
+        shouldGuardNavigation: false,
+    });
+    expect(getTurnProgressState({ messages: [createUserMessage()], status: 'ready' })).toMatchObject({
+        isNetworkActive: false,
+        isTurnInProgress: false,
+        shouldGuardNavigation: false,
+    });
+});
+
+test('getTurnProgressState treats latest-step approval-requested as awaiting approval but not navigation guarded', () => {
+    const message = createAssistantMessage([
+        {
+            type: 'step-start',
+        },
+        dynamicApprovalRequestedPart,
+    ]);
+
+    expect(getTurnProgressState({ messages: [createUserMessage(), message], status: 'ready' })).toMatchObject({
+        hasPendingToolApproval: true,
+        isAwaitingToolApproval: true,
+        isTurnInProgress: true,
+        shouldGuardNavigation: false,
+    });
+});
+
+test('getTurnProgressState treats approval continuation readiness as in progress and navigation guarded', () => {
+    const message = createAssistantMessage([
+        {
+            type: 'step-start',
+        },
+        dynamicApprovalRespondedPart,
+        outputAvailablePart,
+    ]);
+
+    expect(getTurnProgressState({ messages: [createUserMessage(), message], status: 'ready' })).toMatchObject({
+        hasApprovalContinuationReady: true,
+        isAwaitingToolApproval: false,
+        isTurnInProgress: true,
+        shouldGuardNavigation: true,
+    });
+});
+
+test('getTurnProgressState treats approval-responded and output-error as continuation-ready', () => {
+    const message = createAssistantMessage([
+        {
+            type: 'step-start',
+        },
+        dynamicApprovalRespondedPart,
+        outputErrorPart,
+    ]);
+
+    expect(getTurnProgressState({ messages: [createUserMessage(), message], status: 'ready' })).toMatchObject({
+        hasApprovalContinuationReady: true,
+        isTurnInProgress: true,
+        shouldGuardNavigation: true,
+    });
+});
+
+test('getTurnProgressState does not treat a responded approval with non-terminal tools as continuation-ready', () => {
+    const message = createAssistantMessage([
+        {
+            type: 'step-start',
+        },
+        dynamicApprovalRespondedPart,
+        inputAvailablePart,
+    ]);
+
+    expect(getTurnProgressState({ messages: [createUserMessage(), message], status: 'ready' })).toMatchObject({
+        hasApprovalContinuationReady: false,
+        isTurnInProgress: false,
+        shouldGuardNavigation: false,
+    });
+});
+
+test('getTurnProgressState does not keep terminal tool states in progress', () => {
+    const message = createAssistantMessage([
+        {
+            type: 'step-start',
+        },
+        outputAvailablePart,
+    ]);
+
+    expect(getTurnProgressState({ messages: [createUserMessage(), message], status: 'ready' })).toMatchObject({
+        hasPendingToolApproval: false,
+        hasApprovalContinuationReady: false,
+        isTurnInProgress: false,
+    });
+});
+
+test('getTurnProgressState treats error as not in progress even with pending approval', () => {
+    const message = createAssistantMessage([
+        {
+            type: 'step-start',
+        },
+        dynamicApprovalRequestedPart,
+    ]);
+
+    expect(getTurnProgressState({ messages: [createUserMessage(), message], status: 'error' })).toMatchObject({
+        hasPendingToolApproval: true,
+        isTurnInProgress: false,
+        shouldGuardNavigation: false,
+    });
+});
+
+test('getTurnProgressState ignores approvals in older messages and older steps', () => {
+    const olderMessage = createAssistantMessage([
+        {
+            type: 'step-start',
+        },
+        dynamicApprovalRequestedPart,
+    ]);
+    const latestMessage = createAssistantMessage([
+        {
+            type: 'step-start',
+        },
+        dynamicApprovalRequestedPart,
+        {
+            type: 'step-start',
+        },
+        {
+            type: 'text',
+            text: 'Later step',
+        },
+    ]);
+
+    expect(getTurnProgressState({ messages: [createUserMessage(), olderMessage, createUserMessage()], status: 'ready' })).toMatchObject({
+        isTurnInProgress: false,
+    });
+    expect(getTurnProgressState({ messages: [createUserMessage(), latestMessage], status: 'ready' })).toMatchObject({
+        isTurnInProgress: false,
+    });
+});
+
+test('getTurnProgressState classifies dynamic and static tool approvals', () => {
+    expect(getTurnProgressState({
+        messages: [createAssistantMessage([dynamicApprovalRequestedPart])],
+        status: 'ready',
+    })).toMatchObject({
+        hasPendingToolApproval: true,
+        isAwaitingToolApproval: true,
+    });
+    expect(getTurnProgressState({
+        messages: [createAssistantMessage([staticApprovalRequestedPart])],
+        status: 'ready',
+    })).toMatchObject({
+        hasPendingToolApproval: true,
+        isAwaitingToolApproval: true,
+    });
+    expect(getTurnProgressState({
+        messages: [createAssistantMessage([staticApprovalRespondedPart])],
+        status: 'ready',
+    })).toMatchObject({
+        hasApprovalContinuationReady: true,
+        shouldGuardNavigation: true,
+    });
+});
+
+test('getAnswerPartFromAssistantMessage returns text part when it starts with ANSWER_TAG while turn is complete', () => {
     const message: SBChatMessage = {
         role: 'assistant',
         parts: [
@@ -171,7 +465,7 @@ test('getAnswerPartFromAssistantMessage returns text part when it starts with AN
     });
 });
 
-test('getAnswerPartFromAssistantMessage returns text part when it starts with ANSWER_TAG while streaming', () => {
+test('getAnswerPartFromAssistantMessage returns text part when it starts with ANSWER_TAG while turn is in progress', () => {
     const message: SBChatMessage = {
         role: 'assistant',
         parts: [
@@ -194,7 +488,7 @@ test('getAnswerPartFromAssistantMessage returns text part when it starts with AN
     });
 });
 
-test('getAnswerPartFromAssistantMessage returns last text part as fallback when not streaming and no ANSWER_TAG', () => {
+test('getAnswerPartFromAssistantMessage returns last text part as fallback when turn is complete and no ANSWER_TAG', () => {
     const message: SBChatMessage = {
         role: 'assistant',
         parts: [
@@ -223,7 +517,7 @@ test('getAnswerPartFromAssistantMessage returns last text part as fallback when 
     });
 });
 
-test('getAnswerPartFromAssistantMessage returns undefined when streaming and no ANSWER_TAG', () => {
+test('getAnswerPartFromAssistantMessage returns undefined when turn is in progress and no ANSWER_TAG', () => {
     const message: SBChatMessage = {
         role: 'assistant',
         parts: [
