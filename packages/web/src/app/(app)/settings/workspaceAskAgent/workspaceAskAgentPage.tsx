@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Collapsible } from "@/components/ui/collapsible";
 import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -22,8 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { checkMcpServerDynamicClientRegistration, createMcpServer, createStaticOAuthMcpServer, deleteMcpServer } from "@/ee/features/mcp/actions";
 import { ConnectMcpButton } from "@/ee/features/mcp/components/connectMcpButton";
-import { ConnectorRowInfo } from "@/ee/features/mcp/components/connectorRowInfo";
-import { ConnectorToolList, ConnectorToolTrigger } from "@/ee/features/mcp/components/connectorToolDisclosure";
+import { ConnectorCard } from "@/ee/features/mcp/components/connectorCard";
 import { useMcpToolMetadata } from "@/ee/features/mcp/hooks/useMcpToolMetadata";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/mcp/queryKeys";
 import { pluralize } from "@/ee/features/mcp/utils";
@@ -80,93 +78,74 @@ function WorkspaceConnectorCard({
     onCopyUrl,
     onDelete,
 }: WorkspaceConnectorCardProps) {
-    const [isToolListOpen, setIsToolListOpen] = useState(false);
     const isConnected = status?.isConnected === true;
     const isAuthExpired = status?.isAuthExpired === true;
     const isStatusUnavailable = isOAuthAvailable !== true || isStatusLoading || isStatusError || !status;
-    const availableToolEntry = isConnected ? toolEntry : undefined;
-    const hasToolList = availableToolEntry?.status === 'available';
-    const isLoadingToolsForServer = isConnected && !availableToolEntry && isToolsLoading;
     const showConnectButton = isOAuthAvailable && !isStatusLoading && !isStatusError && !!status && !isConnected;
 
     return (
-        <Collapsible
-            open={hasToolList && isToolListOpen}
-            onOpenChange={(open) => setIsToolListOpen(hasToolList ? open : false)}
-        >
-            <Card>
-                <CardContent className="p-3">
-                    <div className="flex items-center gap-3">
-                        <ConnectorRowInfo
-                            faviconUrl={server.faviconUrl}
-                            name={server.name}
-                            serverUrl={server.serverUrl}
+        <ConnectorCard
+            faviconUrl={server.faviconUrl}
+            name={server.name}
+            serverUrl={server.serverUrl}
+            isConnected={isConnected}
+            isAuthExpired={isAuthExpired}
+            isOAuthAvailable={isOAuthAvailable}
+            isStatusUnavailable={isStatusUnavailable}
+            toolEntry={isConnected ? toolEntry : undefined}
+            isToolsLoading={isToolsLoading}
+            isToolsError={isToolsError}
+            onRetryTools={onRetryTools}
+            statusBadge={
+                <span className={cn(
+                    "inline-flex items-center gap-1.5",
+                    server.savedConnectionCount > 0 ? "text-green-600 dark:text-green-400" : "text-muted-foreground",
+                )}>
+                    <span className={cn(
+                        "h-1.5 w-1.5 rounded-full",
+                        server.savedConnectionCount > 0 ? "bg-green-500/80" : "bg-muted-foreground",
+                    )} />
+                    {server.savedConnectionCount > 0
+                        ? `${server.savedConnectionCount} ${pluralize(server.savedConnectionCount, "member")} connected`
+                        : "No members connected"}
+                </span>
+            }
+            actionButtons={
+                <>
+                    {showConnectButton && (
+                        <ConnectMcpButton
+                            serverId={server.id}
+                            isConnected={isConnected}
+                            isAuthExpired={isAuthExpired}
                             size="sm"
-                        >
-                            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                                <span className={cn(
-                                    "inline-flex items-center gap-1.5",
-                                    server.savedConnectionCount > 0 ? "text-green-600 dark:text-green-400" : "text-muted-foreground",
-                                )}>
-                                    <span className={cn(
-                                        "h-1.5 w-1.5 rounded-full",
-                                        server.savedConnectionCount > 0 ? "bg-green-500/80" : "bg-muted-foreground",
-                                    )} />
-                                    {server.savedConnectionCount > 0
-                                        ? `${server.savedConnectionCount} ${pluralize(server.savedConnectionCount, "member")} connected`
-                                        : "No members connected"}
-                                </span>
-                                <ConnectorToolTrigger
-                                    isConnected={isConnected}
-                                    isAuthExpired={isAuthExpired}
-                                    isOAuthAvailable={isOAuthAvailable}
-                                    isStatusUnavailable={isStatusUnavailable}
-                                    toolEntry={availableToolEntry}
-                                    isLoading={isLoadingToolsForServer}
-                                    isToolsQueryError={isConnected && isToolsError}
-                                    isOpen={isToolListOpen}
-                                    onRetry={onRetryTools}
-                                />
-                            </div>
-                        </ConnectorRowInfo>
-                        <div className="flex shrink-0 items-center gap-1.5">
-                            {showConnectButton && (
-                                <ConnectMcpButton
-                                    serverId={server.id}
-                                    isConnected={isConnected}
-                                    isAuthExpired={isAuthExpired}
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8"
-                                    returnTo="/settings/workspaceAskAgent"
-                                />
-                            )}
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <MoreHorizontalIcon className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => onCopyUrl(server.serverUrl)}>
-                                        <CopyIcon className="h-4 w-4 mr-2" />
-                                        Copy URL
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        className="text-destructive focus:text-destructive"
-                                        onClick={() => onDelete(server)}
-                                    >
-                                        <Trash2Icon className="h-4 w-4 mr-2" />
-                                        Remove
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </div>
-                    <ConnectorToolList toolEntry={availableToolEntry} />
-                </CardContent>
-            </Card>
-        </Collapsible>
+                            variant="outline"
+                            className="h-8"
+                            returnTo="/settings/workspaceAskAgent"
+                        />
+                    )}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontalIcon className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onCopyUrl(server.serverUrl)}>
+                                <CopyIcon className="h-4 w-4 mr-2" />
+                                Copy URL
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => onDelete(server)}
+                            >
+                                <Trash2Icon className="h-4 w-4 mr-2" />
+                                Remove
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </>
+            }
+        />
     );
 }
 

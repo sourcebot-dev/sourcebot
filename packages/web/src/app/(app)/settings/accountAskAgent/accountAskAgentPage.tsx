@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Collapsible } from "@/components/ui/collapsible";
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -20,8 +19,9 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConnectMcpButton } from "@/ee/features/mcp/components/connectMcpButton";
+import { ConnectorCard } from "@/ee/features/mcp/components/connectorCard";
 import { ConnectorRowInfo } from "@/ee/features/mcp/components/connectorRowInfo";
-import { ConnectorToolList, ConnectorToolTrigger } from "@/ee/features/mcp/components/connectorToolDisclosure";
+import { ConnectorToolTrigger } from "@/ee/features/mcp/components/connectorToolDisclosure";
 import { useConnectMcp } from "@/ee/features/mcp/hooks/useConnectMcp";
 import { useMcpToolMetadata } from "@/ee/features/mcp/hooks/useMcpToolMetadata";
 import { disconnectMcpServer } from "@/ee/features/mcp/actions";
@@ -124,77 +124,57 @@ function AccountConnectedConnectorCard({
     onDisconnect,
     disconnectingServerId,
 }: AccountConnectedConnectorCardProps) {
-    const [isToolListOpen, setIsToolListOpen] = useState(false);
-    const availableToolEntry = server.isConnected ? toolEntry : undefined;
-    const hasToolList = availableToolEntry?.status === 'available';
-    const isLoadingToolsForServer = server.isConnected && !availableToolEntry && isToolsLoading;
-
     return (
-        <Collapsible
-            open={hasToolList && isToolListOpen}
-            onOpenChange={(open) => setIsToolListOpen(hasToolList ? open : false)}
-        >
-            <Card>
-                <CardContent className="p-3">
-                    <div className="flex items-center gap-3">
-                        <ConnectorRowInfo
-                            faviconUrl={server.faviconUrl}
-                            name={server.name}
-                            serverUrl={server.serverUrl}
-                            size="sm"
+        <ConnectorCard
+            faviconUrl={server.faviconUrl}
+            name={server.name}
+            serverUrl={server.serverUrl}
+            isConnected={server.isConnected}
+            isAuthExpired={server.isAuthExpired}
+            toolEntry={server.isConnected ? toolEntry : undefined}
+            isToolsLoading={isToolsLoading}
+            isToolsError={isToolsError}
+            onRetryTools={onRetryTools}
+            statusBadge={
+                <>
+                    {server.isConnected && (
+                        <span className="inline-flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-green-500/80" />
+                            Connected
+                        </span>
+                    )}
+                    {server.isAuthExpired && (
+                        <span className="inline-flex items-center gap-1.5 text-yellow-600 dark:text-yellow-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-yellow-500/80" />
+                            Authorization expired
+                        </span>
+                    )}
+                </>
+            }
+            actionButtons={
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onReconnect(server.id)}>
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Reconnect
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            disabled={disconnectingServerId === server.id}
+                            onClick={() => onDisconnect(server)}
                         >
-                            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                                {server.isConnected && (
-                                    <span className="inline-flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                                        <span className="h-1.5 w-1.5 rounded-full bg-green-500/80" />
-                                        Connected
-                                    </span>
-                                )}
-                                {server.isAuthExpired && (
-                                    <span className="inline-flex items-center gap-1.5 text-yellow-600 dark:text-yellow-400">
-                                        <span className="h-1.5 w-1.5 rounded-full bg-yellow-500/80" />
-                                        Authorization expired
-                                    </span>
-                                )}
-                                <ConnectorToolTrigger
-                                    isConnected={server.isConnected}
-                                    isAuthExpired={server.isAuthExpired}
-                                    toolEntry={availableToolEntry}
-                                    isLoading={isLoadingToolsForServer}
-                                    isToolsQueryError={server.isConnected && isToolsError}
-                                    isOpen={isToolListOpen}
-                                    onRetry={onRetryTools}
-                                />
-                            </div>
-                        </ConnectorRowInfo>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => onReconnect(server.id)}>
-                                        <ExternalLink className="h-4 w-4 mr-2" />
-                                        Reconnect
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        className="text-destructive focus:text-destructive"
-                                        disabled={disconnectingServerId === server.id}
-                                        onClick={() => onDisconnect(server)}
-                                    >
-                                        <Unplug className="h-4 w-4 mr-2" />
-                                        {disconnectingServerId === server.id ? "Disconnecting..." : "Disconnect"}
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </div>
-                    <ConnectorToolList toolEntry={availableToolEntry} />
-                </CardContent>
-            </Card>
-        </Collapsible>
+                            <Unplug className="h-4 w-4 mr-2" />
+                            {disconnectingServerId === server.id ? "Disconnecting..." : "Disconnect"}
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            }
+        />
     );
 }
 
