@@ -1,0 +1,175 @@
+'use client';
+
+import { Badge } from '@/components/ui/badge';
+import { CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
+import { pluralize } from '@/ee/features/mcp/utils';
+import type { ServerToolsEntry, ToolMetadataErrorReason, ToolSummary } from '@/ee/features/mcp/types';
+import { ChevronDownIcon, RefreshCwIcon, WrenchIcon } from 'lucide-react';
+
+function getErrorLabel(reason: ToolMetadataErrorReason) {
+    switch (reason) {
+        case 'timeout':
+            return 'Tools timed out';
+        case 'auth_failed':
+            return 'Reconnect to see tools';
+        case 'unsupported':
+            return 'Tools unsupported';
+        case 'connection_failed':
+        case 'unknown':
+            return 'Tools unavailable';
+    }
+}
+
+function getToolCountLabel(entry: Extract<ServerToolsEntry, { status: 'available' }>) {
+    const countLabel = `${entry.tools.length}${entry.truncated ? '+' : ''}`;
+    const nounCount = entry.truncated ? 2 : entry.tools.length;
+    return `${countLabel} ${pluralize(nounCount, 'tool')}`;
+}
+
+interface ConnectorToolTriggerProps {
+    isConnected: boolean;
+    isAuthExpired?: boolean;
+    isOAuthAvailable?: boolean;
+    isStatusUnavailable?: boolean;
+    toolEntry?: ServerToolsEntry;
+    isLoading?: boolean;
+    isToolsQueryError?: boolean;
+    isOpen?: boolean;
+    onRetry?: () => void;
+}
+
+export function ConnectorToolTrigger({
+    isConnected,
+    isAuthExpired = false,
+    isOAuthAvailable = true,
+    isStatusUnavailable = false,
+    toolEntry,
+    isLoading = false,
+    isToolsQueryError = false,
+    isOpen = false,
+    onRetry,
+}: ConnectorToolTriggerProps) {
+    const availableEntry = toolEntry?.status === 'available' ? toolEntry : undefined;
+    const errorEntry = toolEntry?.status === 'error' ? toolEntry : undefined;
+    const canExpand = !!availableEntry;
+
+    if (canExpand) {
+        return (
+            <CollapsibleTrigger asChild>
+                <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-sm text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                    <WrenchIcon className="h-3 w-3" />
+                    {getToolCountLabel(availableEntry)}
+                    <ChevronDownIcon className={cn("h-3 w-3 transition-transform", isOpen ? "rotate-180" : "rotate-0")} />
+                </button>
+            </CollapsibleTrigger>
+        );
+    }
+
+    let label = 'Tools unavailable';
+    let canRetry = false;
+
+    if (!isOAuthAvailable || isStatusUnavailable) {
+        label = 'Tools unavailable';
+    } else if (!isConnected && isAuthExpired) {
+        label = 'Reconnect to see tools';
+    } else if (!isConnected) {
+        label = 'Connect to see tools';
+    } else if (isLoading) {
+        label = 'Loading tools...';
+    } else if (errorEntry) {
+        label = getErrorLabel(errorEntry.reason);
+        canRetry = true;
+    } else if (isToolsQueryError) {
+        label = 'Tools unavailable';
+        canRetry = true;
+    }
+
+    return (
+        <span className="inline-flex items-center gap-1 text-muted-foreground">
+            <WrenchIcon className="h-3 w-3" />
+            {label}
+            {canRetry && onRetry && (
+                <button
+                    type="button"
+                    onClick={onRetry}
+                    className="ml-1 inline-flex items-center gap-0.5 rounded-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                    <RefreshCwIcon className="h-3 w-3" />
+                    Retry
+                </button>
+            )}
+        </span>
+    );
+}
+
+function ToolHintBadges({ tool }: { tool: ToolSummary }) {
+    const annotations = tool.annotations;
+    if (!annotations) {
+        return null;
+    }
+
+    return (
+        <>
+            {annotations.readOnlyHint === true && (
+                <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
+                    Read-only
+                </Badge>
+            )}
+            {annotations.destructiveHint === true && (
+                <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-medium text-destructive">
+                    Destructive
+                </Badge>
+            )}
+            {annotations.idempotentHint === true && (
+                <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
+                    Idempotent
+                </Badge>
+            )}
+        </>
+    );
+}
+
+interface ConnectorToolListProps {
+    toolEntry?: ServerToolsEntry;
+}
+
+export function ConnectorToolList({ toolEntry }: ConnectorToolListProps) {
+    if (toolEntry?.status !== 'available') {
+        return null;
+    }
+
+    return (
+        <CollapsibleContent>
+            <div className="mt-3 border-t pt-3">
+                {toolEntry.tools.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No tools exposed by this connector.</p>
+                ) : (
+                    <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                        {toolEntry.tools.map((tool) => {
+                            const displayName = tool.title ?? tool.name;
+
+                            return (
+                                <div key={tool.name} className="rounded-md border bg-muted/30 p-2">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className="break-all text-xs font-medium text-foreground">{displayName}</span>
+                                        {tool.title && tool.title !== tool.name && (
+                                            <span className="break-all font-mono text-[10px] text-muted-foreground">{tool.name}</span>
+                                        )}
+                                        <ToolHintBadges tool={tool} />
+                                    </div>
+                                    {tool.description && (
+                                        <p className="mt-1 break-words text-xs text-muted-foreground">{tool.description}</p>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        </CollapsibleContent>
+    );
+}

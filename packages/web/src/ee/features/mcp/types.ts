@@ -15,3 +15,27 @@ export interface GetMcpConfigurationResponse {
     allowedMode: McpConfigurationAllowedMode;
     isOAuthAvailable: boolean;
 }
+
+export interface ToolSummary {
+    name: string;
+    title?: string;
+    description?: string;
+    annotations?: {
+        readOnlyHint?: boolean;
+        destructiveHint?: boolean;
+        idempotentHint?: boolean;
+    };
+}
+
+export type ToolMetadataErrorReason =
+    | 'timeout'
+    | 'auth_failed'
+    | 'connection_failed'
+    | 'unsupported'
+    | 'unknown';
+
+export type ServerToolsEntry =
+    | { status: 'available'; serverId: string; tools: ToolSummary[]; truncated?: boolean }
+    | { status: 'error'; serverId: string; reason: ToolMetadataErrorReason };
+
+export type GetMcpToolsResponse = ServerToolsEntry[];

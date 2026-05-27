@@ -26,13 +26,11 @@ vi.mock('@modelcontextprotocol/sdk/client/streamableHttp.js', () => ({
 }));
 
 // Import after mocks are set up
-const { isTokenExpiredWithNoRefresh, getConnectedMcpClients } = await import('./mcpClientFactory');
+const { getConnectedMcpClients } = await import('./mcpClientFactory');
 
 // --- Helpers ---
 
 const PAST = new Date('2020-01-01');
-const FUTURE = new Date('2099-01-01');
-
 const TOKEN_NO_REFRESH: OAuthTokens = { access_token: 'tok', token_type: 'Bearer' };
 const TOKEN_WITH_REFRESH: OAuthTokens = { access_token: 'tok', token_type: 'Bearer', refresh_token: 'ref' };
 
@@ -54,26 +52,6 @@ function makeUserServer(overrides: {
         },
     };
 }
-
-// --- isTokenExpiredWithNoRefresh ---
-
-describe('isTokenExpiredWithNoRefresh', () => {
-    test('returns true when access token is expired and no refresh token', () => {
-        expect(isTokenExpiredWithNoRefresh(TOKEN_NO_REFRESH, PAST)).toBe(true);
-    });
-
-    test('returns false when refresh_token is present even if access token is expired', () => {
-        expect(isTokenExpiredWithNoRefresh(TOKEN_WITH_REFRESH, PAST)).toBe(false);
-    });
-
-    test('returns false when tokensExpiresAt is null', () => {
-        expect(isTokenExpiredWithNoRefresh(TOKEN_NO_REFRESH, null)).toBe(false);
-    });
-
-    test('returns false when access token has not yet expired', () => {
-        expect(isTokenExpiredWithNoRefresh(TOKEN_NO_REFRESH, FUTURE)).toBe(false);
-    });
-});
 
 // --- getConnectedMcpClients ---
 

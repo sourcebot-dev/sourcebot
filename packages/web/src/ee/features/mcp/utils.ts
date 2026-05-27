@@ -10,6 +10,10 @@ export function sanitizeMcpServerName(name: string): string {
     return name.toLowerCase().replace(/[^a-z0-9]/g, '_');
 }
 
+export function pluralize(count: number, singular: string, plural = `${singular}s`) {
+    return count === 1 ? singular : plural;
+}
+
 function createMcpIconDataUri(svg: string): string {
     return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }

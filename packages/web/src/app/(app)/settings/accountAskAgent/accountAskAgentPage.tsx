@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Collapsible } from "@/components/ui/collapsible";
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -20,16 +21,17 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConnectMcpButton } from "@/ee/features/mcp/components/connectMcpButton";
 import { ConnectorRowInfo } from "@/ee/features/mcp/components/connectorRowInfo";
+import { ConnectorToolList, ConnectorToolTrigger } from "@/ee/features/mcp/components/connectorToolDisclosure";
 import { useConnectMcp } from "@/ee/features/mcp/hooks/useConnectMcp";
+import { useMcpToolMetadata } from "@/ee/features/mcp/hooks/useMcpToolMetadata";
 import { disconnectMcpServer } from "@/ee/features/mcp/actions";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/mcp/queryKeys";
+import { pluralize } from "@/ee/features/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
+import type { McpServerWithStatus } from "@/app/api/(server)/ee/askmcp/servers/route";
+import type { ServerToolsEntry } from "@/ee/features/mcp/types";
 
 type FilterTab = "all" | "connected";
-
-function pluralize(count: number, singular: string, plural = `${singular}s`) {
-    return count === 1 ? singular : plural;
-}
 
 function clearCallbackParams() {
     const url = new URL(window.location.href);
@@ -44,6 +46,7 @@ interface AccountAskAgentPageProps {
     callbackServer?: string;
     callbackMessage?: string;
     canManageConnectors: boolean;
+    isOAuthAvailable: boolean;
 }
 
 export function AccountAskAgentEmptyState({ canManageConnectors }: { canManageConnectors: boolean }) {
@@ -74,7 +77,169 @@ export function AccountAskAgentEmptyState({ canManageConnectors }: { canManageCo
     );
 }
 
-export function AccountAskAgentPage({ callbackStatus, callbackServer, callbackMessage, canManageConnectors }: AccountAskAgentPageProps) {
+export function AccountAskAgentOAuthUnavailableState({ canManageConnectors }: { canManageConnectors: boolean }) {
+    return (
+        <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="rounded-full bg-muted p-3 mb-4">
+                    <CableIcon className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-foreground mb-1">Connector OAuth is unavailable</p>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                    {canManageConnectors
+                        ? "Open Workspace Ask Agent to remove existing connector approvals and stored credentials."
+                        : "Connector setup is unavailable on this Sourcebot instance."}
+                </p>
+                {canManageConnectors && (
+                    <Button asChild variant="outline" className="mt-4">
+                        <Link href="/settings/workspaceAskAgent">
+                            <Settings2Icon className="h-4 w-4 mr-2" />
+                            Open Workspace Ask Agent
+                        </Link>
+                    </Button>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+interface AccountConnectedConnectorCardProps {
+    server: McpServerWithStatus;
+    toolEntry?: ServerToolsEntry;
+    isToolsLoading: boolean;
+    isToolsError: boolean;
+    onRetryTools: () => void;
+    onReconnect: (serverId: string) => void;
+    onDisconnect: (server: McpServerWithStatus) => void;
+    disconnectingServerId: string | null;
+}
+
+function AccountConnectedConnectorCard({
+    server,
+    toolEntry,
+    isToolsLoading,
+    isToolsError,
+    onRetryTools,
+    onReconnect,
+    onDisconnect,
+    disconnectingServerId,
+}: AccountConnectedConnectorCardProps) {
+    const [isToolListOpen, setIsToolListOpen] = useState(false);
+    const availableToolEntry = server.isConnected ? toolEntry : undefined;
+    const hasToolList = availableToolEntry?.status === 'available';
+    const isLoadingToolsForServer = server.isConnected && !availableToolEntry && isToolsLoading;
+
+    return (
+        <Collapsible
+            open={hasToolList && isToolListOpen}
+            onOpenChange={(open) => setIsToolListOpen(hasToolList ? open : false)}
+        >
+            <Card>
+                <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
+                        <ConnectorRowInfo
+                            faviconUrl={server.faviconUrl}
+                            name={server.name}
+                            serverUrl={server.serverUrl}
+                            size="sm"
+                        >
+                            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                                {server.isConnected && (
+                                    <span className="inline-flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-green-500/80" />
+                                        Connected
+                                    </span>
+                                )}
+                                {server.isAuthExpired && (
+                                    <span className="inline-flex items-center gap-1.5 text-yellow-600 dark:text-yellow-400">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-yellow-500/80" />
+                                        Authorization expired
+                                    </span>
+                                )}
+                                <ConnectorToolTrigger
+                                    isConnected={server.isConnected}
+                                    isAuthExpired={server.isAuthExpired}
+                                    toolEntry={availableToolEntry}
+                                    isLoading={isLoadingToolsForServer}
+                                    isToolsQueryError={server.isConnected && isToolsError}
+                                    isOpen={isToolListOpen}
+                                    onRetry={onRetryTools}
+                                />
+                            </div>
+                        </ConnectorRowInfo>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            <Button variant="outline" size="sm" asChild className="h-8">
+                                <a href={server.serverUrl} target="_blank" rel="noopener noreferrer">
+                                    Manage
+                                </a>
+                            </Button>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => onReconnect(server.id)}>
+                                        <ExternalLink className="h-4 w-4 mr-2" />
+                                        Reconnect
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        className="text-destructive focus:text-destructive"
+                                        disabled={disconnectingServerId === server.id}
+                                        onClick={() => onDisconnect(server)}
+                                    >
+                                        <Unplug className="h-4 w-4 mr-2" />
+                                        {disconnectingServerId === server.id ? "Disconnecting..." : "Disconnect"}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </div>
+                    <ConnectorToolList toolEntry={availableToolEntry} />
+                </CardContent>
+            </Card>
+        </Collapsible>
+    );
+}
+
+function AccountSuggestedConnectorCard({ server }: { server: McpServerWithStatus }) {
+    return (
+        <Card>
+            <CardContent className="flex items-center gap-3 p-3">
+                <ConnectorRowInfo
+                    faviconUrl={server.faviconUrl}
+                    name={server.name}
+                    serverUrl={server.serverUrl}
+                    size="sm"
+                >
+                    <div className="mt-0.5 flex items-center text-[11px]">
+                        <ConnectorToolTrigger
+                            isConnected={false}
+                            isAuthExpired={false}
+                        />
+                    </div>
+                </ConnectorRowInfo>
+                <ConnectMcpButton
+                    serverId={server.id}
+                    isConnected={false}
+                    isAuthExpired={false}
+                    size="sm"
+                    variant="outline"
+                    className="h-8"
+                />
+            </CardContent>
+        </Card>
+    );
+}
+
+export function AccountAskAgentPage({
+    callbackStatus,
+    callbackServer,
+    callbackMessage,
+    canManageConnectors,
+    isOAuthAvailable,
+}: AccountAskAgentPageProps) {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const didHandleCallbackRef = useRef(false);
@@ -108,6 +273,7 @@ export function AccountAskAgentPage({ callbackStatus, callbackServer, callbackMe
             }
             return result;
         },
+        enabled: isOAuthAvailable,
     });
 
     const connectedServers = useMemo(
@@ -144,6 +310,16 @@ export function AccountAskAgentPage({ callbackStatus, callbackServer, callbackMe
 
     const visibleConnected = filteredConnected;
     const visibleSuggested = activeTab === "all" ? filteredSuggested : [];
+    const activeConnectedServerCount = useMemo(
+        () => servers.filter((s) => s.isConnected).length,
+        [servers],
+    );
+    const {
+        isToolsLoading,
+        isToolsError,
+        refetchTools,
+        toolsByServerId,
+    } = useMcpToolMetadata(isOAuthAvailable, activeConnectedServerCount);
 
     const handleDisconnect = async (serverId: string) => {
         setDisconnectingServerId(serverId);
@@ -162,6 +338,29 @@ export function AccountAskAgentPage({ callbackStatus, callbackServer, callbackMe
             setDisconnectingServerId(null);
         }
     };
+
+    if (!isOAuthAvailable) {
+        return (
+            <div className="flex flex-col gap-6">
+                <div>
+                    <h3 className="text-lg font-medium">Ask Agent</h3>
+                    <p className="text-sm text-muted-foreground max-w-lg">
+                        Manage your personal Ask Agent setup.
+                    </p>
+                </div>
+                <Separator />
+                <div className="space-y-3">
+                    <div>
+                        <h4 className="text-sm font-semibold text-foreground">Connectors</h4>
+                        <p className="text-sm text-muted-foreground max-w-lg">
+                            Manage workspace-approved connectors for use with Ask Agent.
+                        </p>
+                    </div>
+                    <AccountAskAgentOAuthUnavailableState canManageConnectors={canManageConnectors} />
+                </div>
+            </div>
+        );
+    }
 
     if (isError) {
         return <div>Error loading connectors</div>;
@@ -289,62 +488,20 @@ export function AccountAskAgentPage({ callbackStatus, callbackServer, callbackMe
                             </Card>
                         ) : (
                             visibleConnected.map((server) => (
-                                <Card key={server.id}>
-                                    <CardContent className="flex items-center gap-3 p-3">
-                                        <ConnectorRowInfo
-                                            faviconUrl={server.faviconUrl}
-                                            name={server.name}
-                                            serverUrl={server.serverUrl}
-                                            size="sm"
-                                        >
-                                            <div className="flex items-center gap-1.5 mt-0.5">
-                                                {server.isConnected && (
-                                                    <>
-                                                        <span className="h-1.5 w-1.5 rounded-full bg-green-500/80" />
-                                                        <span className="text-[11px] text-green-600 dark:text-green-400">Connected</span>
-                                                    </>
-                                                )}
-                                                {server.isAuthExpired && (
-                                                    <>
-                                                        <span className="h-1.5 w-1.5 rounded-full bg-yellow-500/80" />
-                                                        <span className="text-[11px] text-yellow-600 dark:text-yellow-400">Authorization expired</span>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </ConnectorRowInfo>
-                                        <div className="flex items-center gap-1.5 shrink-0">
-                                            <Button variant="outline" size="sm" asChild className="h-8">
-                                                <a href={server.serverUrl} target="_blank" rel="noopener noreferrer">
-                                                    Manage
-                                                </a>
-                                            </Button>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => reconnectMcp(server.id)}>
-                                                        <ExternalLink className="h-4 w-4 mr-2" />
-                                                        Reconnect
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        className="text-destructive focus:text-destructive"
-                                                        disabled={disconnectingServerId === server.id}
-                                                        onClick={() => setConfirmDisconnectServer({
-                                                            id: server.id,
-                                                            name: server.name || server.serverUrl,
-                                                        })}
-                                                    >
-                                                        <Unplug className="h-4 w-4 mr-2" />
-                                                        {disconnectingServerId === server.id ? "Disconnecting..." : "Disconnect"}
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                <AccountConnectedConnectorCard
+                                    key={server.id}
+                                    server={server}
+                                    toolEntry={toolsByServerId.get(server.id)}
+                                    isToolsLoading={isToolsLoading}
+                                    isToolsError={isToolsError}
+                                    onRetryTools={() => { void refetchTools(); }}
+                                    onReconnect={reconnectMcp}
+                                    onDisconnect={(serverToDisconnect) => setConfirmDisconnectServer({
+                                        id: serverToDisconnect.id,
+                                        name: serverToDisconnect.name || serverToDisconnect.serverUrl,
+                                    })}
+                                    disconnectingServerId={disconnectingServerId}
+                                />
                             ))
                         )}
                     </div>
@@ -373,24 +530,7 @@ export function AccountAskAgentPage({ callbackStatus, callbackServer, callbackMe
                                 </Card>
                             ) : (
                                 visibleSuggested.map((server) => (
-                                    <Card key={server.id}>
-                                        <CardContent className="flex items-center gap-3 p-3">
-                                            <ConnectorRowInfo
-                                                faviconUrl={server.faviconUrl}
-                                                name={server.name}
-                                                serverUrl={server.serverUrl}
-                                                size="sm"
-                                            />
-                                            <ConnectMcpButton
-                                                serverId={server.id}
-                                                isConnected={false}
-                                                isAuthExpired={false}
-                                                size="sm"
-                                                variant="outline"
-                                                className="h-8"
-                                            />
-                                        </CardContent>
-                                    </Card>
+                                    <AccountSuggestedConnectorCard key={server.id} server={server} />
                                 ))
                             )}
                         </div>

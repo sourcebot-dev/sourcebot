@@ -3,10 +3,9 @@ import { serviceErrorResponse } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
 import { withAuth } from '@/middleware/withAuth';
 import { hasEntitlement } from '@/lib/entitlements';
-import { decryptOAuthToken } from '@sourcebot/shared';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
-import type { OAuthTokens } from '@ai-sdk/mcp';
 import { getMcpFaviconUrl } from '@/ee/features/mcp/utils';
+import { getStoredMcpConnectionStatus } from '@/ee/features/mcp/connectionStatus';
 import type { NextRequest } from 'next/server';
 
 export interface McpServerWithStatus {
@@ -58,22 +57,11 @@ export const GET = apiHandler(async (_request: NextRequest) => {
             let isConnected = false;
             let isAuthExpired = false;
 
-            if (userServer?.tokens) {
-                try {
-                    const decrypted = decryptOAuthToken(userServer.tokens);
-                    if (decrypted) {
-                        const tokens: OAuthTokens = JSON.parse(decrypted);
-                        if (tokens.refresh_token || !userServer.tokensExpiresAt) {
-                            isConnected = true;
-                        } else if (new Date() > userServer.tokensExpiresAt) {
-                            isAuthExpired = true;
-                        } else {
-                            isConnected = true;
-                        }
-                    }
-                } catch {
-                    // treat as not connected if decryption fails
-                }
+            const connectionStatus = getStoredMcpConnectionStatus(userServer?.tokens, userServer?.tokensExpiresAt ?? null);
+            if (connectionStatus.state === 'connected') {
+                isConnected = true;
+            } else if (connectionStatus.state === 'expired') {
+                isAuthExpired = true;
             }
 
             return {
