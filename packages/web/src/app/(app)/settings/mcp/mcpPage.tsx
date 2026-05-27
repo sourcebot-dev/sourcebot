@@ -16,11 +16,11 @@ import { useToast } from "@/components/hooks/use-toast";
 import { type ConnectedOauthClient, revokeMcpClient } from "@/ee/features/oauth/actions";
 import { isServiceError } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import { Boxes, Check, Copy, Trash2 } from "lucide-react";
+import { Boxes, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { CopyIconButton } from "../../components/copyIconButton";
 import { SettingsCard, SettingsCardGroup } from "../components/settingsCard";
 import { ClientCard } from "./clientCard";
 import { MCP_CLIENTS, matchKnownClient } from "./clients";
@@ -38,14 +38,9 @@ export function McpPage({
 }: McpPageProps) {
     const { toast } = useToast();
     const router = useRouter();
-    const [copied, setCopied] = useState(false);
 
-    const handleCopy = () => {
+    const handleCopyServerUrl = () => {
         navigator.clipboard.writeText(mcpServerUrl)
-            .then(() => {
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-            })
             .catch(() => {
                 toast({
                     title: "Error",
@@ -53,6 +48,7 @@ export function McpPage({
                     variant: "destructive",
                 });
             });
+        return true;
     };
 
     const handleRevokeClient = async (clientId: string, name: string) => {
@@ -72,7 +68,7 @@ export function McpPage({
     return (
         <div className="flex flex-col gap-6">
             <div>
-                <h3 className="text-lg font-medium">MCP</h3>
+                <h3 className="text-lg font-medium">MCP Server</h3>
                 <p className="text-sm text-muted-foreground">
                     Connect AI coding tools to search and read your code through Sourcebot&apos;s MCP server. <Link href={DOCS_URL} target="_blank" className="text-link hover:underline">Learn more</Link>
                 </p>
@@ -84,17 +80,7 @@ export function McpPage({
                     <div className="bg-muted p-2 rounded-md text-sm flex-1 break-all font-mono">
                         {mcpServerUrl}
                     </div>
-                    <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={handleCopy}
-                    >
-                        {copied ? (
-                            <Check className="h-4 w-4 text-green-500" />
-                        ) : (
-                            <Copy className="h-4 w-4" />
-                        )}
-                    </Button>
+                    <CopyIconButton onCopy={handleCopyServerUrl} />
                 </div>
             </SettingsCard>
 
