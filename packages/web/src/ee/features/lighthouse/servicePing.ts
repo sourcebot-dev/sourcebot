@@ -68,6 +68,7 @@ export const syncWithLighthouse = async (orgId: number) => {
     const payload: ServicePingRequest = {
         installId: env.SOURCEBOT_INSTALL_ID,
         version: SOURCEBOT_VERSION,
+        hostname: env.AUTH_URL,
         userCount,
         repoCount,
         dauCount,

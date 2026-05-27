@@ -3,6 +3,7 @@ import { z } from "zod";
 export const servicePingRequestSchema = z.object({
     installId: z.string(),
     version: z.string(),
+    hostname: z.string(),
     userCount: z.number().int().nonnegative(),
     repoCount: z.number().int().nonnegative(),
     dauCount: z.number().int().nonnegative(),
