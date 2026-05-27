@@ -1,4 +1,5 @@
-import { checkbox, confirm, input, password, select } from '@inquirer/prompts';
+import { confirm, input, password, select } from '@inquirer/prompts';
+import { tabCheckbox as checkbox } from './tabCheckbox.js';
 import type { BitbucketConnectionConfig } from '@sourcebot/schemas/v3/bitbucket.type';
 import type { CollectResult, EnvVars } from './utils.js';
 import { multiInput, note, toEnvKey } from './utils.js';
@@ -78,7 +79,7 @@ async function collectBitbucketCloud(
 
         const tokenEnvKey = toEnvKey(connectionName, 'TOKEN');
         const token = await password({
-            message: `API Token (stored as ${tokenEnvKey})`,
+            message: `API Token (stored locally in .env as ${tokenEnvKey})`,
             mask: true,
             validate: (v) => !v?.trim() ? 'Token is required' : true,
         });
@@ -95,7 +96,7 @@ async function collectBitbucketCloud(
 
         const tokenEnvKey = toEnvKey(connectionName, 'TOKEN');
         const token = await password({
-            message: `Access Token (stored as ${tokenEnvKey})`,
+            message: `Access Token (stored locally in .env as ${tokenEnvKey})`,
             mask: true,
             validate: (v) => !v?.trim() ? 'Token is required' : true,
         });
@@ -121,7 +122,7 @@ async function collectBitbucketCloud(
 
         const tokenEnvKey = toEnvKey(connectionName, 'APP_PASSWORD');
         const token = await password({
-            message: `Bitbucket App Password (stored as ${tokenEnvKey})`,
+            message: `Bitbucket App Password (stored locally in .env as ${tokenEnvKey})`,
             mask: true,
             validate: (v) => !v?.trim() ? 'App Password is required' : true,
         });
@@ -193,7 +194,7 @@ async function collectBitbucketServer(
 
     const tokenEnvKey = toEnvKey(connectionName, 'TOKEN');
     const token = await password({
-        message: `Bitbucket HTTP Access Token (stored as ${tokenEnvKey})`,
+        message: `Bitbucket HTTP Access Token (stored locally in .env as ${tokenEnvKey})`,
         mask: true,
         validate: (v) => !v?.trim() ? 'Token is required' : true,
     });

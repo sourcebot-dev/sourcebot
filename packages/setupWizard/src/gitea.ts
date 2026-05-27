@@ -1,7 +1,8 @@
-import { checkbox, input, password } from '@inquirer/prompts';
+import { input, password } from '@inquirer/prompts';
+import { tabCheckbox as checkbox } from './tabCheckbox.js';
 import type { GiteaConnectionConfig } from '@sourcebot/schemas/v3/gitea.type';
 import type { CollectResult, EnvVars } from './utils.js';
-import { multiInput, toEnvKey } from './utils.js';
+import { INPUT_THEME, multiInput, toEnvKey } from './utils.js';
 
 export async function collectGiteaConfig(connectionName: string): Promise<CollectResult> {
     const env: EnvVars = {};
@@ -10,6 +11,7 @@ export async function collectGiteaConfig(connectionName: string): Promise<Collec
     const url = await input({
         message: 'Gitea URL',
         default: 'https://gitea.com',
+        theme: INPUT_THEME,
         validate: (v) => {
             if (!v?.trim()) {
                 return 'URL is required';
@@ -26,7 +28,7 @@ export async function collectGiteaConfig(connectionName: string): Promise<Collec
 
     const giteaEnvKey = toEnvKey(connectionName, 'TOKEN');
     const giteaToken = await password({
-        message: `Gitea Access Token (stored as ${giteaEnvKey}, leave blank for public repos only)`,
+        message: `Gitea Access Token (stored locally in .env as ${giteaEnvKey}, leave blank for public repos only)`,
         mask: true,
     });
     if (giteaToken.trim()) {
