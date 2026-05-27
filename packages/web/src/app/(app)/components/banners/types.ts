@@ -10,6 +10,7 @@ export const BannerPriority = {
     TRIAL:                     25,
     LICENSE_EXPIRY_HEADS_UP:   20,
     SERVICE_PING_FAILED:       10,
+    UPGRADE_AVAILABLE:          5,
 } as const;
 
 export type BannerId =
@@ -19,7 +20,8 @@ export type BannerId =
     | 'permissionSync'
     | 'licenseExpiryHeadsUp'
     | 'trial'
-    | 'servicePingFailed';
+    | 'servicePingFailed'
+    | 'upgradeAvailable';
 
 export interface BannerProps {
     id: BannerId;

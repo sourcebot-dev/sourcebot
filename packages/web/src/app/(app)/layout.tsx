@@ -18,13 +18,12 @@ import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { notFound, redirect } from "next/navigation";
 import { PendingApprovalCard } from "./components/pendingApproval";
 import { SubmitJoinRequest } from "./components/submitJoinRequest";
-import { env, getOfflineLicenseMetadata } from "@sourcebot/shared";
+import { env, getOfflineLicenseMetadata, SOURCEBOT_VERSION } from "@sourcebot/shared";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { GcpIapAuth } from "./components/gcpIapAuth";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { GitHubStarToast } from "./components/githubStarToast";
-import { UpgradeToast } from "./components/upgradeToast";
 import { getLinkedAccounts } from "@/ee/features/sso/actions";
 import { BannerSlot } from "./components/banners/bannerSlot";
 import { getPermissionSyncStatus } from "../api/(server)/ee/permissionSyncStatus/api";
@@ -34,6 +33,7 @@ import { ConnectAccountsCard } from "@/ee/features/sso/components/connectAccount
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { CheckoutReturnHandler } from "@/ee/features/lighthouse/checkoutReturnHandler";
 import { RoleProvider } from "@/features/auth/roleProvider";
+import { tryGetLatestSourcebotTag } from "./components/banners/actions";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -169,6 +169,10 @@ export default async function Layout(props: LayoutProps) {
         ? null
         : await __unsafePrisma.license.findUnique({ where: { orgId: org.id } });
 
+    const latestVersion = await tryGetLatestSourcebotTag({
+            timeoutMs: 3000
+        });
+
     return (
         <RoleProvider role={role}>
             <SyntaxGuideProvider>
@@ -183,6 +187,8 @@ export default async function Layout(props: LayoutProps) {
                                     offlineLicense={offlineLicense}
                                     hasPermissionSyncEntitlement={hasPermissionSyncEntitlement}
                                     hasPendingFirstSync={hasPendingFirstSync}
+                                    currentVersion={SOURCEBOT_VERSION}
+                                    latestVersion={latestVersion}
                                 />
                                 <div className="flex-1 min-h-0 overflow-y-auto">
                                     {children}
@@ -193,7 +199,6 @@ export default async function Layout(props: LayoutProps) {
                 </div>
                 <SyntaxReferenceGuide />
                 <GitHubStarToast />
-                {env.EXPERIMENT_ASK_GH_ENABLED !== 'true' && <UpgradeToast />}
                 <CheckoutReturnHandler userEmail={session?.user.email} />
             </SyntaxGuideProvider>
         </RoleProvider>

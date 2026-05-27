@@ -12,6 +12,7 @@ const KNOWN_BANNER_IDS: BannerId[] = [
     'licenseExpiryHeadsUp',
     'trial',
     'servicePingFailed',
+    'upgradeAvailable',
 ];
 
 export async function BannerSlot(props: BannerSlotProps) {

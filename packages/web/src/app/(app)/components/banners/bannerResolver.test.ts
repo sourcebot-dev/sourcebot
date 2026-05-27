@@ -16,9 +16,11 @@ vi.mock('@sourcebot/shared', () => ({
 vi.mock('./permissionSyncBanner', () => ({ PermissionSyncBanner: () => null }));
 vi.mock('./licenseExpiredBanner', () => ({ LicenseExpiredBanner: () => null }));
 vi.mock('./licenseExpiryHeadsUpBanner', () => ({ LicenseExpiryHeadsUpBanner: () => null }));
+vi.mock('./licenseReboundElsewhereBanner', () => ({ LicenseReboundElsewhereBanner: () => null }));
 vi.mock('./invoicePastDueBanner', () => ({ InvoicePastDueBanner: () => null }));
 vi.mock('./servicePingFailedBanner', () => ({ ServicePingFailedBanner: () => null }));
 vi.mock('./trialBanner', () => ({ TrialBanner: () => null }));
+vi.mock('./upgradeAvailableBanner', () => ({ UpgradeAvailableBanner: () => null }));
 
 import { resolveActiveBanner, type BannerContext } from './bannerResolver';
 
@@ -68,6 +70,8 @@ const makeContext = (overrides: Partial<BannerContext> = {}): BannerContext => (
     dismissals: {},
     today: TODAY,
     now: NOW,
+    currentVersion: 'v4.17.2',
+    latestVersion: null,
     ...overrides,
 });
 
@@ -632,6 +636,97 @@ describe('resolveActiveBanner', () => {
                 hasPendingFirstSync: false,
             }));
             expect(result).toBeNull();
+        });
+    });
+
+    describe('upgrade available', () => {
+        test('newer latest → upgradeAvailable (dismissible, owner)', () => {
+            const result = resolveActiveBanner(makeContext({
+                currentVersion: 'v4.17.2',
+                latestVersion: 'v4.18.0',
+            }));
+            expect(result?.id).toBe('upgradeAvailable');
+            expect(result?.dismissible).toBe(true);
+            expect(result?.audience).toBe('owner');
+        });
+
+        test('equal versions → no banner', () => {
+            const result = resolveActiveBanner(makeContext({
+                currentVersion: 'v4.17.2',
+                latestVersion: 'v4.17.2',
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('current ahead of latest → no banner', () => {
+            const result = resolveActiveBanner(makeContext({
+                currentVersion: 'v4.18.0',
+                latestVersion: 'v4.17.2',
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('null latestVersion → no banner', () => {
+            const result = resolveActiveBanner(makeContext({
+                currentVersion: 'v4.17.2',
+                latestVersion: null,
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('unparseable latestVersion → no banner', () => {
+            const result = resolveActiveBanner(makeContext({
+                currentVersion: 'v4.17.2',
+                latestVersion: 'not-a-version',
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('unparseable currentVersion → no banner', () => {
+            const result = resolveActiveBanner(makeContext({
+                currentVersion: 'dev',
+                latestVersion: 'v4.18.0',
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('hidden from non-owners', () => {
+            const result = resolveActiveBanner(makeContext({
+                role: OrgRole.MEMBER,
+                currentVersion: 'v4.17.2',
+                latestVersion: 'v4.18.0',
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('dismissed today → filtered out', () => {
+            const result = resolveActiveBanner(makeContext({
+                currentVersion: 'v4.17.2',
+                latestVersion: 'v4.18.0',
+                dismissals: { upgradeAvailable: TODAY },
+            }));
+            expect(result).toBeNull();
+        });
+
+        test('dismissed yesterday → still shown', () => {
+            const result = resolveActiveBanner(makeContext({
+                currentVersion: 'v4.17.2',
+                latestVersion: 'v4.18.0',
+                dismissals: { upgradeAvailable: YESTERDAY },
+            }));
+            expect(result?.id).toBe('upgradeAvailable');
+        });
+
+        test('warning-level ping outranks upgrade', () => {
+            const result = resolveActiveBanner(makeContext({
+                license: makeLicense({
+                    status: 'active',
+                    lastSyncAt: new Date(NOW.getTime() - (48 * 60 * 60 * 1000 + 60_000)),
+                }),
+                currentVersion: 'v4.17.2',
+                latestVersion: 'v4.18.0',
+            }));
+            expect(result?.id).toBe('servicePingFailed');
         });
     });
 });
