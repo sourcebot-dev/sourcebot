@@ -15,7 +15,7 @@ export function UpgradeAvailableBanner({ id, dismissible, currentVersion, latest
             id={id}
             dismissible={dismissible}
             icon={<CircleArrowUp className="h-4 w-4 mt-0.5" />}
-            title="New version available"
+            title="New Sourcebot version available"
             description={`Upgrade from ${currentVersion} to ${latestVersion}.`}
             action={
                 <Button asChild size="sm" variant="outline">
