@@ -5,6 +5,14 @@ import { generateAndStoreAuthCode } from '@/ee/features/oauth/server';
 import { withAuth } from '@/middleware/withAuth';
 import { UNPERMITTED_SCHEMES } from '@/ee/features/oauth/constants';
 
+export interface ConnectedOauthClient {
+    id: string;
+    name: string;
+    logoUri: string | null;
+    connectedAt: Date;
+    lastUsedAt: Date | null;
+}
+
 /**
  * Resolves the final URL to navigate to after an authorization decision.
  * Non-web redirect URIs (e.g. custom schemes like vscode://) are wrapped in
@@ -71,3 +79,55 @@ export const denyAuthorization = async ({
         if (state) callbackUrl.searchParams.set('state', state);
         return resolveCallbackUrl(callbackUrl);
     }))
+
+/**
+ * Lists the OAuth clients that the current user has authorized.
+ * A client is considered "connected" if it has at least one refresh token for
+ * the user. Refresh tokens outlive short-lived access tokens, so they're the
+ * better signal of an active connection.
+ */
+export const getConnectedOauthClients = async () => sew(() =>
+    withAuth(async ({ user, prisma }) => {
+        const clients = await prisma.oAuthClient.findMany({
+            where: { refreshTokens: { some: { userId: user.id } } },
+            select: {
+                id: true,
+                name: true,
+                logoUri: true,
+                refreshTokens: {
+                    where: { userId: user.id },
+                    select: { createdAt: true },
+                    orderBy: { createdAt: 'asc' },
+                    take: 1,
+                },
+                tokens: {
+                    where: { userId: user.id },
+                    select: { lastUsedAt: true },
+                    orderBy: { lastUsedAt: 'desc' },
+                    take: 1,
+                },
+            },
+        });
+
+        return clients.map((client) => ({
+            id: client.id,
+            name: client.name,
+            logoUri: client.logoUri,
+            connectedAt: client.refreshTokens[0].createdAt,
+            lastUsedAt: client.tokens[0]?.lastUsedAt ?? null,
+        }));
+    }));
+
+/**
+ * Revokes all tokens for the given OAuth client / current user pair, fully
+ * disconnecting that MCP client from the user's account.
+ */
+export const revokeMcpClient = async ({ clientId }: { clientId: string }) => sew(() =>
+    withAuth(async ({ user, prisma }) => {
+        await prisma.$transaction([
+            prisma.oAuthToken.deleteMany({ where: { clientId, userId: user.id } }),
+            prisma.oAuthRefreshToken.deleteMany({ where: { clientId, userId: user.id } }),
+            prisma.oAuthAuthorizationCode.deleteMany({ where: { clientId, userId: user.id } }),
+        ]);
+        return { success: true };
+    }));
