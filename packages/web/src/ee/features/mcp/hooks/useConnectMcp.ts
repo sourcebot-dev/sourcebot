@@ -7,14 +7,18 @@ import { connectMcpToAsk } from '@/app/api/(client)/client';
 import { invalidateMcpConfigurationQueries } from '@/ee/features/mcp/queryKeys';
 import { isServiceError } from '@/lib/utils';
 
-export function useConnectMcp() {
+interface UseConnectMcpOptions {
+    returnTo?: string;
+}
+
+export function useConnectMcp(options?: UseConnectMcpOptions) {
     const [loadingServerId, setLoadingServerId] = useState<string | null>(null);
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
     const connect = async (serverId: string) => {
         setLoadingServerId(serverId);
-        const result = await connectMcpToAsk({ serverId });
+        const result = await connectMcpToAsk({ serverId, returnTo: options?.returnTo });
 
         if (isServiceError(result)) {
             toast({

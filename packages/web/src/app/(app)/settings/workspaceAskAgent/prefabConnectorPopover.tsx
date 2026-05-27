@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { getDisplayServerUrl } from "@/ee/features/mcp/components/connectorRowInfo";
 import { McpFavicon } from "@/ee/features/mcp/components/mcpFavicon";
 import {
     getAvailablePrefabMcpServers,
@@ -24,15 +25,7 @@ interface PrefabConnectorPopoverProps {
     disabled?: boolean;
     onSelectCustomUrl: () => void;
     onSelectPrefabServer: (server: PrefabMcpServer) => void;
-}
-
-function getDisplayServerUrl(serverUrl: string) {
-    try {
-        const url = new URL(serverUrl);
-        return `${url.host}${url.pathname}${url.search}`.replace(/\/$/, "");
-    } catch {
-        return serverUrl;
-    }
+    children?: React.ReactNode;
 }
 
 export function PrefabConnectorPopover({
@@ -40,6 +33,7 @@ export function PrefabConnectorPopover({
     disabled,
     onSelectCustomUrl,
     onSelectPrefabServer,
+    children,
 }: PrefabConnectorPopoverProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -79,9 +73,11 @@ export function PrefabConnectorPopover({
     return (
         <Popover open={isOpen} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
-                <Button size="icon" variant="ghost" disabled={disabled} aria-label="Add connector">
-                    <PlusIcon className="h-4 w-4" />
-                </Button>
+                {children ?? (
+                    <Button size="icon" variant="ghost" disabled={disabled} aria-label="Add connector">
+                        <PlusIcon className="h-4 w-4" />
+                    </Button>
+                )}
             </PopoverTrigger>
             <PopoverContent className="w-[360px] p-0" align="end">
                 <Command shouldFilter={false}>

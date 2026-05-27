@@ -16,19 +16,16 @@ import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConnectMcpButton } from "@/ee/features/mcp/components/connectMcpButton";
-import { McpFavicon } from "@/ee/features/mcp/components/mcpFavicon";
+import { ConnectorRowInfo } from "@/ee/features/mcp/components/connectorRowInfo";
 import { useConnectMcp } from "@/ee/features/mcp/hooks/useConnectMcp";
 import { disconnectMcpServer } from "@/ee/features/mcp/actions";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/mcp/queryKeys";
 import { cn, isServiceError } from "@/lib/utils";
 
 type FilterTab = "all" | "connected";
-
-function displayUrl(url: string) {
-    return url.replace(/^https?:\/\//, "");
-}
 
 function pluralize(count: number, singular: string, plural = `${singular}s`) {
     return count === 1 ? singular : plural;
@@ -179,6 +176,7 @@ export function AccountAskAgentPage({ callbackStatus, callbackServer, callbackMe
                         Manage your personal Ask Agent setup.
                     </p>
                 </div>
+                <Separator />
                 <div className="space-y-3">
                     <div>
                         <h4 className="text-sm font-semibold text-foreground">Connectors</h4>
@@ -200,6 +198,8 @@ export function AccountAskAgentPage({ callbackStatus, callbackServer, callbackMe
                     Manage your personal Ask Agent setup.
                 </p>
             </div>
+
+            <Separator />
 
             <div className="space-y-3">
                 <div>
@@ -291,16 +291,12 @@ export function AccountAskAgentPage({ callbackStatus, callbackServer, callbackMe
                             visibleConnected.map((server) => (
                                 <Card key={server.id}>
                                     <CardContent className="flex items-center gap-3 p-3">
-                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60">
-                                            <McpFavicon faviconUrl={server.faviconUrl} className="h-4.5 w-4.5" />
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-medium truncate">
-                                                {server.name || server.serverUrl}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground truncate">
-                                                {displayUrl(server.serverUrl)}
-                                            </p>
+                                        <ConnectorRowInfo
+                                            faviconUrl={server.faviconUrl}
+                                            name={server.name}
+                                            serverUrl={server.serverUrl}
+                                            size="sm"
+                                        >
                                             <div className="flex items-center gap-1.5 mt-0.5">
                                                 {server.isConnected && (
                                                     <>
@@ -315,7 +311,7 @@ export function AccountAskAgentPage({ callbackStatus, callbackServer, callbackMe
                                                     </>
                                                 )}
                                             </div>
-                                        </div>
+                                        </ConnectorRowInfo>
                                         <div className="flex items-center gap-1.5 shrink-0">
                                             <Button variant="outline" size="sm" asChild className="h-8">
                                                 <a href={server.serverUrl} target="_blank" rel="noopener noreferrer">
@@ -379,22 +375,19 @@ export function AccountAskAgentPage({ callbackStatus, callbackServer, callbackMe
                                 visibleSuggested.map((server) => (
                                     <Card key={server.id}>
                                         <CardContent className="flex items-center gap-3 p-3">
-                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60">
-                                                <McpFavicon faviconUrl={server.faviconUrl} className="h-4.5 w-4.5" />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-medium truncate">
-                                                    {server.name || server.serverUrl}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground truncate">
-                                                    {displayUrl(server.serverUrl)}
-                                                </p>
-                                            </div>
+                                            <ConnectorRowInfo
+                                                faviconUrl={server.faviconUrl}
+                                                name={server.name}
+                                                serverUrl={server.serverUrl}
+                                                size="sm"
+                                            />
                                             <ConnectMcpButton
                                                 serverId={server.id}
                                                 isConnected={false}
                                                 isAuthExpired={false}
                                                 size="sm"
+                                                variant="outline"
+                                                className="h-8"
                                             />
                                         </CardContent>
                                     </Card>
