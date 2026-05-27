@@ -109,7 +109,7 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
                     className="sticky top-0 h-fit max-w-44 py-2 mr-1.5"
                 />
             )}
-            <div className="flex flex-col w-full bg-[#fcfcfc] dark:bg-[#0e1320] px-4 py-2 rounded-lg shadow-sm">
+            <div className="flex flex-col w-full bg-[#fafafa] dark:bg-[#0e1320] px-4 py-2 rounded-lg shadow-sm">
                 <div className="flex flex-col z-10 bg-inherit py-2 sticky top-0">
                     <div className="flex items-center justify-between mb-2">
                         <p className="font-semibold text-muted-foreground">Answer</p>
