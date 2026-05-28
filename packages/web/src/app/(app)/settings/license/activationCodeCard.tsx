@@ -2,19 +2,16 @@
 
 import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { SettingsCard } from "../components/settingsCard";
 import { activateLicense } from "@/ee/features/lighthouse/actions";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
-import { UpsellDialog } from "@/ee/features/lighthouse/upsellDialog";
 
 export function ActivationCodeCard() {
     const [activationCode, setActivationCode] = useState("");
     const [isActivating, setIsActivating] = useState(false);
-    const [isUpsellOpen, setIsUpsellOpen] = useState(false);
     const { toast } = useToast();
 
     const handleActivate = useCallback(() => {
@@ -73,24 +70,8 @@ export function ActivationCodeCard() {
                             Activate
                         </LoadingButton>
                     </div>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                        Don&apos;t have an activation code?
-                        <Button
-                            variant="link"
-                            className="h-auto p-0"
-                            onClick={() => setIsUpsellOpen(true)}
-                        >
-                            See plans
-                        </Button>
-                    </p>
                 </div>
             </div>
-            <UpsellDialog
-                open={isUpsellOpen}
-                onOpenChange={setIsUpsellOpen}
-                source="license_settings"
-                returnPath="/settings/license"
-            />
         </SettingsCard>
     );
 }

@@ -15,7 +15,7 @@ import { listChangelogEntries } from "@/app/api/(client)/client"
 import { unwrapServiceError } from "@/lib/utils"
 import { env, SOURCEBOT_VERSION } from "@sourcebot/shared/client"
 import { useQuery } from "@tanstack/react-query"
-import { Compass, Loader2, Mail, MailOpen } from "lucide-react"
+import { Loader2, Mail, MailOpen, Megaphone } from "lucide-react"
 import Link from "next/link"
 import { useCallback, useMemo, useState } from "react"
 import { useHotkeys } from "react-hotkeys-hook"
@@ -104,7 +104,7 @@ export function WhatsNewSidebarButton() {
                         <TooltipTrigger asChild>
                             <PopoverTrigger asChild>
                                 <SidebarMenuButton>
-                                    <Compass className="h-4 w-4" />
+                                    <Megaphone className="h-4 w-4" />
                                     <span>{"What's new"}</span>
                                 </SidebarMenuButton>
                             </PopoverTrigger>
