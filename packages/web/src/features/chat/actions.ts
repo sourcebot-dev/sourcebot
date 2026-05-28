@@ -582,7 +582,13 @@ export const getChatPreferences = async (): Promise<{
         }
 
         const parsed = chatPreferencesSchema.safeParse(row.chatPreferences);
-        const preferences: ChatPreferences = parsed.success ? parsed.data : {};
+        // The schema is built with a dynamic `z.enum(string[])` so its inferred
+        // type widens each level to `string`. The runtime values are still
+        // validated against the per-dimension level lists, so the cast back to
+        // the narrower `ChatPreferences` literal-union map is sound.
+        const preferences: ChatPreferences = parsed.success
+            ? (parsed.data as ChatPreferences)
+            : {};
 
         return {
             preferences,

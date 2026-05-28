@@ -152,7 +152,6 @@ export function ChatPreferencesPage({
                                 value={currentValue}
                                 onValueChange={(value) => handleDimensionChange(dimension, value)}
                                 variant="outline"
-                                size="sm"
                                 className="flex-wrap justify-start gap-2"
                                 aria-label={spec.label}
                             >
@@ -161,6 +160,7 @@ export function ChatPreferencesPage({
                                         key={level.value}
                                         value={level.value}
                                         aria-label={`${spec.label}: ${level.label}`}
+                                        className="h-9 w-auto min-w-0 px-3"
                                     >
                                         {level.label}
                                     </ToggleGroupItem>

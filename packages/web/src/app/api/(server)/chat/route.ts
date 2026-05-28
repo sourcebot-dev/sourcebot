@@ -108,8 +108,14 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 });
                 if (row) {
                     const parsed = chatPreferencesSchema.safeParse(row.chatPreferences);
+                    // Cast back to the narrower literal-union map: the schema
+                    // is built dynamically so its inferred type widens to
+                    // `string`, but the runtime validation still constrains
+                    // each value to its per-dimension level list.
                     userPreferences = {
-                        preferences: parsed.success ? parsed.data : {},
+                        preferences: parsed.success
+                            ? (parsed.data as ResolvedChatUserPreferences["preferences"])
+                            : {},
                         customInstructions: row.chatCustomInstructions,
                     };
                 }
