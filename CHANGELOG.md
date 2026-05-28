@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added a per-user Chat Preferences settings page where users can tune the chat agent's response style across six dimensions (depth, code visibility, vocabulary, citation density, output structure, diagrams) plus a free-text custom-instructions field, applied as soft biases to the agent's system prompt. [#1243](https://github.com/sourcebot-dev/sourcebot/pull/1243)
+
 ### Changed
 - Documented session lifetime, repository visibility refresh behavior, and how permission sync handles transient code-host errors. [#1218](https://github.com/sourcebot-dev/sourcebot/pull/1218)
 
