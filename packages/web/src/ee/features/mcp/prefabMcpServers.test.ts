@@ -19,6 +19,11 @@ describe('prefab MCP servers', () => {
                 serverUrl: 'https://mcp.linear.app/mcp',
             },
             {
+                id: 'posthog',
+                name: 'PostHog',
+                serverUrl: 'https://mcp.posthog.com/mcp',
+            },
+            {
                 id: 'slack',
                 name: 'Slack',
                 serverUrl: 'https://mcp.slack.com/mcp',
@@ -35,13 +40,13 @@ describe('prefab MCP servers', () => {
     test('hides already configured prefab servers after URL normalization', () => {
         const availableServers = getAvailablePrefabMcpServers(['https://mcp.slack.com/mcp/']);
 
-        expect(availableServers.map((server) => server.id)).toEqual(['atlassian', 'linear']);
+        expect(availableServers.map((server) => server.id)).toEqual(['atlassian', 'linear', 'posthog']);
     });
 
     test('hides the Atlassian prefab entry when the shared endpoint is configured', () => {
         const availableServers = getAvailablePrefabMcpServers(['https://mcp.atlassian.com/v1/mcp/authv2/']);
 
-        expect(availableServers.map((server) => server.id)).toEqual(['linear', 'slack']);
+        expect(availableServers.map((server) => server.id)).toEqual(['linear', 'posthog', 'slack']);
     });
 
     test('normalizes server URLs for duplicate comparisons', () => {

@@ -16,6 +16,11 @@ const prefabMcpServers = [
         serverUrl: "https://mcp.linear.app/mcp",
     },
     {
+        id: "posthog",
+        name: "PostHog",
+        serverUrl: "https://mcp.posthog.com/mcp",
+    },
+    {
         id: "slack",
         name: "Slack",
         serverUrl: "https://mcp.slack.com/mcp",
