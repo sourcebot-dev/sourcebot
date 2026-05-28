@@ -83,6 +83,7 @@ function WorkspaceConnectorCard({
     const isAuthExpired = status?.isAuthExpired === true;
     const isStatusUnavailable = isOAuthAvailable !== true || isStatusLoading || isStatusError || !status;
     const showConnectButton = isOAuthAvailable && !isStatusLoading && !isStatusError && !!status && !isConnected;
+    const serverLabel = server.name || server.serverUrl;
 
     return (
         <ConnectorCard
@@ -127,7 +128,12 @@ function WorkspaceConnectorCard({
                     )}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                aria-label={`Open actions for ${serverLabel}`}
+                            >
                                 <MoreHorizontalIcon className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
@@ -139,6 +145,7 @@ function WorkspaceConnectorCard({
                             <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
                                 onClick={() => onDelete(server)}
+                                aria-label={`Remove ${serverLabel}`}
                             >
                                 <Trash2Icon className="h-4 w-4 mr-2" />
                                 Remove

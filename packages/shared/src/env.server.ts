@@ -14,6 +14,7 @@ const booleanSchema = z.enum(["true", "false"]);
 // coerce helps us convert them to numbers.
 // @see: https://zod.dev/?id=coercion-for-primitives
 const numberSchema = z.coerce.number();
+const maxTimerDelayMs = 2_147_483_647;
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -282,7 +283,7 @@ const options = {
          */
         SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.optional(),
         SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(100),
-        SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS: numberSchema.default(60000),
+        SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS: numberSchema.int().positive().max(maxTimerDelayMs).default(60000),
 
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
         DEBUG_ENABLE_REACT_SCAN: booleanSchema.default('false'),

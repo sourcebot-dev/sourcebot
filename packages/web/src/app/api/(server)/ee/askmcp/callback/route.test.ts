@@ -183,4 +183,22 @@ describe('GET /api/ee/askmcp/callback', () => {
         expect(JSON.stringify(mocks.logger.warn.mock.calls)).not.toContain('client-secret');
         expect(JSON.stringify(mocks.logger.warn.mock.calls)).not.toContain('refresh-token');
     });
+
+    test('clears verifier state when callback auth throws before provider cleanup', async () => {
+        mocks.mcpAuth.mockRejectedValue(new Error('token exchange failed'));
+
+        const response = await GET(createRequest());
+        const location = response.headers.get('location');
+
+        expect(location).toContain('status=error');
+        expect(mocks.unsafePrisma.userMcpServer.update).toHaveBeenCalledWith({
+            where: {
+                userId_serverId: { userId: 'user-1', serverId: 'server-1' },
+            },
+            data: {
+                codeVerifier: null,
+                state: null,
+            },
+        });
+    });
 });

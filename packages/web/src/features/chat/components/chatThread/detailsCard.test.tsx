@@ -2,6 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { DetailsCard } from './detailsCard';
+import type { SBChatMessagePart } from '../../types';
 
 vi.mock('@/hooks/useCaptureEvent', () => ({
     default: () => vi.fn(),
@@ -89,5 +90,33 @@ describe('DetailsCard', () => {
         expect(screen.queryByText('Details')).toBeTruthy();
         expect(screen.queryByText('Claude Sonnet')).toBeTruthy();
         expect(screen.queryByText('41k tokens')).toBeTruthy();
+    });
+
+    test('shows terminal tool activation failures instead of a loading state', () => {
+        const failedActivationPart = {
+            type: 'tool-tool_request_activation',
+            toolCallId: 'tool-call-1',
+            state: 'output-error',
+            input: { tool_to_activate_name: 'mcp_linear__search_issues' },
+            errorText: 'Activation failed',
+        } satisfies SBChatMessagePart;
+
+        render(
+            <TooltipProvider>
+                <DetailsCard
+                    chatId="chat-id"
+                    isExpanded={true}
+                    onExpandedChanged={vi.fn()}
+                    isThinking={false}
+                    isTurnInProgress={true}
+                    isNetworkActive={false}
+                    isAwaitingToolApproval={false}
+                    thinkingSteps={[[failedActivationPart]]}
+                />
+            </TooltipProvider>
+        );
+
+        expect(screen.queryByText('Tool activation failed: Activation failed')).toBeTruthy();
+        expect(screen.queryByText('Activating tool...')).toBeNull();
     });
 });

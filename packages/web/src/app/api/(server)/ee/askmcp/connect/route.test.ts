@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { McpServerClientInfoSource } from '@sourcebot/db';
+import { ErrorCode } from '@/lib/errorCodes';
 
 const mocks = vi.hoisted(() => ({
     authContext: undefined as unknown,
@@ -54,6 +55,28 @@ function createRequest(body: { serverId: string; returnTo?: string } = { serverI
     });
 }
 
+function createMalformedJsonRequest() {
+    return new NextRequest('http://localhost/api/ee/askmcp/connect', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{"serverId":',
+    });
+}
+
+function createTextPlainRequest() {
+    return new NextRequest('http://localhost/api/ee/askmcp/connect', {
+        method: 'POST',
+        headers: { 'content-type': 'text/plain' },
+        body: 'server-1',
+    });
+}
+
+function createEmptyBodyRequest() {
+    return new NextRequest('http://localhost/api/ee/askmcp/connect', {
+        method: 'POST',
+    });
+}
+
 function createPrismaMock() {
     return {
         mcpServer: {
@@ -89,6 +112,23 @@ beforeEach(() => {
 });
 
 describe('POST /api/ee/askmcp/connect', () => {
+    test.each([
+        ['malformed JSON', createMalformedJsonRequest],
+        ['text/plain body', createTextPlainRequest],
+        ['empty body', createEmptyBodyRequest],
+    ])('returns a request body validation error for %s', async (_name, createInvalidRequest) => {
+        const response = await POST(createInvalidRequest());
+        const body = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(body).toMatchObject({
+            statusCode: 400,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: 'Invalid JSON request body.',
+        });
+        expect(mocks.mcpAuth).not.toHaveBeenCalled();
+    });
+
     test('upserts a nameless user row and performs DCR-capable auth under a row lock', async () => {
         const prisma = createPrismaMock();
         const tx = createTransactionMock();

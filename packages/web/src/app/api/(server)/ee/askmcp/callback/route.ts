@@ -137,19 +137,14 @@ export const GET = apiHandler(async (request: NextRequest) => {
             orgId: userServer.server.orgId,
             error: getExternalMcpErrorLogFields(error),
         });
+        return redirectToCallbackError(reconnectMessage, callbackReturnTo);
+    } finally {
+        // Always clear ephemeral PKCE/state regardless of outcome to prevent replay.
         try {
             await provider.invalidateCredentials('verifier');
         } catch (cleanupError) {
             logger.warn(`Failed to clear MCP OAuth verifier for user ${session.user.id}:`, cleanupError);
         }
-        return redirectToCallbackError(reconnectMessage, callbackReturnTo);
-    }
-
-    // Always clear ephemeral PKCE/state regardless of outcome to prevent replay.
-    try {
-        await provider.invalidateCredentials('verifier');
-    } catch (cleanupError) {
-        logger.warn(`Failed to clear MCP OAuth verifier for user ${session.user.id}:`, cleanupError);
     }
 
     if (result === 'AUTHORIZED') {

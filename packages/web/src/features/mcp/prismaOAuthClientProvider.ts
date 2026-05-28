@@ -6,11 +6,12 @@ import type {
   OAuthTokens,
 } from '@ai-sdk/mcp';
 import { McpServerClientInfoSource, type PrismaClient } from '@sourcebot/db';
-import { encryptOAuthToken, decryptOAuthToken } from '@sourcebot/shared';
+import { encryptOAuthToken, decryptOAuthToken, createLogger } from '@sourcebot/shared';
 import { __unsafePrisma } from '@/prisma';
 import { createMcpOAuthState } from './mcpOAuthReturnTo';
 
 type McpOAuthPrismaClient = Pick<PrismaClient, 'mcpServer' | 'userMcpServer'>;
+const logger = createLogger('mcp-oauth-client-provider');
 
 interface PrismaOAuthClientProviderOptions {
   prisma: McpOAuthPrismaClient;
@@ -194,11 +195,30 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     if (!userServer?.codeVerifier) {
       throw new Error('No code verifier found');
     }
-    return userServer.codeVerifier;
+
+    const decrypted = decryptOAuthToken(userServer.codeVerifier);
+    if (!decrypted) {
+      throw new Error('Failed to decrypt OAuth code verifier');
+    }
+
+    if (decrypted === userServer.codeVerifier) {
+      logger.warn('MCP OAuth code verifier was read without decryption; it may be plaintext from an older version.', {
+        serverId: this.serverId,
+        orgId: this.orgId,
+        userId: this.userId,
+      });
+    }
+
+    return decrypted;
   }
 
   async saveCodeVerifier(codeVerifier: string): Promise<void> {
-    await this.updateUserServer({ codeVerifier });
+    const encrypted = encryptOAuthToken(codeVerifier);
+    if (!encrypted) {
+      throw new Error('Failed to encrypt OAuth code verifier');
+    }
+
+    await this.updateUserServer({ codeVerifier: encrypted });
   }
 
   async state(): Promise<string> {
@@ -219,9 +239,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     // This prevents a stolen-session attack where an attacker signs into Sourcebot on
     // a victim's machine and silently obtains the victim's provider tokens via an
     // existing browser session.
-    if (!url.searchParams.has('prompt')) {
-      url.searchParams.set('prompt', 'consent');
-    }
+    url.searchParams.set('prompt', 'consent');
 
     // Clear stale tokens before starting a new authorization flow so the UI reflects
     // that the user needs to complete OAuth again.

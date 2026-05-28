@@ -48,7 +48,17 @@ export const POST = apiHandler(async (request: NextRequest) => {
         );
     }
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+        body = await request.json();
+    } catch {
+        return serviceErrorResponse({
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: 'Invalid JSON request body.',
+        });
+    }
+
     const parsed = bodySchema.safeParse(body);
     if (!parsed.success) {
         return serviceErrorResponse(requestBodySchemaValidationError(parsed.error));

@@ -323,6 +323,9 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
                 </ToolOutputGuard>
             )
         case 'tool-tool_request_activation':
+            if (part.state === 'output-error') {
+                return <span className="text-sm text-destructive">Tool activation failed: {part.errorText}</span>;
+            }
             if (part.state !== 'output-available') {
                 return <span className="text-sm text-muted-foreground animate-pulse">Activating tool...</span>;
             }

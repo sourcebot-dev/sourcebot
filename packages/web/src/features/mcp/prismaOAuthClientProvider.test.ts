@@ -1,6 +1,15 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { McpServerClientInfoSource } from '@sourcebot/db';
 
+const mocks = vi.hoisted(() => ({
+    logger: {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+    },
+}));
+
 vi.mock('server-only', () => ({}));
 vi.mock('@/prisma', () => ({
     __unsafePrisma: {
@@ -11,6 +20,7 @@ vi.mock('@/prisma', () => ({
 vi.mock('@sourcebot/shared', () => ({
     encryptOAuthToken: vi.fn((text: string | null | undefined) => text ? `encrypted:${text}` : undefined),
     decryptOAuthToken: vi.fn((text: string | null | undefined) => text?.startsWith('encrypted:') ? text.slice('encrypted:'.length) : text),
+    createLogger: () => mocks.logger,
 }));
 
 const {
@@ -113,6 +123,85 @@ describe('clearMcpServerClientCredentialsForObservedClient', () => {
         expect(didClear).toBe(false);
         expect(prisma.mcpServer.updateMany).toHaveBeenCalledOnce();
         expect(prisma.userMcpServer.updateMany).not.toHaveBeenCalled();
+    });
+});
+
+describe('PrismaOAuthClientProvider PKCE verifier storage', () => {
+    test('saveCodeVerifier encrypts the verifier before persisting it', async () => {
+        const prisma = createPrismaMock();
+        prisma.userMcpServer.update.mockResolvedValue({
+            userId: 'user-1',
+            serverId: 'server-1',
+        });
+        const provider = createProvider(prisma);
+
+        await provider.saveCodeVerifier('verifier-secret');
+
+        expect(prisma.userMcpServer.update).toHaveBeenCalledWith({
+            where: {
+                userId_serverId: { userId: 'user-1', serverId: 'server-1' },
+            },
+            data: {
+                codeVerifier: 'encrypted:verifier-secret',
+            },
+        });
+    });
+
+    test('codeVerifier decrypts the stored verifier', async () => {
+        const prisma = createPrismaMock();
+        prisma.userMcpServer.findUnique.mockResolvedValue({
+            codeVerifier: 'encrypted:verifier-secret',
+            tokens: null,
+            state: null,
+        });
+        const provider = createProvider(prisma);
+
+        await expect(provider.codeVerifier()).resolves.toBe('verifier-secret');
+        expect(mocks.logger.warn).not.toHaveBeenCalled();
+    });
+
+    test('codeVerifier still accepts plaintext verifier values during migration and logs the fallback', async () => {
+        const prisma = createPrismaMock();
+        prisma.userMcpServer.findUnique.mockResolvedValue({
+            codeVerifier: 'plaintext-verifier',
+            tokens: null,
+            state: null,
+        });
+        const provider = createProvider(prisma);
+
+        await expect(provider.codeVerifier()).resolves.toBe('plaintext-verifier');
+        expect(mocks.logger.warn).toHaveBeenCalledWith(
+            'MCP OAuth code verifier was read without decryption; it may be plaintext from an older version.',
+            {
+                serverId: 'server-1',
+                orgId: 1,
+                userId: 'user-1',
+            },
+        );
+    });
+});
+
+describe('PrismaOAuthClientProvider authorization redirect', () => {
+    test('overwrites existing prompt values with consent', async () => {
+        const prisma = createPrismaMock();
+        prisma.userMcpServer.update.mockResolvedValue({
+            userId: 'user-1',
+            serverId: 'server-1',
+        });
+        const provider = createProvider(prisma);
+
+        await provider.redirectToAuthorization(new URL('https://oauth.example.com/authorize?prompt=none&client_id=client-1'));
+
+        expect(provider.authorizationUrl).toBe('https://oauth.example.com/authorize?prompt=consent&client_id=client-1');
+        expect(prisma.userMcpServer.update).toHaveBeenCalledWith({
+            where: {
+                userId_serverId: { userId: 'user-1', serverId: 'server-1' },
+            },
+            data: {
+                tokens: null,
+                tokensExpiresAt: null,
+            },
+        });
     });
 });
 
