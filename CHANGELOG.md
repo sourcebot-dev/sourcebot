@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added inline mermaid diagram rendering in chat answers, with a "Visualize" button to redraw an answer as a diagram and a fullscreen pan/zoom modal. [#1241](https://github.com/sourcebot-dev/sourcebot/pull/1241)
+
 ### Changed
 - Documented session lifetime, repository visibility refresh behavior, and how permission sync handles transient code-host errors. [#1218](https://github.com/sourcebot-dev/sourcebot/pull/1218)
 

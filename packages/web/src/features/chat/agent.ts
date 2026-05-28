@@ -317,6 +317,79 @@ const createPrompt = ({
     Authentication in Sourcebot is built on NextAuth.js with a session-based approach using JWT tokens and Prisma as the database adapter ${fileReferenceToString({ repo: 'github.com/sourcebot-dev/sourcebot', path: 'auth.ts', range: { startLine: 135, endLine: 140 } })}. The system supports multiple authentication providers and implements organization-based authorization with role-defined permissions.
     \`\`\`
     </answer_instructions>
+
+    <diagram_instructions>
+    When the user asks for a diagram, visual, workflow, architecture, sequence, flow, "show me a visual", "draw", or similar visual request, you MUST include a \`mermaid\` fenced code block in your answer. You may also include a diagram on your own initiative when the answer involves a multi-step workflow, a request/response sequence, or relationships between services or modules that are clearer visually than in prose.
+
+    **Diagram type selection** — pick the one that best fits the question:
+    - \`sequenceDiagram\` — request flows, API call chains, message passing between services or actors
+    - \`flowchart TD\` or \`flowchart LR\` — pipelines, conditional logic, decision trees, build / deploy flows
+    - \`graph TD\` — service topology, architecture overviews, component dependencies
+    - \`classDiagram\` — model / class relationships, inheritance hierarchies
+    - \`erDiagram\` — database schemas and entity relationships
+    - \`stateDiagram-v2\` — state machines and lifecycle transitions
+
+    **Diagram authoring rules:**
+    - ONLY include nodes and edges that are supported by code you have actually read via tool calls. Do NOT invent components, services, or relationships. If you are uncertain about a connection, omit it and say so in the surrounding prose.
+    - Keep diagrams focused. Prefer two small diagrams (e.g. "high level" + "request flow detail") over one giant one with twenty nodes.
+    - For every meaningful node in the diagram, cite its source location in the surrounding prose using the existing \`${FILE_REFERENCE_PREFIX}\` format, e.g. "The \`AuthService\` node is implemented in ${fileReferenceToString({ repo: 'repository', path: 'services/auth.ts', range: { startLine: 1, endLine: 30 } })}".
+    - Use short, descriptive labels for nodes — function names, service names, or short phrases. Avoid full sentences inside nodes.
+    - Make sure the mermaid syntax parses. If unsure about a particular feature, use the simplest form (e.g. \`A --> B\` rather than complex edge styling).
+
+    **Label hygiene — CRITICAL for mermaid to parse correctly:**
+    Mermaid's tokenizer is fragile. If a label contains anything other than letters, digits, underscores, hyphens, and single spaces, follow these rules — otherwise the diagram will fail to render and the user will see a parse error.
+
+    1. **For flowchart, graph, classDiagram, erDiagram, and stateDiagram-v2 NODE LABELS**: ALWAYS wrap the label in double quotes when it contains ANY of these characters: parentheses, commas, angle brackets, ampersands, slashes, colons, semicolons, pipes, braces, brackets, backticks, periods, dollar signs, hashes. The quotes make the content opaque to the parser. Examples:
+       - WRONG: \`A[Workflows (part_question, part_answer)]\`
+       - RIGHT: \`A["Workflows (part_question, part_answer)"]\`
+       - WRONG: \`B[ChatSvc.GetStreamingMessages]\`
+       - RIGHT: \`B["ChatSvc.GetStreamingMessages"]\`
+       - OK without quotes: \`C[ProcessRequest]\`, \`D[handle response]\`
+
+    2. **For sequenceDiagram MESSAGE LABELS** (the text after \`:\`): keep them plain English. The message text is freeform but MUST NOT contain double quotes, and should avoid parentheses with arguments. Describe the call instead of writing its signature:
+       - WRONG: \`A->>B: StreamProgressMessageAsync("Semantic Kernel engaged...", "streamStart")\`
+       - RIGHT: \`A->>B: emit streamStart progress message\`
+       - WRONG: \`A->>B: IAsyncEnumerable<ChatMessageContent>\`
+       - RIGHT: \`A->>B: streamed ChatMessageContent\`
+       - WRONG: \`A->>B: CreateKernel(builder, options)\`
+       - RIGHT: \`A->>B: CreateKernel\`
+
+    3. **Universal restrictions** (apply to ALL diagram types):
+       - Avoid ellipses (\`...\`) in labels — they can confuse the tokenizer. Use the word \`etc\` if you need to abbreviate.
+       - In sequenceDiagram **message text** (the text after the \`:\`), do not start the text with \`+\` or \`-\`. These characters are valid when attached to the arrow as participant activation modifiers (e.g. \`A->>+B: msg\`, \`A->>-B: msg\`), but at the start of the message text itself they confuse the parser.
+       - Drop generic type parameters: write \`ChatMessageContent stream\` not \`IAsyncEnumerable<ChatMessageContent>\`.
+       - Prefer short verb phrases over literal code: \`build kernel and register chat service\` rather than mirroring a code snippet.
+
+    4. **When in doubt, quote it.** For node labels, an unnecessary pair of double quotes is harmless. A missing pair is fatal.
+
+    Code references for the underlying implementation belong in the surrounding prose (using \`${FILE_REFERENCE_PREFIX}\`), NOT inside the diagram labels.
+
+    **Example of a workflow visualization:**
+    \`\`\`markdown
+    ${ANSWER_TAG}
+    The GlennBot service handles incoming chat requests in three stages. Here's the request flow:
+
+    \\\`\\\`\\\`mermaid
+    sequenceDiagram
+        participant Client
+        participant Router as Express Router
+        participant Auth as Auth Middleware
+        participant Service as GlennBot Service
+        participant LLM
+        Client->>Router: POST /chat
+        Router->>Auth: validate session
+        Auth-->>Router: ok
+        Router->>Service: handleMessage()
+        Service->>LLM: generate response
+        LLM-->>Service: streamed reply
+        Service-->>Client: SSE stream
+    \\\`\\\`\\\`
+
+    - The router is defined in ${fileReferenceToString({ repo: 'repository', path: 'src/router.ts', range: { startLine: 12, endLine: 40 } })}
+    - Auth validation lives in ${fileReferenceToString({ repo: 'repository', path: 'src/middleware/auth.ts', range: { startLine: 1, endLine: 25 } })}
+    - The core handler is ${fileReferenceToString({ repo: 'repository', path: 'src/services/glennBot.ts', range: { startLine: 50, endLine: 120 } })}
+    \`\`\`
+    </diagram_instructions>
     `
 }
 
