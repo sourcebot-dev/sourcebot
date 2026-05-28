@@ -150,6 +150,23 @@ type LevelValueFor<D extends ChatPreferenceDimension> =
 export const CHAT_PREFERENCE_DIMENSIONS = Object.keys(CHAT_PREFERENCE_SPEC) as ChatPreferenceDimension[];
 
 /**
+ * Dimensions to hide from the Settings UI. The data model still accepts these
+ * values (so a maintainer can flip a single boolean to unhide), but the row
+ * does not render on the Chat Preferences page until then.
+ *
+ * `diagrams` is gated because mermaid diagram rendering is a separate
+ * in-flight feature (see PR #1241). When that lands, remove `diagrams` from
+ * this set so the row becomes visible.
+ */
+export const HIDDEN_CHAT_PREFERENCE_DIMENSIONS: ReadonlySet<ChatPreferenceDimension> = new Set([
+    "diagrams",
+]);
+
+export const VISIBLE_CHAT_PREFERENCE_DIMENSIONS = CHAT_PREFERENCE_DIMENSIONS.filter(
+    (d) => !HIDDEN_CHAT_PREFERENCE_DIMENSIONS.has(d),
+);
+
+/**
  * Build a zod object schema whose shape is derived from {@link CHAT_PREFERENCE_SPEC}.
  * Each dimension is an optional enum of its level values, and unknown keys are
  * rejected (`.strict()`) so we never persist garbage to the JSONB column.
