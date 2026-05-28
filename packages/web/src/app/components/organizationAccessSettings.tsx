@@ -6,7 +6,11 @@ import { __unsafePrisma } from "@/prisma"
 import { env } from "@sourcebot/shared"
 import { isAnonymousAccessAvailable, isAnonymousAccessEnabled } from "@/lib/entitlements"
 
-export async function OrganizationAccessSettings() {
+interface OrganizationAccessSettingsProps {
+    showAnonymousAccessToggle?: boolean;
+}
+
+export async function OrganizationAccessSettings({ showAnonymousAccessToggle = true }: OrganizationAccessSettingsProps = {}) {
     const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
     if (!org) {
         return <div>Error loading organization</div>
@@ -23,11 +27,13 @@ export async function OrganizationAccessSettings() {
 
     return (
         <div className="space-y-6">
-            <AnonymousAccessToggle
-                anonymousAccessAvailable={anonymousAccessAvailable}
-                anonymousAccessEnabled={anonymousAccessEnabled}
-                forceEnableAnonymousAccess={forceEnableAnonymousAccess}
-            />
+            {showAnonymousAccessToggle && (
+                <AnonymousAccessToggle
+                    anonymousAccessAvailable={anonymousAccessAvailable}
+                    anonymousAccessEnabled={anonymousAccessEnabled}
+                    forceEnableAnonymousAccess={forceEnableAnonymousAccess}
+                />
+            )}
 
             <OrganizationAccessSettingsWrapper
                 memberApprovalRequired={org.memberApprovalRequired}

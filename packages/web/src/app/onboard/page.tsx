@@ -133,7 +133,7 @@ export default async function Onboarding(props: OnboardingProps) {
         ),
         component: (
             <div className="space-y-6">
-                <OrganizationAccessSettings />
+                <OrganizationAccessSettings showAnonymousAccessToggle={false} />
                 <Button asChild className="w-full">
                     <Link href={`/onboard?step=${steps.length + 1}`}>Continue →</Link>
                 </Button>
