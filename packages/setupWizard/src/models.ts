@@ -8,7 +8,7 @@ import type {
     LanguageModel,
     OpenAICompatibleLanguageModel,
 } from '@sourcebot/schemas/v3/languageModel.type';
-import { note, type EnvVars } from './utils.js';
+import { INPUT_THEME, note, type EnvVars } from './utils.js';
 
 type Provider = LanguageModel['provider'];
 
@@ -151,7 +151,7 @@ async function ensureApiKey(provider: Provider, env: EnvVars): Promise<string> {
     const envKey = PROVIDER_ENV_KEYS[provider] ?? `${provider.toUpperCase().replace(/-/g, '_')}_API_KEY`;
     if (!env[envKey]) {
         const apiKey = await password({
-            message: `API key (stored as ${envKey})`,
+            message: `API key (stored locally in .env as ${envKey})`,
             mask: true,
             validate: (v) => !v?.trim() ? 'API key is required' : true,
         });
@@ -206,6 +206,7 @@ async function collectModelConfig(
             const apiVersion = await input({
                 message: 'API version',
                 default: '2024-08-01-preview',
+                theme: INPUT_THEME,
                 validate: (v) => !v?.trim() ? 'API version is required' : true,
             });
             const envKey = await ensureApiKey(provider, env);
@@ -229,7 +230,7 @@ async function collectModelConfig(
             if (!useDefaultChain) {
                 if (!env['AWS_ACCESS_KEY_ID']) {
                     env['AWS_ACCESS_KEY_ID'] = await input({
-                        message: 'AWS Access Key ID (stored as AWS_ACCESS_KEY_ID)',
+                        message: 'AWS Access Key ID (stored locally in .env as AWS_ACCESS_KEY_ID)',
                         validate: (v) => !v?.trim() ? 'Access Key ID is required' : true,
                     });
                 }
@@ -237,7 +238,7 @@ async function collectModelConfig(
 
                 if (!env['AWS_SECRET_ACCESS_KEY']) {
                     env['AWS_SECRET_ACCESS_KEY'] = await password({
-                        message: 'AWS Secret Access Key (stored as AWS_SECRET_ACCESS_KEY)',
+                        message: 'AWS Secret Access Key (stored locally in .env as AWS_SECRET_ACCESS_KEY)',
                         mask: true,
                         validate: (v) => !v?.trim() ? 'Secret Access Key is required' : true,
                     });
@@ -248,6 +249,7 @@ async function collectModelConfig(
             config.region = await input({
                 message: 'AWS region',
                 default: 'us-east-1',
+                theme: INPUT_THEME,
                 validate: (v) => !v?.trim() ? 'Region is required' : true,
             });
             return config;
@@ -256,14 +258,15 @@ async function collectModelConfig(
         case 'google-vertex-anthropic': {
             if (!env['GOOGLE_VERTEX_PROJECT']) {
                 env['GOOGLE_VERTEX_PROJECT'] = await input({
-                    message: 'Google Cloud project ID (stored as GOOGLE_VERTEX_PROJECT)',
+                    message: 'Google Cloud project ID (stored locally in .env as GOOGLE_VERTEX_PROJECT)',
                     validate: (v) => !v?.trim() ? 'Project ID is required' : true,
                 });
             }
             if (!env['GOOGLE_VERTEX_REGION']) {
                 env['GOOGLE_VERTEX_REGION'] = await input({
-                    message: 'Google Cloud region (stored as GOOGLE_VERTEX_REGION)',
+                    message: 'Google Cloud region (stored locally in .env as GOOGLE_VERTEX_REGION)',
                     default: 'us-central1',
+                    theme: INPUT_THEME,
                     validate: (v) => !v?.trim() ? 'Region is required' : true,
                 });
             }
@@ -281,7 +284,7 @@ async function collectModelConfig(
             if (!useAppDefault) {
                 if (!env['GOOGLE_APPLICATION_CREDENTIALS']) {
                     env['GOOGLE_APPLICATION_CREDENTIALS'] = await input({
-                        message: 'Path to service account credentials JSON (stored as GOOGLE_APPLICATION_CREDENTIALS)',
+                        message: 'Path to service account credentials JSON (stored locally in .env as GOOGLE_APPLICATION_CREDENTIALS)',
                         validate: (v) => !v?.trim() ? 'Credentials path is required' : true,
                     });
                 }

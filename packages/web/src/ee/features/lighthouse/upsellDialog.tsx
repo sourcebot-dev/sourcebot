@@ -7,8 +7,6 @@ import {
     DialogClose,
     DialogContent,
     DialogDescription,
-    DialogFooter,
-    DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
 import { LoadingButton } from "@/components/ui/loading-button";
@@ -19,7 +17,7 @@ import { useOffers } from "@/ee/features/lighthouse/useOffers";
 import { useRole } from "@/features/auth/useRole";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { UpsellSource } from "@/lib/posthogEvents";
-import { isServiceError } from "@/lib/utils";
+import { cn, isServiceError } from "@/lib/utils";
 import { OrgRole } from "@sourcebot/db";
 import { ArrowUpCircle, ExternalLink, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -70,20 +68,49 @@ export function UpsellDialog({ open, onOpenChange, source, returnPath }: UpsellD
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                 ) : (
-                    <UpsellDialogContent offers={offers} source={source} returnPath={returnPath} />
+                    <UpsellPanelContent offers={offers} source={source} returnPath={returnPath} variant="dialog" />
                 )}
             </DialogContent>
         </Dialog>
     );
 }
 
-interface UpsellDialogContentProps {
+interface UpsellPanelProps {
+    source: UpsellSource;
+    returnPath?: string;
+    className?: string;
+}
+
+export function UpsellPanel({ source, returnPath, className }: UpsellPanelProps) {
+    const { data: offers, isPending, isError } = useOffers();
+
+    if (isError) {
+        return null;
+    }
+
+    if (isPending || !offers) {
+        return (
+            <div className={cn("flex items-center justify-center py-12", className)}>
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
+
+    return (
+        <div className={cn("flex flex-col gap-6", className)}>
+            <UpsellPanelContent offers={offers} source={source} returnPath={returnPath} variant="inline" />
+        </div>
+    );
+}
+
+interface UpsellPanelContentProps {
     offers: OffersResponse;
     source: UpsellSource;
     returnPath?: string;
+    variant: "dialog" | "inline";
 }
 
-function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContentProps) {
+function UpsellPanelContent({ offers, source, returnPath, variant }: UpsellPanelContentProps) {
     const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
     const [isCheckoutSessionCreating, setIsCheckoutSessionCreating] = useState(false);
     const { data: session } = useSession();
@@ -139,30 +166,30 @@ function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContent
         if (!isOwner) {
             return {
                 title: "Sourcebot Pro",
-                description: "Ask your workspace owner to upgrade to Sourcebot Pro.",
+                description: "Ask your organization owner to upgrade to Sourcebot Pro.",
                 buttonText: "Got it",
             }
         }
         // trial, no cc
         if (offers.trial.eligible && !offers.trial.creditCardRequired) {
             return {
-                title: "Try Sourcebot Pro free",
+                title: "Try Sourcebot Pro",
                 description: `Get full access free for ${offers.trial.durationDays} days. No credit card required.`,
-                buttonText: "Start free trial"
+                buttonText: `Start ${offers.trial.durationDays}-day free trial`
             }
         }
         // trial, cc
         else if (offers.trial.eligible && offers.trial.creditCardRequired) {
             return {
-                title: "Try Sourcebot Pro free",
+                title: "Try Sourcebot Pro",
                 description: `Get full access free for ${offers.trial.durationDays} days. Card required, cancel anytime.`,
-                buttonText: "Start free trial"
+                buttonText: `Start ${offers.trial.durationDays}-day free trial`
             }
         }
         // no trial
         else {
             return {
-                title: "Your workspace is on the free plan",
+                title: "Your organization is on the free plan",
                 description: "Upgrade to unlock more features.",
                 buttonText: "Upgrade"
             }
@@ -171,15 +198,19 @@ function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContent
 
     return (
         <>
-            <DialogHeader className="gap-1">
+            <div className="flex flex-col gap-1 text-center sm:text-left">
                 <ArrowUpCircle className="h-6 w-6 bg-blue-500 text-gray-100 rounded-full" />
-                <DialogTitle>
-                    {title}
-                </DialogTitle>
-                <DialogDescription className="text-base">
-                    {description}
-                </DialogDescription>
-            </DialogHeader>
+                {variant === "dialog" ? (
+                    <DialogTitle>{title}</DialogTitle>
+                ) : (
+                    <h3 className="text-lg font-semibold leading-none tracking-tight">{title}</h3>
+                )}
+                {variant === "dialog" ? (
+                    <DialogDescription className="text-base">{description}</DialogDescription>
+                ) : (
+                    <p className="text-base text-muted-foreground">{description}</p>
+                )}
+            </div>
 
             <PlanComparisonTable
                 offers={offers}
@@ -187,7 +218,7 @@ function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContent
                 onBillingIntervalChange={setBillingInterval}
             />
 
-            <DialogFooter className="items-center gap-2 sm:gap-4">
+            <div className="flex flex-col-reverse items-center gap-2 sm:flex-row sm:justify-end sm:gap-4">
                 <Button variant="ghost" asChild>
                     <a
                         href="https://www.sourcebot.dev/pricing"
@@ -202,17 +233,20 @@ function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContent
                     <LoadingButton onClick={handlePrimaryAction} loading={isCheckoutSessionCreating}>
                         {buttonText}
                     </LoadingButton>
-                ) : (
+                ) : variant === "dialog" ? (
                     <DialogClose asChild>
                         <Button>{buttonText}</Button>
                     </DialogClose>
+                ) : (
+                    <Button>{buttonText}</Button>
                 )}
-            </DialogFooter>
+            </div>
 
             {isOwner && (
                 <CheckoutDisclosures
                     sessionEmail={sessionEmail}
                     onEmailChanged={setCurrentEmail}
+                    showNoCreditCardRequired={offers.trial.eligible && !offers.trial.creditCardRequired}
                 />
             )}
         </>

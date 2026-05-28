@@ -1,4 +1,5 @@
-import { checkbox, confirm, input, password, select } from '@inquirer/prompts';
+import { confirm, input, password, select } from '@inquirer/prompts';
+import { tabCheckbox as checkbox } from './tabCheckbox.js';
 import type { AzureDevOpsConnectionConfig } from '@sourcebot/schemas/v3/azuredevops.type';
 import type { CollectResult, EnvVars } from './utils.js';
 import { multiInput, note, toEnvKey } from './utils.js';
@@ -57,7 +58,7 @@ export async function collectAzureDevOpsConfig(connectionName: string): Promise<
 
     const envKey = toEnvKey(connectionName, 'TOKEN');
     const token = await password({
-        message: `Azure DevOps Personal Access Token (stored as ${envKey})`,
+        message: `Azure DevOps Personal Access Token (stored locally in .env as ${envKey})`,
         mask: true,
         validate: (v) => !v?.trim() ? 'Token is required' : true,
     });

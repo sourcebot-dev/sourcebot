@@ -140,7 +140,18 @@ export function LicenseActivactionDialog({ userEmail }: CheckoutSuccessModalProp
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="sm:max-w-md gap-6">
+            <DialogContent
+                className="sm:max-w-md gap-6"
+                hideCloseButton={isPolling}
+                onEscapeKeyDown={(e) => {
+                    if (isPolling) {
+                        e.preventDefault();
+                    }
+                }}
+                onInteractOutside={(e) => {
+                    e.preventDefault();
+                }}
+            >
                 <DialogHeader className="items-center text-center sm:text-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-950">
                         <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />

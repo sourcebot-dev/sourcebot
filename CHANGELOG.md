@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1097](https://github.com/sourcebot-dev/sourcebot/pull/1097)
 - Expired offline license keys no longer crash the process. An expired key now degrades to the unlicensed state. [#1109](https://github.com/sourcebot-dev/sourcebot/pull/1109)
 - [**Breaking Change**] Changed the default role assignment to `Owner` for organizations on the free tier. [#1234](https://github.com/sourcebot-dev/sourcebot/pull/1234)
+- Improved the `setup-sourcebot` wizard: prompts for a setup directory, clarifies that secrets are stored locally in `.env`, switches multi-select to Tab, hides "No results" until a real search runs, and detects/cleans up conflicting Docker deployments and volumes before starting. [#1232](https://github.com/sourcebot-dev/sourcebot/pull/1232)
 
 ## [4.17.2] - 2026-05-16
 
