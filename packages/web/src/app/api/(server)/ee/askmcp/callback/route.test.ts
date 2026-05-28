@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { McpServerClientInfoSource } from '@sourcebot/db';
 
 const mocks = vi.hoisted(() => ({
     auth: vi.fn(),
@@ -77,6 +78,8 @@ beforeEach(() => {
             orgId: 1,
             name: 'Linear',
             serverUrl: 'https://mcp.linear.app/mcp',
+            sanitizedName: 'linear',
+            clientInfoSource: McpServerClientInfoSource.DYNAMIC,
         },
     });
     mocks.unsafePrisma.userMcpServer.update.mockResolvedValue({ userId: 'user-1', serverId: 'server-1' });
@@ -107,6 +110,8 @@ describe('GET /api/ee/askmcp/callback', () => {
                         orgId: true,
                         name: true,
                         serverUrl: true,
+                        sanitizedName: true,
+                        clientInfoSource: true,
                     },
                 },
             },
@@ -158,6 +163,8 @@ describe('GET /api/ee/askmcp/callback', () => {
                         orgId: true,
                         name: true,
                         serverUrl: true,
+                        sanitizedName: true,
+                        clientInfoSource: true,
                     },
                 },
             },

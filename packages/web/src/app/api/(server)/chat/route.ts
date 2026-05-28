@@ -93,6 +93,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
             }))).flat();
 
             const source = req.headers.get('X-Sourcebot-Client-Source') ?? undefined;
+            const askMcpSource = source === 'sourcebot-web-client' ? source : undefined;
             const askMcpAvailability = await getAskMcpAvailabilityAnalytics({
                 prisma,
                 userId: user?.id,
@@ -131,9 +132,9 @@ export const POST = apiHandler(async (req: NextRequest) => {
                         availability: askMcpAvailability,
                     });
                     if (askMcpTurnCompleted) {
-                        await captureEvent('ask_mcp_turn_completed', {
+                        void captureEvent('ask_mcp_turn_completed', {
                             chatId: id,
-                            source,
+                            source: askMcpSource,
                             ...askMcpTurnCompleted,
                         });
                     }

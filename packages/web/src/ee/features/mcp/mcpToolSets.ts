@@ -9,6 +9,7 @@ import { getMcpFaviconUrl } from './utils';
 import { __unsafePrisma } from '@/prisma';
 import { Prisma } from '@sourcebot/db';
 import { captureEvent } from '@/lib/posthog';
+import type { AskMcpAnalyticsSource } from '@/lib/posthogEvents';
 
 const logger = createLogger('mcp-tool-sets');
 const ajv = new Ajv({ allErrors: true, strict: false });
@@ -67,7 +68,7 @@ export interface McpToolsResult {
 interface McpToolsAnalyticsContext {
     chatId?: string;
     traceId?: string;
-    source: string;
+    source: AskMcpAnalyticsSource;
 }
 
 function getMcpToolFailureReason(error: unknown): string {
@@ -196,7 +197,7 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
                         failureReason = getMcpToolFailureReason(error);
                         throw error;
                     } finally {
-                        await captureEvent('ask_mcp_tool_call_completed', {
+                        void captureEvent('ask_mcp_tool_call_completed', {
                             chatId: analyticsContext?.chatId,
                             traceId: analyticsContext?.traceId,
                             source: analyticsContext?.source ?? 'sourcebot-ask-agent',

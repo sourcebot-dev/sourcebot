@@ -19,8 +19,13 @@ const mocks = vi.hoisted(() => ({
     logger: {
         error: vi.fn(),
     },
+    captureEvent: vi.fn(),
     unsafePrisma: {
         mcpServer: {
+            deleteMany: vi.fn(),
+            findFirst: vi.fn(),
+        },
+        userMcpServer: {
             deleteMany: vi.fn(),
         },
     },
@@ -44,8 +49,11 @@ vi.mock('@sourcebot/shared', () => ({
     encryptOAuthToken: mocks.encryptOAuthToken,
     env: mocks.env,
 }));
+vi.mock('@/lib/posthog', () => ({
+    captureEvent: mocks.captureEvent,
+}));
 
-const { createMcpServer, createStaticOAuthMcpServer, deleteMcpServer } = await import('./actions');
+const { createMcpServer, createStaticOAuthMcpServer, deleteMcpServer, disconnectMcpServer } = await import('./actions');
 
 function createPrismaMock() {
     return {
@@ -98,6 +106,7 @@ beforeEach(() => {
     mocks.env.AUTH_URL = 'https://sourcebot.example.com';
     mocks.env.NODE_ENV = 'production';
     mocks.env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS = 5000;
+    mocks.captureEvent.mockResolvedValue(undefined);
 });
 
 describe('createMcpServer', () => {
@@ -121,6 +130,15 @@ describe('createMcpServer', () => {
                 clientInfoSource: McpServerClientInfoSource.DYNAMIC,
                 orgId: 1,
             },
+        });
+        expect(mocks.captureEvent).toHaveBeenCalledWith('ask_mcp_connector_added', {
+            source: 'sourcebot-web-client',
+            entryPoint: 'workspace_settings',
+            serverId: 'server-1',
+            serverName: 'Linear',
+            serverUrl: 'https://mcp.linear.app/mcp',
+            sanitizedName: 'linear',
+            authMode: 'dynamic',
         });
     });
 
@@ -180,6 +198,15 @@ describe('createStaticOAuthMcpServer', () => {
             name: 'Slack',
             sanitizedName: 'slack',
             serverUrl: 'https://mcp.slack.com/mcp',
+        });
+        expect(mocks.captureEvent).toHaveBeenCalledWith('ask_mcp_connector_added', {
+            source: 'sourcebot-web-client',
+            entryPoint: 'workspace_settings',
+            serverId: 'server-1',
+            serverName: 'Slack',
+            serverUrl: 'https://mcp.slack.com/mcp',
+            sanitizedName: 'slack',
+            authMode: 'static',
         });
     });
 
@@ -381,6 +408,54 @@ describe('deleteMcpServer', () => {
                 id: 'server-1',
                 orgId: 1,
             },
+        });
+    });
+});
+
+describe('disconnectMcpServer', () => {
+    test('disconnects a personal connector and tracks the disconnect', async () => {
+        mocks.authContext = {
+            org: { id: 1 },
+            user: { id: 'user-1' },
+        };
+        mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue({
+            id: 'server-1',
+            name: 'Linear',
+            serverUrl: 'https://mcp.linear.app/mcp',
+            sanitizedName: 'linear',
+            clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+        });
+        mocks.unsafePrisma.userMcpServer.deleteMany.mockResolvedValue({ count: 1 });
+
+        await expect(disconnectMcpServer('server-1', 'account_settings')).resolves.toEqual({ success: true });
+
+        expect(mocks.unsafePrisma.mcpServer.findFirst).toHaveBeenCalledWith({
+            where: {
+                id: 'server-1',
+                orgId: 1,
+            },
+            select: {
+                id: true,
+                name: true,
+                serverUrl: true,
+                sanitizedName: true,
+                clientInfoSource: true,
+            },
+        });
+        expect(mocks.unsafePrisma.userMcpServer.deleteMany).toHaveBeenCalledWith({
+            where: {
+                serverId: 'server-1',
+                userId: 'user-1',
+            },
+        });
+        expect(mocks.captureEvent).toHaveBeenCalledWith('ask_mcp_connector_disconnected', {
+            source: 'sourcebot-web-client',
+            entryPoint: 'account_settings',
+            serverId: 'server-1',
+            serverName: 'Linear',
+            serverUrl: 'https://mcp.linear.app/mcp',
+            sanitizedName: 'linear',
+            authMode: 'dynamic',
         });
     });
 });

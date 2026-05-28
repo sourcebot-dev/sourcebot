@@ -16,11 +16,12 @@ const mocks = vi.hoisted(() => ({
     unsafePrisma: {
         $transaction: vi.fn(),
     },
+    captureEvent: vi.fn(),
 }));
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/posthog', () => ({
-    captureEvent: vi.fn(),
+    captureEvent: mocks.captureEvent,
 }));
 vi.mock('@/lib/entitlements', () => ({
     hasEntitlement: mocks.hasEntitlement,
@@ -82,7 +83,10 @@ function createPrismaMock() {
         mcpServer: {
             findFirst: vi.fn().mockResolvedValue({
                 id: 'server-1',
+                name: 'Linear',
+                sanitizedName: 'linear',
                 serverUrl: 'https://mcp.linear.app/mcp',
+                clientInfoSource: McpServerClientInfoSource.DYNAMIC,
             }),
         },
         userMcpServer: {
@@ -109,6 +113,7 @@ function createTransactionMock() {
 beforeEach(() => {
     vi.clearAllMocks();
     mocks.hasEntitlement.mockResolvedValue(true);
+    mocks.captureEvent.mockResolvedValue(undefined);
 });
 
 describe('POST /api/ee/askmcp/connect', () => {
@@ -151,6 +156,15 @@ describe('POST /api/ee/askmcp/connect', () => {
         const response = await POST(createRequest());
         const body = await response.json();
 
+        expect(mocks.captureEvent).toHaveBeenCalledWith('ask_mcp_connector_connection_started', {
+            source: 'sourcebot-web-client',
+            entryPoint: 'unknown',
+            serverId: 'server-1',
+            serverName: 'Linear',
+            serverUrl: 'https://mcp.linear.app/mcp',
+            sanitizedName: 'linear',
+            authMode: 'dynamic',
+        });
         expect(prisma.userMcpServer.upsert).toHaveBeenCalledWith({
             where: {
                 userId_serverId: {
@@ -286,5 +300,15 @@ describe('POST /api/ee/askmcp/connect', () => {
         expect(JSON.stringify(mocks.logger.warn.mock.calls)).not.toContain('refresh-token');
         expect(JSON.stringify(mocks.logger.error.mock.calls)).not.toContain('client-secret');
         expect(JSON.stringify(mocks.logger.error.mock.calls)).not.toContain('refresh-token');
+        expect(mocks.captureEvent).toHaveBeenCalledWith('ask_mcp_connector_connection_failed', {
+            source: 'sourcebot-web-client',
+            entryPoint: 'unknown',
+            serverId: 'server-1',
+            serverName: 'Linear',
+            serverUrl: 'https://mcp.linear.app/mcp',
+            sanitizedName: 'linear',
+            authMode: 'dynamic',
+            failureReason: 'invalid_client',
+        });
     });
 });

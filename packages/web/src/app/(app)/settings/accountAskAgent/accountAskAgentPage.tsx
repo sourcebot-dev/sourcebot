@@ -300,7 +300,7 @@ export function AccountAskAgentPage({
         setDisconnectingServerId(serverId);
         setConfirmDisconnectServer(null);
         try {
-            const result = await disconnectMcpServer(serverId);
+            const result = await disconnectMcpServer(serverId, 'account_settings');
             if (isServiceError(result)) {
                 toast({ title: "Error", description: `Failed to disconnect: ${result.message}`, variant: "destructive" });
                 return;

@@ -16,6 +16,8 @@ import { getExternalMcpErrorLogFields } from '@/ee/features/mcp/externalMcpError
 import { ErrorCode } from '@/lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
 import { normalizeMcpOAuthReturnTo } from '@/features/mcp/mcpOAuthReturnTo';
+import { captureEvent } from '@/lib/posthog';
+import { getMcpAuthMode, getMcpConnectorEntryPoint, getMcpConnectorFailureReason } from '@/ee/features/mcp/analytics';
 
 const bodySchema = z.object({
     serverId: z.string(),
@@ -67,16 +69,38 @@ export const POST = apiHandler(async (request: NextRequest) => {
     const result = await sew(() =>
     withAuth(async ({ user, org, prisma }) => {
         const callbackReturnTo = normalizeMcpOAuthReturnTo(parsed.data.returnTo);
+        const entryPoint = getMcpConnectorEntryPoint(parsed.data.returnTo);
         const mcpServer = await prisma.mcpServer.findFirst({
             where: { id: parsed.data.serverId, orgId: org.id },
             select: {
                 id: true,
+                name: true,
+                sanitizedName: true,
                 serverUrl: true,
+                clientInfoSource: true,
             },
         });
         if (!mcpServer) {
+            void captureEvent('ask_mcp_connector_connection_failed', {
+                source: 'sourcebot-web-client',
+                entryPoint,
+                serverId: parsed.data.serverId,
+                failureReason: 'connector_not_found',
+            });
             return notFound('Connector not found');
         }
+
+        const eventProperties = {
+            source: 'sourcebot-web-client' as const,
+            entryPoint,
+            serverId: mcpServer.id,
+            serverName: mcpServer.name,
+            serverUrl: mcpServer.serverUrl,
+            sanitizedName: mcpServer.sanitizedName,
+            authMode: getMcpAuthMode(mcpServer.clientInfoSource),
+        };
+
+        void captureEvent('ask_mcp_connector_connection_started', eventProperties);
 
         await prisma.userMcpServer.upsert({
             where: {
@@ -127,6 +151,10 @@ export const POST = apiHandler(async (request: NextRequest) => {
                     orgId: org.id,
                     error: getExternalMcpErrorLogFields(error),
                 });
+                void captureEvent('ask_mcp_connector_connection_failed', {
+                    ...eventProperties,
+                    failureReason: getMcpConnectorFailureReason(error),
+                });
                 throw new ServiceErrorException({
                     statusCode: StatusCodes.BAD_GATEWAY,
                     errorCode: ErrorCode.UNEXPECTED_ERROR,
@@ -145,10 +173,18 @@ export const POST = apiHandler(async (request: NextRequest) => {
 
         if (connectResult.authResult === 'AUTHORIZED') {
             // Already has valid tokens (e.g., refreshed)
+            void captureEvent('ask_mcp_connector_connection_completed', {
+                ...eventProperties,
+                alreadyAuthorized: true,
+            });
             return { authorizationUrl: null } satisfies ConnectMcpResponse;
         }
 
         if (!connectResult.authorizationUrl) {
+            void captureEvent('ask_mcp_connector_connection_failed', {
+                ...eventProperties,
+                failureReason: 'missing_authorization_url',
+            });
             throw new Error('MCP auth returned REDIRECT without an authorization URL');
         }
 

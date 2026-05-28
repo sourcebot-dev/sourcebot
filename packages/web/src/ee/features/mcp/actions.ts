@@ -16,6 +16,9 @@ import { oauthNotSupported } from './errors';
 import { checkMcpServerDcrSupport } from './dcrDiscovery';
 import { encryptOAuthToken, env } from '@sourcebot/shared';
 import { headers } from 'next/headers';
+import { captureEvent } from '@/lib/posthog';
+import { getMcpAuthMode } from './analytics';
+import type { McpConnectorEntryPoint } from '@/lib/posthogEvents';
 
 const MCP_DCR_DISCOVERY_TIMEOUT_MS = Math.min(env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS, 10000);
 const createStaticOAuthMcpServerSchema = z.object({
@@ -253,6 +256,16 @@ export const createStaticOAuthMcpServer = async (
                     },
                 });
 
+                void captureEvent('ask_mcp_connector_added', {
+                    source: 'sourcebot-web-client',
+                    entryPoint: 'workspace_settings',
+                    serverId: mcpServer.id,
+                    serverName: preparedServer.displayName,
+                    serverUrl: mcpServer.serverUrl,
+                    sanitizedName: preparedServer.sanitizedName,
+                    authMode: 'static',
+                });
+
                 return {
                     id: mcpServer.id,
                     name: preparedServer.displayName,
@@ -290,6 +303,16 @@ export const createMcpServer = async (name: string, serverUrl: string) => sew(()
                 },
             });
 
+            void captureEvent('ask_mcp_connector_added', {
+                source: 'sourcebot-web-client',
+                entryPoint: 'workspace_settings',
+                serverId: mcpServer.id,
+                serverName: preparedServer.displayName,
+                serverUrl: mcpServer.serverUrl,
+                sanitizedName: preparedServer.sanitizedName,
+                authMode: getMcpAuthMode(McpServerClientInfoSource.DYNAMIC),
+            });
+
             return {
                 id: mcpServer.id,
                 name: preparedServer.displayName,
@@ -319,14 +342,20 @@ export const deleteMcpServer = async (serverId: string) => sew(() =>
             return { success: true };
         })));
 
-export const disconnectMcpServer = async (serverId: string) => sew(() =>
+export const disconnectMcpServer = async (serverId: string, entryPoint: McpConnectorEntryPoint) => sew(() =>
     withAuth(async ({ org, user }) => {
         const server = await __unsafePrisma.mcpServer.findFirst({
             where: {
                 id: serverId,
                 orgId: org.id,
             },
-            select: { id: true },
+            select: {
+                id: true,
+                name: true,
+                serverUrl: true,
+                sanitizedName: true,
+                clientInfoSource: true,
+            },
         });
 
         if (!server) {
@@ -351,6 +380,16 @@ export const disconnectMcpServer = async (serverId: string) => sew(() =>
                 message: 'No connection found for this connector.',
             } satisfies ServiceError;
         }
+
+        void captureEvent('ask_mcp_connector_disconnected', {
+            source: 'sourcebot-web-client',
+            entryPoint,
+            serverId: server.id,
+            serverName: server.name,
+            serverUrl: server.serverUrl,
+            sanitizedName: server.sanitizedName,
+            authMode: getMcpAuthMode(server.clientInfoSource),
+        });
 
         return { success: true };
     }));

@@ -7,6 +7,10 @@ export type UpsellSource =
     'onboard' |
     'license_settings';
 
+export type SourcebotWebClientSource = 'sourcebot-web-client';
+export type AskMcpAnalyticsSource = SourcebotWebClientSource | 'sourcebot-ask-agent';
+export type McpConnectorEntryPoint = 'chat' | 'account_settings' | 'workspace_settings' | 'unknown';
+export type McpConnectorAuthMode = 'dynamic' | 'static';
 
 export type PosthogEventMap = {
     search_finished: {
@@ -191,7 +195,7 @@ export type PosthogEventMap = {
     },
     ask_mcp_turn_completed: {
         chatId: string,
-        source?: string,
+        source?: SourcebotWebClientSource,
         traceId?: string,
         askMcpUsed: boolean,
         askMcpToolCallCount: number,
@@ -205,7 +209,7 @@ export type PosthogEventMap = {
     ask_mcp_tool_call_completed: {
         chatId?: string,
         traceId?: string,
-        source: string,
+        source: AskMcpAnalyticsSource,
         serverId: string,
         serverName: string,
         serverUrl: string,
@@ -214,6 +218,53 @@ export type PosthogEventMap = {
         success: boolean,
         durationMs: number,
         failureReason?: string,
+    },
+    ask_mcp_connector_added: {
+        source: SourcebotWebClientSource,
+        entryPoint: 'workspace_settings',
+        serverId: string,
+        serverName: string,
+        serverUrl: string,
+        sanitizedName: string,
+        authMode: McpConnectorAuthMode,
+    },
+    ask_mcp_connector_connection_started: {
+        source: SourcebotWebClientSource,
+        entryPoint: McpConnectorEntryPoint,
+        serverId: string,
+        serverName: string,
+        serverUrl: string,
+        sanitizedName: string,
+        authMode: McpConnectorAuthMode,
+    },
+    ask_mcp_connector_connection_completed: {
+        source: SourcebotWebClientSource,
+        entryPoint: McpConnectorEntryPoint,
+        serverId: string,
+        serverName: string,
+        serverUrl: string,
+        sanitizedName: string,
+        authMode: McpConnectorAuthMode,
+        alreadyAuthorized: boolean,
+    },
+    ask_mcp_connector_connection_failed: {
+        source: SourcebotWebClientSource,
+        entryPoint: McpConnectorEntryPoint,
+        serverId?: string,
+        serverName?: string,
+        serverUrl?: string,
+        sanitizedName?: string,
+        authMode?: McpConnectorAuthMode,
+        failureReason: string,
+    },
+    ask_mcp_connector_disconnected: {
+        source: SourcebotWebClientSource,
+        entryPoint: McpConnectorEntryPoint,
+        serverId: string,
+        serverName: string,
+        serverUrl: string,
+        sanitizedName: string,
+        authMode: McpConnectorAuthMode,
     },
     tool_used: {
         toolName: string,
