@@ -39,12 +39,12 @@ function useTrialStepCopy(): TrialStepCopy | null {
     if (offers.trial.creditCardRequired) {
         return {
             title: "Try Sourcebot Pro",
-            subtitle: "Card required, cancel anytime.",
+            subtitle: `Get full access free for ${offers.trial.durationDays} days. Card required, cancel anytime.`,
         };
     }
     return {
         title: "Try Sourcebot Pro",
-        subtitle: "",
+        subtitle: `Get full access free for ${offers.trial.durationDays} days. No credit card required.`,
     };
 }
 

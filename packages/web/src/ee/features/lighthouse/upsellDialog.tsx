@@ -147,7 +147,7 @@ function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContent
         if (offers.trial.eligible && !offers.trial.creditCardRequired) {
             return {
                 title: "Try Sourcebot Pro",
-                description: "",
+                description: `Get full access free for ${offers.trial.durationDays} days. No credit card required.`,
                 buttonText: `Start ${offers.trial.durationDays}-day free trial`
             }
         }
@@ -155,7 +155,7 @@ function UpsellDialogContent({ offers, source, returnPath }: UpsellDialogContent
         else if (offers.trial.eligible && offers.trial.creditCardRequired) {
             return {
                 title: "Try Sourcebot Pro",
-                description: "Card required, cancel anytime.",
+                description: `Get full access free for ${offers.trial.durationDays} days. Card required, cancel anytime.`,
                 buttonText: `Start ${offers.trial.durationDays}-day free trial`
             }
         }

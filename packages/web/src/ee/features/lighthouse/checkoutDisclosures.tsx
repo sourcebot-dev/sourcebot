@@ -1,10 +1,9 @@
 'use client';
 
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil } from "lucide-react";
+import { Pencil, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -83,16 +82,14 @@ export const CheckoutDisclosures = ({ sessionEmail, onEmailChanged, showNoCredit
                                     render={({ field }) => (
                                         <FormItem className="space-y-0">
                                             <FormControl>
-                                                <Input
+                                                <input
                                                     {...field}
                                                     type="email"
-                                                    onBlur={() => {
-                                                        if (!isValid) {
-                                                            revertAndExit();
-                                                        } else {
-                                                            setIsEditing(false);
-                                                        }
-                                                    }}
+                                                    autoComplete="off"
+                                                    data-1p-ignore="true"
+                                                    data-lpignore="true"
+                                                    data-form-type="other"
+                                                    data-bwignore="true"
                                                     onKeyDown={(e) => {
                                                         if (e.key === "Enter") {
                                                             e.preventDefault();
@@ -103,14 +100,25 @@ export const CheckoutDisclosures = ({ sessionEmail, onEmailChanged, showNoCredit
                                                     }}
                                                     aria-invalid={!isValid}
                                                     className={cn(
-                                                        "h-6 px-1.5 py-0 text-xs w-56",
-                                                        !isValid && "border-destructive focus-visible:ring-destructive",
+                                                        "bg-transparent border-none outline-none p-0 m-0 font-medium text-foreground [font:inherit] [letter-spacing:inherit] [field-sizing:content] min-w-[8ch]",
+                                                        !isValid && "text-destructive",
                                                     )}
+                                                    style={{ fontWeight: 500 }}
                                                 />
                                             </FormControl>
                                         </FormItem>
                                     )}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={commit}
+                                    disabled={!isValid}
+                                    className="text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
+                                    aria-label="Save email (press Escape to cancel)"
+                                    title="Press Escape to cancel"
+                                >
+                                    <Save className="h-3 w-3" />
+                                </button>
                             </Form>
                         ) : (
                             <>
