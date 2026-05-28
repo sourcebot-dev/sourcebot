@@ -176,7 +176,9 @@ export default async function Layout(props: LayoutProps) {
 
     return (
         <RoleProvider role={role}>
-            <HasLicenseProvider hasLicense={license !== null}>
+            <HasLicenseProvider
+                hasLicense={offlineLicense !== null || license !== null}
+            >
                 <SyntaxGuideProvider>
                     <div className="fixed inset-0 flex bg-shell">
                         <SidebarProvider defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}>
