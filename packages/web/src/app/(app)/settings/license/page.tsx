@@ -8,7 +8,8 @@ import { ActivationCodeCard } from "./activationCodeCard";
 import { OnlineLicenseCard } from "./onlineLicenseCard";
 import { OfflineLicenseCard } from "./offlineLicenseCard";
 import { RecentInvoicesCard } from "./recentInvoicesCard";
-import { UpsellPanelCard } from "./upsellPanelCard";
+import { SettingsCard } from "../components/settingsCard";
+import { UpsellPanel } from "@/ee/features/lighthouse/upsellDialog";
 import { getAllInvoices } from "@/ee/features/lighthouse/actions";
 import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
 import { isServiceError } from "@/lib/utils";
@@ -73,7 +74,11 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
                     </Button>
                 </div>
             </div>
-            {showUpsell && <UpsellPanelCard />}
+            {showUpsell && (
+                <SettingsCard>
+                    <UpsellPanel source="license_settings" returnPath="/settings/license" />
+                </SettingsCard>
+            )}
             {offlineLicense && (
                 <OfflineLicenseCard license={offlineLicense} isExpired={isOfflineLicenseExpired} />
             )}
