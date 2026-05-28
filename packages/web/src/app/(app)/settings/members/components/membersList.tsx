@@ -35,7 +35,7 @@ export interface MembersListProps {
     hasOrgManagement: boolean,
 }
 
-const ROLES_AND_PERMISSIONS_DOCS_LINK = "https://docs.sourcebot.dev/docs/configuration/auth/roles-and-permissions#managing-owners"
+const ROLES_AND_PERMISSIONS_DOCS_LINK = "https://docs.sourcebot.dev/docs/configuration/auth/roles-and-permissions"
 
 export const MembersList = ({ members, currentUserId, currentUserRole, orgName, hasOrgManagement }: MembersListProps) => {
     const [searchQuery, setSearchQuery] = useState("")
