@@ -11,6 +11,12 @@ import { ChatVisibility, Prisma } from "@sourcebot/db";
 import { env } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
 import { SBChatMessage } from "./types";
+import {
+    ChatPreferences,
+    chatPreferencesSchema,
+    updateChatPreferencesInputSchema,
+    type UpdateChatPreferencesInput,
+} from "./userPreferences";
 import { generateChatNameFromMessage, getConfiguredLanguageModels, isChatSharedWithUser, isOwnerOfChat } from "./utils.server";
 
 const auditService = getAuditService();
@@ -549,6 +555,73 @@ export const submitFeedback = async ({
         return { success: true };
     })
 )
+
+/**
+ * Returns the signed-in user's chat preferences and custom instructions.
+ *
+ * The stored JSONB column is parsed through `chatPreferencesSchema` so a
+ * corrupt or out-of-spec value (e.g. left over from a previous schema
+ * version) is silently degraded to an empty object rather than crashing
+ * the settings page.
+ */
+export const getChatPreferences = async (): Promise<{
+    preferences: ChatPreferences,
+    customInstructions: string | null,
+} | ServiceError> => sew(() =>
+    withAuth(async ({ user, prisma }) => {
+        const row = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: {
+                chatPreferences: true,
+                chatCustomInstructions: true,
+            },
+        });
+
+        if (!row) {
+            return notFound();
+        }
+
+        const parsed = chatPreferencesSchema.safeParse(row.chatPreferences);
+        const preferences: ChatPreferences = parsed.success ? parsed.data : {};
+
+        return {
+            preferences,
+            customInstructions: row.chatCustomInstructions,
+        };
+    })
+);
+
+/**
+ * Persists the signed-in user's chat preferences and custom instructions.
+ *
+ * Input is validated end-to-end with `updateChatPreferencesInputSchema` —
+ * unknown dimensions are rejected, level values must match the enum, and
+ * custom instructions are length-capped.
+ */
+export const updateChatPreferences = async (
+    input: UpdateChatPreferencesInput,
+): Promise<{ success: true } | ServiceError> => sew(() =>
+    withAuth(async ({ user, prisma }) => {
+        const parsed = updateChatPreferencesInputSchema.safeParse(input);
+        if (!parsed.success) {
+            return {
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                message: `Invalid chat preferences: ${parsed.error.message}`,
+            } satisfies ServiceError;
+        }
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                chatPreferences: parsed.data.preferences as Prisma.InputJsonValue,
+                chatCustomInstructions: parsed.data.customInstructions,
+            },
+        });
+
+        return { success: true };
+    })
+);
 
 // eslint-disable-next-line authz/require-auth-wrapper -- returns identity provider metadata for the login wall, consulted before auth
 export const getAskGhLoginWallData = async () => sew(async () => {
