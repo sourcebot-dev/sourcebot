@@ -20,7 +20,10 @@ interface TrialStepCopy {
 }
 
 function useTrialStepCopy(): TrialStepCopy | null {
-    const { data: offers, isPending, isError } = useOffers();
+    const { data: offers, isPending, isError } = useOffers({
+        // we have a escape hatch on error, so don't retry.
+        retry: 0,
+    });
     if (isPending) {
         return null;
     }
@@ -69,7 +72,10 @@ interface TrialStepProps {
 }
 
 export function TrialStep({ stepIndex }: TrialStepProps) {
-    const { data: offers, isPending, isError } = useOffers();
+    const { data: offers, isPending, isError } = useOffers({
+        // we have a escape hatch on error, so don't retry.
+        retry: 0
+    });
     const { toast } = useToast();
     const router = useRouter();
     const searchParams = useSearchParams();
