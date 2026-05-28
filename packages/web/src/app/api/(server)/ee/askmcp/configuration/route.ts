@@ -52,37 +52,20 @@ export const GET = apiHandler(async (_request: NextRequest) => {
                 mcpServer: { orgId: org.id },
                 count: { gt: 0 },
             };
-            // The grouped query is capped to the top 2 for display, so keep a separate aggregate
-            // for the deployment-wide total used in percentages and footer labels.
-            const [topConnectorCounts, grandTotalToolCallsResult, toolCallCountRows] = serverIds.length === 0
-                ? [[], { _sum: { count: null } }, []]
-                : await Promise.all([
-                    __unsafePrisma.mcpServerToolCallCount.groupBy({
-                        by: ['mcpServerId'],
-                        where: toolCallCountWhere,
-                        _sum: { count: true },
-                        orderBy: { _sum: { count: 'desc' } },
-                        take: 2,
-                    }),
-                    __unsafePrisma.mcpServerToolCallCount.aggregate({
-                        where: toolCallCountWhere,
-                        _sum: { count: true },
-                    }),
-                    __unsafePrisma.mcpServerToolCallCount.findMany({
-                        where: toolCallCountWhere,
-                        orderBy: [
-                            { mcpServerId: 'asc' },
-                            { count: 'desc' },
-                        ],
-                        select: {
-                            mcpServerId: true,
-                            toolName: true,
-                            count: true,
-                        },
-                    }),
-                ]);
-            const grandTotalToolCalls = grandTotalToolCallsResult._sum.count ?? 0;
-            const serverById = new Map(orgServers.map((server) => [server.id, server]));
+            const toolCallCountRows = serverIds.length === 0
+                ? []
+                : await __unsafePrisma.mcpServerToolCallCount.findMany({
+                    where: toolCallCountWhere,
+                    orderBy: [
+                        { mcpServerId: 'asc' },
+                        { count: 'desc' },
+                    ],
+                    select: {
+                        mcpServerId: true,
+                        toolName: true,
+                        count: true,
+                    },
+                });
             const toolUsageByServerId = new Map<string, McpServerToolUsageSummary>();
 
             for (const row of toolCallCountRows) {
@@ -111,24 +94,6 @@ export const GET = apiHandler(async (_request: NextRequest) => {
                 }));
             }
 
-            const topConnectors = topConnectorCounts.flatMap((row) => {
-                const server = serverById.get(row.mcpServerId);
-                if (!server) {
-                    return [];
-                }
-
-                const totalCalls = row._sum.count ?? 0;
-                return [{
-                    serverId: server.id,
-                    serverName: server.name,
-                    faviconUrl: getMcpFaviconUrl(server.serverUrl, server.name),
-                    totalCalls,
-                    usageSharePercent: grandTotalToolCalls > 0
-                        ? (totalCalls / grandTotalToolCalls) * 100
-                        : 0,
-                }];
-            });
-
             const servers = orgServers.map((server) => {
                 const savedConnectionCount = countByServerId.get(server.id) ?? 0;
                 return {
@@ -145,9 +110,6 @@ export const GET = apiHandler(async (_request: NextRequest) => {
 
             return {
                 servers,
-                totalSavedConnectionCount: servers.reduce((total, server) => total + server.savedConnectionCount, 0),
-                topConnectors,
-                grandTotalToolCalls,
                 allowedMode: 'approved_only',
                 isOAuthAvailable,
             };

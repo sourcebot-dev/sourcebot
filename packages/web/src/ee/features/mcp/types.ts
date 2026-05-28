@@ -22,19 +22,8 @@ export interface McpServerToolUsageSummary {
     tools: McpToolUsageEntry[];
 }
 
-export interface TopConnectorEntry {
-    serverId: string;
-    serverName: string;
-    faviconUrl: string | undefined;
-    totalCalls: number;
-    usageSharePercent: number;
-}
-
 export interface GetMcpConfigurationResponse {
     servers: McpConfigurationServer[];
-    totalSavedConnectionCount: number;
-    topConnectors: TopConnectorEntry[];
-    grandTotalToolCalls: number;
     allowedMode: McpConfigurationAllowedMode;
     isOAuthAvailable: boolean;
 }
