@@ -1,6 +1,7 @@
 'use client';
 
 import { useToast } from "@/components/hooks/use-toast";
+import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -25,6 +26,7 @@ export function ChatPreferencesPage({
     initialCustomInstructions,
 }: ChatPreferencesPageProps) {
     const { toast } = useToast();
+    const captureEvent = useCaptureEvent();
 
     const [preferences, setPreferences] = useState<ChatPreferences>(initialPreferences);
     const [customInstructions, setCustomInstructions] = useState<string>(initialCustomInstructions ?? "");
@@ -102,6 +104,11 @@ export function ChatPreferencesPage({
                 preferences,
                 customInstructions,
             });
+            captureEvent("wa_chat_preferences_saved", {
+                dimensionsSet: Object.keys(preferences).length,
+                hasCustomInstructions: trimmedCustom.length > 0,
+                customInstructionsLength: trimmedCustom.length,
+            });
             toast({
                 title: "Chat preferences saved",
                 description: "Sourcebot will apply these to future chats.",
@@ -115,7 +122,7 @@ export function ChatPreferencesPage({
         } finally {
             setIsSaving(false);
         }
-    }, [preferences, customInstructions, isOverLimit, toast]);
+    }, [preferences, customInstructions, isOverLimit, toast, captureEvent]);
 
     return (
         <div className="flex flex-col gap-8">

@@ -185,6 +185,14 @@ export type PosthogEventMap = {
         chatId: string,
         currentVisibility: 'PUBLIC' | 'PRIVATE',
     },
+    wa_chat_preferences_saved: {
+        /** Number of preference dimensions the user has set (0-6). */
+        dimensionsSet: number,
+        /** True if the user supplied any non-empty custom instructions. */
+        hasCustomInstructions: boolean,
+        /** Length of the custom instructions string, for adoption sizing. */
+        customInstructionsLength: number,
+    },
     wa_chat_visibility_changed: {
         chatId: string,
         fromVisibility: 'PUBLIC' | 'PRIVATE',
