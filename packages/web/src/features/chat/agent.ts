@@ -17,6 +17,20 @@ import { ANSWER_TAG, FILE_REFERENCE_PREFIX } from "./constants";
 import { Source } from "./types";
 import { addLineNumbers, fileReferenceToString } from "./utils";
 import { createTools } from "./tools";
+import {
+    ChatPreferences,
+    renderChatPreferencesPromptBlock,
+} from "./userPreferences";
+
+/**
+ * Resolved chat-style preferences for the user who is sending this message.
+ * `undefined` means no signed-in user (or no preferences loaded) and the
+ * agent uses default behavior with no `<user_preferences>` block.
+ */
+export interface ResolvedChatUserPreferences {
+    preferences: ChatPreferences;
+    customInstructions: string | null;
+}
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -43,6 +57,12 @@ interface CreateMessageStreamResponseProps {
     modelProviderOptions?: Record<string, Record<string, JSONValue>>;
     modelTemperature?: number;
     metadata?: Partial<SBChatMessageMetadata>;
+    /**
+     * Per-user response-style preferences. When omitted (e.g. anonymous user
+     * or MCP caller), the agent uses default behavior with no
+     * `<user_preferences>` block injected into the system prompt.
+     */
+    userPreferences?: ResolvedChatUserPreferences;
 }
 
 export const createMessageStream = async ({
@@ -56,6 +76,7 @@ export const createMessageStream = async ({
     modelTemperature,
     onFinish,
     onError,
+    userPreferences,
 }: CreateMessageStreamResponseProps) => {
     const latestMessage = messages[messages.length - 1];
     const sources = latestMessage.parts
@@ -109,6 +130,7 @@ export const createMessageStream = async ({
                 },
                 traceId,
                 chatId,
+                userPreferences,
             });
 
             await mergeStreamAsync(researchStream, writer, {
@@ -154,6 +176,7 @@ interface AgentOptions {
     onWriteSource: (source: Source) => void;
     traceId: string;
     chatId: string;
+    userPreferences?: ResolvedChatUserPreferences;
 }
 
 const createAgentStream = async ({
@@ -166,6 +189,7 @@ const createAgentStream = async ({
     onWriteSource,
     traceId,
     chatId,
+    userPreferences,
 }: AgentOptions) => {
     // For every file source, resolve the source code so that we can include it in the system prompt.
     const fileSources = inputSources.filter((source) => source.type === 'file');
@@ -195,6 +219,7 @@ const createAgentStream = async ({
     const systemPrompt = createPrompt({
         repos: selectedRepos,
         files: resolvedFileSources,
+        userPreferences,
     });
 
     const stream = streamText({
@@ -234,6 +259,7 @@ const createAgentStream = async ({
 const createPrompt = ({
     files,
     repos,
+    userPreferences,
 }: {
     files?: {
         path: string;
@@ -243,7 +269,12 @@ const createPrompt = ({
         revision: string;
     }[],
     repos: string[],
+    userPreferences?: ResolvedChatUserPreferences,
 }) => {
+    const preferencesBlock = userPreferences
+        ? renderChatPreferencesPromptBlock(userPreferences)
+        : null;
+
     return dedent`
     You are a powerful agentic AI code assistant built into Sourcebot, the world's best code-intelligence platform. Your job is to help developers understand and navigate their large codebases.
 
@@ -317,6 +348,8 @@ const createPrompt = ({
     Authentication in Sourcebot is built on NextAuth.js with a session-based approach using JWT tokens and Prisma as the database adapter ${fileReferenceToString({ repo: 'github.com/sourcebot-dev/sourcebot', path: 'auth.ts', range: { startLine: 135, endLine: 140 } })}. The system supports multiple authentication providers and implements organization-based authorization with role-defined permissions.
     \`\`\`
     </answer_instructions>
+
+    ${preferencesBlock ?? ''}
     `
 }
 

@@ -148,6 +148,10 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 } : {}),
             });
 
+            // `userPreferences` is intentionally omitted here. Chat preferences
+            // are a web-app UI feature and there is no MCP-side surface to set
+            // or override them today. Revisit if/when MCP grows a user-settings
+            // story (tracked in #1242).
             const stream = await createMessageStream({
                 chatId: chat.id,
                 messages: [userMessage],
