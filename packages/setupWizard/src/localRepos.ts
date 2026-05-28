@@ -1,4 +1,5 @@
-import { checkbox, input } from '@inquirer/prompts';
+import { input } from '@inquirer/prompts';
+import { tabCheckbox as checkbox } from './tabCheckbox.js';
 import { existsSync, statSync } from 'fs';
 import { readdir } from 'fs/promises';
 import { homedir } from 'os';

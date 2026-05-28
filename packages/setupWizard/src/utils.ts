@@ -20,6 +20,53 @@ export type CollectResult = {
     localRepoHostPath?: string;
 };
 
+export const INPUT_THEME = {
+    style: {
+        defaultAnswer: (text: string) => chalk.dim(`(default: ${text})`),
+    },
+};
+
+// Per-prompt theme + filter tracker for `searchSelect` / `multiInput` callers.
+// The theme:
+//   - Renders selections as `a, b, c,` (with trailing comma) so the prompt
+//     visually invites adding more entries on the same line.
+//   - Suppresses the empty-results message when the filter is empty, so
+//     "No results" only appears once the user has actually typed something
+//     that returned zero matches.
+// Each prompt should get its own context so the closure-captured `lastSearch`
+// doesn't bleed between prompts.
+export function createSearchSelectContext() {
+    let lastSearch = '';
+    let isLoading = false;
+    return {
+        trackSearch: (search: string | undefined): void => {
+            lastSearch = search ?? '';
+        },
+        setLoading: (loading: boolean): void => {
+            isLoading = loading;
+        },
+        theme: {
+            style: {
+                renderSelectedOptions: <T>(
+                    selectedOptions: ReadonlyArray<{ focused?: boolean; name?: string; value: T }>,
+                ): string => {
+                    if (selectedOptions.length === 0) {
+                        return '';
+                    }
+                    const items = selectedOptions.map((option) =>
+                        option.focused
+                            ? chalk.inverse(option.name || String(option.value))
+                            : (option.name || String(option.value))
+                    );
+                    return items.join(', ') + ',';
+                },
+                emptyText: (text: string) =>
+                    (lastSearch && !isLoading) ? `${chalk.blue('ℹ')} ${chalk.bold(text)}` : '',
+            },
+        },
+    };
+}
+
 export function generateSecret(bytes: number): string {
     return randomBytes(bytes).toString('base64');
 }
@@ -44,14 +91,17 @@ export async function multiInput(options: {
     placeholder?: string;
     validate?: (value: string) => string | true;
 }): Promise<string[]> {
+    const ctx = createSearchSelectContext();
     return searchSelect<string, true>({
         message: options.message,
         multiple: true,
         required: true,
         loop: false,
         clearInputWhenSelected: true,
-        placeholder: options.placeholder ?? 'Type a value and press space to add, enter to finish',
+        theme: ctx.theme,
+        placeholder: options.placeholder ?? 'Type a value and press tab to add, enter to finish',
         options: async (search) => {
+            ctx.trackSearch(search);
             if (!search) {
                 return [];
             }

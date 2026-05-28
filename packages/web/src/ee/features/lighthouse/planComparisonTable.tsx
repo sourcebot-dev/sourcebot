@@ -88,8 +88,8 @@ export function PlanComparisonTable({
                 <TableRow>
                     <TableHead />
                     <TableHead className="w-52 align-top">
-                        <div className="text-lg text-primary">Community</div>
-                        <div className="text-xs text-muted-foreground font-normal mt-0.5">Free</div>
+                        <div className="text-lg text-primary">Free</div>
+                        <div className="text-xs text-muted-foreground font-normal mt-0.5">Free for everyone</div>
                     </TableHead>
                     <TableHead className="w-52 align-top">
                         <span className="text-lg text-primary">Pro</span>
