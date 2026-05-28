@@ -38,12 +38,12 @@ function useTrialStepCopy(): TrialStepCopy | null {
     }
     if (offers.trial.creditCardRequired) {
         return {
-            title: "Try Sourcebot Pro free",
+            title: "Try Sourcebot Pro",
             subtitle: `Get full access free for ${offers.trial.durationDays} days. Card required, cancel anytime.`,
         };
     }
     return {
-        title: "Try Sourcebot Pro free",
+        title: "Try Sourcebot Pro",
         subtitle: `Get full access free for ${offers.trial.durationDays} days. No credit card required.`,
     };
 }
@@ -197,7 +197,7 @@ export function TrialStep({ stepIndex }: TrialStepProps) {
 
     const isTrialEligible = offers.trial.eligible;
     const primaryButtonText = isTrialEligible
-        ? `Start ${offers.trial.durationDays}-day trial`
+        ? `Start ${offers.trial.durationDays}-day free trial`
         : "Purchase a license";
 
     return (
@@ -220,6 +220,7 @@ export function TrialStep({ stepIndex }: TrialStepProps) {
                 <CheckoutDisclosures
                     sessionEmail={sessionEmail}
                     onEmailChanged={setCurrentEmail}
+                    showNoCreditCardRequired={isTrialEligible && !offers.trial.creditCardRequired}
                 />
                 <LoadingButton
                     variant="link"

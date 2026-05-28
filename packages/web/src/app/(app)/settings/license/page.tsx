@@ -1,6 +1,6 @@
 import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
-import { getOfflineLicenseMetadata } from "@sourcebot/shared";
+import { _isValidLicenseActive, getOfflineLicenseMetadata } from "@sourcebot/shared";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -8,6 +8,8 @@ import { ActivationCodeCard } from "./activationCodeCard";
 import { OnlineLicenseCard } from "./onlineLicenseCard";
 import { OfflineLicenseCard } from "./offlineLicenseCard";
 import { RecentInvoicesCard } from "./recentInvoicesCard";
+import { SettingsCard } from "../components/settingsCard";
+import { UpsellPanel } from "@/ee/features/lighthouse/upsellDialog";
 import { getAllInvoices } from "@/ee/features/lighthouse/actions";
 import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
 import { isServiceError } from "@/lib/utils";
@@ -46,6 +48,13 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
     const invoicesResult = license ? await getAllInvoices() : null;
     const invoices = invoicesResult && !isServiceError(invoicesResult) ? invoicesResult : [];
 
+    // Show the upsell when the user has no usable license on this deployment:
+    // either nothing is provisioned at all, or their online license has lapsed
+    // (canceled/past_due/etc.). Offline licenses are out-of-band, so we don't
+    // present a Stripe upgrade path for them.
+    const isOnlineLicenseInactive = license ? !_isValidLicenseActive(license) : false;
+    const showUpsell = !offlineLicense && (!license || isOnlineLicenseInactive);
+
     return (
         <div className="flex flex-col gap-6">
             <div>
@@ -65,12 +74,17 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
                     </Button>
                 </div>
             </div>
+            {showUpsell && (
+                <SettingsCard>
+                    <UpsellPanel source="license_settings" returnPath="/settings/license" />
+                </SettingsCard>
+            )}
             {offlineLicense && (
                 <OfflineLicenseCard license={offlineLicense} isExpired={isOfflineLicenseExpired} />
             )}
             {license && <OnlineLicenseCard license={license} />}
-            {license && <RecentInvoicesCard invoices={invoices} />}
             {!offlineLicense && !license && <ActivationCodeCard />}
+            {license && <RecentInvoicesCard invoices={invoices} />}
         </div>
     );
 }, {
