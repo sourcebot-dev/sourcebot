@@ -157,7 +157,7 @@ export function LicenseActivactionDialog({ userEmail }: CheckoutSuccessModalProp
                         <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
                     </div>
                     <DialogTitle>
-                        {isPolling ? "Finalizing your purchase" : "One more step"}
+                        {isPolling ? "Activating your license" : "One more step"}
                     </DialogTitle>
                     <DialogDescription>
                         {isPolling
