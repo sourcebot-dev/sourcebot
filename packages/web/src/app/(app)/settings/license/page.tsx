@@ -76,7 +76,11 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
             </div>
             {showUpsell && (
                 <SettingsCard>
-                    <UpsellPanel source="license_settings" returnPath="/settings/license" />
+                    <UpsellPanel
+                        source="license_settings"
+                        returnPath="/settings/license"
+                        licenseState={isOnlineLicenseInactive ? 'expired' : 'free'}
+                    />
                 </SettingsCard>
             )}
             {offlineLicense && (
