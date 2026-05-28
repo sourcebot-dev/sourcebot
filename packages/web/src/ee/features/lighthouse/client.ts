@@ -91,7 +91,10 @@ export const client = {
 
     offers: async (query: OffersQuery): Promise<OffersResponse | ServiceError> => {
         const params = new URLSearchParams(query);
-        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/offers?${params}`, {
+        // @note we don't use a fetchWithRetry here since this api is
+        // comonly called on the client that has it's own retry mechanisms.
+        // @see: useOffers.ts
+        const response = await fetch(`${env.SOURCEBOT_LIGHTHOUSE_URL}/offers?${params}`, {
             method: 'GET',
         });
 
