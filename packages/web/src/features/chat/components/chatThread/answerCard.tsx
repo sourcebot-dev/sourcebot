@@ -28,10 +28,11 @@ interface AnswerCardProps {
     traceId?: string;
     sources: FileSource[];
     /**
-     * When provided, an "Visualize" button is shown in the answer header. Clicking
+     * When provided, a "Visualize" button is shown in the answer header. Clicking
      * it sends a follow-up message asking the agent to render the answer as a
-     * diagram. The button is hidden when the answer already contains a diagram
-     * block, and disabled while a stream is in flight.
+     * diagram. If the answer already contains a diagram block, the button is
+     * relabeled to "New diagram" rather than hidden. The button is disabled
+     * while a stream is in flight.
      */
     onVisualize?: () => void;
     isVisualizeDisabled?: boolean;

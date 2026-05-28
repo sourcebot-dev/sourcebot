@@ -11,7 +11,7 @@ import {
 import { useToast } from '@/components/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Copy, Download, Maximize, Maximize2, Minimize2, RotateCcw } from 'lucide-react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { TransformComponent, TransformWrapper, type ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
 import { CodeBlock } from './codeBlock';
 import { MermaidDiagram } from './mermaidDiagram';
@@ -37,6 +37,13 @@ export const FullscreenDiagramDialog = ({
     const wrapperRef = useRef<HTMLDivElement | null>(null);
     const [renderedSvg, setRenderedSvg] = useState<string | undefined>(undefined);
     const { toast } = useToast();
+
+    // Clear the cached SVG whenever the dialog opens or the input changes, so
+    // a download triggered before the next render completes can't return the
+    // previous diagram's SVG.
+    useEffect(() => {
+        setRenderedSvg(undefined);
+    }, [isOpen, code, language]);
 
     // Auto-fit the diagram to the available space whenever the SVG (re)renders.
     // Mermaid's `useMaxWidth: true` makes the SVG cap at its natural width, which
@@ -140,6 +147,7 @@ export const FullscreenDiagramDialog = ({
                                 size="sm"
                                 onClick={onZoomOut}
                                 title="Zoom out"
+                                aria-label="Zoom out"
                             >
                                 <Minimize2 className="h-4 w-4" />
                             </Button>
@@ -148,6 +156,7 @@ export const FullscreenDiagramDialog = ({
                                 size="sm"
                                 onClick={onZoomIn}
                                 title="Zoom in"
+                                aria-label="Zoom in"
                             >
                                 <Maximize2 className="h-4 w-4" />
                             </Button>
@@ -156,6 +165,7 @@ export const FullscreenDiagramDialog = ({
                                 size="sm"
                                 onClick={onFitToView}
                                 title="Fit to view"
+                                aria-label="Fit to view"
                             >
                                 <Maximize className="h-4 w-4" />
                             </Button>
@@ -164,6 +174,7 @@ export const FullscreenDiagramDialog = ({
                                 size="sm"
                                 onClick={onResetView}
                                 title="Reset to 100%"
+                                aria-label="Reset to 100%"
                             >
                                 <RotateCcw className="h-4 w-4" />
                             </Button>
@@ -172,6 +183,7 @@ export const FullscreenDiagramDialog = ({
                                 size="sm"
                                 onClick={onCopySource}
                                 title="Copy source"
+                                aria-label="Copy source"
                             >
                                 <Copy className="h-4 w-4" />
                             </Button>
@@ -180,6 +192,7 @@ export const FullscreenDiagramDialog = ({
                                 size="sm"
                                 onClick={onDownloadSvg}
                                 title="Download SVG"
+                                aria-label="Download SVG"
                                 disabled={!renderedSvg}
                             >
                                 <Download className="h-4 w-4" />

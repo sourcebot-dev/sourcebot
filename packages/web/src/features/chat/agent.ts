@@ -355,8 +355,8 @@ const createPrompt = ({
        - RIGHT: \`A->>B: CreateKernel\`
 
     3. **Universal restrictions** (apply to ALL diagram types):
-       - Never use ellipses (\`...\`). Use the word \`etc\` instead.
-       - Never use the \`+\` or \`-\` characters at the start of a sequenceDiagram message (they activate/deactivate participants).
+       - Avoid ellipses (\`...\`) in labels — they can confuse the tokenizer. Use the word \`etc\` if you need to abbreviate.
+       - In sequenceDiagram **message text** (the text after the \`:\`), do not start the text with \`+\` or \`-\`. These characters are valid when attached to the arrow as participant activation modifiers (e.g. \`A->>+B: msg\`, \`A->>-B: msg\`), but at the start of the message text itself they confuse the parser.
        - Drop generic type parameters: write \`ChatMessageContent stream\` not \`IAsyncEnumerable<ChatMessageContent>\`.
        - Prefer short verb phrases over literal code: \`build kernel and register chat service\` rather than mirroring a code snippet.
 
