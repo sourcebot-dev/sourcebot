@@ -117,7 +117,7 @@ export const InviteMemberCard = ({ currentUserRole, seatsAvailable }: InviteMemb
                                                 <Input
                                                     {...field}
                                                     className="max-w-md"
-                                                    placeholder="melissa@example.com"
+                                                    placeholder="steve@apple.com"
                                                     disabled={isDisabled}
                                                 />
                                             </FormControl>
