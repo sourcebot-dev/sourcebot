@@ -8,6 +8,7 @@ import { getExternalMcpErrorLogFields } from './externalMcpError';
 import { getMcpFaviconUrl } from './utils';
 import { __unsafePrisma } from '@/prisma';
 import { Prisma } from '@sourcebot/db';
+import { captureEvent } from '@/lib/posthog';
 
 const logger = createLogger('mcp-tool-sets');
 const ajv = new Ajv({ allErrors: true, strict: false });
@@ -63,11 +64,39 @@ export interface McpToolsResult {
     cleanup: () => Promise<void>;
 }
 
+interface McpToolsAnalyticsContext {
+    chatId?: string;
+    traceId?: string;
+    source: string;
+}
+
+function getMcpToolFailureReason(error: unknown): string {
+    if (error instanceof McpToolTimeoutError) {
+        return 'timeout';
+    }
+
+    const fields = getExternalMcpErrorLogFields(error);
+    if (fields.reason) {
+        return fields.reason;
+    }
+    if (fields.oauthError) {
+        return fields.oauthError;
+    }
+    if (fields.statusCode) {
+        return `status_${fields.statusCode}`;
+    }
+    if (fields.errorClass) {
+        return fields.errorClass;
+    }
+
+    return 'unknown';
+}
+
 /**
  * Creates MCPClients from authenticated transports, retrieves their tools,
  * and returns a namespaced tool record + cleanup function.
  */
-export async function getMcpTools(clients: McpToolSet[]): Promise<McpToolsResult> {
+export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpToolsAnalyticsContext): Promise<McpToolsResult> {
     const allTools: McpToolsResult['tools'] = {};
     const failedServers: string[] = [];
     const serverFaviconUrls: Record<string, string> = {};
@@ -131,10 +160,13 @@ export async function getMcpTools(clients: McpToolSet[]): Promise<McpToolsResult
                 const timeoutMs = env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS;
 
                 const executeWithTimeout = (async (input: unknown, options: ToolExecutionOptions) => {
+                    const startTime = Date.now();
                     const timeoutSignal = AbortSignal.timeout(timeoutMs);
                     const combinedSignal = options.abortSignal
                         ? AbortSignal.any([options.abortSignal, timeoutSignal])
                         : timeoutSignal;
+                    let success = false;
+                    let failureReason: string | undefined;
 
                     try {
                         const result = await originalExecute(input, {
@@ -152,13 +184,31 @@ export async function getMcpTools(clients: McpToolSet[]): Promise<McpToolsResult
                             });
                         });
 
+                        success = true;
                         return result;
                     } catch (error) {
                         if (timeoutSignal.aborted) {
                             logger.warn(`MCP tool "${qualifiedName}" timed out after ${timeoutMs}ms`);
-                            throw new McpToolTimeoutError(qualifiedName, timeoutMs);
+                            const timeoutError = new McpToolTimeoutError(qualifiedName, timeoutMs);
+                            failureReason = getMcpToolFailureReason(timeoutError);
+                            throw timeoutError;
                         }
+                        failureReason = getMcpToolFailureReason(error);
                         throw error;
+                    } finally {
+                        await captureEvent('ask_mcp_tool_call_completed', {
+                            chatId: analyticsContext?.chatId,
+                            traceId: analyticsContext?.traceId,
+                            source: analyticsContext?.source ?? 'sourcebot-ask-agent',
+                            serverId,
+                            serverName,
+                            serverUrl,
+                            toolName,
+                            qualifiedToolName: qualifiedName,
+                            success,
+                            durationMs: Date.now() - startTime,
+                            ...(failureReason ? { failureReason } : {}),
+                        });
                     }
                 }) as typeof originalExecute;
 

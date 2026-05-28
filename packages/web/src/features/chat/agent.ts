@@ -238,7 +238,7 @@ const createAgentStream = async ({
     onMcpServerDiscovered,
     onMcpServerFailed,
     traceId,
-    chatId: _chatId,
+    chatId,
     prisma,
     userId,
     orgId,
@@ -273,7 +273,11 @@ const createAgentStream = async ({
         try {
             const allMcpClients = await getConnectedMcpClients(prisma, userId, orgId);
             const mcpClients = allMcpClients.filter((c) => !disabledMcpServerIds.includes(c.serverId));
-            mcpToolSetsObj = await getMcpTools(mcpClients);
+            mcpToolSetsObj = await getMcpTools(mcpClients, {
+                chatId,
+                traceId,
+                source: 'sourcebot-ask-agent',
+            });
 
             for (const [sanitizedName, faviconUrl] of Object.entries(mcpToolSetsObj.serverFaviconUrls)) {
                 onMcpServerDiscovered(sanitizedName, faviconUrl);

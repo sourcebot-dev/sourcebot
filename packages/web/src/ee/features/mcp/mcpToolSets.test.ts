@@ -13,6 +13,7 @@ const mockLogger = vi.hoisted(() => ({
 }));
 const mockToolCallCountUpsert = vi.hoisted(() => vi.fn());
 const mockToolCallCountUpdate = vi.hoisted(() => vi.fn());
+const mockCaptureEvent = vi.hoisted(() => vi.fn());
 
 vi.mock('@ai-sdk/mcp', () => ({
     createMCPClient: (...args: unknown[]) => mockCreateMCPClient(...args),
@@ -32,6 +33,10 @@ vi.mock('@/prisma', () => ({
             update: mockToolCallCountUpdate,
         },
     },
+}));
+
+vi.mock('@/lib/posthog', () => ({
+    captureEvent: mockCaptureEvent,
 }));
 
 vi.mock('ai', () => ({
@@ -84,6 +89,7 @@ beforeEach(() => {
     vi.clearAllMocks();
     mockToolCallCountUpsert.mockResolvedValue({});
     mockToolCallCountUpdate.mockResolvedValue({});
+    mockCaptureEvent.mockResolvedValue(undefined);
 });
 
 describe('getMcpTools', () => {
@@ -315,6 +321,14 @@ describe('getMcpTools', () => {
         ).rejects.toThrow('External API failed');
         expect(mockToolCallCountUpsert).not.toHaveBeenCalled();
         expect(mockToolCallCountUpdate).not.toHaveBeenCalled();
+        expect(mockCaptureEvent).toHaveBeenCalledWith('ask_mcp_tool_call_completed', expect.objectContaining({
+            serverName: 'Linear',
+            serverUrl: 'https://linear.example.com/mcp',
+            toolName: 'create_issue',
+            qualifiedToolName: 'mcp_linear__create_issue',
+            success: false,
+            failureReason: 'Error',
+        }));
     });
 
     test('tool execute wrapper increments the raw tool call counter after success', async () => {
@@ -349,6 +363,39 @@ describe('getMcpTools', () => {
             },
         });
         expect(mockToolCallCountUpdate).not.toHaveBeenCalled();
+        expect(mockCaptureEvent).toHaveBeenCalledWith('ask_mcp_tool_call_completed', expect.objectContaining({
+            source: 'sourcebot-ask-agent',
+            serverId: 'server-linear',
+            serverName: 'Linear',
+            serverUrl: 'https://linear.example.com/mcp',
+            toolName: 'create_issue',
+            qualifiedToolName: 'mcp_linear__create_issue',
+            success: true,
+        }));
+    });
+
+    test('tool execute wrapper includes analytics context in tool completion events', async () => {
+        const mockClient = createMockMcpClient([
+            { name: 'create_issue', description: 'Create issue' },
+        ]);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverId: 'server-linear', serverName: 'Linear' }),
+        ], {
+            chatId: 'chat-id',
+            traceId: 'trace-id',
+            source: 'sourcebot-ask-agent',
+        });
+
+        const tool = result.tools['mcp_linear__create_issue'];
+        await tool.execute({ title: 'My Issue' }, { messages: [], toolCallId: 'test' });
+
+        expect(mockCaptureEvent).toHaveBeenCalledWith('ask_mcp_tool_call_completed', expect.objectContaining({
+            chatId: 'chat-id',
+            traceId: 'trace-id',
+            source: 'sourcebot-ask-agent',
+        }));
     });
 
     test('tool execute wrapper waits for the counter increment before resolving', async () => {
