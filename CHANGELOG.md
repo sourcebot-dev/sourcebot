@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1097](https://github.com/sourcebot-dev/sourcebot/pull/1097)
 - Expired offline license keys no longer crash the process. An expired key now degrades to the unlicensed state. [#1109](https://github.com/sourcebot-dev/sourcebot/pull/1109)
+- Polished the license page, upsell dialog, post-checkout activation flow, and "What's new" sidebar icon. [#1233](https://github.com/sourcebot-dev/sourcebot/pull/1233)
 
 ## [4.17.2] - 2026-05-16
 
