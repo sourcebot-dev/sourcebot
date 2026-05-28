@@ -8,9 +8,10 @@ Sourcebot provides different role types to help you control access and permissio
 | Role | Permission |
 | :--- | :--------- |
 | `Owner` | Owners have full administrative control over all organization-level settings, including user management, access control, billing, and audit logs, in addition to all permissions a member can perform. |
-| `Member` | Members have access and to use all standard features, such as code search, ask, mcp, etc., as well as their account settings. Note that a member will only be able to view repositories they have access to if [permission syncing](/docs/features/permission-syncing) is enabled. Members **cannot access** organization-level administration pages.  |
-| `Guest` | Guests are users that access Sourcebot without a account when [anonymous access](/docs/configuration/auth/access-settings#anonymous-access) is enabled. Guests can use some features, such as code search and ask, with additional limitations like not having chat history. Guests **cannot access** organization-level administration pages. |
+| `Member` | Members have access and to use all standard features, such as code search, ask, mcp, etc., as well as their account settings. Members **cannot access** organization-level administration pages.  |
+| `Guest` | Guests are users that access Sourcebot without a account when [anonymous access](/docs/configuration/auth/access-settings#anonymous-access) is enabled. Guests can use some features, such as code search and browsing files, with additional limitations like not having chat history. Guests **cannot access** organization-level administration pages. |
 
+Note that when [permission syncing](/docs/features/permission-syncing) is enabled, users will only be able to view repositories they have access to. This applies to all roles, **including  Owners**.
 
 <Note>
 On the free plan, all signed-in users are given the `Owner` role.
