@@ -70,20 +70,27 @@ export function UpsellDialog({ open, onOpenChange, source, returnPath }: UpsellD
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                 ) : (
-                    <UpsellPanelContent offers={offers} source={source} returnPath={returnPath} variant="dialog" />
+                    <UpsellPanelContent offers={offers} source={source} returnPath={returnPath} variant="dialog" licenseState="free" />
                 )}
             </DialogContent>
         </Dialog>
     );
 }
 
+// Whether the upsell is being shown to a workspace with no usable license at
+// all ('free') or to one with an existing online license that's lapsed
+// ('expired'). Drives the no-trial-eligible copy so an expired-license user
+// doesn't see misleading "free plan" framing.
+export type UpsellLicenseState = 'free' | 'expired';
+
 interface UpsellPanelProps {
     source: UpsellSource;
     returnPath?: string;
     className?: string;
+    licenseState?: UpsellLicenseState;
 }
 
-export function UpsellPanel({ source, returnPath, className }: UpsellPanelProps) {
+export function UpsellPanel({ source, returnPath, className, licenseState = 'free' }: UpsellPanelProps) {
     const { data: offers, isPending, isError } = useOffers();
 
     if (isError) {
@@ -109,7 +116,7 @@ export function UpsellPanel({ source, returnPath, className }: UpsellPanelProps)
 
     return (
         <div className={cn("flex flex-col gap-6", className)}>
-            <UpsellPanelContent offers={offers} source={source} returnPath={returnPath} variant="inline" />
+            <UpsellPanelContent offers={offers} source={source} returnPath={returnPath} variant="inline" licenseState={licenseState} />
         </div>
     );
 }
@@ -119,9 +126,10 @@ interface UpsellPanelContentProps {
     source: UpsellSource;
     returnPath?: string;
     variant: "dialog" | "inline";
+    licenseState: UpsellLicenseState;
 }
 
-function UpsellPanelContent({ offers, source, returnPath, variant }: UpsellPanelContentProps) {
+function UpsellPanelContent({ offers, source, returnPath, variant, licenseState }: UpsellPanelContentProps) {
     const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
     const [isCheckoutSessionCreating, setIsCheckoutSessionCreating] = useState(false);
     const { data: session } = useSession();
@@ -200,13 +208,20 @@ function UpsellPanelContent({ offers, source, returnPath, variant }: UpsellPanel
         }
         // no trial
         else {
+            if (licenseState === 'expired') {
+                return {
+                    title: "Your license has expired",
+                    description: "Upgrade to continue using paid features.",
+                    buttonText: "Upgrade"
+                }
+            }
             return {
                 title: "Your organization is on the free plan",
                 description: "Upgrade to unlock more features.",
                 buttonText: "Upgrade"
             }
         }
-    }, [isOwner, offers.trial.creditCardRequired, offers.trial.durationDays, offers.trial.eligible]);
+    }, [isOwner, offers.trial.creditCardRequired, offers.trial.durationDays, offers.trial.eligible, licenseState]);
 
     return (
         <>
