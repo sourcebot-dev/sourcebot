@@ -42,6 +42,8 @@ export const MOCK_USER_WITH_ACCOUNTS: User & { accounts: Account[] } = {
     emailVerified: null,
     image: null,
     sessionVersion: 0,
+    chatPreferences: {},
+    chatCustomInstructions: null,
     accounts: [],
 }
 

@@ -1,8 +1,9 @@
 import { sew } from "@/middleware/sew";
-import { createMessageStream } from "@/features/chat/agent";
+import { createMessageStream, ResolvedChatUserPreferences } from "@/features/chat/agent";
 import { additionalChatRequestParamsSchema } from "@/features/chat/types";
 import { getLanguageModelKey } from "@/features/chat/utils";
 import { getAISDKLanguageModelAndOptions, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
+import { chatPreferencesSchema } from "@/features/chat/userPreferences";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
@@ -93,6 +94,33 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             const source = req.headers.get('X-Sourcebot-Client-Source') ?? undefined;
 
+            // Load the user's chat-style preferences. Anonymous users skip this
+            // entirely so the agent uses default behavior with no
+            // `<user_preferences>` block in the system prompt.
+            let userPreferences: ResolvedChatUserPreferences | undefined;
+            if (user) {
+                const row = await prisma.user.findUnique({
+                    where: { id: user.id },
+                    select: {
+                        chatPreferences: true,
+                        chatCustomInstructions: true,
+                    },
+                });
+                if (row) {
+                    const parsed = chatPreferencesSchema.safeParse(row.chatPreferences);
+                    // Cast back to the narrower literal-union map: the schema
+                    // is built dynamically so its inferred type widens to
+                    // `string`, but the runtime validation still constrains
+                    // each value to its per-dimension level list.
+                    userPreferences = {
+                        preferences: parsed.success
+                            ? (parsed.data as ResolvedChatUserPreferences["preferences"])
+                            : {},
+                        customInstructions: row.chatCustomInstructions,
+                    };
+                }
+            }
+
             await captureEvent('ask_message_sent', {
                 chatId: id,
                 messageCount: messages.length,
@@ -112,6 +140,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                 modelProviderOptions: providerOptions,
                 modelTemperature: temperature,
+                userPreferences,
                 onFinish: async ({ messages }) => {
                     await updateChatMessages({ chatId: id, messages, prisma });
                 },

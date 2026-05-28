@@ -380,6 +380,19 @@ model User {
   /// claim baked into the JWT cookie at mint time.
   sessionVersion Int @default(0)
 
+  /// Per-user chat response style preferences. JSON object keyed by dimension
+  /// (depth, codeVisibility, vocabulary, citationDensity, outputStructure,
+  /// diagrams). Each value is a 3-level enum string (see
+  /// `packages/web/src/features/chat/userPreferences.ts`). An empty object
+  /// means no preferences have been set and the agent uses default behavior.
+  chatPreferences Json @default("{}")
+
+  /// Free-text custom instructions appended to the agent's system prompt for
+  /// every chat owned by this user. Length is capped at the application
+  /// layer (see `chatCustomInstructionsSchema`). Null means no custom
+  /// instructions.
+  chatCustomInstructions String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

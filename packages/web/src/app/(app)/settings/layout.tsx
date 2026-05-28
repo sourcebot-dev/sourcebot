@@ -100,6 +100,10 @@ export const getSidebarNavItems = async () =>
                     href: `/settings/apiKeys`,
                 }
             ] : []),
+            {
+                title: "Chat Preferences",
+                href: `/settings/chatPreferences`,
+            },
             ...(role === OrgRole.OWNER ? [
                 {
                     title: "Analytics",
