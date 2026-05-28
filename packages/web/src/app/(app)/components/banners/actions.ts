@@ -3,6 +3,9 @@
 import { cookies } from 'next/headers';
 import { DISMISS_COOKIE_PREFIX, type BannerId } from './types';
 import { compareVersions, formatVersion, parseVersion } from "@sourcebot/shared/client";
+import { createLogger } from "@sourcebot/shared";
+
+const logger = createLogger("banner-actions");
 
 // eslint-disable-next-line authz/require-auth-wrapper
 export async function dismissBanner(id: BannerId) {
@@ -32,6 +35,7 @@ export async function tryGetLatestSourcebotTag({ timeoutMs }: { timeoutMs: numbe
             signal: AbortSignal.timeout(timeoutMs),
         });
         if (!response.ok) {
+            logger.warn(`Failed to fetch Sourcebot version information. Status code: ${response.status}, status text: ${response.statusText}`);
             return null;
         }
         const data = (await response.json()) as { name: string }[];
