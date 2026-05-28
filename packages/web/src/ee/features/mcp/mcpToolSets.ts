@@ -6,6 +6,8 @@ import { jsonSchema, ToolExecutionOptions } from 'ai';
 import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import { getExternalMcpErrorLogFields } from './externalMcpError';
 import { getMcpFaviconUrl } from './utils';
+import { __unsafePrisma } from '@/prisma';
+import { Prisma } from '@sourcebot/db';
 
 const logger = createLogger('mcp-tool-sets');
 const ajv = new Ajv({ allErrors: true, strict: false });
@@ -14,6 +16,43 @@ class McpToolTimeoutError extends Error {
     constructor(toolName: string, timeoutMs: number) {
         super(`MCP tool "${toolName}" timed out after ${timeoutMs}ms`);
         this.name = 'McpToolTimeoutError';
+    }
+}
+
+async function incrementMcpToolCallCounter(serverId: string, toolName: string) {
+    try {
+        await __unsafePrisma.mcpServerToolCallCount.upsert({
+            where: {
+                mcpServerId_toolName: {
+                    mcpServerId: serverId,
+                    toolName,
+                },
+            },
+            create: {
+                mcpServerId: serverId,
+                toolName,
+                count: 1,
+            },
+            update: {
+                count: { increment: 1 },
+            },
+        });
+    } catch (error) {
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+            throw error;
+        }
+
+        await __unsafePrisma.mcpServerToolCallCount.update({
+            where: {
+                mcpServerId_toolName: {
+                    mcpServerId: serverId,
+                    toolName,
+                },
+            },
+            data: {
+                count: { increment: 1 },
+            },
+        });
     }
 }
 
@@ -98,10 +137,22 @@ export async function getMcpTools(clients: McpToolSet[]): Promise<McpToolsResult
                         : timeoutSignal;
 
                     try {
-                        return await originalExecute(input, {
+                        const result = await originalExecute(input, {
                             ...options,
                             abortSignal: combinedSignal,
                         });
+
+                        // Await the analytics write before returning the tool result so a later
+                        // denied approval cannot end the turn before earlier reads are counted.
+                        await incrementMcpToolCallCounter(serverId, toolName).catch((error) => {
+                            logger.warn('Failed to increment MCP tool call counter', {
+                                serverId,
+                                toolName: qualifiedName,
+                                error: error instanceof Error ? error.message : String(error),
+                            });
+                        });
+
+                        return result;
                     } catch (error) {
                         if (timeoutSignal.aborted) {
                             logger.warn(`MCP tool "${qualifiedName}" timed out after ${timeoutMs}ms`);

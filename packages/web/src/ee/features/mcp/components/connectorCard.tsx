@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Collapsible } from '@/components/ui/collapsible';
 import { ConnectorRowInfo } from '@/ee/features/mcp/components/connectorRowInfo';
 import { ConnectorToolList, ConnectorToolTrigger } from '@/ee/features/mcp/components/connectorToolDisclosure';
-import type { ServerToolsEntry } from '@/ee/features/mcp/types';
+import { ConnectorToolUsageList, ConnectorToolUsageTrigger } from '@/ee/features/mcp/components/connectorToolUsageDisclosure';
+import type { McpServerToolUsageSummary, ServerToolsEntry } from '@/ee/features/mcp/types';
 
 interface ConnectorCardProps {
     faviconUrl: string | undefined;
@@ -17,6 +17,7 @@ interface ConnectorCardProps {
     isOAuthAvailable?: boolean;
     isStatusUnavailable?: boolean;
     toolEntry?: ServerToolsEntry;
+    toolUsage?: McpServerToolUsageSummary;
     isToolsLoading?: boolean;
     isToolsError?: boolean;
     onRetryTools?: () => void;
@@ -34,53 +35,73 @@ export function ConnectorCard({
     isOAuthAvailable,
     isStatusUnavailable,
     toolEntry,
+    toolUsage,
     isToolsLoading = false,
     isToolsError = false,
     onRetryTools,
     statusBadge,
     actionButtons,
 }: ConnectorCardProps) {
-    const [isToolListOpen, setIsToolListOpen] = useState(false);
+    const [openPanel, setOpenPanel] = useState<'tools' | 'usage' | null>(null);
+    const panelIdPrefix = useId();
+    const toolsPanelId = `${panelIdPrefix}-tools`;
+    const usagePanelId = `${panelIdPrefix}-usage`;
     const availableToolEntry = toolEntry?.status === 'available' ? toolEntry : undefined;
     const hasToolList = !!availableToolEntry;
+    const hasToolUsage = (toolUsage?.totalCalls ?? 0) > 0;
+    const isToolListOpen = openPanel === 'tools';
+    const isToolUsageOpen = hasToolUsage && openPanel === 'usage';
     const isLoadingToolsForServer = isConnected && !availableToolEntry && isToolsLoading;
 
     return (
-        <Collapsible
-            open={hasToolList && isToolListOpen}
-            onOpenChange={(open) => setIsToolListOpen(hasToolList ? open : false)}
-        >
-            <Card>
-                <CardContent className="p-3">
-                    <div className="flex items-center gap-3">
-                        <ConnectorRowInfo
-                            faviconUrl={faviconUrl}
-                            name={name}
-                            serverUrl={serverUrl}
-                            size="sm"
-                        >
-                            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                                {statusBadge}
-                                <ConnectorToolTrigger
-                                    isConnected={isConnected}
-                                    isAuthExpired={isAuthExpired}
-                                    isOAuthAvailable={isOAuthAvailable}
-                                    isStatusUnavailable={isStatusUnavailable}
-                                    toolEntry={availableToolEntry}
-                                    isLoading={isLoadingToolsForServer}
-                                    isToolsQueryError={isConnected && isToolsError}
-                                    isOpen={isToolListOpen}
-                                    onRetry={onRetryTools}
+        <Card>
+            <CardContent className="p-3">
+                <div className="flex items-center gap-3">
+                    <ConnectorRowInfo
+                        faviconUrl={faviconUrl}
+                        name={name}
+                        serverUrl={serverUrl}
+                        size="sm"
+                    >
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                            {statusBadge}
+                            <ConnectorToolTrigger
+                                isConnected={isConnected}
+                                isAuthExpired={isAuthExpired}
+                                isOAuthAvailable={isOAuthAvailable}
+                                isStatusUnavailable={isStatusUnavailable}
+                                toolEntry={availableToolEntry}
+                                isLoading={isLoadingToolsForServer}
+                                isToolsQueryError={isConnected && isToolsError}
+                                isOpen={isToolListOpen}
+                                controlsId={toolsPanelId}
+                                onOpenChange={(open) => setOpenPanel(open && hasToolList ? 'tools' : null)}
+                                onRetry={onRetryTools}
+                            />
+                            {hasToolUsage && toolUsage && (
+                                <ConnectorToolUsageTrigger
+                                    toolUsage={toolUsage}
+                                    isOpen={isToolUsageOpen}
+                                    controlsId={usagePanelId}
+                                    onOpenChange={(open) => setOpenPanel(open ? 'usage' : null)}
                                 />
-                            </div>
-                        </ConnectorRowInfo>
-                        <div className="flex shrink-0 items-center gap-1.5">
-                            {actionButtons}
+                            )}
                         </div>
+                    </ConnectorRowInfo>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                        {actionButtons}
                     </div>
-                    <ConnectorToolList toolEntry={availableToolEntry} />
-                </CardContent>
-            </Card>
-        </Collapsible>
+                </div>
+                <ConnectorToolList toolEntry={availableToolEntry} isOpen={isToolListOpen} id={toolsPanelId} />
+                {hasToolUsage && toolUsage && (
+                    <ConnectorToolUsageList
+                        toolUsage={toolUsage}
+                        toolEntry={availableToolEntry}
+                        isOpen={isToolUsageOpen}
+                        id={usagePanelId}
+                    />
+                )}
+            </CardContent>
+        </Card>
     );
 }

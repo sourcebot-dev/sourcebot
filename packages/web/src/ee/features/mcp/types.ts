@@ -5,13 +5,36 @@ export interface McpConfigurationServer {
     sanitizedName: string;
     faviconUrl: string | undefined;
     savedConnectionCount: number;
+    toolUsage: McpServerToolUsageSummary;
 }
 
 export type McpConfigurationAllowedMode = 'approved_only';
 
+export interface McpToolUsageEntry {
+    toolName: string;
+    totalCalls: number;
+    usageSharePercent: number;
+}
+
+export interface McpServerToolUsageSummary {
+    totalCalls: number;
+    usedToolCount: number;
+    tools: McpToolUsageEntry[];
+}
+
+export interface TopConnectorEntry {
+    serverId: string;
+    serverName: string;
+    faviconUrl: string | undefined;
+    totalCalls: number;
+    usageSharePercent: number;
+}
+
 export interface GetMcpConfigurationResponse {
     servers: McpConfigurationServer[];
     totalSavedConnectionCount: number;
+    topConnectors: TopConnectorEntry[];
+    grandTotalToolCalls: number;
     allowedMode: McpConfigurationAllowedMode;
     isOAuthAvailable: boolean;
 }

@@ -22,15 +22,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { checkMcpServerDynamicClientRegistration, createMcpServer, createStaticOAuthMcpServer, deleteMcpServer } from "@/ee/features/mcp/actions";
 import { ConnectMcpButton } from "@/ee/features/mcp/components/connectMcpButton";
 import { ConnectorCard } from "@/ee/features/mcp/components/connectorCard";
+import { McpFavicon } from "@/ee/features/mcp/components/mcpFavicon";
 import { useMcpToolMetadata } from "@/ee/features/mcp/hooks/useMcpToolMetadata";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/mcp/queryKeys";
-import { pluralize } from "@/ee/features/mcp/utils";
+import { formatCount, formatUsageSharePercent, pluralize } from "@/ee/features/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangleIcon, CableIcon, CopyIcon, Loader2, MoreHorizontalIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { PrefabConnectorPopover } from "./prefabConnectorPopover";
 import type { PrefabMcpServer } from "@/ee/features/mcp/prefabMcpServers";
-import type { McpConfigurationServer, ServerToolsEntry } from "@/ee/features/mcp/types";
+import type { McpConfigurationServer, ServerToolsEntry, TopConnectorEntry } from "@/ee/features/mcp/types";
 
 function clearCallbackParams() {
     const url = new URL(window.location.href);
@@ -93,6 +94,7 @@ function WorkspaceConnectorCard({
             isOAuthAvailable={isOAuthAvailable}
             isStatusUnavailable={isStatusUnavailable}
             toolEntry={isConnected ? toolEntry : undefined}
+            toolUsage={server.toolUsage}
             isToolsLoading={isToolsLoading}
             isToolsError={isToolsError}
             onRetryTools={onRetryTools}
@@ -146,6 +148,82 @@ function WorkspaceConnectorCard({
                 </>
             }
         />
+    );
+}
+
+function TopConnectorsCard({
+    isLoading,
+    topConnectors,
+    grandTotalToolCalls,
+}: {
+    isLoading: boolean;
+    topConnectors: TopConnectorEntry[];
+    grandTotalToolCalls: number;
+}) {
+    const displayedTopConnectors = topConnectors.slice(0, 2);
+    const topConnectorTotal = displayedTopConnectors[0]?.totalCalls ?? 0;
+
+    return (
+        <Card>
+            <CardContent className="p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Top Connectors</p>
+                {isLoading ? (
+                    <div className="mt-2 space-y-2.5">
+                        {Array.from({ length: 2 }).map((_, i) => (
+                            <div key={i} className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                    <Skeleton className="h-3.5 w-3.5 rounded" />
+                                    <Skeleton className="h-3 w-16" />
+                                    <Skeleton className="ml-auto h-3 w-12" />
+                                </div>
+                                <Skeleton className="h-1.5 w-full rounded-full" />
+                            </div>
+                        ))}
+                    </div>
+                ) : displayedTopConnectors.length === 0 || grandTotalToolCalls === 0 ? (
+                    <>
+                        <p className="mt-1 text-2xl font-semibold text-muted-foreground">&mdash;</p>
+                        <p className="text-xs text-muted-foreground">no tool calls yet</p>
+                    </>
+                ) : (
+                    <>
+                        <div className="mt-2 space-y-2.5">
+                            {displayedTopConnectors.map((connector) => {
+                                const barWidth = topConnectorTotal > 0
+                                    ? Math.min(100, (connector.totalCalls / topConnectorTotal) * 100)
+                                    : 0;
+
+                                return (
+                                    <div key={connector.serverId} className="space-y-1">
+                                        <div className="flex min-w-0 items-center gap-2 text-xs">
+                                            <McpFavicon faviconUrl={connector.faviconUrl} className="h-3.5 w-3.5" />
+                                            <span className="min-w-0 flex-1 truncate font-medium text-foreground">
+                                                {connector.serverName}
+                                            </span>
+                                            <span className="shrink-0 text-muted-foreground">
+                                                {formatCount(connector.totalCalls)} ({formatUsageSharePercent(connector.usageSharePercent)})
+                                            </span>
+                                        </div>
+                                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                                            <div
+                                                className="h-full rounded-full bg-primary"
+                                                style={{
+                                                    width: `${barWidth}%`,
+                                                    minWidth: barWidth > 0 ? '2px' : undefined,
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                            {formatCount(grandTotalToolCalls)} total tool calls
+                        </p>
+                    </>
+                )}
+            </CardContent>
+        </Card>
     );
 }
 
@@ -215,6 +293,8 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
 
     const servers = data?.servers ?? [];
     const totalSavedConnectionCount = data?.totalSavedConnectionCount ?? 0;
+    const topConnectors = data?.topConnectors ?? [];
+    const grandTotalToolCalls = data?.grandTotalToolCalls ?? 0;
     const canCreateConnectors = data?.isOAuthAvailable === true;
     const isOAuthUnavailable = data?.isOAuthAvailable === false;
     const connectedServerCount = useMemo(
@@ -418,7 +498,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                 </div>
 
                 {/* 3-stat strip */}
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
                     <Card>
                         <CardContent className="p-3">
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Allowed Connectors</p>
@@ -443,13 +523,11 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardContent className="p-3">
-                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Active in Last 7d</p>
-                            <p className="mt-1 text-2xl font-semibold text-muted-foreground">&mdash;</p>
-                            <p className="text-xs text-muted-foreground">tool calls</p>
-                        </CardContent>
-                    </Card>
+                    <TopConnectorsCard
+                        isLoading={isLoading}
+                        topConnectors={topConnectors}
+                        grandTotalToolCalls={grandTotalToolCalls}
+                    />
                 </div>
 
                 {/* Allowed connectors subsection */}

@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { Collapsible } from '@/components/ui/collapsible';
 import { ConnectorToolList, ConnectorToolTrigger } from './connectorToolDisclosure';
 import type { ServerToolsEntry } from '@/ee/features/mcp/types';
 
@@ -9,11 +8,7 @@ afterEach(() => {
 });
 
 function renderToolTrigger(props: React.ComponentProps<typeof ConnectorToolTrigger>) {
-    return render(
-        <Collapsible open={props.isOpen}>
-            <ConnectorToolTrigger {...props} />
-        </Collapsible>,
-    );
+    return render(<ConnectorToolTrigger {...props} />);
 }
 
 function availableEntry(overrides: Partial<Extract<ServerToolsEntry, { status: 'available' }>> = {}): Extract<ServerToolsEntry, { status: 'available' }> {
@@ -60,17 +55,13 @@ describe('ConnectorToolTrigger', () => {
 
     test('renders actionable labels for disconnected and expired auth states', () => {
         const { rerender } = render(
-            <Collapsible>
-                <ConnectorToolTrigger isConnected={false} />
-            </Collapsible>,
+            <ConnectorToolTrigger isConnected={false} />,
         );
 
         expect(screen.getByText('Connect to see tools')).toBeTruthy();
 
         rerender(
-            <Collapsible>
-                <ConnectorToolTrigger isConnected={false} isAuthExpired={true} />
-            </Collapsible>,
+            <ConnectorToolTrigger isConnected={false} isAuthExpired={true} />,
         );
 
         expect(screen.getByText('Reconnect to see tools')).toBeTruthy();
@@ -79,21 +70,17 @@ describe('ConnectorToolTrigger', () => {
     test('renders loading and retryable error states for connected servers', () => {
         const onRetry = vi.fn();
         const { rerender } = render(
-            <Collapsible>
-                <ConnectorToolTrigger isConnected={true} isLoading={true} />
-            </Collapsible>,
+            <ConnectorToolTrigger isConnected={true} isLoading={true} />,
         );
 
         expect(screen.getByText('Loading tools...')).toBeTruthy();
 
         rerender(
-            <Collapsible>
-                <ConnectorToolTrigger
-                    isConnected={true}
-                    toolEntry={{ status: 'error', serverId: 'server-1', reason: 'timeout' }}
-                    onRetry={onRetry}
-                />
-            </Collapsible>,
+            <ConnectorToolTrigger
+                isConnected={true}
+                toolEntry={{ status: 'error', serverId: 'server-1', reason: 'timeout' }}
+                onRetry={onRetry}
+            />,
         );
 
         expect(screen.getByText('Tools timed out')).toBeTruthy();
@@ -114,9 +101,7 @@ describe('ConnectorToolTrigger', () => {
 describe('ConnectorToolList', () => {
     test('renders compact tool badges and expands detail on click', () => {
         render(
-            <Collapsible open={true}>
-                <ConnectorToolList toolEntry={availableEntry()} />
-            </Collapsible>,
+            <ConnectorToolList toolEntry={availableEntry()} />,
         );
 
         // Both tool badges are visible
@@ -147,19 +132,33 @@ describe('ConnectorToolList', () => {
 
     test('renders an empty-tools message for available servers with no tools', () => {
         render(
-            <Collapsible open={true}>
-                <ConnectorToolList toolEntry={availableEntry({ tools: [] })} />
-            </Collapsible>,
+            <ConnectorToolList toolEntry={availableEntry({ tools: [] })} />,
         );
 
         expect(screen.getByText('No tools exposed by this connector.')).toBeTruthy();
     });
 
+    test('clears selected tool detail when closed', () => {
+        const { rerender } = render(
+            <ConnectorToolList toolEntry={availableEntry()} isOpen={true} />,
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+        expect(screen.getByText('Search issues')).toBeTruthy();
+
+        rerender(
+            <ConnectorToolList toolEntry={availableEntry()} isOpen={false} />,
+        );
+        rerender(
+            <ConnectorToolList toolEntry={availableEntry()} isOpen={true} />,
+        );
+
+        expect(screen.queryByText('Search issues')).toBeNull();
+    });
+
     test('does not render list content for non-available entries', () => {
         render(
-            <Collapsible open={true}>
-                <ConnectorToolList toolEntry={{ status: 'error', serverId: 'server-1', reason: 'unknown' }} />
-            </Collapsible>,
+            <ConnectorToolList toolEntry={{ status: 'error', serverId: 'server-1', reason: 'unknown' }} />,
         );
 
         expect(screen.queryByText('No tools exposed by this connector.')).toBeNull();

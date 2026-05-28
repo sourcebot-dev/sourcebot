@@ -1,4 +1,5 @@
 import { expect, test, describe, vi, beforeEach } from 'vitest';
+import { Prisma } from '@sourcebot/db';
 import type { McpToolSet } from './mcpClientFactory';
 
 // --- Mocks ---
@@ -10,6 +11,8 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     debug: vi.fn(),
 }));
+const mockToolCallCountUpsert = vi.hoisted(() => vi.fn());
+const mockToolCallCountUpdate = vi.hoisted(() => vi.fn());
 
 vi.mock('@ai-sdk/mcp', () => ({
     createMCPClient: (...args: unknown[]) => mockCreateMCPClient(...args),
@@ -19,6 +22,15 @@ vi.mock('@sourcebot/shared', () => ({
     createLogger: () => mockLogger,
     env: {
         SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS: 5000,
+    },
+}));
+
+vi.mock('@/prisma', () => ({
+    __unsafePrisma: {
+        mcpServerToolCallCount: {
+            upsert: mockToolCallCountUpsert,
+            update: mockToolCallCountUpdate,
+        },
     },
 }));
 
@@ -70,6 +82,8 @@ const { getMcpTools } = await import('./mcpToolSets');
 
 beforeEach(() => {
     vi.clearAllMocks();
+    mockToolCallCountUpsert.mockResolvedValue({});
+    mockToolCallCountUpdate.mockResolvedValue({});
 });
 
 describe('getMcpTools', () => {
@@ -299,5 +313,112 @@ describe('getMcpTools', () => {
         await expect(
             tool.execute({}, { messages: [], toolCallId: 'test' })
         ).rejects.toThrow('External API failed');
+        expect(mockToolCallCountUpsert).not.toHaveBeenCalled();
+        expect(mockToolCallCountUpdate).not.toHaveBeenCalled();
+    });
+
+    test('tool execute wrapper increments the raw tool call counter after success', async () => {
+        const mockClient = createMockMcpClient([
+            { name: 'create_issue', description: 'Create issue' },
+        ]);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverId: 'server-linear', serverName: 'Linear' }),
+        ]);
+
+        const tool = result.tools['mcp_linear__create_issue'];
+        await expect(
+            tool.execute({ title: 'My Issue' }, { messages: [], toolCallId: 'test' })
+        ).resolves.toEqual({ content: [{ type: 'text', text: 'result' }] });
+
+        expect(mockToolCallCountUpsert).toHaveBeenCalledWith({
+            where: {
+                mcpServerId_toolName: {
+                    mcpServerId: 'server-linear',
+                    toolName: 'create_issue',
+                },
+            },
+            create: {
+                mcpServerId: 'server-linear',
+                toolName: 'create_issue',
+                count: 1,
+            },
+            update: {
+                count: { increment: 1 },
+            },
+        });
+        expect(mockToolCallCountUpdate).not.toHaveBeenCalled();
+    });
+
+    test('tool execute wrapper waits for the counter increment before resolving', async () => {
+        let resolveCounter: (() => void) | undefined;
+        mockToolCallCountUpsert.mockImplementationOnce(() => new Promise<void>((resolve) => {
+            resolveCounter = resolve;
+        }));
+
+        const mockClient = createMockMcpClient([
+            { name: 'list_issues', description: 'List issues', annotations: { readOnlyHint: true } },
+        ]);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverId: 'server-linear', serverName: 'Linear' }),
+        ]);
+
+        const tool = result.tools['mcp_linear__list_issues'];
+        const execution = tool.execute({}, { messages: [], toolCallId: 'test' });
+        let didResolve = false;
+        const observedExecution = execution.then((value) => {
+            didResolve = true;
+            return value;
+        });
+
+        await vi.waitFor(() => {
+            expect(mockToolCallCountUpsert).toHaveBeenCalledTimes(1);
+        });
+        await Promise.resolve();
+
+        expect(resolveCounter).toBeDefined();
+        expect(didResolve).toBe(false);
+
+        resolveCounter?.();
+
+        await expect(observedExecution).resolves.toEqual({ content: [{ type: 'text', text: 'result' }] });
+        expect(didResolve).toBe(true);
+    });
+
+    test('tool execute wrapper retries with an atomic update after a unique conflict', async () => {
+        const uniqueConflict = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+            code: 'P2002',
+            clientVersion: '0',
+        });
+        mockToolCallCountUpsert.mockRejectedValueOnce(uniqueConflict);
+
+        const mockClient = createMockMcpClient([
+            { name: 'create_issue', description: 'Create issue' },
+        ]);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverId: 'server-linear', serverName: 'Linear' }),
+        ]);
+
+        const tool = result.tools['mcp_linear__create_issue'];
+        await expect(
+            tool.execute({ title: 'My Issue' }, { messages: [], toolCallId: 'test' })
+        ).resolves.toEqual({ content: [{ type: 'text', text: 'result' }] });
+
+        expect(mockToolCallCountUpdate).toHaveBeenCalledWith({
+            where: {
+                mcpServerId_toolName: {
+                    mcpServerId: 'server-linear',
+                    toolName: 'create_issue',
+                },
+            },
+            data: {
+                count: { increment: 1 },
+            },
+        });
     });
 });

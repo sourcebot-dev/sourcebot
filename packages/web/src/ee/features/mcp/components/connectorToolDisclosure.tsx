@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { pluralize } from '@/ee/features/mcp/utils';
 import type { ServerToolsEntry, ToolMetadataErrorReason, ToolSummary } from '@/ee/features/mcp/types';
@@ -37,6 +36,8 @@ interface ConnectorToolTriggerProps {
     isLoading?: boolean;
     isToolsQueryError?: boolean;
     isOpen?: boolean;
+    controlsId?: string;
+    onOpenChange?: (open: boolean) => void;
     onRetry?: () => void;
 }
 
@@ -49,6 +50,8 @@ export function ConnectorToolTrigger({
     isLoading = false,
     isToolsQueryError = false,
     isOpen = false,
+    controlsId,
+    onOpenChange,
     onRetry,
 }: ConnectorToolTriggerProps) {
     const availableEntry = toolEntry?.status === 'available' ? toolEntry : undefined;
@@ -57,16 +60,17 @@ export function ConnectorToolTrigger({
 
     if (canExpand) {
         return (
-            <CollapsibleTrigger asChild>
-                <button
-                    type="button"
-                    className="inline-flex items-center gap-1 rounded-sm text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                    <WrenchIcon className="h-3 w-3" />
-                    {getToolCountLabel(availableEntry)}
-                    <ChevronDownIcon className={cn("h-3 w-3 transition-transform", isOpen ? "rotate-180" : "rotate-0")} />
-                </button>
-            </CollapsibleTrigger>
+            <button
+                type="button"
+                aria-expanded={isOpen}
+                aria-controls={controlsId}
+                onClick={() => onOpenChange?.(!isOpen)}
+                className="inline-flex items-center gap-1 rounded-sm text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+                <WrenchIcon className="h-3 w-3" />
+                {getToolCountLabel(availableEntry)}
+                <ChevronDownIcon className={cn("h-3 w-3 transition-transform", isOpen ? "rotate-180" : "rotate-0")} />
+            </button>
         );
     }
 
@@ -155,52 +159,58 @@ function ToolDetail({ tool }: { tool: ToolSummary }) {
 
 interface ConnectorToolListProps {
     toolEntry?: ServerToolsEntry;
+    isOpen?: boolean;
+    id?: string;
 }
 
-export function ConnectorToolList({ toolEntry }: ConnectorToolListProps) {
+export function ConnectorToolList({ toolEntry, isOpen = true, id }: ConnectorToolListProps) {
     const [selectedTool, setSelectedTool] = useState<string | null>(null);
 
-    if (toolEntry?.status !== 'available') {
+    useEffect(() => {
+        if (!isOpen) {
+            setSelectedTool(null);
+        }
+    }, [isOpen]);
+
+    if (!isOpen || toolEntry?.status !== 'available') {
         return null;
     }
 
     const activeTool = toolEntry.tools.find((t) => t.name === selectedTool);
 
     return (
-        <CollapsibleContent>
-            <div className="mt-3 border-t pt-3">
-                {toolEntry.tools.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No tools exposed by this connector.</p>
-                ) : (
-                    <div className="space-y-2">
-                        <div className="flex max-h-48 flex-wrap gap-1 overflow-y-auto pr-1">
-                            {toolEntry.tools.map((tool) => {
-                                const displayName = tool.title ?? tool.name;
-                                const isSelected = selectedTool === tool.name;
+        <div id={id} className="mt-3 border-t pt-3">
+            {toolEntry.tools.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No tools exposed by this connector.</p>
+            ) : (
+                <div className="space-y-2">
+                    <div className="flex max-h-48 flex-wrap gap-1 overflow-y-auto pr-1">
+                        {toolEntry.tools.map((tool) => {
+                            const displayName = tool.title ?? tool.name;
+                            const isSelected = selectedTool === tool.name;
 
-                                return (
-                                    <button
-                                        key={tool.name}
-                                        type="button"
-                                        onClick={() => setSelectedTool(isSelected ? null : tool.name)}
-                                        className={cn(
-                                            "rounded-md border border-border px-2 py-0.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                                            isSelected
-                                                ? "bg-accent text-foreground"
-                                                : "bg-muted/30 text-muted-foreground hover:bg-accent hover:text-foreground"
-                                        )}
-                                    >
-                                        {displayName}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                        {activeTool && (
-                            <ToolDetail tool={activeTool} />
-                        )}
+                            return (
+                                <button
+                                    key={tool.name}
+                                    type="button"
+                                    onClick={() => setSelectedTool(isSelected ? null : tool.name)}
+                                    className={cn(
+                                        "rounded-md border border-border px-2 py-0.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                        isSelected
+                                            ? "bg-accent text-foreground"
+                                            : "bg-muted/30 text-muted-foreground hover:bg-accent hover:text-foreground"
+                                    )}
+                                >
+                                    {displayName}
+                                </button>
+                            );
+                        })}
                     </div>
-                )}
-            </div>
-        </CollapsibleContent>
+                    {activeTool && (
+                        <ToolDetail tool={activeTool} />
+                    )}
+                </div>
+            )}
+        </div>
     );
 }

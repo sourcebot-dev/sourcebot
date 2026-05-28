@@ -14,6 +14,32 @@ export function pluralize(count: number, singular: string, plural = `${singular}
     return count === 1 ? singular : plural;
 }
 
+const standardNumberFormatter = new Intl.NumberFormat();
+const compactNumberFormatter = new Intl.NumberFormat(undefined, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+});
+
+export function formatCount(count: number) {
+    if (count >= 10_000) {
+        return compactNumberFormatter.format(count);
+    }
+    return standardNumberFormatter.format(count);
+}
+
+export function formatUsageSharePercent(percent: number) {
+    if (percent <= 0) {
+        return "0%";
+    }
+    if (percent < 1) {
+        return "<1%";
+    }
+    if (percent < 10) {
+        return `${percent.toFixed(1).replace(/\.0$/, "")}%`;
+    }
+    return `${Math.round(percent)}%`;
+}
+
 function createMcpIconDataUri(svg: string): string {
     return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
