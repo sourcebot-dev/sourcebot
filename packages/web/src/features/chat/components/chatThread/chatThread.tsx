@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
 import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, SearchScope, Source } from '@/features/chat/types';
+import { VISUALIZE_ANSWER_PROMPT } from '@/features/chat/constants';
 import { createUIMessage, getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport } from 'ai';
@@ -327,6 +328,14 @@ export const ChatThread = ({
         resetEditor(editor);
     }, [sendMessage, selectedSearchScopes, isAuthenticated, captureEvent, chatId, scrollToBottom]);
 
+    const onVisualizeAnswer = useCallback(() => {
+        // Reuse the user's currently selected search scopes so the re-prompt has
+        // access to the same repos the original answer was generated against.
+        const message = createUIMessage(VISUALIZE_ANSWER_PROMPT, [], selectedSearchScopes);
+        sendMessage(message);
+        scrollToBottom();
+    }, [sendMessage, selectedSearchScopes, scrollToBottom]);
+
     const onDuplicate = useCallback(async (newName: string): Promise<string | null> => {
         if (!defaultChatId) {
             return null;
@@ -372,6 +381,7 @@ export const ChatThread = ({
                                     {messagePairs.map(([userMessage, assistantMessage], index) => {
                                         const isLastPair = index === messagePairs.length - 1;
                                         const isStreaming = isLastPair && (status === "streaming" || status === "submitted");
+                                        const isAnyMessageStreaming = status === "streaming" || status === "submitted";
                                         // Use a stable key based on user message ID
                                         const key = userMessage.id;
 
@@ -384,6 +394,8 @@ export const ChatThread = ({
                                                     assistantMessage={assistantMessage}
                                                     isStreaming={isStreaming}
                                                     sources={sources}
+                                                    onVisualize={isLastPair ? onVisualizeAnswer : undefined}
+                                                    isAnotherMessageStreaming={isAnyMessageStreaming}
                                                 />
                                                 {index !== messagePairs.length - 1 && (
                                                     <Separator className="my-12" />

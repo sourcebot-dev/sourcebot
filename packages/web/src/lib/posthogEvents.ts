@@ -239,6 +239,18 @@ export type PosthogEventMap = {
         chatId: string,
         isExpanded: boolean,
     },
+    wa_chat_diagram_rendered: {
+        chatId: string,
+        language: string,
+    },
+    wa_chat_diagram_fullscreen_opened: {
+        chatId: string,
+        language: string,
+    },
+    wa_chat_visualize_answer_pressed: {
+        chatId: string,
+        messageId: string,
+    },
     wa_user_created: {
         userId: string,
     },

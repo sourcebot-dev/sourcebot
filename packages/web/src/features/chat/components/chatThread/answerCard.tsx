@@ -3,10 +3,10 @@
 import { useExtractTOCItems } from "../../useTOCItems";
 import { TableOfContents } from "./tableOfContents";
 import { Button } from "@/components/ui/button";
-import { TableOfContentsIcon, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Sparkles, TableOfContentsIcon, ThumbsDown, ThumbsUp } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { MarkdownRenderer } from "./markdownRenderer";
-import { forwardRef, memo, useCallback, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, memo, useCallback, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
@@ -19,6 +19,7 @@ import { LangfuseWeb } from "langfuse";
 import { env } from "@sourcebot/shared/client";
 import isEqual from "fast-deep-equal/react";
 import { FileSource } from "../../types";
+import { SUPPORTED_DIAGRAM_LANGUAGES } from "./diagramRenderer";
 
 interface AnswerCardProps {
     answerText: string;
@@ -26,7 +27,23 @@ interface AnswerCardProps {
     chatId: string;
     traceId?: string;
     sources: FileSource[];
+    /**
+     * When provided, an "Visualize" button is shown in the answer header. Clicking
+     * it sends a follow-up message asking the agent to render the answer as a
+     * diagram. The button is hidden when the answer already contains a diagram
+     * block, and disabled while a stream is in flight.
+     */
+    onVisualize?: () => void;
+    isVisualizeDisabled?: boolean;
 }
+
+const diagramFenceRegexes = SUPPORTED_DIAGRAM_LANGUAGES.map(
+    (lang) => new RegExp(`\`\`\`\\s*${lang}\\b`, 'i'),
+);
+
+const answerContainsDiagram = (text: string): boolean => {
+    return diagramFenceRegexes.some((re) => re.test(text));
+};
 
 const langfuseWeb = env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY ? new LangfuseWeb({
     publicKey: env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY,
@@ -39,6 +56,8 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
     chatId,
     traceId,
     sources,
+    onVisualize,
+    isVisualizeDisabled = false,
 }, forwardedRef) => {
     const markdownRendererRef = useRef<HTMLDivElement>(null);
     // eslint-disable-next-line react-hooks/refs -- ref.current is passed to a custom hook, not used directly in render output
@@ -64,6 +83,26 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
         captureEvent('wa_chat_copy_answer_pressed', { chatId });
         return true;
     }, [answerText, sources, chatId, captureEvent, toast]);
+
+    // Always show the Visualize button when the callback is wired up. The earlier
+    // "hide when a diagram is already present" heuristic was too aggressive — users
+    // often want a different angle on the same answer (e.g. a higher-level overview,
+    // or a sequence diagram instead of an architecture graph), and discoverability
+    // suffered when the button silently disappeared mid-answer.
+    const hasDiagram = useMemo(() => answerContainsDiagram(answerText), [answerText]);
+    const isVisualizeButtonVisible = !!onVisualize;
+    const visualizeButtonLabel = hasDiagram ? 'New diagram' : 'Visualize';
+    const visualizeTooltip = hasDiagram
+        ? 'Generate another diagram (different angle or detail level)'
+        : 'Generate a diagram from this answer';
+
+    const onVisualizeClick = useCallback(() => {
+        if (!onVisualize) {
+            return;
+        }
+        captureEvent('wa_chat_visualize_answer_pressed', { chatId, messageId });
+        onVisualize();
+    }, [onVisualize, captureEvent, chatId, messageId]);
 
     const onFeedback = useCallback(async (feedbackType: 'like' | 'dislike') => {
         setIsSubmittingFeedback(true);
@@ -114,6 +153,25 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
                     <div className="flex items-center justify-between mb-2">
                         <p className="font-semibold text-muted-foreground">Answer</p>
                         <div className="flex items-center gap-2">
+                            {isVisualizeButtonVisible && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 px-2 text-xs text-muted-foreground gap-1"
+                                            onClick={onVisualizeClick}
+                                            disabled={isVisualizeDisabled}
+                                        >
+                                            <Sparkles className="h-3.5 w-3.5" />
+                                            {visualizeButtonLabel}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom">
+                                        {visualizeTooltip}
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <CopyIconButton
@@ -155,6 +213,7 @@ const AnswerCardComponent = forwardRef<HTMLDivElement, AnswerCardProps>(({
                 <MarkdownRenderer
                     ref={markdownRendererRef}
                     content={answerText}
+                    chatId={chatId}
                     // scroll-mt offsets the scroll position for headings to take account
                     // of the sticky "answer" header.
                     className="prose prose-sm max-w-none prose-headings:scroll-mt-14"

@@ -23,6 +23,13 @@ interface ChatThreadListItemProps {
     sources: Source[];
     chatId: string;
     index: number;
+    /**
+     * Only provided for the most recent message pair. Sending a follow-up message
+     * from an older turn would be confusing in the UI, so we deliberately omit
+     * the visualize action for non-latest turns.
+     */
+    onVisualize?: () => void;
+    isAnotherMessageStreaming?: boolean;
 }
 
 const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListItemProps>(({
@@ -32,6 +39,8 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     sources,
     chatId,
     index,
+    onVisualize,
+    isAnotherMessageStreaming = false,
 }, ref) => {
     const leftPanelRef = useRef<HTMLDivElement>(null);
     const [leftPanelHeight, setLeftPanelHeight] = useState<number | null>(null);
@@ -372,6 +381,8 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                                 messageId={assistantMessage.id}
                                 traceId={assistantMessage.metadata?.traceId}
                                 sources={referencedFileSources}
+                                onVisualize={onVisualize}
+                                isVisualizeDisabled={isStreaming || isAnotherMessageStreaming}
                             />
                         ) : !isStreaming && (
                             <p className="text-destructive">Error: No answer response was provided</p>

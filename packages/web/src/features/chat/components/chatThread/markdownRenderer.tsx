@@ -17,6 +17,7 @@ import remarkGfm from 'remark-gfm';
 import type { PluggableList, Plugin } from "unified";
 import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
+import { DiagramRenderer, isDiagramLanguage } from './diagramRenderer';
 import { LinearIssueCard } from './linearIssueCard';
 import { FILE_REFERENCE_REGEX } from '@/features/chat/constants';
 import { createFileReference } from '@/features/chat/utils';
@@ -129,9 +130,14 @@ interface MarkdownRendererProps {
      * instead of being parsed as HTML. File references (@file:{...}) are unaffected.
      */
     escapeHtml?: boolean;
+    /**
+     * Forwarded to embedded diagram renderers (mermaid, etc.) for telemetry.
+     * Optional so the renderer can also be used outside of the chat surface.
+     */
+    chatId?: string;
 }
 
-const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, className, escapeHtml = false }, ref) => {
+const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, className, escapeHtml = false, chatId }, ref) => {
     const router = useRouter();
 
     const remarkPlugins = useMemo((): PluggableList => {
@@ -204,6 +210,16 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
             const match = /language-(\w+)/.exec(className || '');
             const language = match ? match[1] : undefined;
 
+            if (isDiagramLanguage(language)) {
+                return (
+                    <DiagramRenderer
+                        language={language}
+                        code={text}
+                        chatId={chatId}
+                    />
+                );
+            }
+
             return (
                 <CodeBlock
                     code={text}
@@ -252,7 +268,7 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
             </span>
         )
 
-    }, [router]);
+    }, [router, chatId]);
 
     return (
         <div
