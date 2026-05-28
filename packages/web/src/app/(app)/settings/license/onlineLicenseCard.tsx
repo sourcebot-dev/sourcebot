@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn, formatCurrency } from "@/lib/utils";
 import { LicenseInactiveBanner } from "./licenseInactiveBanner";
 import { PlanActionsMenu } from "./planActionsMenu";
+import { TrialMissingPaymentMethodBanner } from "./trialMissingPaymentMethodBanner";
 
 interface OnlineLicenseCardProps {
     license: License;
@@ -119,6 +120,9 @@ export function OnlineLicenseCard({ license }: OnlineLicenseCardProps) {
                 </div>
             </div>
             {!isLicenseActive && <LicenseInactiveBanner />}
+            {isLicenseActive && license.status === 'trialing' && license.hasPaymentMethod === false && (
+                <TrialMissingPaymentMethodBanner />
+            )}
         </div>
     );
 }
