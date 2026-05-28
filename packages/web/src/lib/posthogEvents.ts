@@ -178,12 +178,29 @@ export type PosthogEventMap = {
         messageCount: number,
         selectedReposCount: number,
         source?: string,
+        hasAskMcpServersAvailable: boolean,
+        askMcpConnectedServerCount: number,
+        askMcpEnabledServerCount: number,
+        askMcpDisabledServerCount: number,
         /**
          * @note this field will only be populated when
          * the EXPERIMENT_ASK_GH_ENABLED environment variable
          * is set to true.
          */
         selectedRepos?: string[],
+    },
+    ask_mcp_turn_completed: {
+        chatId: string,
+        source?: string,
+        traceId?: string,
+        askMcpUsed: boolean,
+        askMcpToolCallCount: number,
+        askMcpToolSuccessCount: number,
+        askMcpToolFailureCount: number,
+        askMcpApprovalRequestedCount: number,
+        askMcpApprovalDeniedCount: number,
+        askMcpFailedServerCount: number,
+        durationMs: number,
     },
     tool_used: {
         toolName: string,

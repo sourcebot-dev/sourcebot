@@ -143,6 +143,10 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 messageCount: 1,
                 selectedReposCount: selectedRepos.length,
                 source,
+                hasAskMcpServersAvailable: false,
+                askMcpConnectedServerCount: 0,
+                askMcpEnabledServerCount: 0,
+                askMcpDisabledServerCount: 0,
                 ...(env.EXPERIMENT_ASK_GH_ENABLED === 'true' ? {
                     selectedRepos: selectedRepos.map(r => r.value)
                 } : {}),

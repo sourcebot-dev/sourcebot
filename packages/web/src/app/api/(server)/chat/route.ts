@@ -1,4 +1,5 @@
 import { sew } from "@/middleware/sew";
+import { getAskMcpAvailabilityAnalytics, getAskMcpTurnCompletedAnalytics } from "@/features/chat/askMcpAnalytics.server";
 import { createMessageStream } from "@/features/chat/agent";
 import { additionalChatRequestParamsSchema } from "@/features/chat/types";
 import { getLanguageModelKey } from "@/features/chat/utils";
@@ -92,12 +93,19 @@ export const POST = apiHandler(async (req: NextRequest) => {
             }))).flat();
 
             const source = req.headers.get('X-Sourcebot-Client-Source') ?? undefined;
+            const askMcpAvailability = await getAskMcpAvailabilityAnalytics({
+                prisma,
+                userId: user?.id,
+                orgId: org.id,
+                disabledMcpServerIds,
+            });
 
             await captureEvent('ask_message_sent', {
                 chatId: id,
                 messageCount: messages.length,
                 selectedReposCount: expandedRepos.length,
                 source,
+                ...askMcpAvailability,
                 ...(env.EXPERIMENT_ASK_GH_ENABLED === 'true' ? { selectedRepos: expandedRepos } : {}),
             });
 
@@ -118,6 +126,17 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 orgId: org.id,
                 onFinish: async ({ messages }) => {
                     await updateChatMessages({ chatId: id, messages, prisma });
+                    const askMcpTurnCompleted = getAskMcpTurnCompletedAnalytics({
+                        messages,
+                        availability: askMcpAvailability,
+                    });
+                    if (askMcpTurnCompleted) {
+                        await captureEvent('ask_mcp_turn_completed', {
+                            chatId: id,
+                            source,
+                            ...askMcpTurnCompleted,
+                        });
+                    }
                 },
                 onError: (error: unknown) => {
                     logger.error(error);
