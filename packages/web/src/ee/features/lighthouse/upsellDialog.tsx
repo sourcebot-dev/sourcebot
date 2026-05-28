@@ -10,7 +10,9 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { LoadingButton } from "@/components/ui/loading-button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { createCheckoutSession } from "@/ee/features/lighthouse/actions";
+import { useHasLicense } from "@/ee/features/lighthouse/hasLicenseProvider";
 import { BillingInterval, PlanComparisonTable } from "@/ee/features/lighthouse/planComparisonTable";
 import { OffersResponse } from "@/ee/features/lighthouse/types";
 import { useOffers } from "@/ee/features/lighthouse/useOffers";
@@ -97,8 +99,17 @@ export function UpsellPanel({ source, returnPath, className, licenseState = 'fre
 
     if (isPending || !offers) {
         return (
-            <div className={cn("flex items-center justify-center py-12", className)}>
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className={cn("flex flex-col gap-6", className)} aria-busy="true">
+                <div className="flex flex-col gap-2">
+                    <Skeleton className="h-6 w-6 rounded-full" />
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-5 w-72" />
+                </div>
+                <Skeleton className="h-64 w-full" />
+                <div className="flex flex-col-reverse items-center gap-2 sm:flex-row sm:justify-end sm:gap-4">
+                    <Skeleton className="h-10 w-32" />
+                    <Skeleton className="h-10 w-32" />
+                </div>
             </div>
         );
     }
@@ -127,6 +138,7 @@ function UpsellPanelContent({ offers, source, returnPath, variant, licenseState 
     const { toast } = useToast();
     const role = useRole();
     const isOwner = role === OrgRole.OWNER;
+    const hasExistingLicense = useHasLicense();
 
     // Only treat the email as an override when the user has actually changed it
     // away from the canonical session email.
@@ -261,7 +273,8 @@ function UpsellPanelContent({ offers, source, returnPath, variant, licenseState 
                 <CheckoutDisclosures
                     sessionEmail={sessionEmail}
                     onEmailChanged={setCurrentEmail}
-                    showNoCreditCardRequired={offers.trial.eligible && !offers.trial.creditCardRequired}
+                    isNoCreditCardRequiredMessageVisible={offers.trial.eligible && !offers.trial.creditCardRequired}
+                    isEmailValidationMessageVisible={!hasExistingLicense}
                 />
             )}
         </>

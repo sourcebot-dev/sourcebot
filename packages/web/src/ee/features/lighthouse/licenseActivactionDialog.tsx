@@ -15,9 +15,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { useToast } from "@/components/hooks/use-toast";
-import { activateLicense } from "@/ee/features/lighthouse/actions";
+import { activateLicense, deactivateLicense } from "@/ee/features/lighthouse/actions";
 import { useClaimActivationCode } from "@/ee/features/lighthouse/useClaimActivationCode";
 import { isServiceError } from "@/lib/utils";
+import { useHasLicense } from "./hasLicenseProvider";
 
 const CONFETTI_COLORS = [
     "#ff3b3b", // red
@@ -49,17 +50,14 @@ const rainConfetti = () => {
     frame();
 };
 
-interface CheckoutSuccessModalProps {
-    userEmail?: string | null;
-}
-
-export function LicenseActivactionDialog({ userEmail }: CheckoutSuccessModalProps) {
+export function LicenseActivactionDialog() {
     const [open, setOpen] = useState(true);
     const [activationCode, setActivationCode] = useState("");
     const [isActivating, setIsActivating] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
     const { toast } = useToast();
+    const hasLicense = useHasLicense();
 
     const searchParams = useSearchParams();
     const sessionId = searchParams.get("session_id");
@@ -84,33 +82,44 @@ export function LicenseActivactionDialog({ userEmail }: CheckoutSuccessModalProp
         }
     }, [dismiss]);
 
-    const activate = useCallback((code: string) => {
+    const activate = useCallback(async (code: string) => {
         setIsActivating(true);
-        activateLicense(code)
-            .then((response) => {
-                if (isServiceError(response)) {
+
+        try {
+            // Deactivate any existing license
+            if (hasLicense) {
+                const deactivateLicenseResponse = await deactivateLicense()
+                if (isServiceError(deactivateLicenseResponse)) {
                     toast({
-                        description: `Failed to activate license: ${response.message}`,
+                        description: `Failed to deactive existing license: ${deactivateLicenseResponse.message}`,
                         variant: "destructive",
                     });
-                    return;
                 }
+            }
 
+            const activateLicenseResponse = await activateLicense(code)
+            if (isServiceError(activateLicenseResponse)) {
                 toast({
-                    description: "✅ License activated successfully.",
+                    description: `Failed to activate license: ${activateLicenseResponse.message}`,
+                    variant: "destructive",
                 });
-                rainConfetti();
-                // Re-fetch the server-rendered layout so PlanContext picks up the
-                // newly granted entitlements. Without this, callers like ChatBox
-                // would keep reading the stale `isAskEnabled === false` and never
-                // resume the pending submission stashed pre-checkout.
-                router.refresh();
-                dismiss();
-            })
-            .finally(() => {
-                setIsActivating(false);
+                return;
+            }
+
+            toast({
+                description: "✅ License activated successfully.",
             });
-    }, [toast, dismiss, router]);
+            rainConfetti();
+            // Re-fetch the server-rendered layout so PlanContext picks up the
+            // newly granted entitlements. Without this, callers like ChatBox
+            // would keep reading the stale `isAskEnabled === false` and never
+            // resume the pending submission stashed pre-checkout.
+            router.refresh();
+            dismiss();
+        } finally {
+            setIsActivating(false);
+        }
+    }, [hasLicense, toast, router, dismiss]);
 
     const handleManualActivate = useCallback(() => {
         const code = activationCode.trim();
@@ -191,11 +200,6 @@ export function LicenseActivactionDialog({ userEmail }: CheckoutSuccessModalProp
                                 disabled={isActivating}
                                 className="font-mono"
                             />
-                            {userEmail && (
-                                <p className="text-xs text-muted-foreground">
-                                    Sent to {userEmail}
-                                </p>
-                            )}
                         </div>
                         <LoadingButton
                             onClick={handleManualActivate}

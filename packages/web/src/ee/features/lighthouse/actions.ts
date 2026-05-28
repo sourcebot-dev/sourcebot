@@ -157,6 +157,13 @@ export const createCheckoutSession = async ({
             });
             const quantity = Math.max(memberCount, 1);
 
+            const existingLicense = await prisma.license.findUnique({
+                where: { orgId: org.id },
+            });
+            const existingActivationCode = existingLicense
+                ? decryptActivationCode(existingLicense.activationCode)
+                : undefined;
+
             // Resolve the candidate against AUTH_URL so absolute paths, protocol-
             // relative paths (`//evil.com`), and bare relative paths all get
             // normalized through the URL parser. Reject anything that lands off-
@@ -210,6 +217,7 @@ export const createCheckoutSession = async ({
                 interval,
                 successUrl: `${env.AUTH_URL}${returnPathname}${returnSearch}${successQuerySeparator}${stripeSuccessQuery}`,
                 cancelUrl: `${env.AUTH_URL}${returnPathname}${returnSearch}`,
+                existingActivationCode,
             });
 
             if (isServiceError(result)) {

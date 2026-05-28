@@ -65,6 +65,7 @@ export const checkoutRequestSchema = z.object({
     interval: z.enum(['month', 'year']).default('month'),
     successUrl: z.string().url(),
     cancelUrl: z.string().url(),
+    existingActivationCode: z.string().optional(),
 });
 export type CheckoutRequest = z.infer<typeof checkoutRequestSchema>;
 

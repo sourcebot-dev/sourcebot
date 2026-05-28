@@ -226,7 +226,7 @@ export function TrialStep({ stepIndex }: TrialStepProps) {
                 <CheckoutDisclosures
                     sessionEmail={sessionEmail}
                     onEmailChanged={setCurrentEmail}
-                    showNoCreditCardRequired={isTrialEligible && !offers.trial.creditCardRequired}
+                    isNoCreditCardRequiredMessageVisible={isTrialEligible && !offers.trial.creditCardRequired}
                 />
                 <LoadingButton
                     variant="link"
