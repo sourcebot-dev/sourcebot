@@ -3,8 +3,9 @@ import { confirm, input, select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import ora from 'ora';
 import { spawn } from 'node:child_process';
-import { existsSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { writeFile } from 'fs/promises';
+import { basename } from 'path';
 import { collectAzureDevOpsConfig } from './azuredevops.js';
 import { collectBitbucketConfig } from './bitbucket.js';
 import { collectGenericGitConfig } from './genericGit.js';
@@ -20,6 +21,7 @@ import {
     type EnvVars,
     generateConnectionName,
     generateSecret,
+    INPUT_THEME,
     note,
 } from './utils.js';
 
@@ -53,6 +55,151 @@ async function openBrowserWhenReady(url: string, timeoutMs = 120_000): Promise<v
     }
 }
 
+// Parses the top-level `volumes:` block of a docker-compose.yml and returns the
+// declared volume names. Sufficient for our generated compose file; not a full
+// YAML parser.
+function parseTopLevelVolumes(composeYaml: string): string[] {
+    const names: string[] = [];
+    let inBlock = false;
+    for (const rawLine of composeYaml.split('\n')) {
+        const line = rawLine.replace(/\r$/, '');
+        if (/^volumes:\s*(#.*)?$/.test(line)) {
+            inBlock = true;
+            continue;
+        }
+        if (!inBlock) {
+            continue;
+        }
+        if (/^\s*$/.test(line) || /^\s+/.test(line)) {
+            const m = line.match(/^ {2}([A-Za-z0-9_.-]+):\s*(#.*)?$/);
+            if (m) {
+                names.push(m[1]);
+            }
+            continue;
+        }
+        // Any non-blank, non-indented line ends the top-level volumes block.
+        inBlock = false;
+    }
+    return names;
+}
+
+// Mirrors Docker Compose's project-name normalization for the default case
+// where the project name is derived from the working directory basename.
+function dockerComposeProjectName(): string {
+    return basename(process.cwd())
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '');
+}
+
+async function listExistingDockerVolumes(expectedNames: string[]): Promise<string[]> {
+    if (expectedNames.length === 0) {
+        return [];
+    }
+    return new Promise<string[]>((resolve) => {
+        const child = spawn('docker', ['volume', 'ls', '--format', '{{.Name}}'], {
+            stdio: ['ignore', 'pipe', 'ignore'],
+        });
+        let out = '';
+        child.stdout?.on('data', (chunk: Buffer) => {
+            out += chunk.toString();
+        });
+        child.on('exit', (code) => {
+            if (code !== 0) {
+                resolve([]);
+                return;
+            }
+            const existing = new Set(out.split('\n').map((l) => l.trim()).filter(Boolean));
+            resolve(expectedNames.filter((name) => existing.has(name)));
+        });
+        child.on('error', () => resolve([]));
+    });
+}
+
+async function removeDockerVolumes(volumes: string[]): Promise<boolean> {
+    if (volumes.length === 0) {
+        return true;
+    }
+    return new Promise<boolean>((resolve) => {
+        const child = spawn('docker', ['volume', 'rm', ...volumes], { stdio: ['ignore', 'ignore', 'pipe'] });
+        let err = '';
+        child.stderr?.on('data', (chunk: Buffer) => {
+            err += chunk.toString();
+        });
+        child.on('exit', (code) => {
+            if (code !== 0 && err.trim()) {
+                console.error(chalk.red('✗ ') + err.trim());
+            }
+            resolve(code === 0);
+        });
+        child.on('error', () => resolve(false));
+    });
+}
+
+type ComposeContainer = { Name: string; Service: string; State: string };
+
+function parseComposePsOutput(output: string): ComposeContainer[] {
+    const trimmed = output.trim();
+    if (!trimmed) {
+        return [];
+    }
+    if (trimmed.startsWith('[')) {
+        try {
+            return JSON.parse(trimmed) as ComposeContainer[];
+        } catch {
+            // fall through to line-based parse
+        }
+    }
+    const containers: ComposeContainer[] = [];
+    for (const line of trimmed.split('\n')) {
+        if (!line.trim()) {
+            continue;
+        }
+        try {
+            containers.push(JSON.parse(line) as ComposeContainer);
+        } catch {
+            // skip unparseable line
+        }
+    }
+    return containers;
+}
+
+async function listComposeContainers(): Promise<ComposeContainer[]> {
+    return new Promise<ComposeContainer[]>((resolve) => {
+        const child = spawn('docker', ['compose', 'ps', '-a', '--format', 'json'], {
+            stdio: ['ignore', 'pipe', 'ignore'],
+        });
+        let out = '';
+        child.stdout?.on('data', (chunk: Buffer) => {
+            out += chunk.toString();
+        });
+        child.on('exit', (code) => {
+            if (code !== 0) {
+                resolve([]);
+                return;
+            }
+            resolve(parseComposePsOutput(out));
+        });
+        child.on('error', () => resolve([]));
+    });
+}
+
+async function runComposeCommand(args: string[], label: string): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+        const child = spawn('docker', ['compose', ...args], { stdio: ['ignore', 'ignore', 'pipe'] });
+        let err = '';
+        child.stderr?.on('data', (chunk: Buffer) => {
+            err += chunk.toString();
+        });
+        child.on('exit', (code) => {
+            if (code !== 0 && err.trim()) {
+                console.error(chalk.red('✗ ') + `${label}: ` + err.trim());
+            }
+            resolve(code === 0);
+        });
+        child.on('error', () => resolve(false));
+    });
+}
+
 const PLATFORM_LABELS: Record<string, string> = {
     github: 'GitHub',
     gitlab: 'GitLab',
@@ -74,9 +221,41 @@ async function main() {
 ╚══════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚══════╝╚═════╝  ╚═════╝    ╚═╝╚═╝
 `);
 
+    const setupDir = await input({
+        message: 'What directory would you like to set up Sourcebot in?',
+        default: 'sourcebot',
+        theme: INPUT_THEME,
+        validate: (v: string) => {
+            if (!v?.trim()) {
+                return 'Directory is required';
+            }
+            return true;
+        },
+    });
+
+    if (existsSync(setupDir)) {
+        const overwrite = await confirm({
+            message: `Directory '${setupDir}' already exists. Do you want to overwrite it?`,
+            default: false,
+        });
+        if (!overwrite) {
+            console.log();
+            console.log(chalk.red('✗ ') + 'Setup cancelled.');
+            process.exit(0);
+        }
+    } else {
+        mkdirSync(setupDir, { recursive: true });
+    }
+
+    process.chdir(setupDir);
+
     const connections: Record<string, ConnectionConfig> = {};
     const allEnv: EnvVars = {};
     const localRepoIndex = new Map<string, number>();
+
+    note(
+        'Code is cloned and indexed locally on this machine. No code is ever transmitted to Sourcebot.',
+    );
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -154,6 +333,7 @@ async function main() {
     const authUrl = await input({
         message: 'What URL will Sourcebot be hosted at?',
         default: SOURCEBOT_URL,
+        theme: INPUT_THEME,
         validate: (v) => {
             if (!v?.trim()) {
                 return 'URL is required';
@@ -296,10 +476,90 @@ async function main() {
         downloadedCompose = true;
     }
 
+    let leftDeploymentRunning = false;
+
+    if (downloadedCompose) {
+        const containers = await listComposeContainers();
+        const running = containers.filter((c) => c.State === 'running');
+        const stopped = containers.filter((c) => c.State !== 'running');
+
+        if (running.length > 0) {
+            console.log();
+            console.log(chalk.yellow('⚠ ') + 'A Sourcebot deployment is already running in this project:');
+            for (const c of running) {
+                console.log('  ' + chalk.dim('- ') + `${c.Name} ${chalk.dim(`(${c.Service})`)}`);
+            }
+            const stop = await confirm({
+                message: 'Stop and remove the running deployment? (required before any volume changes or restart can apply)',
+                default: true,
+            });
+            if (stop) {
+                const ds = ora('Stopping deployment...').start();
+                const ok = await runComposeCommand(['down'], 'docker compose down');
+                if (ok) {
+                    ds.succeed('Stopped deployment');
+                } else {
+                    ds.fail('Failed to stop deployment');
+                    leftDeploymentRunning = true;
+                }
+            } else {
+                leftDeploymentRunning = true;
+            }
+        } else if (stopped.length > 0) {
+            console.log();
+            console.log(chalk.yellow('⚠ ') + 'Stopped containers from a previous run exist and will conflict on next start:');
+            for (const c of stopped) {
+                console.log('  ' + chalk.dim('- ') + `${c.Name} ${chalk.dim(`(${c.Service})`)}`);
+            }
+            const remove = await confirm({
+                message: 'Remove them now to prevent name conflicts when Sourcebot starts?',
+                default: true,
+            });
+            if (remove) {
+                const rs = ora('Removing containers...').start();
+                const ok = await runComposeCommand(['rm', '-f'], 'docker compose rm');
+                if (ok) {
+                    rs.succeed('Removed containers');
+                } else {
+                    rs.fail('Failed to remove containers');
+                }
+            }
+        }
+    }
+
+    // Volume wipe is only safe (and only succeeds) once nothing is using the volumes.
+    if (downloadedCompose && !leftDeploymentRunning) {
+        const declaredVolumes = parseTopLevelVolumes(readFileSync('docker-compose.yml', 'utf-8'));
+        const project = dockerComposeProjectName();
+        const expectedNames = declaredVolumes.map((v) => `${project}_${v}`);
+        const existing = await listExistingDockerVolumes(expectedNames);
+
+        if (existing.length > 0) {
+            console.log();
+            console.log(chalk.yellow('⚠ ') + 'The following Docker volumes from a previous run already exist:');
+            for (const v of existing) {
+                console.log('  ' + chalk.dim('- ') + v);
+            }
+            const wipe = await confirm({
+                message: 'Wipe these volumes? This will permanently delete any existing Sourcebot data in them.',
+                default: false,
+            });
+            if (wipe) {
+                const ws = ora('Removing volumes...').start();
+                const ok = await removeDockerVolumes(existing);
+                if (ok) {
+                    ws.succeed(`Removed ${existing.length} volume${existing.length === 1 ? '' : 's'}`);
+                } else {
+                    ws.fail('Failed to remove one or more volumes (they may be in use by a running container)');
+                }
+            }
+        }
+    }
+
     console.log();
     console.log(chalk.green('✓ ') + chalk.bold('Your Sourcebot configuration is ready!'));
 
-    if (downloadedCompose) {
+    if (downloadedCompose && !leftDeploymentRunning) {
         const startNow = await confirm({
             message: 'Start Sourcebot now? (runs `docker compose up`)',
             default: true,
@@ -326,6 +586,17 @@ async function main() {
     const nextSteps: string[] = [];
     let step = 1;
 
+    if (leftDeploymentRunning) {
+        nextSteps.push('Your new configuration was saved, but the running deployment is still using the old config.');
+        nextSteps.push('');
+        nextSteps.push(`${step++}. Open ${SOURCEBOT_URL} to use the current deployment as-is.`);
+        nextSteps.push('');
+        nextSteps.push(`${step++}. To apply your new configuration, restart Sourcebot:`);
+        nextSteps.push('   docker compose down && docker compose up');
+        note(nextSteps.join('\n'), 'Sourcebot is already running');
+        return;
+    }
+
     if (!downloadedCompose) {
         nextSteps.push(`${step++}. Download docker-compose.yml:`);
         nextSteps.push(`   curl -o docker-compose.yml ${DOCKER_COMPOSE_URL}`);
@@ -335,7 +606,7 @@ async function main() {
     nextSteps.push(`${step++}. Start Sourcebot:`);
     nextSteps.push('   docker compose up');
     nextSteps.push('');
-    nextSteps.push(`${step}. Open http://localhost:3000`);
+    nextSteps.push(`${step}. Open ${SOURCEBOT_URL}`);
 
     note(nextSteps.join('\n'), 'Next steps');
 }

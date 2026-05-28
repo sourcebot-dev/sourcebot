@@ -1,8 +1,9 @@
-import { checkbox, input, password } from '@inquirer/prompts';
+import { input, password } from '@inquirer/prompts';
+import { tabCheckbox as checkbox } from './tabCheckbox.js';
 import { select as searchSelect, Separator } from 'inquirer-select-pro';
 import type { GithubConnectionConfig } from '@sourcebot/schemas/v3/github.type';
 import type { CollectResult, EnvVars } from './utils.js';
-import { note, toEnvKey } from './utils.js';
+import { createSearchSelectContext, INPUT_THEME, note, toEnvKey } from './utils.js';
 
 function githubApiBase(url: string): string {
     try {
@@ -75,6 +76,7 @@ export async function collectGitHubConfig(connectionName: string): Promise<Colle
     const url = await input({
         message: 'GitHub URL',
         default: 'https://github.com',
+        theme: INPUT_THEME,
         validate: (v) => {
             if (!v?.trim()) {
                 return 'URL is required';
@@ -104,7 +106,7 @@ export async function collectGitHubConfig(connectionName: string): Promise<Colle
 
     const tokenEnvKey = toEnvKey(connectionName, 'TOKEN');
     const token = await password({
-        message: `GitHub Personal Access Token (stored as ${tokenEnvKey}, leave blank for public repos only)`,
+        message: `GitHub Personal Access Token (stored locally in .env as ${tokenEnvKey}, leave blank for public repos only)`,
         mask: true,
     });
     if (token.trim()) {
@@ -125,18 +127,26 @@ export async function collectGitHubConfig(connectionName: string): Promise<Colle
     });
 
     if (targets.includes('repos')) {
+        const ctx = createSearchSelectContext();
         const repos = await searchSelect<string, true>({
             message: 'Repositories to index (type to search, or type owner/repo)',
             multiple: true,
             required: true,
             loop: false,
             clearInputWhenSelected: true,
-            placeholder: 'Type 2+ characters to search...',
+            theme: ctx.theme,
+            placeholder: 'Type to search...',
             options: async (search) => {
-                if (!search || search.length < 2) {
+                ctx.trackSearch(search);
+                if (!search) {
                     return [];
                 }
-                return searchGitHub(apiBase, search, token, 'repo');
+                ctx.setLoading(true);
+                try {
+                    return await searchGitHub(apiBase, search, token, 'repo');
+                } finally {
+                    ctx.setLoading(false);
+                }
             },
             validate: (selected) => {
                 for (const opt of selected) {
@@ -151,36 +161,52 @@ export async function collectGitHubConfig(connectionName: string): Promise<Colle
     }
 
     if (targets.includes('orgs')) {
+        const ctx = createSearchSelectContext();
         const orgs = await searchSelect<string, true>({
             message: 'Organizations to index (type to search)',
             multiple: true,
             required: true,
             loop: false,
             clearInputWhenSelected: true,
-            placeholder: 'Type 2+ characters to search...',
+            theme: ctx.theme,
+            placeholder: 'Type to search...',
             options: async (search) => {
-                if (!search || search.length < 2) {
+                ctx.trackSearch(search);
+                if (!search) {
                     return [];
                 }
-                return searchGitHub(apiBase, search, token, 'org');
+                ctx.setLoading(true);
+                try {
+                    return await searchGitHub(apiBase, search, token, 'org');
+                } finally {
+                    ctx.setLoading(false);
+                }
             },
         });
         config.orgs = orgs;
     }
 
     if (targets.includes('users')) {
+        const ctx = createSearchSelectContext();
         const users = await searchSelect<string, true>({
             message: 'GitHub users to index (type to search)',
             multiple: true,
             required: true,
             loop: false,
             clearInputWhenSelected: true,
-            placeholder: 'Type 2+ characters to search...',
+            theme: ctx.theme,
+            placeholder: 'Type to search...',
             options: async (search) => {
-                if (!search || search.length < 2) {
+                ctx.trackSearch(search);
+                if (!search) {
                     return [];
                 }
-                return searchGitHub(apiBase, search, token, 'user');
+                ctx.setLoading(true);
+                try {
+                    return await searchGitHub(apiBase, search, token, 'user');
+                } finally {
+                    ctx.setLoading(false);
+                }
             },
         });
         config.users = users;

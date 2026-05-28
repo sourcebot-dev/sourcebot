@@ -1,8 +1,9 @@
-import { checkbox, input, password } from '@inquirer/prompts';
+import { input, password } from '@inquirer/prompts';
+import { tabCheckbox as checkbox } from './tabCheckbox.js';
 import { select as searchSelect, Separator } from 'inquirer-select-pro';
 import type { GitlabConnectionConfig } from '@sourcebot/schemas/v3/gitlab.type';
 import type { CollectResult, EnvVars } from './utils.js';
-import { note, toEnvKey } from './utils.js';
+import { createSearchSelectContext, INPUT_THEME, note, toEnvKey } from './utils.js';
 
 function gitlabApiBase(url: string): string {
     try {
@@ -89,6 +90,7 @@ export async function collectGitLabConfig(connectionName: string): Promise<Colle
     const url = await input({
         message: 'GitLab URL',
         default: 'https://gitlab.com',
+        theme: INPUT_THEME,
         validate: (v) => {
             if (!v?.trim()) {
                 return 'URL is required';
@@ -114,7 +116,7 @@ export async function collectGitLabConfig(connectionName: string): Promise<Colle
 
     const gitlabEnvKey = toEnvKey(connectionName, 'TOKEN');
     const gitlabToken = await password({
-        message: `GitLab Personal Access Token (stored as ${gitlabEnvKey}, leave blank for public repos only)`,
+        message: `GitLab Personal Access Token (stored locally in .env as ${gitlabEnvKey}, leave blank for public repos only)`,
         mask: true,
     });
     if (gitlabToken.trim()) {
@@ -143,36 +145,52 @@ export async function collectGitLabConfig(connectionName: string): Promise<Colle
     }
 
     if (targets.includes('groups')) {
+        const ctx = createSearchSelectContext();
         const groups = await searchSelect<string, true>({
             message: 'Groups to index (type to search)',
             multiple: true,
             required: true,
             loop: false,
             clearInputWhenSelected: true,
-            placeholder: 'Type 2+ characters to search...',
+            theme: ctx.theme,
+            placeholder: 'Type to search...',
             options: async (search) => {
-                if (!search || search.length < 2) {
+                ctx.trackSearch(search);
+                if (!search) {
                     return [];
                 }
-                return searchGitLab(apiBase, search, gitlabToken, 'group');
+                ctx.setLoading(true);
+                try {
+                    return await searchGitLab(apiBase, search, gitlabToken, 'group');
+                } finally {
+                    ctx.setLoading(false);
+                }
             },
         });
         config.groups = groups;
     }
 
     if (targets.includes('projects')) {
+        const ctx = createSearchSelectContext();
         const projects = await searchSelect<string, true>({
             message: 'Projects to index (type to search, or type group/project)',
             multiple: true,
             required: true,
             loop: false,
             clearInputWhenSelected: true,
-            placeholder: 'Type 2+ characters to search...',
+            theme: ctx.theme,
+            placeholder: 'Type to search...',
             options: async (search) => {
-                if (!search || search.length < 2) {
+                ctx.trackSearch(search);
+                if (!search) {
                     return [];
                 }
-                return searchGitLab(apiBase, search, gitlabToken, 'project');
+                ctx.setLoading(true);
+                try {
+                    return await searchGitLab(apiBase, search, gitlabToken, 'project');
+                } finally {
+                    ctx.setLoading(false);
+                }
             },
             validate: (selected) => {
                 for (const opt of selected) {
@@ -187,18 +205,26 @@ export async function collectGitLabConfig(connectionName: string): Promise<Colle
     }
 
     if (targets.includes('users')) {
+        const ctx = createSearchSelectContext();
         const users = await searchSelect<string, true>({
             message: 'Users to index (type to search)',
             multiple: true,
             required: true,
             loop: false,
             clearInputWhenSelected: true,
-            placeholder: 'Type 2+ characters to search...',
+            theme: ctx.theme,
+            placeholder: 'Type to search...',
             options: async (search) => {
-                if (!search || search.length < 2) {
+                ctx.trackSearch(search);
+                if (!search) {
                     return [];
                 }
-                return searchGitLab(apiBase, search, gitlabToken, 'user');
+                ctx.setLoading(true);
+                try {
+                    return await searchGitLab(apiBase, search, gitlabToken, 'user');
+                } finally {
+                    ctx.setLoading(false);
+                }
             },
         });
         config.users = users;

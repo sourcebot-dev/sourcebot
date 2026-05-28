@@ -1,6 +1,6 @@
 {
     "name": "setup-sourcebot",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "description": "CLI wizard for creating a Sourcebot configuration.",
     "type": "module",
     "bin": "./dist/index.js",
