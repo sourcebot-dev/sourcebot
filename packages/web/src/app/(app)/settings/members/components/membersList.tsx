@@ -256,7 +256,7 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName, 
                                                                 side="left"
                                                                 sideOffset={12}
                                                             >
-                                                                Upgrade your plan to promote members to owner. <Link href={ROLES_AND_PERMISSIONS_DOCS_LINK} className="text-link hover:underline">Learn more</Link>
+                                                                Upgrade your plan to manage roles. <Link href={ROLES_AND_PERMISSIONS_DOCS_LINK} className="text-link hover:underline">Learn more</Link>
                                                             </TooltipContent>
                                                         )}
                                                     </Tooltip>
@@ -280,7 +280,7 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName, 
                                                         {(ownerCount <= 1 || !hasOrgManagement) && (
                                                             <TooltipContent side="left" sideOffset={12}>
                                                                 {!hasOrgManagement
-                                                                    ? <>Upgrade your plan to demote owners. <Link href={ROLES_AND_PERMISSIONS_DOCS_LINK} className="text-link hover:underline">Learn more</Link></>
+                                                                    ? <>Upgrade your plan to manage roles. <Link href={ROLES_AND_PERMISSIONS_DOCS_LINK} className="text-link hover:underline">Learn more</Link></>
                                                                     : "Cannot demote the last owner. Promote another member to owner first."
                                                                 }
                                                             </TooltipContent>
