@@ -95,7 +95,7 @@ export default async function Onboarding(props: OnboardingProps) {
             <>
                 Use your preferred authentication method to create your owner account. To set up additional authentication providers, check out our{" "}
                 <a
-                    href="https://docs.sourcebot.dev/docs/configuration/auth/overview"
+                    href="https://docs.sourcebot.dev/docs/configuration/auth/authentication"
                     target="_blank"
                     rel="noopener"
                     className="underline text-primary hover:text-primary/80 transition-colors"

@@ -5,7 +5,7 @@ sidebarTitle: Audit logs
 
 import LicenseKeyRequired from '/snippets/license-key-required.mdx'
 
-<LicenseKeyRequired feature="Audit Logs" />
+<LicenseKeyRequired feature="Audit Logs" verb="are" />
 
 Audit logs are a collection of notable events performed by users within a Sourcebot deployment. Each audit log records information on the action taken, the user who performed the 
 action, and when the action took place. 
@@ -19,7 +19,7 @@ Audit logs are enabled by default and can be controlled with the `SOURCEBOT_EE_A
 By default, audit logs older than 180 days are automatically pruned daily. You can configure the retention period using the `SOURCEBOT_EE_AUDIT_RETENTION_DAYS` [environment variable](/docs/configuration/environment-variables). Set it to `0` to disable automatic pruning and retain logs indefinitely.
 
 ## Fetching Audit Logs
-Audit logs are stored in the [postgres database](/docs/overview#architecture) connected to Sourcebot. To fetch all of the audit logs, you can use the following API:
+Audit logs are stored in the [postgres database](/docs/misc/architecture) connected to Sourcebot. To fetch all of the audit logs, you can use the following API:
 
 ```bash icon="terminal" Fetch audit logs
 curl --request GET '$SOURCEBOT_URL/api/ee/audit' \

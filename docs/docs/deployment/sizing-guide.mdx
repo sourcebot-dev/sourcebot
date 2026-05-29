@@ -5,7 +5,7 @@ title: "Sizing Guide"
 Sourcebot runs as a single container (vertical scaling). This guide helps you choose the right CPU, memory, and disk allocation based on the number of repositories you plan to index.
 
 <Info>
-These recommendations are based on real-world deployments. Your results may vary depending on repository sizes, search patterns, and whether you use features like [multi-branch indexing](/docs/features/search/multi-branch-indexing) or [Ask Sourcebot](/docs/features/ask/overview).
+These recommendations are based on real-world deployments. Your results may vary depending on repository sizes, search patterns, and whether you use features like [multi-branch indexing](/docs/features/search/multi-branch-indexing) or [Ask Sourcebot](/docs/features/ask/ask-sourcebot).
 </Info>
 
 ## Recommendations
@@ -48,7 +48,7 @@ Lowering these values reduces peak resource usage at the cost of slower initial 
 ## Audit log storage
 
 <Info>
-Audit logging is an enterprise feature and is only available with an [enterprise license](/docs/overview#license-key). If you are not on an enterprise plan, audit logs are not stored and this section does not apply.
+Audit logging is an enterprise feature and is only available with an [enterprise license](/docs/activating-a-subscription). If you are not on an enterprise plan, audit logs are not stored and this section does not apply.
 </Info>
 
 [Audit logs](/docs/configuration/audit-logs) are stored in the Postgres database connected to your Sourcebot deployment. Each audit record captures the action performed, the actor, the target, a timestamp, and optional metadata (e.g., request source). There are three database indexes on the audit table to support analytics and lookup queries.
