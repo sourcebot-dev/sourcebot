@@ -303,7 +303,7 @@ export async function collectModels(): Promise<{ models: LanguageModel[]; env: E
         [
             'AI features include Ask, which lets you ask questions about your codebase',
             'in natural language and get answers grounded in your indexed code.',
-            '  https://docs.sourcebot.dev/docs/features/ask/overview',
+            '  https://docs.sourcebot.dev/docs/features/ask/ask-sourcebot',
             '',
             'You\'ll need an API key from at least one supported provider',
             '(Anthropic, OpenAI, Google, etc.) to enable these features.',

@@ -1,0 +1,62 @@
+---
+title: "Service Ping"
+api: "GET https://license.sourcebot.dev/schema"
+---
+
+<Note>
+  No sensitive data (source code, AI inputs/outputs, credentials, user information, etc) is ever transmitted.
+</Note>
+
+By default, all Sourcebot deployments will send a Service Ping, which is an HTTPS encrypted ping to `https://license.sourcebot.dev/ping` at port 443, every 24 hours. 
+
+The data contained within the Service Ping is limited to:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `installId` | `string` | Random UUID generated for your deployment. |
+| `hostname` | `string` | Hostname of your Sourcebot deployment. |
+| `version` | `string` | Sourcebot version (e.g. `v5.3.0`). |
+| `userCount` | `integer` | Total registered users. |
+| `repoCount` | `integer` | Total indexed repositories. |
+| `dauCount` | `integer` | Daily active users. |
+| `wauCount` | `integer` | Weekly active users. |
+| `mauCount` | `integer` | Monthly active users. |
+| `deploymentType` | `string` | Deployment flavor (e.g. `docker`, `helm`). |
+| `isTelemetryEnabled` | `boolean` | Whether anonymous product telemetry is enabled. |
+| `activationCode` | `string` | Activation code, if your instance has one bound. |
+
+
+You can fetch the schema for the Service Ping by submitting a GET request to `https://license.sourcebot.dev/schema`
+ 
+
+```json wrap icon="wifi" Example Service Ping
+{
+  "method": "POST",
+  "url": "http://localhost:3003/ping",
+  "path": "/ping",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate",
+    "accept-language": "*",
+    "connection": "keep-alive",
+    "content-length": "253",
+    "content-type": "application/json",
+    "host": "localhost:3003",
+    "sec-fetch-mode": "cors",
+    "user-agent": "node"
+  },
+  "query": {}
+}
+body: {
+  "installId": "524a8f59-90aa-480d-a571-92dd8bzzzzze",
+  "version": "v4.17.2",
+  "userCount": 1,
+  "repoCount": 3,
+  "dauCount": 1,
+  "wauCount": 1,
+  "mauCount": 1,
+  "deploymentType": "other",
+  "isTelemetryEnabled": true,
+  "activationCode": "sb_act_3a925f51...."
+}
+```

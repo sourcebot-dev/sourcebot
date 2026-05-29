@@ -39,10 +39,9 @@ const gitTag = { name: 'Git', description: 'Git history, diff, and file content 
 const systemTag = { name: 'System', description: 'System health and version endpoints.' };
 const eeTag = { name: 'Enterprise (EE)', description: 'Enterprise endpoints for user management and audit logging.' };
 
-// @nocheckin: The "More information" link will need to point to the correct docs page
 const EE_LICENSE_KEY_NOTE = dedent`
 <Note>
-This API is only available with an active Sourcebot license. [More information](/docs/license-key).
+This API is only available with an active Sourcebot license. [More information](/docs/activating-a-subscription).
 </Note>
 `;
 

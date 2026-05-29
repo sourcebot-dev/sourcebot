@@ -168,7 +168,20 @@ function UpsellPanelContent({ offers, source, returnPath, variant, licenseState 
                     });
                     setIsCheckoutSessionCreating(false);
                 } else {
-                    window.location.assign(response.url);
+                    try {
+                        const checkoutUrl = new URL(response.url);
+                        const allowedHosts = new Set(["checkout.stripe.com", "billing.stripe.com"]);
+                        if (checkoutUrl.protocol !== "https:" || !allowedHosts.has(checkoutUrl.hostname)) {
+                            throw new Error("Untrusted checkout URL.");
+                        }
+                        window.location.assign(checkoutUrl.toString());
+                    } catch {
+                        toast({
+                            description: "Failed to start checkout. Please try again.",
+                            variant: "destructive",
+                        });
+                        setIsCheckoutSessionCreating(false);
+                    }
                 }
             })
             .catch(() => {

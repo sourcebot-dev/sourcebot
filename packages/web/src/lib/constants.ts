@@ -8,5 +8,4 @@ export const SINGLE_TENANT_ORG_NAME = 'default';
 
 export { SOURCEBOT_SUPPORT_EMAIL } from "@sourcebot/shared/client";
 
-// @nocheckin: This should instead be a docs page that explains our offerings
 export const OFFERINGS_DOCS_LINK = "https://sourcebot.dev/pricing"

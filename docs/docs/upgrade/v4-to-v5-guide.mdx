@@ -1,0 +1,32 @@
+---
+title: V4 to V5 Guide
+sidebarTitle: V4 to V5 guide
+---
+
+This guide will walk you through upgrading your Sourcebot deployment from v4 to v5.
+
+<Warning>
+Starting in v5, the following features require a paid plan:
+- [Ask Sourcebot](/docs/features/ask/ask-sourcebot)
+- [MCP server](/docs/features/mcp-server)
+
+If your deployment uses these features and you upgrade to v5, you'll need to activate a paid plan to keep using them. All other features available on the free plan remain on the free plan.
+
+You can [start a 14-day free trial](/docs/free-trial) of the paid plan directly from your deployment. No credit card is required.
+</Warning>
+
+There are no breaking changes between v4 and v5. Upgrading is as simple as pulling the latest image and restarting your deployment.
+
+# Staying on v4
+
+If you'd rather not upgrade to v5 or activate a paid plan, you can keep using v4 indefinitely by pinning your deployment to the final v4 release:
+
+```bash
+ghcr.io/sourcebot-dev/sourcebot:v4.17.3
+```
+
+v4 will continue to work as before, with Ask Sourcebot and MCP available for free.
+
+## Troubleshooting
+
+Having troubles migrating from v4 to v5? Reach out to us on [GitHub](https://github.com/sourcebot-dev/sourcebot/issues/new/choose) and we'll try our best to help.

@@ -1,23 +1,27 @@
 ---
-title: Billing
-sidebarTitle: Billing
+title: Seat Reconciliation 
+sidebarTitle: Seat Reconciliation 
 ---
 
-Sourcebot Enterprise is available on monthly and yearly plans. Both are seat-based. This page explains how seats are billed, how changes mid-term are handled, and what happens at renewal.
+When using an [Activation Code](/docs/activating-a-subscription#activation-code-online-licensing), your Sourcebot deployment is permitted to exceed the number of seats you've purchsed. Seat reconciliation refers
+to how these excess seats are billed, and it depends on your billing period. 
 
-## Seat count
-Your seat count is the number of active users in your Sourcebot instance. Seat usage is reported to Sourcebot on a daily interval, and your subscription quantity is kept in sync with that number.
+<Note>Seat reconciliation doesn't apply if you're using a [License Key](/docs/activating-a-subscription#license-key-offline-licensing) since the key sets a hard cap on seats. If you're using a license key and would like more seats, please reach out to us to purchase a new license key.</Note>
 
-## Monthly plans
-Monthly subscriptions are billed at the start of each billing cycle. Users added mid-cycle are prorated across the remaining days and appear on your next invoice. Users removed mid-cycle take effect at the next cycle. There is no refund for the remainder of the current one.
+For a more detailed breakdown, please refer to our [Software License Agreeement](https://www.sourcebot.dev/terms) which is the source of truth on how seats are handled and billed.
 
-In short: you can scale up at any time and pay the prorated difference. Scaling down is effectively free until the cycle rolls over.
+# Monthly Billing
 
-## Yearly plans
+Sourcebot supports monthly with standard proration behavior. Users added during the month are prorated across the remaining days and appear on your next invoice. Users removed during the month take effect at the next cycle, and are not refunded for the current cycle.
 
-Yearly subscriptions are billed upfront for a committed seat count. As users are added during the term, the seat count rises but you aren't charged immediately. Every three months we reconcile. Any seats added that quarter are billed, prorated across the quarters remaining in the term.
+# Yearly Billing
 
-Seats only move upward during the term. Shrinking the user count does not refund, and does not reduce the seat count until renewal. At renewal, you're invoiced at your current seat count, and that number becomes the committed baseline for the next year.
+## Quarterly Reconciliation
+The standard mechanism for seat reconciliation in yearly plans is through quarterly reconciliation. You are billed per quarter on a prorated basis for the remaining portion of your subscription term for any additional seats you activate.
+
+To prevent overages, you can restrict you may register on your Sourcebot deployment through our [access controls](/docs/configuration/auth/access-settings).
+
+
 
 ### Example
 

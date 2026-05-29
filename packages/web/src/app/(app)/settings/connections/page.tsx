@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ConnectionsTable } from "./components/connectionsTable";
 import { ConnectionSyncJobStatus } from "@prisma/client";
 
-const DOCS_URL = "https://docs.sourcebot.dev/docs/connections/overview";
+const DOCS_URL = "https://docs.sourcebot.dev/docs/connections/indexing-your-code";
 
 export default async function ConnectionsPage() {
     const _connections = await getConnectionsWithLatestJob();
