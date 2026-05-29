@@ -749,10 +749,6 @@ export class RepoIndexManager {
             return;
         }
 
-        // Read what shard files actually exist on disk and build a set
-        // of repoIds that have at least one shard present.
-        // Uses getRepoIdFromShardFileName to match the same naming convention
-        // as cleanupOrphanedDiskResources (shards are named <orgId>_<repoId>_*.zoekt)
         const entries = await readdir(INDEX_CACHE_DIR);
         const repoIdsOnDisk = new Set<number>();
         for (const entry of entries) {
@@ -762,7 +758,6 @@ export class RepoIndexManager {
             }
         }
 
-        // Find all repos the DB believes are already indexed
         const indexedRepos = await this.db.repo.findMany({
             where: {
                 indexedAt: {
@@ -772,6 +767,7 @@ export class RepoIndexManager {
             select: {
                 id: true,
                 name: true,
+                indexedAt: true,
             },
         });
 
@@ -779,10 +775,15 @@ export class RepoIndexManager {
             return;
         }
 
+        // Only treat a missing shard as stale if indexedAt is older than
+        // the reindex interval. This avoids resetting repos that legitimately
+        // produce zero shards (e.g. empty repos).
+        const thresholdDate = new Date(Date.now() - this.settings.reindexIntervalMs);
+
         let resetCount = 0;
 
         for (const repo of indexedRepos) {
-            if (!repoIdsOnDisk.has(repo.id)) {
+            if (!repoIdsOnDisk.has(repo.id) && repo.indexedAt! < thresholdDate) {
                 logger.warn(`Repo "${repo.name}" (id: ${repo.id}) is marked as indexed in the DB but has no shard file on disk. Marking as stale.`);
                 await this.db.repo.update({
                     where: { id: repo.id },
