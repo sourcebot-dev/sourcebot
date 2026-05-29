@@ -100,6 +100,7 @@ export class RepoIndexManager {
         logger.debug('Starting scheduler');
         // Cleanup any orphaned disk resources on startup
         await this.cleanupOrphanedDiskResources();
+        await this.reconcileMissingShards();
         this.interval = setIntervalAsync(async () => {
             await this.scheduleIndexJobs();
             await this.scheduleCleanupJobs();
@@ -703,6 +704,8 @@ export class RepoIndexManager {
             }
         }
 
+
+
         // --- Index shards ---
         // Shard files are prefixed with <orgId>_<repoId>: DATA_CACHE_DIR/index/<orgId>_<repoId>_*.zoekt
         if (existsSync(INDEX_CACHE_DIR)) {
@@ -733,6 +736,66 @@ export class RepoIndexManager {
                     }
                 }
             }
+        }
+    }
+
+    // Scans the DB for repos marked as indexed but missing their shard files
+    // on disk. This handles the case where the index directory is wiped (e.g.
+    // ephemeral storage on a pod restart) but the DB still has stale indexedAt
+    // timestamps, causing the scheduler to skip re-indexing them.
+    private async reconcileMissingShards() {
+        if (!existsSync(INDEX_CACHE_DIR)) {
+            logger.debug('Index cache directory does not exist, skipping shard reconciliation.');
+            return;
+        }
+
+        // Read what shard files actually exist on disk and build a set
+        // of repoIds that have at least one shard present.
+        // Uses getRepoIdFromShardFileName to match the same naming convention
+        // as cleanupOrphanedDiskResources (shards are named <orgId>_<repoId>_*.zoekt)
+        const entries = await readdir(INDEX_CACHE_DIR);
+        const repoIdsOnDisk = new Set<number>();
+        for (const entry of entries) {
+            const repoId = getRepoIdFromShardFileName(entry);
+            if (repoId !== undefined) {
+                repoIdsOnDisk.add(repoId);
+            }
+        }
+
+        // Find all repos the DB believes are already indexed
+        const indexedRepos = await this.db.repo.findMany({
+            where: {
+                indexedAt: {
+                    not: null,
+                },
+            },
+            select: {
+                id: true,
+                name: true,
+            },
+        });
+
+        if (indexedRepos.length === 0) {
+            return;
+        }
+
+        let resetCount = 0;
+
+        for (const repo of indexedRepos) {
+            if (!repoIdsOnDisk.has(repo.id)) {
+                logger.warn(`Repo "${repo.name}" (id: ${repo.id}) is marked as indexed in the DB but has no shard file on disk. Marking as stale.`);
+                await this.db.repo.update({
+                    where: { id: repo.id },
+                    data: { indexedAt: null },
+                });
+                resetCount++;
+            }
+        }
+
+        if (resetCount > 0) {
+            logger.info(`Shard reconciliation complete. Reset ${resetCount} repo(s) to stale — they will be re-indexed shortly.`);
+        } else {
+            logger.debug('Shard reconciliation complete. All indexed repos have shard files on disk.');
         }
     }
 
