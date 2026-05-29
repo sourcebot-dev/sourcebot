@@ -202,7 +202,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     }
 
     if (decrypted === userServer.codeVerifier) {
-      logger.warn('MCP OAuth code verifier was read without decryption; it may be plaintext from an older version.', {
+      logger.warn('MCP OAuth code verifier was read without decryption.', {
         serverId: this.serverId,
         orgId: this.orgId,
         userId: this.userId,
@@ -249,12 +249,8 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
   }
 
   async invalidateCredentials(
-    scope: 'all' | 'client' | 'tokens' | 'verifier' | 'discovery',
+    scope: 'all' | 'client' | 'tokens' | 'verifier',
   ): Promise<void> {
-    if (scope === 'discovery') {
-      return;
-    }
-
     if (scope === 'all' || scope === 'client') {
       const didClearDynamicClient = await clearMcpServerClientCredentialsForObservedClient({
         prisma: this.clientInvalidationPrisma,

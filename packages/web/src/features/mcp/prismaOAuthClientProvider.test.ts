@@ -171,7 +171,7 @@ describe('PrismaOAuthClientProvider PKCE verifier storage', () => {
 
         await expect(provider.codeVerifier()).resolves.toBe('plaintext-verifier');
         expect(mocks.logger.warn).toHaveBeenCalledWith(
-            'MCP OAuth code verifier was read without decryption; it may be plaintext from an older version.',
+            'MCP OAuth code verifier was read without decryption.',
             {
                 serverId: 'server-1',
                 orgId: 1,
