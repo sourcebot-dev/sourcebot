@@ -3,7 +3,6 @@ import { serviceErrorResponse } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
 import { withAuth } from '@/middleware/withAuth';
 import { hasEntitlement } from '@/lib/entitlements';
-import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
 import { getMcpFaviconUrl } from '@/ee/features/chat/mcp/utils';
 import { getStoredMcpConnectionStatus } from '@/ee/features/chat/mcp/connectionStatus';
 import type { NextRequest } from 'next/server';
@@ -22,10 +21,7 @@ export type GetMcpServersResponse = McpServerWithStatus[];
 
 export const GET = apiHandler(async (_request: NextRequest) => {
     if (!(await hasEntitlement('oauth'))) {
-        return Response.json(
-            { error: 'access_denied', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
-            { status: 403 }
-        );
+        return Response.json([] satisfies GetMcpServersResponse);
     }
 
     const result = await withAuth(async ({ org, user, prisma }) => {

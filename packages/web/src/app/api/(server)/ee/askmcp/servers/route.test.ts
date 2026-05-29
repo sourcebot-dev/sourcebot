@@ -72,6 +72,24 @@ beforeEach(() => {
 });
 
 describe('GET /api/ee/askmcp/servers', () => {
+    test('returns an empty array when the oauth entitlement is not granted', async () => {
+        mocks.hasEntitlement.mockResolvedValue(false);
+        const prisma = createPrismaMock();
+        mocks.authContext = {
+            org: { id: 1 },
+            user: { id: 'user-1' },
+            prisma,
+        };
+
+        const response = await GET(createRequest());
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body).toEqual([]);
+        expect(prisma.mcpServer.findMany).not.toHaveBeenCalled();
+        expect(prisma.userMcpServer.findMany).not.toHaveBeenCalled();
+    });
+
     test('lists org servers and merges only the caller token status', async () => {
         const prisma = createPrismaMock();
         mocks.authContext = {
