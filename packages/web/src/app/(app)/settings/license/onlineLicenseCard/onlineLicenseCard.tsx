@@ -11,6 +11,7 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { LicenseInactiveBanner } from "./licenseInactiveBanner";
 import { PlanActionsMenu } from "./planActionsMenu";
 import { TrialMissingPaymentMethodBanner } from "./trialMissingPaymentMethodBanner";
+import { UpcomingYearlyRenewalBanner } from "./upcomingYearlyRenewalBanner";
 
 interface OnlineLicenseCardProps {
     license: License;
@@ -122,6 +123,18 @@ export function OnlineLicenseCard({ license }: OnlineLicenseCardProps) {
             {!isLicenseActive && <LicenseInactiveBanner />}
             {isLicenseActive && license.status === 'trialing' && license.hasPaymentMethod === false && (
                 <TrialMissingPaymentMethodBanner />
+            )}
+            {isLicenseActive
+                && license.interval === 'year'
+                && license.yearlyCurrentQuarterNumber !== null
+                && license.yearlyTotalQuartersInTerm !== null
+                && license.yearlyCurrentQuarterNumber === license.yearlyTotalQuartersInTerm
+                && license.nextRenewalAt !== null
+                && license.seats !== null && (
+                <UpcomingYearlyRenewalBanner
+                    renewalAt={license.nextRenewalAt}
+                    seats={license.seats}
+                />
             )}
         </div>
     );

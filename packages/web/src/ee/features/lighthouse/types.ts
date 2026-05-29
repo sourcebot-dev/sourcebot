@@ -38,6 +38,20 @@ export const claimActivationCodeResponseSchema = z.object({
 });
 export type ClaimActivationCodeResponse = z.infer<typeof claimActivationCodeResponseSchema>;
 
+export const yearlyTermStatusSchema = z.object({
+    termStartedAt: z.string().datetime(),
+    termEndsAt: z.string().datetime(),
+    totalQuartersInTerm: z.number().int(),
+    currentQuarterNumber: z.number().int(),
+    currentQuarterStartedAt: z.string().datetime(),
+    currentQuarterEndsAt: z.string().datetime(),
+    committedSeats: z.number().int(),
+    overageSeats: z.number().int(),
+    billableOverageSeats: z.number().int(),
+    peakSeats: z.number().int(),
+});
+export type YearlyTermStatus = z.infer<typeof yearlyTermStatusSchema>;
+
 export const servicePingResponseSchema = z.object({
     license: z.object({
         entitlements: z.string().array(),
@@ -53,6 +67,7 @@ export const servicePingResponseSchema = z.object({
         cancelAt: z.string().datetime().nullable(),
         trialEnd: z.string().datetime().nullable(),
         hasPaymentMethod: z.boolean(),
+        yearlyTermStatus: yearlyTermStatusSchema.optional(),
     }).optional(),
 });
 export type ServicePingResponse = z.infer<typeof servicePingResponseSchema>;
