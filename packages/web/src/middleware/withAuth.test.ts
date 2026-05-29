@@ -86,6 +86,8 @@ beforeEach(() => {
     mocks.headers.mockResolvedValue(new Headers());
     mocks.hasEntitlement.mockReturnValue(false);
     mocks.isAnonymousAccessAvailable.mockReturnValue(false);
+    // getAuthContext fires `prisma.user.update().catch(...)` to bump lastActiveAt;
+    // without a default, the reset mock returns undefined and the .catch chain throws.
     prisma.user.update.mockResolvedValue(MOCK_USER_WITH_ACCOUNTS);
     // Reset env flags between tests
     Object.keys(mocks.env).forEach(key => delete mocks.env[key]);
