@@ -25,6 +25,8 @@ import {
     UserIcon,
     UsersIcon,
 } from "lucide-react";
+import { IconType } from "react-icons/lib";
+import { VscMcp } from "react-icons/vsc";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UpgradeBadge } from "../upgradeBadge";
@@ -40,8 +42,9 @@ const iconMap = {
     "server": ServerIcon,
     "settings": Settings2Icon,
     "user": UserIcon,
+    "mcp": VscMcp,
     "bot": BotIcon,
-} satisfies Record<string, LucideIcon>;
+} satisfies Record<string, LucideIcon | IconType>;
 
 export type NavIconName = keyof typeof iconMap;
 

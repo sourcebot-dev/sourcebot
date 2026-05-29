@@ -195,6 +195,6 @@ export const POST = apiHandler(async (request: NextRequest) => {
     if (isServiceError(result)) {
         return serviceErrorResponse(result);
     }
-  
+
     return Response.json(result);
 });

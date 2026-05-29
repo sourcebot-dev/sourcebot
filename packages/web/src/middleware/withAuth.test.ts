@@ -86,6 +86,7 @@ beforeEach(() => {
     mocks.headers.mockResolvedValue(new Headers());
     mocks.hasEntitlement.mockReturnValue(false);
     mocks.isAnonymousAccessAvailable.mockReturnValue(false);
+    prisma.user.update.mockResolvedValue(MOCK_USER_WITH_ACCOUNTS);
     // Reset env flags between tests
     Object.keys(mocks.env).forEach(key => delete mocks.env[key]);
 });
