@@ -5,14 +5,16 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ActivationCodeCard } from "./activationCodeCard";
-import { OnlineLicenseCard } from "./onlineLicenseCard";
+import { OnlineLicenseCard } from "./onlineLicenseCard/onlineLicenseCard";
 import { OfflineLicenseCard } from "./offlineLicenseCard";
 import { RecentInvoicesCard } from "./recentInvoicesCard";
+import { YearlyTermSeatsUsageCard } from "./yearlyTermSeatsUsageCard";
 import { SettingsCard } from "../components/settingsCard";
 import { UpsellPanel } from "@/ee/features/lighthouse/upsellDialog";
 import { getAllInvoices } from "@/ee/features/lighthouse/actions";
 import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
 import { isServiceError } from "@/lib/utils";
+import { getYearlyTermStatus } from "./types";
 
 type LicensePageProps = {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -36,6 +38,7 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
         redirect(suffix ? `/settings/license?${suffix}` : '/settings/license');
     }
 
+
     const offlineLicense = getOfflineLicenseMetadata();
     const isOfflineLicenseExpired = offlineLicense
         ? new Date(offlineLicense.expiryDate).getTime() < Date.now()
@@ -44,6 +47,9 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
     const license = offlineLicense
         ? null
         : await prisma.license.findUnique({ where: { orgId: org.id } });
+
+    const yearlyTermStatus = getYearlyTermStatus(license);
+    const currentUserCount = await prisma.userToOrg.count({ where: { orgId: org.id } });
 
     const invoicesResult = license ? await getAllInvoices() : null;
     const invoices = invoicesResult && !isServiceError(invoicesResult) ? invoicesResult : [];
@@ -87,6 +93,13 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
                 <OfflineLicenseCard license={offlineLicense} isExpired={isOfflineLicenseExpired} />
             )}
             {license && <OnlineLicenseCard license={license} />}
+            {license
+                && yearlyTermStatus && (
+                    <YearlyTermSeatsUsageCard
+                        currentUsers={currentUserCount}
+                        status={yearlyTermStatus}
+                    />
+                )}
             {!offlineLicense && !license && <ActivationCodeCard />}
             {license && <RecentInvoicesCard invoices={invoices} />}
         </div>

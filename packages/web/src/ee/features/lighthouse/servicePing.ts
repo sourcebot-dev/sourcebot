@@ -111,6 +111,7 @@ export const syncWithLighthouse = async (orgId: number) => {
             cancelAt,
             trialEnd,
             hasPaymentMethod,
+            yearlyTermStatus,
         } = response.license;
 
         await __unsafePrisma.license.update({
@@ -131,6 +132,16 @@ export const syncWithLighthouse = async (orgId: number) => {
                 cancelAt: cancelAt ? new Date(cancelAt) : null,
                 trialEnd: trialEnd ? new Date(trialEnd) : null,
                 hasPaymentMethod,
+                yearlyTermStartedAt: yearlyTermStatus ? new Date(yearlyTermStatus.termStartedAt) : null,
+                yearlyTermEndsAt: yearlyTermStatus ? new Date(yearlyTermStatus.termEndsAt) : null,
+                yearlyTotalQuartersInTerm: yearlyTermStatus?.totalQuartersInTerm ?? null,
+                yearlyCurrentQuarterNumber: yearlyTermStatus?.currentQuarterNumber ?? null,
+                yearlyCurrentQuarterStartedAt: yearlyTermStatus ? new Date(yearlyTermStatus.currentQuarterStartedAt) : null,
+                yearlyCurrentQuarterEndsAt: yearlyTermStatus ? new Date(yearlyTermStatus.currentQuarterEndsAt) : null,
+                yearlyCommittedSeats: yearlyTermStatus?.committedSeats ?? null,
+                yearlyOverageSeats: yearlyTermStatus?.overageSeats ?? null,
+                yearlyBillableOverageSeats: yearlyTermStatus?.billableOverageSeats ?? null,
+                yearlyPeakSeats: yearlyTermStatus?.peakSeats ?? null,
                 lastSyncAt: new Date(),
                 lastSyncErrorCode: null,
             },
