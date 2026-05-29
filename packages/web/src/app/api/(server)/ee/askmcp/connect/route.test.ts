@@ -49,7 +49,7 @@ const { POST } = await import('./route');
 const { getMcpOAuthReturnToFromState } = await import('@/features/mcp/mcpOAuthReturnTo');
 
 function createRequest(body: { serverId: string; returnTo?: string } = { serverId: 'server-1' }) {
-    return new NextRequest('http://localhost/api/ee/askmcp/connect', {
+    return new NextRequest('https://sourcebot.example.com/api/ee/askmcp/connect', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
@@ -57,7 +57,7 @@ function createRequest(body: { serverId: string; returnTo?: string } = { serverI
 }
 
 function createMalformedJsonRequest() {
-    return new NextRequest('http://localhost/api/ee/askmcp/connect', {
+    return new NextRequest('https://sourcebot.example.com/api/ee/askmcp/connect', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: '{"serverId":',
@@ -65,7 +65,7 @@ function createMalformedJsonRequest() {
 }
 
 function createTextPlainRequest() {
-    return new NextRequest('http://localhost/api/ee/askmcp/connect', {
+    return new NextRequest('https://sourcebot.example.com/api/ee/askmcp/connect', {
         method: 'POST',
         headers: { 'content-type': 'text/plain' },
         body: 'server-1',
@@ -73,7 +73,7 @@ function createTextPlainRequest() {
 }
 
 function createEmptyBodyRequest() {
-    return new NextRequest('http://localhost/api/ee/askmcp/connect', {
+    return new NextRequest('https://sourcebot.example.com/api/ee/askmcp/connect', {
         method: 'POST',
     });
 }

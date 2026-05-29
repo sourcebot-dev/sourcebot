@@ -22,7 +22,7 @@ vi.mock('@sourcebot/shared', () => ({
 const { GET } = await import('./route');
 
 function createRequest() {
-    return new NextRequest('http://localhost/api/ee/askmcp/servers', { method: 'GET' });
+    return new NextRequest('https://sourcebot.example.com/api/ee/askmcp/servers', { method: 'GET' });
 }
 
 function createPrismaMock() {

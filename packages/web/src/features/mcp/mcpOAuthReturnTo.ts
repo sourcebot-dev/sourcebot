@@ -1,5 +1,5 @@
 const MCP_OAUTH_STATE_PREFIX = 'sourcebot_mcp.';
-const MCP_OAUTH_STATE_BASE_URL = 'https://sourcebot.local';
+const MCP_OAUTH_STATE_BASE_URL = 'https://sourcebot.invalid';
 
 function isAllowedMcpOAuthReturnPath(pathname: string): boolean {
     return pathname === '/chat' || pathname.startsWith('/chat/') || pathname === '/settings/accountAskAgent';

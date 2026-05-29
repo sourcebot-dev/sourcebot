@@ -33,7 +33,7 @@ vi.mock('@/prisma', () => ({
 const { GET } = await import('./route');
 
 function createRequest() {
-    return new NextRequest('http://localhost/api/ee/askmcp/configuration', { method: 'GET' });
+    return new NextRequest('https://sourcebot.example.com/api/ee/askmcp/configuration', { method: 'GET' });
 }
 
 function createPrismaMock() {

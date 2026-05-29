@@ -11,7 +11,7 @@ vi.mock('@sourcebot/shared', () => ({
         error: vi.fn(),
         debug: vi.fn(),
     }),
-    env: { AUTH_URL: 'http://localhost:3000' },
+    env: { AUTH_URL: 'https://sourcebot.example.com' },
     decryptOAuthToken: vi.fn((s: string) => s),
 }));
 

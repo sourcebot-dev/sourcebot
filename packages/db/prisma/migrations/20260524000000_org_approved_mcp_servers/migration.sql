@@ -2,7 +2,7 @@
 ALTER TABLE "McpServer" ADD COLUMN "name" TEXT;
 ALTER TABLE "McpServer" ADD COLUMN "sanitizedName" TEXT;
 
--- This branch has not shipped, but keep local development databases migratable.
+-- Backfill existing rows before enforcing non-null display identity.
 UPDATE "McpServer"
 SET "name" = COALESCE(
     (

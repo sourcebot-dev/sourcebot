@@ -17,8 +17,6 @@ export interface ChatBoxToolbarProps {
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     isContextSelectorOpen: boolean;
     onContextSelectorOpenChanged: (isOpen: boolean) => void;
-    // TODO_Jack_MakeLinearTask: Make the plus button available on simplified toolbar usages (e.g. askgh)
-    // once additional features (beyond MCP server toggling) are added to it.
     disabledMcpServerIds?: string[];
     onDisabledMcpServerIdsChange?: (ids: string[]) => void;
 }

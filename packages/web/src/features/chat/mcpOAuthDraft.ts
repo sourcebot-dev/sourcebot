@@ -2,7 +2,7 @@ import type { Descendant } from "slate";
 import { MCP_OAUTH_DRAFT_SESSION_STORAGE_KEY } from "./constants";
 import type { CustomText, MentionElement, ParagraphElement, SearchScope } from "./types";
 
-const MCP_OAUTH_DRAFT_BASE_URL = 'https://sourcebot.local';
+const MCP_OAUTH_DRAFT_BASE_URL = 'https://sourcebot.invalid';
 const MCP_OAUTH_DRAFT_MAX_AGE_MS = 30 * 60 * 1000;
 const MCP_OAUTH_STATUS_PARAMS = ['status', 'server', 'message'];
 

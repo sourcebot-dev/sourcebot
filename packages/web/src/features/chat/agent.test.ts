@@ -26,7 +26,7 @@ vi.mock('@sourcebot/shared', () => ({
         SOURCEBOT_CHAT_MODEL_TEMPERATURE: 0,
         SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED: 'false',
     },
-    getDBConnectionString: () => 'postgresql://sourcebot:sourcebot@localhost:5432/sourcebot',
+    getDBConnectionString: () => 'postgresql://sourcebot:sourcebot@db.example.com:5432/sourcebot',
 }));
 
 vi.mock('server-only', () => ({}));
