@@ -15,7 +15,6 @@ import { hasEntitlement } from '@/lib/entitlements';
 import { oauthNotSupported } from './errors';
 import { checkMcpServerDcrSupport } from './dcrDiscovery';
 import { encryptOAuthToken, env } from '@sourcebot/shared';
-import { headers } from 'next/headers';
 import { captureEvent } from '@/lib/posthog';
 import { getMcpAuthMode } from './analytics';
 import type { McpConnectorEntryPoint } from '@/lib/posthogEvents';
@@ -67,40 +66,12 @@ function invalidRequest(message: string): ServiceError {
     };
 }
 
-function getFirstHeaderValue(value: string | null): string | undefined {
-    return value?.split(',')[0]?.trim().toLowerCase();
-}
-
-function getHeaderUrlProtocol(value: string | null, host: string | undefined): string | undefined {
-    if (!value || !host) {
-        return undefined;
-    }
-
-    try {
-        const url = new URL(value);
-        return url.host === host ? url.protocol : undefined;
-    } catch {
-        return undefined;
-    }
-}
-
-async function assertHttpsInProduction(): Promise<ServiceError | undefined> {
+function assertHttpsAuthUrlInProduction(): ServiceError | undefined {
     if (env.NODE_ENV !== 'production') {
         return undefined;
     }
 
-    const requestHeaders = await headers();
-    const publicAuthUrlIsHttps = new URL(env.AUTH_URL).protocol === 'https:';
-    const host = getFirstHeaderValue(requestHeaders.get('x-forwarded-host'))
-        ?? getFirstHeaderValue(requestHeaders.get('host'));
-    const originProtocol = getHeaderUrlProtocol(requestHeaders.get('origin'), host);
-    const refererProtocol = getHeaderUrlProtocol(requestHeaders.get('referer'), host);
-    const requestIsHttps = getFirstHeaderValue(requestHeaders.get('x-forwarded-proto')) === 'https'
-        || getFirstHeaderValue(requestHeaders.get('x-forwarded-ssl')) === 'on'
-        || originProtocol === 'https:'
-        || refererProtocol === 'https:';
-
-    if (publicAuthUrlIsHttps && requestIsHttps) {
+    if (new URL(env.AUTH_URL).protocol === 'https:') {
         return undefined;
     }
 
@@ -218,7 +189,7 @@ export const createStaticOAuthMcpServer = async (
                     return oauthNotSupported();
                 }
 
-                const httpsError = await assertHttpsInProduction();
+                const httpsError = assertHttpsAuthUrlInProduction();
                 if (httpsError) {
                     return httpsError;
                 }
@@ -343,8 +314,8 @@ export const deleteMcpServer = async (serverId: string) => sew(() =>
         })));
 
 export const disconnectMcpServer = async (serverId: string, entryPoint: McpConnectorEntryPoint) => sew(() =>
-    withAuth(async ({ org, user }) => {
-        const server = await __unsafePrisma.mcpServer.findFirst({
+    withAuth(async ({ org, user, prisma }) => {
+        const server = await prisma.mcpServer.findFirst({
             where: {
                 id: serverId,
                 orgId: org.id,
@@ -366,7 +337,7 @@ export const disconnectMcpServer = async (serverId: string, entryPoint: McpConne
             } satisfies ServiceError;
         }
 
-        const result = await __unsafePrisma.userMcpServer.deleteMany({
+        const result = await prisma.userMcpServer.deleteMany({
             where: {
                 serverId,
                 userId: user.id,

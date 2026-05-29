@@ -5,11 +5,6 @@ import { ErrorCode } from '@/lib/errorCodes';
 const mocks = vi.hoisted(() => ({
     authContext: undefined as unknown,
     hasEntitlement: vi.fn(),
-    headers: vi.fn(async () => new Headers({
-        host: 'sourcebot.example.com',
-        origin: 'https://sourcebot.example.com',
-        'x-forwarded-proto': 'https',
-    })),
     encryptOAuthToken: vi.fn((text: string | null | undefined) => text ? `encrypted:${text}` : undefined),
     env: {
         AUTH_URL: 'https://sourcebot.example.com',
@@ -32,9 +27,6 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('server-only', () => ({}));
-vi.mock('next/headers', () => ({
-    headers: mocks.headers,
-}));
 vi.mock('@/middleware/withAuth', () => ({
     withAuth: vi.fn((callback: (context: unknown) => unknown) => callback(mocks.authContext)),
 }));
@@ -97,11 +89,6 @@ function createStaticOAuthRequest(overrides: Partial<{
 beforeEach(() => {
     vi.clearAllMocks();
     mocks.hasEntitlement.mockResolvedValue(true);
-    mocks.headers.mockResolvedValue(new Headers({
-        host: 'sourcebot.example.com',
-        origin: 'https://sourcebot.example.com',
-        'x-forwarded-proto': 'https',
-    }));
     mocks.encryptOAuthToken.mockImplementation((text: string | null | undefined) => text ? `encrypted:${text}` : undefined);
     mocks.env.AUTH_URL = 'https://sourcebot.example.com';
     mocks.env.NODE_ENV = 'production';
@@ -224,25 +211,6 @@ describe('createStaticOAuthMcpServer', () => {
     test('rejects static OAuth credentials when production AUTH_URL is not HTTPS', async () => {
         const prisma = setAuthContext(OrgRole.OWNER);
         mocks.env.AUTH_URL = 'http://sourcebot.example.com';
-
-        const result = await createStaticOAuthMcpServer(createStaticOAuthRequest());
-
-        expect(result).toMatchObject({
-            statusCode: 400,
-            errorCode: ErrorCode.INVALID_REQUEST_BODY,
-            message: 'Static OAuth client credentials require HTTPS in production.',
-        });
-        expect(prisma.mcpServer.create).not.toHaveBeenCalled();
-        expect(JSON.stringify(result)).not.toContain('client-secret');
-    });
-
-    test('rejects static OAuth credentials over insecure production requests', async () => {
-        const prisma = setAuthContext(OrgRole.OWNER);
-        mocks.headers.mockResolvedValue(new Headers({
-            host: 'sourcebot.example.com',
-            origin: 'http://sourcebot.example.com',
-            'x-forwarded-proto': 'http',
-        }));
 
         const result = await createStaticOAuthMcpServer(createStaticOAuthRequest());
 
@@ -414,22 +382,29 @@ describe('deleteMcpServer', () => {
 
 describe('disconnectMcpServer', () => {
     test('disconnects a personal connector and tracks the disconnect', async () => {
+        const prisma = {
+            mcpServer: {
+                findFirst: vi.fn().mockResolvedValue({
+                    id: 'server-1',
+                    name: 'Linear',
+                    serverUrl: 'https://mcp.linear.app/mcp',
+                    sanitizedName: 'linear',
+                    clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+                }),
+            },
+            userMcpServer: {
+                deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+            },
+        };
         mocks.authContext = {
             org: { id: 1 },
             user: { id: 'user-1' },
+            prisma,
         };
-        mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue({
-            id: 'server-1',
-            name: 'Linear',
-            serverUrl: 'https://mcp.linear.app/mcp',
-            sanitizedName: 'linear',
-            clientInfoSource: McpServerClientInfoSource.DYNAMIC,
-        });
-        mocks.unsafePrisma.userMcpServer.deleteMany.mockResolvedValue({ count: 1 });
 
         await expect(disconnectMcpServer('server-1', 'account_settings')).resolves.toEqual({ success: true });
 
-        expect(mocks.unsafePrisma.mcpServer.findFirst).toHaveBeenCalledWith({
+        expect(prisma.mcpServer.findFirst).toHaveBeenCalledWith({
             where: {
                 id: 'server-1',
                 orgId: 1,
@@ -442,12 +417,14 @@ describe('disconnectMcpServer', () => {
                 clientInfoSource: true,
             },
         });
-        expect(mocks.unsafePrisma.userMcpServer.deleteMany).toHaveBeenCalledWith({
+        expect(prisma.userMcpServer.deleteMany).toHaveBeenCalledWith({
             where: {
                 serverId: 'server-1',
                 userId: 'user-1',
             },
         });
+        expect(mocks.unsafePrisma.mcpServer.findFirst).not.toHaveBeenCalled();
+        expect(mocks.unsafePrisma.userMcpServer.deleteMany).not.toHaveBeenCalled();
         expect(mocks.captureEvent).toHaveBeenCalledWith('ask_mcp_connector_disconnected', {
             source: 'sourcebot-web-client',
             entryPoint: 'account_settings',
