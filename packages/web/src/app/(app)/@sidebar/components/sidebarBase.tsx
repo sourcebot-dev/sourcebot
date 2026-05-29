@@ -262,10 +262,10 @@ const GuestDropdownMenu = () => {
                         <AppearanceDropdownMenuGroup />
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                            <a href="/login">
+                            <Link href="/login">
                                 <LogIn className="h-4 w-4 mr-2" />
                                 <span>Sign in</span>
-                            </a>
+                            </Link>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
