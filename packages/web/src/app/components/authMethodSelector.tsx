@@ -51,7 +51,7 @@ export const AuthMethodSelector = ({
         return (
             <div className="flex flex-col items-center justify-center w-full gap-2">
                 <p className="text-center font-medium">No authentication methods available. Please contact your administrator to configure authentication.</p>
-                <Link href="https://docs.sourcebot.dev/docs/configuration/auth/overview" target="_blank" rel="noopener" className="text-link hover:underline">Learn more</Link>
+                <Link href="https://docs.sourcebot.dev/docs/configuration/auth/authentication" target="_blank" rel="noopener" className="text-link hover:underline">Learn more</Link>
             </div>
         )
     }

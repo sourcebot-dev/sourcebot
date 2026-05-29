@@ -59,6 +59,14 @@ export const client = {
         return parseResponseBody(response, servicePingResponseSchema);
     },
 
+    pingSchema: async (): Promise<Record<string, unknown> | ServiceError> => {
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/schema`, {
+            method: 'GET',
+        });
+
+        return parseResponseBody(response, z.record(z.string(), z.unknown()));
+    },
+
     checkout: async (body: CheckoutRequest): Promise<CheckoutResponse | ServiceError> => {
         const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/checkout`, {
             method: 'POST',

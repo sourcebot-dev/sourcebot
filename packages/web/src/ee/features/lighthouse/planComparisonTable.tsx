@@ -109,7 +109,7 @@ export function PlanComparisonTable({
             </TableHeader>
             <TableBody>
                 <TableRow>
-                    <FeatureLink text="Code search" href="https://docs.sourcebot.dev/docs/features/search/overview" />
+                    <FeatureLink text="Code search" href="https://docs.sourcebot.dev/docs/features/search/code-search" />
                     <SupportIcon supported />
                     <SupportIcon supported />
                 </TableRow>
@@ -119,7 +119,7 @@ export function PlanComparisonTable({
                     <SupportIcon supported />
                 </TableRow>
                 <TableRow>
-                    <FeatureLink text="Ask Sourcebot" href="https://docs.sourcebot.dev/docs/features/ask/overview" />
+                    <FeatureLink text="Ask Sourcebot" href="https://docs.sourcebot.dev/docs/features/ask/ask-sourcebot" />
                     <SupportIcon supported={false} />
                     <SupportIcon supported />
                 </TableRow>

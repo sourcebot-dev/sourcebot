@@ -1,6 +1,5 @@
 ---
-title: Overview
-sidebarTitle: Overview
+title: Indexing your code
 ---
 
 import SupportedPlatforms from '/snippets/platform-support.mdx'
@@ -48,7 +47,7 @@ When a connection is first discovered, or the `resyncConnectionIntervalMs` [sett
 1. Fetching the latest changes from `HEAD` (and any [additional branches](/docs/features/search/multi-branch-indexing)) from the code host.
 2. Re-indexing the repository.
 
-This is processed in a [job queue](/docs/overview#architecture), and is parallelized across multiple worker processes. Jobs will take longer to complete the first time a repository is synced, or when a diff is large.
+This is processed in a [job queue](/docs/misc/architecture), and is parallelized across multiple worker processes. Jobs will take longer to complete the first time a repository is synced, or when a diff is large.
 
 On the home page, you can view the sync status of ongoing jobs:
 

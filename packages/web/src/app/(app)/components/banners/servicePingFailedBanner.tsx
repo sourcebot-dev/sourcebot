@@ -13,8 +13,7 @@ interface ServicePingFailedBannerProps extends BannerProps {
     lastSyncAt: string | null;
 }
 
-// @nocheckin: link to the service ping docs here when ready.
-const SERVICE_PING_DOCS_LINK = "https://docs.sourcebot.dev/docs";
+const SERVICE_PING_DOCS_LINK = "https://docs.sourcebot.dev/docs/misc/service-ping";
 
 export function ServicePingFailedBanner({
     id,
