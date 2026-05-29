@@ -14,8 +14,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { connectMcpToAsk, getMcpServersWithStatus } from "@/app/api/(client)/client";
 import { useToast } from "@/components/hooks/use-toast";
-import { McpFavicon } from "@/ee/features/mcp/components/mcpFavicon";
-import { mcpQueryKeys } from "@/ee/features/mcp/queryKeys";
+import { McpFavicon } from "@/ee/features/chat/mcp/components/mcpFavicon";
+import { mcpQueryKeys } from "@/ee/features/chat/mcp/queryKeys";
 import { isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";

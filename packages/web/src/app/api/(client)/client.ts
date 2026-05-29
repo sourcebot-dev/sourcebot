@@ -33,7 +33,7 @@ import type {
 import { OffersResponse } from "@/ee/features/lighthouse/types";
 import { ConnectMcpResponse } from "../(server)/ee/askmcp/connect/types";
 import type { GetMcpServersResponse } from "../(server)/ee/askmcp/servers/route";
-import type { GetMcpConfigurationResponse, GetMcpToolsResponse } from "@/ee/features/mcp/types";
+import type { GetMcpConfigurationResponse, GetMcpToolsResponse } from "@/ee/features/chat/mcp/types";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {

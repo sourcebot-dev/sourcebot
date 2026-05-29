@@ -5,8 +5,8 @@ import { hasEntitlement } from '@/lib/entitlements';
 import { withAuth } from '@/middleware/withAuth';
 import { withMinimumOrgRole } from '@/middleware/withMinimumOrgRole';
 import { __unsafePrisma } from '@/prisma';
-import { getMcpFaviconUrl } from '@/ee/features/mcp/utils';
-import type { GetMcpConfigurationResponse, McpServerToolUsageSummary } from '@/ee/features/mcp/types';
+import { getMcpFaviconUrl } from '@/ee/features/chat/mcp/utils';
+import type { GetMcpConfigurationResponse, McpServerToolUsageSummary } from '@/ee/features/chat/mcp/types';
 import { OrgRole } from '@sourcebot/db';
 import type { NextRequest } from 'next/server';
 

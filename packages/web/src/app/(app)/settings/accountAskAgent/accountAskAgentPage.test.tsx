@@ -5,7 +5,7 @@ vi.mock('@/app/api/(client)/client', () => ({
     getMcpServersWithStatus: vi.fn(),
     getMcpServerTools: vi.fn(),
 }));
-vi.mock('@/ee/features/mcp/actions', () => ({
+vi.mock('@/ee/features/chat/mcp/actions', () => ({
     disconnectMcpServer: vi.fn(),
 }));
 

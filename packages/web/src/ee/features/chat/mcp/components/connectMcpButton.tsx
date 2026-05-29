@@ -3,7 +3,7 @@
 import { LoadingButton } from '@/components/ui/loading-button';
 import { ExternalLink } from 'lucide-react';
 import type { ButtonProps } from '@/components/ui/button';
-import { useConnectMcp } from '@/ee/features/mcp/hooks/useConnectMcp';
+import { useConnectMcp } from '@/ee/features/chat/mcp/hooks/useConnectMcp';
 
 interface ConnectMcpButtonProps {
     serverId: string;

@@ -31,16 +31,16 @@ vi.mock('@sourcebot/shared', () => ({
 
 vi.mock('server-only', () => ({}));
 
-vi.mock('@/ee/features/mcp/mcpClientFactory', () => ({
+vi.mock('@/ee/features/chat/mcp/mcpClientFactory', () => ({
     getConnectedMcpClients: vi.fn(),
 }));
 
-vi.mock('@/ee/features/mcp/mcpToolRegistry', () => ({
+vi.mock('@/ee/features/chat/mcp/mcpToolRegistry', () => ({
     buildMcpToolRegistry: vi.fn(() => []),
     searchMcpTools: vi.fn(() => []),
 }));
 
-vi.mock('@/ee/features/mcp/mcpToolSets', () => ({
+vi.mock('@/ee/features/chat/mcp/mcpToolSets', () => ({
     getMcpTools: vi.fn(),
 }));
 

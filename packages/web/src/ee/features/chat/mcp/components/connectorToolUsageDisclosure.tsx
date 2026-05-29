@@ -5,8 +5,8 @@ import {
     formatCount,
     formatUsageSharePercent,
     pluralize,
-} from '@/ee/features/mcp/utils';
-import type { McpServerToolUsageSummary, ServerToolsEntry } from '@/ee/features/mcp/types';
+} from '@/ee/features/chat/mcp/utils';
+import type { McpServerToolUsageSummary, ServerToolsEntry } from '@/ee/features/chat/mcp/types';
 import { BarChart3Icon, ChevronDownIcon } from 'lucide-react';
 
 interface ConnectorToolUsageTriggerProps {

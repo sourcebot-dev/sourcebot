@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { McpFavicon } from "@/ee/features/mcp/components/mcpFavicon";
+import { McpFavicon } from "@/ee/features/chat/mcp/components/mcpFavicon";
 import { useMcpServerIconMap } from "@/features/chat/mcpServerIconContext";
 import { useToolApproval } from "@/features/chat/toolApprovalContext";
 import { SBChatToolPart } from "@/features/chat/utils";

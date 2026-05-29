@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useToast } from '@/components/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { connectMcpToAsk } from '@/app/api/(client)/client';
-import { invalidateMcpConfigurationQueries } from '@/ee/features/mcp/queryKeys';
+import { invalidateMcpConfigurationQueries } from '@/ee/features/chat/mcp/queryKeys';
 import { isServiceError } from '@/lib/utils';
 
 interface UseConnectMcpOptions {

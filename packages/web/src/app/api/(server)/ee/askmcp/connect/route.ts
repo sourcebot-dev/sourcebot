@@ -12,12 +12,12 @@ import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants
 import { ConnectMcpResponse } from "@/app/api/(server)/ee/askmcp/connect/types";
 import { createLogger, env } from "@sourcebot/shared";
 import { __unsafePrisma } from '@/prisma';
-import { getExternalMcpErrorLogFields } from '@/ee/features/mcp/externalMcpError';
+import { getExternalMcpErrorLogFields } from '@/ee/features/chat/mcp/externalMcpError';
 import { ErrorCode } from '@/lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
 import { normalizeMcpOAuthReturnTo } from '@/features/mcp/mcpOAuthReturnTo';
 import { captureEvent } from '@/lib/posthog';
-import { getMcpAuthMode, getMcpConnectorEntryPoint, getMcpConnectorFailureReason } from '@/ee/features/mcp/analytics';
+import { getMcpAuthMode, getMcpConnectorEntryPoint, getMcpConnectorFailureReason } from '@/ee/features/chat/mcp/analytics';
 
 const bodySchema = z.object({
     serverId: z.string(),

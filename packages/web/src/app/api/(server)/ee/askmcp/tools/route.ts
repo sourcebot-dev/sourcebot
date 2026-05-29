@@ -4,7 +4,7 @@ import { isServiceError } from '@/lib/utils';
 import { withAuth } from '@/middleware/withAuth';
 import { hasEntitlement } from '@/lib/entitlements';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
-import { getMcpToolMetadata } from '@/ee/features/mcp/mcpToolMetadata';
+import { getMcpToolMetadata } from '@/ee/features/chat/mcp/mcpToolMetadata';
 import type { NextRequest } from 'next/server';
 
 export const GET = apiHandler(async (_request: NextRequest) => {

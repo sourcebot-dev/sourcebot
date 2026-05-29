@@ -10,10 +10,10 @@ import { PrismaOAuthClientProvider } from '@/features/mcp/prismaOAuthClientProvi
 import { __unsafePrisma as prisma } from '@/prisma';
 import { auth } from '@/auth';
 import { NextRequest, NextResponse } from 'next/server';
-import { getExternalMcpErrorLogFields } from '@/ee/features/mcp/externalMcpError';
+import { getExternalMcpErrorLogFields } from '@/ee/features/chat/mcp/externalMcpError';
 import { getMcpOAuthReturnToFromState } from '@/features/mcp/mcpOAuthReturnTo';
 import { captureEvent } from '@/lib/posthog';
-import { getMcpAuthMode, getMcpConnectorEntryPoint, getMcpConnectorFailureReason } from '@/ee/features/mcp/analytics';
+import { getMcpAuthMode, getMcpConnectorEntryPoint, getMcpConnectorFailureReason } from '@/ee/features/chat/mcp/analytics';
 
 const logger = createLogger('mcp-oauth-callback');
 const reconnectMessage = 'This connector authorization could not be completed. Please reconnect the connector.';

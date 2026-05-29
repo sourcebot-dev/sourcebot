@@ -2,10 +2,10 @@
 
 import { useId, useState, type ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { ConnectorRowInfo } from '@/ee/features/mcp/components/connectorRowInfo';
-import { ConnectorToolList, ConnectorToolTrigger } from '@/ee/features/mcp/components/connectorToolDisclosure';
-import { ConnectorToolUsageList, ConnectorToolUsageTrigger } from '@/ee/features/mcp/components/connectorToolUsageDisclosure';
-import type { McpServerToolUsageSummary, ServerToolsEntry } from '@/ee/features/mcp/types';
+import { ConnectorRowInfo } from '@/ee/features/chat/mcp/components/connectorRowInfo';
+import { ConnectorToolList, ConnectorToolTrigger } from '@/ee/features/chat/mcp/components/connectorToolDisclosure';
+import { ConnectorToolUsageList, ConnectorToolUsageTrigger } from '@/ee/features/chat/mcp/components/connectorToolUsageDisclosure';
+import type { McpServerToolUsageSummary, ServerToolsEntry } from '@/ee/features/chat/mcp/types';
 
 interface ConnectorCardProps {
     faviconUrl: string | undefined;

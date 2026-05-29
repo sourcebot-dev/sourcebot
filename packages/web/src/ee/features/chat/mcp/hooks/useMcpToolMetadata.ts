@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getMcpServerTools } from '@/app/api/(client)/client';
 import { isServiceError } from '@/lib/utils';
-import { mcpQueryKeys } from '@/ee/features/mcp/queryKeys';
-import type { ServerToolsEntry } from '@/ee/features/mcp/types';
+import { mcpQueryKeys } from '@/ee/features/chat/mcp/queryKeys';
+import type { ServerToolsEntry } from '@/ee/features/chat/mcp/types';
 
 const EMPTY_TOOL_ENTRIES: ServerToolsEntry[] = [];
 

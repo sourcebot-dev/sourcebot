@@ -19,18 +19,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { checkMcpServerDynamicClientRegistration, createMcpServer, createStaticOAuthMcpServer, deleteMcpServer } from "@/ee/features/mcp/actions";
-import { ConnectMcpButton } from "@/ee/features/mcp/components/connectMcpButton";
-import { ConnectorCard } from "@/ee/features/mcp/components/connectorCard";
-import { useMcpToolMetadata } from "@/ee/features/mcp/hooks/useMcpToolMetadata";
-import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/mcp/queryKeys";
-import { pluralize } from "@/ee/features/mcp/utils";
+import { checkMcpServerDynamicClientRegistration, createMcpServer, createStaticOAuthMcpServer, deleteMcpServer } from "@/ee/features/chat/mcp/actions";
+import { ConnectMcpButton } from "@/ee/features/chat/mcp/components/connectMcpButton";
+import { ConnectorCard } from "@/ee/features/chat/mcp/components/connectorCard";
+import { useMcpToolMetadata } from "@/ee/features/chat/mcp/hooks/useMcpToolMetadata";
+import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/chat/mcp/queryKeys";
+import { pluralize } from "@/ee/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangleIcon, CableIcon, CopyIcon, Loader2, MoreHorizontalIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { PrefabConnectorPopover } from "./prefabConnectorPopover";
-import type { PrefabMcpServer } from "@/ee/features/mcp/prefabMcpServers";
-import type { McpConfigurationServer, ServerToolsEntry } from "@/ee/features/mcp/types";
+import type { PrefabMcpServer } from "@/ee/features/chat/mcp/prefabMcpServers";
+import type { McpConfigurationServer, ServerToolsEntry } from "@/ee/features/chat/mcp/types";
 
 function clearCallbackParams() {
     const url = new URL(window.location.href);

@@ -16,7 +16,7 @@ vi.mock('@/lib/entitlements', () => ({
 vi.mock('@/middleware/withAuth', () => ({
     withAuth: vi.fn((callback: (context: unknown) => unknown) => callback(mocks.authContext)),
 }));
-vi.mock('@/ee/features/mcp/mcpToolMetadata', () => ({
+vi.mock('@/ee/features/chat/mcp/mcpToolMetadata', () => ({
     getMcpToolMetadata: mocks.getMcpToolMetadata,
 }));
 

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { ConnectorToolUsageList, ConnectorToolUsageTrigger } from './connectorToolUsageDisclosure';
-import type { McpServerToolUsageSummary, ServerToolsEntry } from '@/ee/features/mcp/types';
+import type { McpServerToolUsageSummary, ServerToolsEntry } from '@/ee/features/chat/mcp/types';
 
 afterEach(() => {
     cleanup();

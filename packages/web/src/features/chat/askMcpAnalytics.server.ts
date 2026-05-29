@@ -1,4 +1,4 @@
-import { getStoredMcpConnectionStatus } from "@/ee/features/mcp/connectionStatus";
+import { getStoredMcpConnectionStatus } from "@/ee/features/chat/mcp/connectionStatus";
 import { hasEntitlement } from "@/lib/entitlements";
 import type { PrismaClient } from "@sourcebot/db";
 import type { DynamicToolUIPart } from "ai";

@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { pluralize } from '@/ee/features/mcp/utils';
-import type { ServerToolsEntry, ToolMetadataErrorReason, ToolSummary } from '@/ee/features/mcp/types';
+import { pluralize } from '@/ee/features/chat/mcp/utils';
+import type { ServerToolsEntry, ToolMetadataErrorReason, ToolSummary } from '@/ee/features/chat/mcp/types';
 import { ChevronDownIcon, RefreshCwIcon, WrenchIcon } from 'lucide-react';
 
 function getErrorLabel(reason: ToolMetadataErrorReason) {

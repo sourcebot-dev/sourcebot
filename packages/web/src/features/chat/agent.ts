@@ -22,9 +22,9 @@ import { ANSWER_TAG, FILE_REFERENCE_PREFIX } from "./constants";
 import { Source } from "./types";
 import { addLineNumbers, fileReferenceToString, getAnswerPartFromAssistantMessage, getTurnProgressState } from "./utils";
 import { createTools } from "./tools";
-import { getConnectedMcpClients } from "@/ee/features/mcp/mcpClientFactory";
-import { getMcpTools, McpToolsResult } from "@/ee/features/mcp/mcpToolSets";
-import { buildMcpToolRegistry, McpToolRegistryEntry, searchMcpTools } from "@/ee/features/mcp/mcpToolRegistry";
+import { getConnectedMcpClients } from "@/ee/features/chat/mcp/mcpClientFactory";
+import { getMcpTools, McpToolsResult } from "@/ee/features/chat/mcp/mcpToolSets";
+import { buildMcpToolRegistry, McpToolRegistryEntry, searchMcpTools } from "@/ee/features/chat/mcp/mcpToolRegistry";
 import { hasEntitlement } from '@/lib/entitlements';
 
 const dedent = _dedent.withOptions({ alignValues: true });

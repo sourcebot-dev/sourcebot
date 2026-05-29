@@ -4,8 +4,8 @@ import { isServiceError } from '@/lib/utils';
 import { withAuth } from '@/middleware/withAuth';
 import { hasEntitlement } from '@/lib/entitlements';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
-import { getMcpFaviconUrl } from '@/ee/features/mcp/utils';
-import { getStoredMcpConnectionStatus } from '@/ee/features/mcp/connectionStatus';
+import { getMcpFaviconUrl } from '@/ee/features/chat/mcp/utils';
+import { getStoredMcpConnectionStatus } from '@/ee/features/chat/mcp/connectionStatus';
 import type { NextRequest } from 'next/server';
 
 export interface McpServerWithStatus {

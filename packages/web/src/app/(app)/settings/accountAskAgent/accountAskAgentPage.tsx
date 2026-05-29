@@ -18,18 +18,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ConnectMcpButton } from "@/ee/features/mcp/components/connectMcpButton";
-import { ConnectorCard } from "@/ee/features/mcp/components/connectorCard";
-import { ConnectorRowInfo } from "@/ee/features/mcp/components/connectorRowInfo";
-import { ConnectorToolTrigger } from "@/ee/features/mcp/components/connectorToolDisclosure";
-import { useConnectMcp } from "@/ee/features/mcp/hooks/useConnectMcp";
-import { useMcpToolMetadata } from "@/ee/features/mcp/hooks/useMcpToolMetadata";
-import { disconnectMcpServer } from "@/ee/features/mcp/actions";
-import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/mcp/queryKeys";
-import { pluralize } from "@/ee/features/mcp/utils";
+import { ConnectMcpButton } from "@/ee/features/chat/mcp/components/connectMcpButton";
+import { ConnectorCard } from "@/ee/features/chat/mcp/components/connectorCard";
+import { ConnectorRowInfo } from "@/ee/features/chat/mcp/components/connectorRowInfo";
+import { ConnectorToolTrigger } from "@/ee/features/chat/mcp/components/connectorToolDisclosure";
+import { useConnectMcp } from "@/ee/features/chat/mcp/hooks/useConnectMcp";
+import { useMcpToolMetadata } from "@/ee/features/chat/mcp/hooks/useMcpToolMetadata";
+import { disconnectMcpServer } from "@/ee/features/chat/mcp/actions";
+import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/chat/mcp/queryKeys";
+import { pluralize } from "@/ee/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
 import type { McpServerWithStatus } from "@/app/api/(server)/ee/askmcp/servers/route";
-import type { ServerToolsEntry } from "@/ee/features/mcp/types";
+import type { ServerToolsEntry } from "@/ee/features/chat/mcp/types";
 
 type FilterTab = "all" | "connected";
 

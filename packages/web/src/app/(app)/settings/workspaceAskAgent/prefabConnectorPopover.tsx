@@ -11,13 +11,13 @@ import {
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { getDisplayServerUrl } from "@/ee/features/mcp/components/connectorRowInfo";
-import { McpFavicon } from "@/ee/features/mcp/components/mcpFavicon";
+import { getDisplayServerUrl } from "@/ee/features/chat/mcp/components/connectorRowInfo";
+import { McpFavicon } from "@/ee/features/chat/mcp/components/mcpFavicon";
 import {
     getAvailablePrefabMcpServers,
     type PrefabMcpServer,
-} from "@/ee/features/mcp/prefabMcpServers";
-import { getMcpFaviconUrl } from "@/ee/features/mcp/utils";
+} from "@/ee/features/chat/mcp/prefabMcpServers";
+import { getMcpFaviconUrl } from "@/ee/features/chat/mcp/utils";
 import { PlusIcon } from "lucide-react";
 
 interface PrefabConnectorPopoverProps {
