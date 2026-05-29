@@ -174,7 +174,19 @@ export function TrialStep({ stepIndex }: TrialStepProps) {
             return;
         }
 
-        window.location.assign(checkoutResult.url);
+        try {
+            const checkoutUrl = new URL(checkoutResult.url);
+            if (checkoutUrl.protocol !== "https:" && checkoutUrl.protocol !== "http:") {
+                throw new Error("Unsupported checkout URL protocol.");
+            }
+            window.location.assign(checkoutUrl.toString());
+        } catch {
+            toast({
+                description: "Failed to start checkout: invalid checkout URL.",
+                variant: "destructive",
+            });
+            setIsPrimaryLoading(false);
+        }
     }, [billingInterval, stepIndex, toast, overrideEmail]);
 
     if (isPending) {
