@@ -317,6 +317,20 @@ model License {
   cancelAt          DateTime?
   trialEnd          DateTime?
   hasPaymentMethod  Boolean?
+
+  // Yearly-only fields, mirroring `yearlyTermStatus` on the lighthouse ping
+  // response. All null for monthly subs and for unactivated/canceled licenses.
+  yearlyTermStartedAt           DateTime?
+  yearlyTermEndsAt              DateTime?
+  yearlyTotalQuartersInTerm     Int?
+  yearlyCurrentQuarterNumber    Int?
+  yearlyCurrentQuarterStartedAt DateTime?
+  yearlyCurrentQuarterEndsAt    DateTime?
+  yearlyCommittedSeats          Int?
+  yearlyOverageSeats            Int?
+  yearlyBillableOverageSeats    Int?
+  yearlyPeakSeats               Int?
+
   lastSyncAt        DateTime?
   lastSyncErrorCode String?
   createdAt         DateTime @default(now())
