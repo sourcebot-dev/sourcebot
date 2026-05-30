@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expired offline license keys no longer crash the process. An expired key now degrades to the unlicensed state. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 - Improved the `setup-sourcebot` wizard: prompts for a setup directory, clarifies that secrets are stored locally in `.env`, switches multi-select to Tab, hides "No results" until a real search runs, and detects/cleans up conflicting Docker deployments and volumes before starting. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 
+### Fixed
+- Fixed yearly seat usage bar to render proportionally when there is overage, instead of using hardcoded 90/10 split. [#1251](https://github.com/sourcebot-dev/sourcebot/pull/1251)
+
 ## [4.17.4] - 2026-05-30
 
 ### Changed
