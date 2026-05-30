@@ -16,4 +16,3 @@ export default authenticatedPage(async () => {
     }
     return <ChatsPage />;
 });
-``
