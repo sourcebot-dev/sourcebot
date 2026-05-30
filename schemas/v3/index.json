@@ -166,8 +166,6 @@
                 },
                 {
                     "type": "array",
-                    "deprecated": true,
-                    "description": "Deprecated. Use the object form keyed by id instead.",
                     "items": {
                         "$ref": "./identityProvider.json"
                     }
