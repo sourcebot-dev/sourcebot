@@ -1,7 +1,6 @@
 import 'server-only';
 import { env, getDBConnectionString } from "@sourcebot/shared";
 import { Prisma, PrismaClient, UserWithAccounts } from "@sourcebot/db";
-import { hasEntitlement } from "@/lib/entitlements";
 import { getMcpPrismaQueryExtension } from "@/features/mcp/prismaScope";
 
 // @see: https://authjs.dev/getting-started/adapters/prisma
@@ -30,7 +29,7 @@ if (env.NODE_ENV !== "production") globalForPrisma.prisma = __unsafePrisma
  * a given user should be able to access.
  */
 export const userScopedPrismaClientExtension = async (user?: UserWithAccounts) => {
-    const hasPermissionSyncing = env.PERMISSION_SYNC_ENABLED === 'true' && await hasEntitlement('permission-syncing');
+    const hasPermissionSyncing = env.PERMISSION_SYNC_ENABLED === 'true';
 
     return Prisma.defineExtension(
         (prisma) => {
