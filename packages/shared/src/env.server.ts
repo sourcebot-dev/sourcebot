@@ -317,7 +317,7 @@ const options = {
 
         SOURCEBOT_ENCRYPTION_KEY: z.string(),
         SOURCEBOT_INSTALL_ID: z.string().default("unknown"),
-        SOURCEBOT_LIGHTHOUSE_URL: z.string().url().default("https://license.sourcebot.dev"),
+        SOURCEBOT_LIGHTHOUSE_URL: z.string().url().default("https://deployments.sourcebot.dev"),
 
         FALLBACK_GITHUB_CLOUD_TOKEN: z.string().optional(),
         FALLBACK_GITLAB_CLOUD_TOKEN: z.string().optional(),
