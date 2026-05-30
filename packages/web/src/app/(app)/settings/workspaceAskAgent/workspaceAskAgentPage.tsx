@@ -418,7 +418,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
             {/* Connectors section */}
             <div className="space-y-6">
                 <div>
-                    <h4 className="text-sm font-semibold text-foreground">Connectors</h4>
+                    <h4 className="text-md font-semibold text-foreground">Connectors</h4>
                     <p className="text-sm text-muted-foreground">
                         Connectors are MCP servers that let Ask Agent use approved external tools alongside your indexed code.
                     </p>

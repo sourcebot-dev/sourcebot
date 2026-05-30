@@ -20,14 +20,6 @@ interface ChatThreadPanelProps {
     chatName?: string;
 }
 
-const normalizeDisabledMcpServerIds = (value: unknown): string[] => {
-    if (!Array.isArray(value)) {
-        return [];
-    }
-
-    return value.filter((id): id is string => typeof id === 'string');
-}
-
 export const ChatThreadPanel = ({
     languageModels,
     repos,
@@ -53,7 +45,7 @@ export const ChatThreadPanel = ({
     // Use the last user message to determine what repos, contexts, and MCP state we should select by default.
     const lastUserMessage = messages.findLast((message) => message.role === "user");
     const defaultSelectedSearchScopes = lastUserMessage?.metadata?.selectedSearchScopes ?? [];
-    const defaultDisabledMcpServerIds = normalizeDisabledMcpServerIds(lastUserMessage?.metadata?.disabledMcpServerIds);
+    const defaultDisabledMcpServerIds = lastUserMessage?.metadata?.disabledMcpServerIds ?? [];
     const [selectedSearchScopes, setSelectedSearchScopes] = useState<SearchScope[]>(defaultSelectedSearchScopes);
     const [disabledMcpServerIds, setDisabledMcpServerIds] = useState<string[]>(defaultDisabledMcpServerIds);
 
@@ -65,7 +57,7 @@ export const ChatThreadPanel = ({
         try {
             setInputMessage(chatState.inputMessage);
             setSelectedSearchScopes(chatState.selectedSearchScopes);
-            setDisabledMcpServerIds(normalizeDisabledMcpServerIds(chatState.disabledMcpServerIds));
+            setDisabledMcpServerIds(chatState.disabledMcpServerIds);
         } catch {
             console.error('Invalid chat state in session storage');
         } finally {

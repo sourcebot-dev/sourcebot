@@ -426,7 +426,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                                 onHoveredReferenceChanged={setHoveredReference}
                                 style={rightPanelStyle}
                             />
-                        ) : isNetworkActive ? (
+                        ) : (isTurnInProgress) ? (
                             <div className="space-y-4">
                                 {Array.from({ length: 3 }).map((_, index) => (
                                     <Skeleton key={index} className="w-full h-48" />

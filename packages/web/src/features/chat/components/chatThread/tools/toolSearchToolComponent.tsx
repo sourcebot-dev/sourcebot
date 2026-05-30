@@ -27,7 +27,6 @@ export const ToolSearchToolComponent = ({ query, results }: ToolSearchToolCompon
                     <span className="flex-shrink-0">Searched connector tools: <span className="italic">{query}</span></span>
                     <span className="flex-1" />
                     <span className="text-xs flex-shrink-0">{results.length} result{results.length === 1 ? '' : 's'}</span>
-                    <Separator orientation="vertical" className="h-3 flex-shrink-0" />
                 </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
