@@ -63,11 +63,13 @@ export function YearlyTermSeatsUsageCard({
 
     const hasOverage = billableOverageSeats > 0;
     const committedUsedPercent = hasOverage
-        ? 90
+        ? (peakSeats > 0 ? (committedSeats / peakSeats) * 100 : 0)
         : committedSeats > 0
             ? Math.min(100, (currentUsers / committedSeats) * 100)
             : 0;
-    const overagePercent = hasOverage ? 10 : 0;
+    const overagePercent = hasOverage
+        ? (peakSeats > 0 ? (overageSeats / peakSeats) * 100 : 0)
+        : 0;
 
     return (
         <div className="flex flex-col gap-3">
