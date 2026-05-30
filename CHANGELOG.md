@@ -18,7 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 - Expired offline license keys no longer crash the process. An expired key now degrades to the unlicensed state. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 - Improved the `setup-sourcebot` wizard: prompts for a setup directory, clarifies that secrets are stored locally in `.env`, switches multi-select to Tab, hides "No results" until a real search runs, and detects/cleans up conflicting Docker deployments and volumes before starting. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
-- [EE] Added Slack-specific copy to the connector OAuth client credentials dialog and made the copy overridable per connector. [#1254](https://github.com/sourcebot-dev/sourcebot/pull/1254)
 
 ## [4.17.4] - 2026-05-30
 
