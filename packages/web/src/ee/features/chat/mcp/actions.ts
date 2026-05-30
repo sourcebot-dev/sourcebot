@@ -291,20 +291,39 @@ export const createMcpServer = async (name: string, serverUrl: string) => sew(()
 export const deleteMcpServer = async (serverId: string) => sew(() =>
     withAuth(async ({ org, role }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            const result = await __unsafePrisma.mcpServer.deleteMany({
+            const server = await __unsafePrisma.mcpServer.findFirst({
                 where: {
                     id: serverId,
                     orgId: org.id,
                 },
+                select: {
+                    id: true,
+                    serverUrl: true,
+                    clientInfoSource: true,
+                },
             });
 
-            if (result.count === 0) {
+            if (!server) {
                 return {
                     statusCode: StatusCodes.NOT_FOUND,
                     errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
                     message: 'Connector not found',
                 } satisfies ServiceError;
             }
+
+            await __unsafePrisma.mcpServer.delete({
+                where: {
+                    id: server.id,
+                },
+            });
+
+            void captureEvent('ask_mcp_connector_removed', {
+                source: 'sourcebot-web-client',
+                entryPoint: 'workspace_settings',
+                serverId: server.id,
+                serverUrl: server.serverUrl,
+                authMode: getMcpAuthMode(server.clientInfoSource),
+            });
 
             return { success: true };
         })));

@@ -234,6 +234,13 @@ export type PosthogEventMap = {
         serverUrl: string,
         authMode: McpConnectorAuthMode,
     },
+    ask_mcp_connector_removed: {
+        source: SourcebotWebClientSource,
+        entryPoint: 'workspace_settings',
+        serverId: string,
+        serverUrl: string,
+        authMode: McpConnectorAuthMode,
+    },
     ask_mcp_connector_connection_started: {
         source: SourcebotWebClientSource,
         entryPoint: McpConnectorEntryPoint,

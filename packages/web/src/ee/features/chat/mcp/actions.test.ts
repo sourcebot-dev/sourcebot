@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => ({
     captureEvent: vi.fn(),
     unsafePrisma: {
         mcpServer: {
-            deleteMany: vi.fn(),
+            delete: vi.fn(),
             findFirst: vi.fn(),
         },
         userMcpServer: {
@@ -334,18 +334,53 @@ describe('createStaticOAuthMcpServer', () => {
 });
 
 describe('deleteMcpServer', () => {
-    test('owners delete through the narrowly scoped unsafe client', async () => {
+    test('owners delete through the narrowly scoped unsafe client and track the removal', async () => {
         setAuthContext(OrgRole.OWNER);
-        mocks.unsafePrisma.mcpServer.deleteMany.mockResolvedValue({ count: 1 });
+        mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue({
+            id: 'server-1',
+            serverUrl: 'https://mcp.linear.app/mcp',
+            clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+        });
+        mocks.unsafePrisma.mcpServer.delete.mockResolvedValue({ id: 'server-1' });
 
         await expect(deleteMcpServer('server-1')).resolves.toEqual({ success: true });
-        expect(mocks.unsafePrisma.mcpServer.deleteMany).toHaveBeenCalledWith({
+        expect(mocks.unsafePrisma.mcpServer.findFirst).toHaveBeenCalledWith({
             where: {
                 id: 'server-1',
                 orgId: 1,
             },
+            select: {
+                id: true,
+                serverUrl: true,
+                clientInfoSource: true,
+            },
+        });
+        expect(mocks.unsafePrisma.mcpServer.delete).toHaveBeenCalledWith({
+            where: {
+                id: 'server-1',
+            },
+        });
+        expect(mocks.captureEvent).toHaveBeenCalledWith('ask_mcp_connector_removed', {
+            source: 'sourcebot-web-client',
+            entryPoint: 'workspace_settings',
+            serverId: 'server-1',
+            serverUrl: 'https://mcp.linear.app/mcp',
+            authMode: 'dynamic',
         });
         expect(mocks.hasEntitlement).not.toHaveBeenCalled();
+    });
+
+    test('returns not found and tracks nothing when the connector does not exist', async () => {
+        setAuthContext(OrgRole.OWNER);
+        mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue(null);
+
+        const result = await deleteMcpServer('server-1');
+
+        expect(result).toMatchObject({
+            errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
+        });
+        expect(mocks.unsafePrisma.mcpServer.delete).not.toHaveBeenCalled();
+        expect(mocks.captureEvent).not.toHaveBeenCalled();
     });
 
     test('members cannot delete org MCP servers', async () => {
@@ -356,21 +391,26 @@ describe('deleteMcpServer', () => {
         expect(result).toMatchObject({
             errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
         });
-        expect(mocks.unsafePrisma.mcpServer.deleteMany).not.toHaveBeenCalled();
+        expect(mocks.unsafePrisma.mcpServer.findFirst).not.toHaveBeenCalled();
+        expect(mocks.unsafePrisma.mcpServer.delete).not.toHaveBeenCalled();
     });
 
     test('owners can delete org MCP servers when Ask Agent is unavailable', async () => {
         setAuthContext(OrgRole.OWNER);
         mocks.hasEntitlement.mockResolvedValue(false);
-        mocks.unsafePrisma.mcpServer.deleteMany.mockResolvedValue({ count: 1 });
+        mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue({
+            id: 'server-1',
+            serverUrl: 'https://mcp.linear.app/mcp',
+            clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+        });
+        mocks.unsafePrisma.mcpServer.delete.mockResolvedValue({ id: 'server-1' });
 
         await expect(deleteMcpServer('server-1')).resolves.toEqual({ success: true });
 
         expect(mocks.hasEntitlement).not.toHaveBeenCalled();
-        expect(mocks.unsafePrisma.mcpServer.deleteMany).toHaveBeenCalledWith({
+        expect(mocks.unsafePrisma.mcpServer.delete).toHaveBeenCalledWith({
             where: {
                 id: 'server-1',
-                orgId: 1,
             },
         });
     });
