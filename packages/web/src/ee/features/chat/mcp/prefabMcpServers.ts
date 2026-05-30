@@ -13,6 +13,10 @@ export interface PrefabMcpServer {
 export const DEFAULT_STATIC_OAUTH_DESCRIPTION =
     "This connector does not advertise dynamic client registration. Provide OAuth client credentials from a pre-registered app before members can connect to it.";
 
+// Token in `staticOAuthDescription` copy that `getStaticOAuthDescription`
+// replaces with the deployment's actual OAuth redirect URL.
+export const OAUTH_REDIRECT_URL_PLACEHOLDER = "{{REDIRECT_URL}}";
+
 const prefabMcpServers = [
     {
         id: "atlassian",
@@ -34,7 +38,7 @@ const prefabMcpServers = [
         name: "Slack",
         serverUrl: "https://mcp.slack.com/mcp",
         staticOAuthDescription:
-            "Slack doesn't support dynamic client registration, so you'll need to create an app in your Slack workspace and provide Sourcebot a Client ID and Secret. These are stored encrypted within your Sourcebot deployment.\n\nVisit [this page](https://api.slack.com/apps) to create a Slack app.",
+            "Slack doesn't support dynamic client registration, so you'll need to create an app in your Slack workspace and provide Sourcebot a Client ID and Secret. These are stored encrypted within your Sourcebot deployment.\n\nVisit [this page](https://api.slack.com/apps) to create a Slack app. Set the redirect URL (under OAuth & Permissions) to `{{REDIRECT_URL}}`.",
     },
 ] satisfies PrefabMcpServer[];
 
@@ -54,14 +58,21 @@ export function normalizeMcpServerUrlForComparison(serverUrl: string): string {
 
 // Resolves the OAuth client credentials dialog copy for a connector, using the
 // matching prefab server's override when one exists and falling back to the
-// default copy otherwise.
-export function getStaticOAuthDescription(serverUrl: string): string {
+// default copy otherwise. Substitutes OAUTH_REDIRECT_URL_PLACEHOLDER with the
+// deployment's actual OAuth redirect URL when provided.
+export function getStaticOAuthDescription(serverUrl: string, redirectUrl?: string): string {
     const normalizedServerUrl = normalizeMcpServerUrlForComparison(serverUrl);
     const prefabServer = PREFAB_MCP_SERVERS.find((server) => (
         normalizeMcpServerUrlForComparison(server.serverUrl) === normalizedServerUrl
     ));
 
-    return prefabServer?.staticOAuthDescription ?? DEFAULT_STATIC_OAUTH_DESCRIPTION;
+    const description = prefabServer?.staticOAuthDescription ?? DEFAULT_STATIC_OAUTH_DESCRIPTION;
+
+    if (redirectUrl) {
+        return description.replaceAll(OAUTH_REDIRECT_URL_PLACEHOLDER, redirectUrl);
+    }
+
+    return description;
 }
 
 export function getAvailablePrefabMcpServers(configuredServerUrls: string[]): PrefabMcpServer[] {

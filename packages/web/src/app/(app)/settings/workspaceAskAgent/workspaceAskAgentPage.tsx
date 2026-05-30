@@ -46,6 +46,7 @@ interface WorkspaceAskAgentPageProps {
     callbackStatus?: string;
     callbackServer?: string;
     callbackMessage?: string;
+    oauthRedirectUrl: string;
 }
 
 type WorkspaceConnectorStatus = {
@@ -159,7 +160,7 @@ function WorkspaceConnectorCard({
     );
 }
 
-export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callbackMessage }: WorkspaceAskAgentPageProps) {
+export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callbackMessage, oauthRedirectUrl }: WorkspaceAskAgentPageProps) {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const router = useRouter();
@@ -597,9 +598,12 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                                                 {children}
                                             </a>
                                         ),
+                                        code: ({ children }) => (
+                                            <code className="bg-muted rounded px-1 py-0.5 text-xs break-all">{children}</code>
+                                        ),
                                     }}
                                 >
-                                    {getStaticOAuthDescription(pendingClientCredentialsServer?.serverUrl ?? "")}
+                                    {getStaticOAuthDescription(pendingClientCredentialsServer?.serverUrl ?? "", oauthRedirectUrl)}
                                 </Markdown>
                             </div>
                         </DialogDescription>
