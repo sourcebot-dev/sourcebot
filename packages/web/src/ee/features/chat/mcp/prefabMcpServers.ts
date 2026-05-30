@@ -17,14 +17,44 @@ const prefabMcpServers = [
         serverUrl: "https://mcp.atlassian.com/v1/mcp/authv2",
     },
     {
+        id: "betterstack",
+        name: "Better Stack",
+        serverUrl: "https://mcp.betterstack.com",
+    },
+    {
+        id: "circleback",
+        name: "Circleback",
+        serverUrl: "https://circleback.ai/api/mcp",
+    },
+    {
+        id: "github",
+        name: "GitHub",
+        serverUrl: "https://api.githubcopilot.com/mcp/",
+    },
+    {
+        id: "gitlab",
+        name: "GitLab",
+        serverUrl: "https://gitlab.com/api/v4/mcp",
+    },
+    {
         id: "linear",
         name: "Linear",
         serverUrl: "https://mcp.linear.app/mcp",
     },
     {
+        id: "notion",
+        name: "Notion",
+        serverUrl: "https://mcp.notion.com/mcp",
+    },
+    {
         id: "posthog",
         name: "PostHog",
         serverUrl: "https://mcp.posthog.com/mcp",
+    },
+    {
+        id: "sentry",
+        name: "Sentry",
+        serverUrl: "https://mcp.sentry.dev/mcp",
     },
     {
         id: "slack",

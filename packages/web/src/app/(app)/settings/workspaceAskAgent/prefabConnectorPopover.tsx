@@ -1,5 +1,7 @@
 'use client';
 
+// @techdebt : this seems to be an unused copy
+
 import { useMemo, useState } from "react";
 import {
     Command,
@@ -7,7 +9,6 @@ import {
     CommandInput,
     CommandItem,
     CommandList,
-    CommandSeparator,
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -110,8 +111,7 @@ export function PrefabConnectorPopover({
                                 </div>
                             )}
                         </CommandGroup>
-                        <CommandSeparator />
-                        <CommandGroup>
+                        <CommandGroup className="sticky bottom-0 z-10 border-t bg-popover">
                             <CommandItem
                                 value="Custom URL"
                                 onSelect={handleSelectCustomUrl}

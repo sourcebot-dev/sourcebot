@@ -44,6 +44,15 @@ describe('getMcpFaviconUrl', () => {
         expect(getMcpFaviconUrl('https://mcp.atlassian.com/v1/mcp/authv2', 'Atlassian')).toMatch(/^data:image\/svg\+xml,/);
     });
 
+    test('returns known vendor favicon URLs for prefab servers with non-canonical MCP domains', () => {
+        expect(getMcpFaviconUrl('https://mcp.betterstack.com', 'Better Stack')).toBe('https://betterstack.com/favicon.ico');
+        expect(getMcpFaviconUrl('https://mcp.notion.com/mcp', 'Notion')).toBe('https://www.notion.com/front-static/favicon.ico');
+    });
+
+    test('returns a local GitHub icon for the GitHub prefab server', () => {
+        expect(getMcpFaviconUrl('https://api.githubcopilot.com/mcp/', 'GitHub')).toMatch(/^data:image\/svg\+xml,/);
+    });
+
     test('returns undefined for a malformed server URL', () => {
         expect(getMcpFaviconUrl('not a url')).toBeUndefined();
     });
