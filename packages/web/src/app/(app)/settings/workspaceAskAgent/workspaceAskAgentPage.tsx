@@ -327,6 +327,15 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                     setIsClientCredentialsDialogOpen(true);
                     return;
                 }
+
+                if (!dcrSupport.isKnown) {
+                    toast({
+                        title: "Error",
+                        description: "Could not verify this connector. The URL may be unreachable or not a valid MCP server.",
+                        variant: "destructive"
+                    });
+                    return;
+                }
             }
 
             const result = await createMcpServer(displayName, normalizedServerUrl);

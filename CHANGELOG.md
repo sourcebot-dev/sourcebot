@@ -10,7 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added progress bar when navigating between pages. [#1204](https://github.com/sourcebot-dev/sourcebot/pull/1204)
 - Added a integrated changelog into the sidebar. [#1227](https://github.com/sourcebot-dev/sourcebot/pull/1227)
-- [EE] Added validation of MCP connector reachability and compatibility when owners add connectors, providing immediate feedback instead of deferring validation to connect-time. [#1252](https://github.com/sourcebot-dev/sourcebot/pull/1252)
+
+### Fixed
+- [EE] Fixed MCP connector validation to fail closed when server reachability cannot be verified, preventing unreachable or invalid URLs from being added as connectors. [#1252](https://github.com/sourcebot-dev/sourcebot/pull/1252)
 
 ### Changed
 - Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1097](https://github.com/sourcebot-dev/sourcebot/pull/1097)
