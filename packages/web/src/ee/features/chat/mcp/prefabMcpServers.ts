@@ -2,7 +2,7 @@ export interface PrefabMcpServer {
     id: string;
     name: string;
     serverUrl: string;
-    staticOAuthDescription?: string;
+    descriptionOverride?: string;
 }
 
 export const DEFAULT_STATIC_OAUTH_DESCRIPTION =
@@ -30,7 +30,7 @@ const prefabMcpServers = [
         id: "slack",
         name: "Slack",
         serverUrl: "https://mcp.slack.com/mcp",
-        staticOAuthDescription:
+        descriptionOverride:
             "Slack doesn't support dynamic client registration, so you'll need to create an app in your Slack workspace and provide Sourcebot a Client ID and Secret. These are stored encrypted within your Sourcebot deployment.\n\nVisit [this page](https://api.slack.com/apps) to create a Slack app. Set the redirect URL (under OAuth & Permissions) to `{{REDIRECT_URL}}`",
     },
 ] satisfies PrefabMcpServer[];
@@ -55,7 +55,7 @@ export function getStaticOAuthDescription(serverUrl: string, redirectUrl?: strin
         normalizeMcpServerUrlForComparison(server.serverUrl) === normalizedServerUrl
     ));
 
-    const description = prefabServer?.staticOAuthDescription ?? DEFAULT_STATIC_OAUTH_DESCRIPTION;
+    const description = prefabServer?.descriptionOverride ?? DEFAULT_STATIC_OAUTH_DESCRIPTION;
 
     if (redirectUrl) {
         return description.replaceAll(OAUTH_REDIRECT_URL_PLACEHOLDER, redirectUrl);
