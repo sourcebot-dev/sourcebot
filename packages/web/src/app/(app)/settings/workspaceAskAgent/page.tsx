@@ -1,7 +1,7 @@
 import { hasEntitlement } from "@/lib/entitlements";
 import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
-import { env } from "@sourcebot/shared";
+import { getMcpOAuthCallbackUrl } from "@/ee/features/chat/mcp/mcpOAuthCallbackUrl";
 import { WorkspaceAskAgentPage } from "./workspaceAskAgentPage";
 import { WorkspaceAskAgentEntitlementMessage } from "./workspaceAskAgentEntitlementMessage";
 
@@ -37,10 +37,7 @@ export default authenticatedPage<PageProps>(async ({ org, prisma }, { searchPara
             callbackStatus={status}
             callbackServer={server}
             callbackMessage={message}
-            // The redirect URL Sourcebot sends to connectors during the OAuth
-            // flow (see mcpClientFactory.ts). Surfaced so per-connector setup
-            // copy can show admins the exact value to register with their app.
-            oauthRedirectUrl={`${env.AUTH_URL}/api/ee/askmcp/callback`}
+            oauthRedirectUrl={getMcpOAuthCallbackUrl()}
         />
     );
 }, { minRole: OrgRole.OWNER, redirectTo: '/settings' });

@@ -2,19 +2,12 @@ export interface PrefabMcpServer {
     id: string;
     name: string;
     serverUrl: string;
-    // Markdown copy shown in the "OAuth Client Credentials Required" dialog when a
-    // connector doesn't support dynamic client registration. Falls back to
-    // DEFAULT_STATIC_OAUTH_DESCRIPTION when omitted.
     staticOAuthDescription?: string;
 }
 
-// Default copy used when a connector requires manually-provided OAuth client
-// credentials and doesn't specify its own `staticOAuthDescription`.
 export const DEFAULT_STATIC_OAUTH_DESCRIPTION =
     "This connector does not advertise dynamic client registration. Provide OAuth client credentials from a pre-registered app before members can connect to it.";
 
-// Token in `staticOAuthDescription` copy that `getStaticOAuthDescription`
-// replaces with the deployment's actual OAuth redirect URL.
 export const OAUTH_REDIRECT_URL_PLACEHOLDER = "{{REDIRECT_URL}}";
 
 const prefabMcpServers = [
@@ -56,10 +49,6 @@ export function normalizeMcpServerUrlForComparison(serverUrl: string): string {
     }
 }
 
-// Resolves the OAuth client credentials dialog copy for a connector, using the
-// matching prefab server's override when one exists and falling back to the
-// default copy otherwise. Substitutes OAUTH_REDIRECT_URL_PLACEHOLDER with the
-// deployment's actual OAuth redirect URL when provided.
 export function getStaticOAuthDescription(serverUrl: string, redirectUrl?: string): string {
     const normalizedServerUrl = normalizeMcpServerUrlForComparison(serverUrl);
     const prefabServer = PREFAB_MCP_SERVERS.find((server) => (
