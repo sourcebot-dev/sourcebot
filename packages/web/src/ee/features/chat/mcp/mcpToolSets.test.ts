@@ -322,10 +322,8 @@ describe('getMcpTools', () => {
         expect(mockToolCallCountUpsert).not.toHaveBeenCalled();
         expect(mockToolCallCountUpdate).not.toHaveBeenCalled();
         expect(mockCaptureEvent).toHaveBeenCalledWith('ask_mcp_tool_call_completed', expect.objectContaining({
-            serverName: 'Linear',
             serverUrl: 'https://linear.example.com/mcp',
             toolName: 'create_issue',
-            qualifiedToolName: 'mcp_linear__create_issue',
             success: false,
             failureReason: 'Error',
         }));
@@ -366,10 +364,8 @@ describe('getMcpTools', () => {
         expect(mockCaptureEvent).toHaveBeenCalledWith('ask_mcp_tool_call_completed', expect.objectContaining({
             source: 'sourcebot-ask-agent',
             serverId: 'server-linear',
-            serverName: 'Linear',
             serverUrl: 'https://linear.example.com/mcp',
             toolName: 'create_issue',
-            qualifiedToolName: 'mcp_linear__create_issue',
             success: true,
         }));
     });

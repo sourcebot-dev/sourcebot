@@ -160,9 +160,7 @@ describe('POST /api/ee/askmcp/connect', () => {
             source: 'sourcebot-web-client',
             entryPoint: 'unknown',
             serverId: 'server-1',
-            serverName: 'Linear',
             serverUrl: 'https://mcp.linear.app/mcp',
-            sanitizedName: 'linear',
             authMode: 'dynamic',
         });
         expect(prisma.userMcpServer.upsert).toHaveBeenCalledWith({
@@ -304,9 +302,7 @@ describe('POST /api/ee/askmcp/connect', () => {
             source: 'sourcebot-web-client',
             entryPoint: 'unknown',
             serverId: 'server-1',
-            serverName: 'Linear',
             serverUrl: 'https://mcp.linear.app/mcp',
-            sanitizedName: 'linear',
             authMode: 'dynamic',
             failureReason: 'invalid_client',
         });

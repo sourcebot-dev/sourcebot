@@ -122,9 +122,7 @@ describe('createMcpServer', () => {
             source: 'sourcebot-web-client',
             entryPoint: 'workspace_settings',
             serverId: 'server-1',
-            serverName: 'Linear',
             serverUrl: 'https://mcp.linear.app/mcp',
-            sanitizedName: 'linear',
             authMode: 'dynamic',
         });
     });
@@ -190,9 +188,7 @@ describe('createStaticOAuthMcpServer', () => {
             source: 'sourcebot-web-client',
             entryPoint: 'workspace_settings',
             serverId: 'server-1',
-            serverName: 'Slack',
             serverUrl: 'https://mcp.slack.com/mcp',
-            sanitizedName: 'slack',
             authMode: 'static',
         });
     });
@@ -411,9 +407,7 @@ describe('disconnectMcpServer', () => {
             },
             select: {
                 id: true,
-                name: true,
                 serverUrl: true,
-                sanitizedName: true,
                 clientInfoSource: true,
             },
         });
@@ -429,9 +423,7 @@ describe('disconnectMcpServer', () => {
             source: 'sourcebot-web-client',
             entryPoint: 'account_settings',
             serverId: 'server-1',
-            serverName: 'Linear',
             serverUrl: 'https://mcp.linear.app/mcp',
-            sanitizedName: 'linear',
             authMode: 'dynamic',
         });
     });

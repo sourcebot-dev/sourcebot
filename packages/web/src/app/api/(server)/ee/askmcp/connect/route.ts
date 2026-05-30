@@ -74,8 +74,6 @@ export const POST = apiHandler(async (request: NextRequest) => {
             where: { id: parsed.data.serverId, orgId: org.id },
             select: {
                 id: true,
-                name: true,
-                sanitizedName: true,
                 serverUrl: true,
                 clientInfoSource: true,
             },
@@ -94,9 +92,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
             source: 'sourcebot-web-client' as const,
             entryPoint,
             serverId: mcpServer.id,
-            serverName: mcpServer.name,
             serverUrl: mcpServer.serverUrl,
-            sanitizedName: mcpServer.sanitizedName,
             authMode: getMcpAuthMode(mcpServer.clientInfoSource),
         };
 

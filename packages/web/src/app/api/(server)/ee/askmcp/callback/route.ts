@@ -79,7 +79,6 @@ export const GET = apiHandler(async (request: NextRequest) => {
                         orgId: true,
                         name: true,
                         serverUrl: true,
-                        sanitizedName: true,
                         clientInfoSource: true,
                     },
                 },
@@ -90,9 +89,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
         source: 'sourcebot-web-client' as const,
         entryPoint,
         serverId: userServer.serverId,
-        serverName: userServer.server.name,
         serverUrl: userServer.server.serverUrl,
-        sanitizedName: userServer.server.sanitizedName,
         authMode: getMcpAuthMode(userServer.server.clientInfoSource),
     });
     const getEventProperties = async () => {

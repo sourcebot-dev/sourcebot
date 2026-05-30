@@ -231,9 +231,7 @@ export const createStaticOAuthMcpServer = async (
                     source: 'sourcebot-web-client',
                     entryPoint: 'workspace_settings',
                     serverId: mcpServer.id,
-                    serverName: preparedServer.displayName,
                     serverUrl: mcpServer.serverUrl,
-                    sanitizedName: preparedServer.sanitizedName,
                     authMode: 'static',
                 });
 
@@ -278,9 +276,7 @@ export const createMcpServer = async (name: string, serverUrl: string) => sew(()
                 source: 'sourcebot-web-client',
                 entryPoint: 'workspace_settings',
                 serverId: mcpServer.id,
-                serverName: preparedServer.displayName,
                 serverUrl: mcpServer.serverUrl,
-                sanitizedName: preparedServer.sanitizedName,
                 authMode: getMcpAuthMode(McpServerClientInfoSource.DYNAMIC),
             });
 
@@ -322,9 +318,7 @@ export const disconnectMcpServer = async (serverId: string, entryPoint: McpConne
             },
             select: {
                 id: true,
-                name: true,
                 serverUrl: true,
-                sanitizedName: true,
                 clientInfoSource: true,
             },
         });
@@ -356,9 +350,7 @@ export const disconnectMcpServer = async (serverId: string, entryPoint: McpConne
             source: 'sourcebot-web-client',
             entryPoint,
             serverId: server.id,
-            serverName: server.name,
             serverUrl: server.serverUrl,
-            sanitizedName: server.sanitizedName,
             authMode: getMcpAuthMode(server.clientInfoSource),
         });
 
