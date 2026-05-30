@@ -5,12 +5,19 @@ import { SettingsCard, SettingsCardGroup } from "../components/settingsCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
+import { useMemo } from "react";
 
 interface RecentInvoicesCardProps {
     invoices: Invoice[];
 }
 
-export function RecentInvoicesCard({ invoices }: RecentInvoicesCardProps) {
+export function RecentInvoicesCard({ invoices: _invoices }: RecentInvoicesCardProps) {
+
+    const invoices = useMemo(() => {
+        return _invoices.filter(invoice => invoice.amount > 0);
+    }, [_invoices]);
+
+
     if (invoices.length === 0) {
         return null;
     }
@@ -19,9 +26,11 @@ export function RecentInvoicesCard({ invoices }: RecentInvoicesCardProps) {
         <div className="flex flex-col gap-3">
             <p className="font-medium">Recent invoices</p>
             <SettingsCardGroup>
-                {invoices.map((invoice) => (
-                    <InvoiceRow key={invoice.id} invoice={invoice} />
-                ))}
+                {invoices
+                    .map((invoice) => (
+                        <InvoiceRow key={invoice.id} invoice={invoice} />
+                    ))
+                }
             </SettingsCardGroup>
         </div>
     );
