@@ -285,7 +285,7 @@ const nextAuthResult = NextAuth({
     callbacks: {
         async signIn({ account }) {
             const matchingProvider = account
-                ? (await getProviders()).find((p) => getEffectiveProviderId(p.provider) === account.provider)
+                ? (await getProviders()).find((p) => p.id === account.provider)
                 : undefined;
 
             // Refuse OAuth signin for providers configured purely for account
@@ -442,23 +442,6 @@ export const { handlers, signIn, signOut } = nextAuthResult;
 export const auth = cache(async (): Promise<Session | null> => {
     return nextAuthResult.auth();
 });
-
-// NextAuth/Auth.js provider factories (e.g. Bitbucket, GitHub, GitLab) hardcode
-// a default `id` at the top of the returned object and nest the caller's
-// options (including any `id` override) under `.options`. At runtime the
-// framework merges options over the top-level defaults, so the effective
-// provider id can live under either field depending on whether the caller
-// passed an override. Read `.options.id` first and fall back to the top-level
-// `id`. The function form of `Provider` is part of the NextAuth type union but
-// unused in this codebase; we handle it for type completeness.
-const getEffectiveProviderId = (provider: Provider): string | undefined => {
-    const config = (
-        typeof provider === 'function'
-            ? (provider as unknown as () => unknown)()
-            : provider
-    ) as { id?: string; options?: { id?: string } };
-    return config.options?.id ?? config.id;
-}
 
 /**
  * Returns the issuer URL for a given identity provider id (i.e., the auth.js
