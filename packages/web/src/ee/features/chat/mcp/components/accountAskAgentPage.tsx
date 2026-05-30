@@ -60,14 +60,14 @@ export function AccountAskAgentEmptyState({ canManageConnectors }: { canManageCo
                 </p>
                 <p className="text-sm text-muted-foreground max-w-sm">
                     {canManageConnectors
-                        ? "Open Workspace Ask Agent to approve connectors for your workspace."
+                        ? "Open Workspace Ask Sourcebot to approve connectors for your workspace."
                         : "No connectors have been approved for this workspace yet. Contact your workspace admin."}
                 </p>
                 {canManageConnectors && (
                     <Button asChild variant="outline" className="mt-4">
                         <Link href="/settings/workspaceAskAgent">
                             <Settings2Icon className="h-4 w-4 mr-2" />
-                            Open Workspace Ask Agent
+                            Open Workspace Ask Sourcebot
                         </Link>
                     </Button>
                 )}
@@ -293,9 +293,9 @@ export function AccountAskAgentPage({
         return (
             <div className="flex flex-col gap-6">
                 <div>
-                    <h3 className="text-lg font-medium">Ask Agent</h3>
+                    <h3 className="text-lg font-medium">Ask Sourcebot</h3>
                     <p className="text-sm text-muted-foreground max-w-lg">
-                        Manage your personal Ask Agent setup.
+                        Manage your personal Ask Sourcebot setup.
                     </p>
                 </div>
                 <Separator />
@@ -303,7 +303,7 @@ export function AccountAskAgentPage({
                     <div>
                         <h4 className="text-sm font-semibold text-foreground">Connectors</h4>
                         <p className="text-sm text-muted-foreground max-w-lg">
-                            Manage workspace-approved connectors for use with Ask Agent.
+                            Manage workspace-approved connectors for use with Ask Sourcebot.
                         </p>
                     </div>
                     <AccountAskAgentEmptyState canManageConnectors={canManageConnectors} />
@@ -315,9 +315,9 @@ export function AccountAskAgentPage({
     return (
         <div className="flex flex-col gap-6">
             <div>
-                <h3 className="text-lg font-medium">Ask Agent</h3>
+                <h3 className="text-lg font-medium">Ask Sourcebot</h3>
                 <p className="text-sm text-muted-foreground max-w-lg">
-                    Manage your personal Ask Agent setup.
+                    Manage your personal Ask Sourcebot setup.
                 </p>
             </div>
 
@@ -327,7 +327,7 @@ export function AccountAskAgentPage({
                 <div>
                     <h4 className="text-sm font-semibold text-foreground">Connectors</h4>
                     <p className="text-sm text-muted-foreground max-w-lg">
-                        Manage workspace-approved connectors for use with Ask Agent.
+                        Manage workspace-approved connectors for use with Ask Sourcebot.
                     </p>
                 </div>
 

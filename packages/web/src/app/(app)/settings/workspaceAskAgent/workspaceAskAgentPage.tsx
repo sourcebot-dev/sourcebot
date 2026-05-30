@@ -392,7 +392,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
     };
 
     if (isError) {
-        return <div>Error loading Ask Agent settings</div>;
+        return <div>Error loading Ask Sourcebot settings</div>;
     }
 
     const prefabPopoverProps = {
@@ -406,20 +406,20 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         <div className="flex flex-col gap-6">
             {/* Page header */}
             <div>
-                <h3 className="text-lg font-medium">Ask Agent</h3>
+                <h3 className="text-lg font-medium">Ask Sourcebot</h3>
                 <p className="text-sm text-muted-foreground">
-                    Configure what external tools Ask Agent can use across this workspace.
+                    Configure what external tools Ask Sourcebot can use across this workspace.
                 </p>
             </div>
 
             <Separator />
 
-            {/* Ask Agent unavailable warning */}
+            {/* Ask Sourcebot unavailable warning */}
             {!isLoading && isAskAgentUnavailable && (
                 <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-4">
                     <AlertTriangleIcon className="h-4 w-4 text-muted-foreground mt-0.5" />
                     <div>
-                        <p className="text-sm font-medium">Ask Agent connectors are unavailable</p>
+                        <p className="text-sm font-medium">Ask Sourcebot connectors are unavailable</p>
                         <p className="text-sm text-muted-foreground">
                             You can remove existing approved connectors and stored credentials, but cannot add new connectors.
                         </p>
@@ -432,7 +432,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                 <div>
                     <h4 className="text-sm font-semibold text-foreground">Connectors</h4>
                     <p className="text-sm text-muted-foreground">
-                        Connectors are MCP servers that let Ask Agent use approved external tools alongside your indexed code.
+                        Connectors are MCP servers that let Ask Sourcebot use approved external tools alongside your indexed code.
                     </p>
                 </div>
 
@@ -481,8 +481,8 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                                     <p className="text-sm font-medium mb-1">No connectors configured yet</p>
                                     <p className="text-sm text-muted-foreground max-w-sm">
                                         {isAskAgentUnavailable
-                                            ? "Ask Agent connectors are unavailable on this Sourcebot instance."
-                                            : "Add a workspace-approved connector so members can use it with Ask Agent."}
+                                            ? "Ask Sourcebot connectors are unavailable on this Sourcebot instance."
+                                            : "Add a workspace-approved connector so members can use it with Ask Sourcebot."}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -536,7 +536,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                     <DialogHeader>
                         <DialogTitle>Add Connector</DialogTitle>
                         <DialogDescription>
-                            Add a workspace-approved connector that members can use with Ask Agent.
+                            Add a workspace-approved connector that members can use with Ask Sourcebot.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">

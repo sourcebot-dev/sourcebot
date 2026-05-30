@@ -12,7 +12,7 @@ export function WorkspaceAskAgentUnavailableMessage() {
                         </div>
                     </div>
                     <CardTitle className="text-xl font-semibold text-card-foreground">
-                        Ask Agent Connectors Are Unavailable
+                        Ask Sourcebot Connectors Are Unavailable
                     </CardTitle>
                     <CardDescription className="text-muted-foreground mt-2">
                         OAuth-backed connectors are not supported on this Sourcebot instance.

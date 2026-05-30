@@ -91,7 +91,7 @@ export const getSidebarNavGroups = async () =>
                     },
                     ...(hasAskEntitlement ? [
                         {
-                            title: "Ask Agent",
+                            title: "Ask Sourcebot",
                             href: `/settings/accountAskAgent`,
                             icon: "bot" as const,
                         }
@@ -129,7 +129,7 @@ export const getSidebarNavGroups = async () =>
                         requiredEntitlement: 'analytics'
                     },
                     {
-                        title: "Ask Agent",
+                        title: "Ask Sourcebot",
                         href: `/settings/workspaceAskAgent`,
                         icon: "bot" as const,
                         requiredEntitlement: 'ask',
