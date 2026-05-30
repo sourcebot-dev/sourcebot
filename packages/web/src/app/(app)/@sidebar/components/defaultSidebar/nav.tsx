@@ -22,6 +22,9 @@ interface NavItem {
     key: string;
     requiresAuth?: boolean;
     requiredEntitlement?: Entitlement;
+    // When true, the item is hidden entirely if the required entitlement is
+    // missing, instead of being shown with an upgrade badge.
+    hideIfMissingEntitlement?: boolean;
 }
 
 interface NavProps {
@@ -70,6 +73,7 @@ export function Nav({
                 key: "chats",
                 requiresAuth: true,
                 requiredEntitlement: "ask",
+                hideIfMissingEntitlement: true,
             },
             {
                 title: "Repositories",
@@ -109,7 +113,10 @@ export function Nav({
 
     return (
         <SidebarMenu>
-            {baseItems.filter((item) => !item.requiresAuth || isSignedIn).map((item) => {
+            {baseItems
+                .filter((item) => !item.requiresAuth || isSignedIn)
+                .filter((item) => !item.hideIfMissingEntitlement || !item.requiredEntitlement || entitlements.includes(item.requiredEntitlement))
+                .map((item) => {
                 const showNotification =
                     (item.key === "settings" && isSettingsNotificationVisible);
 
