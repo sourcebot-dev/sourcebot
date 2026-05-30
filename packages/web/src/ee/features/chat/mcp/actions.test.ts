@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
             deleteMany: vi.fn(),
         },
     },
+    probeMcpServerCompatibility: vi.fn(),
 }));
 
 vi.mock('server-only', () => ({}));
@@ -43,6 +44,10 @@ vi.mock('@sourcebot/shared', () => ({
 }));
 vi.mock('@/lib/posthog', () => ({
     captureEvent: mocks.captureEvent,
+}));
+vi.mock('./dcrDiscovery', () => ({
+    probeMcpServerCompatibility: mocks.probeMcpServerCompatibility,
+    checkMcpServerDcrSupport: vi.fn(),
 }));
 
 const { createMcpServer, createStaticOAuthMcpServer, deleteMcpServer, disconnectMcpServer } = await import('./actions');
@@ -94,6 +99,15 @@ beforeEach(() => {
     mocks.env.NODE_ENV = 'production';
     mocks.env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS = 5000;
     mocks.captureEvent.mockResolvedValue(undefined);
+    mocks.probeMcpServerCompatibility.mockResolvedValue({
+        success: true,
+        dcrSupport: {
+            supportsDcr: true,
+            isKnown: true,
+            authorizationServerUrl: 'https://mcp.linear.app',
+            registrationEndpoint: 'https://mcp.linear.app/register',
+        },
+    });
 });
 
 describe('createMcpServer', () => {
@@ -108,6 +122,10 @@ describe('createMcpServer', () => {
             sanitizedName: 'linear',
             serverUrl: 'https://mcp.linear.app/mcp',
         });
+        expect(mocks.probeMcpServerCompatibility).toHaveBeenCalledWith(
+            'https://mcp.linear.app/mcp',
+            expect.any(Function),
+        );
         expect(prisma.mcpServer.create).toHaveBeenCalledWith({
             data: {
                 name: 'Linear',
@@ -152,6 +170,42 @@ describe('createMcpServer', () => {
         });
         expect(prisma.mcpServer.create).not.toHaveBeenCalled();
     });
+
+    test('rejects MCP servers that are unreachable', async () => {
+        const prisma = setAuthContext(OrgRole.OWNER);
+        mocks.probeMcpServerCompatibility.mockResolvedValue({
+            success: false,
+            reason: 'unreachable',
+        });
+
+        const result = await createMcpServer('Bogus', 'https://mcp.nonexistent.invalid/mcp');
+
+        expect(result).toMatchObject({
+            statusCode: 502,
+            errorCode: ErrorCode.MCP_SERVER_UNREACHABLE,
+            message: 'Could not reach this connector URL. Please verify the URL is correct and the server is accessible.',
+        });
+        expect(prisma.mcpServer.create).not.toHaveBeenCalled();
+        expect(mocks.captureEvent).not.toHaveBeenCalled();
+    });
+
+    test('rejects URLs that are not MCP-compatible', async () => {
+        const prisma = setAuthContext(OrgRole.OWNER);
+        mocks.probeMcpServerCompatibility.mockResolvedValue({
+            success: false,
+            reason: 'not_compatible',
+        });
+
+        const result = await createMcpServer('NotMcp', 'https://example.com/not-mcp');
+
+        expect(result).toMatchObject({
+            statusCode: 400,
+            errorCode: ErrorCode.MCP_SERVER_NOT_COMPATIBLE,
+            message: 'This URL does not appear to be a valid MCP connector. The server did not provide the expected OAuth metadata.',
+        });
+        expect(prisma.mcpServer.create).not.toHaveBeenCalled();
+        expect(mocks.captureEvent).not.toHaveBeenCalled();
+    });
 });
 
 describe('createStaticOAuthMcpServer', () => {
@@ -165,6 +219,10 @@ describe('createStaticOAuthMcpServer', () => {
             clientSecret: ' client-secret ',
         });
 
+        expect(mocks.probeMcpServerCompatibility).toHaveBeenCalledWith(
+            'https://mcp.slack.com/mcp',
+            expect.any(Function),
+        );
         expect(mocks.encryptOAuthToken).toHaveBeenCalledWith(JSON.stringify({
             client_id: 'client-id',
             client_secret: 'client-secret',
@@ -195,6 +253,50 @@ describe('createStaticOAuthMcpServer', () => {
             sanitizedName: 'slack',
             authMode: 'static',
         });
+    });
+
+    test('rejects static OAuth MCP servers that are unreachable', async () => {
+        const prisma = setAuthContext(OrgRole.OWNER);
+        mocks.probeMcpServerCompatibility.mockResolvedValue({
+            success: false,
+            reason: 'unreachable',
+        });
+
+        const result = await createStaticOAuthMcpServer(createStaticOAuthRequest({
+            serverUrl: 'https://mcp.nonexistent.invalid/mcp',
+        }));
+
+        expect(result).toMatchObject({
+            statusCode: 502,
+            errorCode: ErrorCode.MCP_SERVER_UNREACHABLE,
+            message: 'Could not reach this connector URL. Please verify the URL is correct and the server is accessible.',
+        });
+        expect(prisma.mcpServer.create).not.toHaveBeenCalled();
+        expect(mocks.encryptOAuthToken).not.toHaveBeenCalled();
+        expect(mocks.captureEvent).not.toHaveBeenCalled();
+        expect(JSON.stringify(result)).not.toContain('client-secret');
+    });
+
+    test('rejects static OAuth MCP servers that are not MCP-compatible', async () => {
+        const prisma = setAuthContext(OrgRole.OWNER);
+        mocks.probeMcpServerCompatibility.mockResolvedValue({
+            success: false,
+            reason: 'not_compatible',
+        });
+
+        const result = await createStaticOAuthMcpServer(createStaticOAuthRequest({
+            serverUrl: 'https://example.com/not-mcp',
+        }));
+
+        expect(result).toMatchObject({
+            statusCode: 400,
+            errorCode: ErrorCode.MCP_SERVER_NOT_COMPATIBLE,
+            message: 'This URL does not appear to be a valid MCP connector. The server did not provide the expected OAuth metadata.',
+        });
+        expect(prisma.mcpServer.create).not.toHaveBeenCalled();
+        expect(mocks.encryptOAuthToken).not.toHaveBeenCalled();
+        expect(mocks.captureEvent).not.toHaveBeenCalled();
+        expect(JSON.stringify(result)).not.toContain('client-secret');
     });
 
     test('members cannot add static OAuth MCP servers', async () => {

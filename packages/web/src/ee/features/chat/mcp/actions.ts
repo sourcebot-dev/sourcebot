@@ -13,11 +13,13 @@ import { z } from 'zod';
 import { sanitizeMcpServerName } from './utils';
 import { hasEntitlement } from '@/lib/entitlements';
 import { oauthNotSupported } from './errors';
-import { checkMcpServerDcrSupport } from './dcrDiscovery';
+import { checkMcpServerDcrSupport, probeMcpServerCompatibility } from './dcrDiscovery';
 import { encryptOAuthToken, env } from '@sourcebot/shared';
 import { captureEvent } from '@/lib/posthog';
 import { getMcpAuthMode } from './analytics';
 import type { McpConnectorEntryPoint } from '@/lib/posthogEvents';
+
+const MCP_PROBE_TIMEOUT_MS = Math.min(env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS, 10000);
 
 const MCP_DCR_DISCOVERY_TIMEOUT_MS = Math.min(env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS, 10000);
 const createStaticOAuthMcpServerSchema = z.object({
@@ -63,6 +65,22 @@ function invalidRequest(message: string): ServiceError {
         statusCode: StatusCodes.BAD_REQUEST,
         errorCode: ErrorCode.INVALID_REQUEST_BODY,
         message,
+    };
+}
+
+function mcpServerUnreachable(): ServiceError {
+    return {
+        statusCode: StatusCodes.BAD_GATEWAY,
+        errorCode: ErrorCode.MCP_SERVER_UNREACHABLE,
+        message: 'Could not reach this connector URL. Please verify the URL is correct and the server is accessible.',
+    };
+}
+
+function mcpServerNotCompatible(): ServiceError {
+    return {
+        statusCode: StatusCodes.BAD_REQUEST,
+        errorCode: ErrorCode.MCP_SERVER_NOT_COMPATIBLE,
+        message: 'This URL does not appear to be a valid MCP connector. The server did not provide the expected OAuth metadata.',
     };
 }
 
@@ -204,6 +222,17 @@ export const createStaticOAuthMcpServer = async (
                     return preparedServer;
                 }
 
+                const probeResult = await probeMcpServerCompatibility(
+                    preparedServer.normalizedServerUrl,
+                    createTimeoutFetch(MCP_PROBE_TIMEOUT_MS),
+                );
+                if (!probeResult.success) {
+                    if (probeResult.reason === 'unreachable') {
+                        return mcpServerUnreachable();
+                    }
+                    return mcpServerNotCompatible();
+                }
+
                 const clientInfo = encryptOAuthToken(JSON.stringify({
                     client_id: parsed.data.clientId,
                     client_secret: parsed.data.clientSecret,
@@ -261,6 +290,17 @@ export const createMcpServer = async (name: string, serverUrl: string) => sew(()
             });
             if (isServiceError(preparedServer)) {
                 return preparedServer;
+            }
+
+            const probeResult = await probeMcpServerCompatibility(
+                preparedServer.normalizedServerUrl,
+                createTimeoutFetch(MCP_PROBE_TIMEOUT_MS),
+            );
+            if (!probeResult.success) {
+                if (probeResult.reason === 'unreachable') {
+                    return mcpServerUnreachable();
+                }
+                return mcpServerNotCompatible();
             }
 
             const mcpServer = await prisma.mcpServer.create({

@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { checkMcpServerDcrSupport } from './dcrDiscovery';
+import { checkMcpServerDcrSupport, probeMcpServerCompatibility } from './dcrDiscovery';
 
 function jsonResponse(body: unknown) {
     return new Response(JSON.stringify(body), {
@@ -212,6 +212,134 @@ describe('checkMcpServerDcrSupport', () => {
             isKnown: true,
             authorizationServerUrl: 'https://auth.example.com/tenant',
             registrationEndpoint: 'https://auth.example.com/register',
+        });
+    });
+});
+
+describe('probeMcpServerCompatibility', () => {
+    test('returns success when authorization server metadata is found', async () => {
+        const fetchMock = vi.fn(async (input: string | URL | Request) => {
+            const url = input.toString();
+            if (url === 'https://mcp.example.com/.well-known/oauth-protected-resource/mcp') {
+                return jsonResponse({ authorization_servers: ['https://auth.example.com'] });
+            }
+            if (url === 'https://auth.example.com/.well-known/oauth-authorization-server') {
+                return jsonResponse({ registration_endpoint: 'https://auth.example.com/register' });
+            }
+            return notFoundResponse();
+        }) as unknown as typeof fetch;
+
+        const result = await probeMcpServerCompatibility('https://mcp.example.com/mcp', fetchMock);
+
+        expect(result).toEqual({
+            success: true,
+            dcrSupport: {
+                supportsDcr: true,
+                isKnown: true,
+                authorizationServerUrl: 'https://auth.example.com',
+                registrationEndpoint: 'https://auth.example.com/register',
+            },
+        });
+    });
+
+    test('returns success for static OAuth servers without DCR support', async () => {
+        const fetchMock = vi.fn(async (input: string | URL | Request) => {
+            const url = input.toString();
+            if (url === 'https://mcp.slack.com/.well-known/oauth-protected-resource') {
+                return jsonResponse({ authorization_servers: ['https://mcp.slack.com'] });
+            }
+            if (url === 'https://mcp.slack.com/.well-known/oauth-authorization-server') {
+                return jsonResponse({
+                    authorization_endpoint: 'https://slack.com/oauth/v2_user/authorize',
+                    token_endpoint: 'https://slack.com/api/oauth.v2.user.access',
+                });
+            }
+            return notFoundResponse();
+        }) as unknown as typeof fetch;
+
+        const result = await probeMcpServerCompatibility('https://mcp.slack.com/mcp', fetchMock);
+
+        expect(result).toEqual({
+            success: true,
+            dcrSupport: {
+                supportsDcr: false,
+                isKnown: true,
+                authorizationServerUrl: 'https://mcp.slack.com',
+            },
+        });
+    });
+
+    test('returns unreachable when network errors occur', async () => {
+        const fetchMock = vi.fn(async () => {
+            const error = new Error('Network error');
+            (error as Error & { cause?: { code?: string } }).cause = { code: 'ENOTFOUND' };
+            throw error;
+        }) as unknown as typeof fetch;
+
+        const result = await probeMcpServerCompatibility('https://mcp.nonexistent.invalid/mcp', fetchMock);
+
+        expect(result).toEqual({
+            success: false,
+            reason: 'unreachable',
+        });
+    });
+
+    test('returns unreachable when connection is refused', async () => {
+        const fetchMock = vi.fn(async () => {
+            const error = new Error('Connection refused');
+            (error as Error & { cause?: { code?: string } }).cause = { code: 'ECONNREFUSED' };
+            throw error;
+        }) as unknown as typeof fetch;
+
+        const result = await probeMcpServerCompatibility('https://localhost:9999/mcp', fetchMock);
+
+        expect(result).toEqual({
+            success: false,
+            reason: 'unreachable',
+        });
+    });
+
+    test('returns unreachable when request times out', async () => {
+        const fetchMock = vi.fn(async () => {
+            const error = new Error('The operation was aborted.');
+            error.name = 'AbortError';
+            throw error;
+        }) as unknown as typeof fetch;
+
+        const result = await probeMcpServerCompatibility('https://slow.example.com/mcp', fetchMock);
+
+        expect(result).toEqual({
+            success: false,
+            reason: 'unreachable',
+        });
+    });
+
+    test('returns not_compatible when server is reachable but has no OAuth metadata', async () => {
+        const fetchMock = vi.fn(async () => {
+            return notFoundResponse();
+        }) as unknown as typeof fetch;
+
+        const result = await probeMcpServerCompatibility('https://not-mcp.example.com/mcp', fetchMock);
+
+        expect(result).toEqual({
+            success: false,
+            reason: 'not_compatible',
+        });
+    });
+
+    test('returns not_compatible when server returns HTML instead of OAuth metadata', async () => {
+        const fetchMock = vi.fn(async () => {
+            return new Response('<html><body>Not Found</body></html>', {
+                status: 200,
+                headers: { 'content-type': 'text/html' },
+            });
+        }) as unknown as typeof fetch;
+
+        const result = await probeMcpServerCompatibility('https://web-server.example.com/mcp', fetchMock);
+
+        expect(result).toEqual({
+            success: false,
+            reason: 'not_compatible',
         });
     });
 });
