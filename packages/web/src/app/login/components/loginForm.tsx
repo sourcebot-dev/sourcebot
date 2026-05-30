@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { useIdentityProviders } from "@/features/auth/useIdentityProviders";
 import Link from "next/link";
 
 interface LoginFormProps {
@@ -17,6 +18,7 @@ interface LoginFormProps {
 
 export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnabled = false, hideSecurityNotice = false }: LoginFormProps) => {
     const captureEvent = useCaptureEvent();
+    const providers = useIdentityProviders();
 
     const safeCallbackUrl = useMemo(() => {
         if (!callbackUrl) return "/";

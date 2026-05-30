@@ -220,7 +220,7 @@ export class AccountPermissionSyncer {
     ) {
         const config = await loadConfig(env.CONFIG_PATH);
 
-        logger.info(`Syncing permissions for ${account.providerId} account (id: ${account.id}) for user ${account.user.email}...`);
+        logger.debug(`Syncing permissions for ${account.providerId} account (id: ${account.id}) for user ${account.user.email}...`);
 
         // Ensure the OAuth token is fresh, refreshing it if it is expired or near expiry.
         //
@@ -408,7 +408,7 @@ export class AccountPermissionSyncer {
             }
         });
 
-        logger.info(`Permissions synced for ${account.providerId} account (id: ${account.id}) for user ${account.user.email}`);
+        logger.debug(`Permissions synced for ${account.providerId} account (id: ${account.id}) for user ${account.user.email}`);
     }
 
     private async onJobFailed(job: Job<AccountPermissionSyncJob> | undefined, err: Error) {

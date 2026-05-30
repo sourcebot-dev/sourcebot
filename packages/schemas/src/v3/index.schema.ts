@@ -7144,8 +7144,6 @@ const schema = {
         },
         {
           "type": "array",
-          "deprecated": true,
-          "description": "Deprecated. Use the object form keyed by id instead.",
           "items": {
             "$schema": "http://json-schema.org/draft-07/schema#",
             "title": "IdentityProviderConfig",
