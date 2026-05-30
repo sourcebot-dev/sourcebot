@@ -6,7 +6,7 @@ export interface PrefabMcpServer {
 }
 
 export const DEFAULT_STATIC_OAUTH_DESCRIPTION =
-    "This connector does not advertise dynamic client registration. Provide OAuth client credentials from a pre-registered app before members can connect to it.";
+    "This connector does not advertise dynamic client registration. Provide OAuth client credentials from a pre-registered app before members can connect to it.\n\nRedirect URL: `{{REDIRECT_URL}}`";
 
 export const OAUTH_REDIRECT_URL_PLACEHOLDER = "{{REDIRECT_URL}}";
 
