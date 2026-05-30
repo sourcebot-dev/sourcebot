@@ -61,13 +61,20 @@ export function YearlyTermSeatsUsageCard({
             });
     }, [router, toast]);
 
-    const hasOverage = billableOverageSeats > 0;
-    const committedUsedPercent = hasOverage
+    // Derive "currently over committed" locally from the live currentUsers count
+    // vs the synced committedSeats. This ensures the visual indicator appears
+    // immediately when a member is added past committed seats, without waiting
+    // for a Lighthouse sync.
+    const isCurrentlyOverCommitted = currentUsers > committedSeats;
+
+    // Show the blue segment whenever we're currently over committed (local check).
+    // The bar uses a fixed 90/10 split for visual clarity when over capacity.
+    const committedUsedPercent = isCurrentlyOverCommitted
         ? 90
         : committedSeats > 0
             ? Math.min(100, (currentUsers / committedSeats) * 100)
             : 0;
-    const overagePercent = hasOverage ? 10 : 0;
+    const overagePercent = isCurrentlyOverCommitted ? 10 : 0;
 
     return (
         <div className="flex flex-col gap-3">
@@ -104,19 +111,19 @@ export function YearlyTermSeatsUsageCard({
                                             You&apos;ll be invoiced for {billableOverageSeats} additional {billableOverageSeats === 1 ? 'seat' : 'seats'} at the end of the current quarter on {formatDate(currentQuarterEndsAt)}.
                                         </TooltipContent>
                                     </Tooltip>
-                                ) : (
-                                    overageSeats > 0 &&
-                                    billableOverageSeats === 0 &&
-                                    (currentUsers - committedSeats) > 0
-                                ) ? (
+                                ) : isCurrentlyOverCommitted ? (
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                                            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 cursor-help">
+                                                Over capacity
+                                            </Badge>
                                         </TooltipTrigger>
                                         <TooltipContent className="max-w-xs">
-                                            {overageSeats === 1
-                                                ? `The additional seat in use will not be billed in the current subscription term. Instead, it will be billed upon renewal on ${formatDate(termEndsAt)}.`
-                                                : `The ${overageSeats} additional seats in use will not be billed in the current subscription term. Instead, they will be billed upon renewal on ${formatDate(termEndsAt)}.`}
+                                            {overageSeats > 0
+                                                ? (overageSeats === 1
+                                                    ? `The additional seat in use will not be billed in the current subscription term. Instead, it will be billed upon renewal on ${formatDate(termEndsAt)}.`
+                                                    : `The ${overageSeats} additional seats in use will not be billed in the current subscription term. Instead, they will be billed upon renewal on ${formatDate(termEndsAt)}.`)
+                                                : `You're currently using ${currentUsers - committedSeats} more ${currentUsers - committedSeats === 1 ? 'seat' : 'seats'} than your subscription includes. Additional users will be billed as overage at the end of each quarter.`}
                                         </TooltipContent>
                                     </Tooltip>
                                 ) : (
