@@ -91,6 +91,7 @@ function createPrismaMock() {
         },
         userMcpServer: {
             upsert: vi.fn().mockResolvedValue({ userId: 'user-1', serverId: 'server-1' }),
+            deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
         },
     };
 }
@@ -305,6 +306,16 @@ describe('POST /api/ee/askmcp/connect', () => {
             serverUrl: 'https://mcp.linear.app/mcp',
             authMode: 'dynamic',
             failureReason: 'invalid_client',
+        });
+        expect(prisma.userMcpServer.deleteMany).toHaveBeenCalledWith({
+            where: {
+                userId: 'user-1',
+                serverId: 'server-1',
+                tokens: null,
+                tokensExpiresAt: null,
+                codeVerifier: null,
+                state: null,
+            },
         });
     });
 });

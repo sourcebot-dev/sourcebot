@@ -113,60 +113,86 @@ export const POST = apiHandler(async (request: NextRequest) => {
             update: {},
         });
 
-        const connectResult = await __unsafePrisma.$transaction(async (tx) => {
-            const lockedRows = await tx.$queryRaw<{ id: string }[]>`
-                SELECT id
-                FROM "McpServer"
-                WHERE id = ${mcpServer.id} AND "orgId" = ${org.id}
-                FOR UPDATE
-            `;
+        let connectResult: {
+            authResult: Awaited<ReturnType<typeof mcpAuth>>;
+            authorizationUrl: string | null;
+        };
 
-            if (lockedRows.length === 0) {
-                throw new ServiceErrorException(notFound('Connector not found'));
-            }
+        try {
+            connectResult = await __unsafePrisma.$transaction(async (tx) => {
+                const lockedRows = await tx.$queryRaw<{ id: string }[]>`
+                    SELECT id
+                    FROM "McpServer"
+                    WHERE id = ${mcpServer.id} AND "orgId" = ${org.id}
+                    FOR UPDATE
+                `;
 
-            const provider = new PrismaOAuthClientProvider({
-                prisma: tx,
-                clientInvalidationPrisma: tx,
-                serverId: mcpServer.id,
-                orgId: org.id,
-                userId: user.id,
-                callbackUrl: getMcpOAuthCallbackUrl(),
-                callbackReturnTo,
-                allowClientRegistration: true,
-            });
+                if (lockedRows.length === 0) {
+                    throw new ServiceErrorException(notFound('Connector not found'));
+                }
 
-            let authResult: Awaited<ReturnType<typeof mcpAuth>>;
-            try {
-                authResult = await mcpAuth(provider, {
-                    serverUrl: new URL(mcpServer.serverUrl),
-                    fetchFn: createTimeoutFetch(MCP_AUTH_FETCH_TIMEOUT_MS),
-                });
-            } catch (error) {
-                logger.warn('Failed to start connector authorization.', {
+                const provider = new PrismaOAuthClientProvider({
+                    prisma: tx,
+                    clientInvalidationPrisma: tx,
                     serverId: mcpServer.id,
                     orgId: org.id,
-                    error: getExternalMcpErrorLogFields(error),
+                    userId: user.id,
+                    callbackUrl: getMcpOAuthCallbackUrl(),
+                    callbackReturnTo,
+                    allowClientRegistration: true,
                 });
-                void captureEvent('ask_mcp_connector_connection_failed', {
-                    ...eventProperties,
-                    failureReason: getMcpConnectorFailureReason(error),
-                });
-                throw new ServiceErrorException({
-                    statusCode: StatusCodes.BAD_GATEWAY,
-                    errorCode: ErrorCode.UNEXPECTED_ERROR,
-                    message: 'Could not start connector authorization.',
-                });
-            }
 
-            return {
-                authResult,
-                authorizationUrl: provider.authorizationUrl ?? null,
-            };
-        }, {
-            maxWait: MCP_AUTH_TRANSACTION_MAX_WAIT_MS,
-            timeout: MCP_AUTH_TRANSACTION_TIMEOUT_MS,
-        });
+                let authResult: Awaited<ReturnType<typeof mcpAuth>>;
+                try {
+                    authResult = await mcpAuth(provider, {
+                        serverUrl: new URL(mcpServer.serverUrl),
+                        fetchFn: createTimeoutFetch(MCP_AUTH_FETCH_TIMEOUT_MS),
+                    });
+                } catch (error) {
+                    logger.warn('Failed to start connector authorization.', {
+                        serverId: mcpServer.id,
+                        orgId: org.id,
+                        error: getExternalMcpErrorLogFields(error),
+                    });
+                    void captureEvent('ask_mcp_connector_connection_failed', {
+                        ...eventProperties,
+                        failureReason: getMcpConnectorFailureReason(error),
+                    });
+                    throw new ServiceErrorException({
+                        statusCode: StatusCodes.BAD_GATEWAY,
+                        errorCode: ErrorCode.UNEXPECTED_ERROR,
+                        message: 'Could not start connector authorization.',
+                    });
+                }
+
+                return {
+                    authResult,
+                    authorizationUrl: provider.authorizationUrl ?? null,
+                };
+            }, {
+                maxWait: MCP_AUTH_TRANSACTION_MAX_WAIT_MS,
+                timeout: MCP_AUTH_TRANSACTION_TIMEOUT_MS,
+            });
+        } catch (error) {
+            await prisma.userMcpServer.deleteMany({
+                where: {
+                    userId: user.id,
+                    serverId: mcpServer.id,
+                    tokens: null,
+                    tokensExpiresAt: null,
+                    codeVerifier: null,
+                    state: null,
+                },
+            }).catch((cleanupError) => {
+                logger.warn('Failed to clean up empty MCP connector connection.', {
+                    serverId: mcpServer.id,
+                    orgId: org.id,
+                    userId: user.id,
+                    error: getExternalMcpErrorLogFields(cleanupError),
+                });
+            });
+            throw error;
+        }
 
         if (connectResult.authResult === 'AUTHORIZED') {
             // Already has valid tokens (e.g., refreshed)
