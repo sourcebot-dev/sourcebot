@@ -599,7 +599,20 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                                             </a>
                                         ),
                                         code: ({ children }) => (
-                                            <code className="bg-muted rounded px-1 py-0.5 text-xs break-all">{children}</code>
+                                            <span className="inline-flex items-center gap-1 align-middle">
+                                                <code className="bg-muted rounded px-1 py-0.5 text-xs break-all">{children}</code>
+                                                <button
+                                                    type="button"
+                                                    aria-label="Copy redirect URL"
+                                                    className="text-muted-foreground hover:text-foreground"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(String(children));
+                                                        toast({ title: "Copied", description: "Redirect URL copied to clipboard." });
+                                                    }}
+                                                >
+                                                    <CopyIcon className="h-3 w-3" />
+                                                </button>
+                                            </span>
                                         ),
                                     }}
                                 >

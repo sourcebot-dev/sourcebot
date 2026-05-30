@@ -38,7 +38,7 @@ const prefabMcpServers = [
         name: "Slack",
         serverUrl: "https://mcp.slack.com/mcp",
         staticOAuthDescription:
-            "Slack doesn't support dynamic client registration, so you'll need to create an app in your Slack workspace and provide Sourcebot a Client ID and Secret. These are stored encrypted within your Sourcebot deployment.\n\nVisit [this page](https://api.slack.com/apps) to create a Slack app. Set the redirect URL (under OAuth & Permissions) to `{{REDIRECT_URL}}`.",
+            "Slack doesn't support dynamic client registration, so you'll need to create an app in your Slack workspace and provide Sourcebot a Client ID and Secret. These are stored encrypted within your Sourcebot deployment.\n\nVisit [this page](https://api.slack.com/apps) to create a Slack app. Set the redirect URL (under OAuth & Permissions) to `{{REDIRECT_URL}}`",
     },
 ] satisfies PrefabMcpServer[];
 
