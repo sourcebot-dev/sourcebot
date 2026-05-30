@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => ({
     captureEvent: vi.fn(),
     unsafePrisma: {
         mcpServer: {
-            deleteMany: vi.fn(),
+            delete: vi.fn(),
             findFirst: vi.fn(),
         },
         userMcpServer: {
@@ -341,7 +341,7 @@ describe('deleteMcpServer', () => {
             serverUrl: 'https://mcp.linear.app/mcp',
             clientInfoSource: McpServerClientInfoSource.DYNAMIC,
         });
-        mocks.unsafePrisma.mcpServer.deleteMany.mockResolvedValue({ count: 1 });
+        mocks.unsafePrisma.mcpServer.delete.mockResolvedValue({ id: 'server-1' });
 
         await expect(deleteMcpServer('server-1')).resolves.toEqual({ success: true });
         expect(mocks.unsafePrisma.mcpServer.findFirst).toHaveBeenCalledWith({
@@ -355,10 +355,9 @@ describe('deleteMcpServer', () => {
                 clientInfoSource: true,
             },
         });
-        expect(mocks.unsafePrisma.mcpServer.deleteMany).toHaveBeenCalledWith({
+        expect(mocks.unsafePrisma.mcpServer.delete).toHaveBeenCalledWith({
             where: {
                 id: 'server-1',
-                orgId: 1,
             },
         });
         expect(mocks.captureEvent).toHaveBeenCalledWith('ask_mcp_connector_removed', {
@@ -380,7 +379,7 @@ describe('deleteMcpServer', () => {
         expect(result).toMatchObject({
             errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
         });
-        expect(mocks.unsafePrisma.mcpServer.deleteMany).not.toHaveBeenCalled();
+        expect(mocks.unsafePrisma.mcpServer.delete).not.toHaveBeenCalled();
         expect(mocks.captureEvent).not.toHaveBeenCalled();
     });
 
@@ -393,7 +392,7 @@ describe('deleteMcpServer', () => {
             errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
         });
         expect(mocks.unsafePrisma.mcpServer.findFirst).not.toHaveBeenCalled();
-        expect(mocks.unsafePrisma.mcpServer.deleteMany).not.toHaveBeenCalled();
+        expect(mocks.unsafePrisma.mcpServer.delete).not.toHaveBeenCalled();
     });
 
     test('owners can delete org MCP servers when Ask Agent is unavailable', async () => {
@@ -404,15 +403,14 @@ describe('deleteMcpServer', () => {
             serverUrl: 'https://mcp.linear.app/mcp',
             clientInfoSource: McpServerClientInfoSource.DYNAMIC,
         });
-        mocks.unsafePrisma.mcpServer.deleteMany.mockResolvedValue({ count: 1 });
+        mocks.unsafePrisma.mcpServer.delete.mockResolvedValue({ id: 'server-1' });
 
         await expect(deleteMcpServer('server-1')).resolves.toEqual({ success: true });
 
         expect(mocks.hasEntitlement).not.toHaveBeenCalled();
-        expect(mocks.unsafePrisma.mcpServer.deleteMany).toHaveBeenCalledWith({
+        expect(mocks.unsafePrisma.mcpServer.delete).toHaveBeenCalledWith({
             where: {
                 id: 'server-1',
-                orgId: 1,
             },
         });
     });

@@ -311,10 +311,9 @@ export const deleteMcpServer = async (serverId: string) => sew(() =>
                 } satisfies ServiceError;
             }
 
-            await __unsafePrisma.mcpServer.deleteMany({
+            await __unsafePrisma.mcpServer.delete({
                 where: {
-                    id: serverId,
-                    orgId: org.id,
+                    id: server.id,
                 },
             });
 
