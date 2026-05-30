@@ -30,7 +30,8 @@ import { cn, isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangleIcon, CableIcon, CopyIcon, Loader2, MoreHorizontalIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { PrefabConnectorPopover } from "@/ee/features/chat/mcp/components/prefabConnectorPopover";
-import type { PrefabMcpServer } from "@/ee/features/chat/mcp/prefabMcpServers";
+import Markdown from "react-markdown";
+import { getStaticOAuthDescription, type PrefabMcpServer } from "@/ee/features/chat/mcp/prefabMcpServers";
 import type { McpConfigurationServer, ServerToolsEntry } from "@/ee/features/chat/mcp/types";
 
 function clearCallbackParams() {
@@ -45,6 +46,7 @@ interface WorkspaceAskAgentPageProps {
     callbackStatus?: string;
     callbackServer?: string;
     callbackMessage?: string;
+    oauthRedirectUrl: string;
 }
 
 type WorkspaceConnectorStatus = {
@@ -158,7 +160,7 @@ function WorkspaceConnectorCard({
     );
 }
 
-export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callbackMessage }: WorkspaceAskAgentPageProps) {
+export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callbackMessage, oauthRedirectUrl }: WorkspaceAskAgentPageProps) {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const router = useRouter();
@@ -392,7 +394,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
     };
 
     if (isError) {
-        return <div>Error loading Ask Agent settings</div>;
+        return <div>Error loading Ask Sourcebot settings</div>;
     }
 
     const prefabPopoverProps = {
@@ -406,20 +408,20 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         <div className="flex flex-col gap-6">
             {/* Page header */}
             <div>
-                <h3 className="text-lg font-medium">Ask Agent</h3>
+                <h3 className="text-lg font-medium">Ask Sourcebot</h3>
                 <p className="text-sm text-muted-foreground">
-                    Configure what external tools Ask Agent can use across this workspace.
+                    Configure what external tools Ask Sourcebot can use across this workspace.
                 </p>
             </div>
 
             <Separator />
 
-            {/* Ask Agent unavailable warning */}
+            {/* Ask Sourcebot unavailable warning */}
             {!isLoading && isAskAgentUnavailable && (
                 <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-4">
                     <AlertTriangleIcon className="h-4 w-4 text-muted-foreground mt-0.5" />
                     <div>
-                        <p className="text-sm font-medium">Ask Agent connectors are unavailable</p>
+                        <p className="text-sm font-medium">Ask Sourcebot connectors are unavailable</p>
                         <p className="text-sm text-muted-foreground">
                             You can remove existing approved connectors and stored credentials, but cannot add new connectors.
                         </p>
@@ -432,7 +434,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                 <div>
                     <h4 className="text-sm font-semibold text-foreground">Connectors</h4>
                     <p className="text-sm text-muted-foreground">
-                        Connectors are MCP servers that let Ask Agent use approved external tools alongside your indexed code.
+                        Connectors are MCP servers that let Ask Sourcebot use approved external tools alongside your indexed code.
                     </p>
                 </div>
 
@@ -481,8 +483,8 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                                     <p className="text-sm font-medium mb-1">No connectors configured yet</p>
                                     <p className="text-sm text-muted-foreground max-w-sm">
                                         {isAskAgentUnavailable
-                                            ? "Ask Agent connectors are unavailable on this Sourcebot instance."
-                                            : "Add a workspace-approved connector so members can use it with Ask Agent."}
+                                            ? "Ask Sourcebot connectors are unavailable on this Sourcebot instance."
+                                            : "Add a workspace-approved connector so members can use it with Ask Sourcebot."}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -536,7 +538,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                     <DialogHeader>
                         <DialogTitle>Add Connector</DialogTitle>
                         <DialogDescription>
-                            Add a workspace-approved connector that members can use with Ask Agent.
+                            Add a workspace-approved connector that members can use with Ask Sourcebot.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -581,8 +583,42 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>OAuth Client Credentials Required</DialogTitle>
-                        <DialogDescription>
-                            This connector does not advertise dynamic client registration. Provide OAuth client credentials from a pre-registered app before members can connect to it.
+                        <DialogDescription asChild>
+                            <div className="text-sm text-muted-foreground">
+                                <Markdown
+                                    components={{
+                                        p: ({ children }) => <p className="[&:not(:first-child)]:mt-2">{children}</p>,
+                                        a: ({ children, href }) => (
+                                            <a
+                                                href={href}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-link hover:underline"
+                                            >
+                                                {children}
+                                            </a>
+                                        ),
+                                        code: ({ children }) => (
+                                            <span className="inline-flex items-center gap-1 align-middle">
+                                                <code className="bg-muted rounded px-1 py-0.5 text-xs break-all">{children}</code>
+                                                <button
+                                                    type="button"
+                                                    aria-label="Copy redirect URL"
+                                                    className="text-muted-foreground hover:text-foreground"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(String(children));
+                                                        toast({ title: "Copied", description: "Redirect URL copied to clipboard." });
+                                                    }}
+                                                >
+                                                    <CopyIcon className="h-3 w-3" />
+                                                </button>
+                                            </span>
+                                        ),
+                                    }}
+                                >
+                                    {getStaticOAuthDescription(pendingClientCredentialsServer?.serverUrl ?? "", oauthRedirectUrl)}
+                                </Markdown>
+                            </div>
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">

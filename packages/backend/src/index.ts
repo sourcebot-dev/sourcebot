@@ -61,8 +61,7 @@ await repoIndexManager.startScheduler();
 auditLogPruner.startScheduler();
 
 if (env.PERMISSION_SYNC_ENABLED === 'true' && !await hasEntitlement('permission-syncing')) {
-    logger.error('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
-    process.exit(1);
+    logger.warn('Permission syncing is not supported in current plan. Please contact team@sourcebot.dev for assistance.');
 }
 else if (env.PERMISSION_SYNC_ENABLED === 'true' && await hasEntitlement('permission-syncing')) {
     if (env.PERMISSION_SYNC_REPO_DRIVEN_ENABLED === 'true') {

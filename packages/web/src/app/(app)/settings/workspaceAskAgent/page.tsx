@@ -1,6 +1,7 @@
 import { hasEntitlement } from "@/lib/entitlements";
 import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
+import { getMcpOAuthCallbackUrl } from "@/ee/features/chat/mcp/utils.server";
 import { WorkspaceAskAgentPage } from "./workspaceAskAgentPage";
 import { WorkspaceAskAgentEntitlementMessage } from "./workspaceAskAgentEntitlementMessage";
 
@@ -36,6 +37,7 @@ export default authenticatedPage<PageProps>(async ({ org, prisma }, { searchPara
             callbackStatus={status}
             callbackServer={server}
             callbackMessage={message}
+            oauthRedirectUrl={getMcpOAuthCallbackUrl()}
         />
     );
 }, { minRole: OrgRole.OWNER, redirectTo: '/settings' });

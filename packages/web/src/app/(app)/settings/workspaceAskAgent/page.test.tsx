@@ -22,10 +22,10 @@ vi.mock('@/middleware/authenticatedPage', () => ({
         (props: { searchParams: Promise<Record<string, string>> }) => page(mocks.authContext, props)),
 }));
 vi.mock('./workspaceAskAgentPage', () => ({
-    WorkspaceAskAgentPage: () => <div>Workspace Ask Agent client</div>,
+    WorkspaceAskAgentPage: () => <div>Workspace Ask Sourcebot client</div>,
 }));
 vi.mock('./workspaceAskAgentEntitlementMessage', () => ({
-    WorkspaceAskAgentEntitlementMessage: () => <div>Upgrade to configure Ask Agent connectors</div>,
+    WorkspaceAskAgentEntitlementMessage: () => <div>Upgrade to configure Ask Sourcebot connectors</div>,
 }));
 
 const { default: Page } = await import('./page');
@@ -40,31 +40,31 @@ afterEach(() => {
     cleanup();
 });
 
-describe('Ask Agent settings page', () => {
-    test('renders the connector configuration page when Ask Agent is available', async () => {
+describe('Ask Sourcebot settings page', () => {
+    test('renders the connector configuration page when Ask Sourcebot is available', async () => {
         render(await Page({ searchParams: Promise.resolve({}) }));
 
-        expect(screen.getByText('Workspace Ask Agent client')).toBeTruthy();
+        expect(screen.getByText('Workspace Ask Sourcebot client')).toBeTruthy();
     });
 
-    test('renders the connector page for teardown when Ask Agent is unavailable but connectors exist', async () => {
+    test('renders the connector page for teardown when Ask Sourcebot is unavailable but connectors exist', async () => {
         mocks.hasEntitlement.mockResolvedValue(false);
         mocks.authContext.prisma.mcpServer.count.mockResolvedValue(1);
 
         render(await Page({ searchParams: Promise.resolve({}) }));
 
-        expect(screen.getByText('Workspace Ask Agent client')).toBeTruthy();
+        expect(screen.getByText('Workspace Ask Sourcebot client')).toBeTruthy();
         expect(mocks.authContext.prisma.mcpServer.count).toHaveBeenCalledWith({
             where: { orgId: 1 },
         });
     });
 
-    test('renders the upsell message when Ask Agent is unavailable and no connectors exist', async () => {
+    test('renders the upsell message when Ask Sourcebot is unavailable and no connectors exist', async () => {
         mocks.hasEntitlement.mockResolvedValue(false);
 
         render(await Page({ searchParams: Promise.resolve({}) }));
 
-        expect(screen.getByText('Upgrade to configure Ask Agent connectors')).toBeTruthy();
-        expect(screen.queryByText('Workspace Ask Agent client')).toBeNull();
+        expect(screen.getByText('Upgrade to configure Ask Sourcebot connectors')).toBeTruthy();
+        expect(screen.queryByText('Workspace Ask Sourcebot client')).toBeNull();
     });
 });
