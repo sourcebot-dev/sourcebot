@@ -4,7 +4,7 @@ import { env, createLogger } from '@sourcebot/shared';
 import { hasEntitlement } from '@/lib/entitlements';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
 import { PrismaOAuthClientProvider } from '@/ee/features/chat/mcp/prismaOAuthClientProvider';
-import { getMcpOAuthCallbackUrl } from '@/ee/features/chat/mcp/mcpOAuthCallbackUrl';
+import { getMcpOAuthCallbackUrl } from '@/ee/features/chat/mcp/utils.server';
 // Note: We use the raw (unscoped) prisma client here because this route handles OAuth
 // redirect callbacks from external providers, so it can't go through withAuth. Session
 // identity is verified via NextAuth's auth() instead, and all queries filter by userId.

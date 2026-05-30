@@ -13,7 +13,7 @@ import { ConnectMcpResponse } from "@/app/api/(server)/ee/askmcp/connect/types";
 import { createLogger, env } from "@sourcebot/shared";
 import { __unsafePrisma } from '@/prisma';
 import { getExternalMcpErrorLogFields } from '@/ee/features/chat/mcp/externalMcpError';
-import { getMcpOAuthCallbackUrl } from '@/ee/features/chat/mcp/mcpOAuthCallbackUrl';
+import { getMcpOAuthCallbackUrl } from '@/ee/features/chat/mcp/utils.server';
 import { ErrorCode } from '@/lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
 import { normalizeMcpOAuthReturnTo } from '@/ee/features/chat/mcp/mcpOAuthReturnTo';

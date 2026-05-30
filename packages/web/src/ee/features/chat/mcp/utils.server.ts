@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { env } from '@sourcebot/shared';
 
 export const MCP_OAUTH_CALLBACK_PATH = '/api/ee/askmcp/callback';
