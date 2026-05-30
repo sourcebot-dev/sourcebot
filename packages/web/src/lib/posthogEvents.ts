@@ -186,6 +186,12 @@ export type PosthogEventMap = {
         messageCount: number,
         selectedReposCount: number,
         source?: string,
+        /**
+         * The configured AI provider type (e.g. 'anthropic', 'openai') and
+         * model ID for the language model used to handle this message.
+         */
+        modelProvider: string,
+        model: string,
         hasAskMcpServersAvailable: boolean,
         askMcpConnectedServerCount: number,
         askMcpEnabledServerCount: number,

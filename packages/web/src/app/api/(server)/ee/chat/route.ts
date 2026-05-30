@@ -114,6 +114,8 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 messageCount: messages.length,
                 selectedReposCount: expandedRepos.length,
                 source,
+                modelProvider: languageModelConfig.provider,
+                model: languageModelConfig.model,
                 ...askMcpAvailability,
                 ...(env.EXPERIMENT_ASK_GH_ENABLED === 'true' ? { selectedRepos: expandedRepos } : {}),
             });

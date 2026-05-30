@@ -154,6 +154,8 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 messageCount: 1,
                 selectedReposCount: selectedRepos.length,
                 source,
+                modelProvider: languageModelConfig.provider,
+                model: languageModelConfig.model,
                 hasAskMcpServersAvailable: false,
                 askMcpConnectedServerCount: 0,
                 askMcpEnabledServerCount: 0,
