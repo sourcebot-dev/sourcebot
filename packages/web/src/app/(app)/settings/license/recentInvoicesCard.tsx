@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
-import { Invoice } from "@/ee/features/lighthouse/types";
+import { Invoice } from "@/features/billing/types";
 import { SettingsCard, SettingsCardGroup } from "../components/settingsCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

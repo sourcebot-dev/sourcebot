@@ -17,7 +17,7 @@ vi.mock('@sourcebot/shared', () => ({
 
 vi.mock('server-only', () => ({ default: vi.fn() }));
 
-vi.mock('@/features/mcp/prismaOAuthClientProvider', () => ({
+vi.mock('@/ee/features/mcp/prismaOAuthClientProvider', () => ({
     PrismaOAuthClientProvider: vi.fn(),
 }));
 

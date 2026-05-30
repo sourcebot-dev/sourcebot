@@ -5,7 +5,7 @@ import { hasEntitlement } from '@/lib/entitlements';
 import { withAuth } from '@/middleware/withAuth';
 import { withMinimumOrgRole } from '@/middleware/withMinimumOrgRole';
 import { __unsafePrisma } from '@/prisma';
-import { getMcpFaviconUrl } from '@/ee/features/chat/mcp/utils';
+import { getMcpFaviconUrl } from '@/features/chat/mcp/utils';
 import type { GetMcpConfigurationResponse, McpServerToolUsageSummary } from '@/ee/features/chat/mcp/types';
 import { OrgRole } from '@sourcebot/db';
 import type { NextRequest } from 'next/server';
@@ -13,7 +13,7 @@ import type { NextRequest } from 'next/server';
 export const GET = apiHandler(async (_request: NextRequest) => {
     const result = await withAuth(async ({ org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async (): Promise<GetMcpConfigurationResponse> => {
-            const isOAuthAvailable = await hasEntitlement('oauth');
+            const isAskAgentAvailable = await hasEntitlement('ask');
 
             const orgServers = await prisma.mcpServer.findMany({
                 where: { orgId: org.id },
@@ -111,7 +111,7 @@ export const GET = apiHandler(async (_request: NextRequest) => {
             return {
                 servers,
                 allowedMode: 'approved_only',
-                isOAuthAvailable,
+                isAskAgentAvailable,
             };
         }));
 

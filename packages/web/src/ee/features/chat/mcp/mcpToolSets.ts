@@ -5,7 +5,7 @@ import Ajv from 'ajv';
 import { jsonSchema, ToolExecutionOptions } from 'ai';
 import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import { getExternalMcpErrorLogFields } from './externalMcpError';
-import { getMcpFaviconUrl } from './utils';
+import { getMcpFaviconUrl } from '@/features/chat/mcp/utils';
 import { __unsafePrisma } from '@/prisma';
 import { Prisma } from '@sourcebot/db';
 import { captureEvent } from '@/lib/posthog';

@@ -44,7 +44,7 @@ export default async function SettingsLayout(
 }
 
 export const getSidebarNavGroups = async () =>
-    withAuth(async ({ org, role, prisma }) => {
+    withAuth(async ({ role }) => {
         let numJoinRequests: number | undefined;
         if (role === OrgRole.OWNER) {
             const requests = await getOrgAccountRequests();
@@ -58,12 +58,7 @@ export const getSidebarNavGroups = async () =>
         if (isServiceError(connectionStats)) {
             throw new ServiceErrorException(connectionStats);
         }
-        const hasOAuthEntitlement = await hasEntitlement("oauth");
-        const hasApprovedConnectors = role === OrgRole.OWNER && !hasOAuthEntitlement
-            ? await prisma.mcpServer.count({
-                where: { orgId: org.id },
-            }) > 0
-            : false;
+        const hasAskEntitlement = await hasEntitlement("ask");
 
         const groups: NavGroup[] = [
             {
@@ -92,8 +87,9 @@ export const getSidebarNavGroups = async () =>
                         title: "MCP Server",
                         href: `/settings/mcp`,
                         icon: 'mcp' as const,
+                        requiredEntitlement: 'mcp',
                     },
-                    ...(hasOAuthEntitlement ? [
+                    ...(hasAskEntitlement ? [
                         {
                             title: "Ask Agent",
                             href: `/settings/accountAskAgent`,
@@ -132,13 +128,12 @@ export const getSidebarNavGroups = async () =>
                         icon: "chart-area" as const,
                         requiredEntitlement: 'analytics'
                     },
-                    ...(hasOAuthEntitlement || hasApprovedConnectors ? [
-                        {
-                            title: "Ask Agent",
-                            href: `/settings/workspaceAskAgent`,
-                            icon: "bot" as const,
-                        }
-                    ] : []),
+                    {
+                        title: "Ask Agent",
+                        href: `/settings/workspaceAskAgent`,
+                        icon: "bot" as const,
+                        requiredEntitlement: 'ask',
+                    },
                     {
                         title: "License",
                         href: `/settings/license`,

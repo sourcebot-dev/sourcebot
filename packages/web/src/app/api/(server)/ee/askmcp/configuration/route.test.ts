@@ -140,7 +140,7 @@ describe('GET /api/ee/askmcp/configuration', () => {
         });
         expect(body).toMatchObject({
             allowedMode: 'approved_only',
-            isOAuthAvailable: true,
+            isAskAgentAvailable: true,
             servers: [
                 {
                     id: 'server-1',
@@ -204,7 +204,7 @@ describe('GET /api/ee/askmcp/configuration', () => {
         expect(mocks.unsafePrisma.mcpServerToolCallCount.findMany).not.toHaveBeenCalled();
     });
 
-    test('rejects unauthenticated callers before checking OAuth entitlement', async () => {
+    test('rejects unauthenticated callers before checking the ask entitlement', async () => {
         mocks.withAuth.mockResolvedValue({
             statusCode: 401,
             errorCode: ErrorCode.NOT_AUTHENTICATED,
@@ -223,7 +223,7 @@ describe('GET /api/ee/askmcp/configuration', () => {
         expect(mocks.unsafePrisma.mcpServerToolCallCount.findMany).not.toHaveBeenCalled();
     });
 
-    test('allows entitled owners to list cleanup data when OAuth is unsupported', async () => {
+    test('allows entitled owners to list cleanup data when Ask Agent is unavailable', async () => {
         const prisma = createPrismaMock();
         mocks.authContext = {
             org: { id: 1 },
@@ -237,7 +237,7 @@ describe('GET /api/ee/askmcp/configuration', () => {
 
         expect(response.status).toBe(200);
         expect(body).toMatchObject({
-            isOAuthAvailable: false,
+            isAskAgentAvailable: false,
             servers: [
                 {
                     id: 'server-1',
@@ -272,7 +272,7 @@ describe('GET /api/ee/askmcp/configuration', () => {
         expect(body).toEqual({
             servers: [],
             allowedMode: 'approved_only',
-            isOAuthAvailable: true,
+            isAskAgentAvailable: true,
         });
     });
 });

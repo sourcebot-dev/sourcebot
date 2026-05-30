@@ -5,7 +5,7 @@ import {
     formatCount,
     formatUsageSharePercent,
     pluralize,
-} from '@/ee/features/chat/mcp/utils';
+} from '@/features/chat/mcp/utils';
 import type { McpServerToolUsageSummary, ServerToolsEntry } from '@/ee/features/chat/mcp/types';
 import { BarChart3Icon, ChevronDownIcon } from 'lucide-react';
 

@@ -46,7 +46,7 @@ describe('ConnectorToolTrigger', () => {
     test('renders unavailable state before connection-specific states', () => {
         renderToolTrigger({
             isConnected: false,
-            isOAuthAvailable: false,
+            isAskAgentAvailable: false,
         });
 
         expect(screen.getByText('Tools unavailable')).toBeTruthy();

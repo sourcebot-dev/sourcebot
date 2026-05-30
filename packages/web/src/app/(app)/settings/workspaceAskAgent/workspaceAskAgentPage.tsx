@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getMcpConfiguration, getMcpServersWithStatus } from "@/app/api/(client)/client";
 import { useToast } from "@/components/hooks/use-toast";
 import {
@@ -24,11 +25,11 @@ import { ConnectMcpButton } from "@/ee/features/chat/mcp/components/connectMcpBu
 import { ConnectorCard } from "@/ee/features/chat/mcp/components/connectorCard";
 import { useMcpToolMetadata } from "@/ee/features/chat/mcp/hooks/useMcpToolMetadata";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/chat/mcp/queryKeys";
-import { pluralize } from "@/ee/features/chat/mcp/utils";
+import { pluralize } from "@/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangleIcon, CableIcon, CopyIcon, Loader2, MoreHorizontalIcon, PlusIcon, Trash2Icon } from "lucide-react";
-import { PrefabConnectorPopover } from "./prefabConnectorPopover";
+import { PrefabConnectorPopover } from "@/ee/features/chat/mcp/components/prefabConnectorPopover";
 import type { PrefabMcpServer } from "@/ee/features/chat/mcp/prefabMcpServers";
 import type { McpConfigurationServer, ServerToolsEntry } from "@/ee/features/chat/mcp/types";
 
@@ -54,7 +55,7 @@ type WorkspaceConnectorStatus = {
 interface WorkspaceConnectorCardProps {
     server: McpConfigurationServer;
     status?: WorkspaceConnectorStatus;
-    isOAuthAvailable: boolean;
+    isAskAgentAvailable: boolean;
     isStatusLoading: boolean;
     isStatusError: boolean;
     toolEntry?: ServerToolsEntry;
@@ -68,7 +69,7 @@ interface WorkspaceConnectorCardProps {
 function WorkspaceConnectorCard({
     server,
     status,
-    isOAuthAvailable,
+    isAskAgentAvailable,
     isStatusLoading,
     isStatusError,
     toolEntry,
@@ -80,8 +81,8 @@ function WorkspaceConnectorCard({
 }: WorkspaceConnectorCardProps) {
     const isConnected = status?.isConnected === true;
     const isAuthExpired = status?.isAuthExpired === true;
-    const isStatusUnavailable = isOAuthAvailable !== true || isStatusLoading || isStatusError || !status;
-    const showConnectButton = isOAuthAvailable && !isStatusLoading && !isStatusError && !!status && !isConnected;
+    const isStatusUnavailable = isAskAgentAvailable !== true || isStatusLoading || isStatusError || !status;
+    const showConnectButton = isAskAgentAvailable && !isStatusLoading && !isStatusError && !!status && !isConnected;
     const serverLabel = server.name || server.serverUrl;
 
     return (
@@ -91,7 +92,7 @@ function WorkspaceConnectorCard({
             serverUrl={server.serverUrl}
             isConnected={isConnected}
             isAuthExpired={isAuthExpired}
-            isOAuthAvailable={isOAuthAvailable}
+            isAskAgentAvailable={isAskAgentAvailable}
             isStatusUnavailable={isStatusUnavailable}
             toolEntry={isConnected ? toolEntry : undefined}
             toolUsage={server.toolUsage}
@@ -160,6 +161,7 @@ function WorkspaceConnectorCard({
 export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callbackMessage }: WorkspaceAskAgentPageProps) {
     const { toast } = useToast();
     const queryClient = useQueryClient();
+    const router = useRouter();
     const didHandleCallbackRef = useRef(false);
 
     useEffect(() => {
@@ -210,7 +212,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
             }
             return result;
         },
-        enabled: data?.isOAuthAvailable !== false,
+        enabled: data?.isAskAgentAvailable !== false,
     });
 
     const myStatusByServerId = useMemo(() => {
@@ -222,8 +224,8 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
     }, [serversWithStatus]);
 
     const servers = data?.servers ?? [];
-    const canCreateConnectors = data?.isOAuthAvailable === true;
-    const isOAuthUnavailable = data?.isOAuthAvailable === false;
+    const canCreateConnectors = data?.isAskAgentAvailable === true;
+    const isAskAgentUnavailable = data?.isAskAgentAvailable === false;
     const connectedServerCount = useMemo(
         () => serversWithStatus?.filter((server) => server.isConnected).length ?? 0,
         [serversWithStatus],
@@ -233,7 +235,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         isToolsError,
         refetchTools,
         toolsByServerId,
-    } = useMcpToolMetadata(data?.isOAuthAvailable === true, connectedServerCount);
+    } = useMcpToolMetadata(data?.isAskAgentAvailable === true, connectedServerCount);
 
     const handleCreateDialogOpenChange = (open: boolean) => {
         setIsCreateDialogOpen(open);
@@ -367,6 +369,16 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
 
             await invalidateMcpConfigurationQueries(queryClient);
             setServerToDelete(null);
+
+            // When the last connector is removed, re-run the server-side gate in
+            // page.tsx, which swaps this page for the upsell if the deployment
+            // lacks the `ask` entitlement. Only refresh in that case; otherwise
+            // the query invalidation above already updates the list. (`servers`
+            // is the pre-deletion list captured in this closure.)
+            const isLastServer = servers.filter((s) => s.id !== serverId).length === 0;
+            if (isLastServer) {
+                router.refresh();
+            }
         } catch (error) {
             toast({ title: "Error", description: `Failed to remove connector: ${error}`, variant: "destructive" });
         } finally {
@@ -402,12 +414,12 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
 
             <Separator />
 
-            {/* OAuth unavailable warning */}
-            {!isLoading && isOAuthUnavailable && (
+            {/* Ask Agent unavailable warning */}
+            {!isLoading && isAskAgentUnavailable && (
                 <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-4">
                     <AlertTriangleIcon className="h-4 w-4 text-muted-foreground mt-0.5" />
                     <div>
-                        <p className="text-sm font-medium">Connector OAuth is unavailable</p>
+                        <p className="text-sm font-medium">Ask Agent connectors are unavailable</p>
                         <p className="text-sm text-muted-foreground">
                             You can remove existing approved connectors and stored credentials, but cannot add new connectors.
                         </p>
@@ -430,7 +442,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                         <div>
                             <h4 className="text-sm font-semibold text-foreground">Allowed connectors</h4>
                             <p className="text-sm text-muted-foreground">
-                                {isOAuthUnavailable
+                                {isAskAgentUnavailable
                                     ? "Remove existing connector approvals and their stored credentials."
                                     : "Approve connector URLs that workspace members can connect to."}
                             </p>
@@ -468,8 +480,8 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                                     </div>
                                     <p className="text-sm font-medium mb-1">No connectors configured yet</p>
                                     <p className="text-sm text-muted-foreground max-w-sm">
-                                        {isOAuthUnavailable
-                                            ? "Connector OAuth is unavailable on this Sourcebot instance."
+                                        {isAskAgentUnavailable
+                                            ? "Ask Agent connectors are unavailable on this Sourcebot instance."
                                             : "Add a workspace-approved connector so members can use it with Ask Agent."}
                                     </p>
                                 </CardContent>
@@ -480,7 +492,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                                     key={server.id}
                                     server={server}
                                     status={myStatusByServerId.get(server.id)}
-                                    isOAuthAvailable={data?.isOAuthAvailable === true}
+                                    isAskAgentAvailable={data?.isAskAgentAvailable === true}
                                     isStatusLoading={isServersWithStatusLoading}
                                     isStatusError={isServersWithStatusError}
                                     toolEntry={toolsByServerId.get(server.id)}

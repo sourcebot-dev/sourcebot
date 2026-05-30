@@ -5,7 +5,7 @@ import { useToast } from "@/components/hooks/use-toast";
 import { Check, Copy, ExternalLink } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
-import { SettingsCard } from "../components/settingsCard";
+import { SettingsCard } from "@/app/(app)/settings/components/settingsCard";
 import { type McpClient, buildClientAction } from "./clients";
 
 interface ClientCardProps {

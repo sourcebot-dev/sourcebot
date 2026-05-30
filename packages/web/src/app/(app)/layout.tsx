@@ -31,9 +31,9 @@ import { OrgRole } from "@sourcebot/db";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { ConnectAccountsCard } from "@/ee/features/sso/components/connectAccountsCard";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { CheckoutReturnHandler } from "@/ee/features/lighthouse/checkoutReturnHandler";
+import { CheckoutReturnHandler } from "@/features/billing/checkoutReturnHandler";
 import { RoleProvider } from "@/features/auth/roleProvider";
-import { HasLicenseProvider } from "@/ee/features/lighthouse/hasLicenseProvider";
+import { HasLicenseProvider } from "@/features/billing/hasLicenseProvider";
 import { tryGetLatestSourcebotTag } from "./components/banners/actions";
 
 interface LayoutProps {

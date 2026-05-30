@@ -62,7 +62,7 @@ describe('GET /api/ee/askmcp/tools', () => {
         ]);
     });
 
-    test('returns access_denied when OAuth is unavailable', async () => {
+    test('returns access_denied when Ask Agent is unavailable', async () => {
         mocks.hasEntitlement.mockResolvedValue(false);
 
         const response = await GET(createRequest());

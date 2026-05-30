@@ -2,8 +2,8 @@
 
 import { ArrowUpCircle } from "lucide-react";
 import { useState } from "react";
-import { UpsellDialog } from "@/ee/features/lighthouse/upsellDialog";
-import { useOffers } from "@/ee/features/lighthouse/useOffers";
+import { UpsellDialog } from "@/features/billing/upsellDialog";
+import { useOffers } from "@/features/billing/useOffers";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const UpgradeButton = () => {

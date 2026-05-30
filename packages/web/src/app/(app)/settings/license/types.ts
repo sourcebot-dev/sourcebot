@@ -1,4 +1,4 @@
-import { YearlyTermStatus as RawYearlyTermStatus } from "@/ee/features/lighthouse/types";
+import { YearlyTermStatus as RawYearlyTermStatus } from "@/features/billing/types";
 import { License } from "@sourcebot/db";
 
 export type YearlyTermStatus = Omit<RawYearlyTermStatus, 'currentQuarterStartedAt' | 'currentQuarterEndsAt' | 'termStartedAt' | 'termEndsAt'> & {

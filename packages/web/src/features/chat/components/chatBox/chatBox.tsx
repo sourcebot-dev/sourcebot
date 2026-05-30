@@ -26,7 +26,7 @@ import { usePathname } from "next/navigation";
 import { PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY } from "@/features/chat/constants";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
-import { UpsellDialog } from "@/ee/features/lighthouse/upsellDialog";
+import { UpsellDialog } from "@/features/billing/upsellDialog";
 
 interface ChatBoxProps {
     onSubmit: (children: Descendant[], editor: CustomEditor) => void;

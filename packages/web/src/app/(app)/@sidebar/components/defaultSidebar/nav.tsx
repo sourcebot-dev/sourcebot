@@ -69,6 +69,7 @@ export function Nav({
                 icon: MessagesSquareIcon,
                 key: "chats",
                 requiresAuth: true,
+                requiredEntitlement: "ask",
             },
             {
                 title: "Repositories",

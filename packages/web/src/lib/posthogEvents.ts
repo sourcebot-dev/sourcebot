@@ -4,8 +4,12 @@ export type UpsellSource =
     'sidebar' |
     'analytics_settings' |
     'chat_box' |
+    'chat' |
+    'chats' |
     'onboard' |
-    'license_settings';
+    'license_settings' |
+    'mcp_settings' |
+    'chat_connectors';
 
 export type SourcebotWebClientSource = 'sourcebot-web-client';
 export type AskMcpAnalyticsSource = SourcebotWebClientSource | 'sourcebot-ask-agent';

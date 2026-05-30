@@ -1,6 +1,6 @@
 import type { Descendant } from "slate";
-import { MCP_OAUTH_DRAFT_SESSION_STORAGE_KEY } from "./constants";
-import type { CustomText, MentionElement, ParagraphElement, SearchScope } from "./types";
+import { MCP_OAUTH_DRAFT_SESSION_STORAGE_KEY } from "@/features/chat/constants";
+import type { CustomText, MentionElement, ParagraphElement, SearchScope } from "@/features/chat/types";
 
 const MCP_OAUTH_DRAFT_BASE_URL = 'https://sourcebot.invalid';
 const MCP_OAUTH_DRAFT_MAX_AGE_MS = 30 * 60 * 1000;

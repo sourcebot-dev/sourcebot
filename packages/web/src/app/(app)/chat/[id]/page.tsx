@@ -3,7 +3,7 @@ import { getChatInfo, getSharedWithUsersForChat } from '@/features/chat/actions'
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { ServiceErrorException } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
-import { ChatThreadPanel } from './components/chatThreadPanel';
+import { ChatThreadPanel } from '@/ee/features/chat/components/chatThreadPanel';
 import { notFound } from 'next/navigation';
 import { StatusCodes } from 'http-status-codes';
 import { Separator } from '@/components/ui/separator';
@@ -16,6 +16,7 @@ import { Metadata } from 'next';
 import { SBChatMessage } from '@/features/chat/types';
 import { env } from '@sourcebot/shared';
 import { hasEntitlement } from '@/lib/entitlements';
+import { ChatEntitlementMessage } from '@/features/chat/components/chatEntitlementMessage';
 import { captureEvent } from '@/lib/posthog';
 
 interface PageProps {
@@ -81,6 +82,20 @@ export default async function Page(props: PageProps) {
     const params = await props.params;
     const session = await auth();
 
+    // Gate the Ask experience behind the `ask` entitlement (deployment-level).
+    // Viewing a public/shared chat still works on a licensed deployment; a
+    // downgraded deployment shows the upsell while preserving the chat data.
+    if (!await hasEntitlement('ask')) {
+        return (
+            <ChatEntitlementMessage
+                source="chat"
+                returnPath={`/chat/${params.id}`}
+                title="Upgrade to view this Ask Sourcebot chat"
+                description="Pick up this conversation right where you left off."
+            />
+        );
+    }
+
     const languageModels = await getConfiguredLanguageModelsInfo();
     const repos = await getRepos();
     const searchContexts = await getSearchContexts();
@@ -122,7 +137,9 @@ export default async function Page(props: PageProps) {
 
     const indexedRepos = repos.filter((repo) => repo.indexedAt !== undefined);
 
-    const hasChatSharingEntitlement = await hasEntitlement('chat-sharing');
+    // Chat sharing is part of Ask (the standalone `chat-sharing` entitlement was
+    // folded into `ask`). By this point the page is already gated on `ask`.
+    const hasChatSharingEntitlement = await hasEntitlement('ask');
 
     return (
         <div className="flex flex-col h-full">

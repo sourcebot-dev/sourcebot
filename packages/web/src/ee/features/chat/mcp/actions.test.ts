@@ -140,7 +140,7 @@ describe('createMcpServer', () => {
         expect(prisma.mcpServer.create).not.toHaveBeenCalled();
     });
 
-    test('owners cannot add org MCP servers when OAuth is unsupported', async () => {
+    test('owners cannot add org MCP servers when Ask Agent is unavailable', async () => {
         const prisma = setAuthContext(OrgRole.OWNER);
         mocks.hasEntitlement.mockResolvedValue(false);
 
@@ -363,7 +363,7 @@ describe('deleteMcpServer', () => {
         expect(mocks.unsafePrisma.mcpServer.deleteMany).not.toHaveBeenCalled();
     });
 
-    test('owners can delete org MCP servers when OAuth is unsupported', async () => {
+    test('owners can delete org MCP servers when Ask Agent is unavailable', async () => {
         setAuthContext(OrgRole.OWNER);
         mocks.hasEntitlement.mockResolvedValue(false);
         mocks.unsafePrisma.mcpServer.deleteMany.mockResolvedValue({ count: 1 });

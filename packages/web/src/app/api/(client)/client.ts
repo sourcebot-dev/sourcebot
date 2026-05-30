@@ -2,7 +2,7 @@
 
 import { ServiceError } from "@/lib/serviceError";
 import { GetVersionResponse, ListReposQueryParams, ListReposResponse } from "@/lib/types";
-import type { ListChatsQueryParams, ListChatsResponse } from "../(server)/chats/types";
+import type { ListChatsQueryParams, ListChatsResponse } from "../(server)/ee/chats/types";
 import { isServiceError } from "@/lib/utils";
 import {
     SearchRequest,
@@ -30,7 +30,7 @@ import type {
     SearchChatShareableMembersQueryParams,
     SearchChatShareableMembersResponse,
 } from "../(server)/ee/chat/[chatId]/searchMembers/route";
-import { OffersResponse } from "@/ee/features/lighthouse/types";
+import { OffersResponse } from "@/features/billing/types";
 import { ConnectMcpResponse } from "../(server)/ee/askmcp/connect/types";
 import type { GetMcpServersResponse } from "../(server)/ee/askmcp/servers/route";
 import type { GetMcpConfigurationResponse, GetMcpToolsResponse } from "@/ee/features/chat/mcp/types";
@@ -215,7 +215,7 @@ export const searchChatShareableMembers = async (
 }
 
 export const listChats = async (queryParams: ListChatsQueryParams): Promise<ListChatsResponse | ServiceError> => {
-    const url = new URL("/api/chats", window.location.origin);
+    const url = new URL("/api/ee/chats", window.location.origin);
     for (const [key, value] of Object.entries(queryParams)) {
         if (value !== undefined) {
             url.searchParams.set(key, String(value));

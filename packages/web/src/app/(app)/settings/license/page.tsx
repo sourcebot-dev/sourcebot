@@ -10,9 +10,9 @@ import { OfflineLicenseCard } from "./offlineLicenseCard";
 import { RecentInvoicesCard } from "./recentInvoicesCard";
 import { YearlyTermSeatsUsageCard } from "./yearlyTermSeatsUsageCard";
 import { SettingsCard } from "../components/settingsCard";
-import { UpsellPanel } from "@/ee/features/lighthouse/upsellDialog";
+import { UpsellPanel } from "@/features/billing/upsellDialog";
 import { getAllInvoices } from "@/ee/features/lighthouse/actions";
-import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
+import { syncWithLighthouse } from "@/features/billing/servicePing";
 import { isServiceError } from "@/lib/utils";
 import { getYearlyTermStatus } from "./types";
 

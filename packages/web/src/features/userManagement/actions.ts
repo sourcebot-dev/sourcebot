@@ -1,7 +1,7 @@
 'use server';
 
 import { createAudit } from "@/ee/features/audit/audit";
-import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
+import { syncWithLighthouse } from "@/features/billing/servicePing";
 import InviteUserEmail from "@/emails/inviteUserEmail";
 import JoinRequestApprovedEmail from "@/emails/joinRequestApprovedEmail";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
