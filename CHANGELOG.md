@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expired offline license keys no longer crash the process. An expired key now degrades to the unlicensed state. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 - Improved the `setup-sourcebot` wizard: prompts for a setup directory, clarifies that secrets are stored locally in `.env`, switches multi-select to Tab, hides "No results" until a real search runs, and detects/cleans up conflicting Docker deployments and volumes before starting. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 
+## [4.17.3] - 2026-05-22
+
+### Fixed
+- Fixed issue where repo permissions could go stale when authentication or token refresh related errors occured. [#1215](https://github.com/sourcebot-dev/sourcebot/pull/1215)
+- [EE] Fixed issue where repo permissions could go stale when an upstream endpoint returned HTTP 410 Gone (e.g. Bitbucket Cloud's CHANGE-2770). [#1216](https://github.com/sourcebot-dev/sourcebot/pull/1216)
+- [EE] Fixed Bitbucket Cloud account-driven permission sync after Atlassian's CHANGE-2770 removed `GET /2.0/user/permissions/repositories`. [#1217](https://github.com/sourcebot-dev/sourcebot/pull/1217)
+- Fixed issue where session invalidation (signout, user deletion, removal from org) was not reflected by `/api/auth/session`. [#1219](https://github.com/sourcebot-dev/sourcebot/pull/1219)
+- [EE] Fixed issue where an OAuth account-linking attempt without a valid signed-in session would silently create an orphan User row instead of rejecting the request. [#1221](https://github.com/sourcebot-dev/sourcebot/pull/1221)
+
 ## [4.17.2] - 2026-05-16
 
 ### Added
