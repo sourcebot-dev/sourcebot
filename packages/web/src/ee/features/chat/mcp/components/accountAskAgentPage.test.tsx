@@ -16,12 +16,12 @@ afterEach(() => {
 });
 
 describe('AccountAskAgentEmptyState', () => {
-    test('points owners to workspace Ask Agent settings', () => {
+    test('points owners to workspace Ask Sourcebot settings', () => {
         render(<AccountAskAgentEmptyState canManageConnectors={true} />);
 
         expect(screen.getByText('No connectors configured yet')).toBeTruthy();
-        expect(screen.getByText('Open Workspace Ask Agent to approve connectors for your workspace.')).toBeTruthy();
-        expect(screen.getByRole('link', { name: /Open Workspace Ask Agent/ }).getAttribute('href')).toBe('/settings/workspaceAskAgent');
+        expect(screen.getByText('Open Workspace Ask Sourcebot to approve connectors for your workspace.')).toBeTruthy();
+        expect(screen.getByRole('link', { name: /Open Workspace Ask Sourcebot/ }).getAttribute('href')).toBe('/settings/workspaceAskAgent');
     });
 
     test('tells members to contact an admin', () => {
@@ -29,6 +29,6 @@ describe('AccountAskAgentEmptyState', () => {
 
         expect(screen.getByText('No connectors available')).toBeTruthy();
         expect(screen.getByText(/Contact your workspace admin/)).toBeTruthy();
-        expect(screen.queryByRole('link', { name: /Open Workspace Ask Agent/ })).toBeNull();
+        expect(screen.queryByRole('link', { name: /Open Workspace Ask Sourcebot/ })).toBeNull();
     });
 });
