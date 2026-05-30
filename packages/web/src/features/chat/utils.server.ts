@@ -211,7 +211,8 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                 });
 
                 const isAdaptiveThinkingSupported =
-                    modelId.startsWith('claude-opus-4-7');
+                    modelId.startsWith('claude-opus-4-7') ||
+                    modelId.startsWith('claude-opus-4-8');
 
                 return {
                     model: anthropic(modelId),
