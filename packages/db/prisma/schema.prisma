@@ -294,6 +294,8 @@ model Org {
   chats Chat[]
   repoVisits RepoVisit[]
 
+  mcpServers McpServer[]
+
   license License?
 }
 
@@ -338,6 +340,11 @@ model License {
 enum OrgRole {
   OWNER
   MEMBER
+}
+
+enum McpServerClientInfoSource {
+  DYNAMIC
+  STATIC
 }
 
 model UserToOrg {
@@ -421,6 +428,8 @@ model User {
   /// this user on their next request. Compared against the `sessionVersion`
   /// claim baked into the JWT cookie at mint time.
   sessionVersion Int @default(0)
+
+  userMcpServers       UserMcpServer[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -655,4 +664,74 @@ model ChangelogEntry {
   fetchedAt DateTime @default(now()) @updatedAt
 
   @@index([publishedAt])
+}
+
+/// An external MCP server endpoint, unique per org.
+/// Stores the dynamic client registration (client_id/client_secret) once per org.
+model McpServer {
+  id            String   @id @default(cuid())
+  name          String   /// Org-approved display name (e.g., "Linear")
+  sanitizedName String   /// Stable tool-name prefix (e.g., "linear")
+  serverUrl     String   /// MCP server endpoint (e.g., "https://mcp.linear.app/mcp")
+
+  /// Dynamic client registration result (RFC 7591) or admin-provided static OAuth client credentials.
+  /// Encrypted JSON of OAuthClientInformation: { client_id, client_secret, client_id_issued_at, client_secret_expires_at }
+  /// Null for DYNAMIC rows until first user in the org triggers registration.
+  clientInfo       String?
+  clientInfoSource McpServerClientInfoSource @default(DYNAMIC)
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  userMcpServers  UserMcpServer[]
+  toolCallCounts  McpServerToolCallCount[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([serverUrl, orgId])
+  @@unique([orgId, sanitizedName])
+}
+
+/// Lifetime tool call counters for an MCP server.
+model McpServerToolCallCount {
+  mcpServer   McpServer @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
+  mcpServerId String
+  toolName    String
+  count       Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([mcpServerId, toolName])
+}
+
+/// A user's personal connection to an MCP server.
+/// Stores per-user OAuth tokens and ephemeral auth-flow state.
+model UserMcpServer {
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+
+  server   McpServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverId String
+
+  /// OAuth tokens (access_token, refresh_token, etc.) — encrypted JSON of OAuthTokens.
+  tokens String?
+
+  /// Absolute expiry time of the access token, computed at issuance from expires_in.
+  /// Null when no tokens are stored or the provider did not include expires_in.
+  tokensExpiresAt DateTime?
+
+  /// PKCE code verifier — ephemeral, only used between redirect and callback.
+  codeVerifier String?
+
+  /// OAuth state parameter — ephemeral, for CSRF protection during auth flow.
+  state String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([userId, serverId])
+  @@index([serverId])
+  @@index([state])
 }

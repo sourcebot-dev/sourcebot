@@ -14,7 +14,7 @@ interface SignInPromptBannerProps {
     isAuthenticated: boolean;
     isOwner: boolean;
     hasMessages: boolean;
-    isStreaming: boolean;
+    isTurnInProgress: boolean;
 }
 
 export const SignInPromptBanner = ({
@@ -22,7 +22,7 @@ export const SignInPromptBanner = ({
     isAuthenticated,
     isOwner,
     hasMessages,
-    isStreaming,
+    isTurnInProgress,
 }: SignInPromptBannerProps) => {
     const pathname = usePathname();
     const [isDismissed, setIsDismissed] = useState(true); // Start as true to avoid flash
@@ -39,7 +39,7 @@ export const SignInPromptBanner = ({
         !isAuthenticated &&
         isOwner &&
         hasMessages &&
-        !isStreaming;
+        !isTurnInProgress;
 
     // Show the banner after first response completes and track display
     useEffect(() => {

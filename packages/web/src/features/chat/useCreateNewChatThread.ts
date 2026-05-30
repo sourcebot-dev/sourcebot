@@ -10,7 +10,7 @@ import { createChat } from "./actions";
 import { isServiceError } from "@/lib/utils";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { SearchScope, SetChatStatePayload } from "./types";
-import { SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY, SET_CHAT_STATE_SESSION_STORAGE_KEY } from "./constants";
+import { DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY, SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY, SET_CHAT_STATE_SESSION_STORAGE_KEY } from "./constants";
 import { useSessionStorage } from "usehooks-ts";
 
 export const useCreateNewChatThread = () => {
@@ -19,19 +19,29 @@ export const useCreateNewChatThread = () => {
     const router = useRouter();
     const [, setChatState] = useSessionStorage<SetChatStatePayload | null>(SET_CHAT_STATE_SESSION_STORAGE_KEY, null);
 
-    const createNewChatThread = useCallback(async (children: Descendant[], overrideSearchScopes?: SearchScope[]) => {
+    const createNewChatThread = useCallback(async (children: Descendant[], overrideSearchScopes?: SearchScope[], overrideDisabledMcpServerIds?: string[]) => {
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
         let storedScopes: SearchScope[] = [];
         try {
             const stored = window.localStorage.getItem(SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY);
-            if (stored) storedScopes = JSON.parse(stored) as SearchScope[];
+            if (stored) {
+                storedScopes = JSON.parse(stored) as SearchScope[];
+            }
+        } catch { /* fall through to [] */ }
+
+        let storedDisabledMcpServerIds: string[] = [];
+        try {
+            const stored = window.localStorage.getItem(DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY);
+            if (stored) {
+                storedDisabledMcpServerIds = JSON.parse(stored) as string[];
+            }
         } catch { /* fall through to [] */ }
 
         const selectedSearchScopes = overrideSearchScopes ?? storedScopes;
-
-        const inputMessage = createUIMessage(text, mentions.map((mention) => mention.data), selectedSearchScopes);
+        const disabledMcpServerIds = overrideDisabledMcpServerIds ?? storedDisabledMcpServerIds;
+        const inputMessage = createUIMessage(text, mentions.map((mention) => mention.data), selectedSearchScopes, disabledMcpServerIds);
 
         setIsLoading(true);
         const response = await createChat({ source: 'sourcebot-web-client' });
@@ -46,6 +56,7 @@ export const useCreateNewChatThread = () => {
         setChatState({
             inputMessage,
             selectedSearchScopes,
+            disabledMcpServerIds,
         });
 
         const url = createPathWithQueryParams(`/chat/${response.id}`);

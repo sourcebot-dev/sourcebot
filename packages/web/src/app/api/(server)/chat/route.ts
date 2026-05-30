@@ -1,4 +1,5 @@
 import { sew } from "@/middleware/sew";
+import { getAskMcpAvailabilityAnalytics, getAskMcpTurnCompletedAnalytics } from "@/features/chat/askMcpAnalytics.server";
 import { createMessageStream } from "@/features/chat/agent";
 import { additionalChatRequestParamsSchema } from "@/features/chat/types";
 import { getLanguageModelKey } from "@/features/chat/utils";
@@ -33,7 +34,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
         return serviceErrorResponse(requestBodySchemaValidationError(parsed.error));
     }
 
-    const { messages, id, selectedSearchScopes, languageModel: _languageModel } = parsed.data;
+    const { messages, id, selectedSearchScopes, disabledMcpServerIds, languageModel: _languageModel } = parsed.data;
     // @note: a bit of type massaging is required here since the
     // zod schema does not enum on `model` or `provider`.
     // @see: chat/types.ts
@@ -92,12 +93,20 @@ export const POST = apiHandler(async (req: NextRequest) => {
             }))).flat();
 
             const source = req.headers.get('X-Sourcebot-Client-Source') ?? undefined;
+            const askMcpSource = source === 'sourcebot-web-client' ? source : undefined;
+            const askMcpAvailability = await getAskMcpAvailabilityAnalytics({
+                prisma,
+                userId: user?.id,
+                orgId: org.id,
+                disabledMcpServerIds,
+            });
 
             await captureEvent('ask_message_sent', {
                 chatId: id,
                 messageCount: messages.length,
                 selectedReposCount: expandedRepos.length,
                 source,
+                ...askMcpAvailability,
                 ...(env.EXPERIMENT_ASK_GH_ENABLED === 'true' ? { selectedRepos: expandedRepos } : {}),
             });
 
@@ -108,12 +117,27 @@ export const POST = apiHandler(async (req: NextRequest) => {
                     selectedSearchScopes,
                 },
                 selectedRepos: expandedRepos,
+                prisma,
+                disabledMcpServerIds,
                 model,
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
                 modelProviderOptions: providerOptions,
                 modelTemperature: temperature,
+                userId: user?.id,
+                orgId: org.id,
                 onFinish: async ({ messages }) => {
                     await updateChatMessages({ chatId: id, messages, prisma });
+                    const askMcpTurnCompleted = getAskMcpTurnCompletedAnalytics({
+                        messages,
+                        availability: askMcpAvailability,
+                    });
+                    if (askMcpTurnCompleted) {
+                        void captureEvent('ask_mcp_turn_completed', {
+                            chatId: id,
+                            source: askMcpSource,
+                            ...askMcpTurnCompleted,
+                        });
+                    }
                 },
                 onError: (error: unknown) => {
                     logger.error(error);

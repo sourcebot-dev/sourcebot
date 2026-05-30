@@ -12,22 +12,24 @@ import {
 import { useEntitlements } from "@/features/entitlements/useEntitlements";
 import { Entitlement } from "@sourcebot/shared";
 import {
+    BotIcon,
     ChartAreaIcon,
     KeyRoundIcon,
     LinkIcon,
     type LucideIcon,
     PlugIcon,
     ScrollTextIcon,
+    ServerIcon,
     Settings2Icon,
     ShieldIcon,
     UserIcon,
     UsersIcon,
 } from "lucide-react";
+import { IconType } from "react-icons/lib";
 import { VscMcp } from "react-icons/vsc";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UpgradeBadge } from "../upgradeBadge";
-import { IconType } from "react-icons/lib";
 
 const iconMap = {
     "link": LinkIcon,
@@ -37,9 +39,11 @@ const iconMap = {
     "plug": PlugIcon,
     "chart-area": ChartAreaIcon,
     "scroll-text": ScrollTextIcon,
+    "server": ServerIcon,
     "settings": Settings2Icon,
     "user": UserIcon,
     "mcp": VscMcp,
+    "bot": BotIcon,
 } satisfies Record<string, LucideIcon | IconType>;
 
 export type NavIconName = keyof typeof iconMap;

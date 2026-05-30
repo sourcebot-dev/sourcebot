@@ -5,12 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
 import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, SearchScope, Source } from '@/features/chat/types';
-import { createUIMessage, getAllMentionElements, resetEditor, slateContentToString } from '@/features/chat/utils';
+import { createUIMessage, getAllMentionElements, getTurnProgressState, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useChat } from '@ai-sdk/react';
-import { CreateUIMessage, DefaultChatTransport } from 'ai';
+import { CreateUIMessage, DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
 import { ArrowDownIcon, CopyIcon } from 'lucide-react';
 import { useNavigationGuard } from 'next-navigation-guard';
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStickToBottom } from 'use-stick-to-bottom';
 import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
@@ -19,12 +19,15 @@ import { ChatBox } from '../chatBox';
 import { ChatBoxToolbar } from '../chatBox/chatBoxToolbar';
 import { ChatThreadListItem } from './chatThreadListItem';
 import { ErrorBanner } from './errorBanner';
+import { McpFailedServersBanner } from './mcpFailedServersBanner';
 import { useRouter } from 'next/navigation';
 import { usePrevious } from '@uidotdev/usehooks';
 import { RepositoryQuery, SearchContextQuery } from '@/lib/types';
 import { duplicateChat, generateAndUpdateChatNameFromMessage } from '../../actions';
 import { isServiceError } from '@/lib/utils';
 import { NotConfiguredErrorBanner } from '../notConfiguredErrorBanner';
+import { McpServerIconContext, McpServerIconMap } from '../../mcpServerIconContext';
+import { ToolApprovalProvider } from '../../toolApprovalContext';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { SignInPromptBanner } from './signInPromptBanner';
 import { DuplicateChatDialog } from '@/app/(app)/chat/components/duplicateChatDialog';
@@ -42,6 +45,8 @@ interface ChatThreadProps {
     searchContexts: SearchContextQuery[];
     selectedSearchScopes: SearchScope[];
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
+    disabledMcpServerIds: string[];
+    onDisabledMcpServerIdsChange: (ids: string[]) => void;
     isOwner?: boolean;
     isAuthenticated: boolean;
     isLoginWallEnabled: boolean;
@@ -57,6 +62,8 @@ export const ChatThread = ({
     searchContexts,
     selectedSearchScopes,
     onSelectedSearchScopesChange,
+    disabledMcpServerIds,
+    onDisabledMcpServerIdsChange,
     isOwner = true,
     isAuthenticated,
     isLoginWallEnabled,
@@ -80,13 +87,69 @@ export const ChatThread = ({
         ) ?? []
     );
 
+    const [mcpServerIconMap, setMcpServerIconMap] = useState<McpServerIconMap>(() => {
+        const map: McpServerIconMap = {};
+        initialMessages?.forEach((message) => {
+            message.parts
+                .filter((part) => part.type === 'data-mcp-server')
+                .forEach((part) => {
+                    map[part.data.sanitizedName] = part.data.faviconUrl;
+                });
+        });
+        return map;
+    });
+
+    const [failedMcpServers, setFailedMcpServers] = useState<string[]>(() => {
+        const names: string[] = [];
+        initialMessages?.forEach((message) => {
+            message.parts
+                .filter((part) => part.type === 'data-mcp-failed-server')
+                .forEach((part) => {
+                    if (!names.includes(part.data.serverName)) {
+                        names.push(part.data.serverName);
+                    }
+                });
+        });
+        return names;
+    });
+    const [isFailedMcpBannerVisible, setIsFailedMcpBannerVisible] = useState(false);
+
     const { selectedLanguageModel } = useSelectedLanguageModel({
         languageModels,
     });
 
+    // Refs to capture the latest request params for the transport body.
+    // The transport is created once (useMemo) but params change over time,
+    // so refs ensure the dynamic body function always reads current values.
+    const searchScopesRef = useRef(selectedSearchScopes);
+    const modelRef = useRef(selectedLanguageModel);
+    const disabledMcpRef = useRef(disabledMcpServerIds);
+
+    useEffect(() => { searchScopesRef.current = selectedSearchScopes; }, [selectedSearchScopes]);
+    useEffect(() => { modelRef.current = selectedLanguageModel; }, [selectedLanguageModel]);
+    useEffect(() => { disabledMcpRef.current = disabledMcpServerIds; }, [disabledMcpServerIds]);
+
+    const getTransportBody = useCallback(() => ({
+        selectedSearchScopes: searchScopesRef.current,
+        languageModel: modelRef.current,
+        disabledMcpServerIds: disabledMcpRef.current,
+    }), []);
+
+    // Transport with dynamic body, resolved on every request, including auto-resends
+    // triggered by sendAutomaticallyWhen after tool approval.
+    // eslint-disable-next-line react-hooks/refs -- DefaultChatTransport stores the body callback and invokes it during requests, not during render.
+    const transport = useMemo(() => new DefaultChatTransport({
+        api: '/api/chat',
+        headers: {
+            'X-Sourcebot-Client-Source': 'sourcebot-web-client',
+        },
+        body: getTransportBody,
+    }), [getTransportBody]);
+
     const {
         messages,
         sendMessage: _sendMessage,
+        addToolApprovalResponse,
         error,
         status,
         stop,
@@ -94,16 +157,27 @@ export const ChatThread = ({
     } = useChat<SBChatMessage>({
         id: defaultChatId,
         messages: initialMessages,
-        transport: new DefaultChatTransport({
-            api: '/api/chat',
-            headers: {
-                'X-Sourcebot-Client-Source': 'sourcebot-web-client',
-            },
-        }),
+        transport,
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
         onData: (dataPart) => {
             // Keeps sources added by the assistant in sync.
             if (dataPart.type === 'data-source') {
                 setSources((prev) => [...prev, dataPart.data]);
+            }
+            if (dataPart.type === 'data-mcp-server') {
+                setMcpServerIconMap((prev) => ({
+                    ...prev,
+                    [dataPart.data.sanitizedName]: dataPart.data.faviconUrl,
+                }));
+            }
+            if (dataPart.type === 'data-mcp-failed-server') {
+                setFailedMcpServers((prev) => {
+                    if (prev.includes(dataPart.data.serverName)) {
+                        return prev;
+                    }
+                    return [...prev, dataPart.data.serverName];
+                });
+                setIsFailedMcpBannerVisible(true);
             }
         }
     });
@@ -127,6 +201,7 @@ export const ChatThread = ({
             body: {
                 selectedSearchScopes,
                 languageModel: selectedLanguageModel,
+                disabledMcpServerIds,
             } satisfies AdditionalChatRequestParams,
         });
 
@@ -156,6 +231,7 @@ export const ChatThread = ({
         selectedLanguageModel,
         _sendMessage,
         selectedSearchScopes,
+        disabledMcpServerIds,
         messages.length,
         toast,
         chatId,
@@ -164,6 +240,12 @@ export const ChatThread = ({
 
 
     const messagePairs = useMessagePairs(messages);
+    const {
+        isTurnInProgress,
+        isNetworkActive,
+        isAwaitingToolApproval,
+        shouldGuardNavigation,
+    } = useMemo(() => getTurnProgressState({ messages, status }), [messages, status]);
 
     useNavigationGuard({
         enabled: ({ type }) => {
@@ -175,7 +257,7 @@ export const ChatThread = ({
                 return false;
             }
 
-            return status === "streaming" || status === "submitted";
+            return shouldGuardNavigation;
         },
         confirm: () => window.confirm("You have unsaved changes that will be lost."),
     });
@@ -270,13 +352,13 @@ export const ChatThread = ({
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
-        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes);
+        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes, disabledMcpServerIds);
         sendMessage(message);
 
         scrollToBottom();
 
         resetEditor(editor);
-    }, [sendMessage, selectedSearchScopes, scrollToBottom]);
+    }, [sendMessage, selectedSearchScopes, disabledMcpServerIds, scrollToBottom]);
 
     const onDuplicate = useCallback(async (newName: string): Promise<string | null> => {
         if (!defaultChatId) {
@@ -298,7 +380,8 @@ export const ChatThread = ({
     }, [defaultChatId, toast, router, captureEvent]);
 
     return (
-        <>
+        <ToolApprovalProvider value={addToolApprovalResponse}>
+        <McpServerIconContext.Provider value={mcpServerIconMap}>
             {error && (
                 <ErrorBanner
                     error={error}
@@ -306,6 +389,11 @@ export const ChatThread = ({
                     onClose={() => setIsErrorBannerVisible(false)}
                 />
             )}
+            <McpFailedServersBanner
+                serverNames={failedMcpServers}
+                isVisible={isFailedMcpBannerVisible}
+                onClose={() => setIsFailedMcpBannerVisible(false)}
+            />
 
             <div className="relative h-full w-full p-4 overflow-hidden min-h-0">
                 <div
@@ -322,7 +410,9 @@ export const ChatThread = ({
                                 <>
                                     {messagePairs.map(([userMessage, assistantMessage], index) => {
                                         const isLastPair = index === messagePairs.length - 1;
-                                        const isStreaming = isLastPair && (status === "streaming" || status === "submitted");
+                                        const isPairTurnInProgress = isLastPair && isTurnInProgress;
+                                        const isPairNetworkActive = isLastPair && isNetworkActive;
+                                        const isPairAwaitingToolApproval = isLastPair && isAwaitingToolApproval;
                                         // Use a stable key based on user message ID
                                         const key = userMessage.id;
 
@@ -333,7 +423,9 @@ export const ChatThread = ({
                                                     chatId={chatId}
                                                     userMessage={userMessage}
                                                     assistantMessage={assistantMessage}
-                                                    isStreaming={isStreaming}
+                                                    isTurnInProgress={isPairTurnInProgress}
+                                                    isNetworkActive={isPairNetworkActive}
+                                                    isAwaitingToolApproval={isPairAwaitingToolApproval}
                                                     sources={sources}
                                                 />
                                                 {index !== messagePairs.length - 1 && (
@@ -348,7 +440,7 @@ export const ChatThread = ({
                     </div>
                 </div>
                 {
-                    (!isAtBottom && status === "streaming") && (
+                    (!isAtBottom && isNetworkActive) && (
                         <div className="absolute bottom-5 left-0 right-0 h-10 flex flex-row items-center justify-center">
                             <Button
                                 variant="outline"
@@ -368,7 +460,7 @@ export const ChatThread = ({
                     isAuthenticated={isAuthenticated}
                     isOwner={isOwner}
                     hasMessages={messages.length > 0}
-                    isStreaming={status === "streaming" || status === "submitted"}
+                    isTurnInProgress={isTurnInProgress}
                 />
                 {isOwner ? (
                     <>
@@ -382,7 +474,8 @@ export const ChatThread = ({
                                     onSubmit={onSubmit}
                                     className="min-h-[80px]"
                                     preferredSuggestionsBoxPlacement="top-start"
-                                    isGenerating={status === "streaming" || status === "submitted"}
+                                    isTurnInProgress={isTurnInProgress}
+                                    isNetworkActive={isNetworkActive}
                                     onStop={stop}
                                     languageModels={languageModels}
                                     selectedSearchScopes={selectedSearchScopes}
@@ -400,6 +493,8 @@ export const ChatThread = ({
                                         onSelectedSearchScopesChange={onSelectedSearchScopesChange}
                                         isContextSelectorOpen={isContextSelectorOpen}
                                         onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                                        disabledMcpServerIds={disabledMcpServerIds}
+                                        onDisabledMcpServerIdsChange={onDisabledMcpServerIdsChange}
                                     />
                                 </div>
                             </CustomSlateEditor>
@@ -426,6 +521,7 @@ export const ChatThread = ({
                     </div>
                 )}
             </div>
-        </>
+        </McpServerIconContext.Provider>
+        </ToolApprovalProvider>
     );
 }

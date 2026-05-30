@@ -44,7 +44,7 @@ export default async function SettingsLayout(
 }
 
 export const getSidebarNavGroups = async () =>
-    withAuth(async ({ role }) => {
+    withAuth(async ({ org, role, prisma }) => {
         let numJoinRequests: number | undefined;
         if (role === OrgRole.OWNER) {
             const requests = await getOrgAccountRequests();
@@ -58,6 +58,12 @@ export const getSidebarNavGroups = async () =>
         if (isServiceError(connectionStats)) {
             throw new ServiceErrorException(connectionStats);
         }
+        const hasOAuthEntitlement = await hasEntitlement("oauth");
+        const hasApprovedConnectors = role === OrgRole.OWNER && !hasOAuthEntitlement
+            ? await prisma.mcpServer.count({
+                where: { orgId: org.id },
+            }) > 0
+            : false;
 
         const groups: NavGroup[] = [
             {
@@ -86,7 +92,14 @@ export const getSidebarNavGroups = async () =>
                         title: "MCP Server",
                         href: `/settings/mcp`,
                         icon: 'mcp' as const,
-                    }
+                    },
+                    ...(hasOAuthEntitlement ? [
+                        {
+                            title: "Ask Agent",
+                            href: `/settings/accountAskAgent`,
+                            icon: "bot" as const,
+                        }
+                    ] : []),
                 ],
             },
         ];
@@ -119,6 +132,13 @@ export const getSidebarNavGroups = async () =>
                         icon: "chart-area" as const,
                         requiredEntitlement: 'analytics'
                     },
+                    ...(hasOAuthEntitlement || hasApprovedConnectors ? [
+                        {
+                            title: "Ask Agent",
+                            href: `/settings/workspaceAskAgent`,
+                            icon: "bot" as const,
+                        }
+                    ] : []),
                     {
                         title: "License",
                         href: `/settings/license`,
