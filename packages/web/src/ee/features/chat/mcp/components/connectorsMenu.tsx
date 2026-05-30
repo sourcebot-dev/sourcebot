@@ -33,6 +33,8 @@ import {
     saveMcpOAuthDraft,
 } from "@/features/chat/mcpOAuthDraft";
 import { clearEditorHistory, resetEditor } from "@/features/chat/utils";
+import { useRole } from "@/features/auth/useRole";
+import { OrgRole } from "@sourcebot/db";
 
 interface ConnectorsMenuProps {
     selectedSearchScopes: SearchScope[];
@@ -76,6 +78,7 @@ export const ConnectorsMenu = ({
     const queryClient = useQueryClient();
     const router = useRouter();
     const { toast } = useToast();
+    const isOwner = useRole() === OrgRole.OWNER;
 
     const { data: servers = [], isError, isLoading, refetch } = useQuery({
         queryKey: mcpQueryKeys.serversWithStatus,
@@ -297,13 +300,15 @@ export const ConnectorsMenu = ({
                             <CableIcon className="w-4 h-4" />
                             My connectors
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                            className="gap-2 text-muted-foreground"
-                            onSelect={() => router.push(`/settings/workspaceAskAgent`)}
-                        >
-                            <SettingsIcon className="w-4 h-4" />
-                            Workspace connectors
-                        </DropdownMenuItem>
+                        {isOwner && (
+                            <DropdownMenuItem
+                                className="gap-2 text-muted-foreground"
+                                onSelect={() => router.push(`/settings/workspaceAskAgent`)}
+                            >
+                                <SettingsIcon className="w-4 h-4" />
+                                Workspace connectors
+                            </DropdownMenuItem>
+                        )}
                     </DropdownMenuSubContent>
                 </DropdownMenuSub>
             </DropdownMenuContent>
