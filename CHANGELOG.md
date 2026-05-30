@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.17.4] - 2026-05-30
+
 ### Changed
 - Documented session lifetime, repository visibility refresh behavior, and how permission sync handles transient code-host errors. [#1218](https://github.com/sourcebot-dev/sourcebot/pull/1218)
 
