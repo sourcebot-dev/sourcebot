@@ -1,5 +1,21 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 
+export type UpsellSource =
+    'sidebar' |
+    'analytics_settings' |
+    'chat_box' |
+    'chat' |
+    'chats' |
+    'onboard' |
+    'license_settings' |
+    'mcp_settings' |
+    'chat_connectors';
+
+export type SourcebotWebClientSource = 'sourcebot-web-client';
+export type AskMcpAnalyticsSource = SourcebotWebClientSource | 'sourcebot-ask-agent';
+export type McpConnectorEntryPoint = 'chat' | 'account_settings' | 'workspace_settings' | 'unknown';
+export type McpConnectorAuthMode = 'dynamic' | 'static';
+
 export type PosthogEventMap = {
     search_finished: {
         contentBytesLoaded: number,
@@ -91,21 +107,22 @@ export type PosthogEventMap = {
     wa_invites_list_copy_email_success: {},
     wa_invites_list_copy_email_fail: {},
     //////////////////////////////////////////////////////////////////
-    wa_connect_code_host_button_pressed: {
-        name: string,
+    wa_upsell_dialog_viewed: {
+        source: UpsellSource,
     },
-    //////////////////////////////////////////////////////////////////
-    wa_onboard_checkout_success: {},
-    wa_onboard_checkout_fail: {
-        errorCode: string,
+    wa_upsell_checkout_started: {
+        source: UpsellSource,
+        requestTrial: boolean,
+        interval: 'month' | 'year',
+        returnPath: string,
+        quantity: number,
     },
-    //////////////////////////////////////////////////////////////////
-    wa_team_upgrade_card_pressed: {},
-    wa_team_upgrade_checkout_success: {},
-    wa_team_upgrade_checkout_fail: {
-        errorCode: string,
+    wa_onboard_trial_step_viewed: {
+        isTrialEligible: boolean,
     },
-    wa_enterprise_upgrade_card_pressed: {},
+    wa_onboard_trial_step_skipped: {
+        isTrialEligible: boolean,
+    },
     //////////////////////////////////////////////////////////////////
     wa_login_with_github: {},
     wa_login_with_google: {},
@@ -170,11 +187,82 @@ export type PosthogEventMap = {
         selectedReposCount: number,
         source?: string,
         /**
+         * The configured AI provider type (e.g. 'anthropic', 'openai') and
+         * model ID for the language model used to handle this message.
+         */
+        modelProvider: string,
+        model: string,
+        hasAskMcpServersAvailable: boolean,
+        askMcpConnectedServerCount: number,
+        askMcpEnabledServerCount: number,
+        askMcpDisabledServerCount: number,
+        /**
          * @note this field will only be populated when
          * the EXPERIMENT_ASK_GH_ENABLED environment variable
          * is set to true.
          */
         selectedRepos?: string[],
+    },
+    ask_mcp_turn_completed: {
+        chatId: string,
+        source?: SourcebotWebClientSource,
+        traceId?: string,
+        askMcpUsed: boolean,
+        askMcpToolCallCount: number,
+        askMcpToolSuccessCount: number,
+        askMcpToolFailureCount: number,
+        askMcpApprovalRequestedCount: number,
+        askMcpApprovalDeniedCount: number,
+        askMcpFailedServerCount: number,
+        durationMs: number,
+    },
+    ask_mcp_tool_call_completed: {
+        chatId?: string,
+        traceId?: string,
+        source: AskMcpAnalyticsSource,
+        serverId: string,
+        serverUrl: string,
+        toolName: string,
+        success: boolean,
+        durationMs: number,
+        failureReason?: string,
+    },
+    ask_mcp_connector_added: {
+        source: SourcebotWebClientSource,
+        entryPoint: 'workspace_settings',
+        serverId: string,
+        serverUrl: string,
+        authMode: McpConnectorAuthMode,
+    },
+    ask_mcp_connector_connection_started: {
+        source: SourcebotWebClientSource,
+        entryPoint: McpConnectorEntryPoint,
+        serverId: string,
+        serverUrl: string,
+        authMode: McpConnectorAuthMode,
+    },
+    ask_mcp_connector_connection_completed: {
+        source: SourcebotWebClientSource,
+        entryPoint: McpConnectorEntryPoint,
+        serverId: string,
+        serverUrl: string,
+        authMode: McpConnectorAuthMode,
+        alreadyAuthorized: boolean,
+    },
+    ask_mcp_connector_connection_failed: {
+        source: SourcebotWebClientSource,
+        entryPoint: McpConnectorEntryPoint,
+        serverId?: string,
+        serverUrl?: string,
+        authMode?: McpConnectorAuthMode,
+        failureReason: string,
+    },
+    ask_mcp_connector_disconnected: {
+        source: SourcebotWebClientSource,
+        entryPoint: McpConnectorEntryPoint,
+        serverId: string,
+        serverUrl: string,
+        authMode: McpConnectorAuthMode,
     },
     tool_used: {
         toolName: string,

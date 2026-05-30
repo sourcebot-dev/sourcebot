@@ -1,11 +1,20 @@
 import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
 import tseslint from 'typescript-eslint';
 import tanstackQuery from '@tanstack/eslint-plugin-query';
+import authzLocal from './tools/eslint-plugin-local/index.mjs';
 
 const config = [
     ...nextCoreWebVitals,
     ...tseslint.configs.recommended,
     ...tanstackQuery.configs['flat/recommended'],
+    {
+        plugins: {
+            authz: authzLocal,
+        },
+        rules: {
+            'authz/require-auth-wrapper': 'error',
+        },
+    },
     {
         rules: {
             // New react-hooks v7 rules disabled as too strict for this codebase's existing patterns.

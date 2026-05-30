@@ -18,7 +18,7 @@ export function TrialBanner({ id, dismissible, now, trialEnd, hasPaymentMethod }
 
     const description = hasPaymentMethod
         ? "Your subscription will start automatically at the end of the trial."
-        : "Add a payment method to keep enterprise access after your trial ends.";
+        : "Add a payment method to keep paid features active after your trial ends.";
 
     return (
         <BannerShell

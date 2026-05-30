@@ -2,6 +2,7 @@ import 'server-only';
 import { env, getDBConnectionString } from "@sourcebot/shared";
 import { Prisma, PrismaClient, UserWithAccounts } from "@sourcebot/db";
 import { hasEntitlement } from "@/lib/entitlements";
+import { getMcpPrismaQueryExtension } from "@/features/mcp/prismaScope";
 
 // @see: https://authjs.dev/getting-started/adapters/prisma
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
@@ -35,6 +36,7 @@ export const userScopedPrismaClientExtension = async (user?: UserWithAccounts) =
         (prisma) => {
             return prisma.$extends({
                 query: {
+                    ...getMcpPrismaQueryExtension(user),
                     ...(hasPermissionSyncing ? {
                         repo: {
                             async $allOperations({ args, query }) {

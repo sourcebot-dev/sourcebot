@@ -5,6 +5,7 @@ export {
     hasEntitlement as _hasEntitlement,
     getEntitlements as _getEntitlements,
     isAnonymousAccessAvailable as _isAnonymousAccessAvailable,
+    isValidLicenseActive as _isValidLicenseActive,
     getSeatCap,
     getOfflineLicenseMetadata,
     STALE_ONLINE_LICENSE_THRESHOLD_MS,
@@ -70,3 +71,9 @@ export {
 export {
     SOURCEBOT_VERSION,
 } from "./version.js";
+export {
+    parseVersion,
+    formatVersion,
+    compareVersions,
+} from "./versionUtils.js";
+export type { Version } from "./versionUtils.js";

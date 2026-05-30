@@ -9,20 +9,27 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useEntitlements } from "@/features/entitlements/useEntitlements";
+import { Entitlement } from "@sourcebot/shared";
 import {
+    BotIcon,
     ChartAreaIcon,
     KeyRoundIcon,
     LinkIcon,
     type LucideIcon,
     PlugIcon,
     ScrollTextIcon,
+    ServerIcon,
     Settings2Icon,
     ShieldIcon,
     UserIcon,
     UsersIcon,
 } from "lucide-react";
+import { IconType } from "react-icons/lib";
+import { VscMcp } from "react-icons/vsc";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { UpgradeBadge } from "../upgradeBadge";
 
 const iconMap = {
     "link": LinkIcon,
@@ -32,9 +39,12 @@ const iconMap = {
     "plug": PlugIcon,
     "chart-area": ChartAreaIcon,
     "scroll-text": ScrollTextIcon,
+    "server": ServerIcon,
     "settings": Settings2Icon,
     "user": UserIcon,
-} satisfies Record<string, LucideIcon>;
+    "mcp": VscMcp,
+    "bot": BotIcon,
+} satisfies Record<string, LucideIcon | IconType>;
 
 export type NavIconName = keyof typeof iconMap;
 
@@ -44,6 +54,7 @@ export type NavItem = {
     title: React.ReactNode;
     icon?: NavIconName;
     isNotificationDotVisible?: boolean;
+    requiredEntitlement?: Entitlement;
 };
 
 export type NavGroup = {
@@ -57,6 +68,7 @@ interface NavProps {
 
 export function Nav({ groups }: NavProps) {
     const pathname = usePathname();
+    const entitlements = useEntitlements();
 
     return (
         <>
@@ -69,6 +81,10 @@ export function Nav({ groups }: NavProps) {
                                 const isActive = item.hrefRegex
                                     ? new RegExp(item.hrefRegex).test(pathname)
                                     : pathname === item.href;
+
+                                const showUpgradeBadge =
+                                    (item.requiredEntitlement && !entitlements.includes(item.requiredEntitlement));
+                                
                                 const Icon = item.icon ? iconMap[item.icon] : undefined;
                                 return (
                                     <SidebarMenuItem key={item.href}>
@@ -76,6 +92,7 @@ export function Nav({ groups }: NavProps) {
                                             <Link href={item.href}>
                                                 {Icon && <Icon />}
                                                 <span>{item.title}</span>
+                                                {showUpgradeBadge && <UpgradeBadge />}
                                                 {item.isNotificationDotVisible && <NotificationDot className="ml-1.5" />}
                                             </Link>
                                         </SidebarMenuButton>

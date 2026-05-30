@@ -7,7 +7,8 @@ import { createLogger, getSeatCap } from "@sourcebot/shared";
 import { createAudit } from "@/ee/features/audit/audit";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
-import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
+import { syncWithLighthouse } from "@/features/billing/servicePing";
+import { hasEntitlement } from "./entitlements";
 
 const logger = createLogger('web-auth-utils');
 
@@ -108,10 +109,12 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
         });
     }
 
-    // Subsequent users auto-join as MEMBER only when the org is in open
-    // self-serve mode. If memberApprovalRequired is true, the user is left
-    // without a membership and must submit an AccountRequest for an owner to
-    // approve via addUserToOrganization.
+    // Subsequent users auto-join only when the org is in open self-serve
+    // mode. Their role depends on the `org-management` entitlement: on paid
+    // plans they join as MEMBER, on free they join as OWNER (no role
+    // distinction exists without the entitlement). If memberApprovalRequired
+    // is true, the user is left without a membership and must submit an
+    // AccountRequest for an owner to approve via addUserToOrganization.
     else if (!defaultOrg.memberApprovalRequired) {
         // Don't exceed the licensed seat count. The user row still exists;
         // they just aren't attached to the org until a seat frees up.
@@ -121,11 +124,13 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
             return;
         }
 
+        const hasOrgManagement = await hasEntitlement("org-management");
+
         await __unsafePrisma.userToOrg.create({
             data: {
                 userId: user.id,
                 orgId: SINGLE_TENANT_ORG_ID,
-                role: OrgRole.MEMBER,
+                role: hasOrgManagement ? OrgRole.MEMBER : OrgRole.OWNER,
             }
         });
 
@@ -212,6 +217,8 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
         } satisfies ServiceError;
     }
 
+    const hasOrgManagement = await hasEntitlement('org-management');
+
     await __unsafePrisma.$transaction(async (tx) => {
         // Upsert rather than create: the user may already be a member from the
         // self-serve auto-join in onCreateUser, in which case this call is
@@ -226,7 +233,7 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
             create: {
                 userId: user.id,
                 orgId: org.id,
-                role: OrgRole.MEMBER,
+                role: hasOrgManagement ? OrgRole.MEMBER : OrgRole.OWNER,
             },
             update: {},
         });

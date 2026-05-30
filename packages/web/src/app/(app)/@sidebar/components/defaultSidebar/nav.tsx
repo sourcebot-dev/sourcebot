@@ -10,6 +10,10 @@ import { usePathname } from "next/navigation";
 import { HomeView } from "@/hooks/useHomeView";
 import { NotificationDot } from "../../../components/notificationDot";
 import { useMemo } from "react";
+import Link from "next/link";
+import { useEntitlements } from "@/features/entitlements/useEntitlements";
+import { Entitlement } from "@sourcebot/shared";
+import { UpgradeBadge } from "../upgradeBadge";
 
 interface NavItem {
     title: string;
@@ -17,6 +21,10 @@ interface NavItem {
     icon: LucideIcon;
     key: string;
     requiresAuth?: boolean;
+    requiredEntitlement?: Entitlement;
+    // When true, the item is hidden entirely if the required entitlement is
+    // missing, instead of being shown with an upgrade badge.
+    hideIfMissingEntitlement?: boolean;
 }
 
 interface NavProps {
@@ -25,8 +33,13 @@ interface NavProps {
     homeView: HomeView;
 }
 
-export function Nav({ isSettingsNotificationVisible, isSignedIn, homeView }: NavProps) {
+export function Nav({
+    isSettingsNotificationVisible,
+    isSignedIn,
+    homeView
+}: NavProps) {
     const pathname = usePathname();
+    const entitlements = useEntitlements();
 
     const baseItems = useMemo((): NavItem[] => {
 
@@ -41,7 +54,8 @@ export function Nav({ isSettingsNotificationVisible, isSignedIn, homeView }: Nav
             title: "Ask",
             href: "/chat",
             icon: MessageCircleIcon,
-            key: "chat"
+            key: "chat",
+            requiredEntitlement: "ask"
         }
 
         return [
@@ -58,6 +72,8 @@ export function Nav({ isSettingsNotificationVisible, isSignedIn, homeView }: Nav
                 icon: MessagesSquareIcon,
                 key: "chats",
                 requiresAuth: true,
+                requiredEntitlement: "ask",
+                hideIfMissingEntitlement: true,
             },
             {
                 title: "Repositories",
@@ -97,17 +113,27 @@ export function Nav({ isSettingsNotificationVisible, isSignedIn, homeView }: Nav
 
     return (
         <SidebarMenu>
-            {baseItems.filter((item) => !item.requiresAuth || isSignedIn).map((item) => {
+            {baseItems
+                .filter((item) => !item.requiresAuth || isSignedIn)
+                .filter((item) => !item.hideIfMissingEntitlement || !item.requiredEntitlement || entitlements.includes(item.requiredEntitlement))
+                .map((item) => {
                 const showNotification =
                     (item.key === "settings" && isSettingsNotificationVisible);
+
+                const showUpgradeBadge =
+                    (item.requiredEntitlement && !entitlements.includes(item.requiredEntitlement));
+
                 return (
                     <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild isActive={isActive(item.href)}>
-                            <a href={item.href}>
+                        <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.title}>
+                            <Link
+                                href={item.href}
+                            >
                                 <item.icon />
                                 <span>{item.title}</span>
+                                {showUpgradeBadge && <UpgradeBadge />}
                                 {showNotification && <NotificationDot className="ml-1.5" />}
-                            </a>
+                            </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 );

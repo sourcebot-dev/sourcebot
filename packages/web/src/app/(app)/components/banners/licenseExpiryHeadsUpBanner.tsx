@@ -16,8 +16,8 @@ export function LicenseExpiryHeadsUpBanner({ id, dismissible, source, expiresAt,
     const relative = formatDistance(expiresAtDate, now, { addSuffix: true });
 
     const description = source === 'offline'
-        ? <>Update <code className="font-mono text-xs">SOURCEBOT_EE_LICENSE_KEY</code> to keep enterprise access.</>
-        : "Renew to keep enterprise access.";
+        ? <>Update <code className="font-mono text-xs">SOURCEBOT_EE_LICENSE_KEY</code> to keep paid features active.</>
+        : "Renew to keep paid features active.";
 
     return (
         <BannerShell

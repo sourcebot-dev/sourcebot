@@ -25,6 +25,9 @@ const ACTIVE_ONLINE_LICENSE_STATUSES: LicenseStatus[] = [
     'past_due',
 ];
 
+// @WARNING: when adding a new entitlement to this list, make sure
+// lighthouse/lambda/entitlements.ts is also updated && deployed
+// prior to rolling a new Sourcebot version.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ALL_ENTITLEMENTS = [
     "search-contexts",
@@ -34,9 +37,10 @@ const ALL_ENTITLEMENTS = [
     "analytics",
     "permission-syncing",
     "github-app",
-    "chat-sharing",
     "org-management",
     "oauth",
+    "ask",
+    "mcp"
 ] as const;
 export type Entitlement = (typeof ALL_ENTITLEMENTS)[number];
 
@@ -88,12 +92,12 @@ const getValidOfflineLicense = (): getValidOfflineLicense | null => {
     return payload;
 }
 
-// If the license hasn't successfully synced with Lighthouse for this long,                                                                                                                                                            
-// the locally-cached state is no longer trusted. This guards against an                                                                                                                                                             
-// operator blocking egress to prevent the license row from hearing about                                                                                                                                                            
-// a canceled or past-due subscription. 7 days absorbs week-long transient                                                                                                                                                             
-// outages (weekends, firewall rollouts) without punishing legitimate                                                                                                                                                                  
-// customers.                                                                                                                                                                                                                          
+// If the license hasn't successfully synced with Lighthouse for this long,
+// the locally-cached state is no longer trusted. This guards against an
+// operator blocking egress to prevent the license row from hearing about
+// a canceled or past-due subscription. 7 days absorbs week-long transient
+// outages (weekends, firewall rollouts) without punishing legitimate
+// customers.
 export const STALE_ONLINE_LICENSE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
 
 // Surface a UI warning (banner + "refreshed" timestamp color) when the
@@ -107,12 +111,20 @@ const getValidOnlineLicense = (_license: License | null): License | null => {
         _license.status &&
         ACTIVE_ONLINE_LICENSE_STATUSES.includes(_license.status as LicenseStatus) &&
         _license.lastSyncAt &&
-        (Date.now() - _license.lastSyncAt.getTime()) <= STALE_ONLINE_LICENSE_THRESHOLD_MS
+        (Date.now() - _license.lastSyncAt.getTime()) <= STALE_ONLINE_LICENSE_THRESHOLD_MS &&
+        _license.lastSyncErrorCode !== 'ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE'
     ) {
         return _license;
     }
 
     return null;
+}
+
+export const isValidLicenseActive = (_license: License | null): boolean => {
+    return (
+        getValidOfflineLicense() !== null ||
+        getValidOnlineLicense(_license) !== null
+    );
 }
 
 export const isAnonymousAccessAvailable = (_license: License | null): boolean => {

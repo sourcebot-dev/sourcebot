@@ -1,16 +1,20 @@
 import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
-import { getOfflineLicenseMetadata } from "@sourcebot/shared";
+import { _isValidLicenseActive, getOfflineLicenseMetadata } from "@sourcebot/shared";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ActivationCodeCard } from "./activationCodeCard";
-import { CurrentPlanCard } from "./currentPlanCard";
+import { OnlineLicenseCard } from "./onlineLicenseCard/onlineLicenseCard";
 import { OfflineLicenseCard } from "./offlineLicenseCard";
 import { RecentInvoicesCard } from "./recentInvoicesCard";
+import { YearlyTermSeatsUsageCard } from "./yearlyTermSeatsUsageCard";
+import { SettingsCard } from "../components/settingsCard";
+import { UpsellPanel } from "@/features/billing/upsellDialog";
 import { getAllInvoices } from "@/ee/features/lighthouse/actions";
-import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
+import { syncWithLighthouse } from "@/features/billing/servicePing";
 import { isServiceError } from "@/lib/utils";
+import { getYearlyTermStatus } from "./types";
 
 type LicensePageProps = {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -18,35 +22,22 @@ type LicensePageProps = {
 
 export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props) => {
     const searchParams = await props.searchParams;
-    if (searchParams?.refresh === 'true' || searchParams?.trial_used === 'true') {
+    if (searchParams?.refresh === 'true') {
         // Side-trips to the Stripe portal (add PM, manage sub) include
         // ?refresh=true so we resync immediately instead of waiting for
-        // the daily ping. Trial checkout returns add ?trial_used=true so
-        // we can flag the org as having used its trial even before the
-        // license row exists (the user still needs to enter the
-        // activation code from email before syncWithLighthouse has
-        // anything to pull).
+        // the daily ping.
         if (searchParams.refresh === 'true') {
             await syncWithLighthouse(org.id).catch(() => {
                 // ignore failure
             });
         }
-        if (searchParams.trial_used === 'true' && org.trialUsedAt === null) {
-            await prisma.org.update({
-                where: { id: org.id, trialUsedAt: null },
-                data: { trialUsedAt: new Date() },
-            }).catch(() => {
-                // No-op: the flag was already set by another path.
-            });
-        }
-
         // Strip our params but preserve anything else (e.g. `checkout=success`).
         const preserved = new URLSearchParams(searchParams as Record<string, string>);
         preserved.delete('refresh');
-        preserved.delete('trial_used');
         const suffix = preserved.toString();
         redirect(suffix ? `/settings/license?${suffix}` : '/settings/license');
     }
+
 
     const offlineLicense = getOfflineLicenseMetadata();
     const isOfflineLicenseExpired = offlineLicense
@@ -57,10 +48,18 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
         ? null
         : await prisma.license.findUnique({ where: { orgId: org.id } });
 
+    const yearlyTermStatus = getYearlyTermStatus(license);
+    const currentUserCount = await prisma.userToOrg.count({ where: { orgId: org.id } });
+
     const invoicesResult = license ? await getAllInvoices() : null;
     const invoices = invoicesResult && !isServiceError(invoicesResult) ? invoicesResult : [];
 
-    const isTrialEligible = !offlineLicense && org.trialUsedAt === null;
+    // Show the upsell when the user has no usable license on this deployment:
+    // either nothing is provisioned at all, or their online license has lapsed
+    // (canceled/past_due/etc.). Offline licenses are out-of-band, so we don't
+    // present a Stripe upgrade path for them.
+    const isOnlineLicenseInactive = license ? !_isValidLicenseActive(license) : false;
+    const showUpsell = !offlineLicense && (!license || isOnlineLicenseInactive);
 
     return (
         <div className="flex flex-col gap-6">
@@ -81,12 +80,28 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
                     </Button>
                 </div>
             </div>
+            {showUpsell && (
+                <SettingsCard>
+                    <UpsellPanel
+                        source="license_settings"
+                        returnPath="/settings/license"
+                        licenseState={isOnlineLicenseInactive ? 'expired' : 'free'}
+                    />
+                </SettingsCard>
+            )}
             {offlineLicense && (
                 <OfflineLicenseCard license={offlineLicense} isExpired={isOfflineLicenseExpired} />
             )}
-            {license && <CurrentPlanCard license={license} />}
+            {license && <OnlineLicenseCard license={license} />}
+            {license
+                && yearlyTermStatus && (
+                    <YearlyTermSeatsUsageCard
+                        currentUsers={currentUserCount}
+                        status={yearlyTermStatus}
+                    />
+                )}
+            {!offlineLicense && !license && <ActivationCodeCard />}
             {license && <RecentInvoicesCard invoices={invoices} />}
-            {!offlineLicense && !license && <ActivationCodeCard isTrialEligible={isTrialEligible} />}
         </div>
     );
 }, {

@@ -5,13 +5,20 @@ import {
     type LicenseStatus,
     type OfflineLicenseMetadata,
 } from "@sourcebot/shared";
+import { compareVersions, formatVersion, parseVersion } from "@sourcebot/shared/client";
 import { BannerPriority, type BannerDescriptor, type BannerId } from "./types";
 import { PermissionSyncBanner } from "./permissionSyncBanner";
 import { LicenseExpiredBanner } from "./licenseExpiredBanner";
 import { LicenseExpiryHeadsUpBanner } from "./licenseExpiryHeadsUpBanner";
+import { LicenseReboundElsewhereBanner } from "./licenseReboundElsewhereBanner";
 import { InvoicePastDueBanner } from "./invoicePastDueBanner";
 import { ServicePingFailedBanner } from "./servicePingFailedBanner";
 import { TrialBanner } from "./trialBanner";
+import { UpgradeAvailableBanner } from "./upgradeAvailableBanner";
+
+// Mirrors the value in `lighthouse: lambda/serviceError.ts` and the gating
+// constant in `packages/shared/src/entitlements.ts`.
+const LICENSE_REBOUND_ELSEWHERE_ERROR_CODE = 'ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE';
 
 const EXPIRY_HEADS_UP_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -24,6 +31,9 @@ export interface BannerContext {
     dismissals: Partial<Record<BannerId, string>>;
     today: string;
     now: Date;
+    currentVersion: string;
+    // null when the GitHub-tags fetch was skipped or failed.
+    latestVersion: string | null;
 }
 
 export function resolveActiveBanner(ctx: BannerContext): BannerDescriptor | null {
@@ -63,6 +73,19 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
                     expiresAt={expiryState.expiresAt.toISOString()}
                 />
             ),
+        });
+    }
+
+    if (
+        !ctx.offlineLicense
+        && ctx.license?.lastSyncErrorCode === LICENSE_REBOUND_ELSEWHERE_ERROR_CODE
+    ) {
+        banners.push({
+            id: 'licenseReboundElsewhere',
+            priority: BannerPriority.LICENSE_REBOUND_ELSEWHERE,
+            dismissible: false,
+            audience: 'everyone',
+            render: (props) => <LicenseReboundElsewhereBanner {...props} />,
         });
     }
 
@@ -144,6 +167,23 @@ function buildCandidates(ctx: BannerContext): BannerDescriptor[] {
         });
     }
 
+    const upgrade = getUpgradeAvailability(ctx);
+    if (upgrade) {
+        banners.push({
+            id: 'upgradeAvailable',
+            priority: BannerPriority.UPGRADE_AVAILABLE,
+            dismissible: true,
+            audience: 'owner',
+            render: (props) => (
+                <UpgradeAvailableBanner
+                    {...props}
+                    currentVersion={upgrade.currentVersion}
+                    latestVersion={upgrade.latestVersion}
+                />
+            ),
+        });
+    }
+
     return banners;
 }
 
@@ -191,6 +231,26 @@ function getLicenseExpiryState(ctx: BannerContext): LicenseExpiryState {
         }
     }
     return null;
+}
+
+function getUpgradeAvailability(
+    ctx: BannerContext,
+): { currentVersion: string; latestVersion: string } | null {
+    if (!ctx.latestVersion) {
+        return null;
+    }
+    const current = parseVersion(ctx.currentVersion);
+    const latest = parseVersion(ctx.latestVersion);
+    if (!current || !latest) {
+        return null;
+    }
+    if (compareVersions(current, latest) >= 0) {
+        return null;
+    }
+    return {
+        currentVersion: formatVersion(current),
+        latestVersion: formatVersion(latest),
+    };
 }
 
 // 'enforced' once entitlements.ts would strip entitlements; 'warning' in the

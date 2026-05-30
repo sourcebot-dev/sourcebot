@@ -7,6 +7,8 @@ import LicenseKeyRequired from '/snippets/license-key-required.mdx'
 
 The Sourcebot MCP Server connects AI tools to your [Sourcebot deployment](/docs/deployment/docker-compose). This gives your agents the ability to search, read files, resolve references & definitions, and more across all of your code hosted on Sourcebot.
 
+<LicenseKeyRequired feature="The Sourcebot MCP server" />
+
 ## Use cases
 
 - **Context for local agents:** Plug the MCP into coding agents like Cursor, Claude Code, or Copilot to give them context across your entire codebase, not just the open workspace.
@@ -16,7 +18,7 @@ The Sourcebot MCP Server connects AI tools to your [Sourcebot deployment](/docs/
 
 Sourcebot MCP uses a [Streamable HTTP](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#streamable-http) transport hosted at the `/api/mcp` route. Two authorization mechanisms are supported:
 
-- **OAuth (preferred)**: MCP clients that support OAuth 2.0 will automatically handle the authorization flow and issue a short lived access token. No API key or manual token management required. Only available with an active [Enterprise license](/docs/license-key).
+- **OAuth (preferred)**: MCP clients that support OAuth 2.0 will automatically handle the authorization flow and issue a short lived access token. No API key or manual token management required. Only available with a paid [subscription](/docs/activating-a-subscription).
 - **API key**: Any MCP client can authorize using a Sourcebot API key passed as a `Authorization: Bearer <key>` header. Create one in **Settings → API Keys**.
 
 You can read more about the options in the [authorization](#authorization) section.

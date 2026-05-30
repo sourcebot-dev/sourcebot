@@ -42,16 +42,16 @@ export const PureCodePreviewPanel = ({
     const hasCodeNavEntitlement = useHasEntitlement("code-nav");
     const router = useRouter();
 
-    const handleBlameCommitClick = useCallback((hash: string) => {
+    const handleBlameCommitClick = useCallback((commit: { hash: string; path: string }) => {
         router.push(getBrowsePath({
             repoName,
             revisionName,
-            path,
+            path: commit.path,
             pathType: 'blob',
-            previewRef: hash,
+            previewRef: commit.hash,
             diff: true,
         }));
-    }, [router, repoName, revisionName, path]);
+    }, [router, repoName, revisionName]);
 
     const handleBlameReblameClick = useCallback((previous: { hash: string; path: string }) => {
         router.push(getBrowsePath({

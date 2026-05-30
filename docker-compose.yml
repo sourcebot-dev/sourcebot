@@ -15,6 +15,9 @@ services:
     volumes:
       - ./config.json:/data/config.json
       - sourcebot_data:/data
+    env_file:
+      - path: .env
+        required: false
     environment:
       - CONFIG_PATH=/data/config.json
       - AUTH_URL=${AUTH_URL:-http://localhost:3000}
@@ -22,7 +25,6 @@ services:
       - SOURCEBOT_ENCRYPTION_KEY=${SOURCEBOT_ENCRYPTION_KEY:-000000000000000000000000000000000} # CHANGEME: generate via `openssl rand -base64 24`
       - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/postgres} # CHANGEME
       - REDIS_URL=${REDIS_URL:-redis://redis:6379} # CHANGEME
-      - SOURCEBOT_EE_LICENSE_KEY=${SOURCEBOT_EE_LICENSE_KEY:-}
 
       # For the full list of environment variables see:
       # https://docs.sourcebot.dev/docs/configuration/environment-variables

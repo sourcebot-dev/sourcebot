@@ -58,6 +58,7 @@ export const getSidebarNavGroups = async () =>
         if (isServiceError(connectionStats)) {
             throw new ServiceErrorException(connectionStats);
         }
+        const hasAskEntitlement = await hasEntitlement("ask");
 
         const groups: NavGroup[] = [
             {
@@ -80,6 +81,19 @@ export const getSidebarNavGroups = async () =>
                             title: "Linked Accounts",
                             href: `/settings/linked-accounts`,
                             icon: "link" as const,
+                        }
+                    ] : []),
+                    {
+                        title: "MCP Server",
+                        href: `/settings/mcp`,
+                        icon: 'mcp' as const,
+                        requiredEntitlement: 'mcp',
+                    },
+                    ...(hasAskEntitlement ? [
+                        {
+                            title: "Ask Sourcebot",
+                            href: `/settings/accountAskAgent`,
+                            icon: "bot" as const,
                         }
                     ] : []),
                 ],
@@ -112,6 +126,13 @@ export const getSidebarNavGroups = async () =>
                         title: "Analytics",
                         href: `/settings/analytics`,
                         icon: "chart-area" as const,
+                        requiredEntitlement: 'analytics'
+                    },
+                    {
+                        title: "Ask Sourcebot",
+                        href: `/settings/workspaceAskAgent`,
+                        icon: "bot" as const,
+                        requiredEntitlement: 'ask',
                     },
                     {
                         title: "License",

@@ -3,21 +3,25 @@ import type { OrgRole } from "@sourcebot/db";
 
 export const BannerPriority = {
     LICENSE_EXPIRED:          100,
+    LICENSE_REBOUND_ELSEWHERE: 97,
     SERVICE_PING_ENFORCED:     95,
     INVOICE_PAST_DUE:          90,
     PERMISSION_SYNC:           50,
     TRIAL:                     25,
     LICENSE_EXPIRY_HEADS_UP:   20,
     SERVICE_PING_FAILED:       10,
+    UPGRADE_AVAILABLE:          5,
 } as const;
 
 export type BannerId =
     | 'licenseExpired'
+    | 'licenseReboundElsewhere'
     | 'invoicePastDue'
     | 'permissionSync'
     | 'licenseExpiryHeadsUp'
     | 'trial'
-    | 'servicePingFailed';
+    | 'servicePingFailed'
+    | 'upgradeAvailable';
 
 export interface BannerProps {
     id: BannerId;

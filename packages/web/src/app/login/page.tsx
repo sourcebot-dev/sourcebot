@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { LoginForm } from "./components/loginForm";
 import { redirect } from "next/navigation";
 import { Footer } from "@/app/components/footer";
-import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { __unsafePrisma } from "@/prisma";
 import { env } from "@sourcebot/shared";
@@ -27,7 +26,6 @@ export default async function Login(props: LoginProps) {
         return redirect("/onboard");
     }
 
-    const providers = await getIdentityProviderMetadata();
     const anonymousAccessEnabled = await isAnonymousAccessEnabled();
 
     return (
@@ -36,7 +34,6 @@ export default async function Login(props: LoginProps) {
                 <LoginForm
                     callbackUrl={searchParams.callbackUrl}
                     error={searchParams.error}
-                    providers={providers}
                     context="login"
                     isAnonymousAccessEnabled={anonymousAccessEnabled}
                     hideSecurityNotice={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}

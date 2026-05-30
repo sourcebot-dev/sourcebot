@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
+import { ProgressBarProvider } from "./progressBarProvider";
 import { QueryClientProvider } from "./queryClientProvider";
 import { PostHogProvider } from "./posthogProvider";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,6 +11,8 @@ import { SessionProvider } from "next-auth/react";
 import { env, SOURCEBOT_VERSION } from "@sourcebot/shared";
 import { PlanProvider } from "@/features/entitlements/planProvider";
 import { getEntitlements } from "@/lib/entitlements";
+import { IdentityProvidersProvider } from "@/features/auth/identityProvidersProvider";
+import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 
 export const metadata: Metadata = {
     metadataBase: env.AUTH_URL ? new URL(env.AUTH_URL) : undefined,
@@ -30,6 +33,7 @@ export default async function RootLayout({
     children: React.ReactNode;
 }>) {
     const entitlements = await getEntitlements();
+    const identityProviders = await getIdentityProviderMetadata();
 
     return (
         <html
@@ -63,28 +67,32 @@ export default async function RootLayout({
                 <Toaster />
                 <SessionProvider>
                     <PlanProvider entitlements={entitlements}>
-                        <PostHogProvider
-                            isDisabled={env.SOURCEBOT_TELEMETRY_DISABLED === 'true'}
-                            isPiiEnabled={env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true'}
-                            // @note: the posthog api key doesn't need to be kept secret,
-                            // so we are safe to send it to the client.
-                            posthogApiKey={env.POSTHOG_PAPIK}
-                            sourcebotVersion={SOURCEBOT_VERSION}
-                            sourcebotInstallId={env.SOURCEBOT_INSTALL_ID}
-                        >
-                            <ThemeProvider
-                                attribute="class"
-                                defaultTheme="system"
-                                enableSystem
-                                disableTransitionOnChange
+                        <IdentityProvidersProvider providers={identityProviders}>
+                            <PostHogProvider
+                                isDisabled={env.SOURCEBOT_TELEMETRY_DISABLED === 'true'}
+                                isPiiEnabled={env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true'}
+                                // @note: the posthog api key doesn't need to be kept secret,
+                                // so we are safe to send it to the client.
+                                posthogApiKey={env.POSTHOG_PAPIK}
+                                sourcebotVersion={SOURCEBOT_VERSION}
+                                sourcebotInstallId={env.SOURCEBOT_INSTALL_ID}
                             >
-                                <QueryClientProvider>
-                                    <TooltipProvider>
-                                        {children}
-                                    </TooltipProvider>
-                                </QueryClientProvider>
-                            </ThemeProvider>
-                        </PostHogProvider>
+                                <ThemeProvider
+                                    attribute="class"
+                                    defaultTheme="system"
+                                    enableSystem
+                                    disableTransitionOnChange
+                                >
+                                    <QueryClientProvider>
+                                        <TooltipProvider>
+                                            <ProgressBarProvider>
+                                                {children}
+                                            </ProgressBarProvider>
+                                        </TooltipProvider>
+                                    </QueryClientProvider>
+                                </ThemeProvider>
+                            </PostHogProvider>
+                        </IdentityProvidersProvider>
                     </PlanProvider>
                 </SessionProvider>
             </body>

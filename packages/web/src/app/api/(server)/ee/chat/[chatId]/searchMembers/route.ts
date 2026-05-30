@@ -41,11 +41,11 @@ export const GET = apiHandler(async (
         })
     }
 
-    if (!await hasEntitlement('chat-sharing')) {
+    if (!await hasEntitlement('ask')) {
         return serviceErrorResponse({
             statusCode: StatusCodes.FORBIDDEN,
             errorCode: ErrorCode.UNEXPECTED_ERROR,
-            message: "Chat sharing is not enabled for your license",
+            message: "Chat sharing requires a paid plan",
         })
     }
 

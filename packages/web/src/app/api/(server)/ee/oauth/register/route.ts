@@ -14,6 +14,7 @@ const registerRequestSchema = z.object({
     logo_uri: z.string().url().nullish(),
 });
 
+// eslint-disable-next-line authz/require-auth-wrapper -- RFC 7591 dynamic client registration, intentionally unauthenticated
 export const POST = oauthApiHandler(async (request: NextRequest) => {
     if (!await hasEntitlement('oauth')) {
         return Response.json(

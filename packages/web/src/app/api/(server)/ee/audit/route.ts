@@ -23,6 +23,7 @@ const auditQueryParamsSchema = auditQueryParamsBaseSchema.refine(
     { message: "'since' must be before 'until'", path: ["since"] }
 );
 
+// eslint-disable-next-line authz/require-auth-wrapper -- delegates to fetchAuditRecords() which calls withAuth + withMinimumOrgRole(OWNER)
 export const GET = apiHandler(async (request: NextRequest) => {
     const entitlements = await getEntitlements();
     if (!entitlements.includes('audit')) {

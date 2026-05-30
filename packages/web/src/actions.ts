@@ -515,6 +515,7 @@ export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: strin
         }
     }));
 
+// eslint-disable-next-line authz/require-auth-wrapper -- calls getAuthenticatedUser() directly; runs pre-org-membership so cannot use withAuth
 export const createAccountRequest = async () => sew(async () => {
     const authResult = await getAuthenticatedUser();
     if (!authResult) {
@@ -769,6 +770,7 @@ export const setAnonymousAccessStatus = async (enabled: boolean): Promise<Servic
     });
 });
 
+// eslint-disable-next-line authz/require-auth-wrapper -- UI-only preference cookie, no DB access
 export const setAgenticSearchTutorialDismissedCookie = async (dismissed: boolean) => sew(async () => {
     const cookieStore = await cookies();
     cookieStore.set(AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, dismissed ? "true" : "false", {
@@ -778,6 +780,7 @@ export const setAgenticSearchTutorialDismissedCookie = async (dismissed: boolean
     return true;
 });
 
+// eslint-disable-next-line authz/require-auth-wrapper -- UI-only preference cookie, no DB access
 export const dismissMobileUnsupportedSplashScreen = async () => sew(async () => {
     const cookieStore = await cookies();
     cookieStore.set(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, 'true');

@@ -1,0 +1,65 @@
+---
+title: Connectors
+---
+
+Connectors let Ask Sourcebot access your apps and services so it can answer questions and take action on your behalf.
+
+They communicate over MCP and use the same permission boundaries as the connected user. This means a connector can only retrieve data that the user is authorized to access.
+
+Once [configured](#configuration), connectors make Ask Sourcebot more useful across your workflow. For example, Ask Sourcebot can help identify the root cause of a bug in your codebase, then create a Linear or Jira 
+issue with the findings and a link to the chat so teammates can pick up where you left off.
+
+## Usage
+
+From the Ask page, you can choose which connectors are available for each chat.
+
+Turn off a connector to prevent Ask Sourcebot from using it in that chat.
+
+<Frame>
+  <img src="/images/connectors_toggle_off.png" alt="Toggle off connector" />
+</Frame>
+
+During a chat, Ask Sourcebot shows each connector tool it uses.
+
+If Ask Sourcebot needs to use a tool that requires approval, it pauses and asks for your permission before continuing.
+
+<Frame>
+  <img src="/images/connectors_permission_request.png" alt="Request tool permission" />
+</Frame>
+
+## Configuration
+
+An owner must add a connector before organization members can use it.
+
+To add a connector:
+1. **Settings → Workspace → Ask Agent** 
+2. Click **Add connector**. 
+3. Enter the MCP server URL and the name the organization will see for this server.
+
+Most MCP servers support dynamic client registration. When this is available, Sourcebot registers with the server automatically.
+
+Some MCP servers require a pre-registered OAuth app instead. In that case, an owner must register Sourcebot with the connector platform first, 
+then enter the OAuth client ID and client secret in Sourcebot.
+
+<div className="max-w-sm mx-auto">
+  <Frame>
+    <img
+      src="/images/connectors_static_registration.png"
+      alt="OAuth client credentials dialog for a Slack connector"
+    />
+  </Frame>
+</div>
+
+## Connecting
+
+After an owner adds connectors for your organization, go to **Settings → Account → Ask Agent** to connect them.
+
+You can see all available connectors on this page. After you connect one, you can inspect the tools it provides and what each tool does.
+
+<div className="max-w-xl mx-auto">
+  <Frame>
+    <img src="/images/connectors_account_page.png" alt="Account connectors page" />
+  </Frame>
+</div>
+
+

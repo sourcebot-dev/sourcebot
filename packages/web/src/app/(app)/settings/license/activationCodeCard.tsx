@@ -1,26 +1,17 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { SettingsCard } from "../components/settingsCard";
-import { activateLicense, createCheckoutSession } from "@/ee/features/lighthouse/actions";
+import { activateLicense } from "@/features/billing/actions";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, ExternalLink } from "lucide-react";
 
-interface ActivationCodeCardProps {
-    isTrialEligible: boolean;
-}
-
-export function ActivationCodeCard({ isTrialEligible }: ActivationCodeCardProps) {
+export function ActivationCodeCard() {
     const [activationCode, setActivationCode] = useState("");
     const [isActivating, setIsActivating] = useState(false);
-    const [isCheckoutSessionCreating, setIsCheckoutSessionCreating] = useState(false);
-    const router = useRouter();
     const { toast } = useToast();
 
     const handleActivate = useCallback(() => {
@@ -38,50 +29,22 @@ export function ActivationCodeCard({ isTrialEligible }: ActivationCodeCardProps)
                     });
                 } else {
                     toast({
-                        description: "License activated successfully.",
+                        description: "✅ License activated successfully.",
                     });
                     setActivationCode("");
-                    router.refresh();
                 }
             })
             .finally(() => {
                 setIsActivating(false);
             });
-    }, [activationCode, toast, router]);
-
-    const onCreateCheckoutSession = useCallback(() => {
-        setIsCheckoutSessionCreating(true);
-
-        createCheckoutSession(isTrialEligible)
-            .then((response) => {
-                if (isServiceError(response)) {
-                    toast({
-                        description: `Failed to start checkout: ${response.message}`,
-                        variant: "destructive",
-                    });
-                } else {
-                    // Stripe Checkout is an external URL; use assign for a
-                    // full navigation rather than router.push.
-                    window.location.assign(response.url);
-                }
-            })
-            .catch(() => {
-                toast({
-                    description: "Failed to start checkout. Please try again.",
-                    variant: "destructive",
-                });
-            })
-            .finally(() => {
-                setIsCheckoutSessionCreating(false);
-            });
-    }, [toast, isTrialEligible]);
+    }, [activationCode, toast]);
 
     return (
         <SettingsCard>
             <div className="flex flex-col gap-2">
                 <p className="font-medium">Activation code</p>
                 <p className="text-sm text-muted-foreground">
-                    Enter your activation code to enable your enterprise license.
+                    Enter your activation code to enable your Sourcebot license.
                 </p>
                 <Separator className="my-2" />
                 <div className="flex flex-col gap-3">
@@ -107,22 +70,6 @@ export function ActivationCodeCard({ isTrialEligible }: ActivationCodeCardProps)
                             Activate
                         </LoadingButton>
                     </div>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                        Don&apos;t have an activation code?
-                        <Button
-                            variant="link"
-                            className="h-auto p-0 gap-1"
-                            onClick={onCreateCheckoutSession}
-                            disabled={isCheckoutSessionCreating}
-                        >
-                            {isTrialEligible ? "Start a free trial" : "Purchase a license"}
-                            {isCheckoutSessionCreating ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                                <ExternalLink className="h-3 w-3" />
-                            )}
-                        </Button>
-                    </p>
                 </div>
             </div>
         </SettingsCard>

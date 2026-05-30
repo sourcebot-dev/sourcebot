@@ -2,60 +2,105 @@
 title: "Docker Compose"
 ---
 
-This guide will walk you through deploying Sourcebot locally or on a VM using Docker Compose. We will use the [docker-compose.yml](https://github.com/sourcebot-dev/sourcebot/blob/main/docker-compose.yml) file from the [Sourcebot repository](https://github.com/sourcebot-dev/sourcebot). This is the simplest way to get started with Sourcebot.
+This guide will teach you how to deploy Sourcebot using [Docker Compose](https://github.com/sourcebot-dev/sourcebot/blob/main/docker-compose.yml). This is the simplest way to get started with Sourcebot, and should only take a couple minutes.
 
 If you are looking to deploy onto Kubernetes, see the [Kubernetes (Helm)](/docs/deployment/k8s) guide.
 
-## Get started
+## System requirements
+- RAM: Ensure your environment has at least 4GB of RAM. Insufficient memory may cause your Sourcebot deployment to be unstable.
+- Docker & Docker Compose: Make sure both are installed and up-to-date.
+- Node.js 18+: Required for the setup CLI
 
-<Steps>
-    <Step title="Requirements">
-        - docker & docker compose. Use [Docker Desktop](https://www.docker.com/products/docker-desktop/) on Mac or Windows.
-    </Step>
-    <Step title="Obtain the Docker Compose file">
-        Download the [docker-compose.yml](https://github.com/sourcebot-dev/sourcebot/blob/main/docker-compose.yml) file from the Sourcebot repository.
+For a more detailed requirements breakdown, please check out our [sizing guide](/docs/deployment/sizing-guide).
 
-        ```bash wrap icon="terminal"
-        curl -o docker-compose.yml https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/docker-compose.yml
-        ```
-    </Step>
+## Option 1: Setup CLI
 
-    <Step title="Create a config.json">
+The setup CLI will guide you through deploying Sourcebot and connecting it to your code hosts and LLM providers. This will create a new directory and generate a [configuration file](/docs/configuration/config-file) 
+and Docker Compose file for you.
 
-        In the same directory as the `docker-compose.yml` file, create a [configuration file](/docs/configuration/config-file). The configuration file is a JSON file that configures Sourcebot's behaviour, including what repositories to index, language model providers, auth providers, and more.
+Run the following command to get started:
 
-        ```bash wrap icon="terminal" Create example config
-        touch config.json
-        echo '{
-            "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
-            // Comments are supported.
-            // This config creates a single connection to GitHub.com that
-            // indexes the Sourcebot repository
-            "connections": {
-                "starter-connection": {
-                    "type": "github",
-                    "repos": [
-                        "sourcebot-dev/sourcebot"
-                    ]
-                }
-            }
-        }' > config.json
-        ```
-    </Step>
+```
+npx setup-sourcebot
+```
 
-    <Step title="Launch your instance">
-        Update the secrets in the `docker-compose.yml` and then run Sourcebot using:
+<Frame>
+    <img src="/images/setup_sourcebot_splash.png" alt="npx setup-sourcebot" />
+</Frame>
 
-        ```bash wrap icon="terminal"
-        docker compose up
-        ```
-    </Step>
+## Option 2: Manual steps
 
-    <Step title="Done">
-        You're all set! Navigate to [http://localhost:3000](http://localhost:3000) to access your Sourcebot instance.
-    </Step>
-</Steps>
+### Obtain the Docker Compose file
+
+Download the [docker-compose.yml](https://github.com/sourcebot-dev/sourcebot/blob/main/docker-compose.yml) file from the Sourcebot repository.
+
+```bash wrap icon="terminal"
+curl -o docker-compose.yml https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/docker-compose.yml
+```
+
+### Create a config.json
+
+In the same directory as the `docker-compose.yml` file, create a [configuration file](/docs/configuration/config-file). The configuration file is a JSON file that configures Sourcebot's behaviour, including which repos to index, what language models to use, and more.
+
+```bash wrap icon="terminal" Create example config
+touch config.json
+echo '{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    // Comments are supported.
+    // This config creates a single connection to GitHub.com that
+    // indexes the Sourcebot repository
+    "connections": {
+        "starter-connection": {
+            "type": "github",
+            "repos": [
+                "sourcebot-dev/sourcebot"
+            ]
+        }
+    }
+}' > config.json
+```
+
+### Launch your instance
+
+Update the secrets in the `docker-compose.yml` and then run Sourcebot using:
+
+```bash wrap icon="terminal"
+docker compose up
+```
+
+Navigate to [http://localhost:3000](http://localhost:3000) to access your Sourcebot instance.
 
 ## Next steps
 
+Congrats, you've deployed Sourcebot! Check out the following guides to learn more.
 
+#### Configuration
+
+<CardGroup cols={2}>
+    <Card title="Index your code" icon="book" href="/docs/connections/indexing-your-code">
+        Connect Sourcebot to your code hosts and configure which repos to index.
+    </Card>
+    <Card title="Language model providers" icon="brain" href="/docs/configuration/language-model-providers">
+        Configure the LLM providers that power Ask Sourcebot.
+    </Card>
+    <Card title="Authentication" icon="lock" href="/docs/configuration/auth/authentication">
+        Set up SSO and configure how users sign in to your instance.
+    </Card>
+    <Card title="Sizing guide" icon="gauge" href="/docs/deployment/sizing-guide">
+        Right-size your deployment based on the number of repos you're indexing.
+    </Card>
+</CardGroup>
+
+#### Features
+
+<CardGroup cols={3}>
+    <Card title="Code search" icon="magnifying-glass" href="/docs/features/search/code-search">
+        Search and navigate across all your repos and branches.
+    </Card>
+    <Card title="Ask Sourcebot" icon="comments" href="/docs/features/ask">
+        Ask questions across all your repos and branches.
+    </Card>
+    <Card title="MCP" icon="plug" href="/docs/features/mcp-server">
+        Code context layer for all your agents.
+    </Card>
+</CardGroup>

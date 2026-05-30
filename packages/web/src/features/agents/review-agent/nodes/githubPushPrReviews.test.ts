@@ -1,4 +1,5 @@
 import { expect, test, vi, describe } from 'vitest';
+import { Octokit } from 'octokit';
 import { githubPushPrReviews } from './githubPushPrReviews';
 import { sourcebot_pr_payload, sourcebot_file_diff_review } from '../types';
 
@@ -38,7 +39,7 @@ function makeMockOctokit(createReviewCommentResult: 'resolve' | 'reject' = 'reso
                     : vi.fn().mockRejectedValue(new Error('Unprocessable Entity')),
             },
         },
-    } as any;
+    } as unknown as Octokit;
 }
 
 describe('githubPushPrReviews', () => {
@@ -123,7 +124,7 @@ describe('githubPushPrReviews', () => {
         const mockCreate = vi.fn()
             .mockRejectedValueOnce(new Error('422'))
             .mockResolvedValueOnce({});
-        const octokit = { rest: { pulls: { createReviewComment: mockCreate } } } as any;
+        const octokit = { rest: { pulls: { createReviewComment: mockCreate } } } as unknown as Octokit;
 
         await githubPushPrReviews(octokit, MOCK_PAYLOAD, twoReviews);
 

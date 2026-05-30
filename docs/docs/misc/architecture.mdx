@@ -1,0 +1,19 @@
+---
+title: "Architecture"
+---
+
+Sourcebot is shipped as a single docker container that runs a collection of services using [supervisord](https://supervisord.org/):
+
+![architecture diagram](/images/architecture_diagram.png)
+
+{/*TODO: outline the different services, how Sourcebot communicates with code hosts, and the different*/}
+
+Sourcebot consists of the following components:
+- **Web Server** : main Next.js web application serving the Sourcebot UI.
+- **Backend Worker** : Node.js process that incrementally syncs with code hosts (e.g., GitHub, GitLab etc.) and asynchronously indexes configured repositories.
+- **Zoekt** : the [open-source](https://github.com/sourcegraph/zoekt), trigram indexing code search engine that powers Sourcebot under the hood.
+- **Postgres** : transactional database for storing business-logic data.
+- **Redis Job Queue** : fast in-memory store. Used with [BullMQ](https://docs.bullmq.io/) for queuing asynchronous work.
+- **`.sourcebot/` cache** : file-system cache where persistent data is written.
+
+You can use managed Redis / Postgres services that run outside of the Sourcebot container by providing the `REDIS_URL` and `DATABASE_URL` environment variables, respectively. See the [environment variables](/docs/configuration/environment-variables) doc for more configuration options.

@@ -11,7 +11,7 @@ export function InvoicePastDueBanner({ id, dismissible }: BannerProps) {
             dismissible={dismissible}
             icon={<CreditCard className="h-4 w-4 mt-0.5 text-destructive" />}
             title="Payment failed"
-            description="Your last invoice hasn't been paid. Update your payment method to avoid losing enterprise access."
+            description="Your last invoice hasn't been paid. Update your payment method to avoid being downgraded."
             action={
                 <Button asChild size="sm" variant="outline">
                     <Link href="/settings/license">Manage license</Link>

@@ -18,13 +18,12 @@ import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { notFound, redirect } from "next/navigation";
 import { PendingApprovalCard } from "./components/pendingApproval";
 import { SubmitJoinRequest } from "./components/submitJoinRequest";
-import { env, getOfflineLicenseMetadata } from "@sourcebot/shared";
+import { env, getOfflineLicenseMetadata, SOURCEBOT_VERSION } from "@sourcebot/shared";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { GcpIapAuth } from "./components/gcpIapAuth";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { GitHubStarToast } from "./components/githubStarToast";
-import { UpgradeToast } from "./components/upgradeToast";
 import { getLinkedAccounts } from "@/ee/features/sso/actions";
 import { BannerSlot } from "./components/banners/bannerSlot";
 import { getPermissionSyncStatus } from "../api/(server)/ee/permissionSyncStatus/api";
@@ -32,6 +31,10 @@ import { OrgRole } from "@sourcebot/db";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { ConnectAccountsCard } from "@/ee/features/sso/components/connectAccountsCard";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { CheckoutReturnHandler } from "@/features/billing/checkoutReturnHandler";
+import { RoleProvider } from "@/features/auth/roleProvider";
+import { HasLicenseProvider } from "@/features/billing/hasLicenseProvider";
+import { tryGetLatestSourcebotTag } from "./components/banners/actions";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -167,31 +170,42 @@ export default async function Layout(props: LayoutProps) {
         ? null
         : await __unsafePrisma.license.findUnique({ where: { orgId: org.id } });
 
-    return (
-        <SyntaxGuideProvider>
+    const latestVersion = await tryGetLatestSourcebotTag({
+        timeoutMs: 3000
+    });
 
-            <div className="fixed inset-0 flex bg-shell">
-                <SidebarProvider defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}>
-                    {sidebar}
-                    <div className="flex-1 min-h-0 flex flex-col pt-2 pb-2 pr-2">
-                        <div className="flex-1 min-h-0 bg-background flex flex-col border border-[#e6e6e6] dark:border-[#1d1d1f] rounded-xl overflow-hidden">
-                            <BannerSlot
-                                role={role}
-                                license={license}
-                                offlineLicense={offlineLicense}
-                                hasPermissionSyncEntitlement={hasPermissionSyncEntitlement}
-                                hasPendingFirstSync={hasPendingFirstSync}
-                            />
-                            <div className="flex-1 min-h-0 overflow-y-auto">
-                                {children}
+    return (
+        <RoleProvider role={role}>
+            <HasLicenseProvider
+                hasLicense={offlineLicense !== null || license !== null}
+            >
+                <SyntaxGuideProvider>
+                    <div className="fixed inset-0 flex bg-shell">
+                        <SidebarProvider defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}>
+                            {sidebar}
+                            <div className="flex-1 min-h-0 flex flex-col pt-2 pb-2 pr-2 pl-2 md:pl-0">
+                                <div className="flex-1 min-h-0 bg-background flex flex-col border border-[#e6e6e6] dark:border-[#1d1d1f] rounded-xl overflow-hidden">
+                                    <BannerSlot
+                                        role={role}
+                                        license={license}
+                                        offlineLicense={offlineLicense}
+                                        hasPermissionSyncEntitlement={hasPermissionSyncEntitlement}
+                                        hasPendingFirstSync={hasPendingFirstSync}
+                                        currentVersion={SOURCEBOT_VERSION}
+                                        latestVersion={latestVersion}
+                                    />
+                                    <div className="flex-1 min-h-0 overflow-y-auto">
+                                        {children}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        </SidebarProvider>
                     </div>
-                </SidebarProvider>
-            </div>
-            <SyntaxReferenceGuide />
-            <GitHubStarToast />
-            {env.EXPERIMENT_ASK_GH_ENABLED !== 'true' && <UpgradeToast />}
-        </SyntaxGuideProvider>
+                    <SyntaxReferenceGuide />
+                    <GitHubStarToast />
+                    <CheckoutReturnHandler />
+                </SyntaxGuideProvider>
+            </HasLicenseProvider>
+        </RoleProvider>
     )
 }

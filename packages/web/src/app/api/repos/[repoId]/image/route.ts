@@ -3,6 +3,7 @@ import { apiHandler } from "@/lib/apiHandler";
 import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 
+// eslint-disable-next-line authz/require-auth-wrapper -- delegates to getRepoImage() action which calls withOptionalAuth
 export const GET = apiHandler(async (
     _request: NextRequest,
     { params }: { params: Promise<{ repoId: string }> }

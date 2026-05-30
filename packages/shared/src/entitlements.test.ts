@@ -65,7 +65,18 @@ const makeLicense = (overrides: Partial<License> = {}): License => ({
     cancelAt: null,
     trialEnd: null,
     hasPaymentMethod: null,
+    yearlyTermStartedAt: null,
+    yearlyTermEndsAt: null,
+    yearlyTotalQuartersInTerm: null,
+    yearlyCurrentQuarterNumber: null,
+    yearlyCurrentQuarterStartedAt: null,
+    yearlyCurrentQuarterEndsAt: null,
+    yearlyCommittedSeats: null,
+    yearlyOverageSeats: null,
+    yearlyBillableOverageSeats: null,
+    yearlyPeakSeats: null,
     lastSyncAt: new Date(),
+    lastSyncErrorCode: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -213,6 +224,43 @@ describe('getEntitlements', () => {
                 lastSyncAt: new Date(Date.now() - STALE_THRESHOLD_MS + 1000),
             });
             expect(getEntitlements(license)).toEqual(['sso']);
+        });
+    });
+
+    describe('online license rebound elsewhere', () => {
+        test('returns empty when lastSyncErrorCode is ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE', () => {
+            const license = makeLicense({
+                status: 'active',
+                entitlements: ['sso'],
+                lastSyncAt: new Date(),
+                lastSyncErrorCode: 'ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE',
+            });
+            expect(getEntitlements(license)).toEqual([]);
+        });
+
+        test('returns entitlements when lastSyncErrorCode is some other error code', () => {
+            // Only ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE invalidates the
+            // local license. Other sync errors are persisted for visibility but
+            // don't strip entitlements (avoids paging operators on transient
+            // upstream issues).
+            const license = makeLicense({
+                status: 'active',
+                entitlements: ['sso'],
+                lastSyncAt: new Date(),
+                lastSyncErrorCode: 'UNKNOWN_STRIPE_PRODUCT',
+            });
+            expect(getEntitlements(license)).toEqual(['sso']);
+        });
+
+        test('offline license overrides the rebound-elsewhere gate', () => {
+            // Offline licenses don't rely on /ping, so a stale online error
+            // should not affect them.
+            mocks.env.SOURCEBOT_EE_LICENSE_KEY = validOfflineKey();
+            const license = makeLicense({
+                status: 'active',
+                lastSyncErrorCode: 'ACTIVATION_CODE_BOUND_TO_DIFFERENT_INSTANCE',
+            });
+            expect(getEntitlements(license).length).toBeGreaterThan(0);
         });
     });
 });

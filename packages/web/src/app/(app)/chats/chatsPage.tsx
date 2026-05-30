@@ -27,7 +27,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
 import { listChats } from "@/app/api/(client)/client";
-import type { ListChatsResponse } from "@/app/api/(server)/chats/types";
+import type { ListChatsResponse } from "@/app/api/(server)/ee/chats/types";
 
 type Chat = ListChatsResponse["chats"][number];
 type SortBy = "name" | "updatedAt";

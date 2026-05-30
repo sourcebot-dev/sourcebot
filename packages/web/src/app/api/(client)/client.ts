@@ -2,7 +2,7 @@
 
 import { ServiceError } from "@/lib/serviceError";
 import { GetVersionResponse, ListReposQueryParams, ListReposResponse } from "@/lib/types";
-import type { ListChatsQueryParams, ListChatsResponse } from "../(server)/chats/types";
+import type { ListChatsQueryParams, ListChatsResponse } from "../(server)/ee/chats/types";
 import { isServiceError } from "@/lib/utils";
 import {
     SearchRequest,
@@ -23,12 +23,17 @@ import {
     ListCommitsQueryParams,
     ListCommitsResponse,
 } from "@/features/git";
+import type { ListChangelogEntriesResponse } from "@/features/changelog/listEntriesApi";
 import type { PermissionSyncStatusResponse } from "../(server)/ee/permissionSyncStatus/api";
 import type { AccountSyncStatusResponse } from "../(server)/ee/accountPermissionSyncJobStatus/api";
 import type {
     SearchChatShareableMembersQueryParams,
     SearchChatShareableMembersResponse,
 } from "../(server)/ee/chat/[chatId]/searchMembers/route";
+import { OffersResponse } from "@/features/billing/types";
+import { ConnectMcpResponse } from "../(server)/ee/askmcp/connect/types";
+import type { GetMcpServersResponse } from "../(server)/ee/askmcp/servers/route";
+import type { GetMcpConfigurationResponse, GetMcpToolsResponse } from "@/ee/features/chat/mcp/types";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -89,6 +94,17 @@ export const getVersion = async (): Promise<GetVersionResponse> => {
         },
     }).then(response => response.json());
     return result as GetVersionResponse;
+}
+
+export const listChangelogEntries = async (): Promise<ListChangelogEntriesResponse | ServiceError> => {
+    const result = await fetch("/api/changelog/entries", {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    }).then(response => response.json());
+    return result as ListChangelogEntriesResponse | ServiceError;
 }
 
 export const findSearchBasedSymbolReferences = async (body: FindRelatedSymbolsRequest): Promise<FindRelatedSymbolsResponse | ServiceError> => {
@@ -199,7 +215,7 @@ export const searchChatShareableMembers = async (
 }
 
 export const listChats = async (queryParams: ListChatsQueryParams): Promise<ListChatsResponse | ServiceError> => {
-    const url = new URL("/api/chats", window.location.origin);
+    const url = new URL("/api/ee/chats", window.location.origin);
     for (const [key, value] of Object.entries(queryParams)) {
         if (value !== undefined) {
             url.searchParams.set(key, String(value));
@@ -214,4 +230,68 @@ export const listChats = async (queryParams: ListChatsQueryParams): Promise<List
     }).then(response => response.json());
 
     return result as ListChatsResponse | ServiceError;
+}
+
+export const getOffers = async (): Promise<OffersResponse | ServiceError> => {
+    const url = new URL("/api/offers", window.location.origin);
+
+    const result = await fetch(url, {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        },
+    }).then(response => response.json());
+
+    return result as OffersResponse | ServiceError;
+}
+
+export const connectMcpToAsk = async (body: { serverId: string; returnTo?: string }): Promise<ConnectMcpResponse | ServiceError> => {
+    const result = await fetch('/api/ee/askmcp/connect', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Sourcebot-Client-Source': 'sourcebot-web-client',
+        },
+        body: JSON.stringify(body),
+    }).then(response => response.json());
+
+    if (isServiceError(result)) {
+        return result;
+    }
+
+    return result as ConnectMcpResponse;
+}
+
+export const getMcpServersWithStatus = async (): Promise<GetMcpServersResponse | ServiceError> => {
+    const result = await fetch('/api/ee/askmcp/servers', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Sourcebot-Client-Source': 'sourcebot-web-client',
+        },
+    }).then(response => response.json());
+
+    return result as GetMcpServersResponse | ServiceError;
+}
+
+export const getMcpConfiguration = async (): Promise<GetMcpConfigurationResponse | ServiceError> => {
+    const result = await fetch('/api/ee/askmcp/configuration', {
+        method: 'GET',
+        headers: {
+            'X-Sourcebot-Client-Source': 'sourcebot-web-client',
+        },
+    }).then(response => response.json());
+
+    return result as GetMcpConfigurationResponse | ServiceError;
+}
+
+export const getMcpServerTools = async (): Promise<GetMcpToolsResponse | ServiceError> => {
+    const result = await fetch('/api/ee/askmcp/tools', {
+        method: 'GET',
+        headers: {
+            'X-Sourcebot-Client-Source': 'sourcebot-web-client',
+        },
+    }).then(response => response.json());
+
+    return result as GetMcpToolsResponse | ServiceError;
 }

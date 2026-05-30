@@ -6,6 +6,7 @@ import { MOCK_API_KEY, MOCK_OAUTH_TOKEN, MOCK_ORG, MOCK_USER_WITH_ACCOUNTS, pris
 import { OrgRole } from '@sourcebot/db';
 import { ErrorCode } from '../lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
+import { userScopedPrismaClientExtension } from '@/prisma';
 
 const mocks = vi.hoisted(() => {
     return {
@@ -80,10 +81,14 @@ const createMockSession = (overrides: Partial<Session> = {}): Session => ({
 
 beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(userScopedPrismaClientExtension).mockReset();
     mocks.auth.mockResolvedValue(null);
     mocks.headers.mockResolvedValue(new Headers());
     mocks.hasEntitlement.mockReturnValue(false);
     mocks.isAnonymousAccessAvailable.mockReturnValue(false);
+    // getAuthContext fires `prisma.user.update().catch(...)` to bump lastActiveAt;
+    // without a default, the reset mock returns undefined and the .catch chain throws.
+    prisma.user.update.mockResolvedValue(MOCK_USER_WITH_ACCOUNTS);
     // Reset env flags between tests
     Object.keys(mocks.env).forEach(key => delete mocks.env[key]);
 });
@@ -471,6 +476,39 @@ describe('getAuthContext', () => {
 });
 
 describe('withAuth', () => {
+    test('should pass the scoped prisma client from $extends to the callback', async () => {
+        const userId = 'test-user-id';
+        const user = {
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        };
+        const extension = { query: { userMcpServer: {} } };
+        const scopedPrisma = { scoped: true };
+
+        prisma.user.findUnique.mockResolvedValue(user);
+        prisma.org.findUnique.mockResolvedValue({
+            ...MOCK_ORG,
+        });
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId,
+            orgId: MOCK_ORG.id,
+            role: OrgRole.MEMBER,
+        });
+        vi.mocked(userScopedPrismaClientExtension).mockResolvedValue(extension as never);
+        prisma.$extends.mockReturnValue(scopedPrisma as never);
+        setMockSession(createMockSession({ user: { id: userId } }));
+
+        const cb = vi.fn();
+        await withAuth(cb);
+
+        expect(userScopedPrismaClientExtension).toHaveBeenCalledWith(user);
+        expect(prisma.$extends).toHaveBeenCalledWith(extension);
+        expect(cb).toHaveBeenCalledWith(expect.objectContaining({
+            prisma: scopedPrisma,
+        }));
+    });
+
     test('should call the callback with the auth context object if a valid session is present and the user is a member of the organization', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({

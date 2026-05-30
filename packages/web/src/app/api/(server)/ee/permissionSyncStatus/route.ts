@@ -8,6 +8,7 @@ import { getPermissionSyncStatus } from "./api";
  * Returns whether a user has a account that has it's permissions
  * synced for the first time.
  */
+// eslint-disable-next-line authz/require-auth-wrapper -- delegates to getPermissionSyncStatus() which calls withAuth
 export const GET = apiHandler(async () => {
     const result = await getPermissionSyncStatus();
 

@@ -119,6 +119,7 @@ export const fileBlameRequestSchema = z.object({
 
 export const blameRangeSchema = z.object({
     hash: z.string().describe('The hash of the commit that last modified the lines in this range.'),
+    path: z.string().describe('The file path as it existed at the attributing commit. May differ from the current path due to renames.'),
     startLine: z.number().int().positive().describe('The 1-based line number where the range begins (inclusive).'),
     lineCount: z.number().int().positive().describe('The number of contiguous lines in this range.'),
 });

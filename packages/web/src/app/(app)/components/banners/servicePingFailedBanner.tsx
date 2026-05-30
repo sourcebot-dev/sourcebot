@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { BannerShell } from "./bannerShell";
 import { RefreshLicenseButton } from "./refreshLicenseButton";
 import type { BannerProps } from "./types";
+import { OFFERINGS_DOCS_LINK } from "@/lib/constants";
 
 interface ServicePingFailedBannerProps extends BannerProps {
     variant: 'warning' | 'enforced';
@@ -12,11 +13,7 @@ interface ServicePingFailedBannerProps extends BannerProps {
     lastSyncAt: string | null;
 }
 
-// @nocheckin: link to the service ping docs here when ready.
-const DOCS_LINK = "https://docs.sourcebot.dev/docs";
-
-// @nocheckin: This should instead be a docs page that explains the enterprise offering.
-const ENTERPRISE_OFFERING_DOCS_LINK = "https://sourcebot.dev/pricing";
+const SERVICE_PING_DOCS_LINK = "https://docs.sourcebot.dev/docs/misc/service-ping";
 
 export function ServicePingFailedBanner({
     id,
@@ -32,7 +29,7 @@ export function ServicePingFailedBanner({
         : null;
 
     const whatsAffectedLink = (
-        <a href={ENTERPRISE_OFFERING_DOCS_LINK} target="_blank" rel="noopener noreferrer">
+        <a href={OFFERINGS_DOCS_LINK} target="_blank" rel="noopener noreferrer">
             What&apos;s affected?
         </a>
     );
@@ -46,14 +43,14 @@ export function ServicePingFailedBanner({
                 title="Can't verify license"
                 description={
                     relative
-                        ? `Last successful sync with the Sourcebot license server was ${relative}. Enterprise features will be disabled if this persists.`
-                        : "Enterprise features will be disabled if this persists."
+                        ? `Last successful sync with the Sourcebot license server was ${relative}. Paid features will be disabled if this persists.`
+                        : "Paid features will be disabled if this persists."
                 }
                 action={
                     <>
                         <RefreshLicenseButton />
                         <Button asChild size="sm" variant="outline">
-                            <a href={DOCS_LINK} target="_blank" rel="noopener noreferrer">
+                            <a href={SERVICE_PING_DOCS_LINK} target="_blank" rel="noopener noreferrer">
                                 Learn more
                             </a>
                         </Button>
@@ -65,12 +62,12 @@ export function ServicePingFailedBanner({
 
     const description = (() => {
         if (!isOwner) {
-            return <>Sourcebot can&apos;t verify this license right now. Enterprise features have been disabled. Contact your organization administrator to restore access. {whatsAffectedLink}</>;
+            return <>Sourcebot can&apos;t verify this license right now. Paid features have been disabled. Contact your organization administrator to restore access. {whatsAffectedLink}</>;
         }
         if (relative) {
-            return <>Last successful sync with the Sourcebot license server was {relative}. Enterprise features have been disabled. {whatsAffectedLink}</>;
+            return <>Last successful sync with the Sourcebot license server was {relative}. Paid features have been disabled. {whatsAffectedLink}</>;
         }
-        return <>Sourcebot has not been able to verify this license and enterprise features are disabled. {whatsAffectedLink}</>;
+        return <>Sourcebot has not been able to verify this license and paid features are disabled. {whatsAffectedLink}</>;
     })();
 
     return (
@@ -84,7 +81,7 @@ export function ServicePingFailedBanner({
                 <>
                     <RefreshLicenseButton />
                     <Button asChild size="sm" variant="outline">
-                        <a href={DOCS_LINK} target="_blank" rel="noopener noreferrer">
+                        <a href={SERVICE_PING_DOCS_LINK} target="_blank" rel="noopener noreferrer">
                             Learn more
                         </a>
                     </Button>

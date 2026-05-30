@@ -4,7 +4,9 @@ import { HistoryEditor } from "slate-history";
 import { ReactEditor, RenderElementProps } from "slate-react";
 import { z } from "zod";
 import { LanguageModel } from "@sourcebot/schemas/v3/index.type";
-import { createTools } from "./tools";
+// Type-only import: the chat message tool types are derived from the shape of the
+// EE agent's tools, but no runtime dependency on ee/ is introduced (erased at build).
+import type { createTools } from "@/ee/features/chat/tools";
 export { sourceSchema } from "@/features/tools/types";
 export type { FileSource, Source } from "@/features/tools/types";
 import type { Source } from "@/features/tools/types";
@@ -60,6 +62,7 @@ export const sbChatMessageMetadataSchema = z.object({
         userId: z.string().optional(),
     })).optional(),
     selectedSearchScopes: z.array(searchScopeSchema).optional(),
+    disabledMcpServerIds: z.array(z.string()).optional(),
     traceId: z.string().optional(),
 });
 
@@ -67,12 +70,22 @@ export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;
 
 export type SBChatMessageToolTypes = {
     [K in keyof ReturnType<typeof createTools>]: InferUITool<ReturnType<typeof createTools>[K]>;
+} & {
+    tool_request_activation: {
+        input: { tool_to_activate_name: string };
+        output: { results: Array<{ name: string; description: string }> };
+    };
 };
 
 export type SBChatMessageDataParts = {
     // The `source` data type allows us to know what sources the LLM saw
     // during retrieval.
     "source": Source,
+    // The `mcp-server` data type carries favicon metadata for connected MCP servers,
+    // keyed by sanitized server name (e.g. "linear").
+    "mcp-server": { sanitizedName: string; faviconUrl: string },
+    // The `mcp-failed-server` data type surfaces MCP servers that failed to load their tools.
+    "mcp-failed-server": { serverName: string },
 }
 
 export type SBChatMessage = UIMessage<
@@ -143,6 +156,7 @@ declare module 'slate' {
 export type SetChatStatePayload = {
     inputMessage: CreateUIMessage<SBChatMessage>;
     selectedSearchScopes: SearchScope[];
+    disabledMcpServerIds: string[];
 }
 
 
@@ -188,5 +202,6 @@ export type LanguageModelInfo = {
 export const additionalChatRequestParamsSchema = z.object({
     languageModel: languageModelInfoSchema,
     selectedSearchScopes: z.array(searchScopeSchema),
+    disabledMcpServerIds: z.array(z.string()).default([]),
 });
 export type AdditionalChatRequestParams = z.infer<typeof additionalChatRequestParamsSchema>;

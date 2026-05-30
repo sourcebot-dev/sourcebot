@@ -51,6 +51,7 @@ vi.mock('./git.js', () => ({
     isRepoEmpty: vi.fn().mockResolvedValue(false),
     unsetGitConfig: vi.fn(),
     upsertGitConfig: vi.fn(),
+    writeCommitGraph: vi.fn(),
 }));
 
 vi.mock('./zoekt.js', () => ({
@@ -178,6 +179,8 @@ const createMockSettings = (): Settings => ({
     enablePublicAccess: false,
     experiment_repoDrivenPermissionSyncIntervalMs: 1000 * 60 * 60 * 24,
     experiment_userDrivenPermissionSyncIntervalMs: 1000 * 60 * 60 * 24,
+    repoDrivenPermissionSyncIntervalMs: 1000 * 60 * 60 * 24,
+    userDrivenPermissionSyncIntervalMs: 1000 * 60 * 60 * 24,
     maxAccountPermissionSyncJobConcurrency: 8,
     maxRepoPermissionSyncJobConcurrency: 8,
 });

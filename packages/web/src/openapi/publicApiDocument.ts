@@ -41,7 +41,7 @@ const eeTag = { name: 'Enterprise (EE)', description: 'Enterprise endpoints for 
 
 const EE_LICENSE_KEY_NOTE = dedent`
 <Note>
-This API is only available with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.
+This API is only available with an active Sourcebot license. [More information](/docs/activating-a-subscription).
 </Note>
 `;
 

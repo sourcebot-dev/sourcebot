@@ -6,6 +6,7 @@ import { isServiceError } from "@/lib/utils";
 import { NextRequest } from "next/server";
 import { listRepos } from "./listReposApi";
 
+// eslint-disable-next-line authz/require-auth-wrapper -- delegates to listRepos() which calls withOptionalAuth
 export const GET = apiHandler(async (request: NextRequest) => {
     const rawParams = Object.fromEntries(
         Object.keys(listReposQueryParamsSchema.shape).map(key => [

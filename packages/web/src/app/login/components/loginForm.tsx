@@ -6,18 +6,16 @@ import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import Link from "next/link";
-import type { IdentityProviderMetadata } from "@/lib/identityProviders";
 
 interface LoginFormProps {
     callbackUrl?: string;
     error?: string;
-    providers: IdentityProviderMetadata[];
     context: "login" | "signup";
     isAnonymousAccessEnabled?: boolean;
     hideSecurityNotice?: boolean;
 }
 
-export const LoginForm = ({ callbackUrl, error, providers, context, isAnonymousAccessEnabled = false, hideSecurityNotice = false }: LoginFormProps) => {
+export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnabled = false, hideSecurityNotice = false }: LoginFormProps) => {
     const captureEvent = useCaptureEvent();
 
     const safeCallbackUrl = useMemo(() => {
@@ -88,7 +86,6 @@ export const LoginForm = ({ callbackUrl, error, providers, context, isAnonymousA
                     </div>
                 )}
                 <AuthMethodSelector
-                    providers={providers}
                     callbackUrl={callbackUrl}
                     context={context}
                     onProviderClick={handleProviderClick}

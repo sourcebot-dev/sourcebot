@@ -6,36 +6,43 @@ import { getConnectionStats } from "@/actions";
 import { getOrgAccountRequests } from "@/features/userManagement/actions";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
-import { __unsafePrisma } from "@/prisma";
-import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { OrgRole } from "@prisma/client";
 import { SidebarBase } from "@/app/(app)/@sidebar/components/sidebarBase";
 import { Nav } from "./nav";
 import { ChatHistory } from "./chatHistory";
-import { withAuth } from "@/middleware/withAuth";
+import { RepoVisitHistory } from "./repoVisitHistory";
+import { getAuthContext, withAuth } from "@/middleware/withAuth";
 import { sew } from "@/middleware/sew";
+import { hasEntitlement, isValidLicenseActive } from "@/lib/entitlements";
 
 const SIDEBAR_CHAT_LIMIT = 30;
+export const SIDEBAR_REPO_VISITS_LIMIT = 10;
 
 export async function DefaultSidebar() {
     const session = await auth();
     const cookieStore = await cookies();
     const homeView = (cookieStore.get(HOME_VIEW_COOKIE_NAME)?.value ?? "search") as HomeView;
 
-    const chatHistory = session ? await getUserChatHistory() : [];
+    // Chat history is part of the Ask experience; hide it when the deployment
+    // is not on a plan that includes Ask.
+    const hasAskEntitlement = await hasEntitlement('ask');
+    const chatHistory = (session && hasAskEntitlement) ? await getUserChatHistory() : [];
     if (isServiceError(chatHistory)) {
         throw new ServiceErrorException(chatHistory);
     }
 
+    const repoVisits = session ? await getRecentRepoVisits() : [];
+    if (isServiceError(repoVisits)) {
+        throw new ServiceErrorException(repoVisits);
+    }
+
+    const licenseActive = await isValidLicenseActive();
+
+    const authContext = await getAuthContext();
+    const isOwner = !isServiceError(authContext) && authContext.role === OrgRole.OWNER;
+
     const isSettingsNotificationVisible = await (async () => {
-        if (!session) {
-            return false;
-        }
-        const membership = await __unsafePrisma.userToOrg.findUnique({
-            where: { orgId_userId: { orgId: SINGLE_TENANT_ORG_ID, userId: session.user.id } },
-            select: { role: true },
-        });
-        if (membership?.role !== OrgRole.OWNER) {
+        if (!isOwner) {
             return false;
         }
         const connectionStats = await getConnectionStats();
@@ -49,6 +56,7 @@ export async function DefaultSidebar() {
         <SidebarBase
             session={session}
             collapsible="icon"
+            isValidLicenseActive={licenseActive}
             headerContent={
                 <Nav
                     isSettingsNotificationVisible={isSettingsNotificationVisible}
@@ -57,13 +65,50 @@ export async function DefaultSidebar() {
                 />
             }
         >
-            <ChatHistory
-                chatHistory={chatHistory.slice(0, SIDEBAR_CHAT_LIMIT)}
-                hasMore={chatHistory.length > SIDEBAR_CHAT_LIMIT}
-            />
+            <RepoVisitHistory repoVisits={repoVisits} />
+            {hasAskEntitlement && (
+                <ChatHistory
+                    chatHistory={chatHistory.slice(0, SIDEBAR_CHAT_LIMIT)}
+                    hasMore={chatHistory.length > SIDEBAR_CHAT_LIMIT}
+                />
+            )}
         </SidebarBase>
     );
 }
+
+const getRecentRepoVisits = async () => sew(() =>
+    withAuth(async ({ org, user, prisma }) => {
+        const visits = await prisma.repoVisit.findMany({
+            where: {
+                userId: user.id,
+                orgId: org.id,
+            },
+            orderBy: {
+                lastPromotedAt: 'desc',
+            },
+            take: SIDEBAR_REPO_VISITS_LIMIT,
+            include: {
+                repo: {
+                    select: {
+                        id: true,
+                        name: true,
+                        displayName: true,
+                        imageUrl: true,
+                        external_codeHostType: true,
+                    },
+                },
+            },
+        });
+
+        return visits.map((visit) => ({
+            repoId: visit.repo.id,
+            repoName: visit.repo.name,
+            displayName: visit.repo.displayName,
+            imageUrl: visit.repo.imageUrl,
+            codeHostType: visit.repo.external_codeHostType,
+        }));
+    })
+);
 
 const getUserChatHistory = async () => sew(() =>
     withAuth(async ({ org, user, prisma }) => {

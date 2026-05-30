@@ -6,11 +6,13 @@ type BannerSlotProps = Omit<BannerContext, 'dismissals' | 'today' | 'now'>;
 
 const KNOWN_BANNER_IDS: BannerId[] = [
     'licenseExpired',
+    'licenseReboundElsewhere',
     'invoicePastDue',
     'permissionSync',
     'licenseExpiryHeadsUp',
     'trial',
     'servicePingFailed',
+    'upgradeAvailable',
 ];
 
 export async function BannerSlot(props: BannerSlotProps) {

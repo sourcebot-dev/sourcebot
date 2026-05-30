@@ -37,8 +37,6 @@ clean:
 		packages/db/dist \
 		packages/schemas/node_modules \
 		packages/schemas/dist \
-		packages/mcp/node_modules \
-		packages/mcp/dist \
 		packages/shared/node_modules \
 		packages/shared/dist \
 		.sourcebot
