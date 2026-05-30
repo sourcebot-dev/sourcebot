@@ -4,7 +4,7 @@ import { withAuth } from '@/middleware/withAuth';
 import { sew } from '@/middleware/sew';
 import { isServiceError } from '@/lib/utils';
 import { serviceErrorResponse, notFound, requestBodySchemaValidationError, ServiceErrorException } from '@/lib/serviceError';
-import { PrismaOAuthClientProvider } from '@/ee/features/mcp/prismaOAuthClientProvider';
+import { PrismaOAuthClientProvider } from '@/ee/features/chat/mcp/prismaOAuthClientProvider';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { hasEntitlement } from '@/lib/entitlements';
@@ -15,7 +15,7 @@ import { __unsafePrisma } from '@/prisma';
 import { getExternalMcpErrorLogFields } from '@/ee/features/chat/mcp/externalMcpError';
 import { ErrorCode } from '@/lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
-import { normalizeMcpOAuthReturnTo } from '@/ee/features/mcp/mcpOAuthReturnTo';
+import { normalizeMcpOAuthReturnTo } from '@/ee/features/chat/mcp/mcpOAuthReturnTo';
 import { captureEvent } from '@/lib/posthog';
 import { getMcpAuthMode, getMcpConnectorEntryPoint, getMcpConnectorFailureReason } from '@/ee/features/chat/mcp/analytics';
 

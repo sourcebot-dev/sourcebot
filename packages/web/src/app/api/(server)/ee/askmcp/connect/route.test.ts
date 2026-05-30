@@ -46,7 +46,7 @@ vi.mock('@ai-sdk/mcp', () => ({
 }));
 
 const { POST } = await import('./route');
-const { getMcpOAuthReturnToFromState } = await import('@/ee/features/mcp/mcpOAuthReturnTo');
+const { getMcpOAuthReturnToFromState } = await import('@/ee/features/chat/mcp/mcpOAuthReturnTo');
 
 function createRequest(body: { serverId: string; returnTo?: string } = { serverId: 'server-1' }) {
     return new NextRequest('https://sourcebot.example.com/api/ee/askmcp/connect', {

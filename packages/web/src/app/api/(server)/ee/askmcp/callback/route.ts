@@ -3,7 +3,7 @@ import { apiHandler } from '@/lib/apiHandler';
 import { env, createLogger } from '@sourcebot/shared';
 import { hasEntitlement } from '@/lib/entitlements';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
-import { PrismaOAuthClientProvider } from '@/ee/features/mcp/prismaOAuthClientProvider';
+import { PrismaOAuthClientProvider } from '@/ee/features/chat/mcp/prismaOAuthClientProvider';
 // Note: We use the raw (unscoped) prisma client here because this route handles OAuth
 // redirect callbacks from external providers, so it can't go through withAuth. Session
 // identity is verified via NextAuth's auth() instead, and all queries filter by userId.
@@ -11,7 +11,7 @@ import { __unsafePrisma as prisma } from '@/prisma';
 import { auth } from '@/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { getExternalMcpErrorLogFields } from '@/ee/features/chat/mcp/externalMcpError';
-import { getMcpOAuthReturnToFromState } from '@/ee/features/mcp/mcpOAuthReturnTo';
+import { getMcpOAuthReturnToFromState } from '@/ee/features/chat/mcp/mcpOAuthReturnTo';
 import { captureEvent } from '@/lib/posthog';
 import { getMcpAuthMode, getMcpConnectorEntryPoint, getMcpConnectorFailureReason } from '@/ee/features/chat/mcp/analytics';
 

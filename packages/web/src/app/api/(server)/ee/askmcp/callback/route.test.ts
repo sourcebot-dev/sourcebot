@@ -54,7 +54,7 @@ vi.mock('@ai-sdk/mcp', () => ({
 }));
 
 const { GET } = await import('./route');
-const { createMcpOAuthState } = await import('@/ee/features/mcp/mcpOAuthReturnTo');
+const { createMcpOAuthState } = await import('@/ee/features/chat/mcp/mcpOAuthReturnTo');
 
 function createRequest(state = 'state-1') {
     return new NextRequest(`https://sourcebot.example.com/api/ee/askmcp/callback?code=code-1&state=${encodeURIComponent(state)}`, {
