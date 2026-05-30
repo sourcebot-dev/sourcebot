@@ -174,7 +174,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     }, [answerPart]);
 
     const rightPanelStyle: CSSProperties = useMemo(() => {
-        const maxHeight = 'calc(100vh - 215px)';
+        const maxHeight = 'calc(100vh - 215px - var(--banner-height, 0px))';
 
         return {
             height: leftPanelHeight ? `min(${leftPanelHeight}px, ${maxHeight})` : maxHeight,
@@ -323,7 +323,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
 
     return (
         <div
-            className="flex flex-col md:flex-row relative min-h-[calc(100vh-250px)]"
+            className="flex flex-col md:flex-row relative min-h-[calc(100vh-250px-var(--banner-height,0px))]"
             ref={ref}
         >
             <ResizablePanelGroup

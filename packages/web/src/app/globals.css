@@ -16,6 +16,7 @@
   }
   
   :root {
+    --banner-height: 0px;
     --background: hsl(0 0% 99%);
     --background-secondary: hsl(0, 0%, 98%);
     --foreground: hsl(37, 84%, 5%);
