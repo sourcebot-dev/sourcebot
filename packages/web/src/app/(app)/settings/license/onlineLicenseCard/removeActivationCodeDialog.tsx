@@ -13,7 +13,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/hooks/use-toast";
-import { deactivateLicense } from "@/ee/features/lighthouse/actions";
+import { deactivateLicense } from "@/features/billing/actions";
 import { isServiceError } from "@/lib/utils";
 
 interface RemoveActivationCodeDialogProps {

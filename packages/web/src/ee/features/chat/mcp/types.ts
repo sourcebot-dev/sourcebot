@@ -25,7 +25,7 @@ export interface McpServerToolUsageSummary {
 export interface GetMcpConfigurationResponse {
     servers: McpConfigurationServer[];
     allowedMode: McpConfigurationAllowedMode;
-    isOAuthAvailable: boolean;
+    isAskAgentAvailable: boolean;
 }
 
 export interface ToolSummary {

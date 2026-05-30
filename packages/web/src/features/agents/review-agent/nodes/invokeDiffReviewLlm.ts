@@ -1,5 +1,6 @@
 import { sourcebot_file_diff_review, sourcebot_file_diff_review_schema } from "@/features/agents/review-agent/types";
-import { getAISDKLanguageModelAndOptions, getConfiguredLanguageModels } from "@/features/chat/utils.server";
+import { getConfiguredLanguageModels } from "@/features/chat/utils.server";
+import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { env } from "@sourcebot/shared";
 import { generateText } from "ai";
 import fs from "fs";

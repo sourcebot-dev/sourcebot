@@ -16,28 +16,33 @@ import { useToast } from "@/components/hooks/use-toast";
 import { type ConnectedOauthClient, revokeMcpClient } from "@/ee/features/oauth/actions";
 import { isServiceError } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import { Boxes, Trash2 } from "lucide-react";
+import { AlertTriangle, Boxes, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CopyIconButton } from "../../components/copyIconButton";
-import { SettingsCard, SettingsCardGroup } from "../components/settingsCard";
+import { useState } from "react";
+import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
+import { SettingsCard, SettingsCardGroup } from "@/app/(app)/settings/components/settingsCard";
 import { ClientCard } from "./clientCard";
 import { MCP_CLIENTS, matchKnownClient } from "./clients";
+import { UpsellDialog } from "@/features/billing/upsellDialog";
 
 const DOCS_URL = "https://docs.sourcebot.dev/docs/features/mcp-server";
 
 interface McpPageProps {
     mcpServerUrl: string;
     connectedClients: ConnectedOauthClient[];
+    isMcpEnabled: boolean;
 }
 
 export function McpPage({
     mcpServerUrl,
-    connectedClients
+    connectedClients,
+    isMcpEnabled
 }: McpPageProps) {
     const { toast } = useToast();
     const router = useRouter();
+    const [isUpsellDialogOpen, setIsUpsellDialogOpen] = useState(false);
 
     const handleCopyServerUrl = () => {
         navigator.clipboard.writeText(mcpServerUrl)
@@ -70,33 +75,64 @@ export function McpPage({
             <div>
                 <h3 className="text-lg font-medium">MCP Server</h3>
                 <p className="text-sm text-muted-foreground">
-                    Connect AI coding tools to search and read your code through Sourcebot&apos;s MCP server. <Link href={DOCS_URL} target="_blank" className="text-link hover:underline">Learn more</Link>
+                    Connect your agents to Sourcebot to allow them to fetch code context, and more. <Link href={DOCS_URL} target="_blank" className="text-link hover:underline">Learn more</Link>
                 </p>
             </div>
 
-            <SettingsCard>
-                <h4 className="text-sm font-medium mb-2">Server URL</h4>
-                <div className="flex items-center gap-2">
-                    <div className="bg-muted p-2 rounded-md text-sm flex-1 break-all font-mono">
-                        {mcpServerUrl}
+            {!isMcpEnabled && (
+                <>
+                    <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-4">
+                        <AlertTriangle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div>
+                            <p className="text-sm font-medium">The MCP server is unavailable on your plan</p>
+                            <p className="text-sm text-muted-foreground">
+                                You can disconnect existing clients below, but connecting new clients requires{" "}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsUpsellDialogOpen(true)}
+                                    className="text-link hover:underline font-medium"
+                                >
+                                    an upgrade
+                                </button>.
+                            </p>
+                        </div>
                     </div>
-                    <CopyIconButton onCopy={handleCopyServerUrl} />
-                </div>
-            </SettingsCard>
+                    <UpsellDialog
+                        open={isUpsellDialogOpen}
+                        onOpenChange={setIsUpsellDialogOpen}
+                        source="mcp_settings"
+                        returnPath="/settings/mcp"
+                    />
+                </>
+            )}
 
-            <div className="flex flex-col gap-2">
-                <div>
-                    <h4 className="text-base font-medium">Install in a client</h4>
-                    <p className="text-sm text-muted-foreground">
-                        Set up Sourcebot in your editor or coding agent.
-                    </p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {MCP_CLIENTS.map((client) => (
-                        <ClientCard key={client.id} client={client} serverUrl={mcpServerUrl} />
-                    ))}
-                </div>
-            </div>
+            {isMcpEnabled && (
+                <>
+                    <SettingsCard>
+                        <h4 className="text-sm font-medium mb-2">Server URL</h4>
+                        <div className="flex items-center gap-2">
+                            <div className="bg-muted p-2 rounded-md text-sm flex-1 break-all font-mono">
+                                {mcpServerUrl}
+                            </div>
+                            <CopyIconButton onCopy={handleCopyServerUrl} />
+                        </div>
+                    </SettingsCard>
+
+                    <div className="flex flex-col gap-2">
+                        <div>
+                            <h4 className="text-base font-medium">Install in a client</h4>
+                            <p className="text-sm text-muted-foreground">
+                                Set up Sourcebot in your editor or coding agent.
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {MCP_CLIENTS.map((client) => (
+                                <ClientCard key={client.id} client={client} serverUrl={mcpServerUrl} />
+                            ))}
+                        </div>
+                    </div>
+                </>
+            )}
 
             <div className="flex flex-col gap-2">
                 <div>

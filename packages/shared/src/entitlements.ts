@@ -37,10 +37,10 @@ const ALL_ENTITLEMENTS = [
     "analytics",
     "permission-syncing",
     "github-app",
-    "chat-sharing",
     "org-management",
     "oauth",
-    "ask"
+    "ask",
+    "mcp"
 ] as const;
 export type Entitlement = (typeof ALL_ENTITLEMENTS)[number];
 

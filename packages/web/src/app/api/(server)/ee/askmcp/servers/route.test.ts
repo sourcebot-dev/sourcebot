@@ -72,7 +72,7 @@ beforeEach(() => {
 });
 
 describe('GET /api/ee/askmcp/servers', () => {
-    test('returns an empty array when the oauth entitlement is not granted', async () => {
+    test('returns an empty array when the ask entitlement is not granted', async () => {
         mocks.hasEntitlement.mockResolvedValue(false);
         const prisma = createPrismaMock();
         mocks.authContext = {

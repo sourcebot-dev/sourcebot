@@ -3,7 +3,7 @@ import { serviceErrorResponse } from '@/lib/serviceError';
 import { isServiceError } from '@/lib/utils';
 import { withAuth } from '@/middleware/withAuth';
 import { hasEntitlement } from '@/lib/entitlements';
-import { getMcpFaviconUrl } from '@/ee/features/chat/mcp/utils';
+import { getMcpFaviconUrl } from '@/features/chat/mcp/utils';
 import { getStoredMcpConnectionStatus } from '@/ee/features/chat/mcp/connectionStatus';
 import type { NextRequest } from 'next/server';
 
@@ -20,7 +20,7 @@ export interface McpServerWithStatus {
 export type GetMcpServersResponse = McpServerWithStatus[];
 
 export const GET = apiHandler(async (_request: NextRequest) => {
-    if (!(await hasEntitlement('oauth'))) {
+    if (!(await hasEntitlement('ask'))) {
         return Response.json([] satisfies GetMcpServersResponse);
     }
 

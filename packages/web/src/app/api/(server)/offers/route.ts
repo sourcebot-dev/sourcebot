@@ -1,4 +1,4 @@
-import { client as lighthouseClient } from "@/ee/features/lighthouse/client";
+import { client as lighthouseClient } from "@/features/billing/client";
 import { apiHandler } from "@/lib/apiHandler";
 import { env } from "@sourcebot/shared";
 

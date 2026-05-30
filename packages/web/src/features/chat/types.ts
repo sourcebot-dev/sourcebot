@@ -4,7 +4,9 @@ import { HistoryEditor } from "slate-history";
 import { ReactEditor, RenderElementProps } from "slate-react";
 import { z } from "zod";
 import { LanguageModel } from "@sourcebot/schemas/v3/index.type";
-import { createTools } from "./tools";
+// Type-only import: the chat message tool types are derived from the shape of the
+// EE agent's tools, but no runtime dependency on ee/ is introduced (erased at build).
+import type { createTools } from "@/ee/features/chat/tools";
 export { sourceSchema } from "@/features/tools/types";
 export type { FileSource, Source } from "@/features/tools/types";
 import type { Source } from "@/features/tools/types";

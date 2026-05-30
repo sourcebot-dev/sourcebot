@@ -8,7 +8,7 @@ import { getMcpToolMetadata } from '@/ee/features/chat/mcp/mcpToolMetadata';
 import type { NextRequest } from 'next/server';
 
 export const GET = apiHandler(async (_request: NextRequest) => {
-    if (!(await hasEntitlement('oauth'))) {
+    if (!(await hasEntitlement('ask'))) {
         return Response.json(
             { error: 'access_denied', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
             { status: 403 },

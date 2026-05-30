@@ -1,5 +1,5 @@
 import { createLogger, env } from '@sourcebot/shared';
-import { PrismaOAuthClientProvider } from '@/features/mcp/prismaOAuthClientProvider';
+import { PrismaOAuthClientProvider } from '@/ee/features/chat/mcp/prismaOAuthClientProvider';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { PrismaClient } from '@sourcebot/db';
 import { getExternalMcpErrorLogFields } from './externalMcpError';

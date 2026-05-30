@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'vitest';
-import { MCP_OAUTH_DRAFT_SESSION_STORAGE_KEY } from './constants';
+import { MCP_OAUTH_DRAFT_SESSION_STORAGE_KEY } from '@/features/chat/constants';
 import {
     consumeMcpOAuthDraftForPath,
     normalizeMcpOAuthDraftPath,
@@ -7,7 +7,7 @@ import {
     saveMcpOAuthDraft,
 } from './mcpOAuthDraft';
 import type { Descendant } from 'slate';
-import type { SearchScope } from './types';
+import type { SearchScope } from '@/features/chat/types';
 
 const children = [{
     type: 'paragraph',

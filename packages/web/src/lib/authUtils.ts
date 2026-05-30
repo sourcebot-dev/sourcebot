@@ -7,7 +7,7 @@ import { createLogger, getSeatCap } from "@sourcebot/shared";
 import { createAudit } from "@/ee/features/audit/audit";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
-import { syncWithLighthouse } from "@/ee/features/lighthouse/servicePing";
+import { syncWithLighthouse } from "@/features/billing/servicePing";
 import { hasEntitlement } from "./entitlements";
 
 const logger = createLogger('web-auth-utils');

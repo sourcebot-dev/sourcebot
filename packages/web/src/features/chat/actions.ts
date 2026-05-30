@@ -3,17 +3,20 @@
 import { sew } from "@/middleware/sew";
 import { createAudit } from "@/ee/features/audit/audit";
 import { getAnonymousId, getOrCreateAnonymousId } from "@/lib/anonymousId";
-import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
-import { notFound, ServiceError } from "@/lib/serviceError";
+import { notFound } from "@/lib/serviceError";
 import { withAuth, withOptionalAuth } from "@/middleware/withAuth";
 import { ChatVisibility, Prisma } from "@sourcebot/db";
-import { StatusCodes } from "http-status-codes";
 import { SBChatMessage } from "./types";
-import { generateChatNameFromMessage, getConfiguredLanguageModels, isChatSharedWithUser, isOwnerOfChat } from "./utils.server";
+import { checkAskEntitlement, isChatSharedWithUser, isOwnerOfChat } from "./utils.server";
 
 export const createChat = async ({ source }: { source?: string } = {}) => sew(() =>
     withOptionalAuth(async ({ org, user, prisma }) => {
+        const askError = await checkAskEntitlement();
+        if (askError) {
+            return askError;
+        }
+
         const isGuestUser = user === undefined;
 
         // For anonymous users, get or create an anonymous ID to track ownership
@@ -128,6 +131,11 @@ export const updateChatName = async ({ chatId, name }: { chatId: string, name: s
 
 export const updateChatVisibility = async ({ chatId, visibility }: { chatId: string, visibility: ChatVisibility }) => sew(() =>
     withAuth(async ({ org, user, prisma }) => {
+        const askError = await checkAskEntitlement();
+        if (askError) {
+            return askError;
+        }
+
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,
@@ -167,54 +175,6 @@ export const updateChatVisibility = async ({ chatId, visibility }: { chatId: str
         }
     })
 );
-
-export const generateAndUpdateChatNameFromMessage = async ({ chatId, languageModelId, message }: { chatId: string, languageModelId: string, message: string }) => sew(() =>
-    withOptionalAuth(async ({ prisma, user, org }) => {
-        const chat = await prisma.chat.findUnique({
-            where: {
-                id: chatId,
-                orgId: org.id,
-            },
-        });
-
-        if (!chat) {
-            return notFound();
-        }
-
-        const isOwner = await isOwnerOfChat(chat, user);
-        if (!isOwner) {
-            return notFound();
-        }
-
-        const languageModelConfig =
-            (await getConfiguredLanguageModels())
-                .find((model) => model.model === languageModelId);
-
-        if (!languageModelConfig) {
-            return {
-                statusCode: StatusCodes.BAD_REQUEST,
-                errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                message: `Language model ${languageModelId} is not configured.`,
-            } satisfies ServiceError;
-        }
-
-        const name = await generateChatNameFromMessage({ message, languageModelConfig });
-
-        await prisma.chat.update({
-            where: {
-                id: chatId,
-                orgId: org.id,
-            },
-            data: {
-                name: name,
-            },
-        })
-
-        return {
-            success: true,
-        }
-    })
-)
 
 export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
     withAuth(async ({ org, user, prisma }) => {
@@ -295,6 +255,11 @@ export const claimAnonymousChats = async () => sew(() =>
  */
 export const duplicateChat = async ({ chatId, newName }: { chatId: string, newName: string }) => sew(() =>
     withOptionalAuth(async ({ org, user, prisma }) => {
+        const askError = await checkAskEntitlement();
+        if (askError) {
+            return askError;
+        }
+
         const originalChat = await prisma.chat.findUnique({
             where: {
                 id: chatId,
@@ -338,6 +303,11 @@ export const duplicateChat = async ({ chatId, newName }: { chatId: string, newNa
  */
 export const getSharedWithUsersForChat = async ({ chatId }: { chatId: string }) => sew(() =>
     withAuth(async ({ org, user, prisma }) => {
+        const askError = await checkAskEntitlement();
+        if (askError) {
+            return askError;
+        }
+
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,
@@ -377,6 +347,11 @@ export const getSharedWithUsersForChat = async ({ chatId }: { chatId: string }) 
  */
 export const shareChatWithUsers = async ({ chatId, userIds }: { chatId: string, userIds: string[] }) => sew(() =>
     withAuth(async ({ org, user, prisma }) => {
+        const askError = await checkAskEntitlement();
+        if (askError) {
+            return askError;
+        }
+
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,
@@ -432,6 +407,11 @@ export const shareChatWithUsers = async ({ chatId, userIds }: { chatId: string, 
  */
 export const unshareChatWithUser = async ({ chatId, userId }: { chatId: string, userId: string }) => sew(() =>
     withAuth(async ({ org, user, prisma }) => {
+        const askError = await checkAskEntitlement();
+        if (askError) {
+            return askError;
+        }
+
         const chat = await prisma.chat.findUnique({
             where: {
                 id: chatId,

@@ -13,7 +13,7 @@ import { ChatHistory } from "./chatHistory";
 import { RepoVisitHistory } from "./repoVisitHistory";
 import { getAuthContext, withAuth } from "@/middleware/withAuth";
 import { sew } from "@/middleware/sew";
-import { isValidLicenseActive } from "@/lib/entitlements";
+import { hasEntitlement, isValidLicenseActive } from "@/lib/entitlements";
 
 const SIDEBAR_CHAT_LIMIT = 30;
 export const SIDEBAR_REPO_VISITS_LIMIT = 10;
@@ -23,7 +23,10 @@ export async function DefaultSidebar() {
     const cookieStore = await cookies();
     const homeView = (cookieStore.get(HOME_VIEW_COOKIE_NAME)?.value ?? "search") as HomeView;
 
-    const chatHistory = session ? await getUserChatHistory() : [];
+    // Chat history is part of the Ask experience; hide it when the deployment
+    // is not on a plan that includes Ask.
+    const hasAskEntitlement = await hasEntitlement('ask');
+    const chatHistory = (session && hasAskEntitlement) ? await getUserChatHistory() : [];
     if (isServiceError(chatHistory)) {
         throw new ServiceErrorException(chatHistory);
     }
@@ -63,10 +66,12 @@ export async function DefaultSidebar() {
             }
         >
             <RepoVisitHistory repoVisits={repoVisits} />
-            <ChatHistory
-                chatHistory={chatHistory.slice(0, SIDEBAR_CHAT_LIMIT)}
-                hasMore={chatHistory.length > SIDEBAR_CHAT_LIMIT}
-            />
+            {hasAskEntitlement && (
+                <ChatHistory
+                    chatHistory={chatHistory.slice(0, SIDEBAR_CHAT_LIMIT)}
+                    hasMore={chatHistory.length > SIDEBAR_CHAT_LIMIT}
+                />
+            )}
         </SidebarBase>
     );
 }

@@ -9,7 +9,7 @@ import type { ServerToolsEntry } from '@/ee/features/chat/mcp/types';
 
 const EMPTY_TOOL_ENTRIES: ServerToolsEntry[] = [];
 
-export function useMcpToolMetadata(isOAuthAvailable: boolean, connectedServerCount: number) {
+export function useMcpToolMetadata(isAskAgentAvailable: boolean, connectedServerCount: number) {
     const queryClient = useQueryClient();
     const lastAuthFailureInvalidatedAtRef = useRef(0);
     const {
@@ -30,7 +30,7 @@ export function useMcpToolMetadata(isOAuthAvailable: boolean, connectedServerCou
             }
             return result;
         },
-        enabled: isOAuthAvailable && connectedServerCount > 0,
+        enabled: isAskAgentAvailable && connectedServerCount > 0,
         staleTime: 5 * 60 * 1000,
         gcTime: 30 * 60 * 1000,
         refetchOnWindowFocus: false,

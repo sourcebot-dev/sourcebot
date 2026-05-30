@@ -14,7 +14,7 @@ interface ConnectorCardProps {
 
     isConnected: boolean;
     isAuthExpired?: boolean;
-    isOAuthAvailable?: boolean;
+    isAskAgentAvailable?: boolean;
     isStatusUnavailable?: boolean;
     toolEntry?: ServerToolsEntry;
     toolUsage?: McpServerToolUsageSummary;
@@ -32,7 +32,7 @@ export function ConnectorCard({
     serverUrl,
     isConnected,
     isAuthExpired,
-    isOAuthAvailable,
+    isAskAgentAvailable,
     isStatusUnavailable,
     toolEntry,
     toolUsage,
@@ -68,7 +68,7 @@ export function ConnectorCard({
                             <ConnectorToolTrigger
                                 isConnected={isConnected}
                                 isAuthExpired={isAuthExpired}
-                                isOAuthAvailable={isOAuthAvailable}
+                                isAskAgentAvailable={isAskAgentAvailable}
                                 isStatusUnavailable={isStatusUnavailable}
                                 toolEntry={availableToolEntry}
                                 isLoading={isLoadingToolsForServer}

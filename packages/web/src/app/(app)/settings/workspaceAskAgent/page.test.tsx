@@ -24,6 +24,9 @@ vi.mock('@/middleware/authenticatedPage', () => ({
 vi.mock('./workspaceAskAgentPage', () => ({
     WorkspaceAskAgentPage: () => <div>Workspace Ask Agent client</div>,
 }));
+vi.mock('./workspaceAskAgentEntitlementMessage', () => ({
+    WorkspaceAskAgentEntitlementMessage: () => <div>Upgrade to configure Ask Agent connectors</div>,
+}));
 
 const { default: Page } = await import('./page');
 
@@ -38,13 +41,13 @@ afterEach(() => {
 });
 
 describe('Ask Agent settings page', () => {
-    test('renders the client configuration page when OAuth is available', async () => {
+    test('renders the connector configuration page when Ask Agent is available', async () => {
         render(await Page({ searchParams: Promise.resolve({}) }));
 
         expect(screen.getByText('Workspace Ask Agent client')).toBeTruthy();
     });
 
-    test('renders the client configuration page when OAuth is unavailable but servers exist for cleanup', async () => {
+    test('renders the connector page for teardown when Ask Agent is unavailable but connectors exist', async () => {
         mocks.hasEntitlement.mockResolvedValue(false);
         mocks.authContext.prisma.mcpServer.count.mockResolvedValue(1);
 
@@ -56,12 +59,12 @@ describe('Ask Agent settings page', () => {
         });
     });
 
-    test('renders an unavailable message when OAuth is not available and no cleanup is needed', async () => {
+    test('renders the upsell message when Ask Agent is unavailable and no connectors exist', async () => {
         mocks.hasEntitlement.mockResolvedValue(false);
 
         render(await Page({ searchParams: Promise.resolve({}) }));
 
-        expect(screen.getByText('Ask Agent Connectors Are Unavailable')).toBeTruthy();
+        expect(screen.getByText('Upgrade to configure Ask Agent connectors')).toBeTruthy();
         expect(screen.queryByText('Workspace Ask Agent client')).toBeNull();
     });
 });

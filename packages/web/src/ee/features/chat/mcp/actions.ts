@@ -10,7 +10,7 @@ import { isServiceError } from '@/lib/utils';
 import { McpServerClientInfoSource, OrgRole, type PrismaClient } from '@sourcebot/db';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
-import { sanitizeMcpServerName } from './utils';
+import { sanitizeMcpServerName } from '@/features/chat/mcp/utils';
 import { hasEntitlement } from '@/lib/entitlements';
 import { oauthNotSupported } from './errors';
 import { checkMcpServerDcrSupport } from './dcrDiscovery';
@@ -145,7 +145,7 @@ async function prepareMcpServerCreate({
 export const checkMcpServerDynamicClientRegistration = async (serverUrl: string) => sew(() =>
     withAuth(async ({ role }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            if (!(await hasEntitlement('oauth'))) {
+            if (!(await hasEntitlement('ask'))) {
                 return oauthNotSupported();
             }
 
@@ -185,7 +185,7 @@ export const createStaticOAuthMcpServer = async (
     return sew(() =>
         withAuth(async ({ org, role, prisma }) =>
             withMinimumOrgRole(role, OrgRole.OWNER, async (): Promise<CreateStaticOAuthMcpServerResponse | ServiceError> => {
-                if (!(await hasEntitlement('oauth'))) {
+                if (!(await hasEntitlement('ask'))) {
                     return oauthNotSupported();
                 }
 
@@ -247,7 +247,7 @@ export const createStaticOAuthMcpServer = async (
 export const createMcpServer = async (name: string, serverUrl: string) => sew(() =>
     withAuth(async ({ org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            if (!(await hasEntitlement('oauth'))) {
+            if (!(await hasEntitlement('ask'))) {
                 return oauthNotSupported();
             }
 

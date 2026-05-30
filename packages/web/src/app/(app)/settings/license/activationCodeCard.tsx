@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { SettingsCard } from "../components/settingsCard";
-import { activateLicense } from "@/ee/features/lighthouse/actions";
+import { activateLicense } from "@/features/billing/actions";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";

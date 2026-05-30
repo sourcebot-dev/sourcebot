@@ -1,5 +1,5 @@
 import { __unsafePrisma } from "@/prisma";
-import { startServicePingCronJob } from '@/ee/features/lighthouse/servicePing';
+import { startServicePingCronJob } from '@/features/billing/servicePing';
 import { startChangelogPollingJob } from '@/features/changelog/pollChangelog';
 import { createLogger, env } from "@sourcebot/shared";
 import { hasEntitlement } from '@/lib/entitlements';

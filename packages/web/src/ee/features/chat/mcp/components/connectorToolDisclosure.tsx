@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { pluralize } from '@/ee/features/chat/mcp/utils';
+import { pluralize } from '@/features/chat/mcp/utils';
 import type { ServerToolsEntry, ToolMetadataErrorReason, ToolSummary } from '@/ee/features/chat/mcp/types';
 import { ChevronDownIcon, RefreshCwIcon, WrenchIcon } from 'lucide-react';
 
@@ -30,7 +30,7 @@ function getToolCountLabel(entry: Extract<ServerToolsEntry, { status: 'available
 interface ConnectorToolTriggerProps {
     isConnected: boolean;
     isAuthExpired?: boolean;
-    isOAuthAvailable?: boolean;
+    isAskAgentAvailable?: boolean;
     isStatusUnavailable?: boolean;
     toolEntry?: ServerToolsEntry;
     isLoading?: boolean;
@@ -44,7 +44,7 @@ interface ConnectorToolTriggerProps {
 export function ConnectorToolTrigger({
     isConnected,
     isAuthExpired = false,
-    isOAuthAvailable = true,
+    isAskAgentAvailable = true,
     isStatusUnavailable = false,
     toolEntry,
     isLoading = false,
@@ -77,7 +77,7 @@ export function ConnectorToolTrigger({
     let label = 'Tools unavailable';
     let canRetry = false;
 
-    if (!isOAuthAvailable || isStatusUnavailable) {
+    if (!isAskAgentAvailable || isStatusUnavailable) {
         label = 'Tools unavailable';
     } else if (!isConnected && isAuthExpired) {
         label = 'Reconnect to see tools';
