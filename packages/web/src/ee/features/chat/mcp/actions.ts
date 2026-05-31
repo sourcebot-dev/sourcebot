@@ -18,13 +18,27 @@ import { encryptOAuthToken, env } from '@sourcebot/shared';
 import { captureEvent } from '@/lib/posthog';
 import { getMcpAuthMode } from './analytics';
 import type { McpConnectorEntryPoint } from '@/lib/posthogEvents';
+import {
+    updateMcpServerRequestedScopes,
+    type UpdateMcpServerScopesResponse,
+} from './mcpScopes';
 
 const MCP_DCR_DISCOVERY_TIMEOUT_MS = Math.min(env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS, 10000);
+const OAUTH_SCOPE_TOKEN_REGEX = /^[\x21\x23-\x5B\x5D-\x7E]+$/;
 const createStaticOAuthMcpServerSchema = z.object({
     name: z.string().trim().min(1),
     serverUrl: z.string().trim().url(),
     clientId: z.string().trim().min(1),
     clientSecret: z.string().trim().min(1),
+});
+const updateMcpServerScopesSchema = z.object({
+    serverId: z.string().trim().min(1),
+    scopes: z.array(
+        z.string()
+            .trim()
+            .min(1)
+            .regex(OAUTH_SCOPE_TOKEN_REGEX, 'Scope must be a valid OAuth scope token.'),
+    ).max(200),
 });
 
 export type CreateStaticOAuthMcpServerRequest = z.infer<typeof createStaticOAuthMcpServerSchema>;
@@ -243,6 +257,27 @@ export const createStaticOAuthMcpServer = async (
                 };
             })));
 }
+
+export const updateMcpServerScopes = async (serverId: string, scopes: string[]) => {
+    const parsed = updateMcpServerScopesSchema.safeParse({ serverId, scopes });
+    if (!parsed.success) {
+        return requestBodySchemaValidationError(parsed.error);
+    }
+
+    return sew(() =>
+        withAuth(async ({ org, role }) =>
+            withMinimumOrgRole(role, OrgRole.OWNER, async (): Promise<UpdateMcpServerScopesResponse | ServiceError> => {
+                if (!(await hasEntitlement('ask'))) {
+                    return oauthNotSupported();
+                }
+
+                return updateMcpServerRequestedScopes({
+                    serverId: parsed.data.serverId,
+                    orgId: org.id,
+                    requestedScopes: parsed.data.scopes,
+                });
+            })));
+};
 
 export const createMcpServer = async (name: string, serverUrl: string) => sew(() =>
     withAuth(async ({ org, role, prisma }) =>

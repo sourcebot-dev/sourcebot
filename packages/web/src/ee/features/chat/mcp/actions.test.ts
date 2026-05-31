@@ -16,12 +16,15 @@ const mocks = vi.hoisted(() => ({
     },
     captureEvent: vi.fn(),
     unsafePrisma: {
+        $transaction: vi.fn(),
         mcpServer: {
             delete: vi.fn(),
             findFirst: vi.fn(),
+            update: vi.fn(),
         },
         userMcpServer: {
             deleteMany: vi.fn(),
+            updateMany: vi.fn(),
         },
     },
 }));
@@ -45,7 +48,7 @@ vi.mock('@/lib/posthog', () => ({
     captureEvent: mocks.captureEvent,
 }));
 
-const { createMcpServer, createStaticOAuthMcpServer, deleteMcpServer, disconnectMcpServer } = await import('./actions');
+const { createMcpServer, createStaticOAuthMcpServer, deleteMcpServer, disconnectMcpServer, updateMcpServerScopes } = await import('./actions');
 
 function createPrismaMock() {
     return {
@@ -88,6 +91,7 @@ function createStaticOAuthRequest(overrides: Partial<{
 
 beforeEach(() => {
     vi.clearAllMocks();
+    mocks.unsafePrisma.$transaction.mockImplementation((callback: (tx: unknown) => unknown) => callback(mocks.unsafePrisma));
     mocks.hasEntitlement.mockResolvedValue(true);
     mocks.encryptOAuthToken.mockImplementation((text: string | null | undefined) => text ? `encrypted:${text}` : undefined);
     mocks.env.AUTH_URL = 'https://sourcebot.example.com';
@@ -330,6 +334,154 @@ describe('createStaticOAuthMcpServer', () => {
         });
         expect(prisma.mcpServer.create).not.toHaveBeenCalled();
         expect(JSON.stringify(result)).not.toContain('client-secret');
+    });
+});
+
+describe('updateMcpServerScopes', () => {
+    test('owners update static connector scopes and invalidate saved user tokens', async () => {
+        setAuthContext(OrgRole.OWNER);
+        mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue({
+            id: 'server-1',
+            requestedScopes: ['search:read.public'],
+            clientInfoSource: McpServerClientInfoSource.STATIC,
+        });
+        mocks.unsafePrisma.mcpServer.update.mockResolvedValue({ id: 'server-1' });
+        mocks.unsafePrisma.userMcpServer.updateMany.mockResolvedValue({ count: 2 });
+
+        const result = await updateMcpServerScopes(' server-1 ', [
+            ' chat:write ',
+            'files:read',
+            'chat:write',
+        ]);
+
+        expect(result).toEqual({
+            success: true,
+            requestedScopes: ['chat:write', 'files:read'],
+            invalidatedConnectionCount: 2,
+        });
+        expect(mocks.unsafePrisma.mcpServer.findFirst).toHaveBeenCalledWith({
+            where: {
+                id: 'server-1',
+                orgId: 1,
+            },
+            select: {
+                id: true,
+                requestedScopes: true,
+                clientInfoSource: true,
+            },
+        });
+        expect(mocks.unsafePrisma.mcpServer.update).toHaveBeenCalledWith({
+            where: { id: 'server-1' },
+            data: {
+                requestedScopes: ['chat:write', 'files:read'],
+            },
+        });
+        expect(mocks.unsafePrisma.userMcpServer.updateMany).toHaveBeenCalledWith({
+            where: { serverId: 'server-1' },
+            data: {
+                tokens: null,
+                tokensExpiresAt: null,
+                codeVerifier: null,
+                state: null,
+            },
+        });
+    });
+
+    test('clears dynamic client registration when dynamic connector scopes change', async () => {
+        setAuthContext(OrgRole.OWNER);
+        mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue({
+            id: 'server-1',
+            requestedScopes: [],
+            clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+        });
+        mocks.unsafePrisma.mcpServer.update.mockResolvedValue({ id: 'server-1' });
+        mocks.unsafePrisma.userMcpServer.updateMany.mockResolvedValue({ count: 1 });
+
+        await expect(updateMcpServerScopes('server-1', ['repo'])).resolves.toMatchObject({
+            success: true,
+            invalidatedConnectionCount: 1,
+        });
+
+        expect(mocks.unsafePrisma.mcpServer.update).toHaveBeenCalledWith({
+            where: { id: 'server-1' },
+            data: {
+                requestedScopes: ['repo'],
+                clientInfo: null,
+            },
+        });
+    });
+
+    test('does not invalidate tokens when normalized scopes are unchanged', async () => {
+        setAuthContext(OrgRole.OWNER);
+        mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue({
+            id: 'server-1',
+            requestedScopes: ['chat:write', 'files:read'],
+            clientInfoSource: McpServerClientInfoSource.STATIC,
+        });
+
+        const result = await updateMcpServerScopes('server-1', [
+            'files:read',
+            'chat:write',
+            'files:read',
+        ]);
+
+        expect(result).toEqual({
+            success: true,
+            requestedScopes: ['chat:write', 'files:read'],
+            invalidatedConnectionCount: 0,
+        });
+        expect(mocks.unsafePrisma.mcpServer.update).not.toHaveBeenCalled();
+        expect(mocks.unsafePrisma.userMcpServer.updateMany).not.toHaveBeenCalled();
+    });
+
+    test('rejects invalid OAuth scope tokens', async () => {
+        setAuthContext(OrgRole.OWNER);
+
+        const result = await updateMcpServerScopes('server-1', ['bad scope']);
+
+        expect(result).toMatchObject({
+            statusCode: 400,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+        });
+        expect(mocks.unsafePrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    test('returns not found when updating a missing connector', async () => {
+        setAuthContext(OrgRole.OWNER);
+        mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue(null);
+
+        const result = await updateMcpServerScopes('server-1', ['chat:write']);
+
+        expect(result).toMatchObject({
+            statusCode: 404,
+            errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
+        });
+        expect(mocks.unsafePrisma.mcpServer.update).not.toHaveBeenCalled();
+        expect(mocks.unsafePrisma.userMcpServer.updateMany).not.toHaveBeenCalled();
+    });
+
+    test('members cannot update connector scopes', async () => {
+        setAuthContext(OrgRole.MEMBER);
+
+        const result = await updateMcpServerScopes('server-1', ['chat:write']);
+
+        expect(result).toMatchObject({
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+        });
+        expect(mocks.unsafePrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    test('owners cannot update connector scopes when Ask Agent is unavailable', async () => {
+        setAuthContext(OrgRole.OWNER);
+        mocks.hasEntitlement.mockResolvedValue(false);
+
+        const result = await updateMcpServerScopes('server-1', ['chat:write']);
+
+        expect(result).toMatchObject({
+            statusCode: 403,
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+        });
+        expect(mocks.unsafePrisma.$transaction).not.toHaveBeenCalled();
     });
 });
 
