@@ -41,6 +41,7 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
                     name: true,
                     sanitizedName: true,
                     serverUrl: true,
+                    requestedScopes: true,
                 },
             },
         },
@@ -74,6 +75,7 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
                 orgId,
                 userId,
                 callbackUrl: getMcpOAuthCallbackUrl(),
+                requestedScopes: userServer.server.requestedScopes,
             });
 
             const transport = new StreamableHTTPClientTransport(

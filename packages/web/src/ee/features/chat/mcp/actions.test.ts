@@ -79,6 +79,7 @@ function createStaticOAuthRequest(overrides: Partial<{
     serverUrl: string;
     clientId: string;
     clientSecret: string;
+    requestedScopes: string[];
 }> = {}) {
     return {
         name: 'Slack',
@@ -119,6 +120,7 @@ describe('createMcpServer', () => {
                 serverUrl: 'https://mcp.linear.app/mcp',
                 clientInfo: null,
                 clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+                requestedScopes: [],
                 orgId: 1,
             },
         });
@@ -128,6 +130,26 @@ describe('createMcpServer', () => {
             serverId: 'server-1',
             serverUrl: 'https://mcp.linear.app/mcp',
             authMode: 'dynamic',
+        });
+    });
+
+    test('owners can add an org MCP server with requested scopes', async () => {
+        const prisma = setAuthContext(OrgRole.OWNER);
+
+        await expect(createMcpServer('GitHub', 'https://api.githubcopilot.com/mcp/', [
+            ' repo ',
+            'read:user',
+            'repo',
+        ])).resolves.toMatchObject({
+            id: 'server-1',
+            name: 'GitHub',
+            sanitizedName: 'github',
+        });
+
+        expect(prisma.mcpServer.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({
+                requestedScopes: ['read:user', 'repo'],
+            }),
         });
     });
 
@@ -178,6 +200,7 @@ describe('createStaticOAuthMcpServer', () => {
                 serverUrl: 'https://mcp.slack.com/mcp',
                 clientInfo: 'encrypted:{"client_id":"client-id","client_secret":"client-secret"}',
                 clientInfoSource: McpServerClientInfoSource.STATIC,
+                requestedScopes: [],
                 orgId: 1,
             },
         });
@@ -194,6 +217,23 @@ describe('createStaticOAuthMcpServer', () => {
             serverId: 'server-1',
             serverUrl: 'https://mcp.slack.com/mcp',
             authMode: 'static',
+        });
+    });
+
+    test('owners add a static OAuth MCP server with requested scopes', async () => {
+        const prisma = setAuthContext(OrgRole.OWNER);
+
+        await expect(createStaticOAuthMcpServer(createStaticOAuthRequest({
+            requestedScopes: ['search:read.public', ' channels:history ', 'search:read.public'],
+        }))).resolves.toMatchObject({
+            id: 'server-1',
+            name: 'Slack',
+        });
+
+        expect(prisma.mcpServer.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({
+                requestedScopes: ['channels:history', 'search:read.public'],
+            }),
         });
     });
 

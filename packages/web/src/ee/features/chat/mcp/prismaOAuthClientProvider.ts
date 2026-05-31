@@ -9,6 +9,7 @@ import { McpServerClientInfoSource, type PrismaClient } from '@sourcebot/db';
 import { encryptOAuthToken, decryptOAuthToken, createLogger } from '@sourcebot/shared';
 import { __unsafePrisma } from '@/prisma';
 import { createMcpOAuthState } from './mcpOAuthReturnTo';
+import { normalizeMcpRequestedScopes } from './scopeUtils';
 
 type McpOAuthPrismaClient = Pick<PrismaClient, 'mcpServer' | 'userMcpServer'>;
 const logger = createLogger('mcp-oauth-client-provider');
@@ -21,6 +22,7 @@ interface PrismaOAuthClientProviderOptions {
   callbackUrl: string;
   callbackReturnTo?: string;
   allowClientRegistration?: boolean;
+  requestedScopes?: string[];
   clientInvalidationPrisma?: McpOAuthPrismaClient;
 }
 
@@ -83,6 +85,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
   private readonly userId: string;
   private readonly callbackUrl: string;
   private readonly callbackReturnTo: string | undefined;
+  private readonly requestedScopes: string[];
   private observedClientInfo: string | undefined;
   private observedClientInfoSource: McpServerClientInfoSource | undefined;
 
@@ -100,6 +103,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     callbackUrl,
     callbackReturnTo,
     allowClientRegistration = false,
+    requestedScopes = [],
     clientInvalidationPrisma = __unsafePrisma,
   }: PrismaOAuthClientProviderOptions) {
     this.prisma = prisma;
@@ -109,6 +113,7 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     this.userId = userId;
     this.callbackUrl = callbackUrl;
     this.callbackReturnTo = callbackReturnTo;
+    this.requestedScopes = normalizeMcpRequestedScopes(requestedScopes);
 
     if (allowClientRegistration) {
       this.saveClientInformation = async (info: OAuthClientInformation) => {
@@ -139,12 +144,15 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
   }
 
   get clientMetadata(): OAuthClientMetadata {
+    const scope = this.requestedScopes.join(' ');
+
     return {
       redirect_uris: [this.callbackUrl],
       client_name: 'Sourcebot',
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
       token_endpoint_auth_method: 'none',
+      ...(scope ? { scope } : {}),
     };
   }
 

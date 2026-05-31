@@ -81,6 +81,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
                         name: true,
                         serverUrl: true,
                         clientInfoSource: true,
+                        requestedScopes: true,
                     },
                 },
             },
@@ -168,6 +169,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
         orgId: userServer.server.orgId,
         userId: session.user.id,
         callbackUrl: getMcpOAuthCallbackUrl(),
+        requestedScopes: userServer.server.requestedScopes,
     });
 
     let result: Awaited<ReturnType<typeof mcpAuth>>;

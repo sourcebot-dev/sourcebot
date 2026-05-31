@@ -1,20 +1,26 @@
 import { z } from 'zod';
+import { normalizeMcpRequestedScopes } from './scopeUtils';
 
 const MCP_PROTOCOL_VERSION = '2025-11-25';
 
 const protectedResourceMetadataSchema = z.object({
     authorization_servers: z.array(z.string().url()).optional(),
+    scopes_supported: z.array(z.string()).optional(),
 }).passthrough();
 
 const authorizationServerMetadataSchema = z.object({
     registration_endpoint: z.string().url().optional(),
+    scopes_supported: z.array(z.string()).optional(),
 }).passthrough();
+
+type ProtectedResourceMetadata = z.infer<typeof protectedResourceMetadataSchema>;
 
 export interface McpServerDcrSupport {
     supportsDcr: boolean;
     isKnown: boolean;
     authorizationServerUrl?: string;
     registrationEndpoint?: string;
+    scopesSupported: string[];
 }
 
 function getMetadataHeaders() {
@@ -62,6 +68,26 @@ function buildAuthorizationServerMetadataUrls(authorizationServerUrl: URL): URL[
 
 function normalizeUrlForOutput(url: URL): string {
     return url.toString().replace(/\/$/, '');
+}
+
+function mergeScopes(...scopeLists: Array<string[] | undefined>): string[] {
+    return normalizeMcpRequestedScopes(scopeLists.flatMap((scopes) => scopes ?? []));
+}
+
+function mergeProtectedResourceMetadata(
+    preferredMetadata: ProtectedResourceMetadata,
+    fallbackMetadata: ProtectedResourceMetadata | undefined,
+): ProtectedResourceMetadata {
+    if (!fallbackMetadata) {
+        return preferredMetadata;
+    }
+
+    return {
+        ...fallbackMetadata,
+        ...preferredMetadata,
+        authorization_servers: preferredMetadata.authorization_servers ?? fallbackMetadata.authorization_servers,
+        scopes_supported: mergeScopes(preferredMetadata.scopes_supported, fallbackMetadata.scopes_supported),
+    };
 }
 
 function extractResourceMetadataUrl(response: Response): URL | undefined {
@@ -144,7 +170,8 @@ async function discoverProtectedResourceMetadata(serverUrl: URL, fetchFn: typeof
         protectedResourceMetadataSchema,
     );
     if (wellKnownMetadata) {
-        return wellKnownMetadata;
+        const challengeMetadata = await challengeMetadataPromise;
+        return mergeProtectedResourceMetadata(wellKnownMetadata, challengeMetadata);
     }
 
     return challengeMetadataPromise;
@@ -161,6 +188,7 @@ async function discoverAuthorizationServerMetadata(authorizationServerUrl: URL, 
 export async function checkMcpServerDcrSupport(serverUrl: string, fetchFn: typeof fetch = fetch): Promise<McpServerDcrSupport> {
     const parsedServerUrl = new URL(serverUrl);
     const protectedResourceMetadata = await discoverProtectedResourceMetadata(parsedServerUrl, fetchFn);
+    let scopesSupported = normalizeMcpRequestedScopes(protectedResourceMetadata?.scopes_supported ?? []);
     const authorizationServerUrls = protectedResourceMetadata?.authorization_servers?.length
         ? protectedResourceMetadata.authorization_servers
         : [parsedServerUrl.toString()];
@@ -176,12 +204,14 @@ export async function checkMcpServerDcrSupport(serverUrl: string, fetchFn: typeo
         }
 
         foundAuthorizationServerMetadata = true;
+        scopesSupported = mergeScopes(scopesSupported, authorizationServerMetadata.scopes_supported);
         if (authorizationServerMetadata.registration_endpoint) {
             return {
                 supportsDcr: true,
                 isKnown: true,
                 authorizationServerUrl: normalizeUrlForOutput(authorizationServerUrl),
                 registrationEndpoint: authorizationServerMetadata.registration_endpoint,
+                scopesSupported,
             };
         }
     }
@@ -193,6 +223,7 @@ export async function checkMcpServerDcrSupport(serverUrl: string, fetchFn: typeo
             authorizationServerUrl: firstAuthorizationServerUrl
                 ? normalizeUrlForOutput(firstAuthorizationServerUrl)
                 : undefined,
+            scopesSupported,
         };
     }
 
@@ -202,5 +233,6 @@ export async function checkMcpServerDcrSupport(serverUrl: string, fetchFn: typeo
         authorizationServerUrl: firstAuthorizationServerUrl
             ? normalizeUrlForOutput(firstAuthorizationServerUrl)
             : undefined,
+        scopesSupported,
     };
 }

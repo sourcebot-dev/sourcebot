@@ -77,6 +77,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 id: true,
                 serverUrl: true,
                 clientInfoSource: true,
+                requestedScopes: true,
             },
         });
         if (!mcpServer) {
@@ -140,6 +141,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                     callbackUrl: getMcpOAuthCallbackUrl(),
                     callbackReturnTo,
                     allowClientRegistration: true,
+                    requestedScopes: mcpServer.requestedScopes,
                 });
 
                 let authResult: Awaited<ReturnType<typeof mcpAuth>>;

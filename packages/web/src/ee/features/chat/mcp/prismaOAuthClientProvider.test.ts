@@ -42,7 +42,10 @@ function createPrismaMock() {
     };
 }
 
-function createProvider(prisma = createPrismaMock(), allowClientRegistration = false) {
+function createProvider(
+    prisma = createPrismaMock(),
+    options: { allowClientRegistration?: boolean; requestedScopes?: string[] } = {},
+) {
     return new PrismaOAuthClientProvider({
         prisma: prisma as never,
         clientInvalidationPrisma: prisma as never,
@@ -50,7 +53,8 @@ function createProvider(prisma = createPrismaMock(), allowClientRegistration = f
         orgId: 1,
         userId: 'user-1',
         callbackUrl: 'https://sourcebot.example.com/api/ee/askmcp/callback',
-        allowClientRegistration,
+        allowClientRegistration: options.allowClientRegistration ?? false,
+        requestedScopes: options.requestedScopes,
     });
 }
 
@@ -60,7 +64,7 @@ beforeEach(() => {
 
 describe('PrismaOAuthClientProvider modes', () => {
     test('connect-mode provider exposes saveClientInformation', () => {
-        const provider = createProvider(createPrismaMock(), true);
+        const provider = createProvider(createPrismaMock(), { allowClientRegistration: true });
 
         expect('saveClientInformation' in provider).toBe(true);
         expect(provider.saveClientInformation).toEqual(expect.any(Function));
@@ -71,6 +75,22 @@ describe('PrismaOAuthClientProvider modes', () => {
 
         expect('saveClientInformation' in provider).toBe(false);
         expect(provider.saveClientInformation).toBeUndefined();
+    });
+});
+
+describe('PrismaOAuthClientProvider client metadata', () => {
+    test('omits scope when no scopes were requested', () => {
+        const provider = createProvider();
+
+        expect(provider.clientMetadata.scope).toBeUndefined();
+    });
+
+    test('includes normalized requested scopes', () => {
+        const provider = createProvider(createPrismaMock(), {
+            requestedScopes: [' repo ', 'read:user', 'repo'],
+        });
+
+        expect(provider.clientMetadata.scope).toBe('read:user repo');
     });
 });
 

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -20,11 +21,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { checkMcpServerDynamicClientRegistration, createMcpServer, createStaticOAuthMcpServer, deleteMcpServer } from "@/ee/features/chat/mcp/actions";
 import { ConnectMcpButton } from "@/ee/features/chat/mcp/components/connectMcpButton";
 import { ConnectorCard } from "@/ee/features/chat/mcp/components/connectorCard";
 import { useMcpToolMetadata } from "@/ee/features/chat/mcp/hooks/useMcpToolMetadata";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/chat/mcp/queryKeys";
+import { getMcpRequestedScopes, normalizeMcpRequestedScopes } from "@/ee/features/chat/mcp/scopeUtils";
 import { pluralize } from "@/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -53,6 +56,98 @@ type WorkspaceConnectorStatus = {
     isConnected: boolean;
     isAuthExpired: boolean;
 };
+
+type PendingConnectorServer = {
+    name: string;
+    serverUrl: string;
+    discoveredScopes: string[];
+};
+
+interface OAuthScopesInputProps {
+    discoveredScopes: string[];
+    selectedScopes: string[];
+    customScopeInput: string;
+    customScopesInputId: string;
+    onSelectedScopesChange: (scopes: string[]) => void;
+    onCustomScopeInputChange: (value: string) => void;
+}
+
+function OAuthScopesInput({
+    discoveredScopes,
+    selectedScopes,
+    customScopeInput,
+    customScopesInputId,
+    onSelectedScopesChange,
+    onCustomScopeInputChange,
+}: OAuthScopesInputProps) {
+    const selectedScopeSet = new Set(selectedScopes);
+    const requestedScopes = getMcpRequestedScopes(selectedScopes, customScopeInput);
+
+    const handleCheckedChange = (scope: string, checked: boolean) => {
+        onSelectedScopesChange(checked
+            ? normalizeMcpRequestedScopes([...selectedScopes, scope])
+            : selectedScopes.filter((selectedScope) => selectedScope !== scope));
+    };
+
+    const handleSelectAll = () => {
+        onSelectedScopesChange(normalizeMcpRequestedScopes([...selectedScopes, ...discoveredScopes]));
+    };
+
+    const handleClear = () => {
+        onSelectedScopesChange([]);
+        onCustomScopeInputChange("");
+    };
+
+    return (
+        <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+                <div>
+                    <Label>OAuth scopes</Label>
+                    <p className="text-xs text-muted-foreground">{requestedScopes.length} requested</p>
+                </div>
+                <div className="flex items-center gap-1">
+                    {discoveredScopes.length > 0 && (
+                        <Button type="button" variant="ghost" size="sm" onClick={handleSelectAll}>
+                            Select all
+                        </Button>
+                    )}
+                    <Button type="button" variant="ghost" size="sm" onClick={handleClear} disabled={requestedScopes.length === 0}>
+                        Clear
+                    </Button>
+                </div>
+            </div>
+
+            {discoveredScopes.length > 0 && (
+                <div className="max-h-56 overflow-y-auto rounded-md border">
+                    {discoveredScopes.map((scope) => (
+                        <label
+                            key={scope}
+                            className="flex min-h-9 cursor-pointer items-center gap-2 border-b px-3 py-2 text-sm last:border-b-0 hover:bg-muted/50"
+                        >
+                            <Checkbox
+                                checked={selectedScopeSet.has(scope)}
+                                onCheckedChange={(checked) => handleCheckedChange(scope, checked === true)}
+                                aria-label={`Request ${scope}`}
+                            />
+                            <span className="break-all font-mono text-xs">{scope}</span>
+                        </label>
+                    ))}
+                </div>
+            )}
+
+            <div className="space-y-2">
+                <Label htmlFor={customScopesInputId}>Custom scopes</Label>
+                <Textarea
+                    id={customScopesInputId}
+                    value={customScopeInput}
+                    onChange={(event) => onCustomScopeInputChange(event.target.value)}
+                    placeholder="e.g. repo, channels:read"
+                    className="min-h-20 resize-y font-mono text-sm"
+                />
+            </div>
+        </div>
+    );
+}
 
 interface WorkspaceConnectorCardProps {
     server: McpConfigurationServer;
@@ -184,7 +279,11 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
     const [newServerName, setNewServerName] = useState("");
     const [newServerUrl, setNewServerUrl] = useState("");
     const [isClientCredentialsDialogOpen, setIsClientCredentialsDialogOpen] = useState(false);
-    const [pendingClientCredentialsServer, setPendingClientCredentialsServer] = useState<{ name: string; serverUrl: string } | null>(null);
+    const [pendingClientCredentialsServer, setPendingClientCredentialsServer] = useState<PendingConnectorServer | null>(null);
+    const [isScopeSelectionDialogOpen, setIsScopeSelectionDialogOpen] = useState(false);
+    const [pendingScopeSelectionServer, setPendingScopeSelectionServer] = useState<PendingConnectorServer | null>(null);
+    const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
+    const [customScopeInput, setCustomScopeInput] = useState("");
     const [clientId, setClientId] = useState("");
     const [clientSecret, setClientSecret] = useState("");
     const [isCreating, setIsCreating] = useState(false);
@@ -252,11 +351,23 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         handleCreateDialogOpenChange(false);
     };
 
+    const resetScopeInputs = () => {
+        setSelectedScopes([]);
+        setCustomScopeInput("");
+    };
+
     const handleCloseClientCredentialsDialog = () => {
         setIsClientCredentialsDialogOpen(false);
         setPendingClientCredentialsServer(null);
         setClientId("");
         setClientSecret("");
+        resetScopeInputs();
+    };
+
+    const handleCloseScopeSelectionDialog = () => {
+        setIsScopeSelectionDialogOpen(false);
+        setPendingScopeSelectionServer(null);
+        resetScopeInputs();
     };
 
     const handleOpenCustomUrlDialog = () => {
@@ -287,6 +398,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                 serverUrl: pendingClientCredentialsServer.serverUrl,
                 clientId,
                 clientSecret,
+                requestedScopes: getMcpRequestedScopes(selectedScopes, customScopeInput),
             });
             if (isServiceError(result)) {
                 toast({ title: "Error", description: `Failed to add connector: ${result.message}`, variant: "destructive" });
@@ -295,6 +407,33 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
 
             await invalidateMcpConfigurationQueries(queryClient);
             handleCloseClientCredentialsDialog();
+        } catch {
+            toast({ title: "Error", description: "Failed to add connector.", variant: "destructive" });
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    const handleCreateDynamicOAuthServer = async () => {
+        if (!pendingScopeSelectionServer) {
+            toast({ title: "Error", description: "Missing connector details", variant: "destructive" });
+            return;
+        }
+
+        setIsCreating(true);
+        try {
+            const result = await createMcpServer(
+                pendingScopeSelectionServer.name,
+                pendingScopeSelectionServer.serverUrl,
+                getMcpRequestedScopes(selectedScopes, customScopeInput),
+            );
+            if (isServiceError(result)) {
+                toast({ title: "Error", description: `Failed to add connector: ${result.message}`, variant: "destructive" });
+                return;
+            }
+
+            await invalidateMcpConfigurationQueries(queryClient);
+            handleCloseScopeSelectionDialog();
         } catch {
             toast({ title: "Error", description: "Failed to add connector.", variant: "destructive" });
         } finally {
@@ -325,10 +464,28 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                     return;
                 }
 
+                const discoveredScopes = normalizeMcpRequestedScopes(dcrSupport.scopesSupported);
                 if (dcrSupport.isKnown && !dcrSupport.supportsDcr) {
-                    setPendingClientCredentialsServer({ name: displayName, serverUrl: normalizedServerUrl });
+                    resetScopeInputs();
+                    setPendingClientCredentialsServer({
+                        name: displayName,
+                        serverUrl: normalizedServerUrl,
+                        discoveredScopes,
+                    });
                     setIsCreateDialogOpen(false);
                     setIsClientCredentialsDialogOpen(true);
+                    return;
+                }
+
+                if (discoveredScopes.length > 0) {
+                    resetScopeInputs();
+                    setPendingScopeSelectionServer({
+                        name: displayName,
+                        serverUrl: normalizedServerUrl,
+                        discoveredScopes,
+                    });
+                    setIsCreateDialogOpen(false);
+                    setIsScopeSelectionDialogOpen(true);
                     return;
                 }
             }
@@ -571,6 +728,48 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                 </DialogContent>
             </Dialog>
 
+            {/* OAuth scope selection dialog */}
+            <Dialog open={isScopeSelectionDialogOpen} onOpenChange={(open) => {
+                if (!open) {
+                    handleCloseScopeSelectionDialog();
+                    return;
+                }
+
+                setIsScopeSelectionDialogOpen(true);
+            }}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>OAuth Scopes</DialogTitle>
+                        <DialogDescription>
+                            Choose the OAuth scopes Sourcebot should request for this connector.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        {pendingScopeSelectionServer && (
+                            <div className="rounded-md border bg-muted/40 p-3">
+                                <p className="text-sm font-medium truncate">{pendingScopeSelectionServer.name}</p>
+                                <p className="text-sm text-muted-foreground truncate">{pendingScopeSelectionServer.serverUrl}</p>
+                            </div>
+                        )}
+                        <OAuthScopesInput
+                            discoveredScopes={pendingScopeSelectionServer?.discoveredScopes ?? []}
+                            selectedScopes={selectedScopes}
+                            customScopeInput={customScopeInput}
+                            customScopesInputId="mcp-configuration-dynamic-oauth-scopes"
+                            onSelectedScopesChange={setSelectedScopes}
+                            onCustomScopeInputChange={setCustomScopeInput}
+                        />
+                    </div>
+                    <DialogFooter className="sm:justify-between">
+                        <Button variant="outline" onClick={handleCloseScopeSelectionDialog}>Cancel</Button>
+                        <Button onClick={handleCreateDynamicOAuthServer} disabled={isCreating}>
+                            {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                            Add
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* OAuth client credentials dialog */}
             <Dialog open={isClientCredentialsDialogOpen} onOpenChange={(open) => {
                 if (!open) {
@@ -580,7 +779,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
 
                 setIsClientCredentialsDialogOpen(true);
             }}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>OAuth Client Credentials Required</DialogTitle>
                         <DialogDescription asChild>
@@ -649,6 +848,14 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                                 placeholder="OAuth client secret"
                             />
                         </div>
+                        <OAuthScopesInput
+                            discoveredScopes={pendingClientCredentialsServer?.discoveredScopes ?? []}
+                            selectedScopes={selectedScopes}
+                            customScopeInput={customScopeInput}
+                            customScopesInputId="mcp-configuration-static-oauth-scopes"
+                            onSelectedScopesChange={setSelectedScopes}
+                            onCustomScopeInputChange={setCustomScopeInput}
+                        />
                     </div>
                     <DialogFooter className="sm:justify-between">
                         <Button variant="outline" onClick={handleCloseClientCredentialsDialog}>Cancel</Button>

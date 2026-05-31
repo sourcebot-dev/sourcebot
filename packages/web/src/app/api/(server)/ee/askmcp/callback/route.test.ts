@@ -80,6 +80,7 @@ beforeEach(() => {
             serverUrl: 'https://mcp.linear.app/mcp',
             sanitizedName: 'linear',
             clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+            requestedScopes: ['repo'],
         },
     });
     mocks.unsafePrisma.userMcpServer.update.mockResolvedValue({ userId: 'user-1', serverId: 'server-1' });
@@ -111,6 +112,7 @@ describe('GET /api/ee/askmcp/callback', () => {
                         name: true,
                         serverUrl: true,
                         clientInfoSource: true,
+                        requestedScopes: true,
                     },
                 },
             },
@@ -132,6 +134,7 @@ describe('GET /api/ee/askmcp/callback', () => {
     test('redirects with a friendly reconnect error when callback auth cannot complete', async () => {
         mocks.mcpAuth.mockImplementation(async (provider) => {
             expect('saveClientInformation' in provider).toBe(false);
+            expect(provider.clientMetadata.scope).toBe('repo');
             await provider.invalidateCredentials('all');
             const error = new Error('invalid_client client_secret=client-secret refresh_token=refresh-token');
             Object.assign(error, {
@@ -163,6 +166,7 @@ describe('GET /api/ee/askmcp/callback', () => {
                         name: true,
                         serverUrl: true,
                         clientInfoSource: true,
+                        requestedScopes: true,
                     },
                 },
             },

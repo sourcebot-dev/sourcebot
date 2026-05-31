@@ -5,6 +5,7 @@ import type { ServiceError } from '@/lib/serviceError';
 import { __unsafePrisma } from '@/prisma';
 import { McpServerClientInfoSource, type PrismaClient } from '@sourcebot/db';
 import { StatusCodes } from 'http-status-codes';
+import { normalizeMcpRequestedScopes } from './scopeUtils';
 
 export interface UpdateMcpServerScopesResponse {
     success: true;
@@ -13,11 +14,6 @@ export interface UpdateMcpServerScopesResponse {
 }
 
 type McpServerScopePrismaClient = Pick<PrismaClient, '$transaction'>;
-
-export function normalizeMcpRequestedScopes(scopes: string[]): string[] {
-    return [...new Set(scopes.map((scope) => scope.trim()).filter(Boolean))]
-        .sort();
-}
 
 function normalizedScopesEqual(a: string[], b: string[]): boolean {
     return a.length === b.length && a.every((scope, index) => scope === b[index]);

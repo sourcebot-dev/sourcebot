@@ -22,23 +22,24 @@ import {
     updateMcpServerRequestedScopes,
     type UpdateMcpServerScopesResponse,
 } from './mcpScopes';
+import { OAUTH_SCOPE_TOKEN_REGEX, normalizeMcpRequestedScopes } from './scopeUtils';
 
 const MCP_DCR_DISCOVERY_TIMEOUT_MS = Math.min(env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS, 10000);
-const OAUTH_SCOPE_TOKEN_REGEX = /^[\x21\x23-\x5B\x5D-\x7E]+$/;
+const oauthScopeTokenSchema = z.string()
+    .trim()
+    .min(1)
+    .regex(OAUTH_SCOPE_TOKEN_REGEX, 'Scope must be a valid OAuth scope token.');
+const requestedScopesSchema = z.array(oauthScopeTokenSchema).max(200);
 const createStaticOAuthMcpServerSchema = z.object({
     name: z.string().trim().min(1),
     serverUrl: z.string().trim().url(),
     clientId: z.string().trim().min(1),
     clientSecret: z.string().trim().min(1),
+    requestedScopes: requestedScopesSchema.optional(),
 });
 const updateMcpServerScopesSchema = z.object({
     serverId: z.string().trim().min(1),
-    scopes: z.array(
-        z.string()
-            .trim()
-            .min(1)
-            .regex(OAUTH_SCOPE_TOKEN_REGEX, 'Scope must be a valid OAuth scope token.'),
-    ).max(200),
+    scopes: requestedScopesSchema,
 });
 
 export type CreateStaticOAuthMcpServerRequest = z.infer<typeof createStaticOAuthMcpServerSchema>;
@@ -237,6 +238,7 @@ export const createStaticOAuthMcpServer = async (
                         serverUrl: preparedServer.normalizedServerUrl,
                         clientInfo,
                         clientInfoSource: McpServerClientInfoSource.STATIC,
+                        requestedScopes: normalizeMcpRequestedScopes(parsed.data.requestedScopes ?? []),
                         orgId: org.id,
                     },
                 });
@@ -279,49 +281,57 @@ export const updateMcpServerScopes = async (serverId: string, scopes: string[]) 
             })));
 };
 
-export const createMcpServer = async (name: string, serverUrl: string) => sew(() =>
-    withAuth(async ({ org, role, prisma }) =>
-        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            if (!(await hasEntitlement('ask'))) {
-                return oauthNotSupported();
-            }
+export const createMcpServer = async (name: string, serverUrl: string, requestedScopes: string[] = []) => {
+    const parsedRequestedScopes = requestedScopesSchema.safeParse(requestedScopes);
+    if (!parsedRequestedScopes.success) {
+        return requestBodySchemaValidationError(parsedRequestedScopes.error);
+    }
 
-            const preparedServer = await prepareMcpServerCreate({
-                prisma,
-                orgId: org.id,
-                name,
-                serverUrl,
-            });
-            if (isServiceError(preparedServer)) {
-                return preparedServer;
-            }
+    return sew(() =>
+        withAuth(async ({ org, role, prisma }) =>
+            withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+                if (!(await hasEntitlement('ask'))) {
+                    return oauthNotSupported();
+                }
 
-            const mcpServer = await prisma.mcpServer.create({
-                data: {
+                const preparedServer = await prepareMcpServerCreate({
+                    prisma,
+                    orgId: org.id,
+                    name,
+                    serverUrl,
+                });
+                if (isServiceError(preparedServer)) {
+                    return preparedServer;
+                }
+
+                const mcpServer = await prisma.mcpServer.create({
+                    data: {
+                        name: preparedServer.displayName,
+                        sanitizedName: preparedServer.sanitizedName,
+                        serverUrl: preparedServer.normalizedServerUrl,
+                        clientInfo: null,
+                        clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+                        requestedScopes: normalizeMcpRequestedScopes(parsedRequestedScopes.data),
+                        orgId: org.id,
+                    },
+                });
+
+                void captureEvent('ask_mcp_connector_added', {
+                    source: 'sourcebot-web-client',
+                    entryPoint: 'workspace_settings',
+                    serverId: mcpServer.id,
+                    serverUrl: mcpServer.serverUrl,
+                    authMode: getMcpAuthMode(McpServerClientInfoSource.DYNAMIC),
+                });
+
+                return {
+                    id: mcpServer.id,
                     name: preparedServer.displayName,
                     sanitizedName: preparedServer.sanitizedName,
-                    serverUrl: preparedServer.normalizedServerUrl,
-                    clientInfo: null,
-                    clientInfoSource: McpServerClientInfoSource.DYNAMIC,
-                    orgId: org.id,
-                },
-            });
-
-            void captureEvent('ask_mcp_connector_added', {
-                source: 'sourcebot-web-client',
-                entryPoint: 'workspace_settings',
-                serverId: mcpServer.id,
-                serverUrl: mcpServer.serverUrl,
-                authMode: getMcpAuthMode(McpServerClientInfoSource.DYNAMIC),
-            });
-
-            return {
-                id: mcpServer.id,
-                name: preparedServer.displayName,
-                sanitizedName: preparedServer.sanitizedName,
-                serverUrl: mcpServer.serverUrl,
-            };
-        })));
+                    serverUrl: mcpServer.serverUrl,
+                };
+            })));
+};
 
 export const deleteMcpServer = async (serverId: string) => sew(() =>
     withAuth(async ({ org, role }) =>

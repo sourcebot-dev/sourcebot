@@ -87,6 +87,7 @@ function createPrismaMock() {
                 sanitizedName: 'linear',
                 serverUrl: 'https://mcp.linear.app/mcp',
                 clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+                requestedScopes: ['repo'],
             }),
         },
         userMcpServer: {
@@ -147,6 +148,7 @@ describe('POST /api/ee/askmcp/connect', () => {
         mocks.mcpAuth.mockImplementation(async (provider, options) => {
             expect('saveClientInformation' in provider).toBe(true);
             expect(provider.saveClientInformation).toEqual(expect.any(Function));
+            expect(provider.clientMetadata.scope).toBe('repo');
             expect(options.fetchFn).toEqual(expect.any(Function));
 
             await provider.saveClientInformation({ client_id: 'client-1' });

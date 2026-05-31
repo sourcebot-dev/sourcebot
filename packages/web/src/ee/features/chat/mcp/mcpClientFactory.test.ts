@@ -27,6 +27,7 @@ vi.mock('@modelcontextprotocol/sdk/client/streamableHttp.js', () => ({
 
 // Import after mocks are set up
 const { getConnectedMcpClients } = await import('./mcpClientFactory');
+const { PrismaOAuthClientProvider } = await import('@/ee/features/chat/mcp/prismaOAuthClientProvider');
 
 // --- Helpers ---
 
@@ -38,6 +39,7 @@ function makeUserServer(overrides: {
     tokens?: OAuthTokens;
     tokensExpiresAt?: Date | null;
     orgId?: number;
+    requestedScopes?: string[];
 }) {
     return {
         serverId: 'srv-1',
@@ -49,6 +51,7 @@ function makeUserServer(overrides: {
             name: 'MyServer',
             sanitizedName: 'myserver',
             serverUrl: 'https://example.com/mcp',
+            requestedScopes: overrides.requestedScopes ?? [],
         },
     };
 }
@@ -104,5 +107,17 @@ describe('getConnectedMcpClients', () => {
             sanitizedName: 'myserver',
             serverUrl: 'https://example.com/mcp',
         });
+    });
+
+    test('passes requested scopes to the OAuth provider', async () => {
+        prisma.userMcpServer.findMany.mockResolvedValue([
+            makeUserServer({ tokens: TOKEN_WITH_REFRESH, requestedScopes: ['repo'] }),
+        ] as never);
+
+        await getConnectedMcpClients(prisma, 'user-1', 1);
+
+        expect(PrismaOAuthClientProvider).toHaveBeenCalledWith(expect.objectContaining({
+            requestedScopes: ['repo'],
+        }));
     });
 });
