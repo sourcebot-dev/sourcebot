@@ -153,7 +153,10 @@ export const getProviders = async () => {
     return providers;
 }
 
-const nextAuthResult = NextAuth({
+// @note we use lazy initialization here to ensure that the
+// `providers` property is upto date with any config changes.
+// @see https://authjs.dev/reference/nextjs#lazy-initialization
+const nextAuthResult = NextAuth(async () => ({
     secret: env.AUTH_SECRET,
     adapter: EncryptedPrismaAdapter(__unsafePrisma),
     session: {
@@ -401,10 +404,10 @@ const nextAuthResult = NextAuth({
     providers: (await getProviders()).map((provider) => provider.provider),
     pages: {
         signIn: "/login",
-        // We set redirect to false in signInOptions so we can pass the email is as a param
+        // We set redirect to false in signInOptions so we can pass the email in as a param
         // verifyRequest: "/login/verify",
     }
-});
+}));
 
 export const { handlers, signIn, signOut } = nextAuthResult;
 
