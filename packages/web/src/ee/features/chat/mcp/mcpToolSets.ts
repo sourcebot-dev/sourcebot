@@ -23,7 +23,7 @@ class McpToolTimeoutError extends Error {
 
 async function incrementMcpToolCallCounter(serverId: string, toolName: string) {
     try {
-        await __unsafePrisma.mcpServerToolCallCount.upsert({
+        await __unsafePrisma.mcpServerTool.upsert({
             where: {
                 mcpServerId_toolName: {
                     mcpServerId: serverId,
@@ -33,10 +33,10 @@ async function incrementMcpToolCallCounter(serverId: string, toolName: string) {
             create: {
                 mcpServerId: serverId,
                 toolName,
-                count: 1,
+                callCount: 1,
             },
             update: {
-                count: { increment: 1 },
+                callCount: { increment: 1 },
             },
         });
     } catch (error) {
@@ -44,7 +44,7 @@ async function incrementMcpToolCallCounter(serverId: string, toolName: string) {
             throw error;
         }
 
-        await __unsafePrisma.mcpServerToolCallCount.update({
+        await __unsafePrisma.mcpServerTool.update({
             where: {
                 mcpServerId_toolName: {
                     mcpServerId: serverId,
@@ -52,7 +52,7 @@ async function incrementMcpToolCallCounter(serverId: string, toolName: string) {
                 },
             },
             data: {
-                count: { increment: 1 },
+                callCount: { increment: 1 },
             },
         });
     }

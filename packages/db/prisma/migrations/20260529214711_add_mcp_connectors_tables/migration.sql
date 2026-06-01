@@ -17,14 +17,14 @@ CREATE TABLE "McpServer" (
 );
 
 -- CreateTable
-CREATE TABLE "McpServerToolCallCount" (
+CREATE TABLE "McpServerTool" (
     "mcpServerId" TEXT NOT NULL,
     "toolName" TEXT NOT NULL,
-    "count" INTEGER NOT NULL DEFAULT 0,
+    "callCount" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "McpServerToolCallCount_pkey" PRIMARY KEY ("mcpServerId","toolName")
+    CONSTRAINT "McpServerTool_pkey" PRIMARY KEY ("mcpServerId","toolName")
 );
 
 -- CreateTable
@@ -57,7 +57,7 @@ CREATE INDEX "UserMcpServer_state_idx" ON "UserMcpServer"("state");
 ALTER TABLE "McpServer" ADD CONSTRAINT "McpServer_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Org"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "McpServerToolCallCount" ADD CONSTRAINT "McpServerToolCallCount_mcpServerId_fkey" FOREIGN KEY ("mcpServerId") REFERENCES "McpServer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "McpServerTool" ADD CONSTRAINT "McpServerTool_mcpServerId_fkey" FOREIGN KEY ("mcpServerId") REFERENCES "McpServer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "UserMcpServer" ADD CONSTRAINT "UserMcpServer_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

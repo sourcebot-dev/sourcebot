@@ -684,7 +684,7 @@ model McpServer {
   orgId Int
 
   userMcpServers  UserMcpServer[]
-  toolCallCounts  McpServerToolCallCount[]
+  tools           McpServerTool[]
   scopes          McpServerScope[]
 
   createdAt DateTime @default(now())
@@ -707,12 +707,12 @@ model McpServerScope {
   @@id([mcpServerId, scope])
 }
 
-/// Lifetime tool call counters for an MCP server.
-model McpServerToolCallCount {
+/// Tool metadata for an MCP server.
+model McpServerTool {
   mcpServer   McpServer @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
   mcpServerId String
   toolName    String
-  count       Int       @default(0)
+  callCount   Int       @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

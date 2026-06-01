@@ -11,8 +11,8 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     debug: vi.fn(),
 }));
-const mockToolCallCountUpsert = vi.hoisted(() => vi.fn());
-const mockToolCallCountUpdate = vi.hoisted(() => vi.fn());
+const mockServerToolUpsert = vi.hoisted(() => vi.fn());
+const mockServerToolUpdate = vi.hoisted(() => vi.fn());
 const mockCaptureEvent = vi.hoisted(() => vi.fn());
 
 vi.mock('@ai-sdk/mcp', () => ({
@@ -28,9 +28,9 @@ vi.mock('@sourcebot/shared', () => ({
 
 vi.mock('@/prisma', () => ({
     __unsafePrisma: {
-        mcpServerToolCallCount: {
-            upsert: mockToolCallCountUpsert,
-            update: mockToolCallCountUpdate,
+        mcpServerTool: {
+            upsert: mockServerToolUpsert,
+            update: mockServerToolUpdate,
         },
     },
 }));
@@ -87,8 +87,8 @@ const { getMcpTools } = await import('./mcpToolSets');
 
 beforeEach(() => {
     vi.clearAllMocks();
-    mockToolCallCountUpsert.mockResolvedValue({});
-    mockToolCallCountUpdate.mockResolvedValue({});
+    mockServerToolUpsert.mockResolvedValue({});
+    mockServerToolUpdate.mockResolvedValue({});
     mockCaptureEvent.mockResolvedValue(undefined);
 });
 
@@ -319,8 +319,8 @@ describe('getMcpTools', () => {
         await expect(
             tool.execute({}, { messages: [], toolCallId: 'test' })
         ).rejects.toThrow('External API failed');
-        expect(mockToolCallCountUpsert).not.toHaveBeenCalled();
-        expect(mockToolCallCountUpdate).not.toHaveBeenCalled();
+        expect(mockServerToolUpsert).not.toHaveBeenCalled();
+        expect(mockServerToolUpdate).not.toHaveBeenCalled();
         expect(mockCaptureEvent).toHaveBeenCalledWith('ask_mcp_tool_call_completed', expect.objectContaining({
             serverUrl: 'https://linear.example.com/mcp',
             toolName: 'create_issue',
@@ -344,7 +344,7 @@ describe('getMcpTools', () => {
             tool.execute({ title: 'My Issue' }, { messages: [], toolCallId: 'test' })
         ).resolves.toEqual({ content: [{ type: 'text', text: 'result' }] });
 
-        expect(mockToolCallCountUpsert).toHaveBeenCalledWith({
+        expect(mockServerToolUpsert).toHaveBeenCalledWith({
             where: {
                 mcpServerId_toolName: {
                     mcpServerId: 'server-linear',
@@ -354,13 +354,13 @@ describe('getMcpTools', () => {
             create: {
                 mcpServerId: 'server-linear',
                 toolName: 'create_issue',
-                count: 1,
+                callCount: 1,
             },
             update: {
-                count: { increment: 1 },
+                callCount: { increment: 1 },
             },
         });
-        expect(mockToolCallCountUpdate).not.toHaveBeenCalled();
+        expect(mockServerToolUpdate).not.toHaveBeenCalled();
         expect(mockCaptureEvent).toHaveBeenCalledWith('ask_mcp_tool_call_completed', expect.objectContaining({
             source: 'sourcebot-ask-agent',
             serverId: 'server-linear',
@@ -396,7 +396,7 @@ describe('getMcpTools', () => {
 
     test('tool execute wrapper waits for the counter increment before resolving', async () => {
         let resolveCounter: (() => void) | undefined;
-        mockToolCallCountUpsert.mockImplementationOnce(() => new Promise<void>((resolve) => {
+        mockServerToolUpsert.mockImplementationOnce(() => new Promise<void>((resolve) => {
             resolveCounter = resolve;
         }));
 
@@ -418,7 +418,7 @@ describe('getMcpTools', () => {
         });
 
         await vi.waitFor(() => {
-            expect(mockToolCallCountUpsert).toHaveBeenCalledTimes(1);
+            expect(mockServerToolUpsert).toHaveBeenCalledTimes(1);
         });
         await Promise.resolve();
 
@@ -436,7 +436,7 @@ describe('getMcpTools', () => {
             code: 'P2002',
             clientVersion: '0',
         });
-        mockToolCallCountUpsert.mockRejectedValueOnce(uniqueConflict);
+        mockServerToolUpsert.mockRejectedValueOnce(uniqueConflict);
 
         const mockClient = createMockMcpClient([
             { name: 'create_issue', description: 'Create issue' },
@@ -452,7 +452,7 @@ describe('getMcpTools', () => {
             tool.execute({ title: 'My Issue' }, { messages: [], toolCallId: 'test' })
         ).resolves.toEqual({ content: [{ type: 'text', text: 'result' }] });
 
-        expect(mockToolCallCountUpdate).toHaveBeenCalledWith({
+        expect(mockServerToolUpdate).toHaveBeenCalledWith({
             where: {
                 mcpServerId_toolName: {
                     mcpServerId: 'server-linear',
@@ -460,7 +460,7 @@ describe('getMcpTools', () => {
                 },
             },
             data: {
-                count: { increment: 1 },
+                callCount: { increment: 1 },
             },
         });
     });
