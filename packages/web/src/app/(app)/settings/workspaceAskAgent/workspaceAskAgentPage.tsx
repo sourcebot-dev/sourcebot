@@ -22,16 +22,16 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { checkMcpServerDynamicClientRegistration, createMcpServer, createStaticOAuthMcpServer, deleteMcpServer } from "@/ee/features/chat/mcp/actions";
+import { checkMcpServerDynamicClientRegistration, createMcpServer, createStaticOAuthMcpServer, deleteMcpServer, updateMcpServerScopes } from "@/ee/features/chat/mcp/actions";
 import { ConnectMcpButton } from "@/ee/features/chat/mcp/components/connectMcpButton";
 import { ConnectorCard } from "@/ee/features/chat/mcp/components/connectorCard";
 import { useMcpToolMetadata } from "@/ee/features/chat/mcp/hooks/useMcpToolMetadata";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/chat/mcp/queryKeys";
-import { getMcpRequestedScopes, normalizeMcpRequestedScopes } from "@/ee/features/chat/mcp/scopeUtils";
+import { buildMcpScopeEntries, getMcpRequestedScopes, normalizeMcpRequestedScopes } from "@/ee/features/chat/mcp/scopeUtils";
 import { pluralize } from "@/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangleIcon, CableIcon, CopyIcon, Loader2, MoreHorizontalIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { AlertTriangleIcon, CableIcon, CopyIcon, KeyRoundIcon, Loader2, MoreHorizontalIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { PrefabConnectorPopover } from "@/ee/features/chat/mcp/components/prefabConnectorPopover";
 import Markdown from "react-markdown";
 import { getStaticOAuthDescription, type PrefabMcpServer } from "@/ee/features/chat/mcp/prefabMcpServers";
@@ -43,6 +43,10 @@ function clearCallbackParams() {
     url.searchParams.delete('server');
     url.searchParams.delete('message');
     window.history.replaceState({}, '', url.toString());
+}
+
+function scopesEqual(a: string[], b: string[]): boolean {
+    return a.length === b.length && a.every((scope, index) => scope === b[index]);
 }
 
 interface WorkspaceAskAgentPageProps {
@@ -70,6 +74,7 @@ interface OAuthScopesInputProps {
     customScopesInputId: string;
     onSelectedScopesChange: (scopes: string[]) => void;
     onCustomScopeInputChange: (value: string) => void;
+    onRemoveScope?: (scope: string) => void;
 }
 
 function OAuthScopesInput({
@@ -79,9 +84,19 @@ function OAuthScopesInput({
     customScopesInputId,
     onSelectedScopesChange,
     onCustomScopeInputChange,
+    onRemoveScope,
 }: OAuthScopesInputProps) {
+    const [scopeSearchInput, setScopeSearchInput] = useState("");
     const selectedScopeSet = new Set(selectedScopes);
     const requestedScopes = getMcpRequestedScopes(selectedScopes, customScopeInput);
+    const filteredScopes = useMemo(() => {
+        const query = scopeSearchInput.trim().toLowerCase();
+        if (!query) {
+            return discoveredScopes;
+        }
+
+        return discoveredScopes.filter((scope) => scope.toLowerCase().includes(query));
+    }, [discoveredScopes, scopeSearchInput]);
 
     const handleCheckedChange = (scope: string, checked: boolean) => {
         onSelectedScopesChange(checked
@@ -90,7 +105,7 @@ function OAuthScopesInput({
     };
 
     const handleSelectAll = () => {
-        onSelectedScopesChange(normalizeMcpRequestedScopes([...selectedScopes, ...discoveredScopes]));
+        onSelectedScopesChange(normalizeMcpRequestedScopes([...selectedScopes, ...filteredScopes]));
     };
 
     const handleClear = () => {
@@ -107,8 +122,8 @@ function OAuthScopesInput({
                 </div>
                 <div className="flex items-center gap-1">
                     {discoveredScopes.length > 0 && (
-                        <Button type="button" variant="ghost" size="sm" onClick={handleSelectAll}>
-                            Select all
+                        <Button type="button" variant="ghost" size="sm" onClick={handleSelectAll} disabled={filteredScopes.length === 0}>
+                            {scopeSearchInput.trim() ? "Select shown" : "Select all"}
                         </Button>
                     )}
                     <Button type="button" variant="ghost" size="sm" onClick={handleClear} disabled={requestedScopes.length === 0}>
@@ -118,20 +133,48 @@ function OAuthScopesInput({
             </div>
 
             {discoveredScopes.length > 0 && (
-                <div className="max-h-56 overflow-y-auto rounded-md border">
-                    {discoveredScopes.map((scope) => (
-                        <label
-                            key={scope}
-                            className="flex min-h-9 cursor-pointer items-center gap-2 border-b px-3 py-2 text-sm last:border-b-0 hover:bg-muted/50"
-                        >
-                            <Checkbox
-                                checked={selectedScopeSet.has(scope)}
-                                onCheckedChange={(checked) => handleCheckedChange(scope, checked === true)}
-                                aria-label={`Request ${scope}`}
-                            />
-                            <span className="break-all font-mono text-xs">{scope}</span>
-                        </label>
-                    ))}
+                <div className="space-y-2">
+                    <Input
+                        value={scopeSearchInput}
+                        onChange={(event) => setScopeSearchInput(event.target.value)}
+                        placeholder="Search scopes"
+                        className="h-9"
+                    />
+                    <div className="max-h-56 overflow-y-auto rounded-md border">
+                        {filteredScopes.length > 0 ? (
+                            filteredScopes.map((scope) => (
+                                <div
+                                    key={scope}
+                                    className="flex min-h-9 items-center gap-2 border-b px-3 py-2 text-sm last:border-b-0 hover:bg-muted/50"
+                                >
+                                    <label className="flex flex-1 cursor-pointer items-center gap-2">
+                                        <Checkbox
+                                            checked={selectedScopeSet.has(scope)}
+                                            onCheckedChange={(checked) => handleCheckedChange(scope, checked === true)}
+                                            aria-label={`Request ${scope}`}
+                                        />
+                                        <span className="break-all font-mono text-xs">{scope}</span>
+                                    </label>
+                                    {onRemoveScope && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                                            onClick={() => onRemoveScope(scope)}
+                                            aria-label={`Remove ${scope}`}
+                                        >
+                                            <Trash2Icon className="h-3.5 w-3.5" />
+                                        </Button>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                                No matching scopes
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -160,6 +203,7 @@ interface WorkspaceConnectorCardProps {
     isToolsError: boolean;
     onRetryTools: () => void;
     onCopyUrl: (serverUrl: string) => void;
+    onEditScopes: (server: McpConfigurationServer) => void;
     onDelete: (server: McpConfigurationServer) => void;
 }
 
@@ -174,6 +218,7 @@ function WorkspaceConnectorCard({
     isToolsError,
     onRetryTools,
     onCopyUrl,
+    onEditScopes,
     onDelete,
 }: WorkspaceConnectorCardProps) {
     const isConnected = status?.isConnected === true;
@@ -223,7 +268,7 @@ function WorkspaceConnectorCard({
                             returnTo="/settings/workspaceAskAgent"
                         />
                     )}
-                    <DropdownMenu>
+                    <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
                             <Button
                                 variant="ghost"
@@ -239,6 +284,12 @@ function WorkspaceConnectorCard({
                                 <CopyIcon className="h-4 w-4 mr-2" />
                                 Copy URL
                             </DropdownMenuItem>
+                            {isAskAgentAvailable && (
+                                <DropdownMenuItem onClick={() => onEditScopes(server)}>
+                                    <KeyRoundIcon className="h-4 w-4 mr-2" />
+                                    Edit OAuth scopes
+                                </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
                                 onClick={() => onDelete(server)}
@@ -282,13 +333,16 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
     const [pendingClientCredentialsServer, setPendingClientCredentialsServer] = useState<PendingConnectorServer | null>(null);
     const [isScopeSelectionDialogOpen, setIsScopeSelectionDialogOpen] = useState(false);
     const [pendingScopeSelectionServer, setPendingScopeSelectionServer] = useState<PendingConnectorServer | null>(null);
+    const [knownScopes, setKnownScopes] = useState<string[]>([]);
     const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
     const [customScopeInput, setCustomScopeInput] = useState("");
     const [clientId, setClientId] = useState("");
     const [clientSecret, setClientSecret] = useState("");
     const [isCreating, setIsCreating] = useState(false);
+    const [isUpdatingScopes, setIsUpdatingScopes] = useState(false);
     const [deletingServerId, setDeletingServerId] = useState<string | null>(null);
     const [serverToDelete, setServerToDelete] = useState<McpConfigurationServer | null>(null);
+    const [serverToEditScopes, setServerToEditScopes] = useState<McpConfigurationServer | null>(null);
 
     const { data, isLoading, isError } = useQuery({
         queryKey: mcpQueryKeys.configuration,
@@ -337,6 +391,28 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         refetchTools,
         toolsByServerId,
     } = useMcpToolMetadata(data?.isAskAgentAvailable === true, connectedServerCount);
+    const editedScopeEntries = useMemo(() => buildMcpScopeEntries({
+        availableScopes: knownScopes,
+        requestedScopes: getMcpRequestedScopes(selectedScopes, customScopeInput),
+    }), [knownScopes, selectedScopes, customScopeInput]);
+    const currentEditedServerRequestedScopes = useMemo(() => (
+        normalizeMcpRequestedScopes(
+            serverToEditScopes?.scopes
+                .filter((entry) => entry.enabled)
+                .map((entry) => entry.scope) ?? [],
+        )
+    ), [serverToEditScopes]);
+    const editedRequestedScopes = useMemo(() => (
+        normalizeMcpRequestedScopes(
+            editedScopeEntries
+                .filter((entry) => entry.enabled)
+                .map((entry) => entry.scope),
+        )
+    ), [editedScopeEntries]);
+    const scopeUpdateReauthConnectionCount = serverToEditScopes?.savedConnectionCount ?? 0;
+    const scopeUpdateRequiresReauth = !!serverToEditScopes &&
+        scopeUpdateReauthConnectionCount > 0 &&
+        !scopesEqual(currentEditedServerRequestedScopes, editedRequestedScopes);
 
     const handleCreateDialogOpenChange = (open: boolean) => {
         setIsCreateDialogOpen(open);
@@ -370,6 +446,26 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         resetScopeInputs();
     };
 
+    const handleOpenEditScopesDialog = (server: McpConfigurationServer) => {
+        setServerToEditScopes(server);
+        setKnownScopes(normalizeMcpRequestedScopes(server.scopes.map((entry) => entry.scope)));
+        setSelectedScopes(normalizeMcpRequestedScopes(
+            server.scopes.filter((entry) => entry.enabled).map((entry) => entry.scope),
+        ));
+        setCustomScopeInput("");
+    };
+
+    const handleCloseEditScopesDialog = () => {
+        setServerToEditScopes(null);
+        setKnownScopes([]);
+        resetScopeInputs();
+    };
+
+    const handleRemoveKnownScope = (scope: string) => {
+        setKnownScopes((currentScopes) => currentScopes.filter((currentScope) => currentScope !== scope));
+        setSelectedScopes((currentScopes) => currentScopes.filter((currentScope) => currentScope !== scope));
+    };
+
     const handleOpenCustomUrlDialog = () => {
         setNewServerName("");
         setNewServerUrl("");
@@ -399,6 +495,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                 clientId,
                 clientSecret,
                 requestedScopes: getMcpRequestedScopes(selectedScopes, customScopeInput),
+                availableScopes: pendingClientCredentialsServer.discoveredScopes,
             });
             if (isServiceError(result)) {
                 toast({ title: "Error", description: `Failed to add connector: ${result.message}`, variant: "destructive" });
@@ -426,6 +523,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                 pendingScopeSelectionServer.name,
                 pendingScopeSelectionServer.serverUrl,
                 getMcpRequestedScopes(selectedScopes, customScopeInput),
+                pendingScopeSelectionServer.discoveredScopes,
             );
             if (isServiceError(result)) {
                 toast({ title: "Error", description: `Failed to add connector: ${result.message}`, variant: "destructive" });
@@ -515,6 +613,37 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         await handleCreateServer(server.name, server.serverUrl, undefined, {
             checkDynamicClientRegistration: true,
         });
+    };
+
+    const handleUpdateScopes = async () => {
+        if (!serverToEditScopes) {
+            toast({ title: "Error", description: "Missing connector details", variant: "destructive" });
+            return;
+        }
+
+        setIsUpdatingScopes(true);
+        try {
+            const result = await updateMcpServerScopes(
+                serverToEditScopes.id,
+                editedScopeEntries,
+            );
+            if (isServiceError(result)) {
+                toast({ title: "Error", description: `Failed to update scopes: ${result.message}`, variant: "destructive" });
+                return;
+            }
+
+            await invalidateMcpConfigurationQueries(queryClient);
+            handleCloseEditScopesDialog();
+            toast({
+                description: result.invalidatedConnectionCount > 0
+                    ? `OAuth scopes updated. ${result.invalidatedConnectionCount} saved ${pluralize(result.invalidatedConnectionCount, "connection")} will need to reconnect.`
+                    : "OAuth scopes updated.",
+            });
+        } catch {
+            toast({ title: "Error", description: "Failed to update scopes.", variant: "destructive" });
+        } finally {
+            setIsUpdatingScopes(false);
+        }
     };
 
     const handleDelete = async (serverId: string) => {
@@ -659,6 +788,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                                     isToolsError={isToolsError}
                                     onRetryTools={() => { void refetchTools(); }}
                                     onCopyUrl={handleCopyUrl}
+                                    onEditScopes={handleOpenEditScopesDialog}
                                     onDelete={setServerToDelete}
                                 />
                             ))
@@ -765,6 +895,55 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                         <Button onClick={handleCreateDynamicOAuthServer} disabled={isCreating}>
                             {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                             Add
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit OAuth scopes dialog */}
+            <Dialog open={!!serverToEditScopes} onOpenChange={(open) => {
+                if (!open) {
+                    handleCloseEditScopesDialog();
+                    return;
+                }
+            }}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Edit OAuth Scopes</DialogTitle>
+                        <DialogDescription>
+                            Changing scopes clears saved member authorizations so users can reconnect with the updated scopes.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        {serverToEditScopes && (
+                            <div className="rounded-md border bg-muted/40 p-3">
+                                <p className="text-sm font-medium truncate">{serverToEditScopes.name}</p>
+                                <p className="text-sm text-muted-foreground truncate">{serverToEditScopes.serverUrl}</p>
+                            </div>
+                        )}
+                        <OAuthScopesInput
+                            discoveredScopes={knownScopes}
+                            selectedScopes={selectedScopes}
+                            customScopeInput={customScopeInput}
+                            customScopesInputId="mcp-configuration-edit-oauth-scopes"
+                            onSelectedScopesChange={setSelectedScopes}
+                            onCustomScopeInputChange={setCustomScopeInput}
+                            onRemoveScope={handleRemoveKnownScope}
+                        />
+                        {scopeUpdateRequiresReauth && (
+                            <div className="flex items-start gap-2 rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+                                <AlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                                <p>
+                                    Applying this change will require <span className="font-medium text-destructive">{scopeUpdateReauthConnectionCount} saved {pluralize(scopeUpdateReauthConnectionCount, "connection")}</span> to reconnect.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter className="sm:justify-between">
+                        <Button variant="outline" onClick={handleCloseEditScopesDialog}>Cancel</Button>
+                        <Button onClick={handleUpdateScopes} disabled={isUpdatingScopes}>
+                            {isUpdatingScopes && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                            Apply
                         </Button>
                     </DialogFooter>
                 </DialogContent>

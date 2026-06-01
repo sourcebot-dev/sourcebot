@@ -45,12 +45,17 @@ function createPrismaMock() {
                     name: 'Linear',
                     sanitizedName: 'linear',
                     serverUrl: 'https://mcp.linear.app/mcp',
+                    scopes: [
+                        { scope: 'read:user', enabled: true },
+                        { scope: 'repo', enabled: false },
+                    ],
                 },
                 {
                     id: 'server-2',
                     name: 'Sentry',
                     sanitizedName: 'sentry',
                     serverUrl: 'https://mcp.sentry.dev/mcp',
+                    scopes: [],
                 },
             ]),
         },
@@ -106,6 +111,13 @@ describe('GET /api/ee/askmcp/configuration', () => {
                 name: true,
                 sanitizedName: true,
                 serverUrl: true,
+                scopes: {
+                    orderBy: { scope: 'asc' },
+                    select: {
+                        scope: true,
+                        enabled: true,
+                    },
+                },
             },
         });
         expect(mocks.unsafePrisma.userMcpServer.groupBy).toHaveBeenCalledWith({
@@ -145,6 +157,10 @@ describe('GET /api/ee/askmcp/configuration', () => {
                 {
                     id: 'server-1',
                     name: 'Linear',
+                    scopes: [
+                        { scope: 'read:user', enabled: true },
+                        { scope: 'repo', enabled: false },
+                    ],
                     savedConnectionCount: 2,
                     toolUsage: {
                         totalCalls: 8,

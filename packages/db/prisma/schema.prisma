@@ -680,21 +680,31 @@ model McpServer {
   clientInfo       String?
   clientInfoSource McpServerClientInfoSource @default(DYNAMIC)
 
-  /// OAuth scopes requested when users authorize this connector.
-  /// Stored as opaque, provider-defined scope tokens.
-  requestedScopes String[] @default([])
-
   org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int
 
   userMcpServers  UserMcpServer[]
   toolCallCounts  McpServerToolCallCount[]
+  scopes          McpServerScope[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([serverUrl, orgId])
   @@unique([orgId, sanitizedName])
+}
+
+/// OAuth scope configuration for an MCP server.
+model McpServerScope {
+  mcpServer   McpServer @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
+  mcpServerId String
+  scope       String
+  enabled     Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([mcpServerId, scope])
 }
 
 /// Lifetime tool call counters for an MCP server.

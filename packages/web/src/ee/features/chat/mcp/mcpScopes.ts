@@ -5,32 +5,37 @@ import type { ServiceError } from '@/lib/serviceError';
 import { __unsafePrisma } from '@/prisma';
 import { McpServerClientInfoSource, type PrismaClient } from '@sourcebot/db';
 import { StatusCodes } from 'http-status-codes';
-import { normalizeMcpRequestedScopes } from './scopeUtils';
+import { getEnabledMcpScopeNames, normalizeMcpScopeEntries } from './scopeUtils';
+import type { McpServerScopeEntry } from './types';
 
 export interface UpdateMcpServerScopesResponse {
     success: true;
+    scopes: McpServerScopeEntry[];
     requestedScopes: string[];
     invalidatedConnectionCount: number;
 }
 
 type McpServerScopePrismaClient = Pick<PrismaClient, '$transaction'>;
 
-function normalizedScopesEqual(a: string[], b: string[]): boolean {
-    return a.length === b.length && a.every((scope, index) => scope === b[index]);
+function scopeEntriesEqual(a: McpServerScopeEntry[], b: McpServerScopeEntry[]): boolean {
+    return a.length === b.length && a.every((entry, index) => (
+        entry.scope === b[index]?.scope && entry.enabled === b[index]?.enabled
+    ));
 }
 
-export async function updateMcpServerRequestedScopes({
+export async function updateMcpServerScopeEntries({
     prisma = __unsafePrisma,
     serverId,
     orgId,
-    requestedScopes,
+    scopes,
 }: {
     prisma?: McpServerScopePrismaClient;
     serverId: string;
     orgId: number;
-    requestedScopes: string[];
+    scopes: McpServerScopeEntry[];
 }): Promise<UpdateMcpServerScopesResponse | ServiceError> {
-    const normalizedRequestedScopes = normalizeMcpRequestedScopes(requestedScopes);
+    const normalizedScopes = normalizeMcpScopeEntries(scopes);
+    const requestedScopes = getEnabledMcpScopeNames(normalizedScopes);
 
     return prisma.$transaction(async (tx) => {
         const server = await tx.mcpServer.findFirst({
@@ -40,8 +45,13 @@ export async function updateMcpServerRequestedScopes({
             },
             select: {
                 id: true,
-                requestedScopes: true,
                 clientInfoSource: true,
+                scopes: {
+                    select: {
+                        scope: true,
+                        enabled: true,
+                    },
+                },
             },
         });
 
@@ -53,37 +63,63 @@ export async function updateMcpServerRequestedScopes({
             } satisfies ServiceError;
         }
 
-        const currentRequestedScopes = normalizeMcpRequestedScopes(server.requestedScopes);
-        if (normalizedScopesEqual(currentRequestedScopes, normalizedRequestedScopes)) {
+        const currentScopes = normalizeMcpScopeEntries(server.scopes);
+        const currentRequestedScopes = getEnabledMcpScopeNames(currentScopes);
+        const scopeEntriesChanged = !scopeEntriesEqual(currentScopes, normalizedScopes);
+        const requestedScopesChanged = !scopeEntriesEqual(
+            currentRequestedScopes.map((scope) => ({ scope, enabled: true })),
+            requestedScopes.map((scope) => ({ scope, enabled: true })),
+        );
+
+        if (!scopeEntriesChanged) {
             return {
                 success: true,
-                requestedScopes: normalizedRequestedScopes,
+                scopes: normalizedScopes,
+                requestedScopes,
                 invalidatedConnectionCount: 0,
             };
         }
 
-        await tx.mcpServer.update({
-            where: { id: server.id },
-            data: {
-                requestedScopes: normalizedRequestedScopes,
-                ...(server.clientInfoSource === McpServerClientInfoSource.DYNAMIC ? { clientInfo: null } : {}),
-            },
+        await tx.mcpServerScope.deleteMany({
+            where: { mcpServerId: server.id },
         });
 
-        const result = await tx.userMcpServer.updateMany({
-            where: { serverId: server.id },
-            data: {
-                tokens: null,
-                tokensExpiresAt: null,
-                codeVerifier: null,
-                state: null,
-            },
-        });
+        if (normalizedScopes.length > 0) {
+            await tx.mcpServerScope.createMany({
+                data: normalizedScopes.map((entry) => ({
+                    mcpServerId: server.id,
+                    scope: entry.scope,
+                    enabled: entry.enabled,
+                })),
+            });
+        }
+
+        let invalidatedConnectionCount = 0;
+        if (requestedScopesChanged) {
+            if (server.clientInfoSource === McpServerClientInfoSource.DYNAMIC) {
+                await tx.mcpServer.update({
+                    where: { id: server.id },
+                    data: { clientInfo: null },
+                });
+            }
+
+            const result = await tx.userMcpServer.updateMany({
+                where: { serverId: server.id },
+                data: {
+                    tokens: null,
+                    tokensExpiresAt: null,
+                    codeVerifier: null,
+                    state: null,
+                },
+            });
+            invalidatedConnectionCount = result.count;
+        }
 
         return {
             success: true,
-            requestedScopes: normalizedRequestedScopes,
-            invalidatedConnectionCount: result.count,
+            scopes: normalizedScopes,
+            requestedScopes,
+            invalidatedConnectionCount,
         };
     });
 }

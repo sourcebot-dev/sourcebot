@@ -80,7 +80,7 @@ beforeEach(() => {
             serverUrl: 'https://mcp.linear.app/mcp',
             sanitizedName: 'linear',
             clientInfoSource: McpServerClientInfoSource.DYNAMIC,
-            requestedScopes: ['repo'],
+            scopes: [{ scope: 'repo', enabled: true }],
         },
     });
     mocks.unsafePrisma.userMcpServer.update.mockResolvedValue({ userId: 'user-1', serverId: 'server-1' });
@@ -112,7 +112,10 @@ describe('GET /api/ee/askmcp/callback', () => {
                         name: true,
                         serverUrl: true,
                         clientInfoSource: true,
-                        requestedScopes: true,
+                        scopes: {
+                            where: { enabled: true },
+                            select: { scope: true, enabled: true },
+                        },
                     },
                 },
             },
@@ -131,7 +134,20 @@ describe('GET /api/ee/askmcp/callback', () => {
         expect(mocks.mcpAuth).not.toHaveBeenCalled();
     });
 
+    test('redirects denied workspace-originated auth back to workspace settings', async () => {
+        const state = createMcpOAuthState('state-1', '/settings/workspaceAskAgent');
+
+        const response = await GET(createOAuthErrorRequest(state));
+        const url = new URL(response.headers.get('location') ?? '');
+
+        expect(url.pathname).toBe('/settings/workspaceAskAgent');
+        expect(url.searchParams.get('status')).toBe('error');
+        expect(url.searchParams.get('message')).toBe('Denied');
+        expect(mocks.mcpAuth).not.toHaveBeenCalled();
+    });
+
     test('redirects with a friendly reconnect error when callback auth cannot complete', async () => {
+        const state = createMcpOAuthState('state-1', '/settings/workspaceAskAgent');
         mocks.mcpAuth.mockImplementation(async (provider) => {
             expect('saveClientInformation' in provider).toBe(false);
             expect(provider.clientMetadata.scope).toBe('repo');
@@ -146,16 +162,16 @@ describe('GET /api/ee/askmcp/callback', () => {
             throw error;
         });
 
-        const response = await GET(createRequest());
+        const response = await GET(createRequest(state));
         const location = response.headers.get('location');
 
         expect(location).toBeTruthy();
-        expect(location).toContain('/settings/accountAskAgent');
+        expect(location).toContain('/settings/workspaceAskAgent');
         expect(location).toContain('status=error');
         expect(new URL(location ?? '').searchParams.get('message')).toContain('Please reconnect the connector');
         expect(mocks.unsafePrisma.userMcpServer.findFirst).toHaveBeenCalledWith({
             where: {
-                state: 'state-1',
+                state,
                 userId: 'user-1',
             },
             select: {
@@ -166,7 +182,10 @@ describe('GET /api/ee/askmcp/callback', () => {
                         name: true,
                         serverUrl: true,
                         clientInfoSource: true,
-                        requestedScopes: true,
+                        scopes: {
+                            where: { enabled: true },
+                            select: { scope: true, enabled: true },
+                        },
                     },
                 },
             },

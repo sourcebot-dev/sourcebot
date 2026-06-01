@@ -5,6 +5,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import type { PrismaClient } from '@sourcebot/db';
 import { getExternalMcpErrorLogFields } from './externalMcpError';
 import { getStoredMcpConnectionStatus } from './connectionStatus';
+import { getEnabledMcpScopeNames } from './scopeUtils';
 
 const logger = createLogger('mcp-client-factory');
 
@@ -41,7 +42,10 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
                     name: true,
                     sanitizedName: true,
                     serverUrl: true,
-                    requestedScopes: true,
+                    scopes: {
+                        where: { enabled: true },
+                        select: { scope: true, enabled: true },
+                    },
                 },
             },
         },
@@ -75,7 +79,7 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
                 orgId,
                 userId,
                 callbackUrl: getMcpOAuthCallbackUrl(),
-                requestedScopes: userServer.server.requestedScopes,
+                requestedScopes: getEnabledMcpScopeNames(userServer.server.scopes),
             });
 
             const transport = new StreamableHTTPClientTransport(

@@ -39,7 +39,7 @@ function makeUserServer(overrides: {
     tokens?: OAuthTokens;
     tokensExpiresAt?: Date | null;
     orgId?: number;
-    requestedScopes?: string[];
+    scopes?: Array<{ scope: string; enabled: boolean }>;
 }) {
     return {
         serverId: 'srv-1',
@@ -51,7 +51,7 @@ function makeUserServer(overrides: {
             name: 'MyServer',
             sanitizedName: 'myserver',
             serverUrl: 'https://example.com/mcp',
-            requestedScopes: overrides.requestedScopes ?? [],
+            scopes: overrides.scopes ?? [],
         },
     };
 }
@@ -111,7 +111,13 @@ describe('getConnectedMcpClients', () => {
 
     test('passes requested scopes to the OAuth provider', async () => {
         prisma.userMcpServer.findMany.mockResolvedValue([
-            makeUserServer({ tokens: TOKEN_WITH_REFRESH, requestedScopes: ['repo'] }),
+            makeUserServer({
+                tokens: TOKEN_WITH_REFRESH,
+                scopes: [
+                    { scope: 'repo', enabled: true },
+                    { scope: 'admin:org', enabled: false },
+                ],
+            }),
         ] as never);
 
         await getConnectedMcpClients(prisma, 'user-1', 1);

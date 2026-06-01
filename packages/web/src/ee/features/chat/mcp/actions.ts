@@ -19,10 +19,11 @@ import { captureEvent } from '@/lib/posthog';
 import { getMcpAuthMode } from './analytics';
 import type { McpConnectorEntryPoint } from '@/lib/posthogEvents';
 import {
-    updateMcpServerRequestedScopes,
+    updateMcpServerScopeEntries,
     type UpdateMcpServerScopesResponse,
 } from './mcpScopes';
-import { OAUTH_SCOPE_TOKEN_REGEX, normalizeMcpRequestedScopes } from './scopeUtils';
+import { buildMcpScopeEntries, OAUTH_SCOPE_TOKEN_REGEX } from './scopeUtils';
+import type { McpServerScopeEntry } from './types';
 
 const MCP_DCR_DISCOVERY_TIMEOUT_MS = Math.min(env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS, 10000);
 const oauthScopeTokenSchema = z.string()
@@ -36,10 +37,14 @@ const createStaticOAuthMcpServerSchema = z.object({
     clientId: z.string().trim().min(1),
     clientSecret: z.string().trim().min(1),
     requestedScopes: requestedScopesSchema.optional(),
+    availableScopes: requestedScopesSchema.optional(),
 });
 const updateMcpServerScopesSchema = z.object({
     serverId: z.string().trim().min(1),
-    scopes: requestedScopesSchema,
+    scopes: z.array(z.object({
+        scope: oauthScopeTokenSchema,
+        enabled: z.boolean(),
+    })).max(200),
 });
 
 export type CreateStaticOAuthMcpServerRequest = z.infer<typeof createStaticOAuthMcpServerSchema>;
@@ -57,6 +62,22 @@ interface PreparedMcpServerCreate {
     displayName: string;
     normalizedServerUrl: string;
     sanitizedName: string;
+}
+
+function buildMcpScopeCreateData(availableScopes: string[], requestedScopes: string[]) {
+    const data = buildMcpScopeEntries({ availableScopes, requestedScopes })
+        .map((entry) => ({
+            scope: entry.scope,
+            enabled: entry.enabled,
+        }));
+
+    return data.length > 0
+        ? {
+            scopes: {
+                createMany: { data },
+            },
+        }
+        : {};
 }
 
 function createTimeoutFetch(timeoutMs: number): typeof fetch {
@@ -238,7 +259,10 @@ export const createStaticOAuthMcpServer = async (
                         serverUrl: preparedServer.normalizedServerUrl,
                         clientInfo,
                         clientInfoSource: McpServerClientInfoSource.STATIC,
-                        requestedScopes: normalizeMcpRequestedScopes(parsed.data.requestedScopes ?? []),
+                        ...buildMcpScopeCreateData(
+                            parsed.data.availableScopes ?? [],
+                            parsed.data.requestedScopes ?? [],
+                        ),
                         orgId: org.id,
                     },
                 });
@@ -260,7 +284,7 @@ export const createStaticOAuthMcpServer = async (
             })));
 }
 
-export const updateMcpServerScopes = async (serverId: string, scopes: string[]) => {
+export const updateMcpServerScopes = async (serverId: string, scopes: McpServerScopeEntry[]) => {
     const parsed = updateMcpServerScopesSchema.safeParse({ serverId, scopes });
     if (!parsed.success) {
         return requestBodySchemaValidationError(parsed.error);
@@ -273,18 +297,27 @@ export const updateMcpServerScopes = async (serverId: string, scopes: string[]) 
                     return oauthNotSupported();
                 }
 
-                return updateMcpServerRequestedScopes({
+                return updateMcpServerScopeEntries({
                     serverId: parsed.data.serverId,
                     orgId: org.id,
-                    requestedScopes: parsed.data.scopes,
+                    scopes: parsed.data.scopes,
                 });
             })));
 };
 
-export const createMcpServer = async (name: string, serverUrl: string, requestedScopes: string[] = []) => {
+export const createMcpServer = async (
+    name: string,
+    serverUrl: string,
+    requestedScopes: string[] = [],
+    availableScopes: string[] = [],
+) => {
     const parsedRequestedScopes = requestedScopesSchema.safeParse(requestedScopes);
     if (!parsedRequestedScopes.success) {
         return requestBodySchemaValidationError(parsedRequestedScopes.error);
+    }
+    const parsedAvailableScopes = requestedScopesSchema.safeParse(availableScopes);
+    if (!parsedAvailableScopes.success) {
+        return requestBodySchemaValidationError(parsedAvailableScopes.error);
     }
 
     return sew(() =>
@@ -311,7 +344,7 @@ export const createMcpServer = async (name: string, serverUrl: string, requested
                         serverUrl: preparedServer.normalizedServerUrl,
                         clientInfo: null,
                         clientInfoSource: McpServerClientInfoSource.DYNAMIC,
-                        requestedScopes: normalizeMcpRequestedScopes(parsedRequestedScopes.data),
+                        ...buildMcpScopeCreateData(parsedAvailableScopes.data, parsedRequestedScopes.data),
                         orgId: org.id,
                     },
                 });

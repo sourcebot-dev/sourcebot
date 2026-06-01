@@ -1,8 +1,14 @@
+export interface McpServerScopeEntry {
+    scope: string;
+    enabled: boolean;
+}
+
 export interface McpConfigurationServer {
     id: string;
     name: string;
     serverUrl: string;
     sanitizedName: string;
+    scopes: McpServerScopeEntry[];
     faviconUrl: string | undefined;
     savedConnectionCount: number;
     toolUsage: McpServerToolUsageSummary;

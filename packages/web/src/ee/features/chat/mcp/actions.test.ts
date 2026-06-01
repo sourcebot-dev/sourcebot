@@ -22,6 +22,10 @@ const mocks = vi.hoisted(() => ({
             findFirst: vi.fn(),
             update: vi.fn(),
         },
+        mcpServerScope: {
+            createMany: vi.fn(),
+            deleteMany: vi.fn(),
+        },
         userMcpServer: {
             deleteMany: vi.fn(),
             updateMany: vi.fn(),
@@ -80,6 +84,7 @@ function createStaticOAuthRequest(overrides: Partial<{
     clientId: string;
     clientSecret: string;
     requestedScopes: string[];
+    availableScopes: string[];
 }> = {}) {
     return {
         name: 'Slack',
@@ -120,7 +125,6 @@ describe('createMcpServer', () => {
                 serverUrl: 'https://mcp.linear.app/mcp',
                 clientInfo: null,
                 clientInfoSource: McpServerClientInfoSource.DYNAMIC,
-                requestedScopes: [],
                 orgId: 1,
             },
         });
@@ -140,6 +144,10 @@ describe('createMcpServer', () => {
             ' repo ',
             'read:user',
             'repo',
+        ], [
+            'read:user',
+            'repo',
+            'admin:org',
         ])).resolves.toMatchObject({
             id: 'server-1',
             name: 'GitHub',
@@ -148,7 +156,15 @@ describe('createMcpServer', () => {
 
         expect(prisma.mcpServer.create).toHaveBeenCalledWith({
             data: expect.objectContaining({
-                requestedScopes: ['read:user', 'repo'],
+                scopes: {
+                    createMany: {
+                        data: [
+                            { scope: 'admin:org', enabled: false },
+                            { scope: 'read:user', enabled: true },
+                            { scope: 'repo', enabled: true },
+                        ],
+                    },
+                },
             }),
         });
     });
@@ -200,7 +216,6 @@ describe('createStaticOAuthMcpServer', () => {
                 serverUrl: 'https://mcp.slack.com/mcp',
                 clientInfo: 'encrypted:{"client_id":"client-id","client_secret":"client-secret"}',
                 clientInfoSource: McpServerClientInfoSource.STATIC,
-                requestedScopes: [],
                 orgId: 1,
             },
         });
@@ -225,6 +240,7 @@ describe('createStaticOAuthMcpServer', () => {
 
         await expect(createStaticOAuthMcpServer(createStaticOAuthRequest({
             requestedScopes: ['search:read.public', ' channels:history ', 'search:read.public'],
+            availableScopes: ['channels:history', 'search:read.public', 'users:read'],
         }))).resolves.toMatchObject({
             id: 'server-1',
             name: 'Slack',
@@ -232,7 +248,15 @@ describe('createStaticOAuthMcpServer', () => {
 
         expect(prisma.mcpServer.create).toHaveBeenCalledWith({
             data: expect.objectContaining({
-                requestedScopes: ['channels:history', 'search:read.public'],
+                scopes: {
+                    createMany: {
+                        data: [
+                            { scope: 'channels:history', enabled: true },
+                            { scope: 'search:read.public', enabled: true },
+                            { scope: 'users:read', enabled: false },
+                        ],
+                    },
+                },
             }),
         });
     });
@@ -382,20 +406,29 @@ describe('updateMcpServerScopes', () => {
         setAuthContext(OrgRole.OWNER);
         mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue({
             id: 'server-1',
-            requestedScopes: ['search:read.public'],
             clientInfoSource: McpServerClientInfoSource.STATIC,
+            scopes: [
+                { scope: 'search:read.public', enabled: true },
+            ],
         });
-        mocks.unsafePrisma.mcpServer.update.mockResolvedValue({ id: 'server-1' });
+        mocks.unsafePrisma.mcpServerScope.deleteMany.mockResolvedValue({ count: 1 });
+        mocks.unsafePrisma.mcpServerScope.createMany.mockResolvedValue({ count: 3 });
         mocks.unsafePrisma.userMcpServer.updateMany.mockResolvedValue({ count: 2 });
 
         const result = await updateMcpServerScopes(' server-1 ', [
-            ' chat:write ',
-            'files:read',
-            'chat:write',
+            { scope: ' chat:write ', enabled: true },
+            { scope: 'files:read', enabled: true },
+            { scope: 'users:read', enabled: false },
+            { scope: 'chat:write', enabled: true },
         ]);
 
         expect(result).toEqual({
             success: true,
+            scopes: [
+                { scope: 'chat:write', enabled: true },
+                { scope: 'files:read', enabled: true },
+                { scope: 'users:read', enabled: false },
+            ],
             requestedScopes: ['chat:write', 'files:read'],
             invalidatedConnectionCount: 2,
         });
@@ -406,16 +439,26 @@ describe('updateMcpServerScopes', () => {
             },
             select: {
                 id: true,
-                requestedScopes: true,
                 clientInfoSource: true,
+                scopes: {
+                    select: {
+                        scope: true,
+                        enabled: true,
+                    },
+                },
             },
         });
-        expect(mocks.unsafePrisma.mcpServer.update).toHaveBeenCalledWith({
-            where: { id: 'server-1' },
-            data: {
-                requestedScopes: ['chat:write', 'files:read'],
-            },
+        expect(mocks.unsafePrisma.mcpServerScope.deleteMany).toHaveBeenCalledWith({
+            where: { mcpServerId: 'server-1' },
         });
+        expect(mocks.unsafePrisma.mcpServerScope.createMany).toHaveBeenCalledWith({
+            data: [
+                { mcpServerId: 'server-1', scope: 'chat:write', enabled: true },
+                { mcpServerId: 'server-1', scope: 'files:read', enabled: true },
+                { mcpServerId: 'server-1', scope: 'users:read', enabled: false },
+            ],
+        });
+        expect(mocks.unsafePrisma.mcpServer.update).not.toHaveBeenCalled();
         expect(mocks.unsafePrisma.userMcpServer.updateMany).toHaveBeenCalledWith({
             where: { serverId: 'server-1' },
             data: {
@@ -431,13 +474,17 @@ describe('updateMcpServerScopes', () => {
         setAuthContext(OrgRole.OWNER);
         mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue({
             id: 'server-1',
-            requestedScopes: [],
             clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+            scopes: [],
         });
         mocks.unsafePrisma.mcpServer.update.mockResolvedValue({ id: 'server-1' });
+        mocks.unsafePrisma.mcpServerScope.deleteMany.mockResolvedValue({ count: 0 });
+        mocks.unsafePrisma.mcpServerScope.createMany.mockResolvedValue({ count: 1 });
         mocks.unsafePrisma.userMcpServer.updateMany.mockResolvedValue({ count: 1 });
 
-        await expect(updateMcpServerScopes('server-1', ['repo'])).resolves.toMatchObject({
+        await expect(updateMcpServerScopes('server-1', [
+            { scope: 'repo', enabled: true },
+        ])).resolves.toMatchObject({
             success: true,
             invalidatedConnectionCount: 1,
         });
@@ -445,7 +492,6 @@ describe('updateMcpServerScopes', () => {
         expect(mocks.unsafePrisma.mcpServer.update).toHaveBeenCalledWith({
             where: { id: 'server-1' },
             data: {
-                requestedScopes: ['repo'],
                 clientInfo: null,
             },
         });
@@ -455,29 +501,78 @@ describe('updateMcpServerScopes', () => {
         setAuthContext(OrgRole.OWNER);
         mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue({
             id: 'server-1',
-            requestedScopes: ['chat:write', 'files:read'],
             clientInfoSource: McpServerClientInfoSource.STATIC,
+            scopes: [
+                { scope: 'chat:write', enabled: true },
+                { scope: 'files:read', enabled: true },
+            ],
         });
 
         const result = await updateMcpServerScopes('server-1', [
-            'files:read',
-            'chat:write',
-            'files:read',
+            { scope: 'files:read', enabled: true },
+            { scope: 'chat:write', enabled: true },
+            { scope: 'files:read', enabled: true },
         ]);
 
         expect(result).toEqual({
             success: true,
+            scopes: [
+                { scope: 'chat:write', enabled: true },
+                { scope: 'files:read', enabled: true },
+            ],
             requestedScopes: ['chat:write', 'files:read'],
             invalidatedConnectionCount: 0,
         });
         expect(mocks.unsafePrisma.mcpServer.update).not.toHaveBeenCalled();
+        expect(mocks.unsafePrisma.mcpServerScope.deleteMany).not.toHaveBeenCalled();
+        expect(mocks.unsafePrisma.mcpServerScope.createMany).not.toHaveBeenCalled();
+        expect(mocks.unsafePrisma.userMcpServer.updateMany).not.toHaveBeenCalled();
+    });
+
+    test('does not invalidate tokens when only disabled scope entries change', async () => {
+        setAuthContext(OrgRole.OWNER);
+        mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue({
+            id: 'server-1',
+            clientInfoSource: McpServerClientInfoSource.STATIC,
+            scopes: [
+                { scope: 'chat:write', enabled: true },
+            ],
+        });
+        mocks.unsafePrisma.mcpServerScope.deleteMany.mockResolvedValue({ count: 1 });
+        mocks.unsafePrisma.mcpServerScope.createMany.mockResolvedValue({ count: 2 });
+
+        const result = await updateMcpServerScopes('server-1', [
+            { scope: 'chat:write', enabled: true },
+            { scope: 'files:read', enabled: false },
+        ]);
+
+        expect(result).toEqual({
+            success: true,
+            scopes: [
+                { scope: 'chat:write', enabled: true },
+                { scope: 'files:read', enabled: false },
+            ],
+            requestedScopes: ['chat:write'],
+            invalidatedConnectionCount: 0,
+        });
+        expect(mocks.unsafePrisma.mcpServerScope.deleteMany).toHaveBeenCalledWith({
+            where: { mcpServerId: 'server-1' },
+        });
+        expect(mocks.unsafePrisma.mcpServerScope.createMany).toHaveBeenCalledWith({
+            data: [
+                { mcpServerId: 'server-1', scope: 'chat:write', enabled: true },
+                { mcpServerId: 'server-1', scope: 'files:read', enabled: false },
+            ],
+        });
         expect(mocks.unsafePrisma.userMcpServer.updateMany).not.toHaveBeenCalled();
     });
 
     test('rejects invalid OAuth scope tokens', async () => {
         setAuthContext(OrgRole.OWNER);
 
-        const result = await updateMcpServerScopes('server-1', ['bad scope']);
+        const result = await updateMcpServerScopes('server-1', [
+            { scope: 'bad scope', enabled: true },
+        ]);
 
         expect(result).toMatchObject({
             statusCode: 400,
@@ -490,7 +585,9 @@ describe('updateMcpServerScopes', () => {
         setAuthContext(OrgRole.OWNER);
         mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue(null);
 
-        const result = await updateMcpServerScopes('server-1', ['chat:write']);
+        const result = await updateMcpServerScopes('server-1', [
+            { scope: 'chat:write', enabled: true },
+        ]);
 
         expect(result).toMatchObject({
             statusCode: 404,
@@ -503,7 +600,9 @@ describe('updateMcpServerScopes', () => {
     test('members cannot update connector scopes', async () => {
         setAuthContext(OrgRole.MEMBER);
 
-        const result = await updateMcpServerScopes('server-1', ['chat:write']);
+        const result = await updateMcpServerScopes('server-1', [
+            { scope: 'chat:write', enabled: true },
+        ]);
 
         expect(result).toMatchObject({
             errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
@@ -515,7 +614,9 @@ describe('updateMcpServerScopes', () => {
         setAuthContext(OrgRole.OWNER);
         mocks.hasEntitlement.mockResolvedValue(false);
 
-        const result = await updateMcpServerScopes('server-1', ['chat:write']);
+        const result = await updateMcpServerScopes('server-1', [
+            { scope: 'chat:write', enabled: true },
+        ]);
 
         expect(result).toMatchObject({
             statusCode: 403,
