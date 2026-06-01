@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { pluralize } from '@/features/chat/mcp/utils';
 import type { ServerToolsEntry, ToolMetadataErrorReason, ToolSummary } from '@/ee/features/chat/mcp/types';
-import { ChevronDownIcon, RefreshCwIcon, WrenchIcon } from 'lucide-react';
+import { BanIcon, ChevronDownIcon, CircleCheckIcon, HandIcon, RefreshCwIcon, WrenchIcon } from 'lucide-react';
 
 function getErrorLabel(reason: ToolMetadataErrorReason) {
     switch (reason) {
@@ -138,6 +138,47 @@ function ToolHintBadges({ tool }: { tool: ToolSummary }) {
     );
 }
 
+function getToolPermissionLabel(permission: ToolSummary['permission']) {
+    switch (permission) {
+        case 'ALLOWED':
+            return 'Allowed';
+        case 'NEEDS_APPROVAL':
+            return 'Needs Approval';
+        case 'DISABLED':
+            return 'Blocked';
+        default:
+            return undefined;
+    }
+}
+
+function ToolPermissionBadge({ permission }: { permission?: ToolSummary['permission'] }) {
+    const label = getToolPermissionLabel(permission);
+    if (!permission || !label) {
+        return null;
+    }
+
+    const Icon = permission === 'ALLOWED'
+        ? CircleCheckIcon
+        : permission === 'NEEDS_APPROVAL'
+            ? HandIcon
+            : BanIcon;
+
+    return (
+        <Badge
+            variant="outline"
+            className={cn(
+                "px-1.5 py-0 text-[10px] font-medium transition-none",
+                permission === 'ALLOWED' && "text-green-500",
+                permission === 'NEEDS_APPROVAL' && "text-primary",
+                permission === 'DISABLED' && "text-destructive",
+            )}
+        >
+            <Icon className="mr-1 h-3 w-3" />
+            {label}
+        </Badge>
+    );
+}
+
 function ToolDetail({ tool }: { tool: ToolSummary }) {
     const displayName = tool.title ?? tool.name;
 
@@ -148,6 +189,7 @@ function ToolDetail({ tool }: { tool: ToolSummary }) {
                 {tool.title && tool.title !== tool.name && (
                     <span className="break-all font-mono text-[10px] text-muted-foreground">{tool.name}</span>
                 )}
+                <ToolPermissionBadge permission={tool.permission} />
                 <ToolHintBadges tool={tool} />
             </div>
             {tool.description && (
@@ -195,7 +237,7 @@ export function ConnectorToolList({ toolEntry, isOpen = true, id }: ConnectorToo
                                     type="button"
                                     onClick={() => setSelectedTool(isSelected ? null : tool.name)}
                                     className={cn(
-                                        "rounded-md border border-border px-2 py-0.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                        "rounded-md border border-border px-2 py-0.5 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                                         isSelected
                                             ? "bg-accent text-foreground"
                                             : "bg-muted/30 text-muted-foreground hover:bg-accent hover:text-foreground"

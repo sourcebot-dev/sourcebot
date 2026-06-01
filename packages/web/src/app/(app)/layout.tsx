@@ -197,7 +197,7 @@ export default async function Layout(props: LayoutProps) {
                                             latestVersion={latestVersion}
                                         />
                                     </BannerHeightObserver>
-                                    <div className="flex-1 min-h-0 overflow-y-auto">
+                                    <div className="flex-1 min-h-0 overflow-y-scroll [scrollbar-gutter:stable]">
                                         {children}
                                     </div>
                                 </div>

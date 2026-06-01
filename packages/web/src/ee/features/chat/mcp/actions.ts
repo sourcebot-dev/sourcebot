@@ -7,7 +7,7 @@ import { withAuth } from '@/middleware/withAuth';
 import { withMinimumOrgRole } from '@/middleware/withMinimumOrgRole';
 import { __unsafePrisma } from '@/prisma';
 import { isServiceError } from '@/lib/utils';
-import { McpServerClientInfoSource, OrgRole, type PrismaClient } from '@sourcebot/db';
+import { McpServerClientInfoSource, McpServerToolPermission, OrgRole, type PrismaClient } from '@sourcebot/db';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { sanitizeMcpServerName } from '@/features/chat/mcp/utils';
@@ -23,7 +23,7 @@ import {
     type UpdateMcpServerScopesResponse,
 } from './mcpScopes';
 import { buildMcpScopeEntries, OAUTH_SCOPE_TOKEN_REGEX } from './scopeUtils';
-import type { McpServerScopeEntry } from './types';
+import type { McpServerScopeEntry, UpdateMcpServerToolPermissionsResponse } from './types';
 
 const MCP_DCR_DISCOVERY_TIMEOUT_MS = Math.min(env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS, 10000);
 const oauthScopeTokenSchema = z.string()
@@ -45,6 +45,14 @@ const updateMcpServerScopesSchema = z.object({
         scope: oauthScopeTokenSchema,
         enabled: z.boolean(),
     })).max(200),
+});
+const mcpToolNameSchema = z.string().trim().min(1).max(128);
+const updateMcpServerToolPermissionsSchema = z.object({
+    serverId: z.string().trim().min(1),
+    tools: z.array(z.object({
+        toolName: mcpToolNameSchema,
+        permission: z.nativeEnum(McpServerToolPermission),
+    })).max(500),
 });
 
 export type CreateStaticOAuthMcpServerRequest = z.infer<typeof createStaticOAuthMcpServerSchema>;
@@ -92,6 +100,19 @@ function createTimeoutFetch(timeoutMs: number): typeof fetch {
             signal,
         });
     };
+}
+
+function normalizeMcpToolPermissionEntries(
+    entries: z.infer<typeof updateMcpServerToolPermissionsSchema>['tools'],
+) {
+    const entryByToolName = new Map<string, McpServerToolPermission>();
+    for (const entry of entries) {
+        entryByToolName.set(entry.toolName.trim(), entry.permission);
+    }
+
+    return Array.from(entryByToolName.entries())
+        .map(([toolName, permission]) => ({ toolName, permission }))
+        .sort((a, b) => a.toolName.localeCompare(b.toolName));
 }
 
 function invalidRequest(message: string): ServiceError {
@@ -301,6 +322,66 @@ export const updateMcpServerScopes = async (serverId: string, scopes: McpServerS
                     serverId: parsed.data.serverId,
                     orgId: org.id,
                     scopes: parsed.data.scopes,
+                });
+            })));
+};
+
+export const updateMcpServerToolPermissions = async (
+    serverId: string,
+    tools: { toolName: string; permission: McpServerToolPermission }[],
+) => {
+    const parsed = updateMcpServerToolPermissionsSchema.safeParse({ serverId, tools });
+    if (!parsed.success) {
+        return requestBodySchemaValidationError(parsed.error);
+    }
+
+    return sew(() =>
+        withAuth(async ({ org, role }) =>
+            withMinimumOrgRole(role, OrgRole.OWNER, async (): Promise<UpdateMcpServerToolPermissionsResponse | ServiceError> => {
+                if (!(await hasEntitlement('ask'))) {
+                    return oauthNotSupported();
+                }
+
+                const normalizedTools = normalizeMcpToolPermissionEntries(parsed.data.tools);
+
+                return __unsafePrisma.$transaction(async (tx) => {
+                    const server = await tx.mcpServer.findFirst({
+                        where: {
+                            id: parsed.data.serverId,
+                            orgId: org.id,
+                        },
+                        select: { id: true },
+                    });
+
+                    if (!server) {
+                        return {
+                            statusCode: StatusCodes.NOT_FOUND,
+                            errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
+                            message: 'Connector not found',
+                        } satisfies ServiceError;
+                    }
+
+                    await Promise.all(normalizedTools.map((entry) => tx.mcpServerTool.upsert({
+                        where: {
+                            mcpServerId_toolName: {
+                                mcpServerId: server.id,
+                                toolName: entry.toolName,
+                            },
+                        },
+                        create: {
+                            mcpServerId: server.id,
+                            toolName: entry.toolName,
+                            permission: entry.permission,
+                        },
+                        update: {
+                            permission: entry.permission,
+                        },
+                    })));
+
+                    return {
+                        success: true,
+                        updatedToolCount: normalizedTools.length,
+                    };
                 });
             })));
 };

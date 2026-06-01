@@ -7,9 +7,14 @@ import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import { getExternalMcpErrorLogFields } from './externalMcpError';
 import { getMcpFaviconUrl } from '@/features/chat/mcp/utils';
 import { __unsafePrisma } from '@/prisma';
-import { Prisma } from '@sourcebot/db';
+import { McpServerToolPermission, Prisma } from '@sourcebot/db';
 import { captureEvent } from '@/lib/posthog';
 import type { AskMcpAnalyticsSource } from '@/lib/posthogEvents';
+import {
+    createMissingMcpServerToolRows,
+    getMcpServerToolPermission,
+    getMcpServerToolPermissionsByServerId,
+} from './mcpToolPermissions';
 
 const logger = createLogger('mcp-tool-sets');
 const ajv = new Ajv({ allErrors: true, strict: false });
@@ -123,10 +128,29 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
             ]);
             const tools = mcpClient.toolsFromDefinitions(toolDefinitions);
             const prefix = `mcp_${sanitizedName}`;
+            await createMissingMcpServerToolRows({
+                serverId,
+                tools: toolDefinitions.tools.map((tool) => ({
+                    toolName: tool.name,
+                    readOnlyHint: tool.annotations?.readOnlyHint,
+                })),
+            });
+            const permissionsByServerId = await getMcpServerToolPermissionsByServerId({
+                serverIds: [serverId],
+            });
+            const permissionsByToolName = permissionsByServerId.get(serverId) ?? new Map();
 
             for (const [toolName, tool] of Object.entries(tools)) {
                 const def = toolDefinitions.tools.find(t => t.name === toolName);
-                const isReadOnly = (def?.annotations as Record<string, unknown> | undefined)?.readOnlyHint === true;
+                const permission = getMcpServerToolPermission(
+                    permissionsByToolName,
+                    toolName,
+                    def?.annotations?.readOnlyHint,
+                );
+                if (permission === McpServerToolPermission.DISABLED) {
+                    continue;
+                }
+                const needsApproval = permission === McpServerToolPermission.NEEDS_APPROVAL;
 
                 // The @ai-sdk/mcp library sets additionalProperties: false in the JSON schema
                 // sent to the model, but does NOT provide a validate function — so the AI SDK
@@ -221,7 +245,7 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
                     // schemaSymbol brand).
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     inputSchema: validatedInputSchema as any,
-                    ...(isReadOnly ? {} : { needsApproval: true }),
+                    ...(needsApproval ? { needsApproval: true } : {}),
                 };
             }
 

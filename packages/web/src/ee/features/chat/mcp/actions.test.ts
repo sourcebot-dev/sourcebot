@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { McpServerClientInfoSource, OrgRole } from '@sourcebot/db';
+import { McpServerClientInfoSource, McpServerToolPermission, OrgRole } from '@sourcebot/db';
 import { ErrorCode } from '@/lib/errorCodes';
 
 const mocks = vi.hoisted(() => ({
@@ -25,6 +25,9 @@ const mocks = vi.hoisted(() => ({
         mcpServerScope: {
             createMany: vi.fn(),
             deleteMany: vi.fn(),
+        },
+        mcpServerTool: {
+            upsert: vi.fn(),
         },
         userMcpServer: {
             deleteMany: vi.fn(),
@@ -52,7 +55,14 @@ vi.mock('@/lib/posthog', () => ({
     captureEvent: mocks.captureEvent,
 }));
 
-const { createMcpServer, createStaticOAuthMcpServer, deleteMcpServer, disconnectMcpServer, updateMcpServerScopes } = await import('./actions');
+const {
+    createMcpServer,
+    createStaticOAuthMcpServer,
+    deleteMcpServer,
+    disconnectMcpServer,
+    updateMcpServerScopes,
+    updateMcpServerToolPermissions,
+} = await import('./actions');
 
 function createPrismaMock() {
     return {
@@ -621,6 +631,108 @@ describe('updateMcpServerScopes', () => {
         expect(result).toMatchObject({
             statusCode: 403,
             errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+        });
+        expect(mocks.unsafePrisma.$transaction).not.toHaveBeenCalled();
+    });
+});
+
+describe('updateMcpServerToolPermissions', () => {
+    test('owners update connector tool permissions without invalidating tokens', async () => {
+        setAuthContext(OrgRole.OWNER);
+        mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue({ id: 'server-1' });
+        mocks.unsafePrisma.mcpServerTool.upsert.mockResolvedValue({});
+
+        const result = await updateMcpServerToolPermissions(' server-1 ', [
+            { toolName: ' search ', permission: McpServerToolPermission.NEEDS_APPROVAL },
+            { toolName: 'delete_issue', permission: McpServerToolPermission.DISABLED },
+            { toolName: 'search', permission: McpServerToolPermission.ALLOWED },
+        ]);
+
+        expect(result).toEqual({
+            success: true,
+            updatedToolCount: 2,
+        });
+        expect(mocks.unsafePrisma.mcpServer.findFirst).toHaveBeenCalledWith({
+            where: {
+                id: 'server-1',
+                orgId: 1,
+            },
+            select: { id: true },
+        });
+        expect(mocks.unsafePrisma.mcpServerTool.upsert).toHaveBeenCalledTimes(2);
+        expect(mocks.unsafePrisma.mcpServerTool.upsert).toHaveBeenNthCalledWith(1, {
+            where: {
+                mcpServerId_toolName: {
+                    mcpServerId: 'server-1',
+                    toolName: 'delete_issue',
+                },
+            },
+            create: {
+                mcpServerId: 'server-1',
+                toolName: 'delete_issue',
+                permission: McpServerToolPermission.DISABLED,
+            },
+            update: {
+                permission: McpServerToolPermission.DISABLED,
+            },
+        });
+        expect(mocks.unsafePrisma.mcpServerTool.upsert).toHaveBeenNthCalledWith(2, {
+            where: {
+                mcpServerId_toolName: {
+                    mcpServerId: 'server-1',
+                    toolName: 'search',
+                },
+            },
+            create: {
+                mcpServerId: 'server-1',
+                toolName: 'search',
+                permission: McpServerToolPermission.ALLOWED,
+            },
+            update: {
+                permission: McpServerToolPermission.ALLOWED,
+            },
+        });
+        expect(mocks.unsafePrisma.userMcpServer.updateMany).not.toHaveBeenCalled();
+    });
+
+    test('returns not found when updating tool permissions for a missing connector', async () => {
+        setAuthContext(OrgRole.OWNER);
+        mocks.unsafePrisma.mcpServer.findFirst.mockResolvedValue(null);
+
+        const result = await updateMcpServerToolPermissions('server-1', [
+            { toolName: 'search', permission: McpServerToolPermission.ALLOWED },
+        ]);
+
+        expect(result).toMatchObject({
+            statusCode: 404,
+            errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
+        });
+        expect(mocks.unsafePrisma.mcpServerTool.upsert).not.toHaveBeenCalled();
+    });
+
+    test('members cannot update connector tool permissions', async () => {
+        setAuthContext(OrgRole.MEMBER);
+
+        const result = await updateMcpServerToolPermissions('server-1', [
+            { toolName: 'search', permission: McpServerToolPermission.ALLOWED },
+        ]);
+
+        expect(result).toMatchObject({
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+        });
+        expect(mocks.unsafePrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    test('rejects invalid tool permission payloads', async () => {
+        setAuthContext(OrgRole.OWNER);
+
+        const result = await updateMcpServerToolPermissions('server-1', [
+            { toolName: '', permission: McpServerToolPermission.ALLOWED },
+        ]);
+
+        expect(result).toMatchObject({
+            statusCode: 400,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
         });
         expect(mocks.unsafePrisma.$transaction).not.toHaveBeenCalled();
     });

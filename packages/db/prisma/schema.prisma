@@ -347,6 +347,12 @@ enum McpServerClientInfoSource {
   STATIC
 }
 
+enum McpServerToolPermission {
+  ALLOWED
+  NEEDS_APPROVAL
+  DISABLED
+}
+
 model UserToOrg {
   joinedAt DateTime @default(now())
 
@@ -712,7 +718,8 @@ model McpServerTool {
   mcpServer   McpServer @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
   mcpServerId String
   toolName    String
-  callCount   Int       @default(0)
+  callCount   Int                     @default(0)
+  permission  McpServerToolPermission @default(NEEDS_APPROVAL)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

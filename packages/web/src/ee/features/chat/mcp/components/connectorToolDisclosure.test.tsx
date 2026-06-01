@@ -16,8 +16,8 @@ function availableEntry(overrides: Partial<Extract<ServerToolsEntry, { status: '
         status: 'available',
         serverId: 'server-1',
         tools: [
-            { name: 'search', title: 'Search', description: 'Search issues', annotations: { readOnlyHint: true } },
-            { name: 'delete_issue', description: 'Delete an issue', annotations: { destructiveHint: true, idempotentHint: true } },
+            { name: 'search', title: 'Search', description: 'Search issues', permission: 'ALLOWED', annotations: { readOnlyHint: true } },
+            { name: 'delete_issue', description: 'Delete an issue', permission: 'NEEDS_APPROVAL', annotations: { destructiveHint: true, idempotentHint: true } },
         ],
         ...overrides,
     };
@@ -116,12 +116,14 @@ describe('ConnectorToolList', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Search' }));
         expect(screen.getByText('Search issues')).toBeTruthy();
         expect(screen.getByText('search')).toBeTruthy();
+        expect(screen.getByText('Allowed')).toBeTruthy();
         expect(screen.getByText('Read-only')).toBeTruthy();
 
         // Click another tool — previous detail closes, new one opens
         fireEvent.click(screen.getByRole('button', { name: 'delete_issue' }));
         expect(screen.queryByText('Search issues')).toBeNull();
         expect(screen.getByText('Delete an issue')).toBeTruthy();
+        expect(screen.getByText('Needs Approval')).toBeTruthy();
         expect(screen.getByText('Destructive')).toBeTruthy();
         expect(screen.getByText('Idempotent')).toBeTruthy();
 

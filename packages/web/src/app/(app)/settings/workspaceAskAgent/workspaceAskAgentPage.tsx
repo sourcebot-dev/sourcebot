@@ -31,7 +31,7 @@ import { buildMcpScopeEntries, getMcpRequestedScopes, normalizeMcpRequestedScope
 import { pluralize } from "@/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangleIcon, CableIcon, CopyIcon, KeyRoundIcon, Loader2, MoreHorizontalIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { AlertTriangleIcon, CableIcon, CopyIcon, KeyRoundIcon, Loader2, MoreHorizontalIcon, PlusIcon, Trash2Icon, WrenchIcon } from "lucide-react";
 import { PrefabConnectorPopover } from "@/ee/features/chat/mcp/components/prefabConnectorPopover";
 import Markdown from "react-markdown";
 import { getStaticOAuthDescription, type PrefabMcpServer } from "@/ee/features/chat/mcp/prefabMcpServers";
@@ -204,6 +204,7 @@ interface WorkspaceConnectorCardProps {
     onRetryTools: () => void;
     onCopyUrl: (serverUrl: string) => void;
     onEditScopes: (server: McpConfigurationServer) => void;
+    onEditToolPermissions: (server: McpConfigurationServer) => void;
     onDelete: (server: McpConfigurationServer) => void;
 }
 
@@ -219,6 +220,7 @@ function WorkspaceConnectorCard({
     onRetryTools,
     onCopyUrl,
     onEditScopes,
+    onEditToolPermissions,
     onDelete,
 }: WorkspaceConnectorCardProps) {
     const isConnected = status?.isConnected === true;
@@ -285,10 +287,16 @@ function WorkspaceConnectorCard({
                                 Copy URL
                             </DropdownMenuItem>
                             {isAskAgentAvailable && (
-                                <DropdownMenuItem onClick={() => onEditScopes(server)}>
-                                    <KeyRoundIcon className="h-4 w-4 mr-2" />
-                                    Edit OAuth scopes
-                                </DropdownMenuItem>
+                                <>
+                                    <DropdownMenuItem onClick={() => onEditScopes(server)}>
+                                        <KeyRoundIcon className="h-4 w-4 mr-2" />
+                                        Edit OAuth scopes
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => onEditToolPermissions(server)}>
+                                        <WrenchIcon className="h-4 w-4 mr-2" />
+                                        Edit tool permissions
+                                    </DropdownMenuItem>
+                                </>
                             )}
                             <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
@@ -789,6 +797,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                                     onRetryTools={() => { void refetchTools(); }}
                                     onCopyUrl={handleCopyUrl}
                                     onEditScopes={handleOpenEditScopesDialog}
+                                    onEditToolPermissions={(server) => router.push(`/settings/workspaceAskAgent/connectors/${server.id}/tools`)}
                                     onDelete={setServerToDelete}
                                 />
                             ))

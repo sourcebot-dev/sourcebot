@@ -1,5 +1,5 @@
 import { expect, test, describe, vi, beforeEach } from 'vitest';
-import { Prisma } from '@sourcebot/db';
+import { McpServerToolPermission, Prisma } from '@sourcebot/db';
 import type { McpToolSet } from './mcpClientFactory';
 
 // --- Mocks ---
@@ -13,8 +13,11 @@ const mockLogger = vi.hoisted(() => ({
 }));
 const mockServerToolUpsert = vi.hoisted(() => vi.fn());
 const mockServerToolUpdate = vi.hoisted(() => vi.fn());
+const mockServerToolCreateMany = vi.hoisted(() => vi.fn());
+const mockServerToolFindMany = vi.hoisted(() => vi.fn());
 const mockCaptureEvent = vi.hoisted(() => vi.fn());
 
+vi.mock('server-only', () => ({}));
 vi.mock('@ai-sdk/mcp', () => ({
     createMCPClient: (...args: unknown[]) => mockCreateMCPClient(...args),
 }));
@@ -29,6 +32,8 @@ vi.mock('@sourcebot/shared', () => ({
 vi.mock('@/prisma', () => ({
     __unsafePrisma: {
         mcpServerTool: {
+            createMany: mockServerToolCreateMany,
+            findMany: mockServerToolFindMany,
             upsert: mockServerToolUpsert,
             update: mockServerToolUpdate,
         },
@@ -87,6 +92,8 @@ const { getMcpTools } = await import('./mcpToolSets');
 
 beforeEach(() => {
     vi.clearAllMocks();
+    mockServerToolCreateMany.mockResolvedValue({ count: 0 });
+    mockServerToolFindMany.mockResolvedValue([]);
     mockServerToolUpsert.mockResolvedValue({});
     mockServerToolUpdate.mockResolvedValue({});
     mockCaptureEvent.mockResolvedValue(undefined);
@@ -129,7 +136,7 @@ describe('getMcpTools', () => {
         expect(toolNames).toContain('mcp_github__search_repos');
     });
 
-    test('read-only tool does NOT get needsApproval', async () => {
+    test('newly discovered read-only tool defaults to allowed', async () => {
         const mockClient = createMockMcpClient([
             { name: 'list_issues', description: 'List issues', annotations: { readOnlyHint: true } },
         ]);
@@ -157,6 +164,48 @@ describe('getMcpTools', () => {
         const tool = result.tools['mcp_linear__create_issue'];
         expect(tool).toBeDefined();
         expect(tool).toHaveProperty('needsApproval', true);
+    });
+
+    test('allowed tool does not get needsApproval', async () => {
+        mockServerToolFindMany.mockResolvedValueOnce([
+            {
+                mcpServerId: 'server-id',
+                toolName: 'list_issues',
+                permission: McpServerToolPermission.ALLOWED,
+            },
+        ]);
+        const mockClient = createMockMcpClient([
+            { name: 'list_issues', description: 'List issues', annotations: { readOnlyHint: true } },
+        ]);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverName: 'Linear' }),
+        ]);
+
+        const tool = result.tools['mcp_linear__list_issues'];
+        expect(tool).toBeDefined();
+        expect('needsApproval' in tool).toBe(false);
+    });
+
+    test('disabled tool is not exposed to the agent', async () => {
+        mockServerToolFindMany.mockResolvedValueOnce([
+            {
+                mcpServerId: 'server-id',
+                toolName: 'delete_issue',
+                permission: McpServerToolPermission.DISABLED,
+            },
+        ]);
+        const mockClient = createMockMcpClient([
+            { name: 'delete_issue', description: 'Delete issue' },
+        ]);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverName: 'Linear' }),
+        ]);
+
+        expect(result.tools).toEqual({});
     });
 
     test('failed server connection adds to failedServers array', async () => {
@@ -410,7 +459,7 @@ describe('getMcpTools', () => {
         ]);
 
         const tool = result.tools['mcp_linear__list_issues'];
-        const execution = tool.execute({}, { messages: [], toolCallId: 'test' });
+        const execution = Promise.resolve(tool.execute({}, { messages: [], toolCallId: 'test' }));
         let didResolve = false;
         const observedExecution = execution.then((value) => {
             didResolve = true;
