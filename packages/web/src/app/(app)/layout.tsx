@@ -26,6 +26,7 @@ import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
 import { GitHubStarToast } from "./components/githubStarToast";
 import { getLinkedAccounts } from "@/ee/features/sso/actions";
 import { BannerSlot } from "./components/banners/bannerSlot";
+import { BannerHeightObserver } from "./components/banners/bannerHeightObserver";
 import { getPermissionSyncStatus } from "../api/(server)/ee/permissionSyncStatus/api";
 import { OrgRole } from "@sourcebot/db";
 import { ServiceErrorException } from "@/lib/serviceError";
@@ -185,15 +186,17 @@ export default async function Layout(props: LayoutProps) {
                             {sidebar}
                             <div className="flex-1 min-h-0 flex flex-col pt-2 pb-2 pr-2 pl-2 md:pl-0">
                                 <div className="flex-1 min-h-0 bg-background flex flex-col border border-[#e6e6e6] dark:border-[#1d1d1f] rounded-xl overflow-hidden">
-                                    <BannerSlot
-                                        role={role}
-                                        license={license}
-                                        offlineLicense={offlineLicense}
-                                        hasPermissionSyncEntitlement={hasPermissionSyncEntitlement}
-                                        hasPendingFirstSync={hasPendingFirstSync}
-                                        currentVersion={SOURCEBOT_VERSION}
-                                        latestVersion={latestVersion}
-                                    />
+                                    <BannerHeightObserver>
+                                        <BannerSlot
+                                            role={role}
+                                            license={license}
+                                            offlineLicense={offlineLicense}
+                                            hasPermissionSyncEntitlement={hasPermissionSyncEntitlement}
+                                            hasPendingFirstSync={hasPendingFirstSync}
+                                            currentVersion={SOURCEBOT_VERSION}
+                                            latestVersion={latestVersion}
+                                        />
+                                    </BannerHeightObserver>
                                     <div className="flex-1 min-h-0 overflow-y-auto">
                                         {children}
                                     </div>
