@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added ask connectors: connect 3rd party MCP servers to your ask agent. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 - Added progress bar when navigating between pages. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 - Added a integrated changelog into the sidebar. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- Added scroll position restoration when viewing files in the code browser, so returning to a previously viewed file restores your scroll position. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 
 ### Changed
 - [**Breaking Change**] Changed the default role assignment to `Owner` for organizations on the free tier. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
