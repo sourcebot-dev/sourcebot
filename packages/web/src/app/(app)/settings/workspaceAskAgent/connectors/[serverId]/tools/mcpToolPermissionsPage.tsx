@@ -71,6 +71,11 @@ interface ToolGroup {
     tools: McpServerToolPermissionEntry[];
 }
 
+interface ToolPermissionChange {
+    toolName: string;
+    permission: McpServerToolPermission;
+}
+
 function getToolDisplayName(tool: McpServerToolPermissionEntry) {
     return tool.title ?? tool.toolName;
 }
@@ -302,7 +307,8 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
         'write-delete': true,
     });
     const [permissionsByToolName, setPermissionsByToolName] = useState<Record<string, McpServerToolPermission>>({});
-    const [isSaving, setIsSaving] = useState(false);
+    const [pendingSaveCount, setPendingSaveCount] = useState(0);
+    const isSaving = pendingSaveCount > 0;
 
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: mcpQueryKeys.toolPermissions(serverId),
@@ -373,64 +379,31 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
         },
     ].filter((group) => group.tools.length > 0), [filteredTools]);
 
-    const isDirty = useMemo(() => (
-        tools.some((tool) => (permissionsByToolName[tool.toolName] ?? tool.permission) !== tool.permission)
-    ), [permissionsByToolName, tools]);
-
-    const handlePermissionChange = (toolName: string, permission: McpServerToolPermission) => {
-        setPermissionsByToolName((current) => ({
-            ...current,
-            [toolName]: permission,
-        }));
-    };
-
-    const handleApplyToTools = (toolsToUpdate: McpServerToolPermissionEntry[], permission: McpServerToolPermission) => {
+    const rollbackPermissionChanges = (
+        changes: ToolPermissionChange[],
+        previousPermissions: Record<string, McpServerToolPermission>,
+    ) => {
         setPermissionsByToolName((current) => {
             const next = { ...current };
-            for (const tool of toolsToUpdate) {
-                next[tool.toolName] = permission;
+            for (const change of changes) {
+                if (next[change.toolName] === change.permission) {
+                    next[change.toolName] = previousPermissions[change.toolName];
+                }
             }
             return next;
         });
     };
 
-    const handleGroupOpenChange = (groupId: ToolGroup['id']) => {
-        setOpenGroups((current) => ({
-            ...current,
-            [groupId]: !current[groupId],
-        }));
-    };
-
-    const handleReset = () => {
-        if (!data) {
-            return;
-        }
-
-        setPermissionsByToolName(Object.fromEntries(
-            data.tools.map((tool) => [tool.toolName, tool.permission]),
-        ));
-    };
-
-    const handleSave = async () => {
-        if (!data) {
-            return;
-        }
-
-        const changedTools = data.tools.flatMap((tool) => {
-            const permission = permissionsByToolName[tool.toolName] ?? tool.permission;
-            return permission === tool.permission
-                ? []
-                : [{ toolName: tool.toolName, permission }];
-        });
-        if (changedTools.length === 0) {
-            return;
-        }
-
-        setIsSaving(true);
+    const savePermissionChanges = async (
+        changes: ToolPermissionChange[],
+        previousPermissions: Record<string, McpServerToolPermission>,
+    ) => {
+        setPendingSaveCount((count) => count + 1);
         try {
-            const result = await updateMcpServerToolPermissions(serverId, changedTools);
+            const result = await updateMcpServerToolPermissions(serverId, changes);
 
             if (isServiceError(result)) {
+                rollbackPermissionChanges(changes, previousPermissions);
                 toast({ title: 'Error', description: `Failed to update tool permissions: ${result.message}`, variant: 'destructive' });
                 return;
             }
@@ -439,12 +412,61 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
                 queryClient.invalidateQueries({ queryKey: mcpQueryKeys.toolPermissions(serverId) }),
                 invalidateMcpConfigurationQueries(queryClient),
             ]);
-            toast({ description: `Tool permissions updated for ${result.updatedToolCount} ${pluralize(result.updatedToolCount, 'tool')}.` });
         } catch {
+            rollbackPermissionChanges(changes, previousPermissions);
             toast({ title: 'Error', description: 'Failed to update tool permissions.', variant: 'destructive' });
         } finally {
-            setIsSaving(false);
+            setPendingSaveCount((count) => Math.max(0, count - 1));
         }
+    };
+
+    const handlePermissionChange = (tool: McpServerToolPermissionEntry, permission: McpServerToolPermission) => {
+        const currentPermission = permissionsByToolName[tool.toolName] ?? tool.permission;
+        if (currentPermission === permission) {
+            return;
+        }
+
+        setPermissionsByToolName((current) => {
+            const next = { ...current };
+            next[tool.toolName] = permission;
+            return next;
+        });
+        void savePermissionChanges(
+            [{ toolName: tool.toolName, permission }],
+            { [tool.toolName]: currentPermission },
+        );
+    };
+
+    const handleApplyToTools = (toolsToUpdate: McpServerToolPermissionEntry[], permission: McpServerToolPermission) => {
+        const changes: ToolPermissionChange[] = [];
+        const previousPermissions: Record<string, McpServerToolPermission> = {};
+        for (const tool of toolsToUpdate) {
+            const currentPermission = permissionsByToolName[tool.toolName] ?? tool.permission;
+            if (currentPermission === permission) {
+                continue;
+            }
+            changes.push({ toolName: tool.toolName, permission });
+            previousPermissions[tool.toolName] = currentPermission;
+        }
+        if (changes.length === 0) {
+            return;
+        }
+
+        setPermissionsByToolName((current) => {
+            const next = { ...current };
+            for (const tool of toolsToUpdate) {
+                next[tool.toolName] = permission;
+            }
+            return next;
+        });
+        void savePermissionChanges(changes, previousPermissions);
+    };
+
+    const handleGroupOpenChange = (groupId: ToolGroup['id']) => {
+        setOpenGroups((current) => ({
+            ...current,
+            [groupId]: !current[groupId],
+        }));
     };
 
     if (isLoading) {
@@ -517,15 +539,12 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
                         <PermissionCount permission="DISABLED" count={permissionCounts.DISABLED} />
                     </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                    <Button variant="outline" onClick={handleReset} disabled={!isDirty || isSaving}>
-                        Reset
-                    </Button>
-                    <Button onClick={handleSave} disabled={!isDirty || isSaving}>
-                        {isSaving && <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />}
-                        Apply
-                    </Button>
-                </div>
+                {isSaving && (
+                    <div className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+                        <Loader2Icon className="h-3.5 w-3.5 animate-spin" />
+                        Saving
+                    </div>
+                )}
             </div>
 
             <Separator />
@@ -626,7 +645,7 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
                                             key={tool.toolName}
                                             tool={tool}
                                             permission={permissionsByToolName[tool.toolName] ?? tool.permission}
-                                            onPermissionChange={(permission) => handlePermissionChange(tool.toolName, permission)}
+                                            onPermissionChange={(permission) => handlePermissionChange(tool, permission)}
                                         />
                                     ))}
                             </section>
