@@ -10,10 +10,13 @@ import { getEnabledMcpScopeNames } from './scopeUtils';
 const logger = createLogger('mcp-client-factory');
 
 export interface McpToolSet {
+    orgId: number;
     serverId: string;
     serverName: string;
     sanitizedName: string;
     serverUrl: string;
+    serverUpdatedAt: Date;
+    requestedScopes: string[];
     transport: StreamableHTTPClientTransport;
 }
 
@@ -42,6 +45,7 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
                     name: true,
                     sanitizedName: true,
                     serverUrl: true,
+                    updatedAt: true,
                     scopes: {
                         where: { enabled: true },
                         select: { scope: true, enabled: true },
@@ -73,13 +77,14 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
                 continue;
             }
 
+            const requestedScopes = getEnabledMcpScopeNames(userServer.server.scopes);
             const provider = new PrismaOAuthClientProvider({
                 prisma,
                 serverId: userServer.serverId,
                 orgId,
                 userId,
                 callbackUrl: getMcpOAuthCallbackUrl(),
-                requestedScopes: getEnabledMcpScopeNames(userServer.server.scopes),
+                requestedScopes,
             });
 
             const transport = new StreamableHTTPClientTransport(
@@ -88,10 +93,13 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
             );
 
             clients.push({
+                orgId,
                 serverId: userServer.serverId,
                 serverName,
                 sanitizedName: userServer.server.sanitizedName,
                 serverUrl: userServer.server.serverUrl,
+                serverUpdatedAt: userServer.server.updatedAt,
+                requestedScopes,
                 transport,
             });
         } catch (error) {

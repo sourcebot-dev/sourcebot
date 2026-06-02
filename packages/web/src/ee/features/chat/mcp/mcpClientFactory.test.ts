@@ -51,6 +51,7 @@ function makeUserServer(overrides: {
             name: 'MyServer',
             sanitizedName: 'myserver',
             serverUrl: 'https://example.com/mcp',
+            updatedAt: new Date('2026-01-01T00:00:00.000Z'),
             scopes: overrides.scopes ?? [],
         },
     };
@@ -102,10 +103,13 @@ describe('getConnectedMcpClients', () => {
 
         const result = await getConnectedMcpClients(prisma, 'user-1', 1);
         expect(result[0]).toMatchObject({
+            orgId: 1,
             serverId: 'srv-1',
             serverName: 'MyServer',
             sanitizedName: 'myserver',
             serverUrl: 'https://example.com/mcp',
+            serverUpdatedAt: new Date('2026-01-01T00:00:00.000Z'),
+            requestedScopes: [],
         });
     });
 

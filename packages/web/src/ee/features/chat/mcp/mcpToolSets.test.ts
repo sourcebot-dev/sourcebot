@@ -16,6 +16,8 @@ const mockServerToolUpdate = vi.hoisted(() => vi.fn());
 const mockServerToolCreateMany = vi.hoisted(() => vi.fn());
 const mockServerToolFindMany = vi.hoisted(() => vi.fn());
 const mockCaptureEvent = vi.hoisted(() => vi.fn());
+const mockRedisGet = vi.hoisted(() => vi.fn());
+const mockRedisSet = vi.hoisted(() => vi.fn());
 
 vi.mock('server-only', () => ({}));
 vi.mock('@ai-sdk/mcp', () => ({
@@ -42,6 +44,13 @@ vi.mock('@/prisma', () => ({
 
 vi.mock('@/lib/posthog', () => ({
     captureEvent: mockCaptureEvent,
+}));
+
+vi.mock('@/lib/redis', () => ({
+    redis: {
+        get: (...args: unknown[]) => mockRedisGet(...args),
+        set: (...args: unknown[]) => mockRedisSet(...args),
+    },
 }));
 
 vi.mock('ai', () => ({
@@ -77,9 +86,12 @@ function createMockMcpClient(toolDefs: MockToolDef[]) {
 
 function createMockClient(overrides: Partial<McpToolSet> & { serverName: string }): McpToolSet {
     return {
+        orgId: 1,
         serverId: 'server-id',
         sanitizedName: overrides.serverName.toLowerCase(),
         serverUrl: `https://${overrides.serverName.toLowerCase()}.example.com/mcp`,
+        serverUpdatedAt: new Date('2026-01-01T00:00:00.000Z'),
+        requestedScopes: [],
         transport: {} as McpToolSet['transport'],
         ...overrides,
     };
@@ -97,6 +109,8 @@ beforeEach(() => {
     mockServerToolUpsert.mockResolvedValue({});
     mockServerToolUpdate.mockResolvedValue({});
     mockCaptureEvent.mockResolvedValue(undefined);
+    mockRedisGet.mockResolvedValue(null);
+    mockRedisSet.mockResolvedValue('OK');
 });
 
 describe('getMcpTools', () => {
@@ -134,6 +148,60 @@ describe('getMcpTools', () => {
         const toolNames = Object.keys(result.tools);
         expect(toolNames).toContain('mcp_linear__list_issues');
         expect(toolNames).toContain('mcp_github__search_repos');
+    });
+
+    test('uses cached tool definitions when available', async () => {
+        const cachedTool = {
+            execute: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: 'result' }] }),
+            description: 'Cached tool',
+            inputSchema: {},
+        };
+        const mockClient = {
+            listTools: vi.fn().mockResolvedValue({ tools: [{ name: 'live_tool', description: 'Live tool' }] }),
+            toolsFromDefinitions: vi.fn().mockReturnValue({ cached_tool: cachedTool }),
+            close: vi.fn().mockResolvedValue(undefined),
+            tools: vi.fn().mockResolvedValue({ cached_tool: cachedTool }),
+        };
+        mockRedisGet.mockResolvedValueOnce(JSON.stringify({
+            tools: [
+                { name: 'cached_tool', description: 'Cached tool', inputSchema: { type: 'object' } },
+            ],
+        }));
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverName: 'Linear' }),
+        ]);
+
+        expect(mockClient.listTools).not.toHaveBeenCalled();
+        expect(mockClient.toolsFromDefinitions).toHaveBeenCalledWith({
+            tools: [
+                { name: 'cached_tool', description: 'Cached tool', inputSchema: { type: 'object' } },
+            ],
+        });
+        expect(Object.keys(result.tools)).toEqual(['mcp_linear__cached_tool']);
+    });
+
+    test('caches live tool definitions after a cache miss', async () => {
+        const mockClient = createMockMcpClient([
+            { name: 'list_issues', description: 'List issues' },
+        ]);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        await getMcpTools([
+            createMockClient({
+                serverName: 'Linear',
+                requestedScopes: ['repo'],
+            }),
+        ]);
+
+        expect(mockClient.listTools).toHaveBeenCalledOnce();
+        expect(mockRedisSet).toHaveBeenCalledWith(
+            expect.stringMatching(/^mcp:list-tools:v1:1:server-id:/),
+            JSON.stringify({ tools: [{ name: 'list_issues', description: 'List issues' }] }),
+            'EX',
+            10800,
+        );
     });
 
     test('newly discovered read-only tool defaults to allowed', async () => {
