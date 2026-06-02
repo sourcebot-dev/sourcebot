@@ -163,8 +163,6 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATA_DIR=/data
 ENV DATA_CACHE_DIR=$DATA_DIR/.sourcebot
-ENV DATABASE_DATA_DIR=$DATA_CACHE_DIR/db
-ENV REDIS_DATA_DIR=$DATA_CACHE_DIR/redis
 ENV SOURCEBOT_PUBLIC_KEY_PATH=/app/public.pem
 # PAPIK = Project API Key
 # Note that this key does not need to be kept secret, so it's not
@@ -180,7 +178,7 @@ ENV SOURCEBOT_LOG_LEVEL=info
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
 # Configure dependencies
-RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq redis postgresql16 postgresql16-contrib openssl util-linux unzip && \
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq openssl util-linux unzip && \
     apk upgrade --no-cache
 
 # Remove npm (unused — we use Yarn). The Node.js base image bundles npm
@@ -200,8 +198,6 @@ ARG GID=1500
 # The container can be run as root (default) or as sourcebot user using docker run --user
 RUN addgroup -g $GID sourcebot && \
     adduser -D -u $UID -h /app -S sourcebot && \
-    adduser sourcebot postgres && \
-    adduser sourcebot redis && \
     chown -R sourcebot /app && \
     adduser sourcebot node && \
     mkdir /var/log/sourcebot && \
@@ -251,11 +247,6 @@ COPY --chown=sourcebot:sourcebot --from=shared-libs-builder /app/packages/queryL
 
 # Fixes git "dubious ownership" issues when the volume is mounted with different permissions to the container.
 RUN git config --system safe.directory "*"
-
-# Configure the database
-RUN mkdir -p /run/postgresql && \
-    chown -R postgres:postgres /run/postgresql && \
-    chmod 775 /run/postgresql
 
 # Make app directory accessible to both root and sourcebot user
 RUN chown -R sourcebot /app \

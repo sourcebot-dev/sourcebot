@@ -47,20 +47,25 @@ if [ -z "$DATABASE_URL" ] && [ -n "$DATABASE_HOST" ] && [ -n "$DATABASE_USERNAME
     fi
 fi
 
+# As of v5, Sourcebot no longer ships an embedded Postgres or Redis. Both must be
+# provided externally via DATABASE_URL and REDIS_URL.
+# @see: https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide
 if [ -z "$DATABASE_URL" ]; then
-    echo -e "\e[34m[Info] DATABASE_URL is not set. Using embeded database.\e[0m"
-    export DATABASE_EMBEDDED="true"
-    export DATABASE_URL="postgresql://postgres@localhost:5432/sourcebot"
-else
-    export DATABASE_EMBEDDED="false"
+    echo -e "\e[31m[Error] DATABASE_URL is not set.\e[0m"
+    echo -e "\e[31mAs of v5, Sourcebot no longer ships an embedded Postgres database. You must provide a\e[0m"
+    echo -e "\e[31mPostgres instance and set DATABASE_URL (e.g. postgresql://user:password@host:5432/sourcebot).\e[0m"
+    echo -e "\e[31mYou can also use DATABASE_HOST, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME, and\e[0m"
+    echo -e "\e[31mDATABASE_ARGS to construct the connection string.\e[0m"
+    echo -e "\e[31mSee the migration guide: https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide\e[0m"
+    exit 1
 fi
 
 if [ -z "$REDIS_URL" ]; then
-    echo -e "\e[34m[Info] REDIS_URL is not set. Using embeded redis.\e[0m"
-    export REDIS_EMBEDDED="true"
-    export REDIS_URL="redis://localhost:6379"
-else
-    export REDIS_EMBEDDED="false"
+    echo -e "\e[31m[Error] REDIS_URL is not set.\e[0m"
+    echo -e "\e[31mAs of v5, Sourcebot no longer ships an embedded Redis instance. You must provide a Redis\e[0m"
+    echo -e "\e[31minstance and set REDIS_URL (e.g. redis://host:6379).\e[0m"
+    echo -e "\e[31mSee the migration guide: https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide\e[0m"
+    exit 1
 fi
 
 # Extract version from version.ts
@@ -96,23 +101,6 @@ fi
 # Check if DATA_CACHE_DIR exists, if not create it
 if [ ! -d "$DATA_CACHE_DIR" ]; then
     mkdir -p "$DATA_CACHE_DIR"
-fi
-
-# Check if DATABASE_DATA_DIR exists, if not initialize it
-if [ "$DATABASE_EMBEDDED" = "true" ] && [ ! -d "$DATABASE_DATA_DIR" ]; then
-    echo -e "\e[34m[Info] Initializing database at $DATABASE_DATA_DIR...\e[0m"
-    mkdir -p $DATABASE_DATA_DIR
-    if [ "$IS_ROOT" = "true" ]; then
-        chown -R postgres:postgres "$DATABASE_DATA_DIR"
-        su postgres -c "initdb -D $DATABASE_DATA_DIR"
-    else
-        initdb -D "$DATABASE_DATA_DIR" -U postgres
-    fi
-fi
-
-# Create the redis data directory if it doesn't exist
-if [ "$REDIS_EMBEDDED" = "true" ] && [ ! -d "$REDIS_DATA_DIR" ]; then
-    mkdir -p $REDIS_DATA_DIR
 fi
 
 if [ -z "$SOURCEBOT_ENCRYPTION_KEY" ]; then
@@ -200,43 +188,6 @@ else
 fi
 
 echo "{\"version\": \"$SOURCEBOT_VERSION\", \"install_id\": \"$SOURCEBOT_INSTALL_ID\"}" > "$FIRST_RUN_FILE"
-
-# Start the database and wait for it to be ready before starting any other service
-if [ "$DATABASE_EMBEDDED" = "true" ]; then
-    if [ "$IS_ROOT" = "true" ]; then
-        su postgres -c "postgres -D $DATABASE_DATA_DIR" &
-    else
-        postgres -D "$DATABASE_DATA_DIR" &
-    fi
-
-    until pg_isready -h localhost -p 5432 -U postgres; do
-        echo -e "\e[34m[Info] Waiting for the database to be ready...\e[0m"
-        sleep 1
-
-        # As postgres runs in the background, we must check if it is still
-        # running, otherwise the "until" loop will be running indefinitely.
-        if ! pgrep -x "postgres" > /dev/null; then
-            echo "postgres failed to run"
-            exit 1
-        fi
-    done
-    
-    if [ "$IS_ROOT" = "false" ]; then
-        # Running as non-root we need to ensure the postgres account is created.
-        psql -U postgres -tc "SELECT 1 FROM pg_roles WHERE rolname='postgres'" | grep -q 1 \
-            || createuser postgres -s
-    fi
-
-    # Check if the database already exists, and create it if it doesn't exist
-    EXISTING_DB=$(psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'sourcebot'")
-
-    if [ "$EXISTING_DB" = "1" ]; then
-        echo "Database 'sourcebot' already exists; skipping creation."
-    else
-        echo "Creating database 'sourcebot'..."
-        psql -U postgres -c "CREATE DATABASE \"sourcebot\""
-    fi
-fi
 
 # Run a Database migration
 echo -e "\e[34m[Info] Running database migration...\e[0m"
