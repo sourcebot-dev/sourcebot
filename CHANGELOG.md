@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 - Expired offline license keys no longer crash the process. An expired key now degrades to the unlicensed state. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 - Improved the `setup-sourcebot` wizard: prompts for a setup directory, clarifies that secrets are stored locally in `.env`, switches multi-select to Tab, hides "No results" until a real search runs, and detects/cleans up conflicting Docker deployments and volumes before starting. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
-- [**Breaking Change**] Removed the embedded Postgres and Redis from the Docker image. External Postgres and Redis are now required: set `DATABASE_URL` and `REDIS_URL`, or deploy with the provided `docker-compose.yml`. See the [v4 to v5 guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide). [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- [**Breaking Change**] Removed the embedded Postgres and Redis from the Docker image. External Postgres and Redis are now required: set `DATABASE_URL` and `REDIS_URL`, or deploy with the provided `docker-compose.yml`. See the [v4 to v5 guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide). [#1264](https://github.com/sourcebot-dev/sourcebot/pull/1264)
 
 ### Fixed
 - Fixed git "dubious ownership" errors when the container runs as a non-root user by setting `safe.directory` at the system level instead of the global (root-only) level. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
