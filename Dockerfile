@@ -250,7 +250,7 @@ COPY --chown=sourcebot:sourcebot --from=shared-libs-builder /app/packages/shared
 COPY --chown=sourcebot:sourcebot --from=shared-libs-builder /app/packages/queryLanguage ./packages/queryLanguage
 
 # Fixes git "dubious ownership" issues when the volume is mounted with different permissions to the container.
-RUN git config --global safe.directory "*"
+RUN git config --system safe.directory "*"
 
 # Configure the database
 RUN mkdir -p /run/postgresql && \
