@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { getMcpServerToolPermissions } from '@/app/api/(client)/client';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ import { useToast } from '@/components/hooks/use-toast';
 import { updateMcpServerToolPermissions } from '@/ee/features/chat/mcp/actions';
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from '@/ee/features/chat/mcp/queryKeys';
 import type {
+    GetMcpServerToolPermissionsResponse,
     McpServerToolPermission,
     McpServerToolPermissionEntry,
 } from '@/ee/features/chat/mcp/types';
@@ -106,22 +107,14 @@ function getGroupPermissionOption(permission: McpServerToolPermission) {
     return PERMISSION_OPTIONS.find((option) => option.value === permission) ?? PERMISSION_OPTIONS[0];
 }
 
-function getEffectiveToolPermission(
-    tool: McpServerToolPermissionEntry,
-    permissionsByToolName: Record<string, McpServerToolPermission>,
-) {
-    return permissionsByToolName[tool.toolName] ?? tool.permission;
-}
-
 function getVisiblePermissionSummary(
     tools: McpServerToolPermissionEntry[],
-    permissionsByToolName: Record<string, McpServerToolPermission>,
 ) {
     const firstTool = tools[0];
     if (firstTool) {
-        const firstPermission = getEffectiveToolPermission(firstTool, permissionsByToolName);
+        const firstPermission = firstTool.permission;
         const isSamePermission = tools.every((tool) => (
-            getEffectiveToolPermission(tool, permissionsByToolName) === firstPermission
+            tool.permission === firstPermission
         ));
 
         if (isSamePermission) {
@@ -306,7 +299,6 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
         'read-only': true,
         'write-delete': true,
     });
-    const [permissionsByToolName, setPermissionsByToolName] = useState<Record<string, McpServerToolPermission>>({});
     const [pendingSaveCount, setPendingSaveCount] = useState(0);
     const isSaving = pendingSaveCount > 0;
 
@@ -321,17 +313,58 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
         },
     });
 
-    useEffect(() => {
-        if (!data) {
-            return;
-        }
-
-        setPermissionsByToolName(Object.fromEntries(
-            data.tools.map((tool) => [tool.toolName, tool.permission]),
-        ));
-    }, [data]);
-
     const tools = data?.tools ?? EMPTY_TOOLS;
+    const getCachedToolPermissions = () => {
+        const current = queryClient.getQueryData<GetMcpServerToolPermissionsResponse>(
+            mcpQueryKeys.toolPermissions(serverId),
+        );
+
+        return new Map((current?.tools ?? tools).map((tool) => [tool.toolName, tool.permission] as const));
+    };
+    const updateCachedPermissionChanges = (
+        changes: ToolPermissionChange[],
+        getPermission: (
+            tool: McpServerToolPermissionEntry,
+            change: ToolPermissionChange,
+        ) => McpServerToolPermission | undefined,
+    ) => {
+        const changesByToolName = new Map(changes.map((change) => [change.toolName, change] as const));
+
+        queryClient.setQueryData<GetMcpServerToolPermissionsResponse>(
+            mcpQueryKeys.toolPermissions(serverId),
+            (current) => {
+                if (!current) {
+                    return current;
+                }
+
+                let didChange = false;
+                const tools = current.tools.map((tool) => {
+                    const change = changesByToolName.get(tool.toolName);
+                    if (!change) {
+                        return tool;
+                    }
+
+                    const permission = getPermission(tool, change);
+                    if (!permission || permission === tool.permission) {
+                        return tool;
+                    }
+
+                    didChange = true;
+                    return {
+                        ...tool,
+                        permission,
+                    };
+                });
+
+                return didChange
+                    ? {
+                        ...current,
+                        tools,
+                    }
+                    : current;
+            },
+        );
+    };
     const permissionCounts = useMemo(() => {
         const counts: Record<McpServerToolPermission, number> = {
             ALLOWED: 0,
@@ -340,18 +373,17 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
         };
 
         for (const tool of tools) {
-            counts[permissionsByToolName[tool.toolName] ?? tool.permission] += 1;
+            counts[tool.permission] += 1;
         }
 
         return counts;
-    }, [permissionsByToolName, tools]);
+    }, [tools]);
 
     const filteredTools = useMemo(() => {
         const query = searchInput.trim().toLowerCase();
 
         return tools.filter((tool) => {
-            const permission = permissionsByToolName[tool.toolName] ?? tool.permission;
-            if (permissionFilter !== 'ALL' && permission !== permissionFilter) {
+            if (permissionFilter !== 'ALL' && tool.permission !== permissionFilter) {
                 return false;
             }
 
@@ -365,7 +397,7 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
                 tool.description,
             ].some((value) => value?.toLowerCase().includes(query));
         });
-    }, [permissionFilter, permissionsByToolName, searchInput, tools]);
+    }, [permissionFilter, searchInput, tools]);
     const filteredToolGroups = useMemo<ToolGroup[]>(() => [
         {
             id: 'read-only',
@@ -383,15 +415,11 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
         changes: ToolPermissionChange[],
         previousPermissions: Record<string, McpServerToolPermission>,
     ) => {
-        setPermissionsByToolName((current) => {
-            const next = { ...current };
-            for (const change of changes) {
-                if (next[change.toolName] === change.permission) {
-                    next[change.toolName] = previousPermissions[change.toolName];
-                }
-            }
-            return next;
-        });
+        updateCachedPermissionChanges(changes, (tool, change) => (
+            tool.permission === change.permission
+                ? previousPermissions[change.toolName]
+                : undefined
+        ));
     };
 
     const savePermissionChanges = async (
@@ -408,10 +436,7 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
                 return;
             }
 
-            await Promise.all([
-                queryClient.invalidateQueries({ queryKey: mcpQueryKeys.toolPermissions(serverId) }),
-                invalidateMcpConfigurationQueries(queryClient),
-            ]);
+            void invalidateMcpConfigurationQueries(queryClient).catch(() => undefined);
         } catch {
             rollbackPermissionChanges(changes, previousPermissions);
             toast({ title: 'Error', description: 'Failed to update tool permissions.', variant: 'destructive' });
@@ -421,16 +446,15 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
     };
 
     const handlePermissionChange = (tool: McpServerToolPermissionEntry, permission: McpServerToolPermission) => {
-        const currentPermission = permissionsByToolName[tool.toolName] ?? tool.permission;
+        const currentPermission = getCachedToolPermissions().get(tool.toolName) ?? tool.permission;
         if (currentPermission === permission) {
             return;
         }
 
-        setPermissionsByToolName((current) => {
-            const next = { ...current };
-            next[tool.toolName] = permission;
-            return next;
-        });
+        updateCachedPermissionChanges(
+            [{ toolName: tool.toolName, permission }],
+            (_tool, change) => change.permission,
+        );
         void savePermissionChanges(
             [{ toolName: tool.toolName, permission }],
             { [tool.toolName]: currentPermission },
@@ -440,8 +464,9 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
     const handleApplyToTools = (toolsToUpdate: McpServerToolPermissionEntry[], permission: McpServerToolPermission) => {
         const changes: ToolPermissionChange[] = [];
         const previousPermissions: Record<string, McpServerToolPermission> = {};
+        const cachedPermissionsByToolName = getCachedToolPermissions();
         for (const tool of toolsToUpdate) {
-            const currentPermission = permissionsByToolName[tool.toolName] ?? tool.permission;
+            const currentPermission = cachedPermissionsByToolName.get(tool.toolName) ?? tool.permission;
             if (currentPermission === permission) {
                 continue;
             }
@@ -452,13 +477,7 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
             return;
         }
 
-        setPermissionsByToolName((current) => {
-            const next = { ...current };
-            for (const tool of toolsToUpdate) {
-                next[tool.toolName] = permission;
-            }
-            return next;
-        });
+        updateCachedPermissionChanges(changes, (_tool, change) => change.permission);
         void savePermissionChanges(changes, previousPermissions);
     };
 
@@ -589,7 +608,7 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
                     </div>
                 ) : (
                     filteredToolGroups.map((group) => {
-                        const permissionSummary = getVisiblePermissionSummary(group.tools, permissionsByToolName);
+                        const permissionSummary = getVisiblePermissionSummary(group.tools);
                         const PermissionSummaryIcon = permissionSummary.icon;
 
                         return (
@@ -602,7 +621,7 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
                                 >
                                     <button
                                         type="button"
-                                        className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-muted/50"
+                                        className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                                         aria-expanded={openGroups[group.id]}
                                         onClick={() => handleGroupOpenChange(group.id)}
                                     >
@@ -644,7 +663,7 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
                                         <ToolRow
                                             key={tool.toolName}
                                             tool={tool}
-                                            permission={permissionsByToolName[tool.toolName] ?? tool.permission}
+                                            permission={tool.permission}
                                             onPermissionChange={(permission) => handlePermissionChange(tool, permission)}
                                         />
                                     ))}
