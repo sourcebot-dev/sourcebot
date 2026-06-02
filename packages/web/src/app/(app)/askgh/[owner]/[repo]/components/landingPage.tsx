@@ -8,8 +8,10 @@ import { ChatBoxToolbar } from "@/features/chat/components/chatBox/chatBoxToolba
 import { NotConfiguredErrorBanner } from "@/features/chat/components/notConfiguredErrorBanner";
 import { LanguageModelInfo, RepoSearchScope } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
+import { DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY } from "@/features/chat/constants";
 import { getRepoImageSrc } from '@/lib/utils';
 import { useMemo, useState } from "react";
+import { useLocalStorage } from "usehooks-ts";
 
 interface LandingPageProps {
     languageModels: LanguageModelInfo[];
@@ -30,6 +32,7 @@ export const LandingPage = ({
 }: LandingPageProps) => {
     const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
+    const [disabledMcpServerIds, setDisabledMcpServerIds] = useLocalStorage<string[]>(DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY, [], { initializeWithValue: false });
     const isChatBoxDisabled = languageModels.length === 0;
 
     const selectedSearchScopes = useMemo(() => [
@@ -68,7 +71,7 @@ export const LandingPage = ({
                     <div className="border rounded-md w-full shadow-sm">
                         <ChatBox
                             onSubmit={(children) => {
-                                createNewChatThread(children, selectedSearchScopes, []);
+                                createNewChatThread(children, selectedSearchScopes, disabledMcpServerIds);
                             }}
                             className="min-h-[50px]"
                             isRedirecting={isLoading}
@@ -90,6 +93,8 @@ export const LandingPage = ({
                                     onSelectedSearchScopesChange={() => { }}
                                     isContextSelectorOpen={isContextSelectorOpen}
                                     onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                                    disabledMcpServerIds={disabledMcpServerIds}
+                                    onDisabledMcpServerIdsChange={setDisabledMcpServerIds}
                                 />
                                 <SearchModeSelector
                                     searchMode="agentic"
