@@ -25,6 +25,11 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/components/hooks/use-toast';
 import { updateMcpServerToolPermissions } from '@/ee/features/chat/mcp/actions';
+import {
+    MCP_SERVER_TOOL_PERMISSION_OPTIONS,
+    ToolHintBadges,
+    getMcpServerToolPermissionDisplay,
+} from '@/ee/features/chat/mcp/mcpToolPermissionDisplay';
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from '@/ee/features/chat/mcp/queryKeys';
 import type {
     GetMcpServerToolPermissionsResponse,
@@ -36,27 +41,13 @@ import { cn, isServiceError } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     ArrowLeftIcon,
-    BanIcon,
-    CircleCheckIcon,
     ChevronRightIcon,
     ChevronDownIcon,
-    HandIcon,
     Loader2Icon,
     RefreshCwIcon,
     SearchIcon,
     SlidersHorizontalIcon,
 } from 'lucide-react';
-
-const PERMISSION_OPTIONS: Array<{
-    value: McpServerToolPermission;
-    label: string;
-    icon: typeof CircleCheckIcon;
-    selectedClassName: string;
-}> = [
-    { value: 'ALLOWED', label: 'Allowed', icon: CircleCheckIcon, selectedClassName: '!border-green-600 !bg-green-600 !text-white !opacity-100 shadow-sm ring-2 ring-green-600/30' },
-    { value: 'NEEDS_APPROVAL', label: 'Needs approval', icon: HandIcon, selectedClassName: '!border-primary !bg-primary !text-primary-foreground !opacity-100 shadow-sm ring-2 ring-primary/30' },
-    { value: 'DISABLED', label: 'Disabled', icon: BanIcon, selectedClassName: '!border-destructive !bg-destructive !text-destructive-foreground !opacity-100 shadow-sm ring-2 ring-destructive/30' },
-];
 
 const EMPTY_TOOLS: McpServerToolPermissionEntry[] = [];
 
@@ -81,32 +72,6 @@ function getToolDisplayName(tool: McpServerToolPermissionEntry) {
     return tool.title ?? tool.toolName;
 }
 
-function getGroupPermissionLabel(permission: McpServerToolPermission) {
-    switch (permission) {
-        case 'ALLOWED':
-            return 'Allowed';
-        case 'NEEDS_APPROVAL':
-            return 'Needs Approval';
-        case 'DISABLED':
-            return 'Blocked';
-    }
-}
-
-function getPermissionIconClassName(permission: McpServerToolPermission) {
-    switch (permission) {
-        case 'ALLOWED':
-            return 'text-green-500';
-        case 'NEEDS_APPROVAL':
-            return 'text-primary';
-        case 'DISABLED':
-            return 'text-destructive';
-    }
-}
-
-function getGroupPermissionOption(permission: McpServerToolPermission) {
-    return PERMISSION_OPTIONS.find((option) => option.value === permission) ?? PERMISSION_OPTIONS[0];
-}
-
 function getVisiblePermissionSummary(
     tools: McpServerToolPermissionEntry[],
 ) {
@@ -118,41 +83,15 @@ function getVisiblePermissionSummary(
         ));
 
         if (isSamePermission) {
+            const display = getMcpServerToolPermissionDisplay(firstPermission);
             return {
-                label: getGroupPermissionLabel(firstPermission),
-                icon: getGroupPermissionOption(firstPermission).icon,
+                label: display.label,
+                icon: display.icon,
             };
         }
     }
 
     return { label: 'Custom', icon: SlidersHorizontalIcon };
-}
-
-function ToolHintBadges({ tool }: { tool: McpServerToolPermissionEntry }) {
-    const annotations = tool.annotations;
-    if (!annotations) {
-        return null;
-    }
-
-    return (
-        <>
-            {annotations.readOnlyHint === true && (
-                <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
-                    Read-only
-                </Badge>
-            )}
-            {annotations.destructiveHint === true && (
-                <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-medium text-destructive">
-                    Destructive
-                </Badge>
-            )}
-            {annotations.idempotentHint === true && (
-                <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
-                    Idempotent
-                </Badge>
-            )}
-        </>
-    );
 }
 
 function PermissionCount({
@@ -162,18 +101,18 @@ function PermissionCount({
     permission: McpServerToolPermission;
     count: number;
 }) {
-    const option = getGroupPermissionOption(permission);
-    const Icon = option.icon;
+    const display = getMcpServerToolPermissionDisplay(permission);
+    const Icon = display.icon;
 
     return (
         <Tooltip>
             <TooltipTrigger asChild>
                 <span className="inline-flex items-center gap-1">
-                    <Icon className={cn("h-3.5 w-3.5", getPermissionIconClassName(permission))} />
+                    <Icon className={cn("h-3.5 w-3.5", display.iconClassName)} />
                     {formatCount(count)}
                 </span>
             </TooltipTrigger>
-            <TooltipContent>{getGroupPermissionLabel(permission)}</TooltipContent>
+            <TooltipContent>{display.label}</TooltipContent>
         </Tooltip>
     );
 }
@@ -198,7 +137,7 @@ function PermissionToggleGroup({
             }}
             className="justify-end"
         >
-            {PERMISSION_OPTIONS.map((option) => {
+            {MCP_SERVER_TOOL_PERMISSION_OPTIONS.map((option) => {
                 const Icon = option.icon;
                 const isSelected = value === option.value;
 
@@ -210,7 +149,7 @@ function PermissionToggleGroup({
                                 aria-label={`${option.label} for ${toolName}`}
                                 className={cn(
                                     "h-8 w-8 border bg-transparent text-muted-foreground opacity-55 transition-all hover:opacity-100",
-                                    isSelected && `opacity-100 ${option.selectedClassName}`,
+                                    isSelected && option.selectedClassName,
                                 )}
                             >
                                 <Icon className="h-4 w-4" />
@@ -268,7 +207,7 @@ function ToolRow({
                         {tool.title && tool.title !== tool.toolName && (
                             <span className="break-all font-mono text-[11px] text-muted-foreground">{tool.toolName}</span>
                         )}
-                        <ToolHintBadges tool={tool} />
+                        <ToolHintBadges annotations={tool.annotations} />
                     </div>
                     {hasDescription && isDescriptionOpen && (
                         <p className="break-words text-xs text-muted-foreground">{tool.description}</p>
@@ -593,7 +532,7 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="ALL">All permissions</SelectItem>
-                            {PERMISSION_OPTIONS.map((option) => (
+                            {MCP_SERVER_TOOL_PERMISSION_OPTIONS.map((option) => (
                                 <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                             ))}
                         </SelectContent>
@@ -646,13 +585,13 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            {PERMISSION_OPTIONS.map((option) => {
+                                            {MCP_SERVER_TOOL_PERMISSION_OPTIONS.map((option) => {
                                                 const Icon = option.icon;
 
                                                 return (
                                                     <DropdownMenuItem key={option.value} onClick={() => handleApplyToTools(group.tools, option.value)}>
                                                         <Icon className="mr-2 h-4 w-4" />
-                                                        {getGroupPermissionLabel(option.value)}
+                                                        {option.label}
                                                     </DropdownMenuItem>
                                                 );
                                             })}
