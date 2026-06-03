@@ -52,7 +52,7 @@ export function UpsellDialog({ open, onOpenChange, source, returnPath }: UpsellD
                     // closing it out from under the user — the built-in close button
                     // is still the dismiss affordance.
                     <UpsellLoadError variant="dialog" onRetry={() => { void refetch(); }} />
-                ) : isPending || !offers ? (
+                ) : isPending ? (
                     <div className="flex items-center justify-center py-12">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
