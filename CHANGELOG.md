@@ -26,6 +26,7 @@ Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-
 
 ### Fixed
 - Fixed git "dubious ownership" errors when the container runs as a non-root user by setting `safe.directory` at the system level instead of the global (root-only) level. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- Fixed the `setup-sourcebot` wizard accepting a user account in the GitHub organizations (or GitLab groups) list by validating each selection against the code host's account-type API. [#1271](https://github.com/sourcebot-dev/sourcebot/pull/1271)
 
 ## [4.17.4] - 2026-05-30
 
