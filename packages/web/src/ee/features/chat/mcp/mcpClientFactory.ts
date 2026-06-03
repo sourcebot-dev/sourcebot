@@ -11,6 +11,7 @@ const logger = createLogger('mcp-client-factory');
 
 export interface McpToolSet {
     orgId: number;
+    userId: string;
     serverId: string;
     serverName: string;
     sanitizedName: string;
@@ -94,6 +95,7 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
 
             clients.push({
                 orgId,
+                userId,
                 serverId: userServer.serverId,
                 serverName,
                 sanitizedName: userServer.server.sanitizedName,

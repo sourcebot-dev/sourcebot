@@ -20,7 +20,7 @@ import {
 
 const logger = createLogger('mcp-tool-sets');
 const ajv = new Ajv({ allErrors: true, strict: false });
-const MCP_LIST_TOOLS_CACHE_TTL_SECONDS = 3 * 60 * 60;
+const MCP_LIST_TOOLS_CACHE_TTL_SECONDS = 60 * 60;
 type ListToolsResult = Awaited<ReturnType<MCPClient['listTools']>>;
 
 class McpToolTimeoutError extends Error {
@@ -117,6 +117,10 @@ function getMcpListToolsCacheKey(client: McpToolSet): string {
     return [
         'mcp:list-tools:v1',
         client.orgId,
+        // Keyed per-user: an MCP server's tools/list response MAY vary by the
+        // authorization presented (e.g. a user's granted scopes), so a cached
+        // list cannot be safely shared across users of the same server.
+        client.userId,
         client.serverId,
         getScopeHash(client.requestedScopes),
         client.serverUpdatedAt.getTime(),
