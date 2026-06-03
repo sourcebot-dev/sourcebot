@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
         userMcpServer: {
             groupBy: vi.fn(),
         },
-        mcpServerToolCallCount: {
+        mcpServerTool: {
             findMany: vi.fn(),
         },
     },
@@ -45,12 +45,17 @@ function createPrismaMock() {
                     name: 'Linear',
                     sanitizedName: 'linear',
                     serverUrl: 'https://mcp.linear.app/mcp',
+                    oauthScopes: [
+                        { scope: 'read:user', enabled: true },
+                        { scope: 'repo', enabled: false },
+                    ],
                 },
                 {
                     id: 'server-2',
                     name: 'Sentry',
                     sanitizedName: 'sentry',
                     serverUrl: 'https://mcp.sentry.dev/mcp',
+                    oauthScopes: [],
                 },
             ]),
         },
@@ -67,21 +72,21 @@ beforeEach(() => {
             _count: { _all: 2 },
         },
     ]);
-    mocks.unsafePrisma.mcpServerToolCallCount.findMany.mockResolvedValue([
+    mocks.unsafePrisma.mcpServerTool.findMany.mockResolvedValue([
         {
             mcpServerId: 'server-1',
             toolName: 'search_issues',
-            count: 5,
+            callCount: 5,
         },
         {
             mcpServerId: 'server-1',
             toolName: 'get_issue',
-            count: 3,
+            callCount: 3,
         },
         {
             mcpServerId: 'server-2',
             toolName: 'list_projects',
-            count: 2,
+            callCount: 2,
         },
     ]);
 });
@@ -106,6 +111,13 @@ describe('GET /api/ee/askmcp/configuration', () => {
                 name: true,
                 sanitizedName: true,
                 serverUrl: true,
+                oauthScopes: {
+                    orderBy: { scope: 'asc' },
+                    select: {
+                        scope: true,
+                        enabled: true,
+                    },
+                },
             },
         });
         expect(mocks.unsafePrisma.userMcpServer.groupBy).toHaveBeenCalledWith({
@@ -122,20 +134,20 @@ describe('GET /api/ee/askmcp/configuration', () => {
             },
             _count: { _all: true },
         });
-        expect(mocks.unsafePrisma.mcpServerToolCallCount.findMany).toHaveBeenCalledWith({
+        expect(mocks.unsafePrisma.mcpServerTool.findMany).toHaveBeenCalledWith({
             where: {
                 mcpServerId: { in: ['server-1', 'server-2'] },
                 mcpServer: { orgId: 1 },
-                count: { gt: 0 },
+                callCount: { gt: 0 },
             },
             orderBy: [
                 { mcpServerId: 'asc' },
-                { count: 'desc' },
+                { callCount: 'desc' },
             ],
             select: {
                 mcpServerId: true,
                 toolName: true,
-                count: true,
+                callCount: true,
             },
         });
         expect(body).toMatchObject({
@@ -145,6 +157,10 @@ describe('GET /api/ee/askmcp/configuration', () => {
                 {
                     id: 'server-1',
                     name: 'Linear',
+                    oauthScopes: [
+                        { scope: 'read:user', enabled: true },
+                        { scope: 'repo', enabled: false },
+                    ],
                     savedConnectionCount: 2,
                     toolUsage: {
                         totalCalls: 8,
@@ -201,7 +217,7 @@ describe('GET /api/ee/askmcp/configuration', () => {
         expect(prisma.mcpServer.findMany).not.toHaveBeenCalled();
         expect(mocks.hasEntitlement).not.toHaveBeenCalled();
         expect(mocks.unsafePrisma.userMcpServer.groupBy).not.toHaveBeenCalled();
-        expect(mocks.unsafePrisma.mcpServerToolCallCount.findMany).not.toHaveBeenCalled();
+        expect(mocks.unsafePrisma.mcpServerTool.findMany).not.toHaveBeenCalled();
     });
 
     test('rejects unauthenticated callers before checking the ask entitlement', async () => {
@@ -220,7 +236,7 @@ describe('GET /api/ee/askmcp/configuration', () => {
         });
         expect(mocks.hasEntitlement).not.toHaveBeenCalled();
         expect(mocks.unsafePrisma.userMcpServer.groupBy).not.toHaveBeenCalled();
-        expect(mocks.unsafePrisma.mcpServerToolCallCount.findMany).not.toHaveBeenCalled();
+        expect(mocks.unsafePrisma.mcpServerTool.findMany).not.toHaveBeenCalled();
     });
 
     test('allows entitled owners to list cleanup data when Ask Agent is unavailable', async () => {
@@ -252,7 +268,7 @@ describe('GET /api/ee/askmcp/configuration', () => {
         expect(mocks.withAuth).toHaveBeenCalled();
         expect(prisma.mcpServer.findMany).toHaveBeenCalled();
         expect(mocks.unsafePrisma.userMcpServer.groupBy).toHaveBeenCalled();
-        expect(mocks.unsafePrisma.mcpServerToolCallCount.findMany).toHaveBeenCalled();
+        expect(mocks.unsafePrisma.mcpServerTool.findMany).toHaveBeenCalled();
     });
 
     test('skips unsafe connector queries when there are no approved servers', async () => {
@@ -268,7 +284,7 @@ describe('GET /api/ee/askmcp/configuration', () => {
         const body = await response.json();
 
         expect(mocks.unsafePrisma.userMcpServer.groupBy).not.toHaveBeenCalled();
-        expect(mocks.unsafePrisma.mcpServerToolCallCount.findMany).not.toHaveBeenCalled();
+        expect(mocks.unsafePrisma.mcpServerTool.findMany).not.toHaveBeenCalled();
         expect(body).toEqual({
             servers: [],
             allowedMode: 'approved_only',

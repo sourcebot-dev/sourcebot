@@ -23,6 +23,13 @@ export const GET = apiHandler(async (_request: NextRequest) => {
                     name: true,
                     sanitizedName: true,
                     serverUrl: true,
+                    oauthScopes: {
+                        orderBy: { scope: 'asc' },
+                        select: {
+                            scope: true,
+                            enabled: true,
+                        },
+                    },
                 },
             });
 
@@ -47,39 +54,39 @@ export const GET = apiHandler(async (_request: NextRequest) => {
                 connectionCounts.map((row) => [row.serverId, row._count._all]),
             );
 
-            const toolCallCountWhere = {
+            const serverToolWhere = {
                 mcpServerId: { in: serverIds },
                 mcpServer: { orgId: org.id },
-                count: { gt: 0 },
+                callCount: { gt: 0 },
             };
-            const toolCallCountRows = serverIds.length === 0
+            const serverToolRows = serverIds.length === 0
                 ? []
-                : await __unsafePrisma.mcpServerToolCallCount.findMany({
-                    where: toolCallCountWhere,
+                : await __unsafePrisma.mcpServerTool.findMany({
+                    where: serverToolWhere,
                     orderBy: [
                         { mcpServerId: 'asc' },
-                        { count: 'desc' },
+                        { callCount: 'desc' },
                     ],
                     select: {
                         mcpServerId: true,
                         toolName: true,
-                        count: true,
+                        callCount: true,
                     },
                 });
             const toolUsageByServerId = new Map<string, McpServerToolUsageSummary>();
 
-            for (const row of toolCallCountRows) {
+            for (const row of serverToolRows) {
                 const current = toolUsageByServerId.get(row.mcpServerId) ?? {
                     totalCalls: 0,
                     usedToolCount: 0,
                     tools: [],
                 };
 
-                current.totalCalls += row.count;
+                current.totalCalls += row.callCount;
                 current.usedToolCount += 1;
                 current.tools.push({
                     toolName: row.toolName,
-                    totalCalls: row.count,
+                    totalCalls: row.callCount,
                     usageSharePercent: 0,
                 });
                 toolUsageByServerId.set(row.mcpServerId, current);

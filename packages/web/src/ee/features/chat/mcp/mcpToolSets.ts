@@ -4,15 +4,24 @@ import { createLogger, env } from '@sourcebot/shared';
 import Ajv from 'ajv';
 import { jsonSchema, ToolExecutionOptions } from 'ai';
 import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
+import { createHash } from 'crypto';
 import { getExternalMcpErrorLogFields } from './externalMcpError';
 import { getMcpFaviconUrl } from '@/features/chat/mcp/utils';
 import { __unsafePrisma } from '@/prisma';
-import { Prisma } from '@sourcebot/db';
+import { McpServerToolPermission, Prisma } from '@sourcebot/db';
 import { captureEvent } from '@/lib/posthog';
 import type { AskMcpAnalyticsSource } from '@/lib/posthogEvents';
+import { redis } from '@/lib/redis';
+import {
+    createMissingMcpServerToolRows,
+    getMcpServerToolPermission,
+    getMcpServerToolPermissionsByServerId,
+} from './mcpToolPermissions';
 
 const logger = createLogger('mcp-tool-sets');
 const ajv = new Ajv({ allErrors: true, strict: false });
+const MCP_LIST_TOOLS_CACHE_TTL_SECONDS = 60 * 60;
+type ListToolsResult = Awaited<ReturnType<MCPClient['listTools']>>;
 
 class McpToolTimeoutError extends Error {
     constructor(toolName: string, timeoutMs: number) {
@@ -23,7 +32,7 @@ class McpToolTimeoutError extends Error {
 
 async function incrementMcpToolCallCounter(serverId: string, toolName: string) {
     try {
-        await __unsafePrisma.mcpServerToolCallCount.upsert({
+        await __unsafePrisma.mcpServerTool.upsert({
             where: {
                 mcpServerId_toolName: {
                     mcpServerId: serverId,
@@ -33,10 +42,10 @@ async function incrementMcpToolCallCounter(serverId: string, toolName: string) {
             create: {
                 mcpServerId: serverId,
                 toolName,
-                count: 1,
+                callCount: 1,
             },
             update: {
-                count: { increment: 1 },
+                callCount: { increment: 1 },
             },
         });
     } catch (error) {
@@ -44,7 +53,7 @@ async function incrementMcpToolCallCounter(serverId: string, toolName: string) {
             throw error;
         }
 
-        await __unsafePrisma.mcpServerToolCallCount.update({
+        await __unsafePrisma.mcpServerTool.update({
             where: {
                 mcpServerId_toolName: {
                     mcpServerId: serverId,
@@ -52,7 +61,7 @@ async function incrementMcpToolCallCounter(serverId: string, toolName: string) {
                 },
             },
             data: {
-                count: { increment: 1 },
+                callCount: { increment: 1 },
             },
         });
     }
@@ -93,6 +102,76 @@ function getMcpToolFailureReason(error: unknown): string {
     return 'unknown';
 }
 
+function getOAuthScopeHash(oauthScopes: string[]): string {
+    if (oauthScopes.length === 0) {
+        return 'none';
+    }
+
+    return createHash('sha256')
+        .update(Array.from(new Set(oauthScopes)).sort().join('\0'))
+        .digest('hex')
+        .slice(0, 16);
+}
+
+function getMcpListToolsCacheKey(client: McpToolSet): string {
+    return [
+        'mcp:list-tools:v1',
+        client.orgId,
+        // Keyed per-user: an MCP server's tools/list response MAY vary by the
+        // authorization presented (e.g. a user's granted scopes), so a cached
+        // list cannot be safely shared across users of the same server.
+        client.userId,
+        client.serverId,
+        getOAuthScopeHash(client.requestedOAuthScopes),
+        client.serverUpdatedAt.getTime(),
+    ].join(':');
+}
+
+async function getCachedListTools(cacheKey: string): Promise<ListToolsResult | undefined> {
+    try {
+        const cached = await redis.get(cacheKey);
+        return cached ? JSON.parse(cached) as ListToolsResult : undefined;
+    } catch (error) {
+        logger.warn('Failed to read cached MCP tool definitions.', {
+            cacheKey,
+            error: getExternalMcpErrorLogFields(error),
+        });
+        return undefined;
+    }
+}
+
+async function setCachedListTools(cacheKey: string, toolDefinitions: ListToolsResult) {
+    try {
+        await redis.set(cacheKey, JSON.stringify(toolDefinitions), 'EX', MCP_LIST_TOOLS_CACHE_TTL_SECONDS);
+    } catch (error) {
+        logger.warn('Failed to cache MCP tool definitions.', {
+            cacheKey,
+            error: getExternalMcpErrorLogFields(error),
+        });
+    }
+}
+
+async function getListToolsResult(
+    mcpClient: MCPClient,
+    client: McpToolSet,
+    timeoutMs: number,
+): Promise<ListToolsResult> {
+    const cacheKey = getMcpListToolsCacheKey(client);
+    const cached = await getCachedListTools(cacheKey);
+    if (cached) {
+        return cached;
+    }
+
+    const toolDefinitions = await Promise.race([
+        mcpClient.listTools(),
+        new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`Listing tools from MCP server "${client.serverName}" timed out after ${timeoutMs}ms`)), timeoutMs)
+        ),
+    ]);
+    await setCachedListTools(cacheKey, toolDefinitions);
+    return toolDefinitions;
+}
+
 /**
  * Creates MCPClients from authenticated transports, retrieves their tools,
  * and returns a namespaced tool record + cleanup function.
@@ -105,7 +184,8 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
 
     const connectionTimeoutMs = env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS;
 
-    for (const { serverId, serverName, sanitizedName, serverUrl, transport } of clients) {
+    for (const client of clients) {
+        const { serverId, serverName, sanitizedName, serverUrl, transport } = client;
         try {
             const mcpClient = await Promise.race([
                 createMCPClient({ transport }),
@@ -115,18 +195,32 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
             ]);
             mcpClients.push(mcpClient);
 
-            const toolDefinitions = await Promise.race([
-                mcpClient.listTools(),
-                new Promise<never>((_, reject) =>
-                    setTimeout(() => reject(new Error(`Listing tools from MCP server "${serverName}" timed out after ${connectionTimeoutMs}ms`)), connectionTimeoutMs)
-                ),
-            ]);
+            const toolDefinitions = await getListToolsResult(mcpClient, client, connectionTimeoutMs);
             const tools = mcpClient.toolsFromDefinitions(toolDefinitions);
             const prefix = `mcp_${sanitizedName}`;
+            await createMissingMcpServerToolRows({
+                serverId,
+                tools: toolDefinitions.tools.map((tool) => ({
+                    toolName: tool.name,
+                    readOnlyHint: tool.annotations?.readOnlyHint,
+                })),
+            });
+            const permissionsByServerId = await getMcpServerToolPermissionsByServerId({
+                serverIds: [serverId],
+            });
+            const permissionsByToolName = permissionsByServerId.get(serverId) ?? new Map();
 
             for (const [toolName, tool] of Object.entries(tools)) {
                 const def = toolDefinitions.tools.find(t => t.name === toolName);
-                const isReadOnly = (def?.annotations as Record<string, unknown> | undefined)?.readOnlyHint === true;
+                const permission = getMcpServerToolPermission(
+                    permissionsByToolName,
+                    toolName,
+                    def?.annotations?.readOnlyHint,
+                );
+                if (permission === McpServerToolPermission.DISABLED) {
+                    continue;
+                }
+                const needsApproval = permission === McpServerToolPermission.NEEDS_APPROVAL;
 
                 // The @ai-sdk/mcp library sets additionalProperties: false in the JSON schema
                 // sent to the model, but does NOT provide a validate function — so the AI SDK
@@ -221,7 +315,7 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
                     // schemaSymbol brand).
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     inputSchema: validatedInputSchema as any,
-                    ...(isReadOnly ? {} : { needsApproval: true }),
+                    ...(needsApproval ? { needsApproval: true } : {}),
                 };
             }
 

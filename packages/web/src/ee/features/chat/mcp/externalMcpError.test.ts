@@ -40,6 +40,20 @@ describe('getExternalMcpErrorLogFields', () => {
         expect(JSON.stringify(fields)).not.toContain('client-secret');
     });
 
+    test('reads HTTP status from SDK transport error code fields', () => {
+        class StreamableHTTPError extends Error {
+            code = 403;
+        }
+
+        const fields = getExternalMcpErrorLogFields(new StreamableHTTPError('Streamable HTTP error'));
+
+        expect(fields).toEqual({
+            errorClass: 'StreamableHTTPError',
+            errorName: 'Error',
+            statusCode: 403,
+        });
+    });
+
     test('preserves known safe diagnostic reasons without raw messages', () => {
         const fields = getExternalMcpErrorLogFields(
             new Error('Incompatible auth server: does not support dynamic client registration'),

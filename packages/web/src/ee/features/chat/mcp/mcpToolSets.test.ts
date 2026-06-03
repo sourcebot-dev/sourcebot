@@ -1,5 +1,5 @@
 import { expect, test, describe, vi, beforeEach } from 'vitest';
-import { Prisma } from '@sourcebot/db';
+import { McpServerToolPermission, Prisma } from '@sourcebot/db';
 import type { McpToolSet } from './mcpClientFactory';
 
 // --- Mocks ---
@@ -11,10 +11,15 @@ const mockLogger = vi.hoisted(() => ({
     error: vi.fn(),
     debug: vi.fn(),
 }));
-const mockToolCallCountUpsert = vi.hoisted(() => vi.fn());
-const mockToolCallCountUpdate = vi.hoisted(() => vi.fn());
+const mockServerToolUpsert = vi.hoisted(() => vi.fn());
+const mockServerToolUpdate = vi.hoisted(() => vi.fn());
+const mockServerToolCreateMany = vi.hoisted(() => vi.fn());
+const mockServerToolFindMany = vi.hoisted(() => vi.fn());
 const mockCaptureEvent = vi.hoisted(() => vi.fn());
+const mockRedisGet = vi.hoisted(() => vi.fn());
+const mockRedisSet = vi.hoisted(() => vi.fn());
 
+vi.mock('server-only', () => ({}));
 vi.mock('@ai-sdk/mcp', () => ({
     createMCPClient: (...args: unknown[]) => mockCreateMCPClient(...args),
 }));
@@ -28,15 +33,24 @@ vi.mock('@sourcebot/shared', () => ({
 
 vi.mock('@/prisma', () => ({
     __unsafePrisma: {
-        mcpServerToolCallCount: {
-            upsert: mockToolCallCountUpsert,
-            update: mockToolCallCountUpdate,
+        mcpServerTool: {
+            createMany: mockServerToolCreateMany,
+            findMany: mockServerToolFindMany,
+            upsert: mockServerToolUpsert,
+            update: mockServerToolUpdate,
         },
     },
 }));
 
 vi.mock('@/lib/posthog', () => ({
     captureEvent: mockCaptureEvent,
+}));
+
+vi.mock('@/lib/redis', () => ({
+    redis: {
+        get: (...args: unknown[]) => mockRedisGet(...args),
+        set: (...args: unknown[]) => mockRedisSet(...args),
+    },
 }));
 
 vi.mock('ai', () => ({
@@ -72,9 +86,13 @@ function createMockMcpClient(toolDefs: MockToolDef[]) {
 
 function createMockClient(overrides: Partial<McpToolSet> & { serverName: string }): McpToolSet {
     return {
+        orgId: 1,
+        userId: 'user-id',
         serverId: 'server-id',
         sanitizedName: overrides.serverName.toLowerCase(),
         serverUrl: `https://${overrides.serverName.toLowerCase()}.example.com/mcp`,
+        serverUpdatedAt: new Date('2026-01-01T00:00:00.000Z'),
+        requestedOAuthScopes: [],
         transport: {} as McpToolSet['transport'],
         ...overrides,
     };
@@ -87,9 +105,13 @@ const { getMcpTools } = await import('./mcpToolSets');
 
 beforeEach(() => {
     vi.clearAllMocks();
-    mockToolCallCountUpsert.mockResolvedValue({});
-    mockToolCallCountUpdate.mockResolvedValue({});
+    mockServerToolCreateMany.mockResolvedValue({ count: 0 });
+    mockServerToolFindMany.mockResolvedValue([]);
+    mockServerToolUpsert.mockResolvedValue({});
+    mockServerToolUpdate.mockResolvedValue({});
     mockCaptureEvent.mockResolvedValue(undefined);
+    mockRedisGet.mockResolvedValue(null);
+    mockRedisSet.mockResolvedValue('OK');
 });
 
 describe('getMcpTools', () => {
@@ -129,7 +151,61 @@ describe('getMcpTools', () => {
         expect(toolNames).toContain('mcp_github__search_repos');
     });
 
-    test('read-only tool does NOT get needsApproval', async () => {
+    test('uses cached tool definitions when available', async () => {
+        const cachedTool = {
+            execute: vi.fn().mockResolvedValue({ content: [{ type: 'text', text: 'result' }] }),
+            description: 'Cached tool',
+            inputSchema: {},
+        };
+        const mockClient = {
+            listTools: vi.fn().mockResolvedValue({ tools: [{ name: 'live_tool', description: 'Live tool' }] }),
+            toolsFromDefinitions: vi.fn().mockReturnValue({ cached_tool: cachedTool }),
+            close: vi.fn().mockResolvedValue(undefined),
+            tools: vi.fn().mockResolvedValue({ cached_tool: cachedTool }),
+        };
+        mockRedisGet.mockResolvedValueOnce(JSON.stringify({
+            tools: [
+                { name: 'cached_tool', description: 'Cached tool', inputSchema: { type: 'object' } },
+            ],
+        }));
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverName: 'Linear' }),
+        ]);
+
+        expect(mockClient.listTools).not.toHaveBeenCalled();
+        expect(mockClient.toolsFromDefinitions).toHaveBeenCalledWith({
+            tools: [
+                { name: 'cached_tool', description: 'Cached tool', inputSchema: { type: 'object' } },
+            ],
+        });
+        expect(Object.keys(result.tools)).toEqual(['mcp_linear__cached_tool']);
+    });
+
+    test('caches live tool definitions after a cache miss', async () => {
+        const mockClient = createMockMcpClient([
+            { name: 'list_issues', description: 'List issues' },
+        ]);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        await getMcpTools([
+            createMockClient({
+                serverName: 'Linear',
+                requestedOAuthScopes: ['repo'],
+            }),
+        ]);
+
+        expect(mockClient.listTools).toHaveBeenCalledOnce();
+        expect(mockRedisSet).toHaveBeenCalledWith(
+            expect.stringMatching(/^mcp:list-tools:v1:1:user-id:server-id:/),
+            JSON.stringify({ tools: [{ name: 'list_issues', description: 'List issues' }] }),
+            'EX',
+            3600,
+        );
+    });
+
+    test('newly discovered read-only tool defaults to allowed', async () => {
         const mockClient = createMockMcpClient([
             { name: 'list_issues', description: 'List issues', annotations: { readOnlyHint: true } },
         ]);
@@ -157,6 +233,48 @@ describe('getMcpTools', () => {
         const tool = result.tools['mcp_linear__create_issue'];
         expect(tool).toBeDefined();
         expect(tool).toHaveProperty('needsApproval', true);
+    });
+
+    test('allowed tool does not get needsApproval', async () => {
+        mockServerToolFindMany.mockResolvedValueOnce([
+            {
+                mcpServerId: 'server-id',
+                toolName: 'list_issues',
+                permission: McpServerToolPermission.ALLOWED,
+            },
+        ]);
+        const mockClient = createMockMcpClient([
+            { name: 'list_issues', description: 'List issues', annotations: { readOnlyHint: true } },
+        ]);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverName: 'Linear' }),
+        ]);
+
+        const tool = result.tools['mcp_linear__list_issues'];
+        expect(tool).toBeDefined();
+        expect('needsApproval' in tool).toBe(false);
+    });
+
+    test('disabled tool is not exposed to the agent', async () => {
+        mockServerToolFindMany.mockResolvedValueOnce([
+            {
+                mcpServerId: 'server-id',
+                toolName: 'delete_issue',
+                permission: McpServerToolPermission.DISABLED,
+            },
+        ]);
+        const mockClient = createMockMcpClient([
+            { name: 'delete_issue', description: 'Delete issue' },
+        ]);
+        mockCreateMCPClient.mockResolvedValue(mockClient);
+
+        const result = await getMcpTools([
+            createMockClient({ serverName: 'Linear' }),
+        ]);
+
+        expect(result.tools).toEqual({});
     });
 
     test('failed server connection adds to failedServers array', async () => {
@@ -319,8 +437,8 @@ describe('getMcpTools', () => {
         await expect(
             tool.execute({}, { messages: [], toolCallId: 'test' })
         ).rejects.toThrow('External API failed');
-        expect(mockToolCallCountUpsert).not.toHaveBeenCalled();
-        expect(mockToolCallCountUpdate).not.toHaveBeenCalled();
+        expect(mockServerToolUpsert).not.toHaveBeenCalled();
+        expect(mockServerToolUpdate).not.toHaveBeenCalled();
         expect(mockCaptureEvent).toHaveBeenCalledWith('ask_mcp_tool_call_completed', expect.objectContaining({
             serverUrl: 'https://linear.example.com/mcp',
             toolName: 'create_issue',
@@ -344,7 +462,7 @@ describe('getMcpTools', () => {
             tool.execute({ title: 'My Issue' }, { messages: [], toolCallId: 'test' })
         ).resolves.toEqual({ content: [{ type: 'text', text: 'result' }] });
 
-        expect(mockToolCallCountUpsert).toHaveBeenCalledWith({
+        expect(mockServerToolUpsert).toHaveBeenCalledWith({
             where: {
                 mcpServerId_toolName: {
                     mcpServerId: 'server-linear',
@@ -354,13 +472,13 @@ describe('getMcpTools', () => {
             create: {
                 mcpServerId: 'server-linear',
                 toolName: 'create_issue',
-                count: 1,
+                callCount: 1,
             },
             update: {
-                count: { increment: 1 },
+                callCount: { increment: 1 },
             },
         });
-        expect(mockToolCallCountUpdate).not.toHaveBeenCalled();
+        expect(mockServerToolUpdate).not.toHaveBeenCalled();
         expect(mockCaptureEvent).toHaveBeenCalledWith('ask_mcp_tool_call_completed', expect.objectContaining({
             source: 'sourcebot-ask-agent',
             serverId: 'server-linear',
@@ -396,7 +514,7 @@ describe('getMcpTools', () => {
 
     test('tool execute wrapper waits for the counter increment before resolving', async () => {
         let resolveCounter: (() => void) | undefined;
-        mockToolCallCountUpsert.mockImplementationOnce(() => new Promise<void>((resolve) => {
+        mockServerToolUpsert.mockImplementationOnce(() => new Promise<void>((resolve) => {
             resolveCounter = resolve;
         }));
 
@@ -410,7 +528,7 @@ describe('getMcpTools', () => {
         ]);
 
         const tool = result.tools['mcp_linear__list_issues'];
-        const execution = tool.execute({}, { messages: [], toolCallId: 'test' });
+        const execution = Promise.resolve(tool.execute({}, { messages: [], toolCallId: 'test' }));
         let didResolve = false;
         const observedExecution = execution.then((value) => {
             didResolve = true;
@@ -418,7 +536,7 @@ describe('getMcpTools', () => {
         });
 
         await vi.waitFor(() => {
-            expect(mockToolCallCountUpsert).toHaveBeenCalledTimes(1);
+            expect(mockServerToolUpsert).toHaveBeenCalledTimes(1);
         });
         await Promise.resolve();
 
@@ -436,7 +554,7 @@ describe('getMcpTools', () => {
             code: 'P2002',
             clientVersion: '0',
         });
-        mockToolCallCountUpsert.mockRejectedValueOnce(uniqueConflict);
+        mockServerToolUpsert.mockRejectedValueOnce(uniqueConflict);
 
         const mockClient = createMockMcpClient([
             { name: 'create_issue', description: 'Create issue' },
@@ -452,7 +570,7 @@ describe('getMcpTools', () => {
             tool.execute({ title: 'My Issue' }, { messages: [], toolCallId: 'test' })
         ).resolves.toEqual({ content: [{ type: 'text', text: 'result' }] });
 
-        expect(mockToolCallCountUpdate).toHaveBeenCalledWith({
+        expect(mockServerToolUpdate).toHaveBeenCalledWith({
             where: {
                 mcpServerId_toolName: {
                     mcpServerId: 'server-linear',
@@ -460,7 +578,7 @@ describe('getMcpTools', () => {
                 },
             },
             data: {
-                count: { increment: 1 },
+                callCount: { increment: 1 },
             },
         });
     });

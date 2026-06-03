@@ -347,6 +347,12 @@ enum McpServerClientInfoSource {
   STATIC
 }
 
+enum McpServerToolPermission {
+  ALLOWED
+  NEEDS_APPROVAL
+  DISABLED
+}
+
 model UserToOrg {
   joinedAt DateTime @default(now())
 
@@ -684,7 +690,8 @@ model McpServer {
   orgId Int
 
   userMcpServers  UserMcpServer[]
-  toolCallCounts  McpServerToolCallCount[]
+  tools           McpServerTool[]
+  oauthScopes     McpServerOAuthScope[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -693,12 +700,26 @@ model McpServer {
   @@unique([orgId, sanitizedName])
 }
 
-/// Lifetime tool call counters for an MCP server.
-model McpServerToolCallCount {
+/// OAuth scope configuration for an MCP server.
+model McpServerOAuthScope {
+  mcpServer   McpServer @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
+  mcpServerId String
+  scope       String
+  enabled     Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([mcpServerId, scope])
+}
+
+/// Tool metadata for an MCP server.
+model McpServerTool {
   mcpServer   McpServer @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
   mcpServerId String
   toolName    String
-  count       Int       @default(0)
+  callCount   Int                     @default(0)
+  permission  McpServerToolPermission @default(NEEDS_APPROVAL)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

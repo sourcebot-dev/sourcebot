@@ -39,6 +39,34 @@ describe('checkMcpServerDcrSupport', () => {
             isKnown: true,
             authorizationServerUrl: 'https://auth.example.com',
             registrationEndpoint: 'https://auth.example.com/register',
+            oauthScopesSupported: [],
+        });
+    });
+
+    test('returns normalized scopes discovered from protected resource and authorization server metadata', async () => {
+        const fetchMock = vi.fn(async (input: string | URL | Request) => {
+            const url = input.toString();
+            if (url === 'https://mcp.example.com/.well-known/oauth-protected-resource/mcp') {
+                return jsonResponse({
+                    authorization_servers: ['https://auth.example.com'],
+                    scopes_supported: [' repo ', 'read:user'],
+                });
+            }
+            if (url === 'https://auth.example.com/.well-known/oauth-authorization-server') {
+                return jsonResponse({
+                    registration_endpoint: 'https://auth.example.com/register',
+                    scopes_supported: ['read:user', 'workflow'],
+                });
+            }
+            return notFoundResponse();
+        }) as unknown as typeof fetch;
+
+        await expect(checkMcpServerDcrSupport('https://mcp.example.com/mcp', fetchMock)).resolves.toEqual({
+            supportsDcr: true,
+            isKnown: true,
+            authorizationServerUrl: 'https://auth.example.com',
+            registrationEndpoint: 'https://auth.example.com/register',
+            oauthScopesSupported: ['read:user', 'repo', 'workflow'],
         });
     });
 
@@ -61,6 +89,7 @@ describe('checkMcpServerDcrSupport', () => {
             supportsDcr: false,
             isKnown: true,
             authorizationServerUrl: 'https://mcp.slack.com',
+            oauthScopesSupported: [],
         });
     });
 
@@ -93,6 +122,38 @@ describe('checkMcpServerDcrSupport', () => {
         expect(result.isKnown).toBe(true);
     });
 
+    test('merges scopes from the bearer challenge metadata URL with well-known metadata', async () => {
+        const fetchMock = vi.fn(async (input: string | URL | Request) => {
+            const url = input.toString();
+            if (url === 'https://mcp.example.com/.well-known/oauth-protected-resource/mcp') {
+                return jsonResponse({ authorization_servers: ['https://auth.example.com'] });
+            }
+            if (url === 'https://mcp.example.com/mcp') {
+                return new Response('', {
+                    status: 401,
+                    headers: {
+                        'www-authenticate': 'Bearer resource_metadata="https://metadata.example.com/oauth-protected-resource"',
+                    },
+                });
+            }
+            if (url === 'https://metadata.example.com/oauth-protected-resource') {
+                return jsonResponse({ scopes_supported: ['read:user', 'repo'] });
+            }
+            if (url === 'https://auth.example.com/.well-known/oauth-authorization-server') {
+                return jsonResponse({ registration_endpoint: 'https://auth.example.com/register' });
+            }
+            return notFoundResponse();
+        }) as unknown as typeof fetch;
+
+        await expect(checkMcpServerDcrSupport('https://mcp.example.com/mcp', fetchMock)).resolves.toEqual({
+            supportsDcr: true,
+            isKnown: true,
+            authorizationServerUrl: 'https://auth.example.com',
+            registrationEndpoint: 'https://auth.example.com/register',
+            oauthScopesSupported: ['read:user', 'repo'],
+        });
+    });
+
     test('ignores non-bearer authenticate challenges', async () => {
         const fetchMock = vi.fn(async (input: string | URL | Request) => {
             const url = input.toString();
@@ -114,6 +175,7 @@ describe('checkMcpServerDcrSupport', () => {
             supportsDcr: true,
             isKnown: false,
             authorizationServerUrl: 'https://mcp.example.com/mcp',
+            oauthScopesSupported: [],
         });
     });
 
@@ -138,6 +200,7 @@ describe('checkMcpServerDcrSupport', () => {
             supportsDcr: true,
             isKnown: false,
             authorizationServerUrl: 'https://mcp.example.com/mcp',
+            oauthScopesSupported: [],
         });
     });
 
@@ -162,6 +225,7 @@ describe('checkMcpServerDcrSupport', () => {
             supportsDcr: true,
             isKnown: false,
             authorizationServerUrl: 'https://mcp.example.com/mcp',
+            oauthScopesSupported: [],
         });
     });
 
@@ -212,6 +276,7 @@ describe('checkMcpServerDcrSupport', () => {
             isKnown: true,
             authorizationServerUrl: 'https://auth.example.com/tenant',
             registrationEndpoint: 'https://auth.example.com/register',
+            oauthScopesSupported: [],
         });
     });
 });

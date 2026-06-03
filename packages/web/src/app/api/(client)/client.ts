@@ -33,7 +33,7 @@ import type {
 import { OffersResponse } from "@/features/billing/types";
 import { ConnectMcpResponse } from "../(server)/ee/askmcp/connect/types";
 import type { GetMcpServersResponse } from "../(server)/ee/askmcp/servers/route";
-import type { GetMcpConfigurationResponse, GetMcpToolsResponse } from "@/ee/features/chat/mcp/types";
+import type { GetMcpConfigurationResponse, GetMcpServerToolPermissionsResponse, GetMcpToolsResponse } from "@/ee/features/chat/mcp/types";
 
 export const search = async (body: SearchRequest): Promise<SearchResponse | ServiceError> => {
     const result = await fetch("/api/search", {
@@ -294,4 +294,15 @@ export const getMcpServerTools = async (): Promise<GetMcpToolsResponse | Service
     }).then(response => response.json());
 
     return result as GetMcpToolsResponse | ServiceError;
+}
+
+export const getMcpServerToolPermissions = async (serverId: string): Promise<GetMcpServerToolPermissionsResponse | ServiceError> => {
+    const result = await fetch(`/api/ee/askmcp/configuration/${encodeURIComponent(serverId)}/tools`, {
+        method: 'GET',
+        headers: {
+            'X-Sourcebot-Client-Source': 'sourcebot-web-client',
+        },
+    }).then(response => response.json());
+
+    return result as GetMcpServerToolPermissionsResponse | ServiceError;
 }

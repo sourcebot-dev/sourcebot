@@ -4,6 +4,7 @@ export const mcpQueryKeys = {
     serversWithStatus: ['mcpServersWithStatus'] as const,
     configuration: ['mcpConfiguration'] as const,
     tools: ['mcpTools'] as const,
+    toolPermissions: (serverId: string) => ['mcpToolPermissions', serverId] as const,
 };
 
 export async function invalidateMcpConfigurationQueries(queryClient: QueryClient) {

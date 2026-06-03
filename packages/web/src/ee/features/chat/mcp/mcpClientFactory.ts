@@ -5,14 +5,19 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import type { PrismaClient } from '@sourcebot/db';
 import { getExternalMcpErrorLogFields } from './externalMcpError';
 import { getStoredMcpConnectionStatus } from './connectionStatus';
+import { getEnabledMcpOAuthScopeNames } from './oauthScopeUtils';
 
 const logger = createLogger('mcp-client-factory');
 
 export interface McpToolSet {
+    orgId: number;
+    userId: string;
     serverId: string;
     serverName: string;
     sanitizedName: string;
     serverUrl: string;
+    serverUpdatedAt: Date;
+    requestedOAuthScopes: string[];
     transport: StreamableHTTPClientTransport;
 }
 
@@ -41,6 +46,11 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
                     name: true,
                     sanitizedName: true,
                     serverUrl: true,
+                    updatedAt: true,
+                    oauthScopes: {
+                        where: { enabled: true },
+                        select: { scope: true, enabled: true },
+                    },
                 },
             },
         },
@@ -68,12 +78,14 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
                 continue;
             }
 
+            const requestedOAuthScopes = getEnabledMcpOAuthScopeNames(userServer.server.oauthScopes);
             const provider = new PrismaOAuthClientProvider({
                 prisma,
                 serverId: userServer.serverId,
                 orgId,
                 userId,
                 callbackUrl: getMcpOAuthCallbackUrl(),
+                requestedOAuthScopes,
             });
 
             const transport = new StreamableHTTPClientTransport(
@@ -82,10 +94,14 @@ export async function getConnectedMcpClients(prisma: PrismaClient, userId: strin
             );
 
             clients.push({
+                orgId,
+                userId,
                 serverId: userServer.serverId,
                 serverName,
                 sanitizedName: userServer.server.sanitizedName,
                 serverUrl: userServer.server.serverUrl,
+                serverUpdatedAt: userServer.server.updatedAt,
+                requestedOAuthScopes,
                 transport,
             });
         } catch (error) {
