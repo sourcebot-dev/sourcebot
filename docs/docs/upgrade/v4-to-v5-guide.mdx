@@ -16,8 +16,9 @@ This guide will walk you through upgrading your Sourcebot deployment from v4 to 
 Starting in v5, the following features have been relicensed from FSL to our [commercial license](https://github.com/sourcebot-dev/sourcebot/blob/main/ee/LICENSE), requiring a paid plan to use:
 - [Ask Sourcebot](/docs/features/ask/ask-sourcebot)
 - [MCP server](/docs/features/mcp-server)
+- [User role management](/docs/configuration/auth/roles-and-permissions#managing-member-roles) ([details](#user-role-management-relicensing))
 
-If your deployment uses these features and you upgrade to v5, you'll need to activate a paid plan to keep using them. All other features available on the free plan remain on the free plan.
+If your deployment uses these features and you upgrade to v5, you'll need to activate a paid plan to keep using them.
 
 #### Action Items
 
@@ -184,13 +185,13 @@ Before upgrading, review the [Breaking Changes](#breaking-changes) section and c
 
 ### Docker Compose
 
-1. Pull the latest image:
+1. Pull the latest image
 
 ```bash wrap icon="terminal"
 docker compose pull
 ```
 
-2. Restart your deployment:
+2. Restart your deployment
 
 ```bash wrap icon="terminal"
 docker compose up -d
@@ -198,13 +199,13 @@ docker compose up -d
 
 ### Helm chart
 
-1. Refresh the chart repository:
+1. Refresh the chart repository
 
 ```bash wrap icon="terminal"
 helm repo update
 ```
 
-2. Upgrade the release:
+2. Upgrade the release
 
 ```bash wrap icon="terminal"
 helm upgrade sourcebot sourcebot/sourcebot \
