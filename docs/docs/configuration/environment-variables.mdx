@@ -12,7 +12,7 @@ The following environment variables allow you to configure your Sourcebot deploy
 | :------- | :------ | :---------- |
 | `AUTH_CREDENTIALS_LOGIN_ENABLED` | `true` | <p>Enables/disables authentication with basic credentials. Username and passwords are stored encrypted at rest within the postgres database. Checkout the [auth docs](/docs/configuration/auth/authentication) for more info</p> |
 | `AUTH_EMAIL_CODE_LOGIN_ENABLED` | `false` | <p>Enables/disables authentication with a login code that's sent to a users email. `SMTP_CONNECTION_URL` and `EMAIL_FROM_ADDRESS` must also be set. Checkout the [auth docs](/docs/configuration/auth/authentication) for more info </p> |
-| `AUTH_SECRET` **(required)** | - | <p>Used to validate login session cookies. As of v5, this must be set explicitly (generate one with `openssl rand -base64 33`). If you're upgrading from a version that auto-generated it, copy the value out of `$DATA_CACHE_DIR/.authjs-secret`, set it here, and delete that file. See the [v4 to v5 guide](/docs/upgrade/v4-to-v5-guide).</p> |
+| `AUTH_SECRET` **(required)** | - | <p>Used to validate login session cookies. Genearte one with `openssl rand -base64 33`.</p> |
 | `AUTH_SESSION_MAX_AGE_SECONDS` | `2592000` (30 days) | <p>Relative time from now in seconds when to expire the session.</p> |
 | `AUTH_SESSION_UPDATE_AGE_SECONDS` | `86400` (1 day) | <p>How often the session should be updated in seconds. If set to `0`, session is updated every time.</p> |
 | `OAUTH_AUTHORIZATION_CODE_TTL_SECONDS` | `600` (10 minutes) | <p>Lifetime of an OAuth authorization code, in seconds.</p> |
@@ -22,11 +22,11 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `CONFIG_PATH` | `-` | <p>The container relative path to the declarative configuration file. See [this doc](/docs/configuration/declarative-config) for more info.</p> | 
 | `DATA_CACHE_DIR` | `$DATA_DIR/.sourcebot` | <p>The root data directory in which all data written to disk by Sourcebot will be located.</p> |
 | `DATA_DIR` | `/data` | <p>The directory within the container to store all persistent data. Typically, this directory will be volume mapped such that data is persisted across container restarts (e.g., `docker run -v $(pwd):/data`)</p> |
-| `DATABASE_URL` **(required)** | - | <p>Connection string of your Postgres database, e.g. `postgresql://user:password@host:5432/sourcebot`. As of v5, Sourcebot no longer ships an embedded Postgres database, so this must point at an external Postgres instance. See the [v4 to v5 guide](/docs/upgrade/v4-to-v5-guide).</p><p>If you'd like to use a non-default schema, you can provide it as a parameter in the database url.</p><p>You can also use `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_NAME`, and `DATABASE_ARGS` to construct the database url.</p> |
+| `DATABASE_URL` **(required)** | - | <p>Connection string of your Postgres database, e.g. `postgresql://user:password@host:5432/sourcebot`.</p><p>If you'd like to use a non-default schema, you can provide it as a parameter in the database url.</p><p>You can also use `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_NAME`, and `DATABASE_ARGS` to construct the database url.</p> |
 | `EMAIL_FROM_ADDRESS` | `-` | <p>The email address that transactional emails will be sent from. See [this doc](/docs/configuration/transactional-emails) for more info.</p> | 
 | `FORCE_ENABLE_ANONYMOUS_ACCESS` | `false` | <p>When enabled, [anonymous access](/docs/configuration/auth/access-settings#anonymous-access) to the organization will always be enabled</p>
 | `REQUIRE_APPROVAL_NEW_MEMBERS` | - | <p>When set, controls whether new users require approval before accessing your deployment. If not set, the setting can be configured via the UI. See [member approval](/docs/configuration/auth/access-settings#member-approval) for more info.</p>
-| `REDIS_URL` **(required)** | - | <p>Connection string of your Redis instance, e.g. `redis://host:6379`. As of v5, Sourcebot no longer ships an embedded Redis instance, so this must point at an external Redis instance. See the [v4 to v5 guide](/docs/upgrade/v4-to-v5-guide).</p><p>To enable TLS, see [this doc](/docs/deployment/infrastructure/redis#tls).</p> |
+| `REDIS_URL` **(required)** | - | <p>Connection string of your Redis instance, e.g. `redis://host:6379`.</p><p>To enable TLS, see [this doc](/docs/deployment/infrastructure/redis#tls).</p> |
 | `REDIS_REMOVE_ON_COMPLETE` | `0` | <p>Controls how many completed jobs are allowed to remain in Redis queues</p> |
 | `REDIS_REMOVE_ON_FAIL` | `100` | <p>Controls how many failed jobs are allowed to remain in Redis queues</p> |
 | `REPO_SYNC_RETRY_BASE_SLEEP_SECONDS` | `60` | <p>The base sleep duration (in seconds) for exponential backoff when retrying repository sync operations that fail</p> |
@@ -36,7 +36,7 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `SMTP_PORT` | `-` | <p>The port of the SMTP server.</p> |
 | `SMTP_USERNAME` | `-` | <p>The username for SMTP authentication.</p> |
 | `SMTP_PASSWORD` | `-` | <p>The password for SMTP authentication.</p> |
-| `SOURCEBOT_ENCRYPTION_KEY` **(required)** | - | <p>Used to encrypt connection secrets and generate API keys. As of v5, this must be set explicitly (generate one with `openssl rand -base64 24`). If you're upgrading from a version that auto-generated it, copy the value out of `$DATA_CACHE_DIR/.secret`, set it here, and delete that file. Use the **same** key your data was encrypted with, otherwise existing connection secrets cannot be decrypted. See the [v4 to v5 guide](/docs/upgrade/v4-to-v5-guide).</p> |
+| `SOURCEBOT_ENCRYPTION_KEY` **(required)** | - | <p>Used to encrypt connection secrets and generate API keys. Generate one with `openssl rand -base64 24`.</p> |
 | `SOURCEBOT_PUBLIC_KEY_PATH` | `/app/public.pem` | <p>Sourcebot's public key that's used to verify encrypted license key signatures.</p> |
 | `SOURCEBOT_LOG_LEVEL` | `info` | <p>The Sourcebot logging level. Valid values are `debug`, `info`, `warn`, `error`, in order of severity.</p> |
 | `SOURCEBOT_STRUCTURED_LOGGING_ENABLED` | `false` | <p>Enables/disable structured JSON logging. See [this doc](/docs/configuration/structured-logging) for more info.</p> |
