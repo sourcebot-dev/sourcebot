@@ -40,7 +40,16 @@ function removeControlCharacters(value: string): string {
 }
 
 function removeHtmlTags(value: string): string {
-    return value.replace(/<[^>]*>/g, '');
+    // Strip repeatedly until stable: a single pass can reintroduce a tag
+    // sequence (e.g. "<scr<x>ipt>" collapses to "<script>"), so loop until
+    // no more tags are removed.
+    let current = value;
+    let previous: string;
+    do {
+        previous = current;
+        current = current.replace(/<[^>]*>/g, '');
+    } while (current !== previous);
+    return current;
 }
 
 function normalizeWhitespace(value: string): string {
