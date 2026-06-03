@@ -11,7 +11,7 @@ import { __unsafePrisma } from '@/prisma';
 import { McpServerToolPermission, Prisma } from '@sourcebot/db';
 import { captureEvent } from '@/lib/posthog';
 import type { AskMcpAnalyticsSource } from '@/lib/posthogEvents';
-import { redis } from '@/lib/redis';
+import { getRedisClient } from '@/lib/redis';
 import {
     createMissingMcpServerToolRows,
     getMcpServerToolPermission,
@@ -129,6 +129,7 @@ function getMcpListToolsCacheKey(client: McpToolSet): string {
 
 async function getCachedListTools(cacheKey: string): Promise<ListToolsResult | undefined> {
     try {
+        const redis = getRedisClient();
         const cached = await redis.get(cacheKey);
         return cached ? JSON.parse(cached) as ListToolsResult : undefined;
     } catch (error) {
@@ -142,6 +143,7 @@ async function getCachedListTools(cacheKey: string): Promise<ListToolsResult | u
 
 async function setCachedListTools(cacheKey: string, toolDefinitions: ListToolsResult) {
     try {
+        const redis = getRedisClient();
         await redis.set(cacheKey, JSON.stringify(toolDefinitions), 'EX', MCP_LIST_TOOLS_CACHE_TTL_SECONDS);
     } catch (error) {
         logger.warn('Failed to cache MCP tool definitions.', {
@@ -200,10 +202,14 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
             const prefix = `mcp_${sanitizedName}`;
             await createMissingMcpServerToolRows({
                 serverId,
-                tools: toolDefinitions.tools.map((tool) => ({
-                    toolName: tool.name,
-                    readOnlyHint: tool.annotations?.readOnlyHint,
-                })),
+                tools: toolDefinitions.tools.map((tool) => {
+                    const readOnlyHint = tool.annotations?.readOnlyHint;
+
+                    return {
+                        toolName: tool.name,
+                        ...(typeof readOnlyHint === 'boolean' ? { readOnlyHint } : {}),
+                    };
+                }),
             });
             const permissionsByServerId = await getMcpServerToolPermissionsByServerId({
                 serverIds: [serverId],
@@ -212,10 +218,11 @@ export async function getMcpTools(clients: McpToolSet[], analyticsContext?: McpT
 
             for (const [toolName, tool] of Object.entries(tools)) {
                 const def = toolDefinitions.tools.find(t => t.name === toolName);
+                const readOnlyHint = def?.annotations?.readOnlyHint;
                 const permission = getMcpServerToolPermission(
                     permissionsByToolName,
                     toolName,
-                    def?.annotations?.readOnlyHint,
+                    typeof readOnlyHint === 'boolean' ? readOnlyHint : undefined,
                 );
                 if (permission === McpServerToolPermission.DISABLED) {
                     continue;
