@@ -5,27 +5,221 @@ sidebarTitle: V4 to V5 guide
 
 This guide will walk you through upgrading your Sourcebot deployment from v4 to v5.
 
-<Warning>
-Starting in v5, the following features require a paid plan:
+## Breaking Changes
+
+### Ask Sourcebot & MCP Server relicensing
+<Note>
+**Who's affected:** Users on the [free plan](/docs/activating-a-subscription).
+</Note>
+
+#### Description
+Starting in v5, the following features have been relicensed from FSL to our [commercial license](https://github.com/sourcebot-dev/sourcebot/blob/main/ee/LICENSE), requiring a paid plan to use:
 - [Ask Sourcebot](/docs/features/ask/ask-sourcebot)
 - [MCP server](/docs/features/mcp-server)
+- [User role management](/docs/configuration/auth/roles-and-permissions#managing-member-roles) ([details](#user-role-management-relicensing))
 
-If your deployment uses these features and you upgrade to v5, you'll need to activate a paid plan to keep using them. All other features available on the free plan remain on the free plan.
+If your deployment uses these features and you upgrade to v5, you'll need to activate a paid plan to keep using them.
 
-You can [start a 14-day free trial](/docs/free-trial) of the paid plan directly from your deployment. No credit card is required.
+#### Action Items
+
+You can [start a 14-day free trial](/docs/free-trial) of the paid plan directly from your deployment. No credit card is required. See the [pricing page](https://sourcebot.dev/pricing) for more details.
+
+Alternatively, you can choose to [stay on v4](#staying-on-v4).
+
+
+### User role management relicensing
+<Note>
+**Who's affected:** Users on the [free plan](/docs/activating-a-subscription).
+</Note>
+
+#### Description
+
+[Managing user roles](/docs/configuration/auth/roles-and-permissions) now requires a paid plan. On the free plan, the default role assigned to new members joining an organization is now **Owner** (previously this was **Member**).
+
+The role assignment behaviour for users joining the organization, and the ability to [manage the user's role](/docs/configuration/auth/roles-and-permissions#managing-member-roles) afterwards, is now the following:
+
+| Plan | Default role | Role management |
+| :--- | :----------- | :-------------- |
+| **Free** | `Owner` | Not available. A user's role cannot be changed. |
+| **Paid** | `Member` | Available. Owners can [promote or demote](#managing-member-roles) members. |
+
+This **does not** affect existing users in the organization. Users with the **Member** role will continue to have this role. This change only affects **new members** added to the organization.
+
+#### Action Items
+
+You can [start a 14-day free trial](/docs/free-trial) of the paid plan directly from your deployment. No credit card is required. See the [pricing page](https://sourcebot.dev/pricing) for more details.
+
+Alternatively, you can choose to [stay on v4](#staying-on-v4).
+
+### External Postgres and Redis instances are now required
+<Note>
+**Who's affected:** Deployments that relied on the embedded Postgres and Redis packaged in the Docker container. [Docker Compose](/docs/deployment/docker-compose) and [Helm chart](https://github.com/sourcebot-dev/sourcebot-helm-chart) deployments are not affected, since both already provide their own Postgres and Redis.
+</Note>
+
+#### Description
+
+In v4 and earlier, the Sourcebot image shipped with a built-in Postgres database and Redis instance that started automatically when `DATABASE_URL` and `REDIS_URL` were not set. Starting in v5, these embedded services have been removed. You must now provide your own Postgres and Redis instances and point Sourcebot at them using the `DATABASE_URL` and `REDIS_URL` environment variables. If either variable is missing, the container exits at startup with an error.
+
+You need to stand up your own Postgres and Redis instances and set both variables. The simplest path is to switch to the [Docker Compose](/docs/deployment/docker-compose) or [Helm chart](https://github.com/sourcebot-dev/sourcebot-helm-chart) deployment, both of which wire these up for you.
+
+#### Action Items
+
+<Expandable title="Migrating Postgres">
+<br/>
+
+The embedded Postgres stored its data under `$DATA_CACHE_DIR/db` inside the container volume. This data is **not** migrated automatically. You need to dump it and restore it into your external Postgres instance.
+
+<Warning>
+Do the dump **before** upgrading to v5. The v5 image no longer bundles `pg_dump`, so you must run it while your v4 container (which still has the embedded Postgres) is running.
 </Warning>
 
-There are no breaking changes between v4 and v5. Upgrading is as simple as pulling the latest image and restarting your deployment.
+1. With your **v4** deployment still running, dump the embedded `sourcebot` database from inside the container and copy it out. Replace `sourcebot` with your container name if it differs:
 
-# Staying on v4
-
-If you'd rather not upgrade to v5 or activate a paid plan, you can keep using v4 indefinitely by pinning your deployment to the final v4 release:
-
-```bash
-ghcr.io/sourcebot-dev/sourcebot:v4.17.3
+```bash wrap icon="terminal"
+docker exec -t sourcebot pg_dump -U postgres -d sourcebot -Fc -f /tmp/sourcebot.dump
+docker cp sourcebot:/tmp/sourcebot.dump ./sourcebot.dump
 ```
 
-v4 will continue to work as before, with Ask Sourcebot and MCP available for free.
+2. Set up an external Postgres instance for Sourcebot to use. This can be a managed Postgres service, a standalone Postgres container, the `postgres` service from the official [docker-compose.yml](https://github.com/sourcebot-dev/sourcebot/blob/main/docker-compose.yml), or the one provided by the [Helm chart](https://github.com/sourcebot-dev/sourcebot-helm-chart). Make sure it's reachable from where Sourcebot runs.
+
+3. **(Optional)** When using a database other than `postgres`, you need to create it:
+
+<Expandable title="optional command">
+```bash wrap icon="terminal"
+createdb -U postgres my-database
+```
+</Expandable>
+
+<Note>
+The following steps assume the database name `postgres`. Adjust the `DATABASE_URL` and `-d` pg_restore parameter when using a different database name.
+</Note>
+
+4. Restore the dump into the database:
+
+```bash wrap icon="terminal"
+pg_restore -U postgres -d postgres --no-owner ./sourcebot.dump
+```
+
+5. Set `DATABASE_URL` to point at the external database and start Sourcebot on v5. Sourcebot runs any outstanding schema migrations automatically at startup.
+
+```bash wrap icon="terminal"
+docker run \
+  -e DATABASE_URL='postgresql://your-user:your-password@your-postgres-host:5432/postgres' \
+  # ... your other flags
+  ghcr.io/sourcebot-dev/sourcebot:latest
+```
+</Expandable>
+
+<Expandable title="Migrating Redis">
+<br/>
+
+Redis only holds transient job-queue data, so there is nothing to migrate. You just need to provide an external Redis instance and point Sourcebot at it.
+
+1. Set up an external Redis instance for Sourcebot to use. This can be a managed Redis service, a standalone Redis container, the `redis` service from the official [docker-compose.yml](https://github.com/sourcebot-dev/sourcebot/blob/main/docker-compose.yml), or the one provided by the [Helm chart](https://github.com/sourcebot-dev/sourcebot-helm-chart). Make sure it's reachable from where Sourcebot runs.
+
+2. Set `REDIS_URL` to point at it when you start Sourcebot on v5:
+
+```bash wrap icon="terminal"
+docker run \
+  -e REDIS_URL='redis://your-redis-host:6379' \
+  # ... your other flags
+  ghcr.io/sourcebot-dev/sourcebot:latest
+```
+</Expandable>
+
+### AUTH_SECRET and SOURCEBOT_ENCRYPTION_KEY must be set explicitly
+<Note>
+**Who's affected:** Deployments that relied on Sourcebot auto-generating these secrets (i.e. those that never set `AUTH_SECRET` or `SOURCEBOT_ENCRYPTION_KEY`). [Docker Compose](/docs/deployment/docker-compose) and [Helm chart](https://github.com/sourcebot-dev/sourcebot-helm-chart) deployments that already set both are not affected.
+</Note>
+
+#### Description
+
+In v4 and earlier, when `AUTH_SECRET` or `SOURCEBOT_ENCRYPTION_KEY` was not set, Sourcebot generated one at startup and persisted it in plain text under `$DATA_CACHE_DIR` (`.authjs-secret` and `.secret`). Starting in v5, these secrets must be provided explicitly as environment variables. Sourcebot no longer generates them, and no longer reads the plaintext files. If either is missing, the container exits at startup with an error.
+
+<Warning>
+Set `SOURCEBOT_ENCRYPTION_KEY` to the **same** value your deployment was using. It encrypts sensitive data at rest, so a different key leaves that data undecryptable and breaks the features that depend on it. A changed `AUTH_SECRET` is less severe: it only signs out existing sessions.
+</Warning>
+
+#### Action Items
+
+<Expandable title="Migrating your secrets">
+
+<br/>
+
+Recover the existing values from the data volume, set them as environment variables, then delete the plaintext files. `$DATA_CACHE_DIR` defaults to `/data/.sourcebot`.
+
+1. With your **v4** deployment still running, print the stored values. Replace `sourcebot` with your container name if it differs:
+
+```bash wrap icon="terminal"
+docker exec sourcebot cat /data/.sourcebot/.secret
+docker exec sourcebot cat /data/.sourcebot/.authjs-secret
+```
+
+Each file contains a single line, e.g. `SOURCEBOT_ENCRYPTION_KEY="..."`. Copy the value between the quotes.
+
+2. Set both as environment variables on your v5 deployment:
+
+```bash wrap icon="terminal"
+docker run \
+  -e SOURCEBOT_ENCRYPTION_KEY='<value from .secret>' \
+  -e AUTH_SECRET='<value from .authjs-secret>' \
+  # ... your other flags
+  ghcr.io/sourcebot-dev/sourcebot:latest
+```
+
+3. Delete the plaintext files from the data volume so the secrets are no longer stored on disk:
+
+```bash wrap icon="terminal"
+docker exec sourcebot rm /data/.sourcebot/.secret /data/.sourcebot/.authjs-secret
+```
+
+Sourcebot warns at startup if either file is still present.
+</Expandable>
+
+
+## Upgrading
+
+<Warning>
+Before upgrading, review the [Breaking Changes](#breaking-changes) section and complete any actions that apply to your deployment.
+</Warning>
+
+### Docker Compose
+
+1. Pull the latest image
+
+```bash wrap icon="terminal"
+docker compose pull
+```
+
+2. Restart your deployment
+
+```bash wrap icon="terminal"
+docker compose up -d
+```
+
+### Helm chart
+
+1. Refresh the chart repository
+
+```bash wrap icon="terminal"
+helm repo update
+```
+
+2. Upgrade the release
+
+```bash wrap icon="terminal"
+helm upgrade sourcebot sourcebot/sourcebot \
+  -f values.yaml \
+  --set-json "sourcebot.config=$(cat config.json)"
+```
+
+## Staying on v4
+
+If you'd rather not upgrade to v5, you can keep using v4 indefinitely by pinning your deployment to the final v4 release:
+
+```bash
+ghcr.io/sourcebot-dev/sourcebot:v4.17.4
+```
 
 ## Troubleshooting
 
