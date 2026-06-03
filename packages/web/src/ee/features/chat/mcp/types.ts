@@ -2,7 +2,7 @@ import type { McpServerToolPermission } from '@sourcebot/db';
 
 export type { McpServerToolPermission };
 
-export interface McpServerScopeEntry {
+export interface McpServerOAuthScopeEntry {
     scope: string;
     enabled: boolean;
 }
@@ -12,7 +12,7 @@ export interface McpConfigurationServer {
     name: string;
     serverUrl: string;
     sanitizedName: string;
-    scopes: McpServerScopeEntry[];
+    oauthScopes: McpServerOAuthScopeEntry[];
     faviconUrl: string | undefined;
     savedConnectionCount: number;
     toolUsage: McpServerToolUsageSummary;

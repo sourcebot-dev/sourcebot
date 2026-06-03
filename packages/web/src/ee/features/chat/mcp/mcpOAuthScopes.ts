@@ -5,37 +5,37 @@ import type { ServiceError } from '@/lib/serviceError';
 import { __unsafePrisma } from '@/prisma';
 import { McpServerClientInfoSource, type PrismaClient } from '@sourcebot/db';
 import { StatusCodes } from 'http-status-codes';
-import { getEnabledMcpScopeNames, normalizeMcpScopeEntries } from './scopeUtils';
-import type { McpServerScopeEntry } from './types';
+import { getEnabledMcpOAuthScopeNames, normalizeMcpOAuthScopeEntries } from './oauthScopeUtils';
+import type { McpServerOAuthScopeEntry } from './types';
 
-export interface UpdateMcpServerScopesResponse {
+export interface UpdateMcpServerOAuthScopesResponse {
     success: true;
-    scopes: McpServerScopeEntry[];
-    requestedScopes: string[];
+    oauthScopes: McpServerOAuthScopeEntry[];
+    requestedOAuthScopes: string[];
     invalidatedConnectionCount: number;
 }
 
-type McpServerScopePrismaClient = Pick<PrismaClient, '$transaction'>;
+type McpServerOAuthScopePrismaClient = Pick<PrismaClient, '$transaction'>;
 
-function scopeEntriesEqual(a: McpServerScopeEntry[], b: McpServerScopeEntry[]): boolean {
+function oauthScopeEntriesEqual(a: McpServerOAuthScopeEntry[], b: McpServerOAuthScopeEntry[]): boolean {
     return a.length === b.length && a.every((entry, index) => (
         entry.scope === b[index]?.scope && entry.enabled === b[index]?.enabled
     ));
 }
 
-export async function updateMcpServerScopeEntries({
+export async function updateMcpServerOAuthScopeEntries({
     prisma = __unsafePrisma,
     serverId,
     orgId,
-    scopes,
+    oauthScopes,
 }: {
-    prisma?: McpServerScopePrismaClient;
+    prisma?: McpServerOAuthScopePrismaClient;
     serverId: string;
     orgId: number;
-    scopes: McpServerScopeEntry[];
-}): Promise<UpdateMcpServerScopesResponse | ServiceError> {
-    const normalizedScopes = normalizeMcpScopeEntries(scopes);
-    const requestedScopes = getEnabledMcpScopeNames(normalizedScopes);
+    oauthScopes: McpServerOAuthScopeEntry[];
+}): Promise<UpdateMcpServerOAuthScopesResponse | ServiceError> {
+    const normalizedOAuthScopes = normalizeMcpOAuthScopeEntries(oauthScopes);
+    const requestedOAuthScopes = getEnabledMcpOAuthScopeNames(normalizedOAuthScopes);
 
     return prisma.$transaction(async (tx) => {
         const server = await tx.mcpServer.findFirst({
@@ -46,7 +46,7 @@ export async function updateMcpServerScopeEntries({
             select: {
                 id: true,
                 clientInfoSource: true,
-                scopes: {
+                oauthScopes: {
                     select: {
                         scope: true,
                         enabled: true,
@@ -63,30 +63,30 @@ export async function updateMcpServerScopeEntries({
             } satisfies ServiceError;
         }
 
-        const currentScopes = normalizeMcpScopeEntries(server.scopes);
-        const currentRequestedScopes = getEnabledMcpScopeNames(currentScopes);
-        const scopeEntriesChanged = !scopeEntriesEqual(currentScopes, normalizedScopes);
-        const requestedScopesChanged = !scopeEntriesEqual(
-            currentRequestedScopes.map((scope) => ({ scope, enabled: true })),
-            requestedScopes.map((scope) => ({ scope, enabled: true })),
+        const currentOAuthScopes = normalizeMcpOAuthScopeEntries(server.oauthScopes);
+        const currentRequestedOAuthScopes = getEnabledMcpOAuthScopeNames(currentOAuthScopes);
+        const oauthScopeEntriesChanged = !oauthScopeEntriesEqual(currentOAuthScopes, normalizedOAuthScopes);
+        const requestedOAuthScopesChanged = !oauthScopeEntriesEqual(
+            currentRequestedOAuthScopes.map((scope) => ({ scope, enabled: true })),
+            requestedOAuthScopes.map((scope) => ({ scope, enabled: true })),
         );
 
-        if (!scopeEntriesChanged) {
+        if (!oauthScopeEntriesChanged) {
             return {
                 success: true,
-                scopes: normalizedScopes,
-                requestedScopes,
+                oauthScopes: normalizedOAuthScopes,
+                requestedOAuthScopes,
                 invalidatedConnectionCount: 0,
             };
         }
 
-        await tx.mcpServerScope.deleteMany({
+        await tx.mcpServerOAuthScope.deleteMany({
             where: { mcpServerId: server.id },
         });
 
-        if (normalizedScopes.length > 0) {
-            await tx.mcpServerScope.createMany({
-                data: normalizedScopes.map((entry) => ({
+        if (normalizedOAuthScopes.length > 0) {
+            await tx.mcpServerOAuthScope.createMany({
+                data: normalizedOAuthScopes.map((entry) => ({
                     mcpServerId: server.id,
                     scope: entry.scope,
                     enabled: entry.enabled,
@@ -95,7 +95,7 @@ export async function updateMcpServerScopeEntries({
         }
 
         let invalidatedConnectionCount = 0;
-        if (requestedScopesChanged) {
+        if (requestedOAuthScopesChanged) {
             if (server.clientInfoSource === McpServerClientInfoSource.DYNAMIC) {
                 await tx.mcpServer.update({
                     where: { id: server.id },
@@ -117,8 +117,8 @@ export async function updateMcpServerScopeEntries({
 
         return {
             success: true,
-            scopes: normalizedScopes,
-            requestedScopes,
+            oauthScopes: normalizedOAuthScopes,
+            requestedOAuthScopes,
             invalidatedConnectionCount,
         };
     });

@@ -19,29 +19,29 @@ import { captureEvent } from '@/lib/posthog';
 import { getMcpAuthMode } from './analytics';
 import type { McpConnectorEntryPoint } from '@/lib/posthogEvents';
 import {
-    updateMcpServerScopeEntries,
-    type UpdateMcpServerScopesResponse,
-} from './mcpScopes';
-import { buildMcpScopeEntries, OAUTH_SCOPE_TOKEN_REGEX } from './scopeUtils';
-import type { McpServerScopeEntry, UpdateMcpServerToolPermissionsResponse } from './types';
+    updateMcpServerOAuthScopeEntries,
+    type UpdateMcpServerOAuthScopesResponse,
+} from './mcpOAuthScopes';
+import { buildMcpOAuthScopeEntries, OAUTH_SCOPE_TOKEN_REGEX } from './oauthScopeUtils';
+import type { McpServerOAuthScopeEntry, UpdateMcpServerToolPermissionsResponse } from './types';
 
 const MCP_DCR_DISCOVERY_TIMEOUT_MS = Math.min(env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS, 10000);
 const oauthScopeTokenSchema = z.string()
     .trim()
     .min(1)
     .regex(OAUTH_SCOPE_TOKEN_REGEX, 'Scope must be a valid OAuth scope token.');
-const requestedScopesSchema = z.array(oauthScopeTokenSchema).max(200);
+const requestedOAuthScopesSchema = z.array(oauthScopeTokenSchema).max(200);
 const createStaticOAuthMcpServerSchema = z.object({
     name: z.string().trim().min(1),
     serverUrl: z.string().trim().url(),
     clientId: z.string().trim().min(1),
     clientSecret: z.string().trim().min(1),
-    requestedScopes: requestedScopesSchema.optional(),
-    availableScopes: requestedScopesSchema.optional(),
+    requestedOAuthScopes: requestedOAuthScopesSchema.optional(),
+    availableOAuthScopes: requestedOAuthScopesSchema.optional(),
 });
-const updateMcpServerScopesSchema = z.object({
+const updateMcpServerOAuthScopesSchema = z.object({
     serverId: z.string().trim().min(1),
-    scopes: z.array(z.object({
+    oauthScopes: z.array(z.object({
         scope: oauthScopeTokenSchema,
         enabled: z.boolean(),
     })).max(200),
@@ -72,8 +72,8 @@ interface PreparedMcpServerCreate {
     sanitizedName: string;
 }
 
-function buildMcpScopeCreateData(availableScopes: string[], requestedScopes: string[]) {
-    const data = buildMcpScopeEntries({ availableScopes, requestedScopes })
+function buildMcpOAuthScopeCreateData(availableOAuthScopes: string[], requestedOAuthScopes: string[]) {
+    const data = buildMcpOAuthScopeEntries({ availableOAuthScopes, requestedOAuthScopes })
         .map((entry) => ({
             scope: entry.scope,
             enabled: entry.enabled,
@@ -81,7 +81,7 @@ function buildMcpScopeCreateData(availableScopes: string[], requestedScopes: str
 
     return data.length > 0
         ? {
-            scopes: {
+            oauthScopes: {
                 createMany: { data },
             },
         }
@@ -280,9 +280,9 @@ export const createStaticOAuthMcpServer = async (
                         serverUrl: preparedServer.normalizedServerUrl,
                         clientInfo,
                         clientInfoSource: McpServerClientInfoSource.STATIC,
-                        ...buildMcpScopeCreateData(
-                            parsed.data.availableScopes ?? [],
-                            parsed.data.requestedScopes ?? [],
+                        ...buildMcpOAuthScopeCreateData(
+                            parsed.data.availableOAuthScopes ?? [],
+                            parsed.data.requestedOAuthScopes ?? [],
                         ),
                         orgId: org.id,
                     },
@@ -305,23 +305,23 @@ export const createStaticOAuthMcpServer = async (
             })));
 }
 
-export const updateMcpServerScopes = async (serverId: string, scopes: McpServerScopeEntry[]) => {
-    const parsed = updateMcpServerScopesSchema.safeParse({ serverId, scopes });
+export const updateMcpServerOAuthScopes = async (serverId: string, oauthScopes: McpServerOAuthScopeEntry[]) => {
+    const parsed = updateMcpServerOAuthScopesSchema.safeParse({ serverId, oauthScopes });
     if (!parsed.success) {
         return requestBodySchemaValidationError(parsed.error);
     }
 
     return sew(() =>
         withAuth(async ({ org, role }) =>
-            withMinimumOrgRole(role, OrgRole.OWNER, async (): Promise<UpdateMcpServerScopesResponse | ServiceError> => {
+            withMinimumOrgRole(role, OrgRole.OWNER, async (): Promise<UpdateMcpServerOAuthScopesResponse | ServiceError> => {
                 if (!(await hasEntitlement('ask'))) {
                     return oauthNotSupported();
                 }
 
-                return updateMcpServerScopeEntries({
+                return updateMcpServerOAuthScopeEntries({
                     serverId: parsed.data.serverId,
                     orgId: org.id,
-                    scopes: parsed.data.scopes,
+                    oauthScopes: parsed.data.oauthScopes,
                 });
             })));
 };
@@ -389,16 +389,16 @@ export const updateMcpServerToolPermissions = async (
 export const createMcpServer = async (
     name: string,
     serverUrl: string,
-    requestedScopes: string[] = [],
-    availableScopes: string[] = [],
+    requestedOAuthScopes: string[] = [],
+    availableOAuthScopes: string[] = [],
 ) => {
-    const parsedRequestedScopes = requestedScopesSchema.safeParse(requestedScopes);
-    if (!parsedRequestedScopes.success) {
-        return requestBodySchemaValidationError(parsedRequestedScopes.error);
+    const parsedRequestedOAuthScopes = requestedOAuthScopesSchema.safeParse(requestedOAuthScopes);
+    if (!parsedRequestedOAuthScopes.success) {
+        return requestBodySchemaValidationError(parsedRequestedOAuthScopes.error);
     }
-    const parsedAvailableScopes = requestedScopesSchema.safeParse(availableScopes);
-    if (!parsedAvailableScopes.success) {
-        return requestBodySchemaValidationError(parsedAvailableScopes.error);
+    const parsedAvailableOAuthScopes = requestedOAuthScopesSchema.safeParse(availableOAuthScopes);
+    if (!parsedAvailableOAuthScopes.success) {
+        return requestBodySchemaValidationError(parsedAvailableOAuthScopes.error);
     }
 
     return sew(() =>
@@ -425,7 +425,7 @@ export const createMcpServer = async (
                         serverUrl: preparedServer.normalizedServerUrl,
                         clientInfo: null,
                         clientInfoSource: McpServerClientInfoSource.DYNAMIC,
-                        ...buildMcpScopeCreateData(parsedAvailableScopes.data, parsedRequestedScopes.data),
+                        ...buildMcpOAuthScopeCreateData(parsedAvailableOAuthScopes.data, parsedRequestedOAuthScopes.data),
                         orgId: org.id,
                     },
                 });

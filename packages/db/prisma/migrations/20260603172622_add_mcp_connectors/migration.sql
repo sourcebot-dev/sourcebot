@@ -20,14 +20,14 @@ CREATE TABLE "McpServer" (
 );
 
 -- CreateTable
-CREATE TABLE "McpServerScope" (
+CREATE TABLE "McpServerOAuthScope" (
     "mcpServerId" TEXT NOT NULL,
     "scope" TEXT NOT NULL,
     "enabled" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "McpServerScope_pkey" PRIMARY KEY ("mcpServerId","scope")
+    CONSTRAINT "McpServerOAuthScope_pkey" PRIMARY KEY ("mcpServerId","scope")
 );
 
 -- CreateTable
@@ -72,7 +72,7 @@ CREATE INDEX "UserMcpServer_state_idx" ON "UserMcpServer"("state");
 ALTER TABLE "McpServer" ADD CONSTRAINT "McpServer_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Org"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "McpServerScope" ADD CONSTRAINT "McpServerScope_mcpServerId_fkey" FOREIGN KEY ("mcpServerId") REFERENCES "McpServer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "McpServerOAuthScope" ADD CONSTRAINT "McpServerOAuthScope_mcpServerId_fkey" FOREIGN KEY ("mcpServerId") REFERENCES "McpServer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "McpServerTool" ADD CONSTRAINT "McpServerTool_mcpServerId_fkey" FOREIGN KEY ("mcpServerId") REFERENCES "McpServer"("id") ON DELETE CASCADE ON UPDATE CASCADE;

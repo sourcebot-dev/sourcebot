@@ -92,7 +92,7 @@ function createMockClient(overrides: Partial<McpToolSet> & { serverName: string 
         sanitizedName: overrides.serverName.toLowerCase(),
         serverUrl: `https://${overrides.serverName.toLowerCase()}.example.com/mcp`,
         serverUpdatedAt: new Date('2026-01-01T00:00:00.000Z'),
-        requestedScopes: [],
+        requestedOAuthScopes: [],
         transport: {} as McpToolSet['transport'],
         ...overrides,
     };
@@ -192,16 +192,16 @@ describe('getMcpTools', () => {
         await getMcpTools([
             createMockClient({
                 serverName: 'Linear',
-                requestedScopes: ['repo'],
+                requestedOAuthScopes: ['repo'],
             }),
         ]);
 
         expect(mockClient.listTools).toHaveBeenCalledOnce();
         expect(mockRedisSet).toHaveBeenCalledWith(
-            expect.stringMatching(/^mcp:list-tools:v1:1:server-id:/),
+            expect.stringMatching(/^mcp:list-tools:v1:1:user-id:server-id:/),
             JSON.stringify({ tools: [{ name: 'list_issues', description: 'List issues' }] }),
             'EX',
-            10800,
+            3600,
         );
     });
 

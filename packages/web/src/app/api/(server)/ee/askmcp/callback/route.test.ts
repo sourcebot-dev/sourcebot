@@ -80,7 +80,7 @@ beforeEach(() => {
             serverUrl: 'https://mcp.linear.app/mcp',
             sanitizedName: 'linear',
             clientInfoSource: McpServerClientInfoSource.DYNAMIC,
-            scopes: [{ scope: 'repo', enabled: true }],
+            oauthScopes: [{ scope: 'repo', enabled: true }],
         },
     });
     mocks.unsafePrisma.userMcpServer.update.mockResolvedValue({ userId: 'user-1', serverId: 'server-1' });
@@ -112,7 +112,7 @@ describe('GET /api/ee/askmcp/callback', () => {
                         name: true,
                         serverUrl: true,
                         clientInfoSource: true,
-                        scopes: {
+                        oauthScopes: {
                             where: { enabled: true },
                             select: { scope: true, enabled: true },
                         },
@@ -182,7 +182,7 @@ describe('GET /api/ee/askmcp/callback', () => {
                         name: true,
                         serverUrl: true,
                         clientInfoSource: true,
-                        scopes: {
+                        oauthScopes: {
                             where: { enabled: true },
                             select: { scope: true, enabled: true },
                         },

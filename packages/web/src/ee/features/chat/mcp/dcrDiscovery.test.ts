@@ -39,7 +39,7 @@ describe('checkMcpServerDcrSupport', () => {
             isKnown: true,
             authorizationServerUrl: 'https://auth.example.com',
             registrationEndpoint: 'https://auth.example.com/register',
-            scopesSupported: [],
+            oauthScopesSupported: [],
         });
     });
 
@@ -66,7 +66,7 @@ describe('checkMcpServerDcrSupport', () => {
             isKnown: true,
             authorizationServerUrl: 'https://auth.example.com',
             registrationEndpoint: 'https://auth.example.com/register',
-            scopesSupported: ['read:user', 'repo', 'workflow'],
+            oauthScopesSupported: ['read:user', 'repo', 'workflow'],
         });
     });
 
@@ -89,7 +89,7 @@ describe('checkMcpServerDcrSupport', () => {
             supportsDcr: false,
             isKnown: true,
             authorizationServerUrl: 'https://mcp.slack.com',
-            scopesSupported: [],
+            oauthScopesSupported: [],
         });
     });
 
@@ -150,7 +150,7 @@ describe('checkMcpServerDcrSupport', () => {
             isKnown: true,
             authorizationServerUrl: 'https://auth.example.com',
             registrationEndpoint: 'https://auth.example.com/register',
-            scopesSupported: ['read:user', 'repo'],
+            oauthScopesSupported: ['read:user', 'repo'],
         });
     });
 
@@ -175,7 +175,7 @@ describe('checkMcpServerDcrSupport', () => {
             supportsDcr: true,
             isKnown: false,
             authorizationServerUrl: 'https://mcp.example.com/mcp',
-            scopesSupported: [],
+            oauthScopesSupported: [],
         });
     });
 
@@ -200,7 +200,7 @@ describe('checkMcpServerDcrSupport', () => {
             supportsDcr: true,
             isKnown: false,
             authorizationServerUrl: 'https://mcp.example.com/mcp',
-            scopesSupported: [],
+            oauthScopesSupported: [],
         });
     });
 
@@ -225,7 +225,7 @@ describe('checkMcpServerDcrSupport', () => {
             supportsDcr: true,
             isKnown: false,
             authorizationServerUrl: 'https://mcp.example.com/mcp',
-            scopesSupported: [],
+            oauthScopesSupported: [],
         });
     });
 
@@ -276,7 +276,7 @@ describe('checkMcpServerDcrSupport', () => {
             isKnown: true,
             authorizationServerUrl: 'https://auth.example.com/tenant',
             registrationEndpoint: 'https://auth.example.com/register',
-            scopesSupported: [],
+            oauthScopesSupported: [],
         });
     });
 });

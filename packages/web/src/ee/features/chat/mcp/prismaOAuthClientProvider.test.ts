@@ -44,7 +44,7 @@ function createPrismaMock() {
 
 function createProvider(
     prisma = createPrismaMock(),
-    options: { allowClientRegistration?: boolean; requestedScopes?: string[] } = {},
+    options: { allowClientRegistration?: boolean; requestedOAuthScopes?: string[] } = {},
 ) {
     return new PrismaOAuthClientProvider({
         prisma: prisma as never,
@@ -54,7 +54,7 @@ function createProvider(
         userId: 'user-1',
         callbackUrl: 'https://sourcebot.example.com/api/ee/askmcp/callback',
         allowClientRegistration: options.allowClientRegistration ?? false,
-        requestedScopes: options.requestedScopes,
+        requestedOAuthScopes: options.requestedOAuthScopes,
     });
 }
 
@@ -87,7 +87,7 @@ describe('PrismaOAuthClientProvider client metadata', () => {
 
     test('includes normalized requested scopes', () => {
         const provider = createProvider(createPrismaMock(), {
-            requestedScopes: [' repo ', 'read:user', 'repo'],
+            requestedOAuthScopes: [' repo ', 'read:user', 'repo'],
         });
 
         expect(provider.clientMetadata.scope).toBe('read:user repo');

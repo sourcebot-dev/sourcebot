@@ -102,13 +102,13 @@ function getMcpToolFailureReason(error: unknown): string {
     return 'unknown';
 }
 
-function getScopeHash(scopes: string[]): string {
-    if (scopes.length === 0) {
+function getOAuthScopeHash(oauthScopes: string[]): string {
+    if (oauthScopes.length === 0) {
         return 'none';
     }
 
     return createHash('sha256')
-        .update(Array.from(new Set(scopes)).sort().join('\0'))
+        .update(Array.from(new Set(oauthScopes)).sort().join('\0'))
         .digest('hex')
         .slice(0, 16);
 }
@@ -122,7 +122,7 @@ function getMcpListToolsCacheKey(client: McpToolSet): string {
         // list cannot be safely shared across users of the same server.
         client.userId,
         client.serverId,
-        getScopeHash(client.requestedScopes),
+        getOAuthScopeHash(client.requestedOAuthScopes),
         client.serverUpdatedAt.getTime(),
     ].join(':');
 }

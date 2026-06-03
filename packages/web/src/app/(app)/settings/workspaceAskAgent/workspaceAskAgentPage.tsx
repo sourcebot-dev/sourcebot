@@ -22,12 +22,12 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { checkMcpServerDynamicClientRegistration, createMcpServer, createStaticOAuthMcpServer, deleteMcpServer, updateMcpServerScopes } from "@/ee/features/chat/mcp/actions";
+import { checkMcpServerDynamicClientRegistration, createMcpServer, createStaticOAuthMcpServer, deleteMcpServer, updateMcpServerOAuthScopes } from "@/ee/features/chat/mcp/actions";
 import { ConnectMcpButton } from "@/ee/features/chat/mcp/components/connectMcpButton";
 import { ConnectorCard } from "@/ee/features/chat/mcp/components/connectorCard";
 import { useMcpToolMetadata } from "@/ee/features/chat/mcp/hooks/useMcpToolMetadata";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/chat/mcp/queryKeys";
-import { buildMcpScopeEntries, getMcpRequestedScopes, normalizeMcpRequestedScopes } from "@/ee/features/chat/mcp/scopeUtils";
+import { buildMcpOAuthScopeEntries, getMcpRequestedOAuthScopes, normalizeMcpRequestedOAuthScopes } from "@/ee/features/chat/mcp/oauthScopeUtils";
 import { pluralize } from "@/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -45,7 +45,7 @@ function clearCallbackParams() {
     window.history.replaceState({}, '', url.toString());
 }
 
-function scopesEqual(a: string[], b: string[]): boolean {
+function oauthScopesEqual(a: string[], b: string[]): boolean {
     return a.length === b.length && a.every((scope, index) => scope === b[index]);
 }
 
@@ -64,53 +64,53 @@ type WorkspaceConnectorStatus = {
 type PendingConnectorServer = {
     name: string;
     serverUrl: string;
-    discoveredScopes: string[];
+    discoveredOAuthScopes: string[];
 };
 
 interface OAuthScopesInputProps {
-    discoveredScopes: string[];
-    selectedScopes: string[];
-    customScopeInput: string;
-    customScopesInputId: string;
-    onSelectedScopesChange: (scopes: string[]) => void;
-    onCustomScopeInputChange: (value: string) => void;
-    onRemoveScope?: (scope: string) => void;
+    discoveredOAuthScopes: string[];
+    selectedOAuthScopes: string[];
+    customOAuthScopeInput: string;
+    customOAuthScopesInputId: string;
+    onSelectedOAuthScopesChange: (oauthScopes: string[]) => void;
+    onCustomOAuthScopeInputChange: (value: string) => void;
+    onRemoveOAuthScope?: (scope: string) => void;
 }
 
 function OAuthScopesInput({
-    discoveredScopes,
-    selectedScopes,
-    customScopeInput,
-    customScopesInputId,
-    onSelectedScopesChange,
-    onCustomScopeInputChange,
-    onRemoveScope,
+    discoveredOAuthScopes,
+    selectedOAuthScopes,
+    customOAuthScopeInput,
+    customOAuthScopesInputId,
+    onSelectedOAuthScopesChange,
+    onCustomOAuthScopeInputChange,
+    onRemoveOAuthScope,
 }: OAuthScopesInputProps) {
-    const [scopeSearchInput, setScopeSearchInput] = useState("");
-    const selectedScopeSet = new Set(selectedScopes);
-    const requestedScopes = getMcpRequestedScopes(selectedScopes, customScopeInput);
-    const filteredScopes = useMemo(() => {
-        const query = scopeSearchInput.trim().toLowerCase();
+    const [oauthScopeSearchInput, setOAuthScopeSearchInput] = useState("");
+    const selectedOAuthScopeSet = new Set(selectedOAuthScopes);
+    const requestedOAuthScopes = getMcpRequestedOAuthScopes(selectedOAuthScopes, customOAuthScopeInput);
+    const filteredOAuthScopes = useMemo(() => {
+        const query = oauthScopeSearchInput.trim().toLowerCase();
         if (!query) {
-            return discoveredScopes;
+            return discoveredOAuthScopes;
         }
 
-        return discoveredScopes.filter((scope) => scope.toLowerCase().includes(query));
-    }, [discoveredScopes, scopeSearchInput]);
+        return discoveredOAuthScopes.filter((scope) => scope.toLowerCase().includes(query));
+    }, [discoveredOAuthScopes, oauthScopeSearchInput]);
 
     const handleCheckedChange = (scope: string, checked: boolean) => {
-        onSelectedScopesChange(checked
-            ? normalizeMcpRequestedScopes([...selectedScopes, scope])
-            : selectedScopes.filter((selectedScope) => selectedScope !== scope));
+        onSelectedOAuthScopesChange(checked
+            ? normalizeMcpRequestedOAuthScopes([...selectedOAuthScopes, scope])
+            : selectedOAuthScopes.filter((selectedScope) => selectedScope !== scope));
     };
 
     const handleSelectAll = () => {
-        onSelectedScopesChange(normalizeMcpRequestedScopes([...selectedScopes, ...filteredScopes]));
+        onSelectedOAuthScopesChange(normalizeMcpRequestedOAuthScopes([...selectedOAuthScopes, ...filteredOAuthScopes]));
     };
 
     const handleClear = () => {
-        onSelectedScopesChange([]);
-        onCustomScopeInputChange("");
+        onSelectedOAuthScopesChange([]);
+        onCustomOAuthScopeInputChange("");
     };
 
     return (
@@ -118,50 +118,50 @@ function OAuthScopesInput({
             <div className="flex items-center justify-between gap-3">
                 <div>
                     <Label>OAuth scopes</Label>
-                    <p className="text-xs text-muted-foreground">{requestedScopes.length} requested</p>
+                    <p className="text-xs text-muted-foreground">{requestedOAuthScopes.length} requested</p>
                 </div>
                 <div className="flex items-center gap-1">
-                    {discoveredScopes.length > 0 && (
-                        <Button type="button" variant="ghost" size="sm" onClick={handleSelectAll} disabled={filteredScopes.length === 0}>
-                            {scopeSearchInput.trim() ? "Select shown" : "Select all"}
+                    {discoveredOAuthScopes.length > 0 && (
+                        <Button type="button" variant="ghost" size="sm" onClick={handleSelectAll} disabled={filteredOAuthScopes.length === 0}>
+                            {oauthScopeSearchInput.trim() ? "Select shown" : "Select all"}
                         </Button>
                     )}
-                    <Button type="button" variant="ghost" size="sm" onClick={handleClear} disabled={requestedScopes.length === 0}>
+                    <Button type="button" variant="ghost" size="sm" onClick={handleClear} disabled={requestedOAuthScopes.length === 0}>
                         Clear
                     </Button>
                 </div>
             </div>
 
-            {discoveredScopes.length > 0 && (
+            {discoveredOAuthScopes.length > 0 && (
                 <div className="space-y-2">
                     <Input
-                        value={scopeSearchInput}
-                        onChange={(event) => setScopeSearchInput(event.target.value)}
+                        value={oauthScopeSearchInput}
+                        onChange={(event) => setOAuthScopeSearchInput(event.target.value)}
                         placeholder="Search scopes"
                         className="h-9"
                     />
                     <div className="max-h-56 overflow-y-auto rounded-md border">
-                        {filteredScopes.length > 0 ? (
-                            filteredScopes.map((scope) => (
+                        {filteredOAuthScopes.length > 0 ? (
+                            filteredOAuthScopes.map((scope) => (
                                 <div
                                     key={scope}
                                     className="flex min-h-9 items-center gap-2 border-b px-3 py-2 text-sm last:border-b-0 hover:bg-muted/50"
                                 >
                                     <label className="flex flex-1 cursor-pointer items-center gap-2">
                                         <Checkbox
-                                            checked={selectedScopeSet.has(scope)}
+                                            checked={selectedOAuthScopeSet.has(scope)}
                                             onCheckedChange={(checked) => handleCheckedChange(scope, checked === true)}
                                             aria-label={`Request ${scope}`}
                                         />
                                         <span className="break-all font-mono text-xs">{scope}</span>
                                     </label>
-                                    {onRemoveScope && (
+                                    {onRemoveOAuthScope && (
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="icon"
                                             className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                                            onClick={() => onRemoveScope(scope)}
+                                            onClick={() => onRemoveOAuthScope(scope)}
                                             aria-label={`Remove ${scope}`}
                                         >
                                             <Trash2Icon className="h-3.5 w-3.5" />
@@ -179,11 +179,11 @@ function OAuthScopesInput({
             )}
 
             <div className="space-y-2">
-                <Label htmlFor={customScopesInputId}>Custom scopes</Label>
+                <Label htmlFor={customOAuthScopesInputId}>Custom scopes</Label>
                 <Textarea
-                    id={customScopesInputId}
-                    value={customScopeInput}
-                    onChange={(event) => onCustomScopeInputChange(event.target.value)}
+                    id={customOAuthScopesInputId}
+                    value={customOAuthScopeInput}
+                    onChange={(event) => onCustomOAuthScopeInputChange(event.target.value)}
                     placeholder="e.g. repo, channels:read"
                     className="min-h-20 resize-y font-mono text-sm"
                 />
@@ -203,7 +203,7 @@ interface WorkspaceConnectorCardProps {
     isToolsError: boolean;
     onRetryTools: () => void;
     onCopyUrl: (serverUrl: string) => void;
-    onEditScopes: (server: McpConfigurationServer) => void;
+    onEditOAuthScopes: (server: McpConfigurationServer) => void;
     onEditToolPermissions: (server: McpConfigurationServer) => void;
     onDelete: (server: McpConfigurationServer) => void;
 }
@@ -219,7 +219,7 @@ function WorkspaceConnectorCard({
     isToolsError,
     onRetryTools,
     onCopyUrl,
-    onEditScopes,
+    onEditOAuthScopes,
     onEditToolPermissions,
     onDelete,
 }: WorkspaceConnectorCardProps) {
@@ -288,7 +288,7 @@ function WorkspaceConnectorCard({
                             </DropdownMenuItem>
                             {isAskAgentAvailable && (
                                 <>
-                                    <DropdownMenuItem onClick={() => onEditScopes(server)}>
+                                    <DropdownMenuItem onClick={() => onEditOAuthScopes(server)}>
                                         <KeyRoundIcon className="h-4 w-4 mr-2" />
                                         Edit OAuth scopes
                                     </DropdownMenuItem>
@@ -339,18 +339,18 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
     const [newServerUrl, setNewServerUrl] = useState("");
     const [isClientCredentialsDialogOpen, setIsClientCredentialsDialogOpen] = useState(false);
     const [pendingClientCredentialsServer, setPendingClientCredentialsServer] = useState<PendingConnectorServer | null>(null);
-    const [isScopeSelectionDialogOpen, setIsScopeSelectionDialogOpen] = useState(false);
-    const [pendingScopeSelectionServer, setPendingScopeSelectionServer] = useState<PendingConnectorServer | null>(null);
-    const [knownScopes, setKnownScopes] = useState<string[]>([]);
-    const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
-    const [customScopeInput, setCustomScopeInput] = useState("");
+    const [isOAuthScopeSelectionDialogOpen, setIsOAuthScopeSelectionDialogOpen] = useState(false);
+    const [pendingOAuthScopeSelectionServer, setPendingOAuthScopeSelectionServer] = useState<PendingConnectorServer | null>(null);
+    const [knownOAuthScopes, setKnownOAuthScopes] = useState<string[]>([]);
+    const [selectedOAuthScopes, setSelectedOAuthScopes] = useState<string[]>([]);
+    const [customOAuthScopeInput, setCustomOAuthScopeInput] = useState("");
     const [clientId, setClientId] = useState("");
     const [clientSecret, setClientSecret] = useState("");
     const [isCreating, setIsCreating] = useState(false);
-    const [isUpdatingScopes, setIsUpdatingScopes] = useState(false);
+    const [isUpdatingOAuthScopes, setIsUpdatingOAuthScopes] = useState(false);
     const [deletingServerId, setDeletingServerId] = useState<string | null>(null);
     const [serverToDelete, setServerToDelete] = useState<McpConfigurationServer | null>(null);
-    const [serverToEditScopes, setServerToEditScopes] = useState<McpConfigurationServer | null>(null);
+    const [serverToEditOAuthScopes, setServerToEditOAuthScopes] = useState<McpConfigurationServer | null>(null);
 
     const { data, isLoading, isError } = useQuery({
         queryKey: mcpQueryKeys.configuration,
@@ -399,28 +399,28 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         refetchTools,
         toolsByServerId,
     } = useMcpToolMetadata(data?.isAskAgentAvailable === true, connectedServerCount);
-    const editedScopeEntries = useMemo(() => buildMcpScopeEntries({
-        availableScopes: knownScopes,
-        requestedScopes: getMcpRequestedScopes(selectedScopes, customScopeInput),
-    }), [knownScopes, selectedScopes, customScopeInput]);
-    const currentEditedServerRequestedScopes = useMemo(() => (
-        normalizeMcpRequestedScopes(
-            serverToEditScopes?.scopes
+    const editedOAuthScopeEntries = useMemo(() => buildMcpOAuthScopeEntries({
+        availableOAuthScopes: knownOAuthScopes,
+        requestedOAuthScopes: getMcpRequestedOAuthScopes(selectedOAuthScopes, customOAuthScopeInput),
+    }), [knownOAuthScopes, selectedOAuthScopes, customOAuthScopeInput]);
+    const currentEditedServerRequestedOAuthScopes = useMemo(() => (
+        normalizeMcpRequestedOAuthScopes(
+            serverToEditOAuthScopes?.oauthScopes
                 .filter((entry) => entry.enabled)
                 .map((entry) => entry.scope) ?? [],
         )
-    ), [serverToEditScopes]);
-    const editedRequestedScopes = useMemo(() => (
-        normalizeMcpRequestedScopes(
-            editedScopeEntries
+    ), [serverToEditOAuthScopes]);
+    const editedRequestedOAuthScopes = useMemo(() => (
+        normalizeMcpRequestedOAuthScopes(
+            editedOAuthScopeEntries
                 .filter((entry) => entry.enabled)
                 .map((entry) => entry.scope),
         )
-    ), [editedScopeEntries]);
-    const scopeUpdateReauthConnectionCount = serverToEditScopes?.savedConnectionCount ?? 0;
-    const scopeUpdateRequiresReauth = !!serverToEditScopes &&
-        scopeUpdateReauthConnectionCount > 0 &&
-        !scopesEqual(currentEditedServerRequestedScopes, editedRequestedScopes);
+    ), [editedOAuthScopeEntries]);
+    const oauthScopeUpdateReauthConnectionCount = serverToEditOAuthScopes?.savedConnectionCount ?? 0;
+    const oauthScopeUpdateRequiresReauth = !!serverToEditOAuthScopes &&
+        oauthScopeUpdateReauthConnectionCount > 0 &&
+        !oauthScopesEqual(currentEditedServerRequestedOAuthScopes, editedRequestedOAuthScopes);
 
     const handleCreateDialogOpenChange = (open: boolean) => {
         setIsCreateDialogOpen(open);
@@ -435,9 +435,9 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         handleCreateDialogOpenChange(false);
     };
 
-    const resetScopeInputs = () => {
-        setSelectedScopes([]);
-        setCustomScopeInput("");
+    const resetOAuthScopeInputs = () => {
+        setSelectedOAuthScopes([]);
+        setCustomOAuthScopeInput("");
     };
 
     const handleCloseClientCredentialsDialog = () => {
@@ -445,33 +445,33 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         setPendingClientCredentialsServer(null);
         setClientId("");
         setClientSecret("");
-        resetScopeInputs();
+        resetOAuthScopeInputs();
     };
 
-    const handleCloseScopeSelectionDialog = () => {
-        setIsScopeSelectionDialogOpen(false);
-        setPendingScopeSelectionServer(null);
-        resetScopeInputs();
+    const handleCloseOAuthScopeSelectionDialog = () => {
+        setIsOAuthScopeSelectionDialogOpen(false);
+        setPendingOAuthScopeSelectionServer(null);
+        resetOAuthScopeInputs();
     };
 
-    const handleOpenEditScopesDialog = (server: McpConfigurationServer) => {
-        setServerToEditScopes(server);
-        setKnownScopes(normalizeMcpRequestedScopes(server.scopes.map((entry) => entry.scope)));
-        setSelectedScopes(normalizeMcpRequestedScopes(
-            server.scopes.filter((entry) => entry.enabled).map((entry) => entry.scope),
+    const handleOpenEditOAuthScopesDialog = (server: McpConfigurationServer) => {
+        setServerToEditOAuthScopes(server);
+        setKnownOAuthScopes(normalizeMcpRequestedOAuthScopes(server.oauthScopes.map((entry) => entry.scope)));
+        setSelectedOAuthScopes(normalizeMcpRequestedOAuthScopes(
+            server.oauthScopes.filter((entry) => entry.enabled).map((entry) => entry.scope),
         ));
-        setCustomScopeInput("");
+        setCustomOAuthScopeInput("");
     };
 
-    const handleCloseEditScopesDialog = () => {
-        setServerToEditScopes(null);
-        setKnownScopes([]);
-        resetScopeInputs();
+    const handleCloseEditOAuthScopesDialog = () => {
+        setServerToEditOAuthScopes(null);
+        setKnownOAuthScopes([]);
+        resetOAuthScopeInputs();
     };
 
-    const handleRemoveKnownScope = (scope: string) => {
-        setKnownScopes((currentScopes) => currentScopes.filter((currentScope) => currentScope !== scope));
-        setSelectedScopes((currentScopes) => currentScopes.filter((currentScope) => currentScope !== scope));
+    const handleRemoveKnownOAuthScope = (scope: string) => {
+        setKnownOAuthScopes((currentOAuthScopes) => currentOAuthScopes.filter((currentScope) => currentScope !== scope));
+        setSelectedOAuthScopes((currentOAuthScopes) => currentOAuthScopes.filter((currentScope) => currentScope !== scope));
     };
 
     const handleOpenCustomUrlDialog = () => {
@@ -502,8 +502,8 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                 serverUrl: pendingClientCredentialsServer.serverUrl,
                 clientId,
                 clientSecret,
-                requestedScopes: getMcpRequestedScopes(selectedScopes, customScopeInput),
-                availableScopes: pendingClientCredentialsServer.discoveredScopes,
+                requestedOAuthScopes: getMcpRequestedOAuthScopes(selectedOAuthScopes, customOAuthScopeInput),
+                availableOAuthScopes: pendingClientCredentialsServer.discoveredOAuthScopes,
             });
             if (isServiceError(result)) {
                 toast({ title: "Error", description: `Failed to add connector: ${result.message}`, variant: "destructive" });
@@ -520,7 +520,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
     };
 
     const handleCreateDynamicOAuthServer = async () => {
-        if (!pendingScopeSelectionServer) {
+        if (!pendingOAuthScopeSelectionServer) {
             toast({ title: "Error", description: "Missing connector details", variant: "destructive" });
             return;
         }
@@ -528,10 +528,10 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         setIsCreating(true);
         try {
             const result = await createMcpServer(
-                pendingScopeSelectionServer.name,
-                pendingScopeSelectionServer.serverUrl,
-                getMcpRequestedScopes(selectedScopes, customScopeInput),
-                pendingScopeSelectionServer.discoveredScopes,
+                pendingOAuthScopeSelectionServer.name,
+                pendingOAuthScopeSelectionServer.serverUrl,
+                getMcpRequestedOAuthScopes(selectedOAuthScopes, customOAuthScopeInput),
+                pendingOAuthScopeSelectionServer.discoveredOAuthScopes,
             );
             if (isServiceError(result)) {
                 toast({ title: "Error", description: `Failed to add connector: ${result.message}`, variant: "destructive" });
@@ -539,7 +539,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
             }
 
             await invalidateMcpConfigurationQueries(queryClient);
-            handleCloseScopeSelectionDialog();
+            handleCloseOAuthScopeSelectionDialog();
         } catch {
             toast({ title: "Error", description: "Failed to add connector.", variant: "destructive" });
         } finally {
@@ -570,28 +570,28 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                     return;
                 }
 
-                const discoveredScopes = normalizeMcpRequestedScopes(dcrSupport.scopesSupported);
+                const discoveredOAuthScopes = normalizeMcpRequestedOAuthScopes(dcrSupport.oauthScopesSupported);
                 if (dcrSupport.isKnown && !dcrSupport.supportsDcr) {
-                    resetScopeInputs();
+                    resetOAuthScopeInputs();
                     setPendingClientCredentialsServer({
                         name: displayName,
                         serverUrl: normalizedServerUrl,
-                        discoveredScopes,
+                        discoveredOAuthScopes,
                     });
                     setIsCreateDialogOpen(false);
                     setIsClientCredentialsDialogOpen(true);
                     return;
                 }
 
-                if (discoveredScopes.length > 0) {
-                    resetScopeInputs();
-                    setPendingScopeSelectionServer({
+                if (discoveredOAuthScopes.length > 0) {
+                    resetOAuthScopeInputs();
+                    setPendingOAuthScopeSelectionServer({
                         name: displayName,
                         serverUrl: normalizedServerUrl,
-                        discoveredScopes,
+                        discoveredOAuthScopes,
                     });
                     setIsCreateDialogOpen(false);
-                    setIsScopeSelectionDialogOpen(true);
+                    setIsOAuthScopeSelectionDialogOpen(true);
                     return;
                 }
             }
@@ -623,34 +623,34 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         });
     };
 
-    const handleUpdateScopes = async () => {
-        if (!serverToEditScopes) {
+    const handleUpdateOAuthScopes = async () => {
+        if (!serverToEditOAuthScopes) {
             toast({ title: "Error", description: "Missing connector details", variant: "destructive" });
             return;
         }
 
-        setIsUpdatingScopes(true);
+        setIsUpdatingOAuthScopes(true);
         try {
-            const result = await updateMcpServerScopes(
-                serverToEditScopes.id,
-                editedScopeEntries,
+            const result = await updateMcpServerOAuthScopes(
+                serverToEditOAuthScopes.id,
+                editedOAuthScopeEntries,
             );
             if (isServiceError(result)) {
-                toast({ title: "Error", description: `Failed to update scopes: ${result.message}`, variant: "destructive" });
+                toast({ title: "Error", description: `Failed to update OAuth scopes: ${result.message}`, variant: "destructive" });
                 return;
             }
 
             await invalidateMcpConfigurationQueries(queryClient);
-            handleCloseEditScopesDialog();
+            handleCloseEditOAuthScopesDialog();
             toast({
                 description: result.invalidatedConnectionCount > 0
                     ? `OAuth scopes updated. ${result.invalidatedConnectionCount} saved ${pluralize(result.invalidatedConnectionCount, "connection")} will need to reconnect.`
                     : "OAuth scopes updated.",
             });
         } catch {
-            toast({ title: "Error", description: "Failed to update scopes.", variant: "destructive" });
+            toast({ title: "Error", description: "Failed to update OAuth scopes.", variant: "destructive" });
         } finally {
-            setIsUpdatingScopes(false);
+            setIsUpdatingOAuthScopes(false);
         }
     };
 
@@ -796,7 +796,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                                     isToolsError={isToolsError}
                                     onRetryTools={() => { void refetchTools(); }}
                                     onCopyUrl={handleCopyUrl}
-                                    onEditScopes={handleOpenEditScopesDialog}
+                                    onEditOAuthScopes={handleOpenEditOAuthScopesDialog}
                                     onEditToolPermissions={(server) => router.push(`/settings/workspaceAskAgent/connectors/${server.id}/tools`)}
                                     onDelete={setServerToDelete}
                                 />
@@ -868,13 +868,13 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
             </Dialog>
 
             {/* OAuth scope selection dialog */}
-            <Dialog open={isScopeSelectionDialogOpen} onOpenChange={(open) => {
+            <Dialog open={isOAuthScopeSelectionDialogOpen} onOpenChange={(open) => {
                 if (!open) {
-                    handleCloseScopeSelectionDialog();
+                    handleCloseOAuthScopeSelectionDialog();
                     return;
                 }
 
-                setIsScopeSelectionDialogOpen(true);
+                setIsOAuthScopeSelectionDialogOpen(true);
             }}>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
@@ -884,23 +884,23 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                        {pendingScopeSelectionServer && (
+                        {pendingOAuthScopeSelectionServer && (
                             <div className="rounded-md border bg-muted/40 p-3">
-                                <p className="text-sm font-medium truncate">{pendingScopeSelectionServer.name}</p>
-                                <p className="text-sm text-muted-foreground truncate">{pendingScopeSelectionServer.serverUrl}</p>
+                                <p className="text-sm font-medium truncate">{pendingOAuthScopeSelectionServer.name}</p>
+                                <p className="text-sm text-muted-foreground truncate">{pendingOAuthScopeSelectionServer.serverUrl}</p>
                             </div>
                         )}
                         <OAuthScopesInput
-                            discoveredScopes={pendingScopeSelectionServer?.discoveredScopes ?? []}
-                            selectedScopes={selectedScopes}
-                            customScopeInput={customScopeInput}
-                            customScopesInputId="mcp-configuration-dynamic-oauth-scopes"
-                            onSelectedScopesChange={setSelectedScopes}
-                            onCustomScopeInputChange={setCustomScopeInput}
+                            discoveredOAuthScopes={pendingOAuthScopeSelectionServer?.discoveredOAuthScopes ?? []}
+                            selectedOAuthScopes={selectedOAuthScopes}
+                            customOAuthScopeInput={customOAuthScopeInput}
+                            customOAuthScopesInputId="mcp-configuration-dynamic-oauth-scopes"
+                            onSelectedOAuthScopesChange={setSelectedOAuthScopes}
+                            onCustomOAuthScopeInputChange={setCustomOAuthScopeInput}
                         />
                     </div>
                     <DialogFooter className="sm:justify-between">
-                        <Button variant="outline" onClick={handleCloseScopeSelectionDialog}>Cancel</Button>
+                        <Button variant="outline" onClick={handleCloseOAuthScopeSelectionDialog}>Cancel</Button>
                         <Button onClick={handleCreateDynamicOAuthServer} disabled={isCreating}>
                             {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                             Add
@@ -910,9 +910,9 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
             </Dialog>
 
             {/* Edit OAuth scopes dialog */}
-            <Dialog open={!!serverToEditScopes} onOpenChange={(open) => {
+            <Dialog open={!!serverToEditOAuthScopes} onOpenChange={(open) => {
                 if (!open) {
-                    handleCloseEditScopesDialog();
+                    handleCloseEditOAuthScopesDialog();
                     return;
                 }
             }}>
@@ -920,38 +920,38 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                     <DialogHeader>
                         <DialogTitle>Edit OAuth Scopes</DialogTitle>
                         <DialogDescription>
-                            Changing scopes clears saved member authorizations so users can reconnect with the updated scopes.
+                            Changing OAuth scopes clears saved member authorizations so users can reconnect with the updated scopes.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                        {serverToEditScopes && (
+                        {serverToEditOAuthScopes && (
                             <div className="rounded-md border bg-muted/40 p-3">
-                                <p className="text-sm font-medium truncate">{serverToEditScopes.name}</p>
-                                <p className="text-sm text-muted-foreground truncate">{serverToEditScopes.serverUrl}</p>
+                                <p className="text-sm font-medium truncate">{serverToEditOAuthScopes.name}</p>
+                                <p className="text-sm text-muted-foreground truncate">{serverToEditOAuthScopes.serverUrl}</p>
                             </div>
                         )}
                         <OAuthScopesInput
-                            discoveredScopes={knownScopes}
-                            selectedScopes={selectedScopes}
-                            customScopeInput={customScopeInput}
-                            customScopesInputId="mcp-configuration-edit-oauth-scopes"
-                            onSelectedScopesChange={setSelectedScopes}
-                            onCustomScopeInputChange={setCustomScopeInput}
-                            onRemoveScope={handleRemoveKnownScope}
+                            discoveredOAuthScopes={knownOAuthScopes}
+                            selectedOAuthScopes={selectedOAuthScopes}
+                            customOAuthScopeInput={customOAuthScopeInput}
+                            customOAuthScopesInputId="mcp-configuration-edit-oauth-scopes"
+                            onSelectedOAuthScopesChange={setSelectedOAuthScopes}
+                            onCustomOAuthScopeInputChange={setCustomOAuthScopeInput}
+                            onRemoveOAuthScope={handleRemoveKnownOAuthScope}
                         />
-                        {scopeUpdateRequiresReauth && (
+                        {oauthScopeUpdateRequiresReauth && (
                             <div className="flex items-start gap-2 rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
                                 <AlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
                                 <p>
-                                    Applying this change will require <span className="font-medium text-destructive">{scopeUpdateReauthConnectionCount} saved {pluralize(scopeUpdateReauthConnectionCount, "connection")}</span> to reconnect.
+                                    Applying this change will require <span className="font-medium text-destructive">{oauthScopeUpdateReauthConnectionCount} saved {pluralize(oauthScopeUpdateReauthConnectionCount, "connection")}</span> to reconnect.
                                 </p>
                             </div>
                         )}
                     </div>
                     <DialogFooter className="sm:justify-between">
-                        <Button variant="outline" onClick={handleCloseEditScopesDialog}>Cancel</Button>
-                        <Button onClick={handleUpdateScopes} disabled={isUpdatingScopes}>
-                            {isUpdatingScopes && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                        <Button variant="outline" onClick={handleCloseEditOAuthScopesDialog}>Cancel</Button>
+                        <Button onClick={handleUpdateOAuthScopes} disabled={isUpdatingOAuthScopes}>
+                            {isUpdatingOAuthScopes && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                             Apply
                         </Button>
                     </DialogFooter>
@@ -1037,12 +1037,12 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                             />
                         </div>
                         <OAuthScopesInput
-                            discoveredScopes={pendingClientCredentialsServer?.discoveredScopes ?? []}
-                            selectedScopes={selectedScopes}
-                            customScopeInput={customScopeInput}
-                            customScopesInputId="mcp-configuration-static-oauth-scopes"
-                            onSelectedScopesChange={setSelectedScopes}
-                            onCustomScopeInputChange={setCustomScopeInput}
+                            discoveredOAuthScopes={pendingClientCredentialsServer?.discoveredOAuthScopes ?? []}
+                            selectedOAuthScopes={selectedOAuthScopes}
+                            customOAuthScopeInput={customOAuthScopeInput}
+                            customOAuthScopesInputId="mcp-configuration-static-oauth-scopes"
+                            onSelectedOAuthScopesChange={setSelectedOAuthScopes}
+                            onCustomOAuthScopeInputChange={setCustomOAuthScopeInput}
                         />
                     </div>
                     <DialogFooter className="sm:justify-between">

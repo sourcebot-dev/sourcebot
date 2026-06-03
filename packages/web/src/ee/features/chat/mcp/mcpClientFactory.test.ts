@@ -39,7 +39,7 @@ function makeUserServer(overrides: {
     tokens?: OAuthTokens;
     tokensExpiresAt?: Date | null;
     orgId?: number;
-    scopes?: Array<{ scope: string; enabled: boolean }>;
+    oauthScopes?: Array<{ scope: string; enabled: boolean }>;
 }) {
     return {
         serverId: 'srv-1',
@@ -52,7 +52,7 @@ function makeUserServer(overrides: {
             sanitizedName: 'myserver',
             serverUrl: 'https://example.com/mcp',
             updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-            scopes: overrides.scopes ?? [],
+            oauthScopes: overrides.oauthScopes ?? [],
         },
     };
 }
@@ -109,7 +109,7 @@ describe('getConnectedMcpClients', () => {
             sanitizedName: 'myserver',
             serverUrl: 'https://example.com/mcp',
             serverUpdatedAt: new Date('2026-01-01T00:00:00.000Z'),
-            requestedScopes: [],
+            requestedOAuthScopes: [],
         });
     });
 
@@ -117,7 +117,7 @@ describe('getConnectedMcpClients', () => {
         prisma.userMcpServer.findMany.mockResolvedValue([
             makeUserServer({
                 tokens: TOKEN_WITH_REFRESH,
-                scopes: [
+                oauthScopes: [
                     { scope: 'repo', enabled: true },
                     { scope: 'admin:org', enabled: false },
                 ],
@@ -127,7 +127,7 @@ describe('getConnectedMcpClients', () => {
         await getConnectedMcpClients(prisma, 'user-1', 1);
 
         expect(PrismaOAuthClientProvider).toHaveBeenCalledWith(expect.objectContaining({
-            requestedScopes: ['repo'],
+            requestedOAuthScopes: ['repo'],
         }));
     });
 });

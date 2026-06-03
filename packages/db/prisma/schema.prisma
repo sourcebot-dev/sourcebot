@@ -691,7 +691,7 @@ model McpServer {
 
   userMcpServers  UserMcpServer[]
   tools           McpServerTool[]
-  scopes          McpServerScope[]
+  oauthScopes     McpServerOAuthScope[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -701,7 +701,7 @@ model McpServer {
 }
 
 /// OAuth scope configuration for an MCP server.
-model McpServerScope {
+model McpServerOAuthScope {
   mcpServer   McpServer @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
   mcpServerId String
   scope       String

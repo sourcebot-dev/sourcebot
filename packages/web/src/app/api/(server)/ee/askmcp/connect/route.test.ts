@@ -87,7 +87,7 @@ function createPrismaMock() {
                 sanitizedName: 'linear',
                 serverUrl: 'https://mcp.linear.app/mcp',
                 clientInfoSource: McpServerClientInfoSource.DYNAMIC,
-                scopes: [{ scope: 'repo', enabled: true }],
+                oauthScopes: [{ scope: 'repo', enabled: true }],
             }),
         },
         userMcpServer: {

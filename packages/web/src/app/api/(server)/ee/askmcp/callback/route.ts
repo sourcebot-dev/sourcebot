@@ -15,7 +15,7 @@ import { getExternalMcpErrorLogFields } from '@/ee/features/chat/mcp/externalMcp
 import { getMcpOAuthReturnToFromState } from '@/ee/features/chat/mcp/mcpOAuthReturnTo';
 import { captureEvent } from '@/lib/posthog';
 import { getMcpAuthMode, getMcpConnectorEntryPoint, getMcpConnectorFailureReason } from '@/ee/features/chat/mcp/analytics';
-import { getEnabledMcpScopeNames } from '@/ee/features/chat/mcp/scopeUtils';
+import { getEnabledMcpOAuthScopeNames } from '@/ee/features/chat/mcp/oauthScopeUtils';
 
 const logger = createLogger('mcp-oauth-callback');
 const reconnectMessage = 'This connector authorization could not be completed. Please reconnect the connector.';
@@ -82,7 +82,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
                         name: true,
                         serverUrl: true,
                         clientInfoSource: true,
-                        scopes: {
+                        oauthScopes: {
                             where: { enabled: true },
                             select: { scope: true, enabled: true },
                         },
@@ -173,7 +173,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
         orgId: userServer.server.orgId,
         userId: session.user.id,
         callbackUrl: getMcpOAuthCallbackUrl(),
-        requestedScopes: getEnabledMcpScopeNames(userServer.server.scopes),
+        requestedOAuthScopes: getEnabledMcpOAuthScopeNames(userServer.server.oauthScopes),
     });
 
     let result: Awaited<ReturnType<typeof mcpAuth>>;

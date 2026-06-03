@@ -23,7 +23,7 @@ export const GET = apiHandler(async (_request: NextRequest) => {
                     name: true,
                     sanitizedName: true,
                     serverUrl: true,
-                    scopes: {
+                    oauthScopes: {
                         orderBy: { scope: 'asc' },
                         select: {
                             scope: true,

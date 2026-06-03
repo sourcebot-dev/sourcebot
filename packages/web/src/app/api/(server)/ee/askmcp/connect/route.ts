@@ -19,7 +19,7 @@ import { StatusCodes } from 'http-status-codes';
 import { normalizeMcpOAuthReturnTo } from '@/ee/features/chat/mcp/mcpOAuthReturnTo';
 import { captureEvent } from '@/lib/posthog';
 import { getMcpAuthMode, getMcpConnectorEntryPoint, getMcpConnectorFailureReason } from '@/ee/features/chat/mcp/analytics';
-import { getEnabledMcpScopeNames } from '@/ee/features/chat/mcp/scopeUtils';
+import { getEnabledMcpOAuthScopeNames } from '@/ee/features/chat/mcp/oauthScopeUtils';
 
 const bodySchema = z.object({
     serverId: z.string(),
@@ -78,7 +78,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                 id: true,
                 serverUrl: true,
                 clientInfoSource: true,
-                scopes: {
+                oauthScopes: {
                     where: { enabled: true },
                     select: { scope: true, enabled: true },
                 },
@@ -145,7 +145,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
                     callbackUrl: getMcpOAuthCallbackUrl(),
                     callbackReturnTo,
                     allowClientRegistration: true,
-                    requestedScopes: getEnabledMcpScopeNames(mcpServer.scopes),
+                    requestedOAuthScopes: getEnabledMcpOAuthScopeNames(mcpServer.oauthScopes),
                 });
 
                 let authResult: Awaited<ReturnType<typeof mcpAuth>>;

@@ -45,7 +45,7 @@ function createPrismaMock() {
                     name: 'Linear',
                     sanitizedName: 'linear',
                     serverUrl: 'https://mcp.linear.app/mcp',
-                    scopes: [
+                    oauthScopes: [
                         { scope: 'read:user', enabled: true },
                         { scope: 'repo', enabled: false },
                     ],
@@ -55,7 +55,7 @@ function createPrismaMock() {
                     name: 'Sentry',
                     sanitizedName: 'sentry',
                     serverUrl: 'https://mcp.sentry.dev/mcp',
-                    scopes: [],
+                    oauthScopes: [],
                 },
             ]),
         },
@@ -111,7 +111,7 @@ describe('GET /api/ee/askmcp/configuration', () => {
                 name: true,
                 sanitizedName: true,
                 serverUrl: true,
-                scopes: {
+                oauthScopes: {
                     orderBy: { scope: 'asc' },
                     select: {
                         scope: true,
@@ -157,7 +157,7 @@ describe('GET /api/ee/askmcp/configuration', () => {
                 {
                     id: 'server-1',
                     name: 'Linear',
-                    scopes: [
+                    oauthScopes: [
                         { scope: 'read:user', enabled: true },
                         { scope: 'repo', enabled: false },
                     ],

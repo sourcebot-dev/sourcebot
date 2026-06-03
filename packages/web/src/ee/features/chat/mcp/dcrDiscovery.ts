@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { normalizeMcpRequestedScopes } from './scopeUtils';
+import { normalizeMcpRequestedOAuthScopes } from './oauthScopeUtils';
 
 const MCP_PROTOCOL_VERSION = '2025-11-25';
 
@@ -20,7 +20,7 @@ export interface McpServerDcrSupport {
     isKnown: boolean;
     authorizationServerUrl?: string;
     registrationEndpoint?: string;
-    scopesSupported: string[];
+    oauthScopesSupported: string[];
 }
 
 function getMetadataHeaders() {
@@ -70,8 +70,8 @@ function normalizeUrlForOutput(url: URL): string {
     return url.toString().replace(/\/$/, '');
 }
 
-function mergeScopes(...scopeLists: Array<string[] | undefined>): string[] {
-    return normalizeMcpRequestedScopes(scopeLists.flatMap((scopes) => scopes ?? []));
+function mergeOAuthScopes(...oauthScopeLists: Array<string[] | undefined>): string[] {
+    return normalizeMcpRequestedOAuthScopes(oauthScopeLists.flatMap((scopes) => scopes ?? []));
 }
 
 function mergeProtectedResourceMetadata(
@@ -86,7 +86,7 @@ function mergeProtectedResourceMetadata(
         ...fallbackMetadata,
         ...preferredMetadata,
         authorization_servers: preferredMetadata.authorization_servers ?? fallbackMetadata.authorization_servers,
-        scopes_supported: mergeScopes(preferredMetadata.scopes_supported, fallbackMetadata.scopes_supported),
+        scopes_supported: mergeOAuthScopes(preferredMetadata.scopes_supported, fallbackMetadata.scopes_supported),
     };
 }
 
@@ -188,7 +188,7 @@ async function discoverAuthorizationServerMetadata(authorizationServerUrl: URL, 
 export async function checkMcpServerDcrSupport(serverUrl: string, fetchFn: typeof fetch = fetch): Promise<McpServerDcrSupport> {
     const parsedServerUrl = new URL(serverUrl);
     const protectedResourceMetadata = await discoverProtectedResourceMetadata(parsedServerUrl, fetchFn);
-    let scopesSupported = normalizeMcpRequestedScopes(protectedResourceMetadata?.scopes_supported ?? []);
+    let oauthScopesSupported = normalizeMcpRequestedOAuthScopes(protectedResourceMetadata?.scopes_supported ?? []);
     const authorizationServerUrls = protectedResourceMetadata?.authorization_servers?.length
         ? protectedResourceMetadata.authorization_servers
         : [parsedServerUrl.toString()];
@@ -204,14 +204,14 @@ export async function checkMcpServerDcrSupport(serverUrl: string, fetchFn: typeo
         }
 
         foundAuthorizationServerMetadata = true;
-        scopesSupported = mergeScopes(scopesSupported, authorizationServerMetadata.scopes_supported);
+        oauthScopesSupported = mergeOAuthScopes(oauthScopesSupported, authorizationServerMetadata.scopes_supported);
         if (authorizationServerMetadata.registration_endpoint) {
             return {
                 supportsDcr: true,
                 isKnown: true,
                 authorizationServerUrl: normalizeUrlForOutput(authorizationServerUrl),
                 registrationEndpoint: authorizationServerMetadata.registration_endpoint,
-                scopesSupported,
+                oauthScopesSupported,
             };
         }
     }
@@ -223,7 +223,7 @@ export async function checkMcpServerDcrSupport(serverUrl: string, fetchFn: typeo
             authorizationServerUrl: firstAuthorizationServerUrl
                 ? normalizeUrlForOutput(firstAuthorizationServerUrl)
                 : undefined,
-            scopesSupported,
+            oauthScopesSupported,
         };
     }
 
@@ -233,6 +233,6 @@ export async function checkMcpServerDcrSupport(serverUrl: string, fetchFn: typeo
         authorizationServerUrl: firstAuthorizationServerUrl
             ? normalizeUrlForOutput(firstAuthorizationServerUrl)
             : undefined,
-        scopesSupported,
+        oauthScopesSupported,
     };
 }
