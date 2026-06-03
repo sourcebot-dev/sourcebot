@@ -33,6 +33,7 @@ export function ChatEntitlementMessage({
                 title={title}
                 description={description}
                 className="w-full max-w-2xl"
+                loadingVariant="spinner"
             />
         </div>
     )
