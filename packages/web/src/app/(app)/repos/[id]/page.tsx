@@ -1,14 +1,11 @@
-import { getCurrentUserRole } from "@/actions"
-import { sew } from "@/middleware/sew"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { env } from "@sourcebot/shared"
-import { ServiceErrorException } from "@/lib/serviceError"
-import { cn, getCodeHostInfoForRepo, isServiceError } from "@/lib/utils"
-import { withOptionalAuth } from "@/middleware/withAuth"
+import { cn, getCodeHostInfoForRepo } from "@/lib/utils"
+import { authenticatedPage, type OptionalAuthOptions } from "@/middleware/authenticatedPage"
 import { getConfigSettings, repoMetadataSchema } from "@sourcebot/shared"
 import { ExternalLink, Info } from "lucide-react"
 import Image from "next/image"
@@ -21,11 +18,27 @@ import { RepoBranchesTable } from "../components/repoBranchesTable"
 import { RepoJobsTable } from "../components/repoJobsTable"
 import { OrgRole } from "@sourcebot/db"
 
-export default async function RepoDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params
-    const repo = await getRepoWithJobs(Number.parseInt(id))
-    if (isServiceError(repo)) {
-        throw new ServiceErrorException(repo);
+type RepoDetailPageProps = {
+    params: Promise<{ id: string }>
+}
+
+export default authenticatedPage<RepoDetailPageProps, OptionalAuthOptions>(async ({ org, role, prisma }, props) => {
+    const { id } = await props.params;
+    const repo = await prisma.repo.findUnique({
+        where: {
+            id: Number.parseInt(id),
+            orgId: org.id,
+        },
+        include: {
+            jobs: {
+                orderBy: {
+                    createdAt: 'desc',
+                },
+            },
+        },
+    });
+    if (!repo) {
+        notFound();
     }
 
     const codeHostInfo = getCodeHostInfoForRepo({
@@ -51,11 +64,6 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
     })();
 
     const repoMetadata = repoMetadataSchema.parse(repo.metadata);
-
-    const userRole = await getCurrentUserRole();
-    if (isServiceError(userRole)) {
-        throw new ServiceErrorException(userRole);
-    }
 
     return (
         <>
@@ -180,36 +188,11 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ id:
                         <RepoJobsTable
                             data={repo.jobs}
                             repoId={repo.id}
-                            isIndexButtonVisible={userRole === OrgRole.OWNER}
+                            isIndexButtonVisible={role === OrgRole.OWNER}
                         />
                     </Suspense>
                 </CardContent>
             </Card>
         </>
-    )
-}
-
-const getRepoWithJobs = async (repoId: number) => sew(() =>
-    withOptionalAuth(async ({ prisma, org }) => {
-
-        const repo = await prisma.repo.findUnique({
-            where: {
-                id: repoId,
-                orgId: org.id,
-            },
-            include: {
-                jobs: {
-                    orderBy: {
-                        createdAt: 'desc'
-                    },
-                }
-            },
-        });
-
-        if (!repo) {
-            return notFound();
-        }
-
-        return repo;
-    })
-);
+    );
+}, { allowAnonymous: true });

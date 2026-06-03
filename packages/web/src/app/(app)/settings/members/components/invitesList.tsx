@@ -11,7 +11,7 @@ import { createPathWithQueryParams, isServiceError } from "@/lib/utils";
 import { UserAvatar } from "@/components/userAvatar";
 import { Copy, MoreVertical, Search } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-import { cancelInvite } from "@/actions";
+import { cancelInvite } from "@/features/userManagement/actions";
 import { useRouter } from "next/navigation";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 interface Invite {

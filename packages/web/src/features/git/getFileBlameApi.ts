@@ -1,5 +1,4 @@
 import { sew } from "@/middleware/sew";
-import { getAuditService } from '@/ee/features/audit/factory';
 import { ServiceError, notFound, fileNotFound, invalidGitRef, unresolvedGitRef, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuth } from '@/middleware/withAuth';
 import { getRepoPath } from '@sourcebot/shared';
@@ -8,6 +7,7 @@ import simpleGit from 'simple-git';
 import type z from 'zod';
 import { isGitRefValid, isPathValid } from './utils';
 import { fileBlameRequestSchema, fileBlameResponseSchema } from './schemas';
+import { createAudit } from "@/ee/features/audit/audit";
 
 export { fileBlameRequestSchema, fileBlameResponseSchema } from './schemas';
 export type FileBlameRequest = z.infer<typeof fileBlameRequestSchema>;
@@ -161,7 +161,7 @@ export const getFileBlame = async ({ path: filePath, repo: repoName, ref }: File
         withOptionalAuth(async ({ org, prisma, user }) => {
             if (user) {
                 const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
-                await getAuditService().createAudit({
+                await createAudit({
                     action: 'user.fetched_file_blame',
                     actor: { id: user.id, type: 'user' },
                     target: { id: org.id.toString(), type: 'org' },

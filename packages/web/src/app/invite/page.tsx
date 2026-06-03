@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch";
-import { getIdentityProviderMetadata, IdentityProviderMetadata } from "@/lib/identityProviders";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
 
 interface InvitePageProps {
@@ -29,8 +28,7 @@ export default async function InvitePage(props: InvitePageProps) {
 
     const session = await auth();
     if (!session) {
-        const providers = getIdentityProviderMetadata();
-        return <WelcomeCard inviteLinkId={inviteLinkId} providers={providers} />;
+        return <WelcomeCard inviteLinkId={inviteLinkId} />;
     }
 
     const membership = await __unsafePrisma.userToOrg.findUnique({
@@ -56,7 +54,7 @@ export default async function InvitePage(props: InvitePageProps) {
     );
 }
 
-function WelcomeCard({ inviteLinkId, providers }: { inviteLinkId: string; providers: IdentityProviderMetadata[] }) {
+function WelcomeCard({ inviteLinkId }: { inviteLinkId: string; }) {
     return (    
         <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--accent)]/30 flex items-center justify-center p-6">
             <Card className="w-full max-w-md">
@@ -74,7 +72,6 @@ function WelcomeCard({ inviteLinkId, providers }: { inviteLinkId: string; provid
                     </div>  
 
                     <AuthMethodSelector
-                        providers={providers}
                         callbackUrl={`/invite?id=${inviteLinkId}`}
                         context="signup"
                         securityNoticeClosable={true}

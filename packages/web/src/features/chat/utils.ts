@@ -1,5 +1,6 @@
 import { BrowseHighlightRange, getBrowsePath } from "@/app/(app)/browse/hooks/utils";
-import { CreateUIMessage, TextUIPart, UIMessagePart } from "ai";
+import { CreateUIMessage, isToolUIPart, TextUIPart, UIMessagePart } from "ai";
+import type { ChatStatus, DynamicToolUIPart, ToolUIPart } from "ai";
 import { Descendant, Editor, Point, Range, Transforms } from "slate";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
 import {
@@ -18,6 +19,11 @@ import {
     Source,
 } from "./types";
 
+export type SBChatToolPart = (ToolUIPart<SBChatMessageToolTypes> | DynamicToolUIPart) & SBChatMessagePart;
+
+export const isSBChatToolPart = (part: SBChatMessagePart): part is SBChatToolPart => {
+    return isToolUIPart(part);
+};
 
 export const insertMention = (editor: CustomEditor, data: MentionData, target?: Range | null) => {
     const mention: MentionElement = {
@@ -161,11 +167,16 @@ export const getAllMentionElements = (children: Descendant[]): MentionElement[] 
     });
 }
 
+export const clearEditorHistory = (editor: CustomEditor) => {
+    // slate-history exposes `history` publicly, but does not provide a clear API.
+    editor.history = { redos: [], undos: [] };
+}
+
 // @see: https://stackoverflow.com/a/74102147
 export const resetEditor = (editor: CustomEditor) => {
     const point = { path: [0, 0], offset: 0 }
     editor.selection = { anchor: point, focus: point };
-    editor.history = { redos: [], undos: [] };
+    clearEditorHistory(editor);
     editor.children = [{
         type: "paragraph",
         children: [{ text: "" }]
@@ -176,7 +187,7 @@ export const addLineNumbers = (source: string, lineOffset = 1) => {
     return source.split('\n').map((line, index) => `${index + lineOffset}: ${line}`).join('\n');
 }
 
-export const createUIMessage = (text: string, mentions: MentionData[], selectedSearchScopes: SearchScope[]): CreateUIMessage<SBChatMessage> => {
+export const createUIMessage = (text: string, mentions: MentionData[], selectedSearchScopes: SearchScope[], disabledMcpServerIds: string[] = []): CreateUIMessage<SBChatMessage> => {
     // Converts applicable mentions into sources.
     const sources: Source[] = mentions
         .map((mention) => {
@@ -209,6 +220,7 @@ export const createUIMessage = (text: string, mentions: MentionData[], selectedS
         ],
         metadata: {
             selectedSearchScopes,
+            disabledMcpServerIds,
         },
     }
 }
@@ -319,6 +331,51 @@ export const groupMessageIntoSteps = (parts: SBChatMessagePart[]) => {
     return steps;
 }
 
+export const getLastStepParts = (parts: SBChatMessagePart[]): SBChatMessagePart[] => {
+    return groupMessageIntoSteps(parts).at(-1) ?? parts;
+}
+
+export const getTurnProgressState = ({
+    messages,
+    status,
+}: {
+    messages: SBChatMessage[];
+    status: ChatStatus;
+}) => {
+    const isNetworkActive = status === 'submitted' || status === 'streaming';
+    const latestMessage = messages.at(-1);
+    const latestAssistantMessage = latestMessage?.role === 'assistant' ? latestMessage : undefined;
+    const latestStepToolParts = getLastStepParts(latestAssistantMessage?.parts ?? [])
+        .filter(isSBChatToolPart);
+
+    const hasPendingToolApproval = latestStepToolParts.some(
+        (part) => part.state === 'approval-requested'
+    );
+    const hasApprovalContinuationReady =
+        latestStepToolParts.some((part) => part.state === 'approval-responded') &&
+        latestStepToolParts.every((part) =>
+            part.state === 'output-available' ||
+            part.state === 'output-error' ||
+            part.state === 'approval-responded'
+        );
+
+    const isReady = status === 'ready';
+    const isTurnInProgress =
+        isNetworkActive ||
+        (isReady && (hasPendingToolApproval || hasApprovalContinuationReady));
+    const isAwaitingToolApproval = isReady && hasPendingToolApproval;
+    const shouldGuardNavigation = isNetworkActive || (isReady && hasApprovalContinuationReady);
+
+    return {
+        isNetworkActive,
+        hasPendingToolApproval,
+        hasApprovalContinuationReady,
+        isAwaitingToolApproval,
+        isTurnInProgress,
+        shouldGuardNavigation,
+    };
+}
+
 // LLMs like to not follow instructions... this takes care of some common mistakes they tend to make.
 export const repairReferences = (text: string): string => {
     return text
@@ -342,7 +399,7 @@ export const repairReferences = (text: string): string => {
 
 // Attempts to find the part of the assistant's message
 // that contains the answer.
-export const getAnswerPartFromAssistantMessage = (message: SBChatMessage, isStreaming: boolean): TextUIPart | undefined => {
+export const getAnswerPartFromAssistantMessage = (message: SBChatMessage, isTurnInProgress: boolean): TextUIPart | undefined => {
     const lastTextPart = message.parts
         .findLast((part) => part.type === 'text')
 
@@ -356,8 +413,8 @@ export const getAnswerPartFromAssistantMessage = (message: SBChatMessage, isStre
     }
 
     // If the agent did not include the answer tag, then fallback to using the last text part.
-    // Only do this when we are no longer streaming since the agent may still be thinking.
-    if (!isStreaming && lastTextPart) {
+    // Only do this when the turn is complete since the agent may still be thinking or waiting.
+    if (!isTurnInProgress && lastTextPart) {
         return lastTextPart;
     }
 

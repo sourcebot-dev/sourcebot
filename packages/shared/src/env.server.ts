@@ -14,6 +14,7 @@ const booleanSchema = z.enum(["true", "false"]);
 // coerce helps us convert them to numbers.
 // @see: https://zod.dev/?id=coercion-for-primitives
 const numberSchema = z.coerce.number();
+const maxTimerDelayMs = 2_147_483_647;
 
 const ajv = new Ajv({
     validateFormats: false,
@@ -221,6 +222,10 @@ const options = {
         // Misc UI flags
         SECURITY_CARD_ENABLED: booleanSchema.default('false'),
 
+        // Changelog feed
+        CHANGELOG_ENABLED: booleanSchema.default('true'),
+        CHANGELOG_FEED_URL: z.string().url().default('https://static.sourcebot.dev/changelog/index.json'),
+
         // EE License
         SOURCEBOT_EE_LICENSE_KEY: z.string().optional(),
         SOURCEBOT_EE_AUDIT_LOGGING_ENABLED: booleanSchema.default('true'),
@@ -278,6 +283,7 @@ const options = {
          */
         SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.optional(),
         SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(100),
+        SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS: numberSchema.int().positive().max(maxTimerDelayMs).default(60000),
 
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
         DEBUG_ENABLE_REACT_SCAN: booleanSchema.default('false'),
@@ -311,6 +317,7 @@ const options = {
 
         SOURCEBOT_ENCRYPTION_KEY: z.string(),
         SOURCEBOT_INSTALL_ID: z.string().default("unknown"),
+        SOURCEBOT_LIGHTHOUSE_URL: z.string().url().default("https://deployments.sourcebot.dev"),
 
         FALLBACK_GITHUB_CLOUD_TOKEN: z.string().optional(),
         FALLBACK_GITLAB_CLOUD_TOKEN: z.string().optional(),

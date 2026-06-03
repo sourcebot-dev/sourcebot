@@ -149,7 +149,7 @@ The button will show a spinner while the sync is in progress and display a confi
 
 # Overriding enforcement per connection
 
-Each [connection](/docs/connections/overview) supports two flags that control permission enforcement for that connection's repositories:
+Each [connection](/docs/connections/indexing-your-code) supports two flags that control permission enforcement for that connection's repositories:
 
 - **`enforcePermissions`**: Controls whether repository permissions are enforced for the connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`.
 - **`enforcePermissionsForPublicRepos`**: Controls whether repository permissions are enforced for public repositories in the connection. When true, public repositories are only visible to users with a linked account for the connection's code host. When false, public repositories are visible to all users. Has no effect when `enforcePermissions` is false. Defaults to false.

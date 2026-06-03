@@ -1,7 +1,8 @@
 'use server';
 
 import { sew } from "@/middleware/sew";
-import { getConfiguredLanguageModels, getAISDKLanguageModelAndOptions } from "../chat/utils.server";
+import { getConfiguredLanguageModels } from "../chat/utils.server";
+import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError } from "@/lib/serviceError";
 import { withOptionalAuth } from "@/middleware/withAuth";

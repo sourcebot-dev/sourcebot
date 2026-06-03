@@ -5,12 +5,13 @@ import { SearchModeSelector } from "@/app/(app)/components/searchModeSelector";
 import { Separator } from "@/components/ui/separator";
 import { ChatBox } from "@/features/chat/components/chatBox";
 import { ChatBoxToolbar } from "@/features/chat/components/chatBox/chatBoxToolbar";
-import { LoginModal } from "@/app/components/loginModal";
 import { NotConfiguredErrorBanner } from "@/features/chat/components/notConfiguredErrorBanner";
 import { LanguageModelInfo, RepoSearchScope } from "@/features/chat/types";
 import { useCreateNewChatThread } from "@/features/chat/useCreateNewChatThread";
+import { DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY } from "@/features/chat/constants";
 import { getRepoImageSrc } from '@/lib/utils';
 import { useMemo, useState } from "react";
+import { useLocalStorage } from "usehooks-ts";
 
 interface LandingPageProps {
     languageModels: LanguageModelInfo[];
@@ -29,8 +30,9 @@ export const LandingPage = ({
     repoId,
     isAuthenticated,
 }: LandingPageProps) => {
-    const { createNewChatThread, isLoading, loginWall } = useCreateNewChatThread({ isAuthenticated });
+    const { createNewChatThread, isLoading } = useCreateNewChatThread();
     const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
+    const [disabledMcpServerIds, setDisabledMcpServerIds] = useLocalStorage<string[]>(DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY, [], { initializeWithValue: false });
     const isChatBoxDisabled = languageModels.length === 0;
 
     const selectedSearchScopes = useMemo(() => [
@@ -69,7 +71,7 @@ export const LandingPage = ({
                     <div className="border rounded-md w-full shadow-sm">
                         <ChatBox
                             onSubmit={(children) => {
-                                createNewChatThread(children, selectedSearchScopes);
+                                createNewChatThread(children, selectedSearchScopes, disabledMcpServerIds);
                             }}
                             className="min-h-[50px]"
                             isRedirecting={isLoading}
@@ -77,6 +79,8 @@ export const LandingPage = ({
                             selectedSearchScopes={selectedSearchScopes}
                             searchContexts={[]}
                             isDisabled={isChatBoxDisabled}
+                            isAuthenticated={isAuthenticated}
+                            isLoginWallEnabled={true}
                         />
                         <Separator />
                         <div className="relative">
@@ -89,6 +93,8 @@ export const LandingPage = ({
                                     onSelectedSearchScopesChange={() => { }}
                                     isContextSelectorOpen={isContextSelectorOpen}
                                     onContextSelectorOpenChanged={setIsContextSelectorOpen}
+                                    disabledMcpServerIds={disabledMcpServerIds}
+                                    onDisabledMcpServerIdsChange={setDisabledMcpServerIds}
                                 />
                                 <SearchModeSelector
                                     searchMode="agentic"
@@ -103,13 +109,6 @@ export const LandingPage = ({
                     )}
                 </div>
             </div>
-
-            <LoginModal
-                isOpen={loginWall.isOpen}
-                onOpenChange={loginWall.onOpenChange}
-                providers={loginWall.providers}
-                callbackUrl={typeof window !== 'undefined' ? window.location.href : ''}
-            />
         </div>
     )
 }

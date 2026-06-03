@@ -1,6 +1,8 @@
 import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME } from '@/lib/constants';
 import { NavigationGuardProvider } from 'next-navigation-guard';
 import { cookies } from 'next/headers';
+import { Suspense } from 'react';
+import { McpOAuthStatusToast } from './components/mcpOAuthStatusToast';
 import { TutorialDialog } from './components/tutorialDialog';
 
 interface LayoutProps {
@@ -14,6 +16,9 @@ export default async function Layout({ children }: LayoutProps) {
         // @note: we use a navigation guard here since we don't support resuming streams yet.
         // @see: https://ai-sdk.dev/docs/ai-sdk-ui/chatbot-message-persistence#resuming-ongoing-streams
         <NavigationGuardProvider>
+            <Suspense fallback={null}>
+                <McpOAuthStatusToast />
+            </Suspense>
             {children}
             <TutorialDialog isOpen={!isTutorialDismissed} />
         </NavigationGuardProvider>

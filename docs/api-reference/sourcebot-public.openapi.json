@@ -1147,8 +1147,7 @@
             "type": "string",
             "enum": [
               "OWNER",
-              "MEMBER",
-              "GUEST"
+              "MEMBER"
             ]
           },
           "createdAt": {
@@ -2290,7 +2289,7 @@
         "summary": "Get a user",
         "description": "Fetches profile details for a single organization member by `userId`. Only organization owners can access this endpoint.",
         "x-mint": {
-          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.\n</Note>"
+          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/activating-a-subscription) to activate it.\n</Note>"
         },
         "parameters": [
           {
@@ -2365,7 +2364,7 @@
         "summary": "Delete a user",
         "description": "Permanently deletes a user and all associated records. Only organization owners can delete other users.",
         "x-mint": {
-          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.\n</Note>"
+          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/activating-a-subscription) to activate it.\n</Note>"
         },
         "parameters": [
           {
@@ -2442,7 +2441,7 @@
         "summary": "List users",
         "description": "Returns all members of the organization. Only organization owners can access this endpoint.",
         "x-mint": {
-          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.\n</Note>"
+          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/activating-a-subscription) to activate it.\n</Note>"
         },
         "responses": {
           "200": {
@@ -2487,7 +2486,7 @@
         "summary": "List audit records",
         "description": "Returns a paginated list of audit log entries. Only organization owners can access this endpoint.",
         "x-mint": {
-          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/license-key) to activate it.\n</Note>"
+          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/activating-a-subscription) to activate it.\n</Note>"
         },
         "parameters": [
           {

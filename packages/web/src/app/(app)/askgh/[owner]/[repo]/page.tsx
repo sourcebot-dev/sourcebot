@@ -8,6 +8,8 @@ import { RepoIndexedGuard } from "./components/repoIndexedGuard";
 import { LandingPage } from "./components/landingPage";
 import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 import { auth } from "@/auth";
+import { hasEntitlement } from "@/lib/entitlements";
+import { ChatEntitlementMessage } from "@/features/chat/components/chatEntitlementMessage";
 
 interface PageProps {
     params: Promise<{ owner: string; repo: string }>;
@@ -17,6 +19,12 @@ export default async function GitHubRepoPage(props: PageProps) {
     const params = await props.params;
     const { owner, repo } = params;
     const session = await auth();
+
+    // The askgh experiment env flag must never bypass licensing; enforce `ask`
+    // uniformly (the demo deployment carries a real license with `ask`).
+    if (!await hasEntitlement('ask')) {
+        return <ChatEntitlementMessage source="chat" returnPath={`/askgh/${owner}/${repo}`} />;
+    }
     
     const repoId = await (async () => {
         // 1. Look up repo by owner/repo

@@ -1,4 +1,4 @@
-import { askCodebase } from "@/features/mcp/askCodebase";
+import { askCodebase } from "@/ee/features/mcp/askCodebase";
 import { languageModelInfoSchema } from "@/features/chat/types";
 import { apiHandler } from "@/lib/apiHandler";
 import { requestBodySchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";

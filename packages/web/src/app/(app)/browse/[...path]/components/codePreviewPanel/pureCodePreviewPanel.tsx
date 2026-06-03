@@ -10,7 +10,7 @@ import { useKeymapExtension } from "@/hooks/useKeymapExtension";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { search } from "@codemirror/search";
 import CodeMirror, { EditorSelection, EditorView, ReactCodeMirrorRef, SelectionRange, ViewUpdate } from "@uiw/react-codemirror";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EditorContextMenu } from "@/app/(app)/components/editorContextMenu";
 import { BrowseHighlightRange, getBrowsePath, HIGHLIGHT_RANGE_QUERY_PARAM } from "@/app/(app)/browse/hooks/utils";
@@ -36,6 +36,7 @@ export const PureCodePreviewPanel = ({
     blame,
 }: PureCodePreviewPanelProps) => {
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
     const languageExtension = useCodeMirrorLanguageExtension(language, editorRef?.view);
     const [currentSelection, setCurrentSelection] = useState<SelectionRange>();
     const keymapExtension = useKeymapExtension(editorRef?.view);
@@ -172,10 +173,93 @@ export const PureCodePreviewPanel = ({
         });
     }, [editorRef, highlightRange]);
 
+    // Scroll restoration. The editor grows to its content height, so the actual
+    // scroll container is the ScrollArea's viewport (not CodeMirror's own
+    // scroller). We persist the scroll position per file and restore it on mount.
+    const scrollPositionStorageKey = useMemo(
+        () => `browse-scroll-pos:${repoName}@${revisionName}:${path}`,
+        [repoName, revisionName, path],
+    );
+
+    // Persist the scroll position as the user scrolls, throttled to one write
+    // per animation frame.
+    useEffect(() => {
+        const viewport = scrollAreaRef.current?.querySelector<HTMLElement>(
+            '[data-radix-scroll-area-viewport]'
+        );
+        if (!viewport) {
+            return;
+        }
+
+        let frame = 0;
+        const handleScroll = () => {
+            if (frame) {
+                return;
+            }
+            frame = requestAnimationFrame(() => {
+                frame = 0;
+                sessionStorage.setItem(scrollPositionStorageKey, JSON.stringify({
+                    top: viewport.scrollTop,
+                    left: viewport.scrollLeft,
+                }));
+            });
+        };
+
+        viewport.addEventListener('scroll', handleScroll, { passive: true });
+        return () => {
+            viewport.removeEventListener('scroll', handleScroll);
+            if (frame) {
+                cancelAnimationFrame(frame);
+            }
+        };
+    }, [scrollPositionStorageKey]);
+
+    // Restore the saved scroll position once the editor is ready. We skip this
+    // when a highlight range is present so the highlight scroll-into-view above
+    // takes precedence. The ref guards against re-restoring (e.g. after the user
+    // has already scrolled) while still re-running when the file changes.
+    const restoredScrollKeyRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (highlightRange) {
+            return;
+        }
+        if (restoredScrollKeyRef.current === scrollPositionStorageKey) {
+            return;
+        }
+        if (!editorRef?.view) {
+            return;
+        }
+
+        const viewport = scrollAreaRef.current?.querySelector<HTMLElement>(
+            '[data-radix-scroll-area-viewport]'
+        );
+        if (!viewport) {
+            return;
+        }
+
+        restoredScrollKeyRef.current = scrollPositionStorageKey;
+
+        const saved = sessionStorage.getItem(scrollPositionStorageKey);
+        if (!saved) {
+            return;
+        }
+
+        try {
+            const { top, left } = JSON.parse(saved);
+            // Defer to the next frame so the editor's content has been laid out
+            // and the viewport has its full scroll height.
+            requestAnimationFrame(() => {
+                viewport.scrollTo({ top, left });
+            });
+        } catch {
+            // Ignore malformed entries.
+        }
+    }, [editorRef, highlightRange, scrollPositionStorageKey]);
+
     const theme = useCodeMirrorTheme();
 
     return (
-        <ScrollArea className="h-full overflow-auto flex-1">
+        <ScrollArea ref={scrollAreaRef} className="h-full overflow-auto flex-1">
             <CodeMirror
                 className="relative"
                 ref={setEditorRef}

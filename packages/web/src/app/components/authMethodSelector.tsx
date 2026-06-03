@@ -8,11 +8,10 @@ import { CredentialsForm } from "@/app/login/components/credentialsForm";
 import { DividerSet } from "@/app/components/dividerSet";
 import { ProviderButton } from "@/app/components/providerButton";
 import { AuthSecurityNotice } from "@/app/components/authSecurityNotice";
-import type { IdentityProviderMetadata } from "@/lib/identityProviders";
 import Link from "next/link";
+import { useIdentityProviders } from "@/features/auth/useIdentityProviders";
 
 interface AuthMethodSelectorProps {
-    providers: IdentityProviderMetadata[];
     callbackUrl?: string;
     context: "login" | "signup";
     onProviderClick?: (providerId: string) => void;
@@ -21,13 +20,14 @@ interface AuthMethodSelectorProps {
 }
 
 export const AuthMethodSelector = ({
-    providers,
     callbackUrl,
     context,
     onProviderClick,
     securityNoticeClosable = false,
     hideSecurityNotice = false
 }: AuthMethodSelectorProps) => {
+    const providers = useIdentityProviders();
+
     const onSignInWithOauth = useCallback((provider: string) => {
         // Call the optional analytics callback first
         onProviderClick?.(provider);
@@ -51,7 +51,7 @@ export const AuthMethodSelector = ({
         return (
             <div className="flex flex-col items-center justify-center w-full gap-2">
                 <p className="text-center font-medium">No authentication methods available. Please contact your administrator to configure authentication.</p>
-                <Link href="https://docs.sourcebot.dev/docs/configuration/auth/overview" target="_blank" rel="noopener" className="text-link hover:underline">Learn more</Link>
+                <Link href="https://docs.sourcebot.dev/docs/configuration/auth/authentication" target="_blank" rel="noopener" className="text-link hover:underline">Learn more</Link>
             </div>
         )
     }

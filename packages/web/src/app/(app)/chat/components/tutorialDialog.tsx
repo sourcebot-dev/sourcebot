@@ -220,7 +220,7 @@ const tutorialSteps = [
                     You&apos;re all set!
                 </h2>
                 <p className="text-lg">
-                    You can now ask Sourcebot any question about your codebase. Checkout the <Link href="https://docs.sourcebot.dev/docs/features/ask/overview" className="underline">docs</Link> for more information.
+                    You can now ask Sourcebot any question about your codebase. Checkout the <Link href="https://docs.sourcebot.dev/docs/features/ask/ask-sourcebot" className="underline">docs</Link> for more information.
                 </p>
                 <p className="text-lg">
                     <span className="font-bold">Hit a bug?</span> Open up <Link href="https://github.com/sourcebot-dev/sourcebot/issues" className="underline">an issue</Link>.

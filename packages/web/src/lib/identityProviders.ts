@@ -7,8 +7,8 @@ export interface IdentityProviderMetadata {
     required: boolean;
 }
 
-export const getIdentityProviderMetadata = (): IdentityProviderMetadata[] => {
-    const providers = getProviders();
+export const getIdentityProviderMetadata = async (): Promise<IdentityProviderMetadata[]> => {
+    const providers = await getProviders();
     return providers.map((provider) => {
         if (typeof provider.provider === "function") {
             const providerInfo = provider.provider();

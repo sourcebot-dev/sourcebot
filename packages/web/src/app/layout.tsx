@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
+import { ProgressBarProvider } from "./progressBarProvider";
 import { QueryClientProvider } from "./queryClientProvider";
 import { PostHogProvider } from "./posthogProvider";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,81 +10,89 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "next-auth/react";
 import { env, SOURCEBOT_VERSION } from "@sourcebot/shared";
 import { PlanProvider } from "@/features/entitlements/planProvider";
-import { getEntitlements } from "@sourcebot/shared";
+import { getEntitlements } from "@/lib/entitlements";
+import { IdentityProvidersProvider } from "@/features/auth/identityProvidersProvider";
+import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 
 export const metadata: Metadata = {
-  metadataBase: env.AUTH_URL ? new URL(env.AUTH_URL) : undefined,
-  // Using the title.template will allow child pages to set the title
-  // while keeping a consistent suffix.
-  title: {
-    default: "Sourcebot",
-    template: "%s | Sourcebot",
-  },
-  description:
-    "Sourcebot is a self-hosted code understanding tool. Ask questions about your codebase and get rich Markdown answers with inline citations.",
-  manifest: "/manifest.json",
+    metadataBase: env.AUTH_URL ? new URL(env.AUTH_URL) : undefined,
+    // Using the title.template will allow child pages to set the title
+    // while keeping a consistent suffix.
+    title: {
+        default: "Sourcebot",
+        template: "%s | Sourcebot",
+    },
+    description:
+        "Sourcebot is a self-hosted code understanding tool. Ask questions about your codebase and get rich Markdown answers with inline citations.",
+    manifest: "/manifest.json",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    const entitlements = await getEntitlements();
+    const identityProviders = await getIdentityProviderMetadata();
+
     return (
         <html
             lang="en"
             // @see : https://github.com/pacocoursey/next-themes?tab=readme-ov-file#with-app
             suppressHydrationWarning
         >
-      <head>
-        {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_SCAN === 'true' && (
-          <Script
-            src="//unpkg.com/react-scan/dist/auto.global.js"
-            crossOrigin="anonymous"
-            strategy="beforeInteractive"
-          />
-        )}
-
-        {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_GRAB === 'true' && (
-          <Script
-            src="//unpkg.com/react-grab/dist/index.global.js"
-            crossOrigin="anonymous"
-            strategy="beforeInteractive"
-          />
-        )}
-        {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_GRAB === 'true' && (
-          <Script
-            src="//unpkg.com/@react-grab/mcp/dist/client.global.js"
-            strategy="lazyOnload"
-          />
-        )}
-      </head>
+            <head>
+                {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_SCAN === 'true' && (
+                    <Script
+                        src="//unpkg.com/react-scan/dist/auto.global.js"
+                        crossOrigin="anonymous"
+                        strategy="beforeInteractive"
+                    />
+                )}
+                {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_GRAB === 'true' && (
+                    <Script
+                        src="//unpkg.com/react-grab/dist/index.global.js"
+                        crossOrigin="anonymous"
+                        strategy="beforeInteractive"
+                    />
+                )}
+                {env.NODE_ENV === "development" && env.DEBUG_ENABLE_REACT_GRAB === 'true' && (
+                    <Script
+                        src="//unpkg.com/@react-grab/mcp/dist/client.global.js"
+                        strategy="lazyOnload"
+                    />
+                )}
+            </head>
             <body>
                 <Toaster />
                 <SessionProvider>
-                    <PlanProvider entitlements={getEntitlements()}>
-                        <PostHogProvider
-                            isDisabled={env.SOURCEBOT_TELEMETRY_DISABLED === 'true'}
-                            isPiiEnabled={env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true'}
-                            // @note: the posthog api key doesn't need to be kept secret,
-                            // so we are safe to send it to the client.
-                            posthogApiKey={env.POSTHOG_PAPIK}
-                            sourcebotVersion={SOURCEBOT_VERSION}
-                            sourcebotInstallId={env.SOURCEBOT_INSTALL_ID}
-                        >
-                            <ThemeProvider
-                                attribute="class"
-                                defaultTheme="system"
-                                enableSystem
-                                disableTransitionOnChange
+                    <PlanProvider entitlements={entitlements}>
+                        <IdentityProvidersProvider providers={identityProviders}>
+                            <PostHogProvider
+                                isDisabled={env.SOURCEBOT_TELEMETRY_DISABLED === 'true'}
+                                isPiiEnabled={env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true'}
+                                // @note: the posthog api key doesn't need to be kept secret,
+                                // so we are safe to send it to the client.
+                                posthogApiKey={env.POSTHOG_PAPIK}
+                                sourcebotVersion={SOURCEBOT_VERSION}
+                                sourcebotInstallId={env.SOURCEBOT_INSTALL_ID}
                             >
-                                <QueryClientProvider>
-                                    <TooltipProvider>
-                                        {children}
-                                    </TooltipProvider>
-                                </QueryClientProvider>
-                            </ThemeProvider>
-                        </PostHogProvider>
+                                <ThemeProvider
+                                    attribute="class"
+                                    defaultTheme="system"
+                                    enableSystem
+                                    disableTransitionOnChange
+                                >
+                                    <QueryClientProvider>
+                                        <TooltipProvider>
+                                            <ProgressBarProvider>
+                                                {children}
+                                            </ProgressBarProvider>
+                                        </TooltipProvider>
+                                    </QueryClientProvider>
+                                </ThemeProvider>
+                            </PostHogProvider>
+                        </IdentityProvidersProvider>
                     </PlanProvider>
                 </SessionProvider>
             </body>

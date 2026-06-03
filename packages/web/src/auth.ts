@@ -14,14 +14,13 @@ import { render } from '@react-email/render';
 import MagicLinkEmail from './emails/magicLinkEmail';
 import bcrypt from 'bcryptjs';
 import { getEEIdentityProviders } from '@/ee/features/sso/sso';
-import { hasEntitlement } from '@sourcebot/shared';
+import { hasEntitlement } from '@/lib/entitlements';
 import { onCreateUser } from '@/lib/authUtils';
-import { getAuditService } from '@/ee/features/audit/factory';
+import { createAudit } from '@/ee/features/audit/audit';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
 import { EncryptedPrismaAdapter, encryptAccountData } from '@/lib/encryptedPrismaAdapter';
-
-const auditService = getAuditService();
-const eeIdentityProviders = hasEntitlement("sso") ? await getEEIdentityProviders() : [];
+import { getAnonymousId } from '@/lib/anonymousId';
+import { captureEvent } from '@/lib/posthog';
 
 export const runtime = 'nodejs';
 
@@ -53,8 +52,11 @@ declare module 'next-auth/jwt' {
     }
 }
 
-export const getProviders = () => {
-    const providers: IdentityProvider[] = [...eeIdentityProviders];
+export const getProviders = async () => {
+    const hasSSOEntitlement = await hasEntitlement("sso");
+    const providers: IdentityProvider[] = [
+        ...(hasSSOEntitlement ? await getEEIdentityProviders() : []),
+    ];
 
     const smtpConnectionUrl = getSMTPConnectionURL();
     if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
@@ -151,7 +153,10 @@ export const getProviders = () => {
     return providers;
 }
 
-const nextAuthResult = NextAuth({
+// @note we use lazy initialization here to ensure that the
+// `providers` property is upto date with any config changes.
+// @see https://authjs.dev/reference/nextjs#lazy-initialization
+const nextAuthResult = NextAuth(async () => ({
     secret: env.AUTH_SECRET,
     adapter: EncryptedPrismaAdapter(__unsafePrisma),
     session: {
@@ -197,7 +202,29 @@ const nextAuthResult = NextAuth({
             }
 
             if (user.id) {
-                await auditService.createAudit({
+                // Claim any anonymous chats created before sign-in.
+                const anonymousId = await getAnonymousId();
+                if (anonymousId) {
+                    const result = await __unsafePrisma.chat.updateMany({
+                        where: {
+                            orgId: SINGLE_TENANT_ORG_ID,
+                            anonymousCreatorId: anonymousId,
+                            createdById: null,
+                        },
+                        data: {
+                            createdById: user.id,
+                            anonymousCreatorId: null,
+                        },
+                    });
+
+                    if (result.count > 0) {
+                        await captureEvent('wa_anonymous_chats_claimed', {
+                            claimedCount: result.count,
+                        });
+                    }
+                }
+
+                await createAudit({
                     action: "user.signed_in",
                     actor: {
                         id: user.id,
@@ -223,7 +250,7 @@ const nextAuthResult = NextAuth({
                     data: { sessionVersion: { increment: 1 } },
                 });
 
-                await auditService.createAudit({
+                await createAudit({
                     action: "user.signed_out",
                     actor: {
                         id: token.token.userId,
@@ -241,7 +268,7 @@ const nextAuthResult = NextAuth({
     callbacks: {
         async signIn({ account }) {
             const matchingProvider = account
-                ? getProviders().find((p) => getEffectiveProviderId(p.provider) === account.provider)
+                ? (await getProviders()).find((p) => getEffectiveProviderId(p.provider) === account.provider)
                 : undefined;
 
             // Refuse OAuth signin for providers configured purely for account
@@ -374,13 +401,13 @@ const nextAuthResult = NextAuth({
             return session;
         },
     },
-    providers: getProviders().map((provider) => provider.provider),
+    providers: (await getProviders()).map((provider) => provider.provider),
     pages: {
         signIn: "/login",
-        // We set redirect to false in signInOptions so we can pass the email is as a param
+        // We set redirect to false in signInOptions so we can pass the email in as a param
         // verifyRequest: "/login/verify",
     }
-});
+}));
 
 export const { handlers, signIn, signOut } = nextAuthResult;
 
@@ -420,7 +447,7 @@ const getEffectiveProviderId = (provider: Provider): string | undefined => {
  * Returns the issuer URL for a given auth.js account
  */
 const getIssuerUrlForAccount = async (account: { provider: string; }) => {
-    const matchingProvider = getProviders().find(
+    const matchingProvider = (await getProviders()).find(
         (p) => getEffectiveProviderId(p.provider) === account.provider
     );
     return matchingProvider?.issuerUrl;

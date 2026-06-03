@@ -43,7 +43,7 @@ export default async function LinkedAccountsPage() {
                     </CardContent>
                 </Card>
             ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                     {linkedAccounts
                         .sort((a, b) => (b.required ? 1 : 0) - (a.required ? 1 : 0))
                         .map((account) => (

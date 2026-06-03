@@ -74,6 +74,7 @@ model Repo {
   orgId Int
 
   searchContexts SearchContext[]
+  visits RepoVisit[]
 
   @@unique([external_id, external_codeHostUrl, orgId])
   @@index([orgId])
@@ -291,12 +292,65 @@ model Org {
   searchContexts SearchContext[]
 
   chats Chat[]
+  repoVisits RepoVisit[]
+
+  mcpServers McpServer[]
+
+  license License?
+}
+
+model License {
+  id                String      @id @default(cuid())
+  orgId             Int      @unique
+  org               Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  activationCode    String
+  entitlements      String[]
+  seats             Int?
+  status            String? /// See LicenseStatus in packages/shared/src/types.ts
+  planName          String?
+  unitAmount        Int?
+  currency          String?
+  interval          String?
+  intervalCount     Int?
+  nextRenewalAt     DateTime?
+  nextRenewalAmount Int?
+  cancelAt          DateTime?
+  trialEnd          DateTime?
+  hasPaymentMethod  Boolean?
+
+  // Yearly-only fields, mirroring `yearlyTermStatus` on the lighthouse ping
+  // response. All null for monthly subs and for unactivated/canceled licenses.
+  yearlyTermStartedAt           DateTime?
+  yearlyTermEndsAt              DateTime?
+  yearlyTotalQuartersInTerm     Int?
+  yearlyCurrentQuarterNumber    Int?
+  yearlyCurrentQuarterStartedAt DateTime?
+  yearlyCurrentQuarterEndsAt    DateTime?
+  yearlyCommittedSeats          Int?
+  yearlyOverageSeats            Int?
+  yearlyBillableOverageSeats    Int?
+  yearlyPeakSeats               Int?
+
+  lastSyncAt        DateTime?
+  lastSyncErrorCode String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 enum OrgRole {
   OWNER
   MEMBER
-  GUEST
+}
+
+enum McpServerClientInfoSource {
+  DYNAMIC
+  STATIC
+}
+
+enum McpServerToolPermission {
+  ALLOWED
+  NEEDS_APPROVAL
+  DISABLED
 }
 
 model UserToOrg {
@@ -370,6 +424,7 @@ model User {
 
   chats Chat[]
   sharedChats ChatAccess[]
+  repoVisits RepoVisit[]
 
   oauthTokens        OAuthToken[]
   oauthAuthCodes     OAuthAuthorizationCode[]
@@ -380,8 +435,13 @@ model User {
   /// claim baked into the JWT cookie at mint time.
   sessionVersion Int @default(0)
 
+  userMcpServers       UserMcpServer[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  /// Last time the user performed an authenticated action.
+  lastActiveAt DateTime?
 
 }
 
@@ -474,6 +534,27 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model RepoVisit {
+  id        String   @id @default(cuid())
+  /// visitedAt is updated everytime a repo is visited.
+  visitedAt DateTime @default(now()) @updatedAt
+  // lastPromotedAt is updated only when a repo is promoted into the top k
+  // most recently viewed repositories.
+  lastPromotedAt DateTime @default(now())
+
+  repo   Repo   @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId Int
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  @@unique([repoId, userId])
+  @@index([userId, orgId, visitedAt])
 }
 
 model Chat {
@@ -573,4 +654,105 @@ model OAuthToken {
   expiresAt  DateTime
   createdAt  DateTime    @default(now())
   lastUsedAt DateTime?
+}
+
+/// Local cache of changelog entries fetched from the public feed at
+/// `CHANGELOG_FEED_URL`. Shared across all users of an instance.
+model ChangelogEntry {
+  slug         String   @id
+  title        String
+  publishedAt  DateTime
+  summary      String
+  version      String
+  bodyMarkdown String
+
+  /// Updated each time the entry is upserted from the feed.
+  fetchedAt DateTime @default(now()) @updatedAt
+
+  @@index([publishedAt])
+}
+
+/// An external MCP server endpoint, unique per org.
+/// Stores the dynamic client registration (client_id/client_secret) once per org.
+model McpServer {
+  id            String   @id @default(cuid())
+  name          String   /// Org-approved display name (e.g., "Linear")
+  sanitizedName String   /// Stable tool-name prefix (e.g., "linear")
+  serverUrl     String   /// MCP server endpoint (e.g., "https://mcp.linear.app/mcp")
+
+  /// Dynamic client registration result (RFC 7591) or admin-provided static OAuth client credentials.
+  /// Encrypted JSON of OAuthClientInformation: { client_id, client_secret, client_id_issued_at, client_secret_expires_at }
+  /// Null for DYNAMIC rows until first user in the org triggers registration.
+  clientInfo       String?
+  clientInfoSource McpServerClientInfoSource @default(DYNAMIC)
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  userMcpServers  UserMcpServer[]
+  tools           McpServerTool[]
+  oauthScopes     McpServerOAuthScope[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([serverUrl, orgId])
+  @@unique([orgId, sanitizedName])
+}
+
+/// OAuth scope configuration for an MCP server.
+model McpServerOAuthScope {
+  mcpServer   McpServer @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
+  mcpServerId String
+  scope       String
+  enabled     Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([mcpServerId, scope])
+}
+
+/// Tool metadata for an MCP server.
+model McpServerTool {
+  mcpServer   McpServer @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
+  mcpServerId String
+  toolName    String
+  callCount   Int                     @default(0)
+  permission  McpServerToolPermission @default(NEEDS_APPROVAL)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([mcpServerId, toolName])
+}
+
+/// A user's personal connection to an MCP server.
+/// Stores per-user OAuth tokens and ephemeral auth-flow state.
+model UserMcpServer {
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+
+  server   McpServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverId String
+
+  /// OAuth tokens (access_token, refresh_token, etc.) — encrypted JSON of OAuthTokens.
+  tokens String?
+
+  /// Absolute expiry time of the access token, computed at issuance from expires_in.
+  /// Null when no tokens are stored or the provider did not include expires_in.
+  tokensExpiresAt DateTime?
+
+  /// PKCE code verifier — ephemeral, only used between redirect and callback.
+  codeVerifier String?
+
+  /// OAuth state parameter — ephemeral, for CSRF protection during auth flow.
+  state String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([userId, serverId])
+  @@index([serverId])
+  @@index([state])
 }

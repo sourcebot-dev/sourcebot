@@ -18,6 +18,7 @@
         "@sourcebot/schemas": "workspace:*",
         "@t3-oss/env-core": "^0.13.10",
         "ajv": "^8.17.1",
+        "ioredis": "^5.4.2",
         "micromatch": "^4.0.8",
         "strip-json-comments": "^5.0.1",
         "triple-beam": "^1.4.1",

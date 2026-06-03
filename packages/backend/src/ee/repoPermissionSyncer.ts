@@ -1,7 +1,8 @@
 import * as Sentry from "@sentry/node";
 import { PermissionSyncSource, PrismaClient, Repo, RepoPermissionSyncJobStatus } from "@sourcebot/db";
 import { createLogger, PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "@sourcebot/shared";
-import { env, hasEntitlement } from "@sourcebot/shared";
+import { env } from "@sourcebot/shared";
+import { hasEntitlement } from "../entitlements.js";
 import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { createOctokitFromToken, getRepoCollaborators, GITHUB_CLOUD_HOSTNAME } from "../github.js";
@@ -44,8 +45,8 @@ export class RepoPermissionSyncer {
         this.worker.on('failed', this.onJobFailed.bind(this));
     }
 
-    public startScheduler() {
-        if (!hasEntitlement('permission-syncing')) {
+    public async startScheduler() {
+        if (!await hasEntitlement('permission-syncing')) {
             throw new Error('Permission syncing is not supported in current plan.');
         }
 
