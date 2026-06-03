@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide) for details on upgrading your instance to v5.
+
 ### Changed
 - [**Breaking Change**] Changed the default role assignment to `Owner` for organizations on the free tier. See the [v4 to v5 guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide). [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 - [**Breaking Change**] Relicensed Ask Sourcebot and MCP under ee. See the [v4 to v5 guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide). [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
