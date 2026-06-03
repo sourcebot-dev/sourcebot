@@ -22,6 +22,64 @@ type GitHubSearchType = 'org' | 'user' | 'repo';
 const githubSearchCache = new Map<string, Array<SearchOption | Separator>>();
 const REPO_PATTERN = /^[\w.-]+\/[\w.-]+$/;
 
+// A GitHub login is exactly one of these. `unknown` means we couldn't determine it
+// (network error, rate limit, or a private account the token can't see) — in which
+// case we don't block the user, to keep the self-hosted / offline path working.
+type GitHubAccountType = 'Organization' | 'User' | 'unknown';
+const githubAccountTypeCache = new Map<string, GitHubAccountType>();
+
+// Resolves whether a login is an organization or a user via `GET /users/{login}`,
+// which authoritatively reports the account `type`. Used to keep users out of the
+// orgs list (and vice-versa) — an org search can surface a literal typed login, and
+// a user sent as an org makes indexing fail.
+export async function getGitHubAccountType(apiBase: string, login: string, token: string): Promise<GitHubAccountType> {
+    const key = `${apiBase}|${login.toLowerCase()}`;
+    const cached = githubAccountTypeCache.get(key);
+    if (cached !== undefined) {
+        return cached;
+    }
+
+    let result: GitHubAccountType = 'unknown';
+    try {
+        const headers: Record<string, string> = {
+            'User-Agent': 'setup-sourcebot',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
+        const res = await fetch(`${apiBase}/users/${encodeURIComponent(login)}`, { headers });
+        if (res.ok) {
+            const data = await res.json() as { type?: string };
+            if (data.type === 'Organization' || data.type === 'User') {
+                result = data.type;
+            }
+        }
+    } catch {
+        // Network error — leave as 'unknown' so we don't block the user.
+    }
+
+    githubAccountTypeCache.set(key, result);
+    return result;
+}
+
+// Builds a submit-time validator that rejects any selected login whose resolved
+// account type contradicts `expected`. `unknown` is allowed through.
+function makeAccountTypeValidator(
+    apiBase: string,
+    token: string,
+    expected: 'Organization' | 'User',
+): (selected: ReadonlyArray<{ value: string }>) => Promise<string | boolean> {
+    return async (selected) => {
+        for (const opt of selected) {
+            const actual = await getGitHubAccountType(apiBase, opt.value, token);
+            if (actual !== 'unknown' && actual !== expected) {
+                const isUser = actual === 'User';
+                return `"${opt.value}" is a ${isUser ? 'user account' : 'organization'}, not ${expected === 'Organization' ? 'an organization' : 'a user'}. `
+                    + `Add it under the "${isUser ? 'Users' : 'Organizations'}" option instead.`;
+            }
+        }
+        return true;
+    };
+}
+
 async function searchGitHub(
     apiBase: string,
     query: string,
@@ -182,6 +240,7 @@ export async function collectGitHubConfig(connectionName: string): Promise<Colle
                     ctx.setLoading(false);
                 }
             },
+            validate: makeAccountTypeValidator(apiBase, token, 'Organization'),
         });
         config.orgs = orgs;
     }
@@ -208,6 +267,7 @@ export async function collectGitHubConfig(connectionName: string): Promise<Colle
                     ctx.setLoading(false);
                 }
             },
+            validate: makeAccountTypeValidator(apiBase, token, 'User'),
         });
         config.users = users;
     }

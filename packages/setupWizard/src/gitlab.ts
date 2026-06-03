@@ -19,6 +19,79 @@ type GitLabSearchType = 'group' | 'project' | 'user';
 const gitlabSearchCache = new Map<string, Array<SearchOption | Separator>>();
 const PROJECT_PATTERN = /^[\w.-]+(\/[\w.-]+)+$/;
 
+// A GitLab namespace is either a group or a user. `unknown` means we couldn't
+// determine it (network error, or a private namespace the token can't see) — in
+// which case we don't block the user.
+type GitLabNamespaceKind = 'group' | 'user' | 'unknown';
+const gitlabNamespaceKindCache = new Map<string, GitLabNamespaceKind>();
+
+// Resolves whether a namespace path is a group or a user. A nested path (contains
+// "/") can only be a subgroup. For a top-level path, `GET /users?username=` confirms
+// a user (exact match) and `GET /groups/{path}` confirms a group. Used to keep users
+// out of the groups list (and vice-versa) — a user sent as a group makes indexing fail.
+export async function getGitLabNamespaceKind(apiBase: string, path: string, token: string): Promise<GitLabNamespaceKind> {
+    const key = `${apiBase}|${path.toLowerCase()}`;
+    const cached = gitlabNamespaceKindCache.get(key);
+    if (cached !== undefined) {
+        return cached;
+    }
+
+    const headers: Record<string, string> = {
+        'User-Agent': 'setup-sourcebot',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+
+    let result: GitLabNamespaceKind = 'unknown';
+    try {
+        if (path.includes('/')) {
+            // Usernames can't contain "/", so this is a subgroup path — confirm it's a group.
+            const res = await fetch(`${apiBase}/groups/${encodeURIComponent(path)}`, { headers });
+            if (res.ok) {
+                result = 'group';
+            }
+        } else {
+            const userRes = await fetch(`${apiBase}/users?username=${encodeURIComponent(path)}`, { headers });
+            if (userRes.ok) {
+                const users = await userRes.json() as Array<{ username?: string }>;
+                if (users.some((u) => u.username?.toLowerCase() === path.toLowerCase())) {
+                    result = 'user';
+                }
+            }
+            if (result === 'unknown') {
+                const groupRes = await fetch(`${apiBase}/groups/${encodeURIComponent(path)}`, { headers });
+                if (groupRes.ok) {
+                    result = 'group';
+                }
+            }
+        }
+    } catch {
+        // Network error — leave as 'unknown' so we don't block the user.
+    }
+
+    gitlabNamespaceKindCache.set(key, result);
+    return result;
+}
+
+// Builds a submit-time validator that rejects any selected path whose resolved
+// namespace kind contradicts `expected`. `unknown` is allowed through.
+function makeNamespaceKindValidator(
+    apiBase: string,
+    token: string,
+    expected: 'group' | 'user',
+): (selected: ReadonlyArray<{ value: string }>) => Promise<string | boolean> {
+    return async (selected) => {
+        for (const opt of selected) {
+            const actual = await getGitLabNamespaceKind(apiBase, opt.value, token);
+            if (actual !== 'unknown' && actual !== expected) {
+                const isUser = actual === 'user';
+                return `"${opt.value}" is a ${isUser ? 'user' : 'group'}, not a ${expected}. `
+                    + `Add it under the "${isUser ? 'Users' : 'Groups'}" option instead.`;
+            }
+        }
+        return true;
+    };
+}
+
 async function searchGitLab(
     apiBase: string,
     query: string,
@@ -166,6 +239,7 @@ export async function collectGitLabConfig(connectionName: string): Promise<Colle
                     ctx.setLoading(false);
                 }
             },
+            validate: makeNamespaceKindValidator(apiBase, gitlabToken, 'group'),
         });
         config.groups = groups;
     }
@@ -226,6 +300,7 @@ export async function collectGitLabConfig(connectionName: string): Promise<Colle
                     ctx.setLoading(false);
                 }
             },
+            validate: makeNamespaceKindValidator(apiBase, gitlabToken, 'user'),
         });
         config.users = users;
     }
