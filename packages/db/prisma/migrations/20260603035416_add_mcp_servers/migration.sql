@@ -1,6 +1,9 @@
 -- CreateEnum
 CREATE TYPE "McpServerClientInfoSource" AS ENUM ('DYNAMIC', 'STATIC');
 
+-- CreateEnum
+CREATE TYPE "McpServerToolPermission" AS ENUM ('ALLOWED', 'NEEDS_APPROVAL', 'DISABLED');
+
 -- CreateTable
 CREATE TABLE "McpServer" (
     "id" TEXT NOT NULL,
@@ -17,14 +20,26 @@ CREATE TABLE "McpServer" (
 );
 
 -- CreateTable
-CREATE TABLE "McpServerToolCallCount" (
+CREATE TABLE "McpServerScope" (
     "mcpServerId" TEXT NOT NULL,
-    "toolName" TEXT NOT NULL,
-    "count" INTEGER NOT NULL DEFAULT 0,
+    "scope" TEXT NOT NULL,
+    "enabled" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "McpServerToolCallCount_pkey" PRIMARY KEY ("mcpServerId","toolName")
+    CONSTRAINT "McpServerScope_pkey" PRIMARY KEY ("mcpServerId","scope")
+);
+
+-- CreateTable
+CREATE TABLE "McpServerTool" (
+    "mcpServerId" TEXT NOT NULL,
+    "toolName" TEXT NOT NULL,
+    "callCount" INTEGER NOT NULL DEFAULT 0,
+    "permission" "McpServerToolPermission" NOT NULL DEFAULT 'NEEDS_APPROVAL',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "McpServerTool_pkey" PRIMARY KEY ("mcpServerId","toolName")
 );
 
 -- CreateTable
@@ -57,7 +72,10 @@ CREATE INDEX "UserMcpServer_state_idx" ON "UserMcpServer"("state");
 ALTER TABLE "McpServer" ADD CONSTRAINT "McpServer_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Org"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "McpServerToolCallCount" ADD CONSTRAINT "McpServerToolCallCount_mcpServerId_fkey" FOREIGN KEY ("mcpServerId") REFERENCES "McpServer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "McpServerScope" ADD CONSTRAINT "McpServerScope_mcpServerId_fkey" FOREIGN KEY ("mcpServerId") REFERENCES "McpServer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "McpServerTool" ADD CONSTRAINT "McpServerTool_mcpServerId_fkey" FOREIGN KEY ("mcpServerId") REFERENCES "McpServer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "UserMcpServer" ADD CONSTRAINT "UserMcpServer_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
