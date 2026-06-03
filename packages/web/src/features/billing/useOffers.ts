@@ -10,6 +10,7 @@ export const useOffers = (params?: {
     return useQuery({
         queryKey: ["offers"],
         queryFn: async () => unwrapServiceError(getOffers()),
-        retry: params?.retry
+        retry: params?.retry,
+        refetchOnWindowFocus: false
     });
 }
