@@ -12,7 +12,7 @@ The following environment variables allow you to configure your Sourcebot deploy
 | :------- | :------ | :---------- |
 | `AUTH_CREDENTIALS_LOGIN_ENABLED` | `true` | <p>Enables/disables authentication with basic credentials. Username and passwords are stored encrypted at rest within the postgres database. Checkout the [auth docs](/docs/configuration/auth/authentication) for more info</p> |
 | `AUTH_EMAIL_CODE_LOGIN_ENABLED` | `false` | <p>Enables/disables authentication with a login code that's sent to a users email. `SMTP_CONNECTION_URL` and `EMAIL_FROM_ADDRESS` must also be set. Checkout the [auth docs](/docs/configuration/auth/authentication) for more info </p> |
-| `AUTH_SECRET` | Automatically generated at startup if no value is provided. Generated using `openssl rand -base64 33` | <p>Used to validate login session cookies</p> |
+| `AUTH_SECRET` **(required)** | - | <p>Used to validate login session cookies. As of v5, this must be set explicitly (generate one with `openssl rand -base64 33`). If you're upgrading from a version that auto-generated it, copy the value out of `$DATA_CACHE_DIR/.authjs-secret`, set it here, and delete that file. See the [v4 to v5 guide](/docs/upgrade/v4-to-v5-guide).</p> |
 | `AUTH_SESSION_MAX_AGE_SECONDS` | `2592000` (30 days) | <p>Relative time from now in seconds when to expire the session.</p> |
 | `AUTH_SESSION_UPDATE_AGE_SECONDS` | `86400` (1 day) | <p>How often the session should be updated in seconds. If set to `0`, session is updated every time.</p> |
 | `OAUTH_AUTHORIZATION_CODE_TTL_SECONDS` | `600` (10 minutes) | <p>Lifetime of an OAuth authorization code, in seconds.</p> |
@@ -36,7 +36,7 @@ The following environment variables allow you to configure your Sourcebot deploy
 | `SMTP_PORT` | `-` | <p>The port of the SMTP server.</p> |
 | `SMTP_USERNAME` | `-` | <p>The username for SMTP authentication.</p> |
 | `SMTP_PASSWORD` | `-` | <p>The password for SMTP authentication.</p> |
-| `SOURCEBOT_ENCRYPTION_KEY` | Automatically generated at startup if no value is provided. Generated using `openssl rand -base64 24` | <p>Used to encrypt connection secrets and generate API keys.</p> |
+| `SOURCEBOT_ENCRYPTION_KEY` **(required)** | - | <p>Used to encrypt connection secrets and generate API keys. As of v5, this must be set explicitly (generate one with `openssl rand -base64 24`). If you're upgrading from a version that auto-generated it, copy the value out of `$DATA_CACHE_DIR/.secret`, set it here, and delete that file. Use the **same** key your data was encrypted with, otherwise existing connection secrets cannot be decrypted. See the [v4 to v5 guide](/docs/upgrade/v4-to-v5-guide).</p> |
 | `SOURCEBOT_PUBLIC_KEY_PATH` | `/app/public.pem` | <p>Sourcebot's public key that's used to verify encrypted license key signatures.</p> |
 | `SOURCEBOT_LOG_LEVEL` | `info` | <p>The Sourcebot logging level. Valid values are `debug`, `info`, `warn`, `error`, in order of severity.</p> |
 | `SOURCEBOT_STRUCTURED_LOGGING_ENABLED` | `false` | <p>Enables/disable structured JSON logging. See [this doc](/docs/configuration/structured-logging) for more info.</p> |
