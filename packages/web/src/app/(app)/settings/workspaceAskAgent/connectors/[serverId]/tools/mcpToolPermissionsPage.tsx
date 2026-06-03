@@ -339,12 +339,12 @@ export function McpToolPermissionsPage({ serverId }: McpToolPermissionsPageProps
     }, [permissionFilter, searchInput, tools]);
     const filteredToolGroups = useMemo<ToolGroup[]>(() => [
         {
-            id: 'read-only',
+            id: 'read-only' as const,
             label: 'Read-only tools',
             tools: filteredTools.filter((tool) => tool.annotations?.readOnlyHint === true),
         },
         {
-            id: 'write-delete',
+            id: 'write-delete' as const,
             label: 'Write/delete tools',
             tools: filteredTools.filter((tool) => tool.annotations?.readOnlyHint !== true),
         },

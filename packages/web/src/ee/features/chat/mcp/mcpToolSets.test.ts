@@ -47,10 +47,10 @@ vi.mock('@/lib/posthog', () => ({
 }));
 
 vi.mock('@/lib/redis', () => ({
-    redis: {
+    getRedisClient: () => ({
         get: (...args: unknown[]) => mockRedisGet(...args),
         set: (...args: unknown[]) => mockRedisSet(...args),
-    },
+    }),
 }));
 
 vi.mock('ai', () => ({
