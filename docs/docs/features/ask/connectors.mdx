@@ -50,6 +50,65 @@ then enter the OAuth client ID and client secret in Sourcebot.
   </Frame>
 </div>
 
+## OAuth Scopes
+
+Owners can configure which OAuth scopes users authorize when connecting to a connector.
+
+Sourcebot checks the connector for discoverable scopes and shows them as options. You can also add custom scopes.
+
+<div className="max-w-sm mx-auto">
+  <Frame>
+    <img
+      src="/images/connectors_oauth_scopes.png"
+      alt="OAuth scopes discovery"
+    />
+  </Frame>
+</div>
+
+Owners can change connector scopes at any time from **Settings → Workspace → Ask Agent** and select **Edit OAuth scopes**.
+
+<div className="max-w-xl mx-auto">
+  <Frame>
+    <img
+      src="/images/connectors_edit_scopes.png"
+      alt="OAuth scopes editing"
+    />
+  </Frame>
+</div>
+
+<Warning>
+Changing connector scopes requires all users to re-authenticate with that connector.
+</Warning>
+
+## Tool Permissions
+
+Owners can configure how Ask Sourcebot may use each tool exposed by a connector. Changes take effect immediately and do not require users to re-authenticate.
+
+To edit tool permissions, open the connector menu from **Settings → Workspace → Ask Agent** and select **Edit tool permissions**.
+
+<div className="max-w-xl mx-auto">
+  <Frame>
+    <img
+      src="/images/connectors_edit_tool_permissions.png"
+      alt="Tools editing"
+    />
+  </Frame>
+</div>
+
+Each tool can be **Allowed**, require **Needs Approval**, or be **Blocked**. Allowed tools can run without pausing the chat, tools that need approval ask the user before running, and blocked tools are not available to Ask Sourcebot.
+
+Sourcebot groups tools by the hints reported by the connector. Tools with a read-only hint are grouped separately and tools without that hint are treated as write/delete tools.
+
+<div className="max-w-lg mx-auto">
+  <Frame>
+    <img
+      src="/images/connectors_tool_permissions.png"
+      alt="Tool permissions view"
+    />
+  </Frame>
+</div>
+
+
 ## Connecting
 
 After an owner adds connectors for your organization, go to **Settings → Account → Ask Agent** to connect them.
