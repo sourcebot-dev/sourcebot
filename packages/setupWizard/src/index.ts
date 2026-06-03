@@ -5,7 +5,7 @@ import ora from 'ora';
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { writeFile } from 'fs/promises';
-import { basename } from 'path';
+import { basename, join } from 'path';
 import { collectAzureDevOpsConfig } from './azuredevops.js';
 import { collectBitbucketConfig } from './bitbucket.js';
 import { collectGenericGitConfig } from './genericGit.js';
@@ -29,6 +29,33 @@ const DOCKER_COMPOSE_BRANCH = 'main';
 const DOCKER_COMPOSE_URL = `https://raw.githubusercontent.com/sourcebot-dev/sourcebot/${DOCKER_COMPOSE_BRANCH}/docker-compose.yml`;
 
 const SOURCEBOT_URL = 'http://localhost:3000';
+
+// Render an OSC 8 terminal hyperlink. Terminals that support it show `label`
+// as a clickable link to `url`; others fall back to just the styled label.
+function hyperlink(label: string, url: string): string {
+    const OSC = ']8;;';
+    const ST = '';
+    return `${OSC}${url}${ST}${label}${OSC}${ST}`;
+}
+
+// Wrap `text` to `width` columns, prefixing every line with `indent`.
+function wrapText(text: string, indent: string, width: number): string[] {
+    const words = text.split(/\s+/);
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+        if (current.length > 0 && (current.length + 1 + word.length) > width) {
+            lines.push(indent + current);
+            current = word;
+        } else {
+            current = current.length > 0 ? `${current} ${word}` : word;
+        }
+    }
+    if (current.length > 0) {
+        lines.push(indent + current);
+    }
+    return lines;
+}
 
 function openBrowser(url: string): void {
     const cmd = process.platform === 'darwin' ? 'open'
@@ -447,7 +474,42 @@ async function main() {
         writtenFiles.push('docker-compose.override.yml');
     }
 
-    s.succeed(`Wrote ${writtenFiles.join(', ')}`);
+    const fileInfo: Record<string, { description: string; docsLabel?: string; docsUrl?: string }> = {
+        'config.json': {
+            description: 'The Sourcebot configuration file. This controls which repos Sourcebot indexes and which language models it connects to.',
+            docsLabel: 'Configuration file docs',
+            docsUrl: 'https://docs.sourcebot.dev/docs/configuration/config-file',
+        },
+        '.env': {
+            description: 'The environment file your Sourcebot deployment will load. This includes any of the access tokens you provided here, as well as generated secrets required to run Sourcebot.',
+            docsLabel: 'Environment variables docs',
+            docsUrl: 'https://docs.sourcebot.dev/docs/configuration/environment-variables',
+        },
+        'docker-compose.override.yml': {
+            description: 'Mounts your local repositories into the Sourcebot container so they can be indexed. Merged with docker-compose.yml at `docker compose up` time.',
+        },
+    };
+
+    const wrapWidth = Math.min((process.stdout.columns || 80) - 6, 90);
+
+    const fileLines = writtenFiles.flatMap((file) => {
+        const fullPath = join(process.cwd(), file);
+        const info = fileInfo[file];
+        const lines = [
+            `  ${chalk.green('✓')} ${chalk.bold.cyan(file)} ${chalk.dim(hyperlink(fullPath, `file://${fullPath}`))}`,
+        ];
+        if (info) {
+            lines.push(...wrapText(info.description, '    ', wrapWidth));
+            if (info.docsLabel && info.docsUrl) {
+                lines.push(`    ${chalk.blue('↗')} ${chalk.blue.underline(hyperlink(info.docsLabel, info.docsUrl))}`);
+            }
+        }
+        lines.push('');
+        return lines;
+    });
+
+    s.succeed(chalk.bold('Wrote the following files:'));
+    console.log(['', ...fileLines].join('\n'));
 
     let downloadedCompose = false;
 
