@@ -18,6 +18,7 @@ export function WorkspaceAskAgentEntitlementMessage() {
                 title="Upgrade to configure Ask Sourcebot connectors"
                 description="Approve the external tools (like Linear, Notion, and Sentry) that your users can connect to Ask Sourcebot."
                 className="w-full max-w-2xl"
+                loadingVariant="spinner"
             />
         </div>
     )

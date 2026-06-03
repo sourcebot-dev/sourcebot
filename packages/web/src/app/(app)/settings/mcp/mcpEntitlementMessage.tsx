@@ -17,6 +17,7 @@ export function McpEntitlementMessage() {
                 title="Upgrade to use the MCP server"
                 description="Connect your agents to Sourcebot to allow them to fetch code context, and more."
                 className="w-full max-w-2xl"
+                loadingVariant="spinner"
             />
         </div>
     )

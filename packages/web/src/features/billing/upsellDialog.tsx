@@ -21,10 +21,11 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { UpsellSource } from "@/lib/posthogEvents";
 import { cn, isServiceError } from "@/lib/utils";
 import { OrgRole } from "@sourcebot/db";
-import { ArrowUpCircle, ExternalLink, Loader2 } from "lucide-react";
+import { AlertCircle, ArrowUpCircle, ExternalLink, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { CheckoutDisclosures } from "./checkoutDisclosures";
+import { CodeSnippet } from "@/app/components/codeSnippet";
 
 interface UpsellDialogProps {
     open: boolean;
@@ -34,8 +35,7 @@ interface UpsellDialogProps {
 }
 
 export function UpsellDialog({ open, onOpenChange, source, returnPath }: UpsellDialogProps) {
-    const { data: offers, isPending, isError } = useOffers();
-    const { toast } = useToast();
+    const { data: offers, isPending, isError, refetch } = useOffers();
     const captureEvent = useCaptureEvent();
 
     useEffect(() => {
@@ -44,28 +44,15 @@ export function UpsellDialog({ open, onOpenChange, source, returnPath }: UpsellD
         }
     }, [open, source, captureEvent]);
 
-    // Surface pricing-fetch failures via a toast and dismiss the dialog. Without
-    // closing it ourselves, the parent's `open` state would keep us mounted but
-    // we'd have nothing to render — leaving the user stuck with an invisible
-    // dialog they can't dismiss.
-    useEffect(() => {
-        if (open && isError) {
-            toast({
-                description: "Something went wrong loading pricing. Please try again.",
-                variant: "destructive",
-            });
-            onOpenChange(false);
-        }
-    }, [open, isError, toast, onOpenChange]);
-
-    if (isError) {
-        return null;
-    }
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl gap-6 focus:outline-none">
-                {isPending || !offers ? (
+                {isError ? (
+                    // Keep the dialog open with a recoverable error state rather than
+                    // closing it out from under the user — the built-in close button
+                    // is still the dismiss affordance.
+                    <UpsellLoadError variant="dialog" onRetry={() => { void refetch(); }} />
+                ) : isPending ? (
                     <div className="flex items-center justify-center py-12">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
@@ -74,6 +61,77 @@ export function UpsellDialog({ open, onOpenChange, source, returnPath }: UpsellD
                 )}
             </DialogContent>
         </Dialog>
+    );
+}
+
+interface UpsellLoadErrorProps {
+    variant: "dialog" | "inline";
+    onRetry: () => void;
+    className?: string;
+}
+
+// Shared fallback for when the offers/pricing fetch fails. Offers a retry plus a
+// link to the public pricing page — the latter is resilient to the very failure
+// that triggered this state, since it doesn't depend on the offers endpoint.
+function UpsellLoadError({ variant, onRetry, className }: UpsellLoadErrorProps) {
+    const role = useRole();
+    const isOwner = role === OrgRole.OWNER;
+    const heading = "Something went wrong";
+    const body = (
+        <>
+            We couldn&apos;t reach Sourcebot&apos;s deployments server.{" "}
+            {/* Owners get an actionable hint (the most common cause on self-hosted
+                deployments is outbound access to the lighthouse host being blocked);
+                members can't act on this themselves, so route them to an admin. */}
+            {isOwner ? (
+                <>
+                    Check that outbound access to{" "}
+                    <CodeSnippet>deployments.sourcebot.dev</CodeSnippet>{" "}isn&apos;t blocked.{" "}
+                    <a
+                        href="https://docs.sourcebot.dev/docs/misc/service-ping"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-link hover:underline"
+                    >
+                        Learn more
+                    </a>
+                    .
+                </>
+            ) : (
+                <>Contact your organization admin.</>
+            )}
+        </>
+    );
+    return (
+        <div className={cn("flex flex-col gap-6", className)}>
+            <div className="flex flex-col gap-2 text-center sm:text-left">
+                <AlertCircle className="h-6 w-6 text-destructive" />
+                {variant === "dialog" ? (
+                    <DialogTitle>{heading}</DialogTitle>
+                ) : (
+                    <h3 className="text-lg font-semibold leading-none tracking-tight">{heading}</h3>
+                )}
+                {variant === "dialog" ? (
+                    <DialogDescription className="text-sm">{body}</DialogDescription>
+                ) : (
+                    <p className="text-sm text-muted-foreground">{body}</p>
+                )}
+            </div>
+
+            <div className="flex flex-col-reverse items-center gap-2 sm:flex-row sm:justify-end sm:gap-4">
+                <Button variant="ghost" asChild>
+                    <a
+                        href="https://status.sourcebot.dev"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Status page
+                        <ExternalLink className="h-3.5 w-3.5 ml-2" />
+                    </a>
+                </Button>
+                <Button onClick={onRetry}>Try again</Button>
+            </div>
+        </div>
     );
 }
 
@@ -92,16 +150,29 @@ interface UpsellPanelProps {
     // Sourcebot history"). Fall back to the billing-state-derived copy when omitted.
     title?: string;
     description?: ReactNode;
+    // How to render the pending state. Use 'skeleton' (default) when the panel is
+    // embedded in-flow alongside other content, so the reserved space avoids
+    // layout shift. Use 'spinner' when the panel is the sole, centered element in
+    // a large empty region (e.g. a full-area feature gate), where a shaped
+    // skeleton reads as heavier than a simple spinner.
+    loadingVariant?: 'skeleton' | 'spinner';
 }
 
-export function UpsellPanel({ source, returnPath, className, licenseState = 'free', title, description }: UpsellPanelProps) {
-    const { data: offers, isPending, isError } = useOffers();
+export function UpsellPanel({ source, returnPath, className, licenseState = 'free', title, description, loadingVariant = 'skeleton' }: UpsellPanelProps) {
+    const { data: offers, isPending, isError, refetch } = useOffers();
 
     if (isError) {
-        return null;
+        return <UpsellLoadError variant="inline" onRetry={() => { void refetch(); }} className={className} />;
     }
 
     if (isPending || !offers) {
+        if (loadingVariant === 'spinner') {
+            return (
+                <div className={cn("flex items-center justify-center py-12", className)} aria-busy="true">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+            );
+        }
         return (
             <div className={cn("flex flex-col gap-6", className)} aria-busy="true">
                 <div className="flex flex-col gap-2">

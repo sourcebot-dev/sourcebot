@@ -17,6 +17,7 @@ export function AccountAskAgentEntitlementMessage() {
                 title="Upgrade to use Ask Sourcebot connectors"
                 description="Connect Ask Sourcebot to your team's tools (like Linear, Notion, and Sentry) so it can pull in context beyond your indexed code."
                 className="w-full max-w-2xl"
+                loadingVariant="spinner"
             />
         </div>
     )

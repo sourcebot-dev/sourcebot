@@ -17,6 +17,7 @@ export function AnalyticsEntitlementMessage() {
                 title="Upgrade to view analytics"
                 description="Get insights into your organization's usage patterns and activity across search and Ask Sourcebot."
                 className="w-full max-w-2xl"
+                loadingVariant="spinner"
             />
         </div>
     )

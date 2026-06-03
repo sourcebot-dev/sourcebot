@@ -29,8 +29,8 @@ function useTrialStepCopy(): TrialStepCopy | null {
     }
     if (isError || !offers) {
         return {
-            title: "Upgrade to Sourcebot Pro",
-            subtitle: "Unlock advanced features for your team. You can upgrade later from your license settings.",
+            title: "You're all set",
+            subtitle: "Your Sourcebot deployment is ready to go.",
         };
     }
     if (!offers.trial.eligible) {
@@ -203,13 +203,23 @@ export function TrialStep({ stepIndex }: TrialStepProps) {
 
     if (isError || !offers) {
         return (
-            <LoadingButton
-                onClick={onSkipCheckout}
-                loading={isSkipLoading}
-                className="w-full"
-            >
-                Continue to Sourcebot
-            </LoadingButton>
+            <div className="flex flex-col">
+                <LoadingButton
+                    onClick={onSkipCheckout}
+                    loading={isSkipLoading}
+                    className="w-full"
+                >
+                    Continue to Sourcebot
+                </LoadingButton>
+                <a
+                    href="https://www.sourcebot.dev/pricing"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mx-auto text-sm text-muted-foreground hover:text-foreground mt-8"
+                >
+                    View pricing
+                </a>
+            </div>
         );
     }
 
