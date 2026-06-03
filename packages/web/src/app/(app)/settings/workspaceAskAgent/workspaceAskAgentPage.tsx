@@ -451,7 +451,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                         </div>
                         {canCreateConnectors && (
                             <PrefabConnectorPopover {...prefabPopoverProps}>
-                                <Button variant="outline" size="sm" disabled={isCreating}>
+                                <Button variant="outline" size="sm">
                                     <PlusIcon className="h-4 w-4 mr-1.5" />
                                     Add connector
                                 </Button>
