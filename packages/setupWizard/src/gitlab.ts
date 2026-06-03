@@ -147,8 +147,11 @@ export async function collectGitLabConfig(connectionName: string): Promise<Colle
     if (targets.includes('groups')) {
         const ctx = createSearchSelectContext();
         const groups = await searchSelect<string, true>({
-            message: 'Groups to index (type to search)',
+            message: 'Groups to index (type to search, tab to select)',
             multiple: true,
+            // See github.ts: bake the tab-to-select hint into the message so it persists on
+            // completed prompts, and disable the library's transient (duplicate) helptip.
+            instructions: false,
             required: true,
             loop: false,
             clearInputWhenSelected: true,
@@ -173,8 +176,9 @@ export async function collectGitLabConfig(connectionName: string): Promise<Colle
     if (targets.includes('projects')) {
         const ctx = createSearchSelectContext();
         const projects = await searchSelect<string, true>({
-            message: 'Projects to index (type to search, or type group/project)',
+            message: 'Projects to index (type to search, or type group/project, tab to select)',
             multiple: true,
+            instructions: false,
             required: true,
             loop: false,
             clearInputWhenSelected: true,
@@ -207,8 +211,9 @@ export async function collectGitLabConfig(connectionName: string): Promise<Colle
     if (targets.includes('users')) {
         const ctx = createSearchSelectContext();
         const users = await searchSelect<string, true>({
-            message: 'Users to index (type to search)',
+            message: 'Users to index (type to search, tab to select)',
             multiple: true,
+            instructions: false,
             required: true,
             loop: false,
             clearInputWhenSelected: true,

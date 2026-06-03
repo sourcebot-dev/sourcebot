@@ -93,11 +93,14 @@ export async function multiInput(options: {
 }): Promise<string[]> {
     const ctx = createSearchSelectContext();
     return searchSelect<string, true>({
-        message: options.message,
+        // Bake the "tab to add" hint into the message so it persists after the prompt is submitted
+        // (the library drops its transient helptip on submit), and disable the duplicate live helptip.
+        message: `${options.message} (tab to add)`,
         multiple: true,
         required: true,
         loop: false,
         clearInputWhenSelected: true,
+        instructions: false,
         theme: ctx.theme,
         placeholder: options.placeholder ?? 'Type a value and press tab to add, enter to finish',
         options: async (search) => {

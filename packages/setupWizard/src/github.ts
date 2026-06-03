@@ -129,8 +129,12 @@ export async function collectGitHubConfig(connectionName: string): Promise<Colle
     if (targets.includes('repos')) {
         const ctx = createSearchSelectContext();
         const repos = await searchSelect<string, true>({
-            message: 'Repositories to index (type to search, or type owner/repo)',
+            message: 'Repositories to index (type to search, or type owner/repo, tab to select)',
             multiple: true,
+            // The library's transient "(Press tab to select/deselect)" helptip is dropped once the
+            // prompt is submitted, so the hint vanishes from completed prompts. We instead bake the
+            // hint into the message (which persists) and disable the duplicate live helptip.
+            instructions: false,
             required: true,
             loop: false,
             clearInputWhenSelected: true,
@@ -163,8 +167,9 @@ export async function collectGitHubConfig(connectionName: string): Promise<Colle
     if (targets.includes('orgs')) {
         const ctx = createSearchSelectContext();
         const orgs = await searchSelect<string, true>({
-            message: 'Organizations to index (type to search)',
+            message: 'Organizations to index (type to search, tab to select)',
             multiple: true,
+            instructions: false,
             required: true,
             loop: false,
             clearInputWhenSelected: true,
@@ -189,8 +194,9 @@ export async function collectGitHubConfig(connectionName: string): Promise<Colle
     if (targets.includes('users')) {
         const ctx = createSearchSelectContext();
         const users = await searchSelect<string, true>({
-            message: 'GitHub users to index (type to search)',
+            message: 'GitHub users to index (type to search, tab to select)',
             multiple: true,
+            instructions: false,
             required: true,
             loop: false,
             clearInputWhenSelected: true,
