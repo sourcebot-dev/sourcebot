@@ -59,6 +59,11 @@ const DetailsCardComponent = ({
         (part.type === 'dynamic-tool' && part.toolName.startsWith('mcp_'))
     ).length, [thinkingSteps]);
 
+    const cacheReadTokens = metadata?.totalCacheReadTokens ?? 0;
+    const cachedInputPercent = metadata?.totalInputTokens
+        ? Math.round((cacheReadTokens / metadata.totalInputTokens) * 100)
+        : 0;
+
     const handleExpandedChanged = useCallback((next: boolean) => {
         captureEvent('wa_chat_details_card_toggled', { chatId, isExpanded: next });
         onExpandedChanged(next);
@@ -132,6 +137,9 @@ const DetailsCardComponent = ({
                                                     <div className="flex items-center text-xs cursor-help">
                                                         <Zap className="w-3 h-3 mr-1 flex-shrink-0" />
                                                         {getShortenedNumberDisplayString(metadata.totalTokens, 0)} tokens
+                                                        {cachedInputPercent > 0 && (
+                                                            <span className="ml-1 text-muted-foreground">({cachedInputPercent}% cached)</span>
+                                                        )}
                                                     </div>
                                                 </TooltipTrigger>
                                                 <TooltipContent side="bottom">
@@ -140,6 +148,12 @@ const DetailsCardComponent = ({
                                                             <span className="text-muted-foreground">Input</span>
                                                             <span>{metadata.totalInputTokens?.toLocaleString() ?? '—'}</span>
                                                         </div>
+                                                        {cacheReadTokens > 0 && (
+                                                            <div className="flex justify-between gap-4 pl-3">
+                                                                <span className="text-muted-foreground">↳ Cached (discounted)</span>
+                                                                <span>{cacheReadTokens.toLocaleString()}</span>
+                                                            </div>
+                                                        )}
                                                         <div className="flex justify-between gap-4">
                                                             <span className="text-muted-foreground">Output</span>
                                                             <span>{metadata.totalOutputTokens?.toLocaleString() ?? '—'}</span>
