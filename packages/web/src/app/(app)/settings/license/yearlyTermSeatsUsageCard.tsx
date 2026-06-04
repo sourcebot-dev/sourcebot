@@ -12,7 +12,7 @@ import { cn, isServiceError } from "@/lib/utils";
 import { SettingsCard } from "../components/settingsCard";
 import { YearlyTermStatus } from "./types";
 
-const DOCS_URL = "https://docs.sourcebot.dev/docs/billing";
+const DOCS_URL = "https://docs.sourcebot.dev/docs/seat-reconciliation";
 
 
 interface YearlyTermSeatsUsageCardProps {
