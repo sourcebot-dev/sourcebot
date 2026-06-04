@@ -127,7 +127,7 @@
                         "group": "Subscribe",
                         "pages": [
                             "docs/activating-a-subscription",
-                            "docs/billing",
+                            "docs/seat-reconciliation",
                             "docs/free-trial"
                         ]
                     },
@@ -273,6 +273,10 @@
         {
             "source": "/docs/license-key",
             "destination": "/docs/activating-a-subscription"
+        },
+        {
+            "source": "/docs/billing",
+            "destination": "/docs/seat-reconciliation"
         }
     ]
 }
