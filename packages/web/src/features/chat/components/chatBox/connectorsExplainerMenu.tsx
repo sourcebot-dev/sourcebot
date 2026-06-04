@@ -10,9 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CableIcon, PlusIcon } from "lucide-react";
 import { UpsellDialog } from "@/features/billing/upsellDialog";
-
-// TODO(ask): finalize the connectors docs URL once the page exists.
-const CONNECTORS_DOCS_URL = "https://docs.sourcebot.dev/docs/features/ask/connectors";
+import { ConnectorsExplainerText } from "@/features/chat/components/chatBox/connectorsExplainerText";
 
 /**
  * Free-plan stand-in for the connectors menu. This is intentionally NOT in ee/:
@@ -50,16 +48,20 @@ export const ConnectorsExplainerMenu = () => {
                         <CableIcon className="w-4 h-4 text-muted-foreground" />
                         Connectors
                     </DropdownMenuLabel>
-                    <p className="px-2 pb-1.5 text-xs text-muted-foreground">
-                        Connect external tools like Linear or Jira so the agent can pull in context beyond your code. Connectors are available on a{" "}
-                        <button
-                            type="button"
-                            onClick={openUpsell}
-                            className="text-link hover:underline"
-                        >
-                            paid plan
-                        </button>. <a href={CONNECTORS_DOCS_URL} target="_blank" rel="noopener noreferrer" className="text-link hover:underline">Learn more</a>
-                    </p>
+                    <ConnectorsExplainerText
+                        trailing={
+                            <>
+                                Connectors are available on a{" "}
+                                <button
+                                    type="button"
+                                    onClick={openUpsell}
+                                    className="text-link hover:underline"
+                                >
+                                    paid plan
+                                </button>.
+                            </>
+                        }
+                    />
                 </DropdownMenuContent>
             </DropdownMenu>
             <UpsellDialog open={isUpsellOpen} onOpenChange={setIsUpsellOpen} source="chat_connectors" />
