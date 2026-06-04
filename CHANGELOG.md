@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-06-04
+
 Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide) for details on upgrading your instance to v5.
 
 ### Changed

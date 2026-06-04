@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Sourcebot Public API",
-    "version": "v4.17.4",
+    "version": "v5.0.0",
     "description": "OpenAPI description for the public Sourcebot REST endpoints used for search, repository listing, and file browsing. Authentication is instance-dependent: API keys are the standard integration mechanism, OAuth bearer tokens are EE-only, and some instances may allow anonymous access."
   },
   "tags": [
@@ -2289,7 +2289,7 @@
         "summary": "Get a user",
         "description": "Fetches profile details for a single organization member by `userId`. Only organization owners can access this endpoint.",
         "x-mint": {
-          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/activating-a-subscription) to activate it.\n</Note>"
+          "content": "<Note>\nThis API is only available with an active Sourcebot license. [More information](/docs/activating-a-subscription).\n</Note>"
         },
         "parameters": [
           {
@@ -2364,7 +2364,7 @@
         "summary": "Delete a user",
         "description": "Permanently deletes a user and all associated records. Only organization owners can delete other users.",
         "x-mint": {
-          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/activating-a-subscription) to activate it.\n</Note>"
+          "content": "<Note>\nThis API is only available with an active Sourcebot license. [More information](/docs/activating-a-subscription).\n</Note>"
         },
         "parameters": [
           {
@@ -2441,7 +2441,7 @@
         "summary": "List users",
         "description": "Returns all members of the organization. Only organization owners can access this endpoint.",
         "x-mint": {
-          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/activating-a-subscription) to activate it.\n</Note>"
+          "content": "<Note>\nThis API is only available with an active Sourcebot license. [More information](/docs/activating-a-subscription).\n</Note>"
         },
         "responses": {
           "200": {
@@ -2486,7 +2486,7 @@
         "summary": "List audit records",
         "description": "Returns a paginated list of audit log entries. Only organization owners can access this endpoint.",
         "x-mint": {
-          "content": "<Note>\nThis API is only available with an active Enterprise license. Please add your [license key](/docs/activating-a-subscription) to activate it.\n</Note>"
+          "content": "<Note>\nThis API is only available with an active Sourcebot license. [More information](/docs/activating-a-subscription).\n</Note>"
         },
         "parameters": [
           {
