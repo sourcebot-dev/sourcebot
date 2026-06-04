@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.1] - 2026-06-04
+
 ### Fixed
 - Guest users will now be prompted to login when trying to view their connects on the Ask Sourcebot page. [#1274](https://github.com/sourcebot-dev/sourcebot/pull/1274)
 
