@@ -94,6 +94,7 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
             )}
             {license && <OnlineLicenseCard license={license} />}
             {license
+                && !isOnlineLicenseInactive
                 && yearlyTermStatus && (
                     <YearlyTermSeatsUsageCard
                         currentUsers={currentUserCount}
