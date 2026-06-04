@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-// TODO(ask): finalize the connectors docs URL once the page exists.
 export const CONNECTORS_DOCS_URL = "https://docs.sourcebot.dev/docs/features/ask/connectors";
 
 interface ConnectorsExplainerTextProps {
