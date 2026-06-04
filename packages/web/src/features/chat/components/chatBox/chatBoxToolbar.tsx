@@ -19,6 +19,7 @@ export interface ChatBoxToolbarProps {
     onContextSelectorOpenChanged: (isOpen: boolean) => void;
     disabledMcpServerIds?: string[];
     onDisabledMcpServerIdsChange?: (ids: string[]) => void;
+    isAuthenticated: boolean;
 }
 
 export const ChatBoxToolbar = ({
@@ -31,6 +32,7 @@ export const ChatBoxToolbar = ({
     onContextSelectorOpenChanged,
     disabledMcpServerIds,
     onDisabledMcpServerIdsChange,
+    isAuthenticated,
 }: ChatBoxToolbarProps) => {
     const { selectedLanguageModel, setSelectedLanguageModel } = useSelectedLanguageModel({
         languageModels,
@@ -45,6 +47,7 @@ export const ChatBoxToolbar = ({
                         onSelectedSearchScopesChange={onSelectedSearchScopesChange}
                         disabledMcpServerIds={disabledMcpServerIds}
                         onDisabledMcpServerIdsChange={onDisabledMcpServerIdsChange}
+                        isAuthenticated={isAuthenticated}
                     />
                     <Separator orientation="vertical" className="h-3 mx-1" />
                 </>

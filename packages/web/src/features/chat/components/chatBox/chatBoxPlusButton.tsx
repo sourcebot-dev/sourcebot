@@ -10,6 +10,7 @@ interface ChatBoxPlusButtonProps {
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     disabledMcpServerIds: string[];
     onDisabledMcpServerIdsChange: (ids: string[]) => void;
+    isAuthenticated: boolean;
 }
 
 /**

@@ -95,6 +95,7 @@ export const LandingPage = ({
                                     onContextSelectorOpenChanged={setIsContextSelectorOpen}
                                     disabledMcpServerIds={disabledMcpServerIds}
                                     onDisabledMcpServerIdsChange={setDisabledMcpServerIds}
+                                    isAuthenticated={isAuthenticated}
                                 />
                                 <SearchModeSelector
                                     searchMode="agentic"

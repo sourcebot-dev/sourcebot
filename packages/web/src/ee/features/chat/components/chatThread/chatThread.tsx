@@ -496,6 +496,7 @@ export const ChatThread = ({
                                         onContextSelectorOpenChanged={setIsContextSelectorOpen}
                                         disabledMcpServerIds={disabledMcpServerIds}
                                         onDisabledMcpServerIdsChange={onDisabledMcpServerIdsChange}
+                                        isAuthenticated={isAuthenticated}
                                     />
                                 </div>
                             </CustomSlateEditor>
