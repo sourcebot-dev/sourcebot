@@ -20,7 +20,7 @@ import { ErrorCode } from "@/lib/errorCodes";
 import type { ServiceError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangleIcon, CableIcon, Loader2Icon, LogInIcon, PlusCircleIcon, PlusIcon, RefreshCwIcon, SettingsIcon } from "lucide-react";
+import { AlertTriangleIcon, CableIcon, Loader2Icon, PlusCircleIcon, PlusIcon, RefreshCwIcon, SettingsIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -36,6 +36,7 @@ import {
 import { clearEditorHistory, resetEditor } from "@/features/chat/utils";
 import { useRole } from "@/features/auth/useRole";
 import { OrgRole } from "@sourcebot/db";
+import { ConnectorsExplainerText } from "@/features/chat/components/chatBox/connectorsExplainerText";
 
 interface ConnectorsMenuProps {
     selectedSearchScopes: SearchScope[];
@@ -314,12 +315,15 @@ export const ConnectorsMenu = ({
                             </>
                         )}
                         {shouldShowLoginConnectorItem ? (
-                            <DropdownMenuItem asChild className="gap-2 text-link focus:text-link">
-                                <Link href={loginHref}>
-                                    <LogInIcon className="w-4 h-4" />
-                                    Log in to use connectors
-                                </Link>
-                            </DropdownMenuItem>
+                            <ConnectorsExplainerText
+                                leading={
+                                    <>
+                                        You must{" "}
+                                        <Link href={loginHref} className="text-link hover:underline">login</Link>
+                                        {" "}to configure connectors.{" "}
+                                    </>
+                                }
+                            />
                         ) : (
                             <>
                                 <DropdownMenuItem
