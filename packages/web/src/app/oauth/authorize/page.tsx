@@ -2,7 +2,7 @@ import { auth } from '@/auth';
 import { LogoutEscapeHatch } from '@/app/components/logoutEscapeHatch';
 import { ConsentScreen } from './components/consentScreen';
 import { __unsafePrisma } from '@/prisma';
-import { hasEntitlement } from '@sourcebot/shared';
+import { hasEntitlement } from '@/lib/entitlements';
 import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +20,7 @@ interface AuthorizePageProps {
 }
 
 export default async function AuthorizePage({ searchParams }: AuthorizePageProps) {
-    if (!hasEntitlement('oauth')) {
+    if (!await hasEntitlement('oauth')) {
         return <ErrorPage message="OAuth authorization is not available on this plan." />;
     }
 

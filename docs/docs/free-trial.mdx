@@ -1,0 +1,40 @@
+---
+title: Free Trial
+sidebarTitle: Free trial
+---
+
+Sourcebot offers a **14-day free trial** of the paid plan with no credit card required. The trial is started from inside your Sourcebot deployment, so you need to deploy Sourcebot first.
+
+<Note>
+  If your organization requires a license before deploying any software, reach out through the enterprise contact form on our [pricing page](https://www.sourcebot.dev/pricing).
+</Note>
+
+# Deploy Sourcebot for free
+
+Sourcebot has a **free plan** that doesn't require any registration. You can self-host Sourcebot in your own infrastructure in under a minute:
+
+<CardGroup cols={2}>
+  <Card title="Deploy with Docker Compose" icon="docker" href="/docs/deployment/docker-compose">
+    The fastest way to get Sourcebot running locally or on a server.
+  </Card>
+  <Card title="Deploy on Kubernetes" icon="ship" href="/docs/deployment/k8s">
+    Deploy Sourcebot to a Kubernetes cluster with Helm.
+  </Card>
+</CardGroup>
+
+# Start your trial
+
+<Warning>Your Sourcebot deployment must be able to send a [Service Ping](/docs/misc/service-ping) to activate and maintain your trial. If your deployment is unable to send a service ping for 7 days it will downgrade to the free plan until a successful ping is sent.</Warning>
+
+Once your deployment is running, sign in and follow the onboarding flow. You'll see a **Start 14-day free trial** option for Sourcebot Pro. Confirm your email on the checkout page and submit. No credit card is required.
+
+If you skip the trial during onboarding, you can start it later from **Settings → License**.
+
+Each Sourcebot deployment is eligible for one free trial.
+
+# After the trial ends
+
+- If you add a payment method during the trial, your subscription continues automatically when the 14 days are up.
+- If you don't add a payment method, your deployment downgrades to the free plan. Your data is preserved and free features remain available.
+
+You can add a payment method anytime during the trial from **Settings → License**. For details on how the paid plan is activated and validated, see [Activating a Subscription](/docs/activating-a-subscription).

@@ -2,12 +2,10 @@ import { auth } from "@/auth";
 import { LoginForm } from "../login/components/loginForm";
 import { redirect } from "next/navigation";
 import { Footer } from "@/app/components/footer";
-import { getIdentityProviderMetadata } from "@/lib/identityProviders";
 import { createLogger, env } from "@sourcebot/shared";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { __unsafePrisma } from "@/prisma";
-import { getAnonymousAccessStatus } from "@/actions";
-import { isServiceError } from "@/lib/utils";
+import { isAnonymousAccessEnabled } from "@/lib/entitlements";
 
 const logger = createLogger('signup-page');
 
@@ -31,9 +29,7 @@ export default async function Signup(props: LoginProps) {
         return redirect("/onboard");
     }
 
-    const providers = getIdentityProviderMetadata();
-    const anonymousAccessStatus = await getAnonymousAccessStatus();
-    const isAnonymousAccessEnabled = !isServiceError(anonymousAccessStatus) && anonymousAccessStatus;
+    const anonymousAccessEnabled = await isAnonymousAccessEnabled();
 
     return (
         <div className="flex flex-col min-h-screen bg-backgroundSecondary">
@@ -41,9 +37,8 @@ export default async function Signup(props: LoginProps) {
                 <LoginForm
                     callbackUrl={searchParams.callbackUrl}
                     error={searchParams.error}
-                    providers={providers}
                     context="signup"
-                    isAnonymousAccessEnabled={isAnonymousAccessEnabled}
+                    isAnonymousAccessEnabled={anonymousAccessEnabled}
                     hideSecurityNotice={env.EXPERIMENT_ASK_GH_ENABLED === 'true'}
                 />
             </div>

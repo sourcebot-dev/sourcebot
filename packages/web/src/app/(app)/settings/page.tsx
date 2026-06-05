@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSidebarNavItems } from "./layout";
+import { getSidebarNavGroups } from "./layout";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { auth } from "@/auth";
@@ -10,9 +10,9 @@ export default async function SettingsPage() {
         return redirect(`/`);
     }
 
-    const items = await getSidebarNavItems();
-    if (isServiceError(items)) {
-        throw new ServiceErrorException(items);
+    const groups = await getSidebarNavGroups();
+    if (isServiceError(groups)) {
+        throw new ServiceErrorException(groups);
     }
-    return redirect(items[0].href);
+    return redirect(groups[0].items[0].href);
 }

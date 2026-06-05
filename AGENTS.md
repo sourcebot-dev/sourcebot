@@ -1,5 +1,7 @@
 # Agents
 
+See [CLAUDE.md](./CLAUDE.md) for project-wide conventions (code style, file naming, API route handlers, auth, PR workflow, etc.). Follow it as if it were part of this file.
+
 ## Cursor Cloud specific instructions
 
 ### Overview
@@ -32,10 +34,6 @@ Standard dev commands are documented in `CONTRIBUTING.md` and `package.json`. Ke
 - **Test:** `yarn test` (runs all workspace tests)
 - **Build deps only:** `yarn build:deps` (builds shared packages: schemas, db, shared, query-language)
 - **DB migrations:** `yarn dev:prisma:migrate:dev`
-
-### Deprecated Packages
-
-- **`packages/mcp`** - This standalone MCP package is deprecated. Do NOT modify it. MCP functionality is now handled by the web package at `packages/web/src/features/mcp/`.
 
 ### Non-obvious Caveats
 

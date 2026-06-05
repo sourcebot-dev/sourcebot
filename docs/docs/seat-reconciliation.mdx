@@ -1,0 +1,42 @@
+---
+title: Seat Reconciliation 
+sidebarTitle: Seat Reconciliation 
+---
+
+When using an [Activation Code](/docs/activating-a-subscription#activation-code-online-licensing), your Sourcebot deployment is permitted to exceed the number of seats you've purchsed. Seat reconciliation refers
+to how these excess seats are billed, and it depends on your billing period. 
+
+<Note>Seat reconciliation doesn't apply if you're using a [License Key](/docs/activating-a-subscription#license-key-offline-licensing) since the key sets a hard cap on seats. If you're using a license key and would like more seats, please reach out to us to purchase a new license key.</Note>
+
+For a more detailed breakdown, please refer to our [Software License Agreeement](https://www.sourcebot.dev/terms) which is the source of truth on how seats are handled and billed.
+
+# Monthly Billing
+
+Sourcebot supports monthly with standard proration behavior. Users added during the month are prorated across the remaining days and appear on your next invoice. Users removed during the month take effect at the next cycle, and are not refunded for the current cycle.
+
+# Yearly Billing
+
+## Quarterly Reconciliation
+The standard mechanism for seat reconciliation in yearly plans is through quarterly reconciliation. You are billed per quarter on a prorated basis for the remaining portion of your subscription term for any additional seats you activate.
+
+To prevent overages, you can restrict you may register on your Sourcebot deployment through our [access controls](/docs/configuration/auth/access-settings).
+
+
+
+### Example
+
+Suppose you start a yearly plan in January with 100 seats.
+
+- In Q1, your user count grows to 110. At the end of Q1, you're invoiced for 10 seats prorated across the 3 remaining quarters.
+- In Q2, your user count stays at 110. No reconciliation invoice is generated.
+- In Q3, your user count grows to 120. At the end of Q3, you're invoiced for 10 seats prorated across the 1 remaining quarter.
+- In Q4, reconciliation does not generate a charge (there are no remaining quarters to prorate across).
+- At renewal in January, you're invoiced at 120 seats for the next year. 120 becomes the new committed baseline.
+
+## Cancellation
+
+Cancelling a subscription takes effect at the end of the current billing cycle (monthly) or term (yearly). You retain access to Sourcebot Enterprise features until that point.
+
+## Questions?
+
+For billing questions, [contact us](mailto:support@sourcebot.dev).

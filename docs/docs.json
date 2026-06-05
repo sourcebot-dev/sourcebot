@@ -40,18 +40,10 @@
                         "pages": [
                             "docs/overview",
                             {
-                                "group": "Deployment",
+                                "group": "Deploy Sourcebot",
                                 "pages": [
                                     "docs/deployment/docker-compose",
-                                    "docs/deployment/k8s",
-                                    "docs/deployment/sizing-guide",
-                                    {
-                                        "group": "Infrastructure",
-                                        "pages": [
-                                            "docs/deployment/infrastructure/architecture",
-                                            "docs/deployment/infrastructure/redis"
-                                        ]
-                                    }
+                                    "docs/deployment/k8s"
                                 ]
                             }
                         ]
@@ -61,8 +53,8 @@
                         "pages": [
                             {
                                 "group": "Code Search",
+                                "root": "docs/features/search/code-search",
                                 "pages": [
-                                    "docs/features/search/overview",
                                     "docs/features/search/syntax-reference",
                                     "docs/features/search/ai-search-assist",
                                     "docs/features/search/multi-branch-indexing",
@@ -71,8 +63,9 @@
                             },
                             {
                                 "group": "Ask Sourcebot",
+                                "root": "docs/features/ask/ask-sourcebot",
                                 "pages": [
-                                    "docs/features/ask/overview",
+                                    "docs/features/ask/connectors",
                                     "docs/features/ask/chat-sharing",
                                     "docs/features/ask/add-model-providers"
                                 ]
@@ -84,8 +77,8 @@
                             {
                                 "group": "Agents",
                                 "tag": "experimental",
+                                "root": "docs/features/agents/agents",
                                 "pages": [
-                                    "docs/features/agents/overview",
                                     "docs/features/agents/review-agent"
                                 ]
                             }
@@ -98,8 +91,8 @@
                             "docs/configuration/environment-variables",
                             {
                                 "group": "Indexing your code",
+                                "root": "docs/connections/indexing-your-code",
                                 "pages": [
-                                    "docs/connections/overview",
                                     "docs/connections/github",
                                     "docs/connections/gitlab",
                                     "docs/connections/bitbucket-cloud",
@@ -117,23 +110,48 @@
                             "docs/configuration/idp",
                             {
                                 "group": "Authentication",
+                                "root": "docs/configuration/auth/authentication",
                                 "pages": [
-                                    "docs/configuration/auth/overview",
                                     "docs/configuration/auth/providers",
                                     "docs/configuration/auth/access-settings",
                                     "docs/configuration/auth/roles-and-permissions",
                                     "docs/configuration/auth/faq"
                                 ]
                             },
-                            "docs/license-key",
                             "docs/configuration/transactional-emails",
                             "docs/configuration/structured-logging",
                             "docs/configuration/audit-logs"
                         ]
                     },
                     {
+                        "group": "Subscribe",
+                        "pages": [
+                            "docs/activating-a-subscription",
+                            "docs/seat-reconciliation",
+                            "docs/free-trial"
+                        ]
+                    },
+                    {
+                        "group": "Misc",
+                        "pages": [
+                            "docs/misc/architecture",
+                            "docs/misc/scalability",
+                            "docs/misc/telemetry",
+                            "docs/misc/service-ping",
+                            "docs/deployment/sizing-guide",
+                            {
+                                "group": "Infrastructure",
+                                "pages": [
+                                    "docs/deployment/infrastructure/architecture",
+                                    "docs/deployment/infrastructure/redis"
+                                ]
+                            }
+                        ]
+                    },
+                    {
                         "group": "Upgrade",
                         "pages": [
+                            "docs/upgrade/v4-to-v5-guide",
                             "docs/upgrade/v3-to-v4-guide",
                             "docs/upgrade/v2-to-v3-guide"
                         ]
@@ -230,5 +248,35 @@
     "appearance": {
         "default": "dark",
         "strict": false
-    }
+    },
+    "redirects": [
+        {
+            "source": "/docs/features/search/overview",
+            "destination": "/docs/features/search/code-search"
+        },
+        {
+            "source": "/docs/features/ask/overview",
+            "destination": "/docs/features/ask/ask-sourcebot"
+        },
+        {
+            "source": "/docs/features/agents/overview",
+            "destination": "/docs/features/agents/agents"
+        },
+        {
+            "source": "/docs/connections/overview",
+            "destination": "/docs/connections/indexing-your-code"
+        },
+        {
+            "source": "/docs/configuration/auth/overview",
+            "destination": "/docs/configuration/auth/authentication"
+        },
+        {
+            "source": "/docs/license-key",
+            "destination": "/docs/activating-a-subscription"
+        },
+        {
+            "source": "/docs/billing",
+            "destination": "/docs/seat-reconciliation"
+        }
+    ]
 }

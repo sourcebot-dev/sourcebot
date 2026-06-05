@@ -1,23 +1,38 @@
 ---
-title: Roles and Permissions
-sidebarTitle: Roles and permissions
+title: Members and roles
+sidebarTitle: Members and roles
 ---
 
-Each member has a role which defines their permissions within an organization:
+Sourcebot provides different role types to help you control access and permissions across your organization.
 
 | Role | Permission |
 | :--- | :--------- |
-| `Owner` | An organization can have one or more `Owner`s. Owners have full access rights, including: connection management, organization management, and inviting new members. |
-| `Member` | Read-only access to the organization. A `Member` can search across the repos indexed by an organization's connections, as well as view the organizations configuration and member list. However, they cannot modify this configuration or invite new members. |
-| `Guest` | When accessing Sourcebot [anonymously](/docs/configuration/auth/access-settings#anonymous-access), a user has the `Guest` role. `Guest`'s can search across repos indexed by an organization's connections, but cannot view any information regarding the organizations configuration or members. |
+| `Owner` | Owners have full administrative control over all organization-level settings, including user management, access control, billing, and audit logs, in addition to all permissions a member can perform. |
+| `Member` | Members have access and to use all standard features, such as code search, ask, mcp, etc., as well as their account settings. Members **cannot access** organization-level administration pages.  |
+| `Guest` | Guests are users that access Sourcebot without a account when [anonymous access](/docs/configuration/auth/access-settings#anonymous-access) is enabled. Guests can use some features, such as code search and browsing files, with additional limitations like not having chat history. Guests **cannot access** organization-level administration pages. |
 
-## Managing owners
+Note that when [permission syncing](/docs/features/permission-syncing) is enabled, users will only be able to view repositories they have access to. This applies to all roles, **including  Owners**.
+
+<Note>
+On the free plan, all signed-in users are given the `Owner` role.
+</Note>
+
+## Default role assignment
+
+When a user joins your organization, they are assigned a default role. This assignment, and the ability to [manage the user's role](#managing-member-roles) afterwards, depends on [your plan](/docs/activating-a-subscription):
+
+| Plan | Default role | Role management |
+| :--- | :----------- | :-------------- |
+| **Free** | `Owner` | Not available. A user's role cannot be changed. |
+| **Paid** | `Member` | Available. Owners can [promote or demote](#managing-member-roles) members. |
+
+## Managing member roles
 
 import LicenseKeyRequired from '/snippets/license-key-required.mdx'
 
-<LicenseKeyRequired feature="Multiple owners" />
+<LicenseKeyRequired feature="Role management" />
 
-organizations support multiple owners, allowing you to share administrative responsibilities across your team. Owners can promote members to owner and demote other owners back to member from **Settings -> Members**.
+Owners can change the role of any user in the organization from **Settings → Members**. This lets you control who has administrative access by promoting trusted members to `Owner`, and scoping access back down to `Member` when administrative responsibilities change.
 
 <Frame>
   <img src="/images/managing_owners.png" alt="Members settings page showing team members and their roles" />

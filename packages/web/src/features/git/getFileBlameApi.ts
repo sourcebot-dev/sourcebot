@@ -1,5 +1,4 @@
 import { sew } from "@/middleware/sew";
-import { getAuditService } from '@/ee/features/audit/factory';
 import { ServiceError, notFound, fileNotFound, invalidGitRef, unresolvedGitRef, unexpectedError } from '@/lib/serviceError';
 import { withOptionalAuth } from '@/middleware/withAuth';
 import { getRepoPath } from '@sourcebot/shared';
@@ -8,6 +7,7 @@ import simpleGit from 'simple-git';
 import type z from 'zod';
 import { isGitRefValid, isPathValid } from './utils';
 import { fileBlameRequestSchema, fileBlameResponseSchema } from './schemas';
+import { createAudit } from "@/ee/features/audit/audit";
 
 export { fileBlameRequestSchema, fileBlameResponseSchema } from './schemas';
 export type FileBlameRequest = z.infer<typeof fileBlameRequestSchema>;
@@ -21,12 +21,12 @@ type CommitMeta = FileBlameResponse['commits'][string];
  * Format reference: each blamed line produces an entry of the form
  *
  *   <hash> <orig-line> <final-line> [<num-lines>]  (4-field header → first line of a group)
- *   [author <name>                                 (metadata block, only on first
- *    author-mail <<email>>                          appearance of a commit globally)
- *    author-time <unix-ts>
- *    author-tz <+/-HHMM>
- *    committer ...
- *    summary <subject>
+ *   [author <name>                                 (metadata block, emitted only on
+ *    author-mail <<email>>                          the first global appearance of a
+ *    author-time <unix-ts>                          commit; subsequent groups for the
+ *    author-tz <+/-HHMM>                            same commit are header-only. With
+ *    committer ...                                  -C/-M, `filename` may be re-emitted
+ *    summary <subject>                              if it differs from the prior value.)
  *    previous <hash> <path>                         (optional)
  *    filename <path>]
  *   \t<line content>
@@ -34,10 +34,14 @@ type CommitMeta = FileBlameResponse['commits'][string];
  * Within a contiguous group of lines from the same commit, only the first line's
  * header carries `<num-lines>`; subsequent lines have a 3-field header. We detect
  * group boundaries via the presence of `<num-lines>` and emit one range per group.
+ *
+ * Because `filename` is emitted per-commit (not per-group), we cache it in
+ * `filenameByHash` and look it up when pushing a range.
  */
 const parsePorcelainBlame = (output: string): FileBlameResponse => {
     const ranges: FileBlameResponse['ranges'] = [];
     const commits: Record<string, CommitMeta> = {};
+    const filenameByHash = new Map<string, string>();
 
     if (output.length === 0) {
         return { ranges, commits };
@@ -102,8 +106,10 @@ const parsePorcelainBlame = (output: string): FileBlameResponse => {
                         path: value.substring(sep + 1),
                     };
                 }
+            } else if (key === 'filename') {
+                filenameByHash.set(hash, value);
             }
-            // committer*, filename, boundary are intentionally ignored.
+            // committer*, boundary are intentionally ignored.
 
             i++;
         }
@@ -125,7 +131,11 @@ const parsePorcelainBlame = (output: string): FileBlameResponse => {
         }
 
         if (isGroupStart) {
-            ranges.push({ hash, startLine: finalLine, lineCount });
+            const path = filenameByHash.get(hash);
+            if (path === undefined) {
+                throw new Error(`Malformed git blame porcelain output: missing "filename" for commit ${hash}`);
+            }
+            ranges.push({ hash, path, startLine: finalLine, lineCount });
         }
     }
 
@@ -136,7 +146,7 @@ const parsePorcelainBlame = (output: string): FileBlameResponse => {
     const coalescedRanges: FileBlameResponse['ranges'] = [];
     for (const range of ranges) {
         const last = coalescedRanges[coalescedRanges.length - 1];
-        if (last && last.hash === range.hash && last.startLine + last.lineCount === range.startLine) {
+        if (last && last.hash === range.hash && last.path === range.path && last.startLine + last.lineCount === range.startLine) {
             last.lineCount += range.lineCount;
         } else {
             coalescedRanges.push({ ...range });
@@ -151,7 +161,7 @@ export const getFileBlame = async ({ path: filePath, repo: repoName, ref }: File
         withOptionalAuth(async ({ org, prisma, user }) => {
             if (user) {
                 const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
-                await getAuditService().createAudit({
+                await createAudit({
                     action: 'user.fetched_file_blame',
                     actor: { id: user.id, type: 'user' },
                     target: { id: org.id.toString(), type: 'org' },

@@ -48,6 +48,13 @@ const nextConfig = {
             {
                 source: "/register",
                 destination: "/api/ee/oauth/register",
+            },
+            // The MCP server lives under /api/ee/mcp so it sits in the EE-licensed
+            // route tree, but is exposed at the stable, public /api/mcp path that
+            // existing MCP client configurations point at.
+            {
+                source: "/api/mcp",
+                destination: "/api/ee/mcp",
             }
         ];
     },

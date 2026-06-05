@@ -1,18 +1,25 @@
+// types prefixed with _ are intended to be wrapped
+// by the consumer. See web/entitlements.ts and
+// backend/entitlements.ts
 export {
-    hasEntitlement,
-    getLicenseKey,
-    getPlan,
-    getSeats,
-    getEntitlements,
+    hasEntitlement as _hasEntitlement,
+    getEntitlements as _getEntitlements,
+    isAnonymousAccessAvailable as _isAnonymousAccessAvailable,
+    isValidLicenseActive as _isValidLicenseActive,
+    getSeatCap,
+    getOfflineLicenseMetadata,
+    STALE_ONLINE_LICENSE_THRESHOLD_MS,
+    STALE_ONLINE_LICENSE_WARNING_THRESHOLD_MS,
 } from "./entitlements.js";
 export type {
-    Plan,
     Entitlement,
+    OfflineLicenseMetadata,
 } from "./entitlements.js";
 export type {
     RepoMetadata,
     RepoIndexingJobMetadata,
     IdentityProviderType,
+    LicenseStatus,
 } from "./types.js";
 export {
     repoMetadataSchema,
@@ -49,6 +56,8 @@ export {
     verifySignature,
     encryptOAuthToken,
     decryptOAuthToken,
+    encryptActivationCode,
+    decryptActivationCode,
 } from "./crypto.js";
 export {
     getDBConnectionString,
@@ -57,5 +66,14 @@ export {
     getSMTPConnectionURL,
 } from "./smtp.js";
 export {
+    createRedisClient,
+} from "./redis.js";
+export {
     SOURCEBOT_VERSION,
 } from "./version.js";
+export {
+    parseVersion,
+    formatVersion,
+    compareVersions,
+} from "./versionUtils.js";
+export type { Version } from "./versionUtils.js";

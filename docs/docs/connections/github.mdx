@@ -9,7 +9,7 @@ import LicenseKeyRequired from '/snippets/license-key-required.mdx'
 
 Sourcebot can sync code from GitHub.com, GitHub Enterprise Server, and GitHub Enterprise Cloud.
 
-If you're not familiar with Sourcebot [connections](/docs/connections/overview), please read that overview first.
+If you're not familiar with Sourcebot [connections](/docs/connections/indexing-your-code), please read that overview first.
 
 ## Examples
 
@@ -161,7 +161,7 @@ In order to index private repositories, you'll need to authenticate with GitHub.
                 [GitHub docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#fine-grained-personal-access-tokens)
             </Step>
             <Step title="Pass PAT into Sourcebot">
-                Next, provide the PAT via a [token](/docs/configuration/config-file#tokens) which is referenced in the `token` field in the [connection](/docs/connections/overview) config object. 
+                Next, provide the PAT via a [token](/docs/configuration/config-file#tokens) which is referenced in the `token` field in the [connection](/docs/connections/indexing-your-code) config object. 
                 
                 The most common mechanism of doing this is defining an environment variable that holds the PAT:
 
@@ -195,7 +195,7 @@ In order to index private repositories, you'll need to authenticate with GitHub.
                 [GitHub docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#personal-access-tokens-classic)
             </Step>
             <Step title="Pass PAT into Sourcebot">
-                Next, provide the PAT via a [token](/docs/configuration/config-file#tokens) which is referenced in the `token` field in the [connection](/docs/connections/overview) config object. 
+                Next, provide the PAT via a [token](/docs/configuration/config-file#tokens) which is referenced in the `token` field in the [connection](/docs/connections/indexing-your-code) config object. 
                 
                 The most common mechanism of doing this is defining an environment variable that holds the PAT:
 

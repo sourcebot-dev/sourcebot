@@ -1,0 +1,133 @@
+import { expect, test, describe, vi } from 'vitest';
+import { prisma } from '@/__mocks__/prisma';
+import type { OAuthTokens } from '@ai-sdk/mcp';
+
+// --- Mocks ---
+
+vi.mock('@sourcebot/shared', () => ({
+    createLogger: () => ({
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+    }),
+    env: { AUTH_URL: 'https://sourcebot.example.com' },
+    decryptOAuthToken: vi.fn((s: string) => s),
+}));
+
+vi.mock('server-only', () => ({ default: vi.fn() }));
+
+vi.mock('@/ee/features/chat/mcp/prismaOAuthClientProvider', () => ({
+    PrismaOAuthClientProvider: vi.fn(),
+}));
+
+vi.mock('@modelcontextprotocol/sdk/client/streamableHttp.js', () => ({
+    StreamableHTTPClientTransport: vi.fn(),
+}));
+
+// Import after mocks are set up
+const { getConnectedMcpClients } = await import('./mcpClientFactory');
+const { PrismaOAuthClientProvider } = await import('@/ee/features/chat/mcp/prismaOAuthClientProvider');
+
+// --- Helpers ---
+
+const PAST = new Date('2020-01-01');
+const TOKEN_NO_REFRESH: OAuthTokens = { access_token: 'tok', token_type: 'Bearer' };
+const TOKEN_WITH_REFRESH: OAuthTokens = { access_token: 'tok', token_type: 'Bearer', refresh_token: 'ref' };
+
+function makeUserServer(overrides: {
+    tokens?: OAuthTokens;
+    tokensExpiresAt?: Date | null;
+    orgId?: number;
+    oauthScopes?: Array<{ scope: string; enabled: boolean }>;
+}) {
+    return {
+        serverId: 'srv-1',
+        userId: 'user-1',
+        tokens: JSON.stringify(overrides.tokens ?? TOKEN_NO_REFRESH),
+        tokensExpiresAt: overrides.tokensExpiresAt ?? null,
+        server: {
+            orgId: overrides.orgId ?? 1,
+            name: 'MyServer',
+            sanitizedName: 'myserver',
+            serverUrl: 'https://example.com/mcp',
+            updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+            oauthScopes: overrides.oauthScopes ?? [],
+        },
+    };
+}
+
+// --- getConnectedMcpClients ---
+
+describe('getConnectedMcpClients', () => {
+    test('skips server when access token expired and no refresh token', async () => {
+        prisma.userMcpServer.findMany.mockResolvedValue([
+            makeUserServer({ tokens: TOKEN_NO_REFRESH, tokensExpiresAt: PAST }),
+        ] as never);
+
+        const result = await getConnectedMcpClients(prisma, 'user-1', 1);
+        expect(result).toHaveLength(0);
+    });
+
+    test('includes server when refresh_token present even if access token expired', async () => {
+        prisma.userMcpServer.findMany.mockResolvedValue([
+            makeUserServer({ tokens: TOKEN_WITH_REFRESH, tokensExpiresAt: PAST }),
+        ] as never);
+
+        const result = await getConnectedMcpClients(prisma, 'user-1', 1);
+        expect(result).toHaveLength(1);
+    });
+
+    test('includes server when tokensExpiresAt is null', async () => {
+        prisma.userMcpServer.findMany.mockResolvedValue([
+            makeUserServer({ tokensExpiresAt: null }),
+        ] as never);
+
+        const result = await getConnectedMcpClients(prisma, 'user-1', 1);
+        expect(result).toHaveLength(1);
+    });
+
+    test('skips server belonging to a different org', async () => {
+        prisma.userMcpServer.findMany.mockResolvedValue([
+            makeUserServer({ orgId: 999 }),
+        ] as never);
+
+        const result = await getConnectedMcpClients(prisma, 'user-1', 1);
+        expect(result).toHaveLength(0);
+    });
+
+    test('returns server metadata from the user MCP server row', async () => {
+        prisma.userMcpServer.findMany.mockResolvedValue([
+            makeUserServer({ tokens: TOKEN_WITH_REFRESH }),
+        ] as never);
+
+        const result = await getConnectedMcpClients(prisma, 'user-1', 1);
+        expect(result[0]).toMatchObject({
+            orgId: 1,
+            serverId: 'srv-1',
+            serverName: 'MyServer',
+            sanitizedName: 'myserver',
+            serverUrl: 'https://example.com/mcp',
+            serverUpdatedAt: new Date('2026-01-01T00:00:00.000Z'),
+            requestedOAuthScopes: [],
+        });
+    });
+
+    test('passes requested scopes to the OAuth provider', async () => {
+        prisma.userMcpServer.findMany.mockResolvedValue([
+            makeUserServer({
+                tokens: TOKEN_WITH_REFRESH,
+                oauthScopes: [
+                    { scope: 'repo', enabled: true },
+                    { scope: 'admin:org', enabled: false },
+                ],
+            }),
+        ] as never);
+
+        await getConnectedMcpClients(prisma, 'user-1', 1);
+
+        expect(PrismaOAuthClientProvider).toHaveBeenCalledWith(expect.objectContaining({
+            requestedOAuthScopes: ['repo'],
+        }));
+    });
+});

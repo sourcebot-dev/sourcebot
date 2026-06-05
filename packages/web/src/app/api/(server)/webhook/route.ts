@@ -130,6 +130,7 @@ if (env.GITLAB_REVIEW_AGENT_TOKEN) {
     }
 }
 
+// eslint-disable-next-line authz/require-auth-wrapper -- authenticated via GitHub App / GitLab webhook secrets, not user session
 export const POST = async (request: NextRequest) => {
     const body = await request.json();
     const headers = Object.fromEntries(Array.from(request.headers.entries(), ([key, value]) => [key.toLowerCase(), value]));

@@ -6,16 +6,13 @@ import { redirect } from "next/navigation";
 type RequiredPageAuthContext = {
     user: UserWithAccounts;
     org: Org;
-    role: Exclude<OrgRole, 'GUEST'>;
-    prisma: PrismaClient;
-}
-
-type OptionalPageAuthContext = {
-    user?: UserWithAccounts;
-    org: Org;
     role: OrgRole;
     prisma: PrismaClient;
 }
+
+type OptionalPageAuthContext =
+    | RequiredPageAuthContext
+    | { user?: UserWithAccounts; org: Org; role?: undefined; prisma: PrismaClient };
 
 type RequiredAuthOptions = {
     allowAnonymous?: false;
@@ -23,7 +20,7 @@ type RequiredAuthOptions = {
     redirectTo?: string;
 }
 
-type OptionalAuthOptions = {
+export type OptionalAuthOptions = {
     allowAnonymous: true;
     minRole?: never;
     redirectTo?: never;
@@ -35,7 +32,6 @@ type AuthContextFor<O extends AuthenticatedPageOptions | undefined> =
     O extends { allowAnonymous: true } ? OptionalPageAuthContext : RequiredPageAuthContext;
 
 const ROLE_PRECEDENCE: Record<OrgRole, number> = {
-    [OrgRole.GUEST]: 0,
     [OrgRole.MEMBER]: 1,
     [OrgRole.OWNER]: 2,
 };
@@ -46,8 +42,9 @@ const ROLE_PRECEDENCE: Record<OrgRole, number> = {
  * as its second.
  *
  * The auth context type narrows based on the options:
- * - Default: `user` is always defined, `role` excludes GUEST
- * - `{ allowAnonymous: true }`: `user` may be undefined, allows anonymous access
+ * - Default: `user` and `role` are always defined
+ * - `{ allowAnonymous: true }`: may be anonymous (no `user`) or authenticated without a
+ *   membership (no `role`). Invariant: `role` defined implies `user` defined.
  *
  * @example
  * // Required auth (user is always defined)

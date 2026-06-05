@@ -1,7 +1,8 @@
 import * as Sentry from "@sentry/node";
 import { PermissionSyncSource, PrismaClient, Repo, RepoPermissionSyncJobStatus } from "@sourcebot/db";
 import { createLogger, PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES } from "@sourcebot/shared";
-import { env, hasEntitlement } from "@sourcebot/shared";
+import { env } from "@sourcebot/shared";
+import { hasEntitlement } from "../entitlements.js";
 import { Job, Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { createOctokitFromToken, getRepoCollaborators, GITHUB_CLOUD_HOSTNAME } from "../github.js";
@@ -44,8 +45,8 @@ export class RepoPermissionSyncer {
         this.worker.on('failed', this.onJobFailed.bind(this));
     }
 
-    public startScheduler() {
-        if (!hasEntitlement('permission-syncing')) {
+    public async startScheduler() {
+        if (!await hasEntitlement('permission-syncing')) {
             throw new Error('Permission syncing is not supported in current plan.');
         }
 
@@ -186,7 +187,7 @@ export class RepoPermissionSyncer {
             throw new Error(`Repo ${id} not found`);
         }
 
-        logger.info(`Syncing permissions for repo ${repo.displayName}...`);
+        logger.debug(`Syncing permissions for repo ${repo.displayName}...`);
 
         const credentials = await getAuthCredentialsForRepo(repo, logger);
         if (!credentials) {
@@ -388,7 +389,7 @@ export class RepoPermissionSyncer {
             }
         });
 
-        logger.info(`Permissions synced for repo ${repo.displayName ?? repo.name}`);
+        logger.debug(`Permissions synced for repo ${repo.displayName ?? repo.name}`);
     }
 
     private async onJobFailed(job: Job<RepoPermissionSyncJob> | undefined, err: Error) {

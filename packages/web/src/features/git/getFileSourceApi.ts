@@ -1,6 +1,6 @@
 import { sew } from "@/middleware/sew";
 import { getBrowsePath } from '@/app/(app)/browse/hooks/utils';
-import { getAuditService } from '@/ee/features/audit/factory';
+import { createAudit } from '@/ee/features/audit/audit';
 import { parseGitAttributes, resolveLanguageFromGitAttributes } from '@/lib/gitattributes';
 import { detectLanguageFromFilename } from '@/lib/languageDetection';
 import { ServiceError, notFound, fileNotFound, invalidGitRef, unresolvedGitRef, unexpectedError } from '@/lib/serviceError';
@@ -103,7 +103,7 @@ export const getFileSourceForRepo = async (
 export const getFileSource = async ({ path: filePath, repo: repoName, ref }: FileSourceRequest, { source }: { source?: string } = {}): Promise<FileSourceResponse | ServiceError> => sew(() => withOptionalAuth(async ({ org, prisma, user }) => {
     if (user) {
         const resolvedSource = source ?? (await headers()).get('X-Sourcebot-Client-Source') ?? undefined;
-        getAuditService().createAudit({
+        await createAudit({
             action: 'user.fetched_file_source',
             actor: { id: user.id, type: 'user' },
             target: { id: org.id.toString(), type: 'org' },

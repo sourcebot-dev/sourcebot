@@ -12,11 +12,14 @@ vi.mock('@sourcebot/shared', async (importOriginal) => {
             error: vi.fn(),
             debug: vi.fn(),
         })),
-        hasEntitlement: vi.fn(() => true),
-        getPlan: vi.fn(() => 'enterprise'),
         SOURCEBOT_SUPPORT_EMAIL: 'support@sourcebot.dev',
     };
 });
+
+vi.mock('../entitlements.js', () => ({
+    hasEntitlement: vi.fn(() => Promise.resolve(true)),
+    getPlan: vi.fn(() => Promise.resolve('enterprise')),
+}));
 
 import { syncSearchContexts } from './syncSearchContexts.js';
 

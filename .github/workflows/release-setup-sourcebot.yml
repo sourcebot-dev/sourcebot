@@ -1,0 +1,135 @@
+name: Release setup-sourcebot
+
+# Publishes the `setup-sourcebot` CLI (packages/setupWizard) to the public npm
+# registry, then bumps the version, commits it to main, tags it, and cuts a
+# GitHub release.
+#
+# Auth model:
+#   - npm:  OIDC Trusted Publishing (no long-lived token). Requires a trusted
+#           publisher to be configured for `setup-sourcebot` on npmjs.org,
+#           pointing at this repo + this workflow file. npm CLI >= 11.5.1 is
+#           required, so we upgrade npm before publishing.
+#   - git:  the existing RELEASE_APP GitHub App token, so the version-bump
+#           commit and tag can be pushed to protected `main`.
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Type of version bump to apply"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+concurrency:
+  group: release-setup-sourcebot
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # push the version-bump commit + tag, create the release
+      id-token: write   # OIDC token for npm Trusted Publishing
+    defaults:
+      run:
+        working-directory: packages/setupWizard
+
+    steps:
+      - name: Generate GitHub App token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          submodules: "true"
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        working-directory: .
+        run: yarn install --frozen-lockfile
+
+      - name: Bump version
+        id: bump
+        run: |
+          # Bump packages/setupWizard/package.json only. --no-git-tag-version
+          # writes the new version without creating a commit or tag (we do that
+          # ourselves, with a release-specific tag, further down).
+          npm version "${{ inputs.bump_type }}" --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Bumped setup-sourcebot to $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check tag does not already exist
+        working-directory: .
+        env:
+          TAG: setup-sourcebot-v${{ steps.bump.outputs.version }}
+        run: |
+          if git tag | grep -qx "$TAG"; then
+            echo "Error: tag $TAG already exists"
+            exit 1
+          fi
+
+      - name: Build
+        working-directory: .
+        run: |
+          # setupWizard imports from @sourcebot/schemas (workspace:^), so its
+          # build must come first.
+          yarn workspace @sourcebot/schemas run build
+          yarn workspace setup-sourcebot run build
+
+      - name: Pack tarball
+        run: |
+          # Yarn pack rewrites the `workspace:^` protocol to a concrete version
+          # range in the published manifest — something `npm publish` cannot do
+          # on its own. We then hand the resulting tarball to npm for OIDC
+          # publishing.
+          yarn pack --out /tmp/setup-sourcebot.tgz
+
+      - name: Upgrade npm for Trusted Publishing
+        working-directory: .
+        run: |
+          # OIDC Trusted Publishing requires npm >= 11.5.1; Node 20 ships an
+          # older npm.
+          npm install -g npm@latest
+          npm --version
+
+      - name: Publish to npm
+        working-directory: .
+        run: |
+          npm publish /tmp/setup-sourcebot.tgz --provenance --access public
+
+      - name: Configure git
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit, tag, and push
+        working-directory: .
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          git add packages/setupWizard/package.json
+          git commit -m "[skip ci] Release setup-sourcebot v$VERSION"
+          git tag -a "setup-sourcebot-v$VERSION" -m "setup-sourcebot v$VERSION"
+          git push origin HEAD:main
+          git push origin "setup-sourcebot-v$VERSION"
+

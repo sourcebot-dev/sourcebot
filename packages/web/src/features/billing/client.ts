@@ -1,0 +1,142 @@
+import { fetchWithRetry, isServiceError } from "@/lib/utils";
+import { env } from "@sourcebot/shared";
+import {
+    ActivateRequest,
+    ActivateResponse,
+    activateResponseSchema,
+    CheckoutRequest,
+    CheckoutResponse,
+    checkoutResponseSchema,
+    ClaimActivationCodeRequest,
+    ClaimActivationCodeResponse,
+    claimActivationCodeResponseSchema,
+    InvoicesRequest,
+    InvoicesResponse,
+    invoicesResponseSchema,
+    OffersQuery,
+    OffersResponse,
+    offersResponseSchema,
+    PortalRequest,
+    PortalResponse,
+    portalResponseSchema,
+    ServicePingRequest,
+    ServicePingResponse,
+    servicePingResponseSchema,
+} from "./types";
+import { ServiceError } from "@/lib/serviceError";
+import { ErrorCode } from "@/lib/errorCodes";
+import { StatusCodes } from "http-status-codes";
+import { z } from "zod";
+
+export const client = {
+    activate: async (body: ActivateRequest): Promise<ActivateResponse | ServiceError> => {
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/activate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        return parseResponseBody(response, activateResponseSchema);
+    },
+
+    claimActivationCode: async (body: ClaimActivationCodeRequest): Promise<ClaimActivationCodeResponse | ServiceError> => {
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/claim-activation-code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        return parseResponseBody(response, claimActivationCodeResponseSchema);
+    },
+
+    ping: async (body: ServicePingRequest): Promise<ServicePingResponse | ServiceError> => {
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/ping`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        return parseResponseBody(response, servicePingResponseSchema);
+    },
+
+    pingSchema: async (): Promise<Record<string, unknown> | ServiceError> => {
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/schema`, {
+            method: 'GET',
+        });
+
+        return parseResponseBody(response, z.record(z.string(), z.unknown()));
+    },
+
+    checkout: async (body: CheckoutRequest): Promise<CheckoutResponse | ServiceError> => {
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/checkout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        return parseResponseBody(response, checkoutResponseSchema);
+    },
+
+    portal: async (body: PortalRequest): Promise<PortalResponse | ServiceError> => {
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/portal`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        return parseResponseBody(response, portalResponseSchema);
+    },
+
+    invoices: async (body: InvoicesRequest): Promise<InvoicesResponse | ServiceError> => {
+        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/invoices`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        return parseResponseBody(response, invoicesResponseSchema);
+    },
+
+    offers: async (query: OffersQuery): Promise<OffersResponse | ServiceError> => {
+        const params = new URLSearchParams(query);
+        // @note we don't use a fetchWithRetry here since this api is
+        // comonly called on the client that has it's own retry mechanisms.
+        // @see: useOffers.ts
+        const response = await fetch(`${env.SOURCEBOT_LIGHTHOUSE_URL}/offers?${params}`, {
+            method: 'GET',
+        });
+
+        return parseResponseBody(response, offersResponseSchema);
+    },
+}
+
+const parseResponseBody = async <T extends z.ZodTypeAny>(
+    response: Response,
+    schema: T,
+): Promise<z.infer<T> | ServiceError> => {
+    let body: unknown;
+    try {
+        body = await response.json();
+    } catch (error) {
+        return {
+            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+            errorCode: ErrorCode.INVALID_RESPONSE_BODY,
+            message: `Failed to parse response body as JSON: ${error instanceof Error ? error.message : String(error)}`,
+        };
+    }
+
+    if (isServiceError(body)) {
+        return body;
+    }
+
+    const parsed = schema.safeParse(body);
+    if (!parsed.success) {
+        return {
+            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+            errorCode: ErrorCode.INVALID_RESPONSE_BODY,
+            message: `Response body failed schema validation: ${parsed.error.message}`,
+        };
+    }
+
+    return parsed.data;
+}

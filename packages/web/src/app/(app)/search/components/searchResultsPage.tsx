@@ -15,32 +15,30 @@ import { RepositoryInfo, SearchResultFile, SearchStats } from "@/features/search
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useNonEmptyQueryParam } from "@/hooks/useNonEmptyQueryParam";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
+import { ServiceErrorException } from "@/lib/serviceError";
 import { SearchQueryParams } from "@/lib/types";
 import { createPathWithQueryParams } from "@/lib/utils";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { AlertTriangleIcon, BugIcon, FilterIcon, RefreshCwIcon } from "lucide-react";
+import { Session } from "next-auth";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { ImperativePanelHandle } from "react-resizable-panels";
 import { CopyIconButton } from "../../components/copyIconButton";
 import { SearchBar } from "../../components/searchBar";
-import { TopBar } from "../../components/topBar";
 import { useStreamedSearch } from "../useStreamedSearch";
 import { CodePreviewPanel } from "./codePreviewPanel";
 import { FilterPanel } from "./filterPanel";
 import { useFilteredMatches } from "./filterPanel/useFilterMatches";
 import { SearchResultsPanel, SearchResultsPanelHandle } from "./searchResultsPanel";
-import { ServiceErrorException } from "@/lib/serviceError";
-import { Session } from "next-auth";
 
 interface SearchResultsPageProps {
     searchQuery: string;
     defaultMaxMatchCount: number;
     isRegexEnabled: boolean;
     isCaseSensitivityEnabled: boolean;
-    session: Session | null;
     isSearchAssistSupported: boolean;
 }
 
@@ -49,7 +47,6 @@ export const SearchResultsPage = ({
     defaultMaxMatchCount,
     isRegexEnabled,
     isCaseSensitivityEnabled,
-    session,
     isSearchAssistSupported,
 }: SearchResultsPageProps) => {
     const router = useRouter();
@@ -169,24 +166,24 @@ export const SearchResultsPage = ({
         router.push(url);
     }, [maxMatchCount, router, searchQuery, isRegexEnabled, isCaseSensitivityEnabled]);
 
-    
+
     return (
-        <div className="flex flex-col h-screen overflow-clip">
-            {/* TopBar */}
-            <TopBar
-                session={session}
-            >
-                <SearchBar
-                    size="sm"
-                    defaults={{
-                        isRegexEnabled,
-                        isCaseSensitivityEnabled,
-                        query: searchQuery,
-                    }}
-                    className="w-full"
-                    isSearchAssistSupported={isSearchAssistSupported}
-                />
-            </TopBar>
+        <div className="flex flex-col h-full">
+            <div className='sticky top-0 left-0 right-0 z-10'>
+                <div className="py-1.5 px-3">
+                    <SearchBar
+                        size="sm"
+                        defaults={{
+                            isRegexEnabled,
+                            isCaseSensitivityEnabled,
+                            query: searchQuery,
+                        }}
+                        className="w-full"
+                        isSearchAssistSupported={isSearchAssistSupported}
+                    />
+                </div>
+                <Separator />
+            </div>
 
             {error ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">

@@ -1,11 +1,13 @@
 import { oauthApiHandler } from '@/ee/features/oauth/apiHandler';
-import { env, hasEntitlement } from '@sourcebot/shared';
+import { env } from '@sourcebot/shared';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
+import { hasEntitlement } from '@/lib/entitlements';
 
 // RFC 8414: OAuth 2.0 Authorization Server Metadata
 // @see: https://datatracker.ietf.org/doc/html/rfc8414
+// eslint-disable-next-line authz/require-auth-wrapper -- RFC 8414 public metadata endpoint
 export const GET = oauthApiHandler(async () => {
-    if (!hasEntitlement('oauth')) {
+    if (!await hasEntitlement('oauth')) {
         return Response.json(
             { error: 'not_found', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
             { status: 404 }

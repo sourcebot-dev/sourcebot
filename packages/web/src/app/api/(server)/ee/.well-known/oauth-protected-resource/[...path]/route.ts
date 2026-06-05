@@ -1,7 +1,8 @@
-import { oauthApiHandler } from '@/ee/features/oauth/apiHandler';
-import { env, hasEntitlement } from '@sourcebot/shared';
+import { env } from '@sourcebot/shared';
+import { hasEntitlement } from '@/lib/entitlements';
 import { NextRequest } from 'next/server';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
+import { oauthApiHandler } from '@/ee/features/oauth/apiHandler';
 
 // RFC 9728: OAuth 2.0 Protected Resource Metadata (path-specific form)
 // For a resource at /api/mcp, the well-known URI is /.well-known/oauth-protected-resource/api/mcp.
@@ -10,8 +11,9 @@ const PROTECTED_RESOURCES = new Set([
     'api/mcp'
 ]);
 
+// eslint-disable-next-line authz/require-auth-wrapper -- RFC 9728 public metadata endpoint
 export const GET = oauthApiHandler(async (_request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) => {
-    if (!hasEntitlement('oauth')) {
+    if (!await hasEntitlement('oauth')) {
         return Response.json(
             { error: 'not_found', error_description: OAUTH_NOT_SUPPORTED_ERROR_MESSAGE },
             { status: 404 }

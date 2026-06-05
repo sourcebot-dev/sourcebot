@@ -4,7 +4,7 @@ import { isServiceError } from '@/lib/utils';
 import description from './getDiff.txt';
 import { formatDiffAsGitDiff } from './utils';
 import { logger } from './logger';
-import { ToolDefinition } from './types';
+import { Source, ToolDefinition } from './types';
 import { CodeHostType } from '@sourcebot/db';
 import { getRepoInfoByName } from '@/actions';
 
@@ -49,6 +49,48 @@ export const getDiffDefinition: ToolDefinition<'get_diff', typeof getDiffRequest
 
         const gitDiffOutput = formatDiffAsGitDiff(response);
 
+        const sources: Source[] = response.files.flatMap((file) => {
+            // Deleted: only the base side exists.
+            if (file.newPath === null) {
+                return file.oldPath ? [{
+                    type: 'file' as const,
+                    repo: repoInfo.name,
+                    path: file.oldPath,
+                    name: file.oldPath.split('/').pop() ?? file.oldPath,
+                    revision: base,
+                }] : [];
+            }
+
+            // Renamed: emit both sides since they have distinct paths.
+            if (file.oldPath && file.oldPath !== file.newPath) {
+                return [
+                    {
+                        type: 'file' as const,
+                        repo: repoInfo.name,
+                        path: file.oldPath,
+                        name: file.oldPath.split('/').pop() ?? file.oldPath,
+                        revision: base,
+                    },
+                    {
+                        type: 'file' as const,
+                        repo: repoInfo.name,
+                        path: file.newPath,
+                        name: file.newPath.split('/').pop() ?? file.newPath,
+                        revision: head,
+                    },
+                ];
+            }
+
+            // Added or modified: only the head side is citable.
+            return [{
+                type: 'file' as const,
+                repo: repoInfo.name,
+                path: file.newPath,
+                name: file.newPath.split('/').pop() ?? file.newPath,
+                revision: head,
+            }];
+        });
+
         return {
             output: gitDiffOutput,
             metadata: {
@@ -58,6 +100,7 @@ export const getDiffDefinition: ToolDefinition<'get_diff', typeof getDiffRequest
                 base,
                 head,
             },
+            sources,
         };
     },
 };

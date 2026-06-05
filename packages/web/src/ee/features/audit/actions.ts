@@ -1,7 +1,7 @@
 "use server";
 
 import { sew } from "@/middleware/sew";
-import { getAuditService } from "@/ee/features/audit/factory";
+import { createAudit } from "@/ee/features/audit/audit";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError } from "@/lib/serviceError";
 import { withAuth } from "@/middleware/withAuth";
@@ -11,12 +11,11 @@ import { StatusCodes } from "http-status-codes";
 import { AuditEvent } from "./types";
 import { OrgRole } from "@sourcebot/db";
 
-const auditService = getAuditService();
 const logger = createLogger('audit-utils');
 
 export const createAuditAction = async (event: Omit<AuditEvent, 'sourcebotVersion' | 'orgId' | 'actor' | 'target'>) => sew(async () =>
     withAuth(async ({ user, org }) => {
-        await auditService.createAudit({
+        await createAudit({
             ...event,
             orgId: org.id,
             actor: { id: user.id, type: "user" },
@@ -59,7 +58,7 @@ export const fetchAuditRecords = async (params: FetchAuditRecordsParams) => sew(
                     prisma.audit.count({ where }),
                 ]);
 
-                await auditService.createAudit({
+                await createAudit({
                     action: "audit.fetch",
                     actor: {
                         id: user.id,

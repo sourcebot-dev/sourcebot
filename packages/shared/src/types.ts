@@ -33,6 +33,14 @@ export const repoMetadataSchema = z.object({
     indexedRevisions: z.array(z.string()).optional(),
 
     /**
+     * Timestamp of when changed-path Bloom filters were written into the
+     * commit-graph for this repo's full history. Undefined means the one-time
+     * backfill has not yet run, so historical commits still lack Bloom filters.
+     * @see writeCommitGraph in packages/backend/src/git.ts
+     */
+    commitGraphChangedPathsBackfilledAt: z.string().datetime().optional(),
+
+    /**
      * Code host specific metadata, keyed by code host type.
      */
     codeHostMetadata: z.object({
@@ -65,3 +73,14 @@ export const repoIndexingJobMetadataSchema = z.object({
 export type RepoIndexingJobMetadata = z.infer<typeof repoIndexingJobMetadataSchema>;
 
 export type IdentityProviderType = IdentityProviderConfig['provider'];
+
+// @see: https://docs.stripe.com/api/subscriptions/object#subscription_object-status
+export type LicenseStatus =
+    'active' |
+    'trialing' |
+    'past_due' |
+    'unpaid' |
+    'canceled' |
+    'incomplete' |
+    'incomplete_expired' |
+    'paused';

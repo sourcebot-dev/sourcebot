@@ -1,18 +1,17 @@
 "use server";
 
-import { isServiceError } from "@/lib/utils";
-import { notAuthenticated, notFound, orgNotFound, ServiceError } from "@/lib/serviceError";
-import { sew } from "@/middleware/sew";
+import { createAudit } from "@/ee/features/audit/audit";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
-import { StatusCodes } from "http-status-codes";
+import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { ErrorCode } from "@/lib/errorCodes";
+import { notAuthenticated, notFound, orgNotFound, ServiceError } from "@/lib/serviceError";
+import { isServiceError } from "@/lib/utils";
+import { sew } from "@/middleware/sew";
 import { getAuthenticatedUser } from "@/middleware/withAuth";
 import { __unsafePrisma } from "@/prisma";
-import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
-import { getAuditService } from "@/ee/features/audit/factory";
+import { StatusCodes } from "http-status-codes";
 
-const auditService = getAuditService();
-
+// eslint-disable-next-line authz/require-auth-wrapper -- runs pre-org-membership; uses getAuthenticatedUser() directly since withAuth requires a user-to-org link this call is establishing
 export const joinOrganization = async (inviteLinkId?: string) => sew(async () => {
     const authResult = await getAuthenticatedUser();
     if (!authResult) {
@@ -56,7 +55,7 @@ export const joinOrganization = async (inviteLinkId?: string) => sew(async () =>
         return addUserToOrgRes;
     }
 
-    await auditService.createAudit({
+    await createAudit({
         action: "org.member_added",
         actor: { id: user.id, type: "user" },
         target: { id: user.id, type: "user" },
@@ -71,6 +70,7 @@ export const joinOrganization = async (inviteLinkId?: string) => sew(async () =>
     }
 });
 
+// eslint-disable-next-line authz/require-auth-wrapper -- runs pre-org-membership; uses getAuthenticatedUser() directly since withAuth requires a user-to-org link this call is establishing
 export const redeemInvite = async (inviteId: string): Promise<{ success: boolean; } | ServiceError> => sew(async () => {
     const authResult = await getAuthenticatedUser();
     if (!authResult) {
@@ -93,7 +93,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
     }
 
     const failAuditCallback = async (error: string) => {
-        await auditService.createAudit({
+        await createAudit({
             action: "user.invite_accept_failed",
             actor: {
                 id: user.id,
@@ -110,7 +110,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
         });
     };
 
-    const hasAvailability = await orgHasAvailability();
+    const hasAvailability = await orgHasAvailability(invite.org.id);
     if (!hasAvailability) {
         await failAuditCallback("Organization is at max capacity");
         return {
@@ -132,7 +132,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
         return addUserToOrgRes;
     }
 
-    await auditService.createAudit({
+    await createAudit({
         action: "user.invite_accepted",
         actor: {
             id: user.id,
@@ -145,7 +145,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
         }
     });
 
-    await auditService.createAudit({
+    await createAudit({
         action: "org.member_added",
         actor: { id: user.id, type: "user" },
         target: { id: user.id, type: "user" },
@@ -161,6 +161,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
 });
 
 
+// eslint-disable-next-line authz/require-auth-wrapper -- runs pre-org-membership; uses getAuthenticatedUser() directly since the invitee is not yet a member
 export const getInviteInfo = async (inviteId: string) => sew(async () => {
     const authResult = await getAuthenticatedUser();
     if (!authResult) {
@@ -202,4 +203,3 @@ export const getInviteInfo = async (inviteId: string) => sew(async () => {
         }
     };
 });
-

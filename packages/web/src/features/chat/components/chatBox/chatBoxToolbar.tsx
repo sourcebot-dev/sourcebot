@@ -5,6 +5,7 @@ import { LanguageModelInfo, SearchScope } from "@/features/chat/types";
 import { RepositoryQuery, SearchContextQuery } from "@/lib/types";
 import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 import { AtMentionButton } from "./atMentionButton";
+import { ChatBoxPlusButton } from "./chatBoxPlusButton";
 import { LanguageModelSelector } from "./languageModelSelector";
 import { SearchScopeSelector } from "./searchScopeSelector";
 
@@ -16,6 +17,9 @@ export interface ChatBoxToolbarProps {
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     isContextSelectorOpen: boolean;
     onContextSelectorOpenChanged: (isOpen: boolean) => void;
+    disabledMcpServerIds?: string[];
+    onDisabledMcpServerIdsChange?: (ids: string[]) => void;
+    isAuthenticated: boolean;
 }
 
 export const ChatBoxToolbar = ({
@@ -26,6 +30,9 @@ export const ChatBoxToolbar = ({
     onSelectedSearchScopesChange,
     isContextSelectorOpen,
     onContextSelectorOpenChanged,
+    disabledMcpServerIds,
+    onDisabledMcpServerIdsChange,
+    isAuthenticated,
 }: ChatBoxToolbarProps) => {
     const { selectedLanguageModel, setSelectedLanguageModel } = useSelectedLanguageModel({
         languageModels,
@@ -33,6 +40,18 @@ export const ChatBoxToolbar = ({
 
     return (
         <>
+            {disabledMcpServerIds !== undefined && onDisabledMcpServerIdsChange !== undefined && (
+                <>
+                    <ChatBoxPlusButton
+                        selectedSearchScopes={selectedSearchScopes}
+                        onSelectedSearchScopesChange={onSelectedSearchScopesChange}
+                        disabledMcpServerIds={disabledMcpServerIds}
+                        onDisabledMcpServerIdsChange={onDisabledMcpServerIdsChange}
+                        isAuthenticated={isAuthenticated}
+                    />
+                    <Separator orientation="vertical" className="h-3 mx-1" />
+                </>
+            )}
             <AtMentionButton />
             <Separator orientation="vertical" className="h-3 mx-1" />
             <SearchScopeSelector

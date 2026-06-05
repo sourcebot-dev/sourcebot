@@ -10,7 +10,7 @@ import { isServiceError } from "@/lib/utils";
 import { UserAvatar } from "@/components/userAvatar";
 import { CheckCircle, Search, XCircle } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-import { approveAccountRequest, rejectAccountRequest } from "@/actions";
+import { rejectAccountRequest, approveAccountRequest } from "@/features/userManagement/actions";
 import { useRouter } from "next/navigation";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 

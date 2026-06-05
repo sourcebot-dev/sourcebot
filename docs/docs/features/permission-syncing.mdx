@@ -102,6 +102,8 @@ These users **will** still gain access via [user-driven syncing](/docs/features/
 If your workspace relies heavily on group or project-level permissions rather than direct user grants, we recommend reducing the `userDrivenPermissionSyncIntervalMs` interval to limit the window of delay.
 </Warning>
 
+<Note>When a Bitbucket Cloud account is closed by its owner, Atlassian applies an account-deletion grace period (currently 14 days for consumer accounts) before the account is fully purged. During this window, Bitbucket's permission APIs may continue to return the closed user in repository permission lists. Sourcebot revokes that user's access once the next permission sync receives an authentication error from Bitbucket, or once Atlassian fully purges the account.</Note>
+
 **Notes:**
 - A Bitbucket Cloud [external identity provider](/docs/configuration/idp#bitbucket-cloud) must be configured to (1) correlate a Sourcebot user with a Bitbucket Cloud user, and (2) to list repositories that the user has access to for [User driven syncing](/docs/features/permission-syncing#how-it-works).
 - OAuth tokens require the `account` and `repository` scopes. The `repository` scope is required to list private repositories during [User driven syncing](/docs/features/permission-syncing#how-it-works).
@@ -147,7 +149,7 @@ The button will show a spinner while the sync is in progress and display a confi
 
 # Overriding enforcement per connection
 
-Each [connection](/docs/connections/overview) supports two flags that control permission enforcement for that connection's repositories:
+Each [connection](/docs/connections/indexing-your-code) supports two flags that control permission enforcement for that connection's repositories:
 
 - **`enforcePermissions`**: Controls whether repository permissions are enforced for the connection. When `PERMISSION_SYNC_ENABLED` is false, this setting has no effect. Defaults to the value of `PERMISSION_SYNC_ENABLED`.
 - **`enforcePermissionsForPublicRepos`**: Controls whether repository permissions are enforced for public repositories in the connection. When true, public repositories are only visible to users with a linked account for the connection's code host. When false, public repositories are visible to all users. Has no effect when `enforcePermissions` is false. Defaults to false.
@@ -203,3 +205,16 @@ The sync intervals can be configured using the following settings in the [config
 |-------------------------------------------------|---------|------------|---------|
 | `repoDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
 | `userDrivenPermissionSyncIntervalMs` | number  | 24 hours   | 1       |
+
+# FAQ
+
+### What happens if there are transient errors with the code host?
+
+It depends on the type of error:
+
+- **Authentication errors** (such as `401`, `403`, `410`, or a token refresh failure): Sourcebot immediately revokes the affected user's access to repositories on that code host.
+- **Rate limits or `5xx` responses**: Sourcebot keeps the user's existing access.
+
+### When is a visibility change of a repo (switching from public to private) reflected within Sourcebot?
+
+The visibility state of a repository is updated when the [connection](/docs/connections/overview#connection-syncing) belonging to that repository is synced, not when the repository's permissions are synced. Until the next connection sync runs, Sourcebot continues to apply the repository's previous public/private classification. The connection sync interval is configurable via the `resyncConnectionIntervalMs` setting in the [config file](/docs/configuration/config-file) and defaults to 24 hours. Lower this value if you require faster propagation of visibility changes.

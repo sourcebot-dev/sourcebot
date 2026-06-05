@@ -9,6 +9,7 @@ async function loadOpenApiDocument() {
     return JSON.parse(await fs.readFile(openApiPath, 'utf8'));
 }
 
+// eslint-disable-next-line authz/require-auth-wrapper -- public OpenAPI spec, intentionally unauthenticated
 export const GET = apiHandler(async () => {
     const document = await loadOpenApiDocument();
 

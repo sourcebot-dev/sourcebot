@@ -8,6 +8,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- [EE] Added prompt caching for Ask Sourcebot. For Anthropic models, the static prompt prefix (tool definitions, system prompt, and conversation history) is marked with a cache breakpoint so it is billed at the provider's discounted cache-read rate on subsequent agent steps and follow-up turns. Toggle with `SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED` (default `true`). [#1278](https://github.com/sourcebot-dev/sourcebot/pull/1278)
+- [EE] Added a cached-token breakdown to the Ask Sourcebot message details, showing what share of the input tokens were served from the model provider's prompt cache. [#1278](https://github.com/sourcebot-dev/sourcebot/pull/1278)
+
+### Fixed
+- Upgraded `protobufjs` to `^7.6.2`. [#1281](https://github.com/sourcebot-dev/sourcebot/pull/1281)
+
+## [5.0.1] - 2026-06-04
+
+### Fixed
+- Guest users will now be prompted to login when trying to view their connects on the Ask Sourcebot page. [#1274](https://github.com/sourcebot-dev/sourcebot/pull/1274)
+
+## [5.0.0] - 2026-06-04
+
+Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide) for details on upgrading your instance to v5.
+
+### Changed
+- [**Breaking Change**] Changed the default role assignment to `Owner` for organizations on the free tier. See the [v4 to v5 guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide). [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- [**Breaking Change**] Relicensed Ask Sourcebot and MCP under ee. See the [v4 to v5 guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide). [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- [**Breaking Change**] Removed the embedded Postgres and Redis from the Docker image. External Postgres and Redis are now required: set `DATABASE_URL` and `REDIS_URL`, or deploy with the provided `docker-compose.yml`. See the [v4 to v5 guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide). [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- [**Breaking Change**] Sourcebot no longer auto-generates `AUTH_SECRET` and `SOURCEBOT_ENCRYPTION_KEY`, nor reads them from the plaintext files it previously wrote to the data volume; both must now be set explicitly as environment variables. See the [v4 to v5 guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide). [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- Expired offline license keys no longer crash the process. An expired key now degrades to the unlicensed state. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- Improved the `setup-sourcebot` wizard: prompts for a setup directory, clarifies that secrets are stored locally in `.env`, switches multi-select to Tab, hides "No results" until a real search runs, and detects/cleans up conflicting Docker deployments and volumes before starting. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+
+### Added
+- Added ask connectors: connect 3rd party MCP servers to your ask agent. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- Added progress bar when navigating between pages. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- Added a integrated changelog into the sidebar. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- Added scroll position restoration when viewing files in the code browser, so returning to a previously viewed file restores your scroll position. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+
+### Fixed
+- Fixed git "dubious ownership" errors when the container runs as a non-root user by setting `safe.directory` at the system level instead of the global (root-only) level. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+
+## [4.17.4] - 2026-05-30
+
+### Changed
+- Documented session lifetime, repository visibility refresh behavior, and how permission sync handles transient code-host errors. [#1218](https://github.com/sourcebot-dev/sourcebot/pull/1218)
+
+### Fixed
+- Fixed issue where claude-opus-4-8 was returning "error occurred "thinking.type.enabled" is not supported for this model". [#1249](https://github.com/sourcebot-dev/sourcebot/pull/1249)
+
+## [4.17.3] - 2026-05-22
+
+### Fixed
+- Fixed issue where repo permissions could go stale when authentication or token refresh related errors occured. [#1215](https://github.com/sourcebot-dev/sourcebot/pull/1215)
+- [EE] Fixed issue where repo permissions could go stale when an upstream endpoint returned HTTP 410 Gone (e.g. Bitbucket Cloud's CHANGE-2770). [#1216](https://github.com/sourcebot-dev/sourcebot/pull/1216)
+- [EE] Fixed Bitbucket Cloud account-driven permission sync after Atlassian's CHANGE-2770 removed `GET /2.0/user/permissions/repositories`. [#1217](https://github.com/sourcebot-dev/sourcebot/pull/1217)
+- Fixed issue where session invalidation (signout, user deletion, removal from org) was not reflected by `/api/auth/session`. [#1219](https://github.com/sourcebot-dev/sourcebot/pull/1219)
+- [EE] Fixed issue where an OAuth account-linking attempt without a valid signed-in session would silently create an orphan User row instead of rejecting the request. [#1221](https://github.com/sourcebot-dev/sourcebot/pull/1221)
+
+## [4.17.2] - 2026-05-16
+
+### Added
+- Added warning message that fires on startup when host environment contains env vars that simple-git flags as unsafe. [#1193](https://github.com/sourcebot-dev/sourcebot/pull/1193)
+- Added a loading skeleton to the latest commit info bar in the code browser. [#1195](https://github.com/sourcebot-dev/sourcebot/pull/1195)
+
+### Fixed
+- Add missing schema changes introduced in [#1170](https://github.com/sourcebot-dev/sourcebot/pull/1170). [#1176](https://github.com/sourcebot-dev/sourcebot/pull/1176)
+- Fixed blame gutter commit navigation to use the file path as it existed at the attributing commit, so clicking a blame line whose commit predates a rename resolves to the correct historical path. [#1178](https://github.com/sourcebot-dev/sourcebot/pull/1178)
+- Bumped transitive `fast-uri` dependency to `^3.1.2`. [#1181](https://github.com/sourcebot-dev/sourcebot/pull/1181)
+- Upgraded `simple-git` to `3.36.0` to address CVE-2026-6951. [#1183](https://github.com/sourcebot-dev/sourcebot/pull/1183)
+- Upgraded `hono` to `^4.12.18` to address CVE-2026-44455, CVE-2026-44456, CVE-2026-44457, CVE-2026-44458. [#1186](https://github.com/sourcebot-dev/sourcebot/pull/1186)
+- Upgraded `ip-address` to `^10.2.0` to address CVE-2026-42338. [#1189](https://github.com/sourcebot-dev/sourcebot/pull/1189)
+- Upgraded `fast-xml-builder` to `^1.2.0` to address CVE-2026-44664, CVE-2026-44665. [#1184](https://github.com/sourcebot-dev/sourcebot/pull/1184)
+- Fixed file citations from the `get_diff` tool not being reliably citable in chat answers. [#1205](https://github.com/sourcebot-dev/sourcebot/pull/1205)
+- Upgraded `next` to `^16.2.6` to address CVE-2026-45109. [#1203](https://github.com/sourcebot-dev/sourcebot/pull/1203)
+
+### Changed
+- Reduced the log verbosity of the worker by changing various log messages from info to debug. [#1179](https://github.com/sourcebot-dev/sourcebot/pull/1179)
+- [EE] Switched symbol hover detection to use Lezer highlight tags, broadening identifier coverage. [#1194](https://github.com/sourcebot-dev/sourcebot/pull/1194)
+- Improved git history and blame performance on large repositories. [#1198](https://github.com/sourcebot-dev/sourcebot/pull/1198)
+- Upgraded `react-email` to `^6.1.4`. [#1206](https://github.com/sourcebot-dev/sourcebot/pull/1206)
+- Upgraded `@posthog/ai` to `^7.18.7`. [#1207](https://github.com/sourcebot-dev/sourcebot/pull/1207)
+
+## [4.17.1] - 2026-05-04
+
+### Added
 - Added three new audit actions covering the full org membership lifecycle: `org.member_added`, `org.member_removed`, and `org.member_left`. [#1165](https://github.com/sourcebot-dev/sourcebot/pull/1165)
 - Added per-user JWT session versioning so admin-driven member removals (and voluntary leaves) invalidate the removed user's active JWT cookies, personal API keys, and OAuth tokens atomically on their next request. [#1168](https://github.com/sourcebot-dev/sourcebot/pull/1168)
 
@@ -985,7 +1062,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added audit logging. [#355](https://github.com/sourcebot-dev/sourcebot/pull/355)
-<!-- @NOTE: this release includes a API change that affects the MCP package (@sourcebot/mcp). On release, bump the MCP package's version and delete this message. -->
 
 ### Fixed
 - Delete account join request when redeeming an invite. [#352](https://github.com/sourcebot-dev/sourcebot/pull/352)

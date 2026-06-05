@@ -1,0 +1,39 @@
+---
+title: Activating a Subscription
+sidebarTitle: Activating a subscription
+---
+
+You can activate a paid plan subscription by using either an Activation Code or a License Key.
+
+# Activation Code (Online Licensing)
+
+<Warning>Your Sourcebot deployment must be able to send a [Service Ping](/docs/misc/service-ping) to validate your Activation Code. If your deployment is unable to send a service ping for 7 days it will downgrade to the free plan until a successul ping is sent. </Warning>
+
+The default mechanism for activating a subscription is through an Activation Code. This activation mechanism allows your Sourcebot deployment to automatically manage its subscription by regularly
+sychronizing with our license server.
+
+### What data does Sourcebot collect?
+
+To enable online licensing, your Sourcebot deployment must be able to communicate with our license server through our [Service Ping](/docs/misc/service-ping). The data that is transmitted is limited to information that is
+required to administer your Sourcebot license and support dynamic seat increases. No sensitive data (source code, AI inputs/outputs, credentials, or user information) will ever be transmitted. For more information, please check out our [privacy policy](https://www.sourcebot.dev/privacy)
+
+# License Key (Offline Licensing)
+
+<Note>The default mechanism for activating a subscription is now through an [Activation Code](#activation-code-online-licensing). Offline licensing using a License Key may be requested by reaching out using our enterprise contact form on our [pricing page](https://www.sourcebot.dev/pricing)</Note>
+
+After purchasing a license key, you can activate it by setting the `SOURCEBOT_EE_LICENSE_KEY` environment variable. 
+
+If you'd like to increase the number of seats on your Sourcebot deployment you must request a new license key, manually update this environment variable, and then restart your deployment.
+
+```bash
+docker run \
+    -e SOURCEBOT_EE_LICENSE_KEY=<your-license-key> \
+    /* additional args */ \
+    ghcr.io/sourcebot-dev/sourcebot:latest
+```
+
+## FAQ
+
+#### What happens when my subscription expires?
+
+When a paid plan subscription expires, your deployment will automatically be downgraded to the free plan. You must upgrade your subscription in order to continue using the paid features.
