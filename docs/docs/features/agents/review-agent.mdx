@@ -145,3 +145,5 @@ You can also trigger a review manually by commenting `/review` on any PR or MR. 
 | `REVIEW_AGENT_REVIEW_COMMAND` | `review` | Comment command that triggers a manual review (without the `/`) |
 | `REVIEW_AGENT_MODEL` | first configured model | `displayName` of the language model to use for reviews |
 | `REVIEW_AGENT_LOGGING_ENABLED` | unset | Write prompt and response logs to disk for debugging |
+| `REVIEW_AGENT_SUMMARY_ENABLED` | `false` | Post a concise summary comment on the PR/MR after each review |
+| `REVIEW_AGENT_SUMMARY_MAX_LENGTH` | `250` | Maximum character length of the summary comment |

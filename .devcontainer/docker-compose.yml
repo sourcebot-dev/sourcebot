@@ -27,6 +27,7 @@ services:
       REVIEW_AGENT_LOGGING_ENABLED: "true"
       REVIEW_AGENT_AUTO_REVIEW_ENABLED: "false"
       REVIEW_AGENT_REVIEW_COMMAND: review
+      REVIEW_AGENT_SUMMARY_ENABLED: "false"
     depends_on:
       - postgres
       - redis

@@ -9,8 +9,35 @@ export const gitlabPushMrReviews = async (
     projectId: number,
     prPayload: sourcebot_pr_payload,
     fileDiffReviews: sourcebot_file_diff_review[],
+    summary?: string,
 ): Promise<void> => {
     logger.info("Executing gitlab_push_mr_reviews");
+
+    if (summary) {
+        const SUMMARY_MARKER = "<!-- sourcebot-review-summary -->";
+        try {
+            const notes = await gitlabClient.MergeRequestNotes.all(projectId, prPayload.number);
+            const existing = notes.find(n => n.body?.includes(SUMMARY_MARKER));
+            const action = existing ? "Updated" : "Created";
+            const body = `${SUMMARY_MARKER}\n${summary}\n\n---\n*${action}: ${new Date().toUTCString()}*`;
+            if (existing) {
+                await gitlabClient.MergeRequestNotes.edit(
+                    projectId,
+                    prPayload.number,
+                    existing.id,
+                    { body },
+                );
+            } else {
+                await gitlabClient.MergeRequestNotes.create(
+                    projectId,
+                    prPayload.number,
+                    body,
+                );
+            }
+        } catch (error) {
+            logger.error(`Error posting MR summary note: ${error}`);
+        }
+    }
 
     if (!prPayload.diff_refs) {
         logger.error("diff_refs is missing from pr_payload, cannot post inline GitLab MR reviews");
