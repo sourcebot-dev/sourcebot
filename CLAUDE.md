@@ -321,7 +321,7 @@ CVEs often arrive in clusters because one package release fixes several at once.
 
    - **Sibling PR exists and its branch already pins ≥ `<min-patched-version>`**:
      - `gh pr checkout <number>`
-     - **Edit** the existing CHANGELOG line for this PR — append this CVE ID to the comma-separated list. Do not add a new CHANGELOG line.
+     - Leave the CHANGELOG line as-is — it does not enumerate CVEs, so no edit is needed. Do not add a new CHANGELOG line.
      - `gh pr edit <number>` to append the CVE ID to the title and body, and add a `Fixes <LINEAR-ID>` line to the PR body alongside any existing `Fixes` lines (this auto-links the Linear issue and Linear will mark it Done when the PR merges).
      - Do not transition the Linear issue manually — leave it for the merge to close.
      - **Do not open a new PR.**
@@ -329,7 +329,7 @@ CVEs often arrive in clusters because one package release fixes several at once.
    - **Sibling PR exists but its pin is too low to cover this CVE**:
      - Check out the branch.
      - Bump the resolution / package version higher to cover both.
-     - **Edit** the existing CHANGELOG line — append this CVE and update the version. Update the PR title and body, and add `Fixes <LINEAR-ID>` to the PR body.
+     - **Edit** the existing CHANGELOG line — update the version. Update the PR title and body, and add `Fixes <LINEAR-ID>` to the PR body.
      - Do not transition the Linear issue manually — leave it for the merge to close.
 
    - **No sibling PR exists**:
@@ -339,10 +339,10 @@ CVEs often arrive in clusters because one package release fixes several at once.
 
 ### CHANGELOG and PR conventions for CVE fixes
 
-- CHANGELOG entry (under `[Unreleased] → Fixed`): `Upgraded \`<pkg>\` to \`^x.y.z\` to address CVE-A, CVE-B, .... [#<PR>]`
-- **One CHANGELOG line per PR**, not per CVE. When the PR addresses multiple CVEs (batched), list all of them comma-separated on a single line.
+- CHANGELOG entry (under `[Unreleased] → Fixed`): `Upgraded \`<pkg>\` to \`^x.y.z\`. [#<PR>]`. Do NOT list CVE IDs in the CHANGELOG.
+- **One CHANGELOG line per PR**, not per CVE. A batched PR addressing multiple CVEs still gets a single line that does not enumerate them.
 - PR title format: `chore: upgrade <pkg> to ^x.y.z to address CVE-A, CVE-B, ...` (list every CVE the PR resolves).
-- Keep entries short. The CVE IDs are enough.
+- Keep entries short. CVE IDs belong in the PR title and body, not the CHANGELOG.
 
 ## Branches and Pull Requests
 
