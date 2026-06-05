@@ -59,6 +59,12 @@ const DetailsCardComponent = ({
         (part.type === 'dynamic-tool' && part.toolName.startsWith('mcp_'))
     ).length, [thinkingSteps]);
 
+    const cacheReadTokens = metadata?.totalCacheReadTokens ?? 0;
+    const inputTokens = metadata?.totalInputTokens ?? 0;
+    const cachedInputPercent = inputTokens > 0
+        ? Math.round((cacheReadTokens / inputTokens) * 100)
+        : 0;
+
     const handleExpandedChanged = useCallback((next: boolean) => {
         captureEvent('wa_chat_details_card_toggled', { chatId, isExpanded: next });
         onExpandedChanged(next);
@@ -127,30 +133,44 @@ const DetailsCardComponent = ({
                                             </div>
                                         )}
                                         {metadata?.totalTokens && (
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <div className="flex items-center text-xs cursor-help">
-                                                        <Zap className="w-3 h-3 mr-1 flex-shrink-0" />
-                                                        {getShortenedNumberDisplayString(metadata.totalTokens, 0)} tokens
-                                                    </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent side="bottom">
-                                                    <div className="space-y-1 text-xs">
-                                                        <div className="flex justify-between gap-4">
-                                                            <span className="text-muted-foreground">Input</span>
-                                                            <span>{metadata.totalInputTokens?.toLocaleString() ?? '—'}</span>
+                                            <div className="flex items-center gap-1.5 text-xs">
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="flex items-center cursor-help">
+                                                            <Zap className="w-3 h-3 mr-1 flex-shrink-0" />
+                                                            {getShortenedNumberDisplayString(metadata.totalTokens, 0)} tokens
                                                         </div>
-                                                        <div className="flex justify-between gap-4">
-                                                            <span className="text-muted-foreground">Output</span>
-                                                            <span>{metadata.totalOutputTokens?.toLocaleString() ?? '—'}</span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="bottom">
+                                                        <div className="space-y-1 text-xs">
+                                                            <div className="flex justify-between gap-4">
+                                                                <span className="text-muted-foreground">Input</span>
+                                                                <span>{metadata.totalInputTokens?.toLocaleString() ?? '—'}</span>
+                                                            </div>
+                                                            <div className="flex justify-between gap-4">
+                                                                <span className="text-muted-foreground">Output</span>
+                                                                <span>{metadata.totalOutputTokens?.toLocaleString() ?? '—'}</span>
+                                                            </div>
+                                                            <div className="flex justify-between gap-4 border-t border-border pt-1">
+                                                                <span className="text-muted-foreground">Total</span>
+                                                                <span>{metadata.totalTokens.toLocaleString()}</span>
+                                                            </div>
                                                         </div>
-                                                        <div className="flex justify-between gap-4 border-t border-border pt-1">
-                                                            <span className="text-muted-foreground">Total</span>
-                                                            <span>{metadata.totalTokens.toLocaleString()}</span>
-                                                        </div>
-                                                    </div>
-                                                </TooltipContent>
-                                            </Tooltip>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                {cachedInputPercent > 0 && (
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <span className="text-muted-foreground cursor-help">({cachedInputPercent}% cached)</span>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="bottom">
+                                                            <div className="max-w-xs text-xs">
+                                                                {cacheReadTokens.toLocaleString()} of {inputTokens.toLocaleString()} input tokens were read from the model provider prompt cache. Cached tokens are typically billed at a fraction of the cost of regular input tokens, so the real cost is lower than the token count suggests.
+                                                            </div>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                )}
+                                            </div>
                                         )}
                                         {metadata?.totalResponseTimeMs && (
                                             <div className="flex items-center text-xs">

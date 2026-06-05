@@ -55,6 +55,9 @@ export const sbChatMessageMetadataSchema = z.object({
     totalInputTokens: z.number().optional(),
     totalOutputTokens: z.number().optional(),
     totalTokens: z.number().optional(),
+    // Portion of input tokens served from / written to the prompt cache.
+    totalCacheReadTokens: z.number().optional(),
+    totalCacheWriteTokens: z.number().optional(),
     totalResponseTimeMs: z.number().optional(),
     feedback: z.array(z.object({
         type: z.enum(['like', 'dislike']),

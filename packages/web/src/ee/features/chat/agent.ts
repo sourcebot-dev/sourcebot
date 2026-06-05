@@ -197,6 +197,8 @@ export const createMessageStream = async ({
                     totalTokens: (priorMetadata?.totalTokens ?? 0) + (totalUsage.totalTokens ?? 0),
                     totalInputTokens: (priorMetadata?.totalInputTokens ?? 0) + (totalUsage.inputTokens ?? 0),
                     totalOutputTokens: (priorMetadata?.totalOutputTokens ?? 0) + (totalUsage.outputTokens ?? 0),
+                    totalCacheReadTokens: (priorMetadata?.totalCacheReadTokens ?? 0) + (totalUsage.inputTokenDetails?.cacheReadTokens ?? 0),
+                    totalCacheWriteTokens: (priorMetadata?.totalCacheWriteTokens ?? 0) + (totalUsage.inputTokenDetails?.cacheWriteTokens ?? 0),
                     totalResponseTimeMs: (priorMetadata?.totalResponseTimeMs ?? 0) + (new Date().getTime() - startTime.getTime()),
                     modelName,
                     traceId,
@@ -343,11 +345,42 @@ const createAgentStream = async ({
         ...(hasMcpTools ? { tool_request_activation: toolRequestActivation, ...mcpToolSetsObj.tools } : {}),
     };
 
+    // Anthropic prompt caching: mark the end of the prompt's static prefix —
+    // tool definitions, the system prompt (including any resolved file sources),
+    // and the conversation history — with an ephemeral (5m) cache breakpoint on
+    // the last input message. Anthropic caches everything up to and including
+    // this point, so the large prefix is written once (~1.25x) and read back at
+    // ~0.1x on every subsequent agent step and follow-up turn instead of being
+    // reprocessed in full. The `anthropic` provider-options namespace is ignored
+    // by non-Anthropic providers, so this is safe to apply unconditionally.
+    //
+    // Caveat: when MCP tools are lazily activated mid-run via prepareStep, the
+    // tools section (which precedes everything else in the prefix) grows and
+    // invalidates the cache for that step; the cache re-warms on subsequent
+    // steps once the active tool set is stable.
+    const isPromptCachingEnabled = env.SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED === 'true';
+    const messagesWithCachedPrefix: ModelMessage[] = inputMessages.map((message, index) => {
+        if (!isPromptCachingEnabled || index !== inputMessages.length - 1) {
+            return message;
+        }
+
+        return {
+            ...message,
+            providerOptions: {
+                ...message.providerOptions,
+                anthropic: {
+                    ...message.providerOptions?.anthropic,
+                    cacheControl: { type: 'ephemeral' },
+                },
+            },
+        };
+    });
+
     try {
         const stream = streamText({
             model,
             providerOptions,
-            messages: inputMessages,
+            messages: messagesWithCachedPrefix,
             system: systemPrompt,
             tools: allTools,
             activeTools: [
