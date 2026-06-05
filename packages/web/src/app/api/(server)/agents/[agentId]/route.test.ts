@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { expect, test, vi, describe, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { MOCK_ORG, MOCK_USER_WITH_ACCOUNTS, prisma } from '@/__mocks__/prisma';
@@ -24,7 +25,7 @@ vi.mock('@sourcebot/shared', () => ({
 vi.mock('@/lib/posthog', () => ({ captureEvent: vi.fn() }));
 
 vi.mock('@/middleware/withAuth', () => ({
-    withAuth: vi.fn(async (fn: Function) =>
+    withAuth: vi.fn(async (fn: (ctx: { org: typeof MOCK_ORG; user: typeof MOCK_USER_WITH_ACCOUNTS; role: OrgRole; prisma: typeof prisma }) => Promise<unknown>) =>
         fn({ org: MOCK_ORG, user: MOCK_USER_WITH_ACCOUNTS, role: OrgRole.OWNER, prisma })
     ),
 }));
