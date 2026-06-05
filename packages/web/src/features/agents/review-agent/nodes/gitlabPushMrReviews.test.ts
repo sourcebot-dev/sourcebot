@@ -183,7 +183,7 @@ describe('gitlabPushMrReviews', () => {
         const client = {
             MergeRequestDiscussions: { create: vi.fn().mockRejectedValue(new Error('500')) },
             MergeRequestNotes: { all: vi.fn().mockResolvedValue([]), create: vi.fn().mockRejectedValue(new Error('500')), edit: vi.fn() },
-        } as any;
+        } as unknown as GitlabClient;
 
         await expect(
             gitlabPushMrReviews(client, 101, MOCK_PAYLOAD, SINGLE_REVIEW),

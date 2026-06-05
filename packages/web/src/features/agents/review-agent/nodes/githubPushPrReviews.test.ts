@@ -45,7 +45,7 @@ function makeMockOctokit(createReviewCommentResult: 'resolve' | 'reject' = 'reso
                 updateComment: vi.fn().mockResolvedValue({}),
             },
         },
-    } as any;
+    } as unknown as Octokit;
     return octokit;
 }
 
