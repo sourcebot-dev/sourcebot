@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Upgraded `protobufjs` to `^7.6.2`. [#1281](https://github.com/sourcebot-dev/sourcebot/pull/1281)
+- Upgraded `qs` to `^6.14.2`. [#1282](https://github.com/sourcebot-dev/sourcebot/pull/1282)
 
 ## [5.0.1] - 2026-06-04
 
