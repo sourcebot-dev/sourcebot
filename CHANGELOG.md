@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Upgraded `protobufjs` to `^7.6.2`. [#1281](https://github.com/sourcebot-dev/sourcebot/pull/1281)
+- Upgraded `picomatch` to `^4.0.4`. [#1283](https://github.com/sourcebot-dev/sourcebot/pull/1283)
 
 ## [5.0.1] - 2026-06-04
 
