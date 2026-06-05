@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Upgraded `protobufjs` to `^7.6.2`. [#1281](https://github.com/sourcebot-dev/sourcebot/pull/1281)
+- Upgraded `postcss` to `^8.5.15`. [#1285](https://github.com/sourcebot-dev/sourcebot/pull/1285)
 
 ## [5.0.1] - 2026-06-04
 
