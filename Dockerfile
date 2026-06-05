@@ -179,6 +179,7 @@ ENV SOURCEBOT_LOG_LEVEL=info
 
 # Configure dependencies
 RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq openssl util-linux unzip && \
+    apk add --no-cache --upgrade "libxml2>=2.13.9-r1" && \
     apk upgrade --no-cache
 
 # Remove npm (unused — we use Yarn). The Node.js base image bundles npm
