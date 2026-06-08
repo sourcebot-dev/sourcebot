@@ -283,6 +283,7 @@ const options = {
          */
         SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.optional(),
         SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(100),
+        SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED: booleanSchema.default('true'),
         SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS: numberSchema.int().positive().max(maxTimerDelayMs).default(60000),
 
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
