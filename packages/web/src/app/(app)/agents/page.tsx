@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { NavigationMenu } from "../components/navigationMenu";
 import { FaCogs } from "react-icons/fa";
 import { env } from "@sourcebot/shared";
 import { authenticatedPage } from "@/middleware/authenticatedPage";
@@ -54,7 +53,6 @@ export default authenticatedPage(async ({ prisma, org }) => {
 
     return (
         <div className="flex flex-col items-center overflow-hidden min-h-screen">
-            <NavigationMenu />
             <div className="w-full max-w-6xl px-4 mt-12 mb-24 space-y-12">
 
                 {/* Integration status cards */}

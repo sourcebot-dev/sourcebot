@@ -1,5 +1,6 @@
 import { sourcebot_context, sourcebot_pr_payload } from "@/features/agents/review-agent/types";
-import { getAISDKLanguageModelAndOptions, getConfiguredLanguageModels } from "@/features/chat/utils.server";
+import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
+import { getConfiguredLanguageModels } from "@/features/chat/utils.server";
 import { validateLogPath } from "@/features/agents/review-agent/nodes/invokeDiffReviewLlm";
 import { env } from "@sourcebot/shared";
 import { generateText } from "ai";
