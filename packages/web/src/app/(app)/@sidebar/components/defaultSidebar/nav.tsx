@@ -5,7 +5,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { BookMarkedIcon, type LucideIcon, MessageCircleIcon, MessagesSquareIcon, SearchIcon, SettingsIcon } from "lucide-react";
+import { BookMarkedIcon, BotIcon, type LucideIcon, MessageCircleIcon, MessagesSquareIcon, SearchIcon, SettingsIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { HomeView } from "@/hooks/useHomeView";
 import { NotificationDot } from "../../../components/notificationDot";
@@ -80,6 +80,13 @@ export function Nav({
                 href: "/repos",
                 icon: BookMarkedIcon,
                 key: "repos"
+            },
+            {
+                title: "Agents",
+                href: "/agents",
+                icon: BotIcon,
+                key: "agents",
+                requiresAuth: true
             },
             {
                 title: "Settings",
