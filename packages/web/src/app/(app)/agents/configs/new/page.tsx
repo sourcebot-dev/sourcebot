@@ -1,5 +1,5 @@
 import { authenticatedPage } from "@/middleware/authenticatedPage";
-import { NavigationMenu } from "@/app/(app)/components/navigationMenu";
+import { BackButton } from "@/app/(app)/components/backButton";
 import { AgentConfigForm } from "../agentConfigForm";
 import { OrgRole } from "@sourcebot/db";
 
@@ -19,8 +19,8 @@ export default authenticatedPage(async ({ prisma, org }) => {
 
     return (
         <div className="flex flex-col items-center overflow-hidden min-h-screen">
-            <NavigationMenu />
             <div className="w-full max-w-3xl px-4 mt-12 mb-24">
+                <BackButton href="/agents" name="Agents" className="mb-6" />
                 <h1 className="text-2xl font-semibold text-foreground mb-8">New agent config</h1>
                 <AgentConfigForm connections={connections} repos={repos} />
             </div>
