@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Upgraded `protobufjs` to `^7.6.2`. [#1281](https://github.com/sourcebot-dev/sourcebot/pull/1281)
+- Fixed GitLab MR inline review comments returning 400 Bad Request on context (unchanged) lines and renamed files. [#1149](https://github.com/sourcebot-dev/sourcebot/pull/1149)
 
 ## [5.0.1] - 2026-06-04
 
@@ -90,7 +91,6 @@ Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-
 
 ### Fixed
 - Fixed Azure DevOps connection schema to allow spaces in project and repository names. [#1170](https://github.com/sourcebot-dev/sourcebot/pull/1170)
-- Fixed GitLab MR inline review comments returning 400 Bad Request on context (unchanged) lines and renamed files. [#1149](https://github.com/sourcebot-dev/sourcebot/pull/1149)
 
 ## [4.17.0] - 2026-04-30
 
