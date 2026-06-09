@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed GitLab MR inline review comments returning 400 Bad Request on context (unchanged) lines and renamed files. [#1149](https://github.com/sourcebot-dev/sourcebot/pull/1149)
 - Upgraded `ws` to `^8.20.1`. [#1286](https://github.com/sourcebot-dev/sourcebot/pull/1286)
 - Upgraded `hono` to `^4.12.24`. [#1289](https://github.com/sourcebot-dev/sourcebot/pull/1289)
+- Surfaced an actionable error when the Lighthouse licensing service is unreachable, instead of a generic "unexpected error". [#1293](https://github.com/sourcebot-dev/sourcebot/pull/1293)
 
 ## [5.0.1] - 2026-06-04
 
