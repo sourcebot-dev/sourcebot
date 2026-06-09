@@ -409,7 +409,7 @@ export function AgentConfigForm({ initialValues, connections, repos }: Props) {
                         onChange={(e) => setReviewCommand(e.target.value)}
                         placeholder="e.g. review (inherits REVIEW_AGENT_REVIEW_COMMAND)"
                     />
-                    <p className="text-xs text-muted-foreground">Comment trigger without the leading /</p>
+                    <p className="text-xs text-muted-foreground">Comment that triggers a manual review</p>
                 </div>
 
                 <div className="space-y-2">

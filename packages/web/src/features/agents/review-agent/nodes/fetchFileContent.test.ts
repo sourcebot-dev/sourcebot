@@ -106,7 +106,7 @@ describe('fetchContextFile', () => {
         expect(result!.description).toContain('.sourcebot/review.md');
     });
 
-    test('passes the correct repo path and head SHA to getFileSourceForRepo', async () => {
+    test('passes the correct repo path and no ref (default branch) to getFileSourceForRepo', async () => {
         mockGetFileSourceForRepo.mockResolvedValue({ source: '' });
 
         await fetchContextFile(MOCK_PAYLOAD, 'AGENTS.md');
@@ -115,7 +115,7 @@ describe('fetchContextFile', () => {
             expect.objectContaining({
                 path: 'AGENTS.md',
                 repo: 'github.com/acme/api',
-                ref: 'abc123',
+                ref: undefined,
             }),
             expect.anything(),
         );
