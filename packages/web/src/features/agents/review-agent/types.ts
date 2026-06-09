@@ -37,7 +37,7 @@ export const sourcebot_pr_payload_schema = z.object({
 export type sourcebot_pr_payload = z.infer<typeof sourcebot_pr_payload_schema>;
 
 export const sourcebot_context_schema = z.object({
-    type: z.enum(["pr_title", "pr_description", "pr_summary", "comment_chains", "file_content"]),
+    type: z.enum(["pr_title", "pr_description", "pr_summary", "comment_chains", "file_content", "repo_instructions"]),
     description: z.string().optional(),
     context: z.string(),
 });
