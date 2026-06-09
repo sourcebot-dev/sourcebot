@@ -334,6 +334,7 @@ model Org {
   repoVisits RepoVisit[]
 
   mcpServers McpServer[]
+  agentSkills AgentSkill[]
 
   license License?
   servicePingEvents ServicePingEvent[]
@@ -400,6 +401,11 @@ enum McpServerToolPermission {
   ALLOWED
   NEEDS_APPROVAL
   DISABLED
+}
+
+enum AgentSkillScope {
+  PERSONAL
+  ORG
 }
 
 model UserToOrg {
@@ -519,6 +525,7 @@ model User {
   sessionVersion Int @default(0)
 
   userMcpServers       UserMcpServer[]
+  createdAgentSkills   AgentSkill[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -739,6 +746,33 @@ model ChatAccess {
   createdAt DateTime @default(now())
 
   @@unique([chatId, userId])
+}
+
+model AgentSkill {
+  id String @id @default(cuid())
+
+  scope        AgentSkillScope
+  namespaceKey String
+  slug         String
+
+  name         String
+  description  String
+  instructions String
+
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdById String
+
+  org   Org? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int?
+
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([namespaceKey, slug])
+  @@index([createdById])
+  @@index([orgId])
+  @@index([scope])
 }
 
 // OAuth2 Authorization Server models
