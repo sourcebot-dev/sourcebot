@@ -23,90 +23,67 @@ import {
     ServicePingResponse,
     servicePingResponseSchema,
 } from "./types";
-import { ServiceError } from "@/lib/serviceError";
+import { lighthouseUnreachable, ServiceError } from "@/lib/serviceError";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 
+const requestLighthouse = async <T extends z.ZodTypeAny>(
+    path: string,
+    init: RequestInit,
+    schema: T,
+    retryOptions: { retries?: number; backoffMs?: number } = {},
+): Promise<z.infer<T> | ServiceError> => {
+    const url = `${env.SOURCEBOT_LIGHTHOUSE_URL}${path}`;
+
+    let response: Response;
+    try {
+        response = await fetchWithRetry(url, init, retryOptions)
+    } catch (error) {
+        return lighthouseUnreachable(url, error);
+    }
+
+    return parseResponseBody(response, schema);
+}
+
+const jsonPost = (body: unknown): RequestInit => ({
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+});
+
 export const client = {
-    activate: async (body: ActivateRequest): Promise<ActivateResponse | ServiceError> => {
-        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/activate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
-
-        return parseResponseBody(response, activateResponseSchema);
+    activate: (body: ActivateRequest): Promise<ActivateResponse | ServiceError> => {
+        return requestLighthouse('/activate', jsonPost(body), activateResponseSchema);
     },
 
-    claimActivationCode: async (body: ClaimActivationCodeRequest): Promise<ClaimActivationCodeResponse | ServiceError> => {
-        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/claim-activation-code`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
-
-        return parseResponseBody(response, claimActivationCodeResponseSchema);
+    claimActivationCode: (body: ClaimActivationCodeRequest): Promise<ClaimActivationCodeResponse | ServiceError> => {
+        return requestLighthouse('/claim-activation-code', jsonPost(body), claimActivationCodeResponseSchema);
     },
 
-    ping: async (body: ServicePingRequest): Promise<ServicePingResponse | ServiceError> => {
-        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/ping`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
-
-        return parseResponseBody(response, servicePingResponseSchema);
+    ping: (body: ServicePingRequest): Promise<ServicePingResponse | ServiceError> => {
+        return requestLighthouse('/ping', jsonPost(body), servicePingResponseSchema);
     },
 
-    pingSchema: async (): Promise<Record<string, unknown> | ServiceError> => {
-        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/schema`, {
-            method: 'GET',
-        });
-
-        return parseResponseBody(response, z.record(z.string(), z.unknown()));
+    pingSchema: (): Promise<Record<string, unknown> | ServiceError> => {
+        return requestLighthouse('/schema', { method: 'GET' }, z.record(z.string(), z.unknown()));
     },
 
-    checkout: async (body: CheckoutRequest): Promise<CheckoutResponse | ServiceError> => {
-        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/checkout`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
-
-        return parseResponseBody(response, checkoutResponseSchema);
+    checkout: (body: CheckoutRequest): Promise<CheckoutResponse | ServiceError> => {
+        return requestLighthouse('/checkout', jsonPost(body), checkoutResponseSchema);
     },
 
-    portal: async (body: PortalRequest): Promise<PortalResponse | ServiceError> => {
-        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/portal`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
-
-        return parseResponseBody(response, portalResponseSchema);
+    portal: (body: PortalRequest): Promise<PortalResponse | ServiceError> => {
+        return requestLighthouse('/portal', jsonPost(body), portalResponseSchema);
     },
 
-    invoices: async (body: InvoicesRequest): Promise<InvoicesResponse | ServiceError> => {
-        const response = await fetchWithRetry(`${env.SOURCEBOT_LIGHTHOUSE_URL}/invoices`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
-
-        return parseResponseBody(response, invoicesResponseSchema);
+    invoices: (body: InvoicesRequest): Promise<InvoicesResponse | ServiceError> => {
+        return requestLighthouse('/invoices', jsonPost(body), invoicesResponseSchema);
     },
 
-    offers: async (query: OffersQuery): Promise<OffersResponse | ServiceError> => {
+    offers: (query: OffersQuery): Promise<OffersResponse | ServiceError> => {
         const params = new URLSearchParams(query);
-        // @note we don't use a fetchWithRetry here since this api is
-        // comonly called on the client that has it's own retry mechanisms.
-        // @see: useOffers.ts
-        const response = await fetch(`${env.SOURCEBOT_LIGHTHOUSE_URL}/offers?${params}`, {
-            method: 'GET',
-        });
-
-        return parseResponseBody(response, offersResponseSchema);
+        return requestLighthouse(`/offers?${params}`, { method: 'GET' }, offersResponseSchema, { retries: 0});
     },
 }
 
