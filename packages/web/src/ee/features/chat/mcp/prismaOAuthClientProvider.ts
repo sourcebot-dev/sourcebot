@@ -9,7 +9,7 @@ import { McpServerClientInfoSource, type PrismaClient } from '@sourcebot/db';
 import { encryptOAuthToken, decryptOAuthToken, createLogger } from '@sourcebot/shared';
 import { __unsafePrisma } from '@/prisma';
 import { createMcpOAuthState } from './mcpOAuthReturnTo';
-import { normalizeMcpRequestedOAuthScopes } from './oauthScopeUtils';
+import { normalizeMcpRequestedOAuthScopes, OFFLINE_ACCESS_SCOPE } from './oauthScopeUtils';
 
 type McpOAuthPrismaClient = Pick<PrismaClient, 'mcpServer' | 'userMcpServer'>;
 const logger = createLogger('mcp-oauth-client-provider');
@@ -113,7 +113,16 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     this.userId = userId;
     this.callbackUrl = callbackUrl;
     this.callbackReturnTo = callbackReturnTo;
-    this.requestedOAuthScopes = normalizeMcpRequestedOAuthScopes(requestedOAuthScopes);
+    // offline_access is always injected because every client declares the refresh_token grant
+    // and providers such as Atlassian reject /authorize when the grant is declared but
+    // offline_access is absent. We inject unconditionally rather than checking the provider's
+    // advertised scopes because oauthScopesSupported is not plumbed through to this constructor;
+    // the tradeoff (a benign unknown-scope rejection on strict providers) is the same as the
+    // existing behaviour of always declaring refresh_token.
+    this.requestedOAuthScopes = normalizeMcpRequestedOAuthScopes([
+        ...requestedOAuthScopes,
+        OFFLINE_ACCESS_SCOPE,
+    ]);
 
     if (allowClientRegistration) {
       this.saveClientInformation = async (info: OAuthClientInformation) => {

@@ -80,6 +80,10 @@ Owners can change connector scopes at any time from **Settings → Workspace →
 Changing connector scopes requires all users to re-authenticate with that connector.
 </Warning>
 
+<Note>
+`offline_access` is enabled by default when offered by the connector. It is required for token refresh, so Sourcebot includes it regardless of whether an admin ticks the box.
+</Note>
+
 ## Tool Permissions
 
 Owners can configure how Ask Sourcebot may use each tool exposed by a connector. Changes take effect immediately and do not require users to re-authenticate.

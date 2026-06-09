@@ -79,18 +79,26 @@ describe('PrismaOAuthClientProvider modes', () => {
 });
 
 describe('PrismaOAuthClientProvider client metadata', () => {
-    test('omits scope when no scopes were requested', () => {
+    test('always includes offline_access even when no scopes were requested', () => {
         const provider = createProvider();
 
-        expect(provider.clientMetadata.scope).toBeUndefined();
+        expect(provider.clientMetadata.scope).toBe('offline_access');
     });
 
-    test('includes normalized requested scopes', () => {
+    test('includes offline_access alongside normalized requested scopes', () => {
         const provider = createProvider(createPrismaMock(), {
             requestedOAuthScopes: [' repo ', 'read:user', 'repo'],
         });
 
-        expect(provider.clientMetadata.scope).toBe('read:user repo');
+        expect(provider.clientMetadata.scope).toBe('offline_access read:user repo');
+    });
+
+    test('does not duplicate offline_access when already present in requested scopes', () => {
+        const provider = createProvider(createPrismaMock(), {
+            requestedOAuthScopes: ['offline_access', 'read:user'],
+        });
+
+        expect(provider.clientMetadata.scope).toBe('offline_access read:user');
     });
 });
 
