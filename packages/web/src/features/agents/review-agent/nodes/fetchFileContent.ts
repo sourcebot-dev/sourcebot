@@ -67,8 +67,10 @@ export const fetchContextFile = async (
     const org = await getOrg();
     const repoPath = pr_payload.hostDomain + "/" + pr_payload.owner + "/" + pr_payload.repo;
 
+    // Fetch context files from the repo's default branch, not the PR branch,
+    // so files like AGENTS.md are always visible even if the PR branch predates them.
     const response = await getFileSourceForRepo(
-        { path: filePath, repo: repoPath, ref: pr_payload.head_sha },
+        { path: filePath, repo: repoPath, ref: undefined },
         { org, prisma: __unsafePrisma },
     );
 

@@ -14,6 +14,7 @@ const mockFetchContextFile = vi.fn();
 const mockFetchFileContent = vi.fn();
 const mockGenerateDiffReviewPrompt = vi.fn();
 const mockInvokeDiffReviewLlm = vi.fn();
+const mockGenerateMrSummary = vi.fn();
 
 vi.mock('@/features/agents/review-agent/nodes/fetchFileContent', () => ({
     fetchContextFile: (...args: unknown[]) => mockFetchContextFile(...args),
@@ -27,6 +28,10 @@ vi.mock('@/features/agents/review-agent/nodes/generateDiffReviewPrompt', () => (
 vi.mock('@/features/agents/review-agent/nodes/invokeDiffReviewLlm', () => ({
     invokeDiffReviewLlm: (...args: unknown[]) => mockInvokeDiffReviewLlm(...args),
     getReviewAgentLogDir: vi.fn(() => '/tmp'),
+}));
+
+vi.mock('@/features/agents/review-agent/nodes/generateMrSummary', () => ({
+    generateMrSummary: (...args: unknown[]) => mockGenerateMrSummary(...args),
 }));
 
 import { generatePrReviews } from './generatePrReview';
@@ -60,10 +65,12 @@ beforeEach(() => {
     mockFetchFileContent.mockReset();
     mockGenerateDiffReviewPrompt.mockReset();
     mockInvokeDiffReviewLlm.mockReset();
+    mockGenerateMrSummary.mockReset();
 
     mockFetchFileContent.mockResolvedValue(FILE_CONTENT_CTX);
     mockGenerateDiffReviewPrompt.mockResolvedValue('prompt text');
     mockInvokeDiffReviewLlm.mockResolvedValue({ reviews: [] });
+    mockGenerateMrSummary.mockResolvedValue(null);
 });
 
 // ─── contextFiles parameter ───────────────────────────────────────────────────
@@ -147,7 +154,7 @@ describe('contextFiles parameter', () => {
 
         await generatePrReviews(undefined, payload, [], undefined, 'AGENTS.md');
 
-        // generateDiffReviewPrompt is called once per diff (2 files × 1 diff each = 2 calls).
+        // generateDiffReviewPrompt is called once per file (2 files = 2 calls).
         expect(mockGenerateDiffReviewPrompt).toHaveBeenCalledTimes(2);
         for (const call of mockGenerateDiffReviewPrompt.mock.calls) {
             const context: unknown[] = call[1];
