@@ -9548,6 +9548,7 @@ __metadata:
     vitest: "npm:^4.1.4"
     vitest-mock-extended: "npm:^4.0.0"
     vscode-icons-js: "npm:^11.6.1"
+    yaml: "npm:^2.8.3"
     zod: "npm:^3.25.76"
     zod-to-json-schema: "npm:^3.24.5"
   languageName: unknown

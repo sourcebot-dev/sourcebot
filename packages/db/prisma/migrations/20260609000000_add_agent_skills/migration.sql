@@ -1,10 +1,6 @@
--- CreateEnum
-CREATE TYPE "AgentSkillScope" AS ENUM ('PERSONAL', 'ORG');
-
 -- CreateTable
 CREATE TABLE "AgentSkill" (
     "id" TEXT NOT NULL,
-    "scope" "AgentSkillScope" NOT NULL,
     "namespaceKey" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -27,9 +23,6 @@ CREATE INDEX "AgentSkill_createdById_idx" ON "AgentSkill"("createdById");
 
 -- CreateIndex
 CREATE INDEX "AgentSkill_orgId_idx" ON "AgentSkill"("orgId");
-
--- CreateIndex
-CREATE INDEX "AgentSkill_scope_idx" ON "AgentSkill"("scope");
 
 -- AddForeignKey
 ALTER TABLE "AgentSkill" ADD CONSTRAINT "AgentSkill_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

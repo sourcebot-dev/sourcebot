@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CableIcon, ExternalLink, MoreHorizontal, SearchIcon, Settings2Icon, Unplug } from "lucide-react";
+import { BookOpenIcon, CableIcon, ExternalLink, MoreHorizontal, PencilIcon, PlusIcon, SearchIcon, Settings2Icon, Trash2Icon, Unplug } from "lucide-react";
 import { getMcpServersWithStatus } from "@/app/api/(client)/client";
 import { useToast } from "@/components/hooks/use-toast";
 import {
@@ -25,6 +25,8 @@ import { ConnectorToolTrigger } from "@/ee/features/chat/mcp/components/connecto
 import { useConnectMcp } from "@/ee/features/chat/mcp/hooks/useConnectMcp";
 import { useMcpToolMetadata } from "@/ee/features/chat/mcp/hooks/useMcpToolMetadata";
 import { disconnectMcpServer } from "@/ee/features/chat/mcp/actions";
+import { deletePersonalAgentSkill } from "@/ee/features/chat/skills/actions";
+import { sortAgentSkillListItems, type AgentSkillListItem } from "@/ee/features/chat/skills/types";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/chat/mcp/queryKeys";
 import { pluralize } from "@/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
@@ -46,6 +48,87 @@ interface AccountAskAgentPageProps {
     callbackServer?: string;
     callbackMessage?: string;
     canManageConnectors: boolean;
+    initialPersonalSkills: AgentSkillListItem[];
+}
+
+const newSkillHref = "/settings/accountAskAgent/skills/new";
+const editSkillHref = (skill: AgentSkillListItem) => `/settings/accountAskAgent/skills/${skill.id}`;
+
+function PersonalSkillCard({
+    skill,
+    onDelete,
+}: {
+    skill: AgentSkillListItem;
+    onDelete: (skill: AgentSkillListItem) => void;
+}) {
+    return (
+        <Card>
+            <CardContent className="flex items-start gap-3 p-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <BookOpenIcon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-medium text-foreground">{skill.name}</p>
+                        <span className="rounded border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+                            /{skill.slug}
+                        </span>
+                    </div>
+                    {skill.description && (
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                            {skill.description}
+                        </p>
+                    )}
+                </div>
+                <DropdownMenu modal={false}>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                            <Link href={editSkillHref(skill)}>
+                                <PencilIcon className="h-4 w-4 mr-2" />
+                                Edit
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => onDelete(skill)}
+                        >
+                            <Trash2Icon className="h-4 w-4 mr-2" />
+                            Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </CardContent>
+        </Card>
+    );
+}
+
+function PersonalSkillsEmptyState() {
+    return (
+        <Card>
+            <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="rounded-full bg-muted p-3 mb-4">
+                    <BookOpenIcon className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-foreground mb-1">
+                    No skills yet
+                </p>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                    Create a personal slash command for prompts you reuse in Ask Sourcebot.
+                </p>
+                <Button asChild variant="outline" className="mt-4">
+                    <Link href={newSkillHref}>
+                        <PlusIcon className="h-4 w-4 mr-2" />
+                        Create skill
+                    </Link>
+                </Button>
+            </CardContent>
+        </Card>
+    );
 }
 
 export function AccountAskAgentEmptyState({ canManageConnectors }: { canManageConnectors: boolean }) {
@@ -125,7 +208,7 @@ function AccountConnectedConnectorCard({
                 </>
             }
             actionButtons={
-                <DropdownMenu>
+                <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                             <MoreHorizontal className="h-4 w-4" />
@@ -186,12 +269,16 @@ export function AccountAskAgentPage({
     callbackServer,
     callbackMessage,
     canManageConnectors,
+    initialPersonalSkills,
 }: AccountAskAgentPageProps) {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const didHandleCallbackRef = useRef(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState<FilterTab>("all");
+    const [personalSkills, setPersonalSkills] = useState(() => sortAgentSkillListItems(initialPersonalSkills));
+    const [deletingSkillId, setDeletingSkillId] = useState<string | null>(null);
+    const [confirmDeleteSkill, setConfirmDeleteSkill] = useState<AgentSkillListItem | null>(null);
     const [disconnectingServerId, setDisconnectingServerId] = useState<string | null>(null);
     const [confirmDisconnectServer, setConfirmDisconnectServer] = useState<{ id: string; name: string } | null>(null);
     const { connect: reconnectMcp } = useConnectMcp();
@@ -285,6 +372,107 @@ export function AccountAskAgentPage({
         }
     };
 
+    const handleDeleteSkill = async (skill: AgentSkillListItem) => {
+        setDeletingSkillId(skill.id);
+        try {
+            const result = await deletePersonalAgentSkill(skill.id);
+            if (isServiceError(result)) {
+                toast({ title: "Error", description: result.message, variant: "destructive" });
+                return;
+            }
+
+            setPersonalSkills((current) => current.filter((item) => item.id !== skill.id));
+            setConfirmDeleteSkill(null);
+            toast({ description: "Skill deleted." });
+        } catch {
+            toast({ title: "Error", description: "Failed to delete skill.", variant: "destructive" });
+        } finally {
+            setDeletingSkillId(null);
+        }
+    };
+
+    const isDeletingConfirmedSkill = deletingSkillId !== null && deletingSkillId === confirmDeleteSkill?.id;
+
+    const skillsSection = (
+        <div className="space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h4 className="text-sm font-semibold text-foreground">Skills</h4>
+                    <p className="text-sm text-muted-foreground max-w-lg">
+                        Manage personal slash-command workflows for Ask Sourcebot.
+                    </p>
+                </div>
+                {personalSkills.length > 0 && (
+                    <Button asChild variant="outline" size="sm" className="self-start">
+                        <Link href={newSkillHref}>
+                            <PlusIcon className="h-4 w-4 mr-2" />
+                            Create skill
+                        </Link>
+                    </Button>
+                )}
+            </div>
+
+            {personalSkills.length === 0 ? (
+                <PersonalSkillsEmptyState />
+            ) : (
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Personal
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {personalSkills.length} {pluralize(personalSkills.length, "skill")}
+                        </p>
+                    </div>
+                    {personalSkills.map((skill) => (
+                        <PersonalSkillCard
+                            key={skill.id}
+                            skill={skill}
+                            onDelete={setConfirmDeleteSkill}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+
+    const skillDialogs = (
+        <>
+            <AlertDialog
+                open={confirmDeleteSkill !== null}
+                onOpenChange={(open) => {
+                    if (!open && !isDeletingConfirmedSkill) {
+                        setConfirmDeleteSkill(null);
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Skill</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete <span className="font-semibold text-foreground">{confirmDeleteSkill?.name}</span>? This will remove the <span className="font-mono text-foreground">/{confirmDeleteSkill?.slug}</span> command.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeletingConfirmedSkill}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={isDeletingConfirmedSkill}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                if (confirmDeleteSkill) {
+                                    void handleDeleteSkill(confirmDeleteSkill);
+                                }
+                            }}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {isDeletingConfirmedSkill ? "Deleting..." : "Delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
+    );
+
     if (isError) {
         return <div>Error loading connectors</div>;
     }
@@ -299,6 +487,8 @@ export function AccountAskAgentPage({
                     </p>
                 </div>
                 <Separator />
+                {skillsSection}
+                <Separator />
                 <div className="space-y-3">
                     <div>
                         <h4 className="text-sm font-semibold text-foreground">Connectors</h4>
@@ -308,6 +498,7 @@ export function AccountAskAgentPage({
                     </div>
                     <AccountAskAgentEmptyState canManageConnectors={canManageConnectors} />
                 </div>
+                {skillDialogs}
             </div>
         );
     }
@@ -321,6 +512,8 @@ export function AccountAskAgentPage({
                 </p>
             </div>
 
+            <Separator />
+            {skillsSection}
             <Separator />
 
             <div className="space-y-3">
@@ -492,6 +685,8 @@ export function AccountAskAgentPage({
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {skillDialogs}
         </div>
     );
 }

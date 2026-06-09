@@ -205,6 +205,7 @@
     "usehooks-ts": "^3.1.0",
     "uuid": "^14.0.0",
     "vscode-icons-js": "^11.6.1",
+    "yaml": "^2.8.3",
     "zod": "^3.25.76",
     "zod-to-json-schema": "^3.24.5"
   },

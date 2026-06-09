@@ -403,11 +403,6 @@ enum McpServerToolPermission {
   DISABLED
 }
 
-enum AgentSkillScope {
-  PERSONAL
-  ORG
-}
-
 model UserToOrg {
   joinedAt DateTime @default(now())
 
@@ -751,7 +746,8 @@ model ChatAccess {
 model AgentSkill {
   id String @id @default(cuid())
 
-  scope        AgentSkillScope
+  // Encodes both the scope and owner of the skill, e.g. "user:<userId>" (personal)
+  // or "org:<orgId>" (organization). See getAgentSkillNamespaceKey in @sourcebot/db.
   namespaceKey String
   slug         String
 
@@ -772,7 +768,6 @@ model AgentSkill {
   @@unique([namespaceKey, slug])
   @@index([createdById])
   @@index([orgId])
-  @@index([scope])
 }
 
 // OAuth2 Authorization Server models
