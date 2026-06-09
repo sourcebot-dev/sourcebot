@@ -15347,10 +15347,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hono@npm:^4.12.18":
-  version: 4.12.18
-  resolution: "hono@npm:4.12.18"
-  checksum: 10c0/b0b9688fd9e41a1847b077d579dc0e92a28b67c247c6ee7d1e751c0bae269824c30c7773feff1a2874e40ea36a3d2f9d1fc5ba618a28ecdf2ca1b33ed2473864
+"hono@npm:^4.11.4":
+  version: 4.12.24
+  resolution: "hono@npm:4.12.24"
+  checksum: 10c0/1a1394e48618c34b0ea627d7de7e5d59f1d90aedcd518f9d19b987260bbf16c362043e417bbb64290110c3cd54ef51017f7786438a0c2d811af01566d6ca3e94
   languageName: node
   linkType: hard
 
