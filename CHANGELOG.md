@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `hono` to `^4.12.24`. [#1289](https://github.com/sourcebot-dev/sourcebot/pull/1289)
 - Surfaced an actionable error when the Lighthouse licensing service is unreachable, instead of a generic "unexpected error". [#1293](https://github.com/sourcebot-dev/sourcebot/pull/1293)
 - Fixed the selected language model rapidly flipping in local storage after a language model was removed. [#1295](https://github.com/sourcebot-dev/sourcebot/pull/1295)
+- Fixed issue where using multiple identity providers of the same type (e.g., gitlab) would result in unexpected behaviours. [#1177](https://github.com/sourcebot-dev/sourcebot/pull/1177)
 
 ## [5.0.1] - 2026-06-04
 
@@ -75,7 +76,6 @@ Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-
 - Added a loading skeleton to the latest commit info bar in the code browser. [#1195](https://github.com/sourcebot-dev/sourcebot/pull/1195)
 
 ### Fixed
-- Fixed issue where using multiple identity providers of the same type (e.g., gitlab) would result in unexpected behaviours. [#1177](https://github.com/sourcebot-dev/sourcebot/pull/1177)
 - Add missing schema changes introduced in [#1170](https://github.com/sourcebot-dev/sourcebot/pull/1170). [#1176](https://github.com/sourcebot-dev/sourcebot/pull/1176)
 - Fixed blame gutter commit navigation to use the file path as it existed at the attributing commit, so clicking a blame line whose commit predates a rename resolves to the correct historical path. [#1178](https://github.com/sourcebot-dev/sourcebot/pull/1178)
 - Bumped transitive `fast-uri` dependency to `^3.1.2`. [#1181](https://github.com/sourcebot-dev/sourcebot/pull/1181)
