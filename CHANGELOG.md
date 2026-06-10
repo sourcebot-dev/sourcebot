@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Anthropic thinking mode (adaptive vs. extended) is now resolved from the model's capabilities via the Anthropic Models API instead of a hardcoded model list. [#1294](https://github.com/sourcebot-dev/sourcebot/pull/1294)
+- [**Breaking Change**] [EE] Removed support for configuring the GitHub, GitLab, Google, Okta, Keycloak, and Microsoft Entra ID identity providers via the deprecated `AUTH_EE_*` environment variables. Configure these providers through the `identityProviders` section of the config file instead. GCP IAP (`AUTH_EE_GCP_IAP_ENABLED` / `AUTH_EE_GCP_IAP_AUDIENCE`) is unaffected. [#1297](https://github.com/sourcebot-dev/sourcebot/pull/1297)
 
 ### Fixed
 - Upgraded `protobufjs` to `^7.6.2`. [#1281](https://github.com/sourcebot-dev/sourcebot/pull/1281)
