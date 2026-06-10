@@ -162,19 +162,8 @@ const refreshOAuthToken = async (
                 config.identityProviders[providerId] :
                 undefined;
 
-        // If no provider configs in the config file, try deprecated env vars.
         if (!idpConfig) {
-            const envCredentials = getDeprecatedEnvCredentials(providerType);
-            if (envCredentials) {
-                logger.debug(`Using deprecated env vars for ${providerType} token refresh`);
-                const result = await tryRefreshToken(providerType, refreshToken, envCredentials);
-                if (result) {
-                    return result;
-                }
-                logger.error(`Failed to refresh ${providerType} token using deprecated env credentials`);
-                return null;
-            }
-            logger.error(`No provider config or env credentials found for: ${providerType}`);
+            logger.error(`No provider config found for: ${providerId}`);
             return null;
         }
 
@@ -284,26 +273,4 @@ const tryRefreshToken = async (
     }
 
     return result.data;
-}
-
-/**
- * Get credentials from deprecated environment variables.
- * This is for backwards compatibility with deployments using env vars instead of config file.
- */
-const getDeprecatedEnvCredentials = (providerType: string): ProviderCredentials | null => {
-    if (providerType === 'github' && env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
-        return {
-            clientId: env.AUTH_EE_GITHUB_CLIENT_ID,
-            clientSecret: env.AUTH_EE_GITHUB_CLIENT_SECRET,
-            baseUrl: env.AUTH_EE_GITHUB_BASE_URL,
-        };
-    }
-    if (providerType === 'gitlab' && env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
-        return {
-            clientId: env.AUTH_EE_GITLAB_CLIENT_ID,
-            clientSecret: env.AUTH_EE_GITLAB_CLIENT_SECRET,
-            baseUrl: env.AUTH_EE_GITLAB_BASE_URL,
-        };
-    }
-    return null;
 }
