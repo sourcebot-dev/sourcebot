@@ -16,3 +16,13 @@ This applies to:
 - Adding, removing, or renaming fields on any `*RequestSchema` / `*ResponseSchema`.
 - Changing a field's type, nullability, or validation (e.g. `.optional()`, `.nullable()`, `.datetime()`).
 - Adding new route schemas.
+
+## Keeping the Service Ping docs in sync
+
+Whenever you change the `servicePingRequestSchema` (the `/ping` request payload) in `types.ts`, you MUST also update the user-facing Service Ping documentation:
+
+```
+docs/docs/misc/service-ping.mdx
+```
+
+This includes updating the field reference table and the example payload to reflect any added, removed, or renamed fields.
