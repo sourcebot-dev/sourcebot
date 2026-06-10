@@ -23,6 +23,7 @@ The data contained within the Service Ping is limited to:
 | `mauCount` | `integer` | Monthly active users. |
 | `deploymentType` | `string` | Deployment flavor (e.g. `docker`, `helm`). |
 | `isTelemetryEnabled` | `boolean` | Whether anonymous product telemetry is enabled. |
+| `isLanguageModelConfigured` | `boolean` | Whether at least one language model is configured. |
 | `activationCode` | `string` | Activation code, if your instance has one bound. |
 
 
@@ -57,6 +58,7 @@ body: {
   "mauCount": 1,
   "deploymentType": "other",
   "isTelemetryEnabled": true,
+  "isLanguageModelConfigured": true,
   "activationCode": "sb_act_3a925f51...."
 }
 ```

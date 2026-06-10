@@ -6,6 +6,7 @@ import { createLogger, decryptActivationCode, env, SOURCEBOT_VERSION } from "@so
 import { client } from "./client";
 import { ServicePingRequest } from "./types";
 import { ServiceErrorException } from "@/lib/serviceError";
+import { getConfiguredLanguageModels } from "@/features/chat/utils.server";
 
 const logger = createLogger('service-ping');
 
@@ -65,6 +66,8 @@ export const syncWithLighthouse = async (orgId: number) => {
         ? decryptActivationCode(license.activationCode)
         : undefined;
 
+    const isLanguageModelConfigured = (await getConfiguredLanguageModels()).length > 0;
+
     const payload: ServicePingRequest = {
         installId: env.SOURCEBOT_INSTALL_ID,
         version: SOURCEBOT_VERSION,
@@ -76,6 +79,7 @@ export const syncWithLighthouse = async (orgId: number) => {
         mauCount,
         deploymentType: inferDeploymentType(),
         isTelemetryEnabled: env.SOURCEBOT_TELEMETRY_DISABLED === 'false',
+        isLanguageModelConfigured,
         ...(activationCode && { activationCode }),
     };
 
