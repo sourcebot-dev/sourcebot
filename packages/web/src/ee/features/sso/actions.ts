@@ -6,7 +6,7 @@ import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
 import { hasEntitlement } from "@/lib/entitlements";
-import { createLogger, doesIdpSupportPermissionSyncing, env, loadConfig } from "@sourcebot/shared";
+import { createLogger, doesIdpSupportPermissionSyncing, env, getIdentityProviderConfig, getIdentityProviderConfigs } from "@sourcebot/shared";
 import { cookies } from "next/headers";
 
 const logger = createLogger('web-ee-sso-actions');
@@ -44,8 +44,6 @@ export const getLinkedAccounts = async () => sew(() =>
                 },
             });
 
-            const config = await loadConfig(env.CONFIG_PATH);
-
             const permissionSyncEnabled =
                 env.PERMISSION_SYNC_ENABLED === 'true' &&
                 await hasEntitlement('permission-syncing');
@@ -54,9 +52,7 @@ export const getLinkedAccounts = async () => sew(() =>
 
             // All connected accounts (from DB), enriched with config data where available
             for (const account of accounts) {
-                const providerConfig = config.identityProviders ?
-                    config.identityProviders[account.providerId] :
-                    undefined;
+                const providerConfig = await getIdentityProviderConfig(account.providerId);
                 const isAccountLinking = providerConfig?.purpose === 'account_linking';
 
                 result.push({
@@ -74,7 +70,8 @@ export const getLinkedAccounts = async () => sew(() =>
             }
 
             // Unlinked account_linking providers from config (not yet connected)
-            for (const [id, providerConfig] of Object.entries(config.identityProviders ?? {})) {
+            const identityProviders = await getIdentityProviderConfigs();
+            for (const [id, providerConfig] of Object.entries(identityProviders)) {
                 const account = accounts.find((account) => account.providerId === id);
                 if (!account) {
                     result.push({

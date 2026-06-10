@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/node";
 import { PrismaClient, AccountPermissionSyncJobStatus, Account, PermissionSyncSource} from "@sourcebot/db";
-import { env, createLogger, loadConfig, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
+import { env, createLogger, getIdentityProviderConfig, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
 import { hasEntitlement } from "../entitlements.js";
 import { ensureFreshAccountToken } from "./tokenRefresh.js";
 import { Job, Queue, Worker } from "bullmq";
@@ -218,8 +218,6 @@ export class AccountPermissionSyncer {
         account: Account & { user: { email: string | null } },
         logger: ReturnType<typeof createJobLogger>,
     ) {
-        const config = await loadConfig(env.CONFIG_PATH);
-
         logger.debug(`Syncing permissions for ${account.providerId} account (id: ${account.id}) for user ${account.user.email}...`);
 
         // Ensure the OAuth token is fresh, refreshing it if it is expired or near expiry.
@@ -242,9 +240,7 @@ export class AccountPermissionSyncer {
         const repoIds = await (async () => {
             const aggregatedRepoIds: Set<number> = new Set();
 
-            const idpConfig = config.identityProviders ?
-                config.identityProviders[account.providerId] :
-                undefined;
+            const idpConfig = await getIdentityProviderConfig(account.providerId);
 
             if (!idpConfig) {
                 throw new Error(`Unable to find IDP config in config.json.`);

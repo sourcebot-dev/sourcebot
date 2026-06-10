@@ -10,9 +10,9 @@ import {
     decryptOAuthToken,
     encryptOAuthToken,
     env,
+    getIdentityProviderConfig,
     getTokenFromConfig,
     IdentityProviderType,
-    loadConfig,
 } from '@sourcebot/shared';
 import { z } from 'zod';
 
@@ -157,10 +157,7 @@ const refreshOAuthToken = async (
     refreshToken: string,
 ): Promise<OAuthTokenResponse | null> => {
     try {
-        const config = await loadConfig(env.CONFIG_PATH);
-        const idpConfig = config.identityProviders ?
-                config.identityProviders[providerId] :
-                undefined;
+        const idpConfig = await getIdentityProviderConfig(providerId);
 
         if (!idpConfig) {
             logger.error(`No provider config found for: ${providerId}`);

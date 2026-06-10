@@ -1,9 +1,8 @@
 import type { IdentityProvider } from "@/auth";
 import { onCreateUser } from "@/lib/authUtils";
 import { __unsafePrisma } from "@/prisma";
-import { AuthentikIdentityProviderConfig, BitbucketCloudIdentityProviderConfig, BitbucketServerIdentityProviderConfig, GCPIAPIdentityProviderConfig, GitHubIdentityProviderConfig, GitLabIdentityProviderConfig, GoogleIdentityProviderConfig, JumpCloudIdentityProviderConfig, KeycloakIdentityProviderConfig, MicrosoftEntraIDIdentityProviderConfig, OktaIdentityProviderConfig } from "@sourcebot/schemas/v3/index.type";
 import { hasEntitlement } from "@/lib/entitlements";
-import { createLogger, env, getTokenFromConfig, loadConfig } from "@sourcebot/shared";
+import { createLogger, env, getIdentityProviderConfigs, getTokenFromConfig } from "@sourcebot/shared";
 import { OAuth2Client } from "google-auth-library";
 import type { User as AuthJsUser } from "next-auth";
 import type { Provider } from "next-auth/providers";
@@ -23,169 +22,157 @@ const logger = createLogger('web-sso');
 export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
     const providers: IdentityProvider[] = [];
 
-    const config = await loadConfig(env.CONFIG_PATH);
-    const identityProviders = config?.identityProviders ?? {};
+    const identityProviders = await getIdentityProviderConfigs();
 
-    for (const [id, identityProvider] of Object.entries(identityProviders)) {
-        if (identityProvider.provider === "github") {
-            const providerConfig = identityProvider as GitHubIdentityProviderConfig;
-            const clientId = await getTokenFromConfig(providerConfig.clientId);
-            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const baseUrl = (providerConfig.baseUrl ?? 'https://github.com').replace(/\/+$/, '');
+    for (const [id, idpConfig] of Object.entries(identityProviders)) {
+        if (idpConfig.provider === "github") {
+            const clientId = await getTokenFromConfig(idpConfig.clientId);
+            const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);
+            const baseUrl = (idpConfig.baseUrl ?? 'https://github.com').replace(/\/+$/, '');
             providers.push({
                 __provider: await createGitHubProvider(id, clientId, clientSecret, baseUrl),
-                type: identityProvider.provider,
+                type: idpConfig.provider,
                 id,
-                displayName: providerConfig.displayName,
-                purpose: providerConfig.purpose,
-                required: providerConfig.accountLinkingRequired ?? false,
+                displayName: idpConfig.displayName,
+                purpose: idpConfig.purpose,
+                required: idpConfig.accountLinkingRequired ?? false,
                 issuerUrl: baseUrl,
             });
         }
 
-        if (identityProvider.provider === "gitlab") {
-            const providerConfig = identityProvider as GitLabIdentityProviderConfig;
-            const clientId = await getTokenFromConfig(providerConfig.clientId);
-            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const baseUrl = (providerConfig.baseUrl ?? 'https://gitlab.com').replace(/\/+$/, '');
+        if (idpConfig.provider === "gitlab") {
+            const clientId = await getTokenFromConfig(idpConfig.clientId);
+            const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);
+            const baseUrl = (idpConfig.baseUrl ?? 'https://gitlab.com').replace(/\/+$/, '');
             providers.push({
                 __provider: await createGitLabProvider(id, clientId, clientSecret, baseUrl),
                 id,
-                type: identityProvider.provider,
-                displayName: providerConfig.displayName,
-                purpose: providerConfig.purpose,
-                required: providerConfig.accountLinkingRequired ?? false,
+                type: idpConfig.provider,
+                displayName: idpConfig.displayName,
+                purpose: idpConfig.purpose,
+                required: idpConfig.accountLinkingRequired ?? false,
                 issuerUrl: baseUrl,
             });
         }
 
-        if (identityProvider.provider === "google") {
-            const providerConfig = identityProvider as GoogleIdentityProviderConfig;
-            const clientId = await getTokenFromConfig(providerConfig.clientId);
-            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
+        if (idpConfig.provider === "google") {
+            const clientId = await getTokenFromConfig(idpConfig.clientId);
+            const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);
             providers.push({
                 __provider: createGoogleProvider(id, clientId, clientSecret),
                 id,
-                type: identityProvider.provider,
-                displayName: providerConfig.displayName,
-                purpose: providerConfig.purpose,
+                type: idpConfig.provider,
+                displayName: idpConfig.displayName,
+                purpose: idpConfig.purpose,
                 issuerUrl: 'https://accounts.google.com'
             });
         }
 
-        if (identityProvider.provider === "okta") {
-            const providerConfig = identityProvider as OktaIdentityProviderConfig;
-            const clientId = await getTokenFromConfig(providerConfig.clientId);
-            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const issuer = (await getTokenFromConfig(providerConfig.issuer)).replace(/\/+$/, '');
+        if (idpConfig.provider === "okta") {
+            const clientId = await getTokenFromConfig(idpConfig.clientId);
+            const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);
+            const issuer = (await getTokenFromConfig(idpConfig.issuer)).replace(/\/+$/, '');
             providers.push({
                 __provider: createOktaProvider(id, clientId, clientSecret, issuer),
                 id,
-                type: identityProvider.provider,
-                displayName: providerConfig.displayName,
-                purpose: providerConfig.purpose,
+                type: idpConfig.provider,
+                displayName: idpConfig.displayName,
+                purpose: idpConfig.purpose,
                 issuerUrl: issuer
             });
         }
 
-        if (identityProvider.provider === "keycloak") {
-            const providerConfig = identityProvider as KeycloakIdentityProviderConfig;
-            const clientId = await getTokenFromConfig(providerConfig.clientId);
-            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const issuer = (await getTokenFromConfig(providerConfig.issuer)).replace(/\/+$/, '');
+        if (idpConfig.provider === "keycloak") {
+            const clientId = await getTokenFromConfig(idpConfig.clientId);
+            const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);
+            const issuer = (await getTokenFromConfig(idpConfig.issuer)).replace(/\/+$/, '');
             providers.push({
                 __provider: createKeycloakProvider(id, clientId, clientSecret, issuer),
                 id,
-                type: identityProvider.provider,
-                displayName: providerConfig.displayName,
-                purpose: providerConfig.purpose,
+                type: idpConfig.provider,
+                displayName: idpConfig.displayName,
+                purpose: idpConfig.purpose,
                 issuerUrl: issuer
             });
         }
 
-        if (identityProvider.provider === "microsoft-entra-id") {
-            const providerConfig = identityProvider as MicrosoftEntraIDIdentityProviderConfig;
-            const clientId = await getTokenFromConfig(providerConfig.clientId);
-            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const issuer = (await getTokenFromConfig(providerConfig.issuer)).replace(/\/+$/, '');
+        if (idpConfig.provider === "microsoft-entra-id") {
+            const clientId = await getTokenFromConfig(idpConfig.clientId);
+            const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);
+            const issuer = (await getTokenFromConfig(idpConfig.issuer)).replace(/\/+$/, '');
             providers.push({
                 __provider: createMicrosoftEntraIDProvider(id, clientId, clientSecret, issuer),
                 id,
-                type: identityProvider.provider,
-                displayName: providerConfig.displayName,
-                purpose: providerConfig.purpose,
+                type: idpConfig.provider,
+                displayName: idpConfig.displayName,
+                purpose: idpConfig.purpose,
                 issuerUrl: issuer
             });
         }
 
-        if (identityProvider.provider === "gcp-iap") {
-            const providerConfig = identityProvider as GCPIAPIdentityProviderConfig;
-            const audience = await getTokenFromConfig(providerConfig.audience);
+        if (idpConfig.provider === "gcp-iap") {
+            const audience = await getTokenFromConfig(idpConfig.audience);
             providers.push({
                 __provider: createGCPIAPProvider(id, audience),
                 id,
-                type: identityProvider.provider,
-                purpose: providerConfig.purpose
+                type: idpConfig.provider,
+                purpose: idpConfig.purpose
             });
         }
 
-        if (identityProvider.provider === "bitbucket-cloud") {
-            const providerConfig = identityProvider as BitbucketCloudIdentityProviderConfig;
-            const clientId = await getTokenFromConfig(providerConfig.clientId);
-            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
+        if (idpConfig.provider === "bitbucket-cloud") {
+            const clientId = await getTokenFromConfig(idpConfig.clientId);
+            const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);
             providers.push({
                 __provider: await createBitbucketCloudProvider(id, clientId, clientSecret),
                 id,
-                type: identityProvider.provider,
-                displayName: providerConfig.displayName,
-                purpose: providerConfig.purpose,
-                required: providerConfig.accountLinkingRequired ?? false,
+                type: idpConfig.provider,
+                displayName: idpConfig.displayName,
+                purpose: idpConfig.purpose,
+                required: idpConfig.accountLinkingRequired ?? false,
                 issuerUrl: 'https://bitbucket.org'
             });
         }
 
-        if (identityProvider.provider === "authentik") {
-            const providerConfig = identityProvider as AuthentikIdentityProviderConfig;
-            const clientId = await getTokenFromConfig(providerConfig.clientId);
-            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const issuer = (await getTokenFromConfig(providerConfig.issuer)).replace(/\/+$/, '');
+        if (idpConfig.provider === "authentik") {
+            const clientId = await getTokenFromConfig(idpConfig.clientId);
+            const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);
+            const issuer = (await getTokenFromConfig(idpConfig.issuer)).replace(/\/+$/, '');
             providers.push({
                 __provider: createAuthentikProvider(id, clientId, clientSecret, issuer),
                 id,
-                type: identityProvider.provider,
-                displayName: providerConfig.displayName,
-                purpose: providerConfig.purpose,
+                type: idpConfig.provider,
+                displayName: idpConfig.displayName,
+                purpose: idpConfig.purpose,
                 issuerUrl: issuer
             });
         }
 
-        if (identityProvider.provider === "jumpcloud") {
-            const providerConfig = identityProvider as JumpCloudIdentityProviderConfig;
-            const clientId = await getTokenFromConfig(providerConfig.clientId);
-            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const issuer = (await getTokenFromConfig(providerConfig.issuer)).replace(/\/+$/, '');
+        if (idpConfig.provider === "jumpcloud") {
+            const clientId = await getTokenFromConfig(idpConfig.clientId);
+            const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);
+            const issuer = (await getTokenFromConfig(idpConfig.issuer)).replace(/\/+$/, '');
             providers.push({
                 __provider: createJumpCloudProvider(id, clientId, clientSecret, issuer),
                 id,
-                type: identityProvider.provider,
-                displayName: providerConfig.displayName,
-                purpose: providerConfig.purpose,
+                type: idpConfig.provider,
+                displayName: idpConfig.displayName,
+                purpose: idpConfig.purpose,
                 issuerUrl: issuer
             });
         }
 
-        if (identityProvider.provider === "bitbucket-server") {
-            const providerConfig = identityProvider as BitbucketServerIdentityProviderConfig;
-            const clientId = await getTokenFromConfig(providerConfig.clientId);
-            const clientSecret = await getTokenFromConfig(providerConfig.clientSecret);
-            const baseUrl = providerConfig.baseUrl.replace(/\/+$/, '');
+        if (idpConfig.provider === "bitbucket-server") {
+            const clientId = await getTokenFromConfig(idpConfig.clientId);
+            const clientSecret = await getTokenFromConfig(idpConfig.clientSecret);
+            const baseUrl = idpConfig.baseUrl.replace(/\/+$/, '');
             providers.push({
                 __provider: await createBitbucketServerProvider(id, clientId, clientSecret, baseUrl),
                 id,
-                type: identityProvider.provider,
-                displayName: providerConfig.displayName,
-                purpose: providerConfig.purpose,
-                required: providerConfig.accountLinkingRequired ?? false,
+                type: idpConfig.provider,
+                displayName: idpConfig.displayName,
+                purpose: idpConfig.purpose,
+                required: idpConfig.accountLinkingRequired ?? false,
                 issuerUrl: baseUrl
             });
         }

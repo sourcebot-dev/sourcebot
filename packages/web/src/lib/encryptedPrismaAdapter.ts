@@ -1,7 +1,7 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { Adapter, AdapterAccount, AdapterUser } from "next-auth/adapters";
 import { PrismaClient } from "@sourcebot/db";
-import { encryptOAuthToken, env, loadConfig } from "@sourcebot/shared";
+import { encryptOAuthToken, getIdentityProviderConfig } from "@sourcebot/shared";
 
 /**
  * Encrypts OAuth tokens in account data before database storage
@@ -13,25 +13,6 @@ function encryptAccountTokens(account: AdapterAccount): AdapterAccount {
         refresh_token: encryptOAuthToken(account.refresh_token),
         id_token: encryptOAuthToken(account.id_token),
     };
-}
-
-/**
- * Resolves the provider type for a given provider id. The id is the
- * unique key in the `identityProviders` config; the type is the inner
- * `provider` field of the matching config entry (github, gitlab, etc.).
- *
- * For deployments still on the deprecated AUTH_EE_*_CLIENT_ID env-var
- * fallback, no entry exists in the normalized config map, but the
- * synthesized id equals the type by construction — so the id itself is a
- * valid type to fall back to.
- */
-async function resolveProviderType(providerId: string): Promise<string> {
-    const config = await loadConfig(env.CONFIG_PATH);
-    const configEntry = config.identityProviders?.[providerId];
-    if (configEntry) {
-        return configEntry.provider;
-    }
-    return providerId;
 }
 
 /**
@@ -47,13 +28,17 @@ export function EncryptedPrismaAdapter(prisma: PrismaClient): Adapter {
     return {
         ...baseAdapter,
         async linkAccount(account: AdapterAccount) {
-            const providerType = await resolveProviderType(account.provider);
+            const idpConfig = await getIdentityProviderConfig(account.provider);
+            if (!idpConfig) {
+                throw new Error(`Failed to link account for user id ${account.userId}. No provider config found for account with type ${account.provider}`);
+            }
+
             const { provider, ...rest } = encryptAccountTokens(account);
             await prisma.account.create({
                 data: {
                     ...rest,
                     providerId: provider,
-                    providerType,
+                    providerType: idpConfig.provider,
                 },
             });
             return account;
