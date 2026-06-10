@@ -10,7 +10,7 @@ import LicenseKeyRequired from '/snippets/license-key-required.mdx'
 You can connect Sourcebot to various **external identity providers** to associate a Sourcebot user with one or more external service accounts (ex. Google, GitHub, etc).
 
 External identity providers can be used for [authentication](/docs/configuration/auth) and/or [permission syncing](/docs/features/permission-syncing). They're defined in the
-[config file](/docs/configuration/config-file) in the top-level `identityProviders` object:
+[config file](/docs/configuration/config-file) in the top-level `identityProviders` array:
 
 ```json wrap icon="code" Example config with both google and github identity providers defined
 {
@@ -41,6 +41,8 @@ External identity providers can be used for [authentication](/docs/configuration
 ```
 
 Secret values (such as `clientId` and `clientSecret`) can be provided as environment variables or Google Cloud secrets via [tokens](/docs/configuration/config-file#tokens).
+
+To configure **multiple providers of the same type**, see [Configuring multiple providers of the same type](#configuring-multiple-providers-of-the-same-type).
 
 # Supported External Identity Providers
 
@@ -641,5 +643,47 @@ GCP IAP works differently from other identity providers. Instead of redirecting 
     </Step>
 </Steps>
 </Accordion>
+
+# Configuring multiple providers of the same type
+
+By default, each provider in the `identityProviders` array is identified by an **id** equal to its `provider` value. This id determines the provider's OAuth **callback URL** (sometimes called the redirect URL):
+
+```
+<sourcebot_url>/api/auth/callback/<id>
+```
+
+This is why the examples above register callback URLs like `<sourcebot_url>/api/auth/callback/github`. The array form supports only **one instance per provider type**.
+
+To configure **multiple instances of the same provider type** (for example, gitlab.com alongside a self-hosted GitLab instance), switch `identityProviders` to its object form, where you assign each provider a unique id:
+
+```json wrap icon="code" Two GitLab providers, one for gitlab.com and one for a self-hosted instance
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "identityProviders": {
+        "gitlab-cloud": {
+            "provider": "gitlab",
+            "purpose": "sso",
+            "clientId": { "env": "GITLAB_CLOUD_CLIENT_ID" },
+            "clientSecret": { "env": "GITLAB_CLOUD_CLIENT_SECRET" }
+        },
+        "gitlab-selfhosted": {
+            "provider": "gitlab",
+            "purpose": "sso",
+            "baseUrl": "https://gitlab.example.com",
+            "clientId": { "env": "GITLAB_SELFHOSTED_CLIENT_ID" },
+            "clientSecret": { "env": "GITLAB_SELFHOSTED_CLIENT_SECRET" }
+        }
+    }
+}
+```
+
+Each provider keeps the same fields documented above. The only differences are:
+
+- `identityProviders` is an **object** keyed by id instead of an array.
+- The id you choose (`gitlab-cloud`, `gitlab-selfhosted`) sets the callback URL, so you register `<sourcebot_url>/api/auth/callback/gitlab-cloud` and `<sourcebot_url>/api/auth/callback/gitlab-selfhosted` with their respective OAuth clients.
+
+<Note>
+Each instance needs its own OAuth client (its own `clientId` and `clientSecret`) registered with the matching callback URL.
+</Note>
 
 
