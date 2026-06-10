@@ -7,14 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Removed support for configuring the GitHub, GitLab, Google, Okta, Keycloak, and Microsoft Entra ID identity providers via the deprecated `AUTH_EE_*` environment variables. See the [v5 migration guide](http://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide#identity-providers-must-be-configured-via-the-config-file) for more details. [#1297](https://github.com/sourcebot-dev/sourcebot/pull/1297)
+- Anthropic thinking mode (adaptive vs. extended) is now resolved from the model's capabilities via the Anthropic Models API instead of a hardcoded model list. [#1294](https://github.com/sourcebot-dev/sourcebot/pull/1294)
+
 ### Added
 - [EE] Added prompt caching for Ask Sourcebot. For Anthropic models, the static prompt prefix (tool definitions, system prompt, and conversation history) is marked with a cache breakpoint so it is billed at the provider's discounted cache-read rate on subsequent agent steps and follow-up turns. Toggle with `SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED` (default `true`). [#1278](https://github.com/sourcebot-dev/sourcebot/pull/1278)
 - [EE] Added a cached-token breakdown to the Ask Sourcebot message details, showing what share of the input tokens were served from the model provider's prompt cache. [#1278](https://github.com/sourcebot-dev/sourcebot/pull/1278)
 - Added `isLanguageModelConfigured` to the service ping, indicating whether at least one language model is configured. [#1296](https://github.com/sourcebot-dev/sourcebot/pull/1296)
-
-### Changed
-- Anthropic thinking mode (adaptive vs. extended) is now resolved from the model's capabilities via the Anthropic Models API instead of a hardcoded model list. [#1294](https://github.com/sourcebot-dev/sourcebot/pull/1294)
-- [**Breaking Change**] [EE] Removed support for configuring the GitHub, GitLab, Google, Okta, Keycloak, and Microsoft Entra ID identity providers via the deprecated `AUTH_EE_*` environment variables. Configure these providers through the `identityProviders` section of the config file instead. [#1297](https://github.com/sourcebot-dev/sourcebot/pull/1297)
 
 ### Fixed
 - Upgraded `protobufjs` to `^7.6.2`. [#1281](https://github.com/sourcebot-dev/sourcebot/pull/1281)
