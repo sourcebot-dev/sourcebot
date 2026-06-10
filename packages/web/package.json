@@ -26,6 +26,7 @@
     "@ai-sdk/openai-compatible": "^2.0.41",
     "@ai-sdk/react": "^3.0.169",
     "@ai-sdk/xai": "^3.0.83",
+    "@anthropic-ai/sdk": "^0.104.0",
     "@auth/prisma-adapter": "^2.11.1",
     "@aws-sdk/credential-providers": "^3.1036.0",
     "@bprogress/next": "^3.2.12",

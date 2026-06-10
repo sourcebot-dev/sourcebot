@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Added prompt caching for Ask Sourcebot. For Anthropic models, the static prompt prefix (tool definitions, system prompt, and conversation history) is marked with a cache breakpoint so it is billed at the provider's discounted cache-read rate on subsequent agent steps and follow-up turns. Toggle with `SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED` (default `true`). [#1278](https://github.com/sourcebot-dev/sourcebot/pull/1278)
 - [EE] Added a cached-token breakdown to the Ask Sourcebot message details, showing what share of the input tokens were served from the model provider's prompt cache. [#1278](https://github.com/sourcebot-dev/sourcebot/pull/1278)
 
+### Changed
+- Anthropic thinking mode (adaptive vs. extended) is now resolved from the model's capabilities via the Anthropic Models API instead of a hardcoded model list. [#1294](https://github.com/sourcebot-dev/sourcebot/pull/1294)
+
 ### Fixed
 - Upgraded `protobufjs` to `^7.6.2`. [#1281](https://github.com/sourcebot-dev/sourcebot/pull/1281)
 - Upgraded `picomatch` to `^4.0.4`. [#1283](https://github.com/sourcebot-dev/sourcebot/pull/1283)
