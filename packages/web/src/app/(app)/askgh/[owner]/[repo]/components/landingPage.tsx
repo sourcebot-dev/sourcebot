@@ -75,7 +75,6 @@ export const LandingPage = ({
                             }}
                             className="min-h-[50px]"
                             isRedirecting={isLoading}
-                            languageModels={languageModels}
                             selectedSearchScopes={selectedSearchScopes}
                             searchContexts={[]}
                             isDisabled={isChatBoxDisabled}

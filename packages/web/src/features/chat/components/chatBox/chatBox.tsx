@@ -3,7 +3,7 @@
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { CustomEditor, LanguageModelInfo, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
+import { CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
 import { cn } from "@/lib/utils";
 import { useIsMac } from "@/hooks/useIsMac";
@@ -37,7 +37,6 @@ interface ChatBoxProps {
     isTurnInProgress?: boolean;
     isNetworkActive?: boolean;
     isDisabled?: boolean;
-    languageModels: LanguageModelInfo[];
     selectedSearchScopes: SearchScope[];
     searchContexts: SearchContextQuery[];
     isLoginWallEnabled: boolean;
@@ -55,7 +54,6 @@ const ChatBoxComponent = ({
     isDisabled,
     isLoginWallEnabled,
     isAuthenticated,
-    languageModels,
     selectedSearchScopes,
     searchContexts,
 }: ChatBoxProps) => {
@@ -82,9 +80,7 @@ const ChatBoxComponent = ({
             return [];
         }).flat(),
     });
-    const { selectedLanguageModel } = useSelectedLanguageModel({
-        languageModels,
-    });
+    const { selectedLanguageModel } = useSelectedLanguageModel();
     const { toast } = useToast();
     const isAskEnabled = useHasEntitlement('ask');
     const [isLoginDialogOpen, setIsLoginDialogOpen] = useState<boolean>(false);
