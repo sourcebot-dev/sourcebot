@@ -160,72 +160,7 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
         }
     }
 
-    // @deprecate in favor of defining identity providers throught the identityProvider object in the config file. This was done to allow for more control over
-    // which identity providers are defined and their purpose. We've left this logic here to support backwards compat with deployments that expect these env vars,
-    // but this logic will be removed in the future
-    // We only go through this path if no identityProviders are defined in the config to prevent accidental duplication of providers
     if (identityProviders.length == 0) {
-        if (env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
-            const baseUrl = (env.AUTH_EE_GITHUB_BASE_URL ?? 'https://github.com').replace(/\/+$/, '');
-            providers.push({
-                provider: await createGitHubProvider(
-                    env.AUTH_EE_GITHUB_CLIENT_ID,
-                    env.AUTH_EE_GITHUB_CLIENT_SECRET,
-                    baseUrl
-                ),
-                purpose: "sso",
-                issuerUrl: baseUrl
-            });
-        }
-
-        if (env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
-            const baseUrl = (env.AUTH_EE_GITLAB_BASE_URL ?? 'https://gitlab.com').replace(/\/+$/, '');
-            providers.push({
-                provider: await createGitLabProvider(
-                    env.AUTH_EE_GITLAB_CLIENT_ID,
-                    env.AUTH_EE_GITLAB_CLIENT_SECRET,
-                    baseUrl,
-                ),
-                purpose: "sso",
-                issuerUrl: baseUrl
-            });
-        }
-
-        if (env.AUTH_EE_GOOGLE_CLIENT_ID && env.AUTH_EE_GOOGLE_CLIENT_SECRET) {
-            providers.push({
-                provider: createGoogleProvider(env.AUTH_EE_GOOGLE_CLIENT_ID, env.AUTH_EE_GOOGLE_CLIENT_SECRET),
-                purpose: "sso",
-                issuerUrl: 'https://accounts.google.com'
-            });
-        }
-
-        if (env.AUTH_EE_OKTA_CLIENT_ID && env.AUTH_EE_OKTA_CLIENT_SECRET && env.AUTH_EE_OKTA_ISSUER) {
-            const issuer = env.AUTH_EE_OKTA_ISSUER.replace(/\/+$/, '');
-            providers.push({
-                provider: createOktaProvider(env.AUTH_EE_OKTA_CLIENT_ID, env.AUTH_EE_OKTA_CLIENT_SECRET, issuer),
-                purpose: "sso",
-                issuerUrl: issuer
-            });
-        }
-
-        if (env.AUTH_EE_KEYCLOAK_CLIENT_ID && env.AUTH_EE_KEYCLOAK_CLIENT_SECRET && env.AUTH_EE_KEYCLOAK_ISSUER) {
-            const issuer = env.AUTH_EE_KEYCLOAK_ISSUER.replace(/\/+$/, '');
-            providers.push({
-                provider: createKeycloakProvider(env.AUTH_EE_KEYCLOAK_CLIENT_ID, env.AUTH_EE_KEYCLOAK_CLIENT_SECRET, issuer),
-                purpose: "sso",
-                issuerUrl: issuer
-            });
-        }
-
-        if (env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID && env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET && env.AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER) {
-            const issuer = env.AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER.replace(/\/+$/, '');
-            providers.push({
-                provider: createMicrosoftEntraIDProvider(env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID, env.AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET, issuer),
-                purpose: "sso",
-                issuerUrl: issuer
-            });
-        }
-
         if (env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
             providers.push({
                 provider: createGCPIAPProvider(env.AUTH_EE_GCP_IAP_AUDIENCE),
