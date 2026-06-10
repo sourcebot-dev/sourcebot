@@ -183,7 +183,7 @@ Sourcebot warns at startup if either file is still present.
 
 #### Description
 
-In v4, you could configure these identity providers using `AUTH_EE_*` environment variables (for example `AUTH_EE_GITHUB_CLIENT_ID`). Those variables were deprecated in favor of the [`identityProviders`](/docs/configuration/idp) section of the config file. Starting in v5, the environment variable path has been removed. Sourcebot no longer reads these variables, and any provider configured only through them will stop appearing on the login screen.
+In v4, you could configure these identity providers using `AUTH_EE_*` environment variables (for example `AUTH_EE_GITHUB_CLIENT_ID`). Those variables were deprecated in favor of the [`identityProviders`](/docs/configuration/idp) section of the config file. Starting in v5.0.2, the environment variable path has been removed. Sourcebot no longer reads these variables, and any provider configured only through them will stop appearing on the login screen. This also applies if you are upgrading from an earlier v5 release (v5.0.0 or v5.0.1), where these variables were still supported.
 
 The following environment variables are no longer read:
 
