@@ -155,19 +155,9 @@ const refreshOAuthToken = async (
         const identityProviders = config?.identityProviders ?? [];
         const providerConfigs = identityProviders.filter(idp => idp.provider === provider);
 
-        // If no provider configs in the config file, try deprecated env vars.
+        // No provider configs in the config file — nothing to refresh against.
         if (providerConfigs.length === 0) {
-            const envCredentials = getDeprecatedEnvCredentials(provider);
-            if (envCredentials) {
-                logger.debug(`Using deprecated env vars for ${provider} token refresh`);
-                const result = await tryRefreshToken(provider, refreshToken, envCredentials);
-                if (result) {
-                    return result;
-                }
-                logger.error(`Failed to refresh ${provider} token using deprecated env credentials`);
-                return null;
-            }
-            logger.error(`No provider config or env credentials found for: ${provider}`);
+            logger.error(`No provider config found for: ${provider}`);
             return null;
         }
 
@@ -291,26 +281,4 @@ const tryRefreshToken = async (
     }
 
     return result.data;
-}
-
-/**
- * Get credentials from deprecated environment variables.
- * This is for backwards compatibility with deployments using env vars instead of config file.
- */
-const getDeprecatedEnvCredentials = (provider: string): ProviderCredentials | null => {
-    if (provider === 'github' && env.AUTH_EE_GITHUB_CLIENT_ID && env.AUTH_EE_GITHUB_CLIENT_SECRET) {
-        return {
-            clientId: env.AUTH_EE_GITHUB_CLIENT_ID,
-            clientSecret: env.AUTH_EE_GITHUB_CLIENT_SECRET,
-            baseUrl: env.AUTH_EE_GITHUB_BASE_URL,
-        };
-    }
-    if (provider === 'gitlab' && env.AUTH_EE_GITLAB_CLIENT_ID && env.AUTH_EE_GITLAB_CLIENT_SECRET) {
-        return {
-            clientId: env.AUTH_EE_GITLAB_CLIENT_ID,
-            clientSecret: env.AUTH_EE_GITLAB_CLIENT_SECRET,
-            baseUrl: env.AUTH_EE_GITLAB_BASE_URL,
-        };
-    }
-    return null;
 }
