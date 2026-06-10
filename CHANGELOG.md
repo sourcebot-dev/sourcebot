@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the selected language model rapidly flipping in local storage after a language model was removed. [#1295](https://github.com/sourcebot-dev/sourcebot/pull/1295)
 - Fixed issue where using multiple identity providers of the same type (e.g., gitlab) would result in unexpected behaviours. [#1177](https://github.com/sourcebot-dev/sourcebot/pull/1177)
 - Fixed a race condition where large repositories could be indexed twice within a single reindex interval. [#1298](https://github.com/sourcebot-dev/sourcebot/pull/1298)
+- Upgraded `shell-quote` to `^1.8.4`. [#1299](https://github.com/sourcebot-dev/sourcebot/pull/1299)
 
 ## [5.0.1] - 2026-06-04
 
