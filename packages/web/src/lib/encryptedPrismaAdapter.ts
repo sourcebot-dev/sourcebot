@@ -1,7 +1,7 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import type { Adapter, AdapterAccount } from "next-auth/adapters";
+import type { Adapter, AdapterAccount, AdapterUser } from "next-auth/adapters";
 import { PrismaClient } from "@sourcebot/db";
-import { encryptOAuthToken } from "@sourcebot/shared";
+import { encryptOAuthToken, getIdentityProviderConfig } from "@sourcebot/shared";
 
 /**
  * Encrypts OAuth tokens in account data before database storage
@@ -16,15 +16,57 @@ function encryptAccountTokens(account: AdapterAccount): AdapterAccount {
 }
 
 /**
- * Encrypted Prisma adapter that automatically encrypts OAuth tokens before storage
+ * Encrypted Prisma adapter that:
+ * 1. Encrypts OAuth tokens in account data before persisting them.
+ * 2. Remaps the auth.js `provider` field onto our `providerId` /
+ *    `providerType` columns so the same provider type (e.g., github)
+ *    can be configured as multiple distinct instances.
  */
 export function EncryptedPrismaAdapter(prisma: PrismaClient): Adapter {
     const baseAdapter = PrismaAdapter(prisma);
-    
+
     return {
         ...baseAdapter,
-        linkAccount(account: AdapterAccount) {
-            return baseAdapter.linkAccount!(encryptAccountTokens(account));
+        async linkAccount(account: AdapterAccount) {
+            const idpConfig = await getIdentityProviderConfig(account.provider);
+            if (!idpConfig) {
+                throw new Error(`Failed to link account for user id ${account.userId}. No provider config found for account with type ${account.provider}`);
+            }
+
+            const { provider, ...rest } = encryptAccountTokens(account);
+            await prisma.account.create({
+                data: {
+                    ...rest,
+                    providerId: provider,
+                    providerType: idpConfig.provider,
+                },
+            });
+            return account;
+        },
+        async getUserByAccount({ provider, providerAccountId }) {
+            const account = await prisma.account.findUnique({
+                where: {
+                    providerId_providerAccountId: {
+                        providerId: provider,
+                        providerAccountId,
+                    },
+                },
+                include: { user: true },
+            });
+            // Cast: Prisma's User.email is nullable but AdapterUser.email is
+            // typed as `string`. The base PrismaAdapter performs the same
+            // implicit widening; we mirror it here.
+            return (account?.user ?? null) as AdapterUser | null;
+        },
+        async unlinkAccount({ provider, providerAccountId }) {
+            await prisma.account.delete({
+                where: {
+                    providerId_providerAccountId: {
+                        providerId: provider,
+                        providerAccountId,
+                    },
+                },
+            });
         },
     };
 }

@@ -1,5 +1,5 @@
 import { indexSchema } from "@sourcebot/schemas/v3/index.schema";
-import { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
+import { IdentityProviderConfig, SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
 import { createEnv } from "@t3-oss/env-core";
 import { Ajv } from "ajv";
 import { readFile } from 'fs/promises';
@@ -56,6 +56,7 @@ export const isRemotePath = (path: string) => {
     return path.startsWith('https://') || path.startsWith('http://');
 }
 
+
 export const loadConfig = async (configPath?: string): Promise<SourcebotConfig> => {
     if (!configPath) {
         throw new Error('CONFIG_PATH is required but not provided');
@@ -109,7 +110,46 @@ export const loadConfig = async (configPath?: string): Promise<SourcebotConfig> 
     if (!isValidConfig) {
         throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}`);
     }
+
     return config;
+}
+
+
+export const getIdentityProviderConfigs = async (): Promise<Record<string, IdentityProviderConfig>> => {
+    const config = await loadConfig(env.CONFIG_PATH);
+
+    // Collapses the dual-form `identityProviders` field into the canonical object
+    // form keyed by id.
+    const idpConfigs = (() => {
+        if (!config.identityProviders) {
+            return undefined;
+        }
+        if (!Array.isArray(config.identityProviders)) {
+            return config.identityProviders;
+        }
+
+        const result: Record<string, IdentityProviderConfig> = {};
+        for (const entry of config.identityProviders) {
+            const id = entry.provider;
+            if (result[id]) {
+                throw new Error(
+                    `Duplicate identity provider id "${id}" in array-form \`identityProviders\`. ` +
+                    `The array form is deprecated and only supports one instance per provider type. ` +
+                    `Migrate to the object form (keyed by id) to configure multiple instances.`,
+                );
+            }
+            result[id] = entry;
+        }
+        return result;
+    })();
+
+    return idpConfigs ?? {};
+}
+
+export const getIdentityProviderConfig = async (id: string): Promise<IdentityProviderConfig | undefined> => {
+    const idps = await getIdentityProviderConfigs();
+    const idp = idps[id] as IdentityProviderConfig | undefined;
+    return idp;
 }
 
 // Merge process.env with environment variables resolved from config.json

@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `hono` to `^4.12.24`. [#1289](https://github.com/sourcebot-dev/sourcebot/pull/1289)
 - Surfaced an actionable error when the Lighthouse licensing service is unreachable, instead of a generic "unexpected error". [#1293](https://github.com/sourcebot-dev/sourcebot/pull/1293)
 - Fixed the selected language model rapidly flipping in local storage after a language model was removed. [#1295](https://github.com/sourcebot-dev/sourcebot/pull/1295)
+- Fixed issue where using multiple identity providers of the same type (e.g., gitlab) would result in unexpected behaviours. [#1177](https://github.com/sourcebot-dev/sourcebot/pull/1177)
 
 ## [5.0.1] - 2026-06-04
 

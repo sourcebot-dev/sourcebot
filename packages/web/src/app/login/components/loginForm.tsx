@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { SourcebotLogo } from "@/app/components/sourcebotLogo";
 import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
+import { useIdentityProviders } from "@/features/auth/useIdentityProviders";
 import Link from "next/link";
 
 interface LoginFormProps {
@@ -17,6 +18,7 @@ interface LoginFormProps {
 
 export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnabled = false, hideSecurityNotice = false }: LoginFormProps) => {
     const captureEvent = useCaptureEvent();
+    const providers = useIdentityProviders();
 
     const safeCallbackUrl = useMemo(() => {
         if (!callbackUrl) return "/";
@@ -41,9 +43,9 @@ export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnable
         }
     }, [error]);
 
-    // Helper function to get the correct analytics event name
-    const getLoginEventName = (providerId: string) => {
-        switch (providerId) {
+    // Helper function to get the correct analytics event name based on provider type.
+    const getLoginEventName = (providerType: string) => {
+        switch (providerType) {
             case "github":
                 return "wa_login_with_github" as const;
             case "google":
@@ -65,7 +67,8 @@ export const LoginForm = ({ callbackUrl, error, context, isAnonymousAccessEnable
 
     // Analytics callback for provider clicks
     const handleProviderClick = (providerId: string) => {
-        captureEvent(getLoginEventName(providerId), {});
+        const providerType = providers.find(p => p.id === providerId)?.type ?? providerId;
+        captureEvent(getLoginEventName(providerType), {});
     };
 
     return (

@@ -80,8 +80,8 @@ type AuthProviderInfo = {
     icon: { src: string; className?: string } | null;
 }
 
-export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
-    switch (providerId) {
+export const getAuthProviderInfo = (providerType: string): AuthProviderInfo => {
+    switch (providerType) {
         case "github":
             return {
                 id: "github",
@@ -190,9 +190,9 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
             };
         default:
             return {
-                id: providerId,
-                name: providerId,
-                displayName: providerId.charAt(0).toUpperCase() + providerId.slice(1),
+                id: providerType,
+                name: providerType,
+                displayName: providerType.charAt(0).toUpperCase() + providerType.slice(1),
                 icon: null,
             };
     }

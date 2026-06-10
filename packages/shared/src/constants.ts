@@ -43,9 +43,12 @@ export const PERMISSION_SYNC_SUPPORTED_CODE_HOST_TYPES: CodeHostType[] = [
     'bitbucketServer',
 ];
 
-export const PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS: IdentityProviderType[] = [
+export const PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS = [
     'github',
     'gitlab',
     'bitbucket-cloud',
     'bitbucket-server',
-];
+] as const satisfies IdentityProviderType[];
+
+export const doesIdpSupportPermissionSyncing = (providerType: string): providerType is (typeof PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS)[number] =>
+    PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS.includes(providerType as (typeof PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS)[number]);

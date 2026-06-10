@@ -2,8 +2,8 @@
 
 import { ServiceError } from "@/lib/serviceError";
 import { withAuth } from "@/middleware/withAuth";
-import { env } from "@sourcebot/shared";
 import { getEntitlements } from "@/lib/entitlements";
+import { env, PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS } from "@sourcebot/shared";
 import { AccountPermissionSyncJobStatus } from "@sourcebot/db";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -32,7 +32,7 @@ export const getPermissionSyncStatus = async (): Promise<PermissionSyncStatusRes
         const accounts = await prisma.account.findMany({
             where: {
                 userId: user.id,
-                provider: { in: ['github', 'gitlab', 'bitbucket-cloud', 'bitbucket-server'] }
+                providerType: { in: PERMISSION_SYNC_SUPPORTED_IDENTITY_PROVIDERS }
             },
             include: {
                 permissionSyncJobs: {

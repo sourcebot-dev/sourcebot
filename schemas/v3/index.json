@@ -152,11 +152,25 @@
             }
         },
         "identityProviders": {
-            "type": "array",
             "description": "Defines a collection of identity providers that are available to Sourcebot.",
-            "items": {
-                "$ref": "./identityProvider.json"
-            }
+            "oneOf": [
+                {
+                    "type": "object",
+                    "description": "Map of identity providers keyed by a unique id.`.",
+                    "patternProperties": {
+                        "^[a-zA-Z0-9_-]+$": {
+                            "$ref": "./identityProvider.json"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "$ref": "./identityProvider.json"
+                    }
+                }
+            ]
         }
     },
     "additionalProperties": false
