@@ -663,12 +663,14 @@ To configure **multiple instances of the same provider type** (for example, gitl
         "gitlab-cloud": {
             "provider": "gitlab",
             "purpose": "sso",
+            "displayName": "GitLab.com",
             "clientId": { "env": "GITLAB_CLOUD_CLIENT_ID" },
             "clientSecret": { "env": "GITLAB_CLOUD_CLIENT_SECRET" }
         },
         "gitlab-selfhosted": {
             "provider": "gitlab",
             "purpose": "sso",
+            "displayName": "Selfhosted GitLab",
             "baseUrl": "https://gitlab.example.com",
             "clientId": { "env": "GITLAB_SELFHOSTED_CLIENT_ID" },
             "clientSecret": { "env": "GITLAB_SELFHOSTED_CLIENT_SECRET" }
@@ -681,6 +683,7 @@ Each provider keeps the same fields documented above. The only differences are:
 
 - `identityProviders` is an **object** keyed by id instead of an array.
 - The id you choose (`gitlab-cloud`, `gitlab-selfhosted`) sets the callback URL, so you register `<sourcebot_url>/api/auth/callback/gitlab-cloud` and `<sourcebot_url>/api/auth/callback/gitlab-selfhosted` with their respective OAuth clients.
+- Set an optional `displayName` on each provider to give it a distinct label on the login screen. Without it, both instances fall back to the same provider-type name (for example, "GitLab"), making them hard to tell apart.
 
 <Note>
 Each instance needs its own OAuth client (its own `clientId` and `clientSecret`) registered with the matching callback URL.
