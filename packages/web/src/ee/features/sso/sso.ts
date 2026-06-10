@@ -160,10 +160,6 @@ export const getEEIdentityProviders = async (): Promise<IdentityProvider[]> => {
         }
     }
 
-    // @deprecate GCP IAP is the only identity provider still configurable via env vars; every
-    // other provider must be defined through the identityProviders object in the config file.
-    // We only go through this path if no identityProviders are defined in the config to prevent
-    // accidental duplication of providers.
     if (identityProviders.length == 0) {
         if (env.AUTH_EE_GCP_IAP_ENABLED && env.AUTH_EE_GCP_IAP_AUDIENCE) {
             providers.push({
