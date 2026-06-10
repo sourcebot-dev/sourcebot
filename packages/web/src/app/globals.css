@@ -7,6 +7,7 @@
 @layer base {
   html {
     overflow-y: scroll;
+    --banner-height: 0px;
   }
   
   /* Hide scrollbar but keep functionality */
@@ -16,6 +17,7 @@
   }
   
   :root {
+    --banner-height: 0px;
     --background: hsl(0 0% 99%);
     --background-secondary: hsl(0, 0%, 98%);
     --foreground: hsl(37, 84%, 5%);

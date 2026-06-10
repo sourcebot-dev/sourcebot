@@ -7,17 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Checkout the [migration guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide) for details on upgrading your instance to v5.
+
+### Changed
+- [**Breaking Change**] Changed the default role assignment to `Owner` for organizations on the free tier. See the [v4 to v5 guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide). [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- [**Breaking Change**] Relicensed Ask Sourcebot and MCP under ee. See the [v4 to v5 guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide). [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- [**Breaking Change**] Removed the embedded Postgres and Redis from the Docker image. External Postgres and Redis are now required: set `DATABASE_URL` and `REDIS_URL`, or deploy with the provided `docker-compose.yml`. See the [v4 to v5 guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide). [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- [**Breaking Change**] Sourcebot no longer auto-generates `AUTH_SECRET` and `SOURCEBOT_ENCRYPTION_KEY`, nor reads them from the plaintext files it previously wrote to the data volume; both must now be set explicitly as environment variables. See the [v4 to v5 guide](https://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide). [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- Expired offline license keys no longer crash the process. An expired key now degrades to the unlicensed state. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- Improved the `setup-sourcebot` wizard: prompts for a setup directory, clarifies that secrets are stored locally in `.env`, switches multi-select to Tab, hides "No results" until a real search runs, and detects/cleans up conflicting Docker deployments and volumes before starting. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+
 ### Added
 - Added ask connectors: connect 3rd party MCP servers to your ask agent. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 - Added progress bar when navigating between pages. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 - Added a integrated changelog into the sidebar. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+- Added scroll position restoration when viewing files in the code browser, so returning to a previously viewed file restores your scroll position. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 
-### Changed
-- [**Breaking Change**] Changed the default role assignment to `Owner` for organizations on the free tier. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
-- [**Breaking Change**] Relicensed Ask Sourcebot and MCP under ee. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
-- Redesigned the app layout with a new collapsible sidebar navigation, replacing the previous top navigation bar. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
-- Expired offline license keys no longer crash the process. An expired key now degrades to the unlicensed state. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
-- Improved the `setup-sourcebot` wizard: prompts for a setup directory, clarifies that secrets are stored locally in `.env`, switches multi-select to Tab, hides "No results" until a real search runs, and detects/cleans up conflicting Docker deployments and volumes before starting. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
+### Fixed
+- Fixed git "dubious ownership" errors when the container runs as a non-root user by setting `safe.directory` at the system level instead of the global (root-only) level. [#1106](https://github.com/sourcebot-dev/sourcebot/pull/1106)
 
 ## [4.17.4] - 2026-05-30
 

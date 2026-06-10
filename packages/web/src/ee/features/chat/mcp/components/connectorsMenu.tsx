@@ -18,9 +18,7 @@ import { McpFavicon } from "@/ee/features/chat/mcp/components/mcpFavicon";
 import { mcpQueryKeys } from "@/ee/features/chat/mcp/queryKeys";
 import { isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertTriangleIcon, CableIcon, Loader2Icon, PlusCircleIcon, PlusIcon, RefreshCwIcon, SettingsIcon } from "lucide-react";
-import { PlusButtonInfoCard } from "@/features/chat/components/chatBox/plusButtonInfoCard";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useSlate } from "slate-react";
@@ -33,6 +31,8 @@ import {
     saveMcpOAuthDraft,
 } from "@/features/chat/mcpOAuthDraft";
 import { clearEditorHistory, resetEditor } from "@/features/chat/utils";
+import { useRole } from "@/features/auth/useRole";
+import { OrgRole } from "@sourcebot/db";
 
 interface ConnectorsMenuProps {
     selectedSearchScopes: SearchScope[];
@@ -76,6 +76,7 @@ export const ConnectorsMenu = ({
     const queryClient = useQueryClient();
     const router = useRouter();
     const { toast } = useToast();
+    const isOwner = useRole() === OrgRole.OWNER;
 
     const { data: servers = [], isError, isLoading, refetch } = useQuery({
         queryKey: mcpQueryKeys.serversWithStatus,
@@ -195,22 +196,15 @@ export const ConnectorsMenu = ({
 
     return (
         <DropdownMenu>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-6 h-6 text-muted-foreground hover:text-primary"
-                        >
-                            <PlusIcon className="w-4 h-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="p-0 border-0 bg-transparent shadow-none">
-                    <PlusButtonInfoCard />
-                </TooltipContent>
-            </Tooltip>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-6 h-6 text-muted-foreground hover:text-primary"
+                >
+                    <PlusIcon className="w-4 h-4" />
+                </Button>
+            </DropdownMenuTrigger>
             <DropdownMenuContent side="bottom" align="start" className="w-52" onCloseAutoFocus={(e) => e.preventDefault()}>
                 <DropdownMenuSub>
                     <DropdownMenuSubTrigger className="gap-2">
@@ -297,13 +291,15 @@ export const ConnectorsMenu = ({
                             <CableIcon className="w-4 h-4" />
                             My connectors
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                            className="gap-2 text-muted-foreground"
-                            onSelect={() => router.push(`/settings/workspaceAskAgent`)}
-                        >
-                            <SettingsIcon className="w-4 h-4" />
-                            Workspace connectors
-                        </DropdownMenuItem>
+                        {isOwner && (
+                            <DropdownMenuItem
+                                className="gap-2 text-muted-foreground"
+                                onSelect={() => router.push(`/settings/workspaceAskAgent`)}
+                            >
+                                <SettingsIcon className="w-4 h-4" />
+                                Workspace connectors
+                            </DropdownMenuItem>
+                        )}
                     </DropdownMenuSubContent>
                 </DropdownMenuSub>
             </DropdownMenuContent>

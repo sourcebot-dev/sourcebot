@@ -4,6 +4,7 @@ import { env, createLogger } from '@sourcebot/shared';
 import { hasEntitlement } from '@/lib/entitlements';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
 import { PrismaOAuthClientProvider } from '@/ee/features/chat/mcp/prismaOAuthClientProvider';
+import { getMcpOAuthCallbackUrl } from '@/ee/features/chat/mcp/utils.server';
 // Note: We use the raw (unscoped) prisma client here because this route handles OAuth
 // redirect callbacks from external providers, so it can't go through withAuth. Session
 // identity is verified via NextAuth's auth() instead, and all queries filter by userId.
@@ -14,6 +15,7 @@ import { getExternalMcpErrorLogFields } from '@/ee/features/chat/mcp/externalMcp
 import { getMcpOAuthReturnToFromState } from '@/ee/features/chat/mcp/mcpOAuthReturnTo';
 import { captureEvent } from '@/lib/posthog';
 import { getMcpAuthMode, getMcpConnectorEntryPoint, getMcpConnectorFailureReason } from '@/ee/features/chat/mcp/analytics';
+import { getEnabledMcpOAuthScopeNames } from '@/ee/features/chat/mcp/oauthScopeUtils';
 
 const logger = createLogger('mcp-oauth-callback');
 const reconnectMessage = 'This connector authorization could not be completed. Please reconnect the connector.';
@@ -80,6 +82,10 @@ export const GET = apiHandler(async (request: NextRequest) => {
                         name: true,
                         serverUrl: true,
                         clientInfoSource: true,
+                        oauthScopes: {
+                            where: { enabled: true },
+                            select: { scope: true, enabled: true },
+                        },
                     },
                 },
             },
@@ -166,7 +172,8 @@ export const GET = apiHandler(async (request: NextRequest) => {
         serverId: userServer.serverId,
         orgId: userServer.server.orgId,
         userId: session.user.id,
-        callbackUrl: `${env.AUTH_URL}/api/ee/askmcp/callback`,
+        callbackUrl: getMcpOAuthCallbackUrl(),
+        requestedOAuthScopes: getEnabledMcpOAuthScopeNames(userServer.server.oauthScopes),
     });
 
     let result: Awaited<ReturnType<typeof mcpAuth>>;

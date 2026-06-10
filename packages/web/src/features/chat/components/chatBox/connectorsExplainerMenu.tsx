@@ -8,9 +8,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CableIcon, PlusIcon } from "lucide-react";
-import { PlusButtonInfoCard } from "./plusButtonInfoCard";
 import { UpsellDialog } from "@/features/billing/upsellDialog";
 
 // TODO(ask): finalize the connectors docs URL once the page exists.
@@ -38,22 +36,15 @@ export const ConnectorsExplainerMenu = () => {
     return (
         <>
             <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="w-6 h-6 text-muted-foreground hover:text-primary"
-                            >
-                                <PlusIcon className="w-4 h-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="p-0 border-0 bg-transparent shadow-none">
-                        <PlusButtonInfoCard />
-                    </TooltipContent>
-                </Tooltip>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-6 h-6 text-muted-foreground hover:text-primary"
+                    >
+                        <PlusIcon className="w-4 h-4" />
+                    </Button>
+                </DropdownMenuTrigger>
                 <DropdownMenuContent side="bottom" align="start" className="w-72" onCloseAutoFocus={(e) => e.preventDefault()}>
                     <DropdownMenuLabel className="flex items-center gap-2">
                         <CableIcon className="w-4 h-4 text-muted-foreground" />

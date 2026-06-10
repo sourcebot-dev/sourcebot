@@ -87,10 +87,12 @@ function createPrismaMock() {
                 sanitizedName: 'linear',
                 serverUrl: 'https://mcp.linear.app/mcp',
                 clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+                oauthScopes: [{ scope: 'repo', enabled: true }],
             }),
         },
         userMcpServer: {
             upsert: vi.fn().mockResolvedValue({ userId: 'user-1', serverId: 'server-1' }),
+            deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
         },
     };
 }
@@ -146,6 +148,7 @@ describe('POST /api/ee/askmcp/connect', () => {
         mocks.mcpAuth.mockImplementation(async (provider, options) => {
             expect('saveClientInformation' in provider).toBe(true);
             expect(provider.saveClientInformation).toEqual(expect.any(Function));
+            expect(provider.clientMetadata.scope).toBe('repo');
             expect(options.fetchFn).toEqual(expect.any(Function));
 
             await provider.saveClientInformation({ client_id: 'client-1' });
@@ -305,6 +308,16 @@ describe('POST /api/ee/askmcp/connect', () => {
             serverUrl: 'https://mcp.linear.app/mcp',
             authMode: 'dynamic',
             failureReason: 'invalid_client',
+        });
+        expect(prisma.userMcpServer.deleteMany).toHaveBeenCalledWith({
+            where: {
+                userId: 'user-1',
+                serverId: 'server-1',
+                tokens: null,
+                tokensExpiresAt: null,
+                codeVerifier: null,
+                state: null,
+            },
         });
     });
 });

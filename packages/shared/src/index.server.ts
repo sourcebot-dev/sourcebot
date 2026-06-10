@@ -69,6 +69,9 @@ export {
     getSMTPConnectionURL,
 } from "./smtp.js";
 export {
+    createRedisClient,
+} from "./redis.js";
+export {
     SOURCEBOT_VERSION,
 } from "./version.js";
 export {

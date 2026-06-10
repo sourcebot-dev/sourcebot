@@ -3,9 +3,10 @@ import { confirm, input, select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import ora from 'ora';
 import { spawn } from 'node:child_process';
+import net from 'node:net';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { writeFile } from 'fs/promises';
-import { basename } from 'path';
+import { basename, join } from 'path';
 import { collectAzureDevOpsConfig } from './azuredevops.js';
 import { collectBitbucketConfig } from './bitbucket.js';
 import { collectGenericGitConfig } from './genericGit.js';
@@ -29,6 +30,33 @@ const DOCKER_COMPOSE_BRANCH = 'main';
 const DOCKER_COMPOSE_URL = `https://raw.githubusercontent.com/sourcebot-dev/sourcebot/${DOCKER_COMPOSE_BRANCH}/docker-compose.yml`;
 
 const SOURCEBOT_URL = 'http://localhost:3000';
+
+// Render an OSC 8 terminal hyperlink. Terminals that support it show `label`
+// as a clickable link to `url`; others fall back to just the styled label.
+function hyperlink(label: string, url: string): string {
+    const OSC = ']8;;';
+    const ST = '';
+    return `${OSC}${url}${ST}${label}${OSC}${ST}`;
+}
+
+// Wrap `text` to `width` columns, prefixing every line with `indent`.
+function wrapText(text: string, indent: string, width: number): string[] {
+    const words = text.split(/\s+/);
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+        if (current.length > 0 && (current.length + 1 + word.length) > width) {
+            lines.push(indent + current);
+            current = word;
+        } else {
+            current = current.length > 0 ? `${current} ${word}` : word;
+        }
+    }
+    if (current.length > 0) {
+        lines.push(indent + current);
+    }
+    return lines;
+}
 
 function openBrowser(url: string): void {
     const cmd = process.platform === 'darwin' ? 'open'
@@ -80,6 +108,163 @@ function parseTopLevelVolumes(composeYaml: string): string[] {
         inBlock = false;
     }
     return names;
+}
+
+// A published port from a compose `ports:` entry, with the host interface Docker
+// would bind to. Container-only, range, and env-interpolated specs are skipped.
+type PublishedPort = { host: string; port: number };
+
+// Parses a single compose short-syntax port spec (e.g. "3000:3000",
+// "127.0.0.1:5432:5432", "8080:80/tcp") into the host interface + port. Returns
+// undefined for specs with no fixed host port (container-only, ranges, ${VAR}).
+function parseHostPortSpec(spec: string): PublishedPort | undefined {
+    let s = spec.trim();
+    s = s.replace(/\s+#.*$/, '').trim();        // strip inline comment
+    s = s.replace(/^["']|["']$/g, '').trim();   // strip surrounding quotes
+    s = s.replace(/\/(tcp|udp|sctp)$/i, '');    // strip protocol suffix
+    const parts = s.split(':');
+    let host = '0.0.0.0';
+    let hostPort: string;
+    if (parts.length === 1) {
+        // Only a container port given — Docker picks a random host port, nothing to check.
+        return undefined;
+    } else if (parts.length === 2) {
+        hostPort = parts[0];
+    } else {
+        // IP:HOST:CONTAINER
+        host = parts[parts.length - 3];
+        hostPort = parts[parts.length - 2];
+    }
+    // Skip port ranges (e.g. "8000-8010") and env-interpolated values (e.g. "${PORT}").
+    if (!/^\d+$/.test(hostPort)) {
+        return undefined;
+    }
+    return { host, port: Number(hostPort) };
+}
+
+// Parses every `ports:` block in a docker-compose.yml and returns the unique set
+// of host ports it would publish. Sufficient for our generated compose file; not a
+// full YAML parser.
+function parsePublishedHostPorts(composeYaml: string): PublishedPort[] {
+    const ports: PublishedPort[] = [];
+    let blockIndent = -1;
+    for (const rawLine of composeYaml.split('\n')) {
+        const line = rawLine.replace(/\r$/, '');
+        if (/^\s*$/.test(line)) {
+            continue;
+        }
+        const indent = line.length - line.trimStart().length;
+        const portsKey = line.match(/^(\s*)ports:\s*(#.*)?$/);
+        if (portsKey) {
+            blockIndent = portsKey[1].length;
+            continue;
+        }
+        if (blockIndent < 0) {
+            continue;
+        }
+        const item = line.match(/^\s*-\s*(.+?)\s*$/);
+        if (item && indent > blockIndent) {
+            const parsed = parseHostPortSpec(item[1]);
+            if (parsed) {
+                ports.push(parsed);
+            }
+            continue;
+        }
+        // Any non-list line (a sibling key or dedent) ends the ports block.
+        blockIndent = -1;
+    }
+    const seen = new Set<string>();
+    return ports.filter((p) => {
+        const key = `${p.host}:${p.port}`;
+        if (seen.has(key)) {
+            return false;
+        }
+        seen.add(key);
+        return true;
+    });
+}
+
+// Authoritatively checks whether a host port is already bound by attempting to bind
+// it ourselves — this catches any process (Docker or not, e.g. a local Postgres on
+// 5432), which is the actual failure mode `docker compose up` hits.
+function isPortInUse({ host, port }: PublishedPort): Promise<boolean> {
+    return new Promise((resolve) => {
+        const server = net.createServer();
+        server.once('error', (err: NodeJS.ErrnoException) => {
+            server.close(() => { /* noop */ });
+            // EADDRINUSE = taken. Other errors (e.g. EACCES on privileged ports) aren't
+            // a "someone else has it" conflict we can meaningfully report, so treat as free.
+            resolve(err.code === 'EADDRINUSE');
+        });
+        server.once('listening', () => {
+            server.close(() => resolve(false));
+        });
+        if (host === '0.0.0.0') {
+            server.listen(port);
+        } else {
+            server.listen(port, host);
+        }
+    });
+}
+
+// Best-effort: maps a host port to the running Docker container(s) publishing it, so
+// a conflict can name the offender. Returns an empty map if Docker isn't available.
+async function getDockerPublishedPortOwners(): Promise<Map<number, string[]>> {
+    return new Promise<Map<number, string[]>>((resolve) => {
+        const child = spawn('docker', ['ps', '--format', '{{.Names}}\t{{.Ports}}'], {
+            stdio: ['ignore', 'pipe', 'ignore'],
+        });
+        let out = '';
+        child.stdout?.on('data', (chunk: Buffer) => {
+            out += chunk.toString();
+        });
+        child.on('exit', (code) => {
+            const map = new Map<number, string[]>();
+            if (code !== 0) {
+                resolve(map);
+                return;
+            }
+            for (const line of out.split('\n')) {
+                const [name, portsStr] = line.split('\t');
+                if (!name || !portsStr) {
+                    continue;
+                }
+                // e.g. "0.0.0.0:5432->5432/tcp, :::5432->5432/tcp" — the number before
+                // each "->" is the published host port.
+                for (const m of portsStr.matchAll(/(\d+)->/g)) {
+                    const port = Number(m[1]);
+                    const list = map.get(port) ?? [];
+                    if (!list.includes(name)) {
+                        list.push(name);
+                    }
+                    map.set(port, list);
+                }
+            }
+            resolve(map);
+        });
+        child.on('error', () => resolve(new Map<number, string[]>()));
+    });
+}
+
+// Stops the given containers (by name). Returns true only if all stopped cleanly.
+async function stopDockerContainers(names: string[]): Promise<boolean> {
+    if (names.length === 0) {
+        return true;
+    }
+    return new Promise<boolean>((resolve) => {
+        const child = spawn('docker', ['stop', ...names], { stdio: ['ignore', 'ignore', 'pipe'] });
+        let err = '';
+        child.stderr?.on('data', (chunk: Buffer) => {
+            err += chunk.toString();
+        });
+        child.on('exit', (code) => {
+            if (code !== 0 && err.trim()) {
+                console.error(chalk.red('✗ ') + err.trim());
+            }
+            resolve(code === 0);
+        });
+        child.on('error', () => resolve(false));
+    });
 }
 
 // Mirrors Docker Compose's project-name normalization for the default case
@@ -447,7 +632,42 @@ async function main() {
         writtenFiles.push('docker-compose.override.yml');
     }
 
-    s.succeed(`Wrote ${writtenFiles.join(', ')}`);
+    const fileInfo: Record<string, { description: string; docsLabel?: string; docsUrl?: string }> = {
+        'config.json': {
+            description: 'The Sourcebot configuration file. This controls which repos Sourcebot indexes and which language models it connects to.',
+            docsLabel: 'Configuration file docs',
+            docsUrl: 'https://docs.sourcebot.dev/docs/configuration/config-file',
+        },
+        '.env': {
+            description: 'The environment file your Sourcebot deployment will load. This includes any of the access tokens you provided here, as well as generated secrets required to run Sourcebot.',
+            docsLabel: 'Environment variables docs',
+            docsUrl: 'https://docs.sourcebot.dev/docs/configuration/environment-variables',
+        },
+        'docker-compose.override.yml': {
+            description: 'Mounts your local repositories into the Sourcebot container so they can be indexed. Merged with docker-compose.yml at `docker compose up` time.',
+        },
+    };
+
+    const wrapWidth = Math.min((process.stdout.columns || 80) - 6, 90);
+
+    const fileLines = writtenFiles.flatMap((file) => {
+        const fullPath = join(process.cwd(), file);
+        const info = fileInfo[file];
+        const lines = [
+            `  ${chalk.green('✓')} ${chalk.bold.cyan(file)} ${chalk.dim(hyperlink(fullPath, `file://${fullPath}`))}`,
+        ];
+        if (info) {
+            lines.push(...wrapText(info.description, '    ', wrapWidth));
+            if (info.docsLabel && info.docsUrl) {
+                lines.push(`    ${chalk.blue('↗')} ${chalk.blue.underline(hyperlink(info.docsLabel, info.docsUrl))}`);
+            }
+        }
+        lines.push('');
+        return lines;
+    });
+
+    s.succeed(chalk.bold('Wrote the following files:'));
+    console.log(['', ...fileLines].join('\n'));
 
     let downloadedCompose = false;
 
@@ -555,13 +775,104 @@ async function main() {
         }
     }
 
-    console.log();
-    console.log(chalk.green('✓ ') + chalk.bold('Your Sourcebot configuration is ready!'));
+    // Check that the host ports the compose file publishes are free, so `docker compose up`
+    // doesn't fail with "Bind for 0.0.0.0:<port> failed: port is already allocated". Runs
+    // after the cleanup above so our own just-stopped containers don't count as conflicts.
+    let hasPortConflicts = false;
+    if (downloadedCompose && !leftDeploymentRunning) {
+        let composeYaml = readFileSync('docker-compose.yml', 'utf-8');
+        if (existsSync('docker-compose.override.yml')) {
+            composeYaml += '\n' + readFileSync('docker-compose.override.yml', 'utf-8');
+        }
+        const publishedPorts = parsePublishedHostPorts(composeYaml);
+
+        if (publishedPorts.length > 0) {
+            const ps = ora('Checking for port conflicts...').start();
+            // Detect via two complementary sources: `docker ps` (authoritative for ports
+            // published by other containers — a plain socket bind can't see those reliably,
+            // e.g. Docker Desktop on macOS lets us bind a port it already forwards), and a
+            // socket bind (catches non-Docker processes like a local Postgres/Redis).
+            const owners = await getDockerPublishedPortOwners();
+            const inUse: PublishedPort[] = [];
+            for (const p of publishedPorts) {
+                const ownedByContainer = (owners.get(p.port)?.length ?? 0) > 0;
+                if (ownedByContainer || await isPortInUse(p)) {
+                    inUse.push(p);
+                }
+            }
+            if (inUse.length === 0) {
+                ps.succeed('No port conflicts detected');
+            } else {
+                ps.fail(`Port conflict${inUse.length === 1 ? '' : 's'} detected`);
+                hasPortConflicts = true;
+                console.log();
+                console.log(chalk.yellow('⚠ ') + 'The following host ports Sourcebot needs are already in use:');
+                for (const p of inUse) {
+                    const display = p.host === '0.0.0.0' ? `${p.port}` : `${p.host}:${p.port}`;
+                    const by = owners.get(p.port);
+                    const suffix = by && by.length > 0
+                        ? chalk.dim(` (in use by Docker container ${by.join(', ')})`)
+                        : '';
+                    console.log('  ' + chalk.dim('- ') + display + suffix);
+                }
+
+                // Containers we can stop ourselves; ports held by non-Docker processes we can't.
+                const conflictingContainers = [...new Set(
+                    inUse.flatMap((p) => owners.get(p.port) ?? []),
+                )];
+
+                if (conflictingContainers.length > 0) {
+                    console.log();
+                    const stop = await confirm({
+                        message: `Stop ${conflictingContainers.length === 1 ? 'this container' : 'these containers'} (${conflictingContainers.join(', ')}) to free the ports?`,
+                        default: true,
+                    });
+                    if (stop) {
+                        const ss = ora('Stopping containers...').start();
+                        const ok = await stopDockerContainers(conflictingContainers);
+                        if (ok) {
+                            ss.succeed(`Stopped ${conflictingContainers.join(', ')}`);
+                        } else {
+                            ss.fail('Failed to stop one or more containers');
+                        }
+                        // Re-check the conflicting ports now that the containers are stopped.
+                        const stillInUse: PublishedPort[] = [];
+                        const freshOwners = await getDockerPublishedPortOwners();
+                        for (const p of inUse) {
+                            const ownedByContainer = (freshOwners.get(p.port)?.length ?? 0) > 0;
+                            if (ownedByContainer || await isPortInUse(p)) {
+                                stillInUse.push(p);
+                            }
+                        }
+                        if (stillInUse.length === 0) {
+                            hasPortConflicts = false;
+                            console.log(chalk.green('✓ ') + 'All required ports are now free');
+                        } else {
+                            console.log();
+                            console.log(chalk.yellow('⚠ ') + 'These ports are still in use (likely a non-Docker process):');
+                            for (const p of stillInUse) {
+                                const display = p.host === '0.0.0.0' ? `${p.port}` : `${p.host}:${p.port}`;
+                                console.log('  ' + chalk.dim('- ') + display);
+                            }
+                        }
+                    }
+                }
+
+                if (hasPortConflicts) {
+                    console.log();
+                    console.log(chalk.dim('  Free these ports (stop the process or container using them), or change the host'));
+                    console.log(chalk.dim('  port mappings in docker-compose.yml, before starting Sourcebot.'));
+                }
+            }
+        }
+    }
 
     if (downloadedCompose && !leftDeploymentRunning) {
         const startNow = await confirm({
-            message: 'Start Sourcebot now? (runs `docker compose up`)',
-            default: true,
+            message: hasPortConflicts
+                ? 'Start Sourcebot anyway? (runs `docker compose up` — will fail until the ports above are free)'
+                : 'Start Sourcebot now? (runs `docker compose up`)',
+            default: !hasPortConflicts,
         });
 
         if (startNow) {
@@ -599,6 +910,11 @@ async function main() {
     if (!downloadedCompose) {
         nextSteps.push(`${step++}. Download docker-compose.yml:`);
         nextSteps.push(`   curl -o docker-compose.yml ${DOCKER_COMPOSE_URL}`);
+        nextSteps.push('');
+    }
+
+    if (hasPortConflicts) {
+        nextSteps.push(`${step++}. Free the host ports listed above (or change the host port mappings in docker-compose.yml).`);
         nextSteps.push('');
     }
 

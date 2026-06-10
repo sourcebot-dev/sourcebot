@@ -13,6 +13,7 @@ describe('MCP OAuth return paths', () => {
 
     test('allows connector settings return paths', () => {
         expect(normalizeMcpOAuthReturnTo('/settings/accountAskAgent?status=connected')).toBe('/settings/accountAskAgent?status=connected');
+        expect(normalizeMcpOAuthReturnTo('/settings/workspaceAskAgent')).toBe('/settings/workspaceAskAgent');
     });
 
     test('rejects external and unrelated return paths', () => {

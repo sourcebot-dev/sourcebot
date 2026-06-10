@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import type { PrismaClient } from '@sourcebot/db';
+import { McpServerToolPermission, type PrismaClient } from '@sourcebot/db';
 
 const createMCPClient = vi.hoisted(() => vi.fn());
 const getConnectedMcpClients = vi.hoisted(() => vi.fn());
 const loggerWarn = vi.hoisted(() => vi.fn());
+const mcpServerToolCreateMany = vi.hoisted(() => vi.fn());
+const mcpServerToolFindMany = vi.hoisted(() => vi.fn());
 
+vi.mock('server-only', () => ({}));
 vi.mock('@ai-sdk/mcp', () => ({
     createMCPClient,
 }));
@@ -25,6 +28,15 @@ vi.mock('./mcpClientFactory', () => ({
     getConnectedMcpClients,
 }));
 
+vi.mock('@/prisma', () => ({
+    __unsafePrisma: {
+        mcpServerTool: {
+            createMany: mcpServerToolCreateMany,
+            findMany: mcpServerToolFindMany,
+        },
+    },
+}));
+
 const { getMcpToolMetadata } = await import('./mcpToolMetadata');
 
 function makeConnectedClient(serverId = 'server-1') {
@@ -43,6 +55,10 @@ beforeEach(() => {
     createMCPClient.mockReset();
     getConnectedMcpClients.mockReset();
     loggerWarn.mockReset();
+    mcpServerToolCreateMany.mockReset();
+    mcpServerToolCreateMany.mockResolvedValue({ count: 0 });
+    mcpServerToolFindMany.mockReset();
+    mcpServerToolFindMany.mockResolvedValue([]);
 });
 
 describe('getMcpToolMetadata', () => {
@@ -81,6 +97,7 @@ describe('getMcpToolMetadata', () => {
                         name: 'lookup',
                         title: 'Lookup',
                         description: 'Find alert(1) issues quickly',
+                        permission: McpServerToolPermission.ALLOWED,
                         annotations: {
                             readOnlyHint: true,
                             destructiveHint: false,
@@ -92,6 +109,16 @@ describe('getMcpToolMetadata', () => {
         ]);
         expect(mcpClient.close).toHaveBeenCalledTimes(1);
         expect(connectedClient.transport.close).toHaveBeenCalledTimes(1);
+        expect(mcpServerToolCreateMany).toHaveBeenCalledWith({
+            data: [
+                {
+                    mcpServerId: 'server-1',
+                    toolName: 'lookup',
+                    permission: McpServerToolPermission.ALLOWED,
+                },
+            ],
+            skipDuplicates: true,
+        });
     });
 
     test('truncates very large tool lists', async () => {
@@ -162,5 +189,51 @@ describe('getMcpToolMetadata', () => {
         ]);
         expect(connectedClient.transport.close).toHaveBeenCalledTimes(1);
         expect(loggerWarn).toHaveBeenCalled();
+    });
+
+    test('filters disabled tools from member-visible metadata', async () => {
+        const connectedClient = makeConnectedClient();
+        const mcpClient = {
+            listTools: vi.fn().mockResolvedValue({
+                tools: [
+                    {
+                        name: 'list_issues',
+                        description: 'List issues',
+                        inputSchema: { type: 'object' },
+                    },
+                    {
+                        name: 'delete_issue',
+                        description: 'Delete issue',
+                        inputSchema: { type: 'object' },
+                    },
+                ],
+            }),
+            close: vi.fn().mockResolvedValue(undefined),
+        };
+        getConnectedMcpClients.mockResolvedValue([connectedClient]);
+        createMCPClient.mockResolvedValue(mcpClient);
+        mcpServerToolFindMany.mockResolvedValue([
+            {
+                mcpServerId: 'server-1',
+                toolName: 'delete_issue',
+                permission: McpServerToolPermission.DISABLED,
+            },
+        ]);
+
+        const result = await getMcpToolMetadata({} as PrismaClient, 'user-1', 1);
+
+        expect(result).toEqual([
+            {
+                status: 'available',
+                serverId: 'server-1',
+                tools: [
+                    {
+                        name: 'list_issues',
+                        description: 'List issues',
+                        permission: McpServerToolPermission.NEEDS_APPROVAL,
+                    },
+                ],
+            },
+        ]);
     });
 });

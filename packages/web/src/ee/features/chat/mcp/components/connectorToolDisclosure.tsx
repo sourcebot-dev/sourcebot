@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { pluralize } from '@/features/chat/mcp/utils';
 import type { ServerToolsEntry, ToolMetadataErrorReason, ToolSummary } from '@/ee/features/chat/mcp/types';
+import { ToolHintBadges, ToolPermissionBadge } from '@/ee/features/chat/mcp/mcpToolPermissionDisplay';
 import { ChevronDownIcon, RefreshCwIcon, WrenchIcon } from 'lucide-react';
 
 function getErrorLabel(reason: ToolMetadataErrorReason) {
@@ -111,33 +111,6 @@ export function ConnectorToolTrigger({
     );
 }
 
-function ToolHintBadges({ tool }: { tool: ToolSummary }) {
-    const annotations = tool.annotations;
-    if (!annotations) {
-        return null;
-    }
-
-    return (
-        <>
-            {annotations.readOnlyHint === true && (
-                <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
-                    Read-only
-                </Badge>
-            )}
-            {annotations.destructiveHint === true && (
-                <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-medium text-destructive">
-                    Destructive
-                </Badge>
-            )}
-            {annotations.idempotentHint === true && (
-                <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
-                    Idempotent
-                </Badge>
-            )}
-        </>
-    );
-}
-
 function ToolDetail({ tool }: { tool: ToolSummary }) {
     const displayName = tool.title ?? tool.name;
 
@@ -148,7 +121,8 @@ function ToolDetail({ tool }: { tool: ToolSummary }) {
                 {tool.title && tool.title !== tool.name && (
                     <span className="break-all font-mono text-[10px] text-muted-foreground">{tool.name}</span>
                 )}
-                <ToolHintBadges tool={tool} />
+                <ToolPermissionBadge permission={tool.permission} />
+                <ToolHintBadges annotations={tool.annotations} />
             </div>
             {tool.description && (
                 <p className="mt-1 break-words text-xs text-muted-foreground">{tool.description}</p>
@@ -195,7 +169,7 @@ export function ConnectorToolList({ toolEntry, isOpen = true, id }: ConnectorToo
                                     type="button"
                                     onClick={() => setSelectedTool(isSelected ? null : tool.name)}
                                     className={cn(
-                                        "rounded-md border border-border px-2 py-0.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                        "rounded-md border border-border px-2 py-0.5 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                                         isSelected
                                             ? "bg-accent text-foreground"
                                             : "bg-muted/30 text-muted-foreground hover:bg-accent hover:text-foreground"

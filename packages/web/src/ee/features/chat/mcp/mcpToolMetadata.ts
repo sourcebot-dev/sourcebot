@@ -3,6 +3,12 @@ import { createLogger, env } from '@sourcebot/shared';
 import type { PrismaClient } from '@sourcebot/db';
 import { getConnectedMcpClients, type McpToolSet } from './mcpClientFactory';
 import { getExternalMcpErrorLogFields } from './externalMcpError';
+import {
+    createMissingMcpServerToolRows,
+    getMcpServerToolPermission,
+    getMcpServerToolPermissionsByServerId,
+} from './mcpToolPermissions';
+import { McpServerToolPermission } from '@sourcebot/db';
 import type {
     GetMcpToolsResponse,
     ServerToolsEntry,
@@ -34,7 +40,16 @@ function removeControlCharacters(value: string): string {
 }
 
 function removeHtmlTags(value: string): string {
-    return value.replace(/<[^>]*>/g, '');
+    // Strip repeatedly until stable: a single pass can reintroduce a tag
+    // sequence (e.g. "<scr<x>ipt>" collapses to "<script>"), so loop until
+    // no more tags are removed.
+    let current = value;
+    let previous: string;
+    do {
+        previous = current;
+        current = current.replace(/<[^>]*>/g, '');
+    } while (current !== previous);
+    return current;
 }
 
 function normalizeWhitespace(value: string): string {
@@ -252,12 +267,66 @@ async function fetchToolsBatch(clients: McpToolSet[]): Promise<ServerToolsEntry[
     });
 }
 
-export async function getMcpToolMetadata(
+async function createMissingToolRows(entries: ServerToolsEntry[]) {
+    await Promise.all(entries.map(async (entry) => {
+        if (entry.status !== 'available') {
+            return;
+        }
+
+        await createMissingMcpServerToolRows({
+            serverId: entry.serverId,
+            tools: entry.tools.map((tool) => ({
+                toolName: tool.name,
+                readOnlyHint: tool.annotations?.readOnlyHint,
+            })),
+        });
+    }));
+}
+
+async function applyVisibleToolPermissions(entries: ServerToolsEntry[]): Promise<ServerToolsEntry[]> {
+    const serverIds = entries
+        .filter((entry) => entry.status === 'available')
+        .map((entry) => entry.serverId);
+    const permissionsByServerId = await getMcpServerToolPermissionsByServerId({ serverIds });
+
+    return entries.map((entry) => {
+        if (entry.status !== 'available') {
+            return entry;
+        }
+
+        const permissionsByToolName = permissionsByServerId.get(entry.serverId) ?? new Map();
+        return {
+            ...entry,
+            tools: entry.tools.flatMap((tool) => {
+                const permission = getMcpServerToolPermission(
+                    permissionsByToolName,
+                    tool.name,
+                    tool.annotations?.readOnlyHint,
+                );
+
+                if (permission === McpServerToolPermission.DISABLED) {
+                    return [];
+                }
+
+                return [{ ...tool, permission }];
+            }),
+        };
+    });
+}
+
+async function getMcpToolMetadataEntries(
     prisma: PrismaClient,
     userId: string,
     orgId: number,
+    options: {
+        serverId?: string;
+        includeDisabled?: boolean;
+    } = {},
 ): Promise<GetMcpToolsResponse> {
-    const clients = await getConnectedMcpClients(prisma, userId, orgId);
+    const allClients = await getConnectedMcpClients(prisma, userId, orgId);
+    const clients = options.serverId
+        ? allClients.filter((client) => client.serverId === options.serverId)
+        : allClients;
     const results: ServerToolsEntry[] = [];
 
     for (let index = 0; index < clients.length; index += MCP_TOOL_METADATA_FETCH_CONCURRENCY) {
@@ -265,5 +334,31 @@ export async function getMcpToolMetadata(
         results.push(...await fetchToolsBatch(batch));
     }
 
-    return results;
+    await createMissingToolRows(results);
+
+    return options.includeDisabled === true
+        ? results
+        : applyVisibleToolPermissions(results);
+}
+
+export async function getMcpToolMetadata(
+    prisma: PrismaClient,
+    userId: string,
+    orgId: number,
+): Promise<GetMcpToolsResponse> {
+    return getMcpToolMetadataEntries(prisma, userId, orgId);
+}
+
+export async function getMcpToolMetadataForServer(
+    prisma: PrismaClient,
+    userId: string,
+    orgId: number,
+    serverId: string,
+): Promise<ServerToolsEntry | undefined> {
+    const entries = await getMcpToolMetadataEntries(prisma, userId, orgId, {
+        serverId,
+        includeDisabled: true,
+    });
+
+    return entries[0];
 }

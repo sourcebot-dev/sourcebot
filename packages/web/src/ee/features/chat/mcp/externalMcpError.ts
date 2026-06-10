@@ -52,6 +52,7 @@ function getStatusCode(error: unknown): number | undefined {
 
     return numericStatus(error.statusCode)
         ?? numericStatus(error.status)
+        ?? numericStatus(error.code)
         ?? (isRecord(error.response) ? numericStatus(error.response.status) : undefined);
 }
 

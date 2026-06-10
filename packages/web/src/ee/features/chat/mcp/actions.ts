@@ -7,7 +7,7 @@ import { withAuth } from '@/middleware/withAuth';
 import { withMinimumOrgRole } from '@/middleware/withMinimumOrgRole';
 import { __unsafePrisma } from '@/prisma';
 import { isServiceError } from '@/lib/utils';
-import { McpServerClientInfoSource, OrgRole, type PrismaClient } from '@sourcebot/db';
+import { McpServerClientInfoSource, McpServerToolPermission, OrgRole, type PrismaClient } from '@sourcebot/db';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 import { sanitizeMcpServerName } from '@/features/chat/mcp/utils';
@@ -18,13 +18,41 @@ import { encryptOAuthToken, env } from '@sourcebot/shared';
 import { captureEvent } from '@/lib/posthog';
 import { getMcpAuthMode } from './analytics';
 import type { McpConnectorEntryPoint } from '@/lib/posthogEvents';
+import {
+    updateMcpServerOAuthScopeEntries,
+    type UpdateMcpServerOAuthScopesResponse,
+} from './mcpOAuthScopes';
+import { buildMcpOAuthScopeEntries, OAUTH_SCOPE_TOKEN_REGEX } from './oauthScopeUtils';
+import type { McpServerOAuthScopeEntry, UpdateMcpServerToolPermissionsResponse } from './types';
 
 const MCP_DCR_DISCOVERY_TIMEOUT_MS = Math.min(env.SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS, 10000);
+const oauthScopeTokenSchema = z.string()
+    .trim()
+    .min(1)
+    .regex(OAUTH_SCOPE_TOKEN_REGEX, 'Scope must be a valid OAuth scope token.');
+const requestedOAuthScopesSchema = z.array(oauthScopeTokenSchema).max(200);
 const createStaticOAuthMcpServerSchema = z.object({
     name: z.string().trim().min(1),
     serverUrl: z.string().trim().url(),
     clientId: z.string().trim().min(1),
     clientSecret: z.string().trim().min(1),
+    requestedOAuthScopes: requestedOAuthScopesSchema.optional(),
+    availableOAuthScopes: requestedOAuthScopesSchema.optional(),
+});
+const updateMcpServerOAuthScopesSchema = z.object({
+    serverId: z.string().trim().min(1),
+    oauthScopes: z.array(z.object({
+        scope: oauthScopeTokenSchema,
+        enabled: z.boolean(),
+    })).max(200),
+});
+const mcpToolNameSchema = z.string().trim().min(1).max(128);
+const updateMcpServerToolPermissionsSchema = z.object({
+    serverId: z.string().trim().min(1),
+    tools: z.array(z.object({
+        toolName: mcpToolNameSchema,
+        permission: z.nativeEnum(McpServerToolPermission),
+    })).max(500),
 });
 
 export type CreateStaticOAuthMcpServerRequest = z.infer<typeof createStaticOAuthMcpServerSchema>;
@@ -44,6 +72,22 @@ interface PreparedMcpServerCreate {
     sanitizedName: string;
 }
 
+function buildMcpOAuthScopeCreateData(availableOAuthScopes: string[], requestedOAuthScopes: string[]) {
+    const data = buildMcpOAuthScopeEntries({ availableOAuthScopes, requestedOAuthScopes })
+        .map((entry) => ({
+            scope: entry.scope,
+            enabled: entry.enabled,
+        }));
+
+    return data.length > 0
+        ? {
+            oauthScopes: {
+                createMany: { data },
+            },
+        }
+        : {};
+}
+
 function createTimeoutFetch(timeoutMs: number): typeof fetch {
     return async (input, init) => {
         const timeoutSignal = AbortSignal.timeout(timeoutMs);
@@ -56,6 +100,19 @@ function createTimeoutFetch(timeoutMs: number): typeof fetch {
             signal,
         });
     };
+}
+
+function normalizeMcpToolPermissionEntries(
+    entries: z.infer<typeof updateMcpServerToolPermissionsSchema>['tools'],
+) {
+    const entryByToolName = new Map<string, McpServerToolPermission>();
+    for (const entry of entries) {
+        entryByToolName.set(entry.toolName.trim(), entry.permission);
+    }
+
+    return Array.from(entryByToolName.entries())
+        .map(([toolName, permission]) => ({ toolName, permission }))
+        .sort((a, b) => a.toolName.localeCompare(b.toolName));
 }
 
 function invalidRequest(message: string): ServiceError {
@@ -223,6 +280,10 @@ export const createStaticOAuthMcpServer = async (
                         serverUrl: preparedServer.normalizedServerUrl,
                         clientInfo,
                         clientInfoSource: McpServerClientInfoSource.STATIC,
+                        ...buildMcpOAuthScopeCreateData(
+                            parsed.data.availableOAuthScopes ?? [],
+                            parsed.data.requestedOAuthScopes ?? [],
+                        ),
                         orgId: org.id,
                     },
                 });
@@ -244,67 +305,184 @@ export const createStaticOAuthMcpServer = async (
             })));
 }
 
-export const createMcpServer = async (name: string, serverUrl: string) => sew(() =>
-    withAuth(async ({ org, role, prisma }) =>
-        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            if (!(await hasEntitlement('ask'))) {
-                return oauthNotSupported();
-            }
+export const updateMcpServerOAuthScopes = async (serverId: string, oauthScopes: McpServerOAuthScopeEntry[]) => {
+    const parsed = updateMcpServerOAuthScopesSchema.safeParse({ serverId, oauthScopes });
+    if (!parsed.success) {
+        return requestBodySchemaValidationError(parsed.error);
+    }
 
-            const preparedServer = await prepareMcpServerCreate({
-                prisma,
-                orgId: org.id,
-                name,
-                serverUrl,
-            });
-            if (isServiceError(preparedServer)) {
-                return preparedServer;
-            }
+    return sew(() =>
+        withAuth(async ({ org, role }) =>
+            withMinimumOrgRole(role, OrgRole.OWNER, async (): Promise<UpdateMcpServerOAuthScopesResponse | ServiceError> => {
+                if (!(await hasEntitlement('ask'))) {
+                    return oauthNotSupported();
+                }
 
-            const mcpServer = await prisma.mcpServer.create({
-                data: {
+                return updateMcpServerOAuthScopeEntries({
+                    serverId: parsed.data.serverId,
+                    orgId: org.id,
+                    oauthScopes: parsed.data.oauthScopes,
+                });
+            })));
+};
+
+export const updateMcpServerToolPermissions = async (
+    serverId: string,
+    tools: { toolName: string; permission: McpServerToolPermission }[],
+) => {
+    const parsed = updateMcpServerToolPermissionsSchema.safeParse({ serverId, tools });
+    if (!parsed.success) {
+        return requestBodySchemaValidationError(parsed.error);
+    }
+
+    return sew(() =>
+        withAuth(async ({ org, role }) =>
+            withMinimumOrgRole(role, OrgRole.OWNER, async (): Promise<UpdateMcpServerToolPermissionsResponse | ServiceError> => {
+                if (!(await hasEntitlement('ask'))) {
+                    return oauthNotSupported();
+                }
+
+                const normalizedTools = normalizeMcpToolPermissionEntries(parsed.data.tools);
+
+                return __unsafePrisma.$transaction(async (tx) => {
+                    const server = await tx.mcpServer.findFirst({
+                        where: {
+                            id: parsed.data.serverId,
+                            orgId: org.id,
+                        },
+                        select: { id: true },
+                    });
+
+                    if (!server) {
+                        return {
+                            statusCode: StatusCodes.NOT_FOUND,
+                            errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
+                            message: 'Connector not found',
+                        } satisfies ServiceError;
+                    }
+
+                    await Promise.all(normalizedTools.map((entry) => tx.mcpServerTool.upsert({
+                        where: {
+                            mcpServerId_toolName: {
+                                mcpServerId: server.id,
+                                toolName: entry.toolName,
+                            },
+                        },
+                        create: {
+                            mcpServerId: server.id,
+                            toolName: entry.toolName,
+                            permission: entry.permission,
+                        },
+                        update: {
+                            permission: entry.permission,
+                        },
+                    })));
+
+                    return {
+                        success: true,
+                        updatedToolCount: normalizedTools.length,
+                    };
+                });
+            })));
+};
+
+export const createMcpServer = async (
+    name: string,
+    serverUrl: string,
+    requestedOAuthScopes: string[] = [],
+    availableOAuthScopes: string[] = [],
+) => {
+    const parsedRequestedOAuthScopes = requestedOAuthScopesSchema.safeParse(requestedOAuthScopes);
+    if (!parsedRequestedOAuthScopes.success) {
+        return requestBodySchemaValidationError(parsedRequestedOAuthScopes.error);
+    }
+    const parsedAvailableOAuthScopes = requestedOAuthScopesSchema.safeParse(availableOAuthScopes);
+    if (!parsedAvailableOAuthScopes.success) {
+        return requestBodySchemaValidationError(parsedAvailableOAuthScopes.error);
+    }
+
+    return sew(() =>
+        withAuth(async ({ org, role, prisma }) =>
+            withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+                if (!(await hasEntitlement('ask'))) {
+                    return oauthNotSupported();
+                }
+
+                const preparedServer = await prepareMcpServerCreate({
+                    prisma,
+                    orgId: org.id,
+                    name,
+                    serverUrl,
+                });
+                if (isServiceError(preparedServer)) {
+                    return preparedServer;
+                }
+
+                const mcpServer = await prisma.mcpServer.create({
+                    data: {
+                        name: preparedServer.displayName,
+                        sanitizedName: preparedServer.sanitizedName,
+                        serverUrl: preparedServer.normalizedServerUrl,
+                        clientInfo: null,
+                        clientInfoSource: McpServerClientInfoSource.DYNAMIC,
+                        ...buildMcpOAuthScopeCreateData(parsedAvailableOAuthScopes.data, parsedRequestedOAuthScopes.data),
+                        orgId: org.id,
+                    },
+                });
+
+                void captureEvent('ask_mcp_connector_added', {
+                    source: 'sourcebot-web-client',
+                    entryPoint: 'workspace_settings',
+                    serverId: mcpServer.id,
+                    serverUrl: mcpServer.serverUrl,
+                    authMode: getMcpAuthMode(McpServerClientInfoSource.DYNAMIC),
+                });
+
+                return {
+                    id: mcpServer.id,
                     name: preparedServer.displayName,
                     sanitizedName: preparedServer.sanitizedName,
-                    serverUrl: preparedServer.normalizedServerUrl,
-                    clientInfo: null,
-                    clientInfoSource: McpServerClientInfoSource.DYNAMIC,
-                    orgId: org.id,
-                },
-            });
-
-            void captureEvent('ask_mcp_connector_added', {
-                source: 'sourcebot-web-client',
-                entryPoint: 'workspace_settings',
-                serverId: mcpServer.id,
-                serverUrl: mcpServer.serverUrl,
-                authMode: getMcpAuthMode(McpServerClientInfoSource.DYNAMIC),
-            });
-
-            return {
-                id: mcpServer.id,
-                name: preparedServer.displayName,
-                sanitizedName: preparedServer.sanitizedName,
-                serverUrl: mcpServer.serverUrl,
-            };
-        })));
+                    serverUrl: mcpServer.serverUrl,
+                };
+            })));
+};
 
 export const deleteMcpServer = async (serverId: string) => sew(() =>
     withAuth(async ({ org, role }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            const result = await __unsafePrisma.mcpServer.deleteMany({
+            const server = await __unsafePrisma.mcpServer.findFirst({
                 where: {
                     id: serverId,
                     orgId: org.id,
                 },
+                select: {
+                    id: true,
+                    serverUrl: true,
+                    clientInfoSource: true,
+                },
             });
 
-            if (result.count === 0) {
+            if (!server) {
                 return {
                     statusCode: StatusCodes.NOT_FOUND,
                     errorCode: ErrorCode.MCP_SERVER_NOT_FOUND,
                     message: 'Connector not found',
                 } satisfies ServiceError;
             }
+
+            await __unsafePrisma.mcpServer.delete({
+                where: {
+                    id: server.id,
+                },
+            });
+
+            void captureEvent('ask_mcp_connector_removed', {
+                source: 'sourcebot-web-client',
+                entryPoint: 'workspace_settings',
+                serverId: server.id,
+                serverUrl: server.serverUrl,
+                authMode: getMcpAuthMode(server.clientInfoSource),
+            });
 
             return { success: true };
         })));

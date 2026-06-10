@@ -1,7 +1,6 @@
 import 'server-only';
 import { env, getDBConnectionString } from "@sourcebot/shared";
 import { Prisma, PrismaClient, UserWithAccounts } from "@sourcebot/db";
-import { hasEntitlement } from "@/lib/entitlements";
 import { getMcpPrismaQueryExtension } from "@/features/mcp/prismaScope";
 
 // @see: https://authjs.dev/getting-started/adapters/prisma
@@ -30,7 +29,7 @@ if (env.NODE_ENV !== "production") globalForPrisma.prisma = __unsafePrisma
  * a given user should be able to access.
  */
 export const userScopedPrismaClientExtension = async (user?: UserWithAccounts) => {
-    const hasPermissionSyncing = env.PERMISSION_SYNC_ENABLED === 'true' && await hasEntitlement('permission-syncing');
+    const hasPermissionSyncing = env.PERMISSION_SYNC_ENABLED === 'true';
 
     return Prisma.defineExtension(
         (prisma) => {
@@ -51,12 +50,59 @@ export const userScopedPrismaClientExtension = async (user?: UserWithAccounts) =
 
                                 return query(args);
                             }
+                        },
+                        searchContext: {
+                            async $allOperations({ args, query }) {
+                                injectRepoPermissionFilterIntoRelation(
+                                    args as Record<string, unknown>,
+                                    getRepoPermissionFilterForUser(user),
+                                );
+
+                                return query(args);
+                            }
                         }
                     } : {})
                 }
             })
         })
 }
+
+/**
+ * Injects a `Repo` permission filter into a nested `repos` relation referenced
+ * by an operation's `include` or `select` clause. Mutates `args` in place,
+ * normalizing `repos: true` into `repos: { where: <filter> }` and ANDing the
+ * filter onto any existing `where`.
+ */
+const injectRepoPermissionFilterIntoRelation = (
+    args: Record<string, unknown>,
+    filter: Prisma.RepoWhereInput,
+) => {
+    for (const key of ['include', 'select'] as const) {
+        const clause = args[key];
+        if (!clause || typeof clause !== 'object') {
+            continue;
+        }
+
+        const clauseRecord = clause as Record<string, unknown>;
+        const repos = clauseRecord.repos;
+
+        // `repos` is either absent or explicitly excluded - nothing to filter.
+        if (repos === undefined || repos === false) {
+            continue;
+        }
+
+        // Normalize `repos: true` into an object so we can attach a `where`.
+        const reposArgs = (repos === true ? {} : { ...(repos as Record<string, unknown>) }) as {
+            where?: Prisma.RepoWhereInput;
+        };
+
+        reposArgs.where = reposArgs.where
+            ? { AND: [reposArgs.where, filter] }
+            : filter;
+
+        clauseRecord.repos = reposArgs;
+    }
+};
 
 /**
  * Returns a filter for repositories that the user has access to.
