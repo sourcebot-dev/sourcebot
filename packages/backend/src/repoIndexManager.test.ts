@@ -525,17 +525,16 @@ describe('RepoIndexManager', () => {
 
             manager = new RepoIndexManager(mockPrisma, mockSettings, mockRedis, mockPromClient as any);
 
+            // The onJobCompleted handler reads the job via findUniqueOrThrow, then marks it
+            // COMPLETED and updates the repo (indexedAt, etc.) in a single repoIndexingJob.update
+            // with a nested repo update.
             (mockPrisma.repoIndexingJob.findUniqueOrThrow as Mock).mockResolvedValue({
-                status: RepoIndexingJobStatus.PENDING,
-            });
-            // The onJobCompleted handler calls repoIndexingJob.update once and then repo.update
-            (mockPrisma.repoIndexingJob.update as Mock).mockResolvedValue({
                 type: RepoIndexingJobType.INDEX,
                 repoId: repo.id,
                 repo,
                 metadata: {},
             });
-            (mockPrisma.repo.update as Mock).mockResolvedValue(repo);
+            (mockPrisma.repoIndexingJob.update as Mock).mockResolvedValue({ repo });
 
             // Get the onCompleted handler
             const onCompletedHandler = mockWorkerOn.mock.calls.find((call: unknown[]) => call[0] === 'completed')?.[1];
@@ -552,22 +551,20 @@ describe('RepoIndexManager', () => {
 
             await onCompletedHandler(mockJob);
 
+            // The job status and indexedAt must be written together (single transaction) to
+            // close the race where the scheduler sees a completed job but a stale indexedAt.
             expect(mockPrisma.repoIndexingJob.update).toHaveBeenCalledWith(
                 expect.objectContaining({
                     where: { id: 'job-1' },
                     data: expect.objectContaining({
                         status: RepoIndexingJobStatus.COMPLETED,
                         completedAt: expect.any(Date),
-                    }),
-                })
-            );
-
-            expect(mockPrisma.repo.update).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    where: { id: repo.id },
-                    data: expect.objectContaining({
-                        indexedAt: expect.any(Date),
-                        indexedCommitHash: 'abc123',
+                        repo: {
+                            update: expect.objectContaining({
+                                indexedAt: expect.any(Date),
+                                indexedCommitHash: 'abc123',
+                            }),
+                        },
                     }),
                 })
             );
@@ -754,14 +751,12 @@ describe('RepoIndexManager', () => {
             manager = new RepoIndexManager(mockPrisma, mockSettings, mockRedis, mockPromClient as any);
 
             (mockPrisma.repoIndexingJob.findUniqueOrThrow as Mock).mockResolvedValue({
-                status: RepoIndexingJobStatus.PENDING,
-            });
-            (mockPrisma.repoIndexingJob.update as Mock).mockResolvedValue({
                 type: RepoIndexingJobType.CLEANUP,
                 repoId: repo.id,
                 repo,
                 metadata: {},
             });
+            (mockPrisma.repoIndexingJob.update as Mock).mockResolvedValue({ repo });
             (mockPrisma.repo.delete as Mock).mockResolvedValue(repo);
 
             const onCompletedHandler = mockWorkerOn.mock.calls.find((call: unknown[]) => call[0] === 'completed')?.[1];
@@ -840,13 +835,13 @@ describe('RepoIndexManager', () => {
 
             manager = new RepoIndexManager(mockPrisma, mockSettings, mockRedis, mockPromClient as any);
 
-            (mockPrisma.repoIndexingJob.update as Mock).mockResolvedValue({
+            (mockPrisma.repoIndexingJob.findUniqueOrThrow as Mock).mockResolvedValue({
                 type: RepoIndexingJobType.INDEX,
                 repoId: repo.id,
                 repo,
                 metadata: {},
             });
-            (mockPrisma.repo.update as Mock).mockResolvedValue(repo);
+            (mockPrisma.repoIndexingJob.update as Mock).mockResolvedValue({ repo });
 
             const onCompletedHandler = mockWorkerOn.mock.calls.find((call: unknown[]) => call[0] === 'completed')?.[1];
 
@@ -867,9 +862,9 @@ describe('RepoIndexManager', () => {
                     data: expect.objectContaining({
                         status: RepoIndexingJobStatus.COMPLETED,
                         repo: {
-                            update: {
+                            update: expect.objectContaining({
                                 latestIndexingJobStatus: RepoIndexingJobStatus.COMPLETED,
-                            },
+                            }),
                         },
                     }),
                 })
