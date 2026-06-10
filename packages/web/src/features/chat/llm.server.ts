@@ -351,7 +351,7 @@ const extractLanguageModelKeyValuePairs = async (
 };
 
 type AnthropicThinkingConfig = NonNullable<AnthropicProviderOptions['thinking']>;
-const anthropicThinkingConfigCache = new Map<string, AnthropicThinkingConfig>();
+const anthropicThinkingConfigCache = new Map<string, AnthropicThinkingConfig | undefined>();
 
 /**
  * Resolves the `thinking` provider option we pass to the
@@ -380,7 +380,10 @@ const tryResolveAnthropicThinkingConfig = async ({
         return anthropicThinkingConfigCache.get(cacheKey);
     }
 
-    const thinkingConfig = await (async () => {
+    const {
+        thinkingConfig,
+        shouldCache
+    } = await (async (): Promise<{ thinkingConfig: AnthropicThinkingConfig | undefined, shouldCache: boolean }> => {
         try {
             // `@ai-sdk/anthropic` expects `baseURL` to include the `/v1` path segment,
             // whereas the SDK client appends `/v1` itself — so strip a trailing `/v1`
@@ -407,30 +410,48 @@ const tryResolveAnthropicThinkingConfig = async ({
 
             const thinking = capabilities.thinking;
             if (thinking.supported === false) {
-                return undefined;
+                return {
+                    thinkingConfig: undefined,
+                    shouldCache: true
+                };
             }
 
             if (thinking.types.adaptive.supported) {
                 return {
-                    type: "adaptive",
-                    display: "summarized",
-                } satisfies AnthropicThinkingConfig;
+                    thinkingConfig: {
+                        type: "adaptive",
+                        display: "summarized",
+                    } satisfies AnthropicThinkingConfig,
+                    shouldCache: true,
+                };
             }
 
             if (thinking.types.enabled.supported) {
                 return {
-                    type: "enabled",
-                    budgetTokens: env.ANTHROPIC_THINKING_BUDGET_TOKENS,
-                } satisfies AnthropicThinkingConfig;
+                    thinkingConfig: {
+                        type: "enabled",
+                        budgetTokens: env.ANTHROPIC_THINKING_BUDGET_TOKENS,
+                    } satisfies AnthropicThinkingConfig,
+                    shouldCache: true,
+                };
             }
+
+            return {
+                thinkingConfig: undefined,
+                shouldCache: true
+            };
         } catch (error) {
             Sentry.captureException(error);
             logger.warn(`Failed to fetch Anthropic model capabilities for '${modelId}'. Omitting the thinking option. ${error}`);
+            return {
+                thinkingConfig: undefined,
+                shouldCache: false
+            };
         }
     })();
 
 
-    if (thinkingConfig) {
+    if (shouldCache) {
         anthropicThinkingConfigCache.set(cacheKey, thinkingConfig);
     }
 
