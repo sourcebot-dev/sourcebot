@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Fixed Review Agent failing on private GitHub repositories when fetching the PR diff. The parser now uses the REST API endpoint with the `diff` media type instead of the web `diff_url` which is not accessible to API tokens. [#1277](https://github.com/sourcebot-dev/sourcebot/issues/1277)
+- Fixed Review Agent failing on private GitHub repositories when fetching the PR diff. The parser now uses the REST API endpoint with the `diff` media type instead of the web `diff_url` which is not accessible to API tokens. [#1302](https://github.com/sourcebot-dev/sourcebot/pull/1302)
 
 ## [5.0.2] - 2026-06-11
 
