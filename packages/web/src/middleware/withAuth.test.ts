@@ -1003,9 +1003,7 @@ describe('withOptionalAuth', () => {
         });
         prisma.org.findUnique.mockResolvedValue({
             ...MOCK_ORG,
-            metadata: {
-                anonymousAccessEnabled: true,
-            },
+            isAnonymousAccessEnabled: true,
         });
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
 
@@ -1018,9 +1016,7 @@ describe('withOptionalAuth', () => {
             },
             org: {
                 ...MOCK_ORG,
-                metadata: {
-                    anonymousAccessEnabled: true,
-                },
+                isAnonymousAccessEnabled: true,
             },
             prisma: undefined,
         });
@@ -1037,9 +1033,7 @@ describe('withOptionalAuth', () => {
         });
         prisma.org.findUnique.mockResolvedValue({
             ...MOCK_ORG,
-            metadata: {
-                anonymousAccessEnabled: true,
-            },
+            isAnonymousAccessEnabled: true,
         });
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
 
@@ -1059,9 +1053,7 @@ describe('withOptionalAuth', () => {
         });
         prisma.org.findUnique.mockResolvedValue({
             ...MOCK_ORG,
-            metadata: {
-                anonymousAccessEnabled: false,
-            },
+            isAnonymousAccessEnabled: false,
         });
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
 

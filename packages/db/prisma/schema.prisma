@@ -274,9 +274,31 @@ model Org {
   apiKeys     ApiKey[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
-  metadata    Json? // For schema see orgMetadataSchema in packages/web/src/types.ts
+  metadata    Json?
 
+  /// @deprecated This property can be controlled by the environment
+  /// variable `REQUIRE_APPROVAL_NEW_MEMBERS`. To ensure that we use
+  /// the correct setting, use the helper function `isMemberApprovalRequired`
+  /// in shared/src/utils.ts
   memberApprovalRequired Boolean @default(true)
+
+  /// @deprecated This property can be controlled by the environment
+  /// variable `AUTH_CREDENTIALS_LOGIN_ENABLED`. To ensure that we use
+  /// the correct setting, use the helper function `isCredentialsLoginEnabled`
+  /// in shared/src/utils.ts
+  isCredentialsLoginEnabled Boolean @default(true)
+
+  /// @deprecated This property can be controlled by the environment
+  /// variable `AUTH_EMAIL_CODE_LOGIN_ENABLED`. To ensure that we use
+  /// the correct setting, use the helper function `isEmailCodeLoginEnabled`
+  /// in shared/src/utils.ts
+  isEmailCodeLoginEnabled Boolean @default(false)
+
+  /// @deprecated This property can be overriden by the environment
+  /// variable `FORCE_ENABLE_ANONYMOUS_ACCESS`, as well as the org's
+  /// available entitlements. Use the helper function `isAnonymousAccessEnabled`
+  /// in web/src/lib/entitlements.ts
+  isAnonymousAccessEnabled Boolean @default(false)
 
   /// List of pending invites to this organization
   invites Invite[]

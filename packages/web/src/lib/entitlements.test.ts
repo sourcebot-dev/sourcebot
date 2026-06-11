@@ -42,9 +42,9 @@ describe('isAnonymousAccessEnabled', () => {
         expect(await isAnonymousAccessEnabled()).toBe(false);
     });
 
-    test('returns true when FORCE_ENABLE_ANONYMOUS_ACCESS is true, regardless of metadata', async () => {
+    test('returns true when FORCE_ENABLE_ANONYMOUS_ACCESS is true, regardless of the org setting', async () => {
         mocks.env.FORCE_ENABLE_ANONYMOUS_ACCESS = 'true';
-        prisma.org.findUnique.mockResolvedValue({ ...MOCK_ORG, metadata: null });
+        prisma.org.findUnique.mockResolvedValue({ ...MOCK_ORG, isAnonymousAccessEnabled: false });
 
         expect(await isAnonymousAccessEnabled()).toBe(true);
     });
@@ -62,44 +62,29 @@ describe('isAnonymousAccessEnabled', () => {
         expect(await isAnonymousAccessEnabled()).toBe(false);
     });
 
-    test('returns false when org metadata is null', async () => {
-        prisma.org.findUnique.mockResolvedValue({ ...MOCK_ORG, metadata: null });
-
-        expect(await isAnonymousAccessEnabled()).toBe(false);
-    });
-
-    test('returns false when metadata.anonymousAccessEnabled is absent', async () => {
+    test('returns false when org.isAnonymousAccessEnabled is false', async () => {
         prisma.org.findUnique.mockResolvedValue({
             ...MOCK_ORG,
-            metadata: {},
+            isAnonymousAccessEnabled: false,
         });
 
         expect(await isAnonymousAccessEnabled()).toBe(false);
     });
 
-    test('returns false when metadata.anonymousAccessEnabled is false', async () => {
+    test('returns true when org.isAnonymousAccessEnabled is true', async () => {
         prisma.org.findUnique.mockResolvedValue({
             ...MOCK_ORG,
-            metadata: { anonymousAccessEnabled: false },
-        });
-
-        expect(await isAnonymousAccessEnabled()).toBe(false);
-    });
-
-    test('returns true when metadata.anonymousAccessEnabled is true', async () => {
-        prisma.org.findUnique.mockResolvedValue({
-            ...MOCK_ORG,
-            metadata: { anonymousAccessEnabled: true },
+            isAnonymousAccessEnabled: true,
         });
 
         expect(await isAnonymousAccessEnabled()).toBe(true);
     });
 
-    test('ignores FORCE_ENABLE_ANONYMOUS_ACCESS when not the string "true"', async () => {
+    test('returns false when FORCE_ENABLE_ANONYMOUS_ACCESS is "false", overriding the org setting', async () => {
         mocks.env.FORCE_ENABLE_ANONYMOUS_ACCESS = 'false';
         prisma.org.findUnique.mockResolvedValue({
             ...MOCK_ORG,
-            metadata: { anonymousAccessEnabled: false },
+            isAnonymousAccessEnabled: true,
         });
 
         expect(await isAnonymousAccessEnabled()).toBe(false);

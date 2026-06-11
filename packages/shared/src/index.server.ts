@@ -31,6 +31,9 @@ export {
     getConfigSettings,
     getRepoPath,
     getRepoIdFromPath,
+    isCredentialsLoginEnabled,
+    isEmailCodeLoginEnabled,
+    isMemberApprovalRequired,
 } from "./utils.js";
 export * from "./constants.js";
 export {

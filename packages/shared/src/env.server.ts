@@ -173,12 +173,8 @@ const options = {
         ZOEKT_WEBSERVER_URL: z.string().url().default("http://localhost:6070"),
 
         // Auth
-        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
-        REQUIRE_APPROVAL_NEW_MEMBERS: booleanSchema.optional(),
         AUTH_SECRET: z.string(),
         AUTH_URL: z.string().url(),
-        AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
-        AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.default('false'),
 
         /**
          * Relative time from now in seconds when to expire the session.
@@ -425,6 +421,39 @@ const options = {
          * ignored.
          */
         SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED: booleanSchema.default('false'),
+
+        //////////// Deprecated ////////////
+        /**
+         * @deprecated Configure this setting via the "Require approval
+         * for new members" toggle in Settings → Security intsead.
+         */
+        REQUIRE_APPROVAL_NEW_MEMBERS: booleanSchema.optional(),
+
+        /**
+         * @deprecated Configure email + password login via the "Email & password login"
+         * toggle in Settings → Security instead. When set, this env var overrides the UI
+         * setting and locks the toggle; when unset, the DB-backed
+         * `Org.isCredentialsLoginEnabled` setting is used.
+         */
+        AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.optional(),
+
+        /**
+         * @deprecated Configure email code login via the UI in Settings → Security
+         * instead. When set, this env var overrides the UI setting and locks the toggle;
+         * when unset, the DB-backed `Org.isEmailCodeLoginEnabled` setting is used. Left
+         * optional (rather than defaulting to 'false') so we can detect whether it was
+         * explicitly set.
+         */
+        AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.optional(),
+
+        /**
+         * @deprecated Configure anonymous access via the UI in Settings → Security
+         * instead. When set, this env var overrides the UI setting and locks the toggle;
+         * when unset, the DB-backed `Org.isAnonymousAccessEnabled` setting is used. Left
+         * optional (rather than defaulting to 'false') so we can detect whether it was
+         * explicitly set.
+         */
+        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.optional(),
     },
     runtimeEnv,
     emptyStringAsUndefined: true,

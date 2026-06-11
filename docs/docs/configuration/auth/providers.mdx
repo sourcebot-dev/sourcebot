@@ -11,7 +11,11 @@ If there's an authentication provider you'd like us to support, please [reach ou
 
 ### Email / Password
 ---
-Email / password authentication is enabled by default. It can be **disabled** by setting `AUTH_CREDENTIALS_LOGIN_ENABLED` to `false`.
+Email / password authentication is enabled by default. You can toggle it from **Settings → Access** using the **Email login** setting.
+
+The `AUTH_CREDENTIALS_LOGIN_ENABLED` environment variable is deprecated. It still works, but when it is set it overrides the UI setting and locks the toggle. Leave it unset to manage email login from the UI.
+
+Email login can't be disabled when no other login method is configured (no SSO identity provider and no email-code login), since that would leave no way to sign in.
 
 ### Email codes
 ---

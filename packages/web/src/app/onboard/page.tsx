@@ -1,12 +1,11 @@
 import type React from "react"
-import Link from "next/link"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { AuthMethodSelector } from "@/app/components/authMethodSelector"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { auth } from "@/auth";
-import { OrganizationAccessSettings } from "@/app/components/organizationAccessSettings";
+import { WelcomeStep } from "./components/welcomeStep";
+import { OwnerSignupStep } from "./components/ownerSignupStep";
+import { ConfigureOrgStep } from "./components/configureOrgStep";
 import { TrialStep, TrialStepTitle, TrialStepSubtitle } from "./components/trialStep";
 import { AlreadyLicensedStep } from "./components/alreadyLicensedStep";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
@@ -79,13 +78,7 @@ export default async function Onboarding(props: OnboardingProps) {
         id: "welcome",
         title: "Welcome to Sourcebot",
         subtitle: "This onboarding flow will guide you through creating your owner account and configuring your organization.",
-        component: (
-            <div className="space-y-6">
-                <Button asChild className="w-full">
-                    <Link href={`/onboard?step=${steps.length + 1}`}>Get Started →</Link>
-                </Button>
-            </div>
-        ),
+        component: <WelcomeStep nextStep={steps.length + 1} />,
     });
 
     steps.push({
@@ -104,15 +97,7 @@ export default async function Onboarding(props: OnboardingProps) {
                 </a>.
             </>
         ),
-        component: (
-            <div className="space-y-6">
-                <AuthMethodSelector
-                    callbackUrl={`/onboard?step=${steps.length + 1}`}
-                    context="signup"
-                    securityNoticeClosable={false}
-                />
-            </div>
-        ),
+        component: <OwnerSignupStep nextStep={steps.length + 1} />,
     });
 
     steps.push({
@@ -131,14 +116,7 @@ export default async function Onboarding(props: OnboardingProps) {
                 </a>
             </>
         ),
-        component: (
-            <div className="space-y-6">
-                <OrganizationAccessSettings showAnonymousAccessToggle={false} />
-                <Button asChild className="w-full">
-                    <Link href={`/onboard?step=${steps.length + 1}`}>Continue →</Link>
-                </Button>
-            </div>
-        ),
+        component: <ConfigureOrgStep nextStep={steps.length + 1} />,
     });
 
     const finalStepIndex = steps.length;
