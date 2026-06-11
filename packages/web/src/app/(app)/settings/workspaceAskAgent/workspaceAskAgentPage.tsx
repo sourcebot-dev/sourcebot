@@ -90,9 +90,11 @@ function OAuthScopesInput({
     const [oauthScopeSearchInput, setOAuthScopeSearchInput] = useState("");
     const selectedOAuthScopeSet = new Set(selectedOAuthScopes);
     const requestedOAuthScopes = getMcpRequestedOAuthScopes(selectedOAuthScopes, customOAuthScopeInput);
+    const hasDiscoveredResourceScopes = discoveredOAuthScopes.some((scope) => scope !== OFFLINE_ACCESS_SCOPE);
     const isOfflineAccessOnly = requestedOAuthScopes.length === 1
         && requestedOAuthScopes[0] === OFFLINE_ACCESS_SCOPE
-        && discoveredOAuthScopes.some((scope) => scope !== OFFLINE_ACCESS_SCOPE);
+        && hasDiscoveredResourceScopes;
+    const isNoScopesSelected = requestedOAuthScopes.length === 0 && hasDiscoveredResourceScopes;
     const filteredOAuthScopes = useMemo(() => {
         const query = oauthScopeSearchInput.trim().toLowerCase();
         if (!query) {
@@ -205,10 +207,12 @@ function OAuthScopesInput({
                 />
             </div>
 
-            {isOfflineAccessOnly && (
+            {(isOfflineAccessOnly || isNoScopesSelected) && (
                 <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
                     <AlertTriangleIcon className="h-3.5 w-3.5 shrink-0 text-yellow-600 dark:text-yellow-400" />
-                    Only offline_access is selected. Without any resource scopes, the connector may not be able to access anything.
+                    {isOfflineAccessOnly
+                        ? "Only offline_access is selected. Without any resource scopes, the connector may not be able to access anything."
+                        : "No scopes are selected. Without any resource scopes, the connector may not be able to access anything."}
                 </p>
             )}
         </div>
