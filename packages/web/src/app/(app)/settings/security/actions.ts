@@ -71,6 +71,41 @@ export const setCredentialsLoginEnabled = async (enabled: boolean): Promise<{ su
     )
 );
 
+export const setEmailCodeLoginEnabled = async (enabled: boolean): Promise<{ success: boolean } | ServiceError> => sew(async () =>
+    withAuth(async ({ org, role, prisma }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            if (env.AUTH_EMAIL_CODE_LOGIN_ENABLED !== undefined) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.EMAIL_CODE_LOGIN_CONTROLLED_BY_ENV,
+                    message: "Email code login is controlled by the AUTH_EMAIL_CODE_LOGIN_ENABLED environment variable and cannot be changed from the UI.",
+                } satisfies ServiceError;
+            }
+
+            const providers = await getProviders();
+            const hasAlternativeLoginMethod = providers.some((provider) => provider.type !== "nodemailer");
+
+            // Don't allow disabling email code login when it would leave no other way to sign in.
+            if (!enabled && !hasAlternativeLoginMethod) {
+                return {
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    errorCode: ErrorCode.EMAIL_CODE_LOGIN_CANNOT_BE_DISABLED,
+                    message: "Email code login cannot be disabled because no other login method is configured.",
+                } satisfies ServiceError;
+            }
+
+            await prisma.org.update({
+                where: { id: org.id },
+                data: { isEmailCodeLoginEnabled: enabled },
+            });
+
+            return {
+                success: true,
+            };
+        })
+    )
+);
+
 export const setAnonymousAccessStatus = async (enabled: boolean): Promise<ServiceError | boolean> => sew(async () =>
     withAuth(async ({ org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {

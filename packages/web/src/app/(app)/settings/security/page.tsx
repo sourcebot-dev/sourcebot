@@ -2,11 +2,12 @@ import { AnonymousAccessEnabledSettingsCard } from "./components/anonymousAccess
 import { InviteLinkEnabledSettingsCard } from "./components/inviteLinkEnabledSettingsCard";
 import { MemberApprovalRequiredSettingsCard } from "./components/memberApprovalRequiredSettingsCard";
 import { CredentialsLoginEnabledSettingsCard } from "./components/credentialsLoginEnabledSettingsCard";
+import { EmailCodeLoginEnabledSettingsCard } from "./components/emailCodeLoginEnabledSettingsCard";
 import { isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { createInviteLink } from "@/lib/utils";
 import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
-import { env, isCredentialsLoginEnabled, isMemberApprovalRequired } from "@sourcebot/shared";
+import { env, getSMTPConnectionURL, isCredentialsLoginEnabled, isEmailCodeLoginEnabled, isMemberApprovalRequired } from "@sourcebot/shared";
 import { SettingsCardGroup } from "../components/settingsCard";
 
 export default authenticatedPage(async ({ org }) => {
@@ -49,6 +50,10 @@ export default authenticatedPage(async ({ org }) => {
                 <SettingsCardGroup>
                     <CredentialsLoginEnabledSettingsCard
                         isCredentialsLoginEnabled={isCredentialsLoginEnabled(org)}
+                    />
+                    <EmailCodeLoginEnabledSettingsCard
+                        isEmailCodeLoginEnabled={isEmailCodeLoginEnabled(org)}
+                        isEmailServiceConfigured={!!getSMTPConnectionURL() && !!env.EMAIL_FROM_ADDRESS}
                     />
                 </SettingsCardGroup>
             </div>
