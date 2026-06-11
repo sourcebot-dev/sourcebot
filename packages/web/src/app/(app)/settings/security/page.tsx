@@ -2,8 +2,7 @@ import { AnonymousAccessEnabledSettingsCard } from "./components/anonymousAccess
 import { InviteLinkEnabledSettingsCard } from "./components/inviteLinkEnabledSettingsCard";
 import { MemberApprovalRequiredSettingsCard } from "./components/memberApprovalRequiredSettingsCard";
 import { CredentialsLoginEnabledSettingsCard } from "./components/credentialsLoginEnabledSettingsCard";
-import { getProviders } from "@/auth";
-import { isAnonymousAccessAvailable, isAnonymousAccessEnabled } from "@/lib/entitlements";
+import { isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { createInviteLink } from "@/lib/utils";
 import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
@@ -12,9 +11,7 @@ import { SettingsCardGroup } from "../components/settingsCard";
 
 export default authenticatedPage(async ({ org }) => {
     const anonymousAccessEnabled = await isAnonymousAccessEnabled();
-    const anonymousAccessAvailable = await isAnonymousAccessAvailable();
     const inviteLink = createInviteLink(env.AUTH_URL, org.inviteLinkId);
-    const providers = await getProviders();
 
     return (
         <div className="flex flex-col gap-6">
@@ -41,12 +38,9 @@ export default authenticatedPage(async ({ org }) => {
                     />
                     <MemberApprovalRequiredSettingsCard
                         memberApprovalRequired={isMemberApprovalRequired(org)}
-                        isControlledByEnvVar={env.REQUIRE_APPROVAL_NEW_MEMBERS !== undefined}
                     />
                     <AnonymousAccessEnabledSettingsCard
-                        anonymousAccessAvailable={anonymousAccessAvailable}
                         anonymousAccessEnabled={anonymousAccessEnabled}
-                        isControlledByEnvVar={env.FORCE_ENABLE_ANONYMOUS_ACCESS !== undefined}
                     />
                 </SettingsCardGroup>
 
@@ -55,8 +49,6 @@ export default authenticatedPage(async ({ org }) => {
                 <SettingsCardGroup>
                     <CredentialsLoginEnabledSettingsCard
                         isCredentialsLoginEnabled={isCredentialsLoginEnabled(org)}
-                        isControlledByEnvVar={env.AUTH_CREDENTIALS_LOGIN_ENABLED !== undefined}
-                        hasAlternativeLoginMethod={providers.some((provider) => provider.type !== "credentials")}
                     />
                 </SettingsCardGroup>
             </div>

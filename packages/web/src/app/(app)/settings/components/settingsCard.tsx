@@ -29,7 +29,6 @@ interface BasicSettingsCardProps {
     name: string;
     description?: string;
     children: ReactNode;
-    /** Optional content rendered full-width below the name/description/control row (e.g. an info notice or an expandable section). */
     footer?: ReactNode;
     className?: string;
 }
