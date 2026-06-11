@@ -3,7 +3,9 @@ import type { McpServerOAuthScopeEntry } from './types';
 export const OAUTH_SCOPE_TOKEN_REGEX = /^[\x21\x23-\x5B\x5D-\x7E]+$/;
 
 // Required for the refresh_token grant that all clients declare. Providers such as
-// Atlassian only honour that grant when this scope is included in the authorization request.
+// Atlassian only honour that grant when this scope is included in the authorization request,
+// so the admin UI pre-selects it whenever the connector advertises it. Admins can still
+// untick it to opt out of refresh tokens.
 export const OFFLINE_ACCESS_SCOPE = 'offline_access';
 
 export function normalizeMcpRequestedOAuthScopes(oauthScopes: string[]): string[] {
@@ -54,8 +56,7 @@ export function buildMcpOAuthScopeEntries({
 
     return normalizedAvailableOAuthScopes.map((scope) => ({
         scope,
-        // Force-enabled regardless of admin selection — see OFFLINE_ACCESS_SCOPE.
-        enabled: scope === OFFLINE_ACCESS_SCOPE || requestedScopeSet.has(scope),
+        enabled: requestedScopeSet.has(scope),
     }));
 }
 

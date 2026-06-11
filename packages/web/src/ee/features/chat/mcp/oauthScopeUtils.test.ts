@@ -31,26 +31,16 @@ describe('buildMcpOAuthScopeEntries', () => {
         ]);
     });
 
-    test('enables offline_access by default even when not in requestedOAuthScopes', () => {
+    test('does not special-case offline_access; it is enabled only when requested', () => {
         const entries = buildMcpOAuthScopeEntries({
-            availableOAuthScopes: ['offline_access', 'read', 'write'],
+            availableOAuthScopes: ['offline_access', 'read'],
             requestedOAuthScopes: [],
         });
 
         expect(entries).toEqual([
-            { scope: 'offline_access', enabled: true },
+            { scope: 'offline_access', enabled: false },
             { scope: 'read', enabled: false },
-            { scope: 'write', enabled: false },
         ]);
-    });
-
-    test('does not add offline_access when it is absent from available scopes', () => {
-        const entries = buildMcpOAuthScopeEntries({
-            availableOAuthScopes: ['read', 'write'],
-            requestedOAuthScopes: [],
-        });
-
-        expect(entries.find((e) => e.scope === 'offline_access')).toBeUndefined();
     });
 
     test('merges requested scopes not in available scopes into the output', () => {

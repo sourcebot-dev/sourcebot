@@ -150,7 +150,7 @@ describe('GET /api/ee/askmcp/callback', () => {
         const state = createMcpOAuthState('state-1', '/settings/workspaceAskAgent');
         mocks.mcpAuth.mockImplementation(async (provider) => {
             expect('saveClientInformation' in provider).toBe(false);
-            expect(provider.clientMetadata.scope).toBe('offline_access repo');
+            expect(provider.clientMetadata.scope).toBe('repo');
             await provider.invalidateCredentials('all');
             const error = new Error('invalid_client client_secret=client-secret refresh_token=refresh-token');
             Object.assign(error, {

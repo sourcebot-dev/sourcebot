@@ -27,7 +27,7 @@ import { ConnectMcpButton } from "@/ee/features/chat/mcp/components/connectMcpBu
 import { ConnectorCard } from "@/ee/features/chat/mcp/components/connectorCard";
 import { useMcpToolMetadata } from "@/ee/features/chat/mcp/hooks/useMcpToolMetadata";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/chat/mcp/queryKeys";
-import { buildMcpOAuthScopeEntries, getMcpRequestedOAuthScopes, normalizeMcpRequestedOAuthScopes } from "@/ee/features/chat/mcp/oauthScopeUtils";
+import { buildMcpOAuthScopeEntries, getMcpRequestedOAuthScopes, normalizeMcpRequestedOAuthScopes, OFFLINE_ACCESS_SCOPE } from "@/ee/features/chat/mcp/oauthScopeUtils";
 import { pluralize } from "@/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -440,6 +440,13 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         setCustomOAuthScopeInput("");
     };
 
+    // Pre-select offline_access so admins can see the scope token refresh depends on;
+    // they can still untick it to opt out of refresh tokens.
+    const initializeOAuthScopeSelection = (discoveredOAuthScopes: string[]) => {
+        setSelectedOAuthScopes(discoveredOAuthScopes.includes(OFFLINE_ACCESS_SCOPE) ? [OFFLINE_ACCESS_SCOPE] : []);
+        setCustomOAuthScopeInput("");
+    };
+
     const handleCloseClientCredentialsDialog = () => {
         setIsClientCredentialsDialogOpen(false);
         setPendingClientCredentialsServer(null);
@@ -572,7 +579,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
 
                 const discoveredOAuthScopes = normalizeMcpRequestedOAuthScopes(dcrSupport.oauthScopesSupported);
                 if (dcrSupport.isKnown && !dcrSupport.supportsDcr) {
-                    resetOAuthScopeInputs();
+                    initializeOAuthScopeSelection(discoveredOAuthScopes);
                     setPendingClientCredentialsServer({
                         name: displayName,
                         serverUrl: normalizedServerUrl,
@@ -584,7 +591,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                 }
 
                 if (discoveredOAuthScopes.length > 0) {
-                    resetOAuthScopeInputs();
+                    initializeOAuthScopeSelection(discoveredOAuthScopes);
                     setPendingOAuthScopeSelectionServer({
                         name: displayName,
                         serverUrl: normalizedServerUrl,
