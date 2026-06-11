@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.2] - 2026-06-11
+
 ### Changed
 - Removed support for configuring the GitHub, GitLab, Google, Okta, Keycloak, and Microsoft Entra ID identity providers via the deprecated `AUTH_EE_*` environment variables. See the [v5 migration guide](http://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide#identity-providers-must-be-configured-via-the-config-file) for more details. [#1297](https://github.com/sourcebot-dev/sourcebot/pull/1297)
 - Anthropic thinking mode (adaptive vs. extended) is now resolved from the model's capabilities via the Anthropic Models API instead of a hardcoded model list. [#1294](https://github.com/sourcebot-dev/sourcebot/pull/1294)
