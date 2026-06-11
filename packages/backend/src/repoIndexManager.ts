@@ -351,7 +351,7 @@ export class RepoIndexManager {
 
         const metadata = repoMetadataSchema.parse(repo.metadata);
 
-        const credentials = await getAuthCredentialsForRepo(repo);
+        const credentials = await getAuthCredentialsForRepo(repo, logger);
         const cloneUrlMaybeWithToken = credentials?.cloneUrlWithToken ?? repo.cloneUrl;
         const authHeader = credentials?.authHeader ?? undefined;
 
