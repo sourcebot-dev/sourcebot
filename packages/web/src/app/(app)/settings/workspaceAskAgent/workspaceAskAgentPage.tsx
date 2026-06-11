@@ -22,16 +22,17 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { checkMcpServerDynamicClientRegistration, createMcpServer, createStaticOAuthMcpServer, deleteMcpServer, updateMcpServerOAuthScopes } from "@/ee/features/chat/mcp/actions";
 import { ConnectMcpButton } from "@/ee/features/chat/mcp/components/connectMcpButton";
 import { ConnectorCard } from "@/ee/features/chat/mcp/components/connectorCard";
 import { useMcpToolMetadata } from "@/ee/features/chat/mcp/hooks/useMcpToolMetadata";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/chat/mcp/queryKeys";
-import { buildMcpOAuthScopeEntries, getMcpRequestedOAuthScopes, normalizeMcpRequestedOAuthScopes } from "@/ee/features/chat/mcp/oauthScopeUtils";
+import { buildMcpOAuthScopeEntries, getMcpRequestedOAuthScopes, normalizeMcpRequestedOAuthScopes, OFFLINE_ACCESS_SCOPE } from "@/ee/features/chat/mcp/oauthScopeUtils";
 import { pluralize } from "@/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangleIcon, CableIcon, CopyIcon, KeyRoundIcon, Loader2, MoreHorizontalIcon, PlusIcon, Trash2Icon, WrenchIcon } from "lucide-react";
+import { AlertTriangleIcon, CableIcon, CopyIcon, InfoIcon, KeyRoundIcon, Loader2, MoreHorizontalIcon, PlusIcon, Trash2Icon, WrenchIcon } from "lucide-react";
 import { PrefabConnectorPopover } from "@/ee/features/chat/mcp/components/prefabConnectorPopover";
 import Markdown from "react-markdown";
 import { getStaticOAuthDescription, type PrefabMcpServer } from "@/ee/features/chat/mcp/prefabMcpServers";
@@ -89,6 +90,11 @@ function OAuthScopesInput({
     const [oauthScopeSearchInput, setOAuthScopeSearchInput] = useState("");
     const selectedOAuthScopeSet = new Set(selectedOAuthScopes);
     const requestedOAuthScopes = getMcpRequestedOAuthScopes(selectedOAuthScopes, customOAuthScopeInput);
+    const hasDiscoveredResourceScopes = discoveredOAuthScopes.some((scope) => scope !== OFFLINE_ACCESS_SCOPE);
+    const isOfflineAccessOnly = requestedOAuthScopes.length === 1
+        && requestedOAuthScopes[0] === OFFLINE_ACCESS_SCOPE
+        && hasDiscoveredResourceScopes;
+    const isNoScopesSelected = requestedOAuthScopes.length === 0 && hasDiscoveredResourceScopes;
     const filteredOAuthScopes = useMemo(() => {
         const query = oauthScopeSearchInput.trim().toLowerCase();
         if (!query) {
@@ -154,6 +160,18 @@ function OAuthScopesInput({
                                             aria-label={`Request ${scope}`}
                                         />
                                         <span className="break-all font-mono text-xs">{scope}</span>
+                                        {scope === OFFLINE_ACCESS_SCOPE && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span className="shrink-0 text-muted-foreground" onClick={(event) => event.preventDefault()}>
+                                                        <InfoIcon className="h-3.5 w-3.5" />
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="max-w-64">
+                                                    Required for refresh tokens. Without this scope, users must re-authenticate whenever their access token expires, and some connectors reject authorization entirely.
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        )}
                                     </label>
                                     {onRemoveOAuthScope && (
                                         <Button
@@ -188,6 +206,15 @@ function OAuthScopesInput({
                     className="min-h-20 resize-y font-mono text-sm"
                 />
             </div>
+
+            {(isOfflineAccessOnly || isNoScopesSelected) && (
+                <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                    <AlertTriangleIcon className="h-3.5 w-3.5 shrink-0 text-yellow-600 dark:text-yellow-400" />
+                    {isOfflineAccessOnly
+                        ? "Only offline_access is selected. Without any resource scopes, the connector may not be able to access anything."
+                        : "No scopes are selected. Without any resource scopes, the connector may not be able to access anything."}
+                </p>
+            )}
         </div>
     );
 }
@@ -440,6 +467,13 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         setCustomOAuthScopeInput("");
     };
 
+    // Pre-select offline_access so admins can see the scope token refresh depends on;
+    // they can still untick it to opt out of refresh tokens.
+    const initializeOAuthScopeSelection = (discoveredOAuthScopes: string[]) => {
+        setSelectedOAuthScopes(discoveredOAuthScopes.includes(OFFLINE_ACCESS_SCOPE) ? [OFFLINE_ACCESS_SCOPE] : []);
+        setCustomOAuthScopeInput("");
+    };
+
     const handleCloseClientCredentialsDialog = () => {
         setIsClientCredentialsDialogOpen(false);
         setPendingClientCredentialsServer(null);
@@ -572,7 +606,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
 
                 const discoveredOAuthScopes = normalizeMcpRequestedOAuthScopes(dcrSupport.oauthScopesSupported);
                 if (dcrSupport.isKnown && !dcrSupport.supportsDcr) {
-                    resetOAuthScopeInputs();
+                    initializeOAuthScopeSelection(discoveredOAuthScopes);
                     setPendingClientCredentialsServer({
                         name: displayName,
                         serverUrl: normalizedServerUrl,
@@ -584,7 +618,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                 }
 
                 if (discoveredOAuthScopes.length > 0) {
-                    resetOAuthScopeInputs();
+                    initializeOAuthScopeSelection(discoveredOAuthScopes);
                     setPendingOAuthScopeSelectionServer({
                         name: displayName,
                         serverUrl: normalizedServerUrl,
