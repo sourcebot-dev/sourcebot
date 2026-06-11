@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { checkMcpServerDynamicClientRegistration, createMcpServer, createStaticOAuthMcpServer, deleteMcpServer, updateMcpServerOAuthScopes } from "@/ee/features/chat/mcp/actions";
 import { ConnectMcpButton } from "@/ee/features/chat/mcp/components/connectMcpButton";
 import { ConnectorCard } from "@/ee/features/chat/mcp/components/connectorCard";
@@ -31,7 +32,7 @@ import { buildMcpOAuthScopeEntries, getMcpRequestedOAuthScopes, normalizeMcpRequ
 import { pluralize } from "@/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangleIcon, CableIcon, CopyIcon, KeyRoundIcon, Loader2, MoreHorizontalIcon, PlusIcon, Trash2Icon, WrenchIcon } from "lucide-react";
+import { AlertTriangleIcon, CableIcon, CopyIcon, InfoIcon, KeyRoundIcon, Loader2, MoreHorizontalIcon, PlusIcon, Trash2Icon, WrenchIcon } from "lucide-react";
 import { PrefabConnectorPopover } from "@/ee/features/chat/mcp/components/prefabConnectorPopover";
 import Markdown from "react-markdown";
 import { getStaticOAuthDescription, type PrefabMcpServer } from "@/ee/features/chat/mcp/prefabMcpServers";
@@ -154,6 +155,18 @@ function OAuthScopesInput({
                                             aria-label={`Request ${scope}`}
                                         />
                                         <span className="break-all font-mono text-xs">{scope}</span>
+                                        {scope === OFFLINE_ACCESS_SCOPE && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span className="shrink-0 text-muted-foreground" onClick={(event) => event.preventDefault()}>
+                                                        <InfoIcon className="h-3.5 w-3.5" />
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="max-w-64">
+                                                    Required for refresh tokens. Without this scope, users must re-authenticate whenever their access token expires, and some connectors reject authorization entirely.
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        )}
                                     </label>
                                     {onRemoveOAuthScope && (
                                         <Button
