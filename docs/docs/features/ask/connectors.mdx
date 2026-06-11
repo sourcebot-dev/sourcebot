@@ -83,7 +83,8 @@ Changing connector scopes requires all users to re-authenticate with that connec
 </Warning>
 
 <Note>
-`offline_access` is pre-selected when you add a connector that offers it because token refresh requires it. You can untick it to opt out of refresh tokens, but users will need to re-authenticate every time their access token expires. Some connectors (such as Atlassian) reject authorization entirely without it.
+`offline_access` is pre-selected when you add a connector that offers it because token refresh requires it. You can deselect it to opt out of refresh tokens, but users will need to re-authenticate every time their access token expires. Some connectors, such as Atlassian, reject authorization entirely without it.
+For more information, see the [OpenID Connect `offline_access` documentation](https://openid.net/specs/openid-connect-core-1_0.html#OfflineAccess).
 </Note>
 
 ## Tool Permissions
@@ -126,5 +127,4 @@ You can see all available connectors on this page. After you connect one, you ca
     <img src="/images/connectors_account_page.png" alt="Account connectors page" />
   </Frame>
 </div>
-
 

@@ -6,6 +6,7 @@ export const OAUTH_SCOPE_TOKEN_REGEX = /^[\x21\x23-\x5B\x5D-\x7E]+$/;
 // Atlassian only honour that grant when this scope is included in the authorization request,
 // so the admin UI pre-selects it whenever the connector advertises it. Admins can still
 // untick it to opt out of refresh tokens.
+// See https://openid.net/specs/openid-connect-core-1_0.html#OfflineAccess
 export const OFFLINE_ACCESS_SCOPE = 'offline_access';
 
 export function normalizeMcpRequestedOAuthScopes(oauthScopes: string[]): string[] {
