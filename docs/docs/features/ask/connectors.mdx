@@ -56,6 +56,8 @@ Owners can configure which OAuth scopes users authorize when connecting to a con
 
 Sourcebot checks the connector for discoverable scopes and shows them as options. You can also add custom scopes.
 
+When you select scopes, most providers grant only what you request, so include the resource scopes the connector's tools need.
+
 <div className="max-w-sm mx-auto">
   <Frame>
     <img
@@ -81,7 +83,7 @@ Changing connector scopes requires all users to re-authenticate with that connec
 </Warning>
 
 <Note>
-`offline_access` is pre-selected when offered by the connector because token refresh requires it. You can untick it to opt out of refresh tokens, but users will need to re-authenticate every time their access token expires. Some connectors (such as Atlassian) reject authorization entirely without it.
+`offline_access` is pre-selected when you add a connector that offers it because token refresh requires it. You can untick it to opt out of refresh tokens, but users will need to re-authenticate every time their access token expires. Some connectors (such as Atlassian) reject authorization entirely without it.
 </Note>
 
 ## Tool Permissions
