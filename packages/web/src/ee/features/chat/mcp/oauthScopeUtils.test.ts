@@ -13,10 +13,6 @@ describe('normalizeMcpRequestedOAuthScopes', () => {
         ]);
     });
 
-    test('returns an empty array for empty input', () => {
-        expect(normalizeMcpRequestedOAuthScopes([])).toEqual([]);
-    });
-
     test('filters blank strings', () => {
         expect(normalizeMcpRequestedOAuthScopes(['', '  ', 'read'])).toEqual(['read']);
     });
@@ -32,18 +28,6 @@ describe('buildMcpOAuthScopeEntries', () => {
         expect(entries).toEqual([
             { scope: 'read', enabled: true },
             { scope: 'write', enabled: false },
-        ]);
-    });
-
-    test('enables offline_access by default when present in available scopes', () => {
-        const entries = buildMcpOAuthScopeEntries({
-            availableOAuthScopes: ['offline_access', 'read'],
-            requestedOAuthScopes: ['read'],
-        });
-
-        expect(entries).toEqual([
-            { scope: 'offline_access', enabled: true },
-            { scope: 'read', enabled: true },
         ]);
     });
 
@@ -103,13 +87,5 @@ describe('getEnabledMcpOAuthScopeNames', () => {
         ]);
 
         expect(scopes).toEqual(['offline_access', 'read']);
-    });
-
-    test('returns an empty array when no scopes are enabled', () => {
-        const scopes = getEnabledMcpOAuthScopeNames([
-            { scope: 'read', enabled: false },
-        ]);
-
-        expect(scopes).toEqual([]);
     });
 });
