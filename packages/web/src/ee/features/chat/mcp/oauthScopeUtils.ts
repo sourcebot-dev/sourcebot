@@ -54,8 +54,7 @@ export function buildMcpOAuthScopeEntries({
 
     return normalizedAvailableOAuthScopes.map((scope) => ({
         scope,
-        // offline_access is enabled by default because all clients declare the refresh_token
-        // grant; an admin who leaves it unticked would produce a broken authorization request.
+        // Force-enabled regardless of admin selection — see OFFLINE_ACCESS_SCOPE.
         enabled: scope === OFFLINE_ACCESS_SCOPE || requestedScopeSet.has(scope),
     }));
 }

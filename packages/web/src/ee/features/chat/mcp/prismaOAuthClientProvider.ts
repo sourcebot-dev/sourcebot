@@ -113,12 +113,10 @@ export class PrismaOAuthClientProvider implements OAuthClientProvider {
     this.userId = userId;
     this.callbackUrl = callbackUrl;
     this.callbackReturnTo = callbackReturnTo;
-    // offline_access is always injected because every client declares the refresh_token grant
-    // and providers such as Atlassian reject /authorize when the grant is declared but
-    // offline_access is absent. We inject unconditionally rather than checking the provider's
-    // advertised scopes because oauthScopesSupported is not plumbed through to this constructor;
-    // the tradeoff (a benign unknown-scope rejection on strict providers) is the same as the
-    // existing behaviour of always declaring refresh_token.
+    // Always inject offline_access (see OFFLINE_ACCESS_SCOPE). We do so unconditionally rather
+    // than checking the provider's advertised scopes because oauthScopesSupported is not plumbed
+    // through to this constructor; the tradeoff (a benign unknown-scope rejection on strict
+    // providers) is the same as the existing behaviour of always declaring refresh_token.
     this.requestedOAuthScopes = normalizeMcpRequestedOAuthScopes([
         ...requestedOAuthScopes,
         OFFLINE_ACCESS_SCOPE,
