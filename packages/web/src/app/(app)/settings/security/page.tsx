@@ -3,16 +3,25 @@ import { InviteLinkEnabledSettingsCard } from "./components/inviteLinkEnabledSet
 import { MemberApprovalRequiredSettingsCard } from "./components/memberApprovalRequiredSettingsCard";
 import { CredentialsLoginEnabledSettingsCard } from "./components/credentialsLoginEnabledSettingsCard";
 import { EmailCodeLoginEnabledSettingsCard } from "./components/emailCodeLoginEnabledSettingsCard";
-import { isAnonymousAccessEnabled } from "@/lib/entitlements";
+import { IdentityProviderSettingsCard } from "./components/identityProviderSettingsCard";
+import { IdentityProviderUpsellCard } from "./components/identityProviderUpsellCard";
+import { UpgradeBadge } from "@/app/(app)/@sidebar/components/upgradeBadge";
+import { getProviders, IdentityProvider } from "@/auth";
+import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { createInviteLink } from "@/lib/utils";
 import { authenticatedPage } from "@/middleware/authenticatedPage";
 import { OrgRole } from "@sourcebot/db";
 import { env, getSMTPConnectionURL, isCredentialsLoginEnabled, isEmailCodeLoginEnabled, isMemberApprovalRequired } from "@sourcebot/shared";
 import { SettingsCardGroup } from "../components/settingsCard";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 export default authenticatedPage(async ({ org }) => {
     const anonymousAccessEnabled = await isAnonymousAccessEnabled();
     const inviteLink = createInviteLink(env.AUTH_URL, org.inviteLinkId);
+    const hasSSOEntitlement = await hasEntitlement("sso");
+    const identityProviders = await getConfiguredIdentityProviders();
+
 
     return (
         <div className="flex flex-col gap-6">
@@ -25,7 +34,7 @@ export default authenticatedPage(async ({ org }) => {
                             href="https://docs.sourcebot.dev/docs/configuration/auth/access-settings"
                             target="_blank"
                             rel="noopener"
-                            className="underline text-primary hover:text-primary/80 transition-colors"
+                            className="text-link hover:underline transition-colors"
                         >
                             Learn more
                         </a>
@@ -45,7 +54,7 @@ export default authenticatedPage(async ({ org }) => {
                     />
                 </SettingsCardGroup>
 
-                <p className="text-md font-medium">Authentication methods</p>
+                <p className="text-md font-medium">Email login</p>
 
                 <SettingsCardGroup>
                     <CredentialsLoginEnabledSettingsCard
@@ -56,6 +65,48 @@ export default authenticatedPage(async ({ org }) => {
                         isEmailServiceConfigured={!!getSMTPConnectionURL() && !!env.EMAIL_FROM_ADDRESS}
                     />
                 </SettingsCardGroup>
+
+                <div>
+                    <div className="flex items-center gap-2">
+                        <p className="text-md font-medium">Single Sign-On</p>
+                        {!hasSSOEntitlement && <UpgradeBadge />}
+                    </div>
+                    <p className="text-sm text-muted-foreground">Let users sign in with an external identity provider such as GitHub, Google, or Okta. Providers are managed in your config file.{" "}
+                        <a
+                            href="https://docs.sourcebot.dev/docs/configuration/idp"
+                            target="_blank"
+                            rel="noopener"
+                            className="text-link hover:underline transition-colors"
+                        >
+                            Learn more
+                        </a>
+                    </p>
+                </div>
+
+                {!hasSSOEntitlement ? (
+                    <IdentityProviderUpsellCard />
+                ) : identityProviders.length > 0 ? (
+                    <SettingsCardGroup>
+                        {identityProviders.map((provider) => (
+                            <IdentityProviderSettingsCard key={provider.id} provider={provider} />
+                        ))}
+                    </SettingsCardGroup>
+                ) : (
+                    <Alert className="items-center p-4">
+                        <Info className="w-4 h-4 text-muted-foreground" />
+                        <AlertDescription>
+                            No identity providers are configured. Add them in your config file.{" "}
+                            <a
+                                href="https://docs.sourcebot.dev/docs/configuration/idp"
+                                target="_blank"
+                                rel="noopener"
+                                className="!text-link !no-underline hover:!underline"
+                            >
+                                Learn more
+                            </a>
+                        </AlertDescription>
+                    </Alert>
+                )}
             </div>
         </div>
     )
@@ -63,3 +114,10 @@ export default authenticatedPage(async ({ org }) => {
     minRole: OrgRole.OWNER,
     redirectTo: '/settings',
 });
+
+const getConfiguredIdentityProviders = async (): Promise<IdentityProvider[]> => {
+    const providers = await getProviders();
+    return providers.filter((provider) =>
+        provider.purpose === "sso" && !["credentials", "nodemailer"].includes(provider.type)
+    );
+}
