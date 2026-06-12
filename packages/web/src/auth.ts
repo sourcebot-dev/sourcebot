@@ -196,8 +196,8 @@ const nextAuthResult = NextAuth(async () => ({
             // NOTE: Tokens are encrypted before storage for security
             if (
                 account &&
+                (account.type === 'oauth' || account.type === 'oidc') &&
                 account.provider &&
-                account.provider !== 'credentials' &&
                 account.providerAccountId
             ) {
                 const issuerUrl = await getIssuerUrlForProviderId(account.provider);

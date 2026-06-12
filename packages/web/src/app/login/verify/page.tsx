@@ -7,19 +7,18 @@ import { InputOTP } from "@/components/ui/input-otp"
 import { Card, CardHeader, CardDescription, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { useCallback, useState, Suspense } from "react"
-import VerificationFailed from "./verificationFailed"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import useCaptureEvent from "@/hooks/useCaptureEvent"
 import { Footer } from "@/app/components/footer"
 import { SOURCEBOT_SUPPORT_EMAIL } from "@/lib/constants"
+import { Redirect } from "@/app/components/redirect"
 
 function VerifyPageContent() {
     const [value, setValue] = useState("")
     const searchParams = useSearchParams()
     const email = searchParams.get("email")
-    const router = useRouter()
     const captureEvent = useCaptureEvent();
 
     const handleSubmit = useCallback(() => {
@@ -27,13 +26,18 @@ function VerifyPageContent() {
             const url = new URL("/api/auth/callback/nodemailer", window.location.origin)
             url.searchParams.set("token", value)
             url.searchParams.set("email", email)
-            router.push(url.toString())
+            // Use a full-page navigation (not router.push) so the auth callback's
+            // session cookie + 302 redirect are applied by the browser, and the
+            // one-time token isn't consumed twice by a client-side RSC navigation.
+            window.location.href = url.toString()
         }
-    }, [value, email, router])
+    }, [value, email])
 
     if (!email) {
         captureEvent("wa_login_verify_page_no_email", {})
-        return <VerificationFailed />
+        return <Redirect
+            to="/login"
+        />
     }
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -49,9 +53,9 @@ function VerifyPageContent() {
                     <div className="flex justify-center mb-6">
                         <SourcebotLogo className="h-16" size="large" />
                     </div>
-                    <Card className="w-full shadow-lg border-muted/40">
+                    <Card className="w-full">
                         <CardHeader className="space-y-1">
-                            <CardTitle className="text-2xl font-bold text-center">Verify your email</CardTitle>
+                            <CardTitle className="text-2xl font-semibold text-center">Verify your email</CardTitle>
                             <CardDescription className="text-center">
                                 Enter the 6-digit code we sent to <span className="font-semibold text-primary">{email}</span>
                             </CardDescription>
@@ -65,15 +69,15 @@ function VerifyPageContent() {
                                 <div className="flex justify-center py-4">
                                     <InputOTP maxLength={6} value={value} onChange={setValue} onKeyDown={handleKeyDown} className="gap-2">
                                         <InputOTPGroup>
-                                            <InputOTPSlot index={0} className="rounded-md border-input" />
-                                            <InputOTPSlot index={1} className="rounded-md border-input" />
-                                            <InputOTPSlot index={2} className="rounded-md border-input" />
+                                            <InputOTPSlot index={0} />
+                                            <InputOTPSlot index={1} />
+                                            <InputOTPSlot index={2} />
                                         </InputOTPGroup>
                                         <InputOTPSeparator />
                                         <InputOTPGroup>
-                                            <InputOTPSlot index={3} className="rounded-md border-input" />
-                                            <InputOTPSlot index={4} className="rounded-md border-input" />
-                                            <InputOTPSlot index={5} className="rounded-md border-input" />
+                                            <InputOTPSlot index={3} />
+                                            <InputOTPSlot index={4} />
+                                            <InputOTPSlot index={5} />
                                         </InputOTPGroup>
                                     </InputOTP>
                                 </div>
