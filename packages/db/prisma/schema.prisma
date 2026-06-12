@@ -274,7 +274,6 @@ model Org {
   apiKeys     ApiKey[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
-  metadata    Json?
 
   /// @deprecated This property can be controlled by the environment
   /// variable `REQUIRE_APPROVAL_NEW_MEMBERS`. To ensure that we use
