@@ -4,7 +4,6 @@ import { createAudit } from "@/ee/features/audit/audit";
 import { env, getSMTPConnectionURL } from "@sourcebot/shared";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notAuthenticated, notFound, ServiceError } from "@/lib/serviceError";
-import { getOrgMetadata, isHttpError } from "@/lib/utils";
 import { __unsafePrisma } from "@/prisma";
 import { render } from "@react-email/components";
 import { generateApiKey, getTokenFromConfig } from "@sourcebot/shared";
@@ -13,16 +12,13 @@ import { createLogger } from "@sourcebot/shared";
 import { GiteaConnectionConfig } from "@sourcebot/schemas/v3/gitea.type";
 import { GithubConnectionConfig } from "@sourcebot/schemas/v3/github.type";
 import { GitlabConnectionConfig } from "@sourcebot/schemas/v3/gitlab.type";
-import { isAnonymousAccessAvailable } from "@/lib/entitlements";
 import { StatusCodes } from "http-status-codes";
 import { cookies } from "next/headers";
 import { createTransport } from "nodemailer";
-import { Octokit } from "octokit";
 import JoinRequestSubmittedEmail from "./emails/joinRequestSubmittedEmail";
-import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_ID, SOURCEBOT_SUPPORT_EMAIL } from "./lib/constants";
+import { AGENTIC_SEARCH_TUTORIAL_DISMISSED_COOKIE_NAME, MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME, SINGLE_TENANT_ORG_ID } from "./lib/constants";
 import { RepositoryQuery } from "./lib/types";
 import { getAuthenticatedUser, withAuth, withOptionalAuth } from "./middleware/withAuth";
-import { withMinimumOrgRole } from "./middleware/withMinimumOrgRole";
 import { getBrowsePath } from "./app/(app)/browse/hooks/utils";
 import { sew } from "@/middleware/sew";
 
@@ -379,142 +375,6 @@ export const getRepoInfoByName = async (repoName: string) => sew(() =>
         }
     }));
 
-export const experimental_addGithubRepositoryByUrl = async (repositoryUrl: string): Promise<{ connectionId: number } | ServiceError> => sew(() =>
-    withOptionalAuth(async ({ org, prisma }) => {
-        if (env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED !== 'true') {
-            return {
-                statusCode: StatusCodes.BAD_REQUEST,
-                errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                message: "This feature is not enabled.",
-            } satisfies ServiceError;
-        }
-
-        // Parse repository URL to extract owner/repo
-        const repoInfo = (() => {
-            const url = repositoryUrl.trim();
-
-            // Handle various GitHub URL formats
-            const patterns = [
-                // https://github.com/owner/repo or https://github.com/owner/repo.git
-                /^https?:\/\/github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(?:\.git)?\/?$/,
-                // github.com/owner/repo
-                /^github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(?:\.git)?\/?$/,
-                // owner/repo
-                /^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/
-            ];
-
-            for (const pattern of patterns) {
-                const match = url.match(pattern);
-                if (match) {
-                    return {
-                        owner: match[1],
-                        repo: match[2]
-                    };
-                }
-            }
-
-            return null;
-        })();
-
-        if (!repoInfo) {
-            return {
-                statusCode: StatusCodes.BAD_REQUEST,
-                errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                message: "Invalid repository URL format. Please use 'owner/repo' or 'https://github.com/owner/repo' format.",
-            } satisfies ServiceError;
-        }
-
-        const { owner, repo } = repoInfo;
-
-        // Use GitHub API to fetch repository information and get the external_id
-        const octokit = new Octokit({
-            auth: env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN
-        });
-
-        let githubRepo;
-        try {
-            const response = await octokit.rest.repos.get({
-                owner,
-                repo,
-            });
-            githubRepo = response.data;
-        } catch (error) {
-            if (isHttpError(error, 404)) {
-                return {
-                    statusCode: StatusCodes.NOT_FOUND,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: `Repository '${owner}/${repo}' not found or is private. Only public repositories can be added.`,
-                } satisfies ServiceError;
-            }
-
-            if (isHttpError(error, 403)) {
-                return {
-                    statusCode: StatusCodes.FORBIDDEN,
-                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                    message: `Access to repository '${owner}/${repo}' is forbidden. Only public repositories can be added.`,
-                } satisfies ServiceError;
-            }
-
-            return {
-                statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-                errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                message: `Failed to fetch repository information: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            } satisfies ServiceError;
-        }
-
-        if (githubRepo.private) {
-            return {
-                statusCode: StatusCodes.BAD_REQUEST,
-                errorCode: ErrorCode.INVALID_REQUEST_BODY,
-                message: "Only public repositories can be added.",
-            } satisfies ServiceError;
-        }
-
-        // Check if this repository is already connected using the external_id
-        const existingRepo = await prisma.repo.findFirst({
-            where: {
-                orgId: org.id,
-                external_id: githubRepo.id.toString(),
-                external_codeHostType: 'github',
-                external_codeHostUrl: 'https://github.com',
-            }
-        });
-
-        if (existingRepo) {
-            return {
-                statusCode: StatusCodes.BAD_REQUEST,
-                errorCode: ErrorCode.CONNECTION_ALREADY_EXISTS,
-                message: "This repository already exists.",
-            } satisfies ServiceError;
-        }
-
-        const connectionName = `${owner}-${repo}-${Date.now()}`;
-
-        // Create GitHub connection config
-        const connectionConfig: GithubConnectionConfig = {
-            type: "github" as const,
-            repos: [`${owner}/${repo}`],
-            ...(env.EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN ? {
-                token: {
-                    env: 'EXPERIMENT_SELF_SERVE_REPO_INDEXING_GITHUB_TOKEN'
-                }
-            } : {})
-        };
-
-        const connection = await prisma.connection.create({
-            data: {
-                orgId: org.id,
-                name: connectionName,
-                config: connectionConfig as unknown as Prisma.InputJsonValue,
-                connectionType: 'github',
-            }
-        });
-
-        return {
-            connectionId: connection.id,
-        }
-    }));
-
 // eslint-disable-next-line authz/require-auth-wrapper -- calls getAuthenticatedUser() directly; runs pre-org-membership so cannot use withAuth
 export const createAccountRequest = async () => sew(async () => {
     const authResult = await getAuthenticatedUser();
@@ -619,36 +479,6 @@ export const createAccountRequest = async () => sew(async () => {
     }
 });
 
-export const setMemberApprovalRequired = async (required: boolean): Promise<{ success: boolean } | ServiceError> => sew(async () =>
-    withAuth(async ({ org, role, prisma }) =>
-        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            await prisma.org.update({
-                where: { id: org.id },
-                data: { memberApprovalRequired: required },
-            });
-
-            return {
-                success: true,
-            };
-        })
-    )
-);
-
-export const setInviteLinkEnabled = async (enabled: boolean): Promise<{ success: boolean } | ServiceError> => sew(async () =>
-    withAuth(async ({ org, role, prisma }) =>
-        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            await prisma.org.update({
-                where: { id: org.id },
-                data: { inviteLinkEnabled: enabled },
-            });
-
-            return {
-                success: true,
-            };
-        })
-    )
-);
-
 export const getSearchContexts = async () => sew(() =>
     withOptionalAuth(async ({ org, prisma }) => {
         const searchContexts = await prisma.searchContext.findMany({
@@ -735,39 +565,6 @@ export const getRepoImage = async (repoId: number): Promise<ArrayBuffer | Servic
             return notFound();
         }
     })
-});
-
-export const setAnonymousAccessStatus = async (enabled: boolean): Promise<ServiceError | boolean> => sew(async () => {
-    return await withAuth(async ({ org, role, prisma }) => {
-        return await withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            const anonymousAccessAvailable = await isAnonymousAccessAvailable();
-            if (!anonymousAccessAvailable) {
-                console.error(`Anonymous access isn't supported in your current plan. For support, contact ${SOURCEBOT_SUPPORT_EMAIL}.`);
-                return {
-                    statusCode: StatusCodes.FORBIDDEN,
-                    errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
-                    message: "Anonymous access is not supported in your current plan",
-                } satisfies ServiceError;
-            }
-
-            const currentMetadata = getOrgMetadata(org);
-            const mergedMetadata = {
-                ...(currentMetadata ?? {}),
-                anonymousAccessEnabled: enabled,
-            };
-
-            await prisma.org.update({
-                where: {
-                    id: org.id,
-                },
-                data: {
-                    metadata: mergedMetadata,
-                },
-            });
-
-            return true;
-        });
-    });
 });
 
 // eslint-disable-next-line authz/require-auth-wrapper -- UI-only preference cookie, no DB access

@@ -1,7 +1,7 @@
 import { CodeHostType } from "@sourcebot/db";
 import { ConfigSettings, IdentityProviderType } from "./types.js";
 
-export const SOURCEBOT_SUPPORT_EMAIL = 'team@sourcebot.dev';
+export const SOURCEBOT_SUPPORT_EMAIL = 'support@sourcebot.dev';
 
 /**
  * @deprecated Use API_KEY_PREFIX instead.

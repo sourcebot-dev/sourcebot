@@ -19,6 +19,9 @@ export const MOCK_ORG: Org = {
     imageUrl: null,
     metadata: null,
     memberApprovalRequired: false,
+    isCredentialsLoginEnabled: true,
+    isEmailCodeLoginEnabled: false,
+    isAnonymousAccessEnabled: false,
     inviteLinkEnabled: false,
     inviteLinkId: null,
 }

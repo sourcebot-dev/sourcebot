@@ -21,6 +21,7 @@ import { SINGLE_TENANT_ORG_ID } from './lib/constants';
 import { EncryptedPrismaAdapter, encryptAccountData } from '@/lib/encryptedPrismaAdapter';
 import { getAnonymousId } from '@/lib/anonymousId';
 import { captureEvent } from '@/lib/posthog';
+import { isEmailCodeLoginEnabled, isCredentialsLoginEnabled } from '@sourcebot/shared'
 
 export const runtime = 'nodejs';
 
@@ -71,9 +72,10 @@ export const getProviders = async () => {
     const providers: IdentityProvider[] = [
         ...(hasSSOEntitlement ? await getEEIdentityProviders() : []),
     ];
+    const org = await __unsafePrisma.org.findUnique({ where: { id: SINGLE_TENANT_ORG_ID } });
 
     const smtpConnectionUrl = getSMTPConnectionURL();
-    if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS && env.AUTH_EMAIL_CODE_LOGIN_ENABLED === 'true') {
+    if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS && isEmailCodeLoginEnabled(org!)) {
         providers.push({
             __provider: EmailProvider({
                 server: smtpConnectionUrl,
@@ -106,7 +108,7 @@ export const getProviders = async () => {
         });
     }
 
-    if (env.AUTH_CREDENTIALS_LOGIN_ENABLED === 'true') {
+    if (isCredentialsLoginEnabled(org!)) {
         providers.push({
             __provider: Credentials({
                 credentials: {
@@ -194,8 +196,8 @@ const nextAuthResult = NextAuth(async () => ({
             // NOTE: Tokens are encrypted before storage for security
             if (
                 account &&
+                (account.type === 'oauth' || account.type === 'oidc') &&
                 account.provider &&
-                account.provider !== 'credentials' &&
                 account.providerAccountId
             ) {
                 const issuerUrl = await getIssuerUrlForProviderId(account.provider);
@@ -424,6 +426,7 @@ const nextAuthResult = NextAuth(async () => ({
     providers: (await getProviders()).map((provider) => provider.__provider),
     pages: {
         signIn: "/login",
+        error: "/login/error",
         // We set redirect to false in signInOptions so we can pass the email in as a param
         // verifyRequest: "/login/verify",
     }

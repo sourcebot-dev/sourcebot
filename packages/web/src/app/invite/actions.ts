@@ -10,6 +10,7 @@ import { sew } from "@/middleware/sew";
 import { getAuthenticatedUser } from "@/middleware/withAuth";
 import { __unsafePrisma } from "@/prisma";
 import { StatusCodes } from "http-status-codes";
+import { isMemberApprovalRequired } from "@sourcebot/shared";
 
 // eslint-disable-next-line authz/require-auth-wrapper -- runs pre-org-membership; uses getAuthenticatedUser() directly since withAuth requires a user-to-org link this call is establishing
 export const joinOrganization = async (inviteLinkId?: string) => sew(async () => {
@@ -32,7 +33,7 @@ export const joinOrganization = async (inviteLinkId?: string) => sew(async () =>
 
 
     // If member approval is required we must be using a valid invite link
-    if (org.memberApprovalRequired) {
+    if (isMemberApprovalRequired(org)) {
         if (!org.inviteLinkEnabled) {
             return {
                 statusCode: StatusCodes.BAD_REQUEST,

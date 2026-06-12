@@ -1,9 +1,3 @@
-/**
- * All routes under (app) are dynamic since the layout calls auth() and
- * accesses headers.
- */
-export const dynamic = 'force-dynamic';
-
 import { __unsafePrisma } from "@/prisma";
 import { auth } from "@/auth";
 import { isServiceError } from "@/lib/utils";
@@ -18,7 +12,7 @@ import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { notFound, redirect } from "next/navigation";
 import { PendingApprovalCard } from "./components/pendingApproval";
 import { SubmitJoinRequest } from "./components/submitJoinRequest";
-import { env, getOfflineLicenseMetadata, SOURCEBOT_VERSION } from "@sourcebot/shared";
+import { env, getOfflineLicenseMetadata, SOURCEBOT_VERSION, isMemberApprovalRequired } from "@sourcebot/shared";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { GcpIapAuth } from "./components/gcpIapAuth";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
@@ -82,7 +76,7 @@ export default async function Layout(props: LayoutProps) {
         // the join organization card to allow them to join the org if seat capacity is freed up. This card handles checking if the org has available seats.
         // 2. The org requires member approval, and they haven't been approved yet. In this case, we allow them to submit a request to join the org.
         if (!membership) {
-            if (!org.memberApprovalRequired) {
+            if (!isMemberApprovalRequired(org)) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-6">
                         <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />

@@ -105,8 +105,8 @@ export const getSidebarNavGroups = async () =>
                 label: "Workspace",
                 items: [
                     {
-                        title: "Access",
-                        href: `/settings/access`,
+                        title: "Security",
+                        href: `/settings/security`,
                         icon: "shield" as const,
                     },
                     {

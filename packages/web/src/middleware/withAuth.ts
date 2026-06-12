@@ -7,8 +7,8 @@ import { notAuthenticated, notFound, ServiceError } from "../lib/serviceError";
 import { SINGLE_TENANT_ORG_ID } from "../lib/constants";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "../lib/errorCodes";
-import { getOrgMetadata, isServiceError } from "../lib/utils";
-import { hasEntitlement, isAnonymousAccessAvailable } from "@/lib/entitlements";
+import { isServiceError } from "../lib/utils";
+import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
 
 const LAST_ACTIVE_AT_THRESHOLD_MS = 5 * 60 * 1000;
 
@@ -51,17 +51,9 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
         return authContext;
     }
 
-    const anonymousAccessAvailable = await isAnonymousAccessAvailable();
-    const orgMetadata = getOrgMetadata(authContext.org);
-
     if (
-        (
-            !authContext.user ||
-            !authContext.role
-        ) && (
-            !anonymousAccessAvailable ||
-            !orgMetadata?.anonymousAccessEnabled
-        )
+        (!authContext.user || !authContext.role) &&
+        !(await isAnonymousAccessEnabled())
     ) {
         return notAuthenticated();
     }

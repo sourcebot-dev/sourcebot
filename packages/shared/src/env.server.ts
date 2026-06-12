@@ -173,12 +173,8 @@ const options = {
         ZOEKT_WEBSERVER_URL: z.string().url().default("http://localhost:6070"),
 
         // Auth
-        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
-        REQUIRE_APPROVAL_NEW_MEMBERS: booleanSchema.optional(),
         AUTH_SECRET: z.string(),
         AUTH_URL: z.string().url(),
-        AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
-        AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.default('false'),
 
         /**
          * Relative time from now in seconds when to expire the session.
@@ -308,20 +304,11 @@ const options = {
         GOOGLE_VERTEX_REGION: z.string().default('us-central1'),
         GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
 
-        /**
-         * @deprecated Use `thinkingBudget` in the language model config instead.
-         */
-        GOOGLE_VERTEX_THINKING_BUDGET_TOKENS: numberSchema.optional(),
-
         AWS_ACCESS_KEY_ID: z.string().optional(),
         AWS_SECRET_ACCESS_KEY: z.string().optional(),
         AWS_SESSION_TOKEN: z.string().optional(),
         AWS_REGION: z.string().optional(),
 
-        /**
-         * @deprecated Use per-model `temperature` in the language model config instead.
-         */
-        SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.optional(),
         SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(100),
         SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED: booleanSchema.default('true'),
         SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS: numberSchema.int().positive().max(maxTimerDelayMs).default(60000),
@@ -341,12 +328,6 @@ const options = {
             .transform(value => {
                 return value ?? ((process.env.EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS as 'true' | 'false') ?? 'false');
             }),
-
-        /**
-         * @deprecated Use `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` instead.
-         */
-        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
-
 
         // Experimental Environment Variables
         // @note: These environment variables are subject to change at any time and are not garunteed to be backwards compatible.
@@ -408,11 +389,6 @@ const options = {
             }),
 
         /**
-         * @deprecated Use `PERMISSION_SYNC_ENABLED` instead.
-         */
-        EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
-
-        /**
          * Configure whether to send telemetry events.
          * By default, all events are anonymized and do not contain PII data,
          * unless SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED is set to true.
@@ -425,6 +401,59 @@ const options = {
          * ignored.
          */
         SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED: booleanSchema.default('false'),
+
+        //////////// Deprecated ////////////
+        /**
+         * @deprecated Configure this setting via the "Require approval
+         * for new members" toggle in Settings → Security intsead.
+         */
+        REQUIRE_APPROVAL_NEW_MEMBERS: booleanSchema.optional(),
+
+        /**
+         * @deprecated Configure email + password login via the "Email & password login"
+         * toggle in Settings → Security instead. When set, this env var overrides the UI
+         * setting and locks the toggle; when unset, the DB-backed
+         * `Org.isCredentialsLoginEnabled` setting is used.
+         */
+        AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.optional(),
+
+        /**
+         * @deprecated Configure email code login via the UI in Settings → Security
+         * instead. When set, this env var overrides the UI setting and locks the toggle;
+         * when unset, the DB-backed `Org.isEmailCodeLoginEnabled` setting is used. Left
+         * optional (rather than defaulting to 'false') so we can detect whether it was
+         * explicitly set.
+         */
+        AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.optional(),
+
+        /**
+         * @deprecated Configure anonymous access via the UI in Settings → Security
+         * instead. When set, this env var overrides the UI setting and locks the toggle;
+         * when unset, the DB-backed `Org.isAnonymousAccessEnabled` setting is used. Left
+         * optional (rather than defaulting to 'false') so we can detect whether it was
+         * explicitly set.
+         */
+        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.optional(),
+
+        /**
+         * @deprecated Use `PERMISSION_SYNC_ENABLED` instead.
+         */
+        EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
+
+        /**
+         * @deprecated Use `thinkingBudget` in the language model config instead.
+         */
+        GOOGLE_VERTEX_THINKING_BUDGET_TOKENS: numberSchema.optional(),
+
+        /**
+         * @deprecated Use per-model `temperature` in the language model config instead.
+         */
+        SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.optional(),
+
+        /**
+         * @deprecated Use `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` instead.
+         */
+        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
     },
     runtimeEnv,
     emptyStringAsUndefined: true,
