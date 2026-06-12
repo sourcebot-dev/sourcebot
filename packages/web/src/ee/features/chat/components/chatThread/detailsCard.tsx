@@ -59,6 +59,12 @@ const DetailsCardComponent = ({
         (part.type === 'dynamic-tool' && part.toolName.startsWith('mcp_'))
     ).length, [thinkingSteps]);
 
+    // Lookup of estimated output tokens by tool call id, used to badge
+    // individual tool calls in the thinking steps.
+    const toolTokenUsageMap = useMemo(() => new Map(
+        (metadata?.toolTokenUsage ?? []).map(({ toolCallId, estimatedOutputTokens }) => [toolCallId, estimatedOutputTokens])
+    ), [metadata?.toolTokenUsage]);
+
     const cacheReadTokens = metadata?.totalCacheReadTokens ?? 0;
     const inputTokens = metadata?.totalInputTokens ?? 0;
     const cachedInputPercent = inputTokens > 0
@@ -202,6 +208,7 @@ const DetailsCardComponent = ({
                             thinkingSteps={thinkingSteps}
                             isNetworkActive={isNetworkActive}
                             isThinking={isThinking}
+                            toolTokenUsageMap={toolTokenUsageMap}
                         />
                     </CardContent>
                 </CollapsibleContent>
@@ -213,7 +220,7 @@ const DetailsCardComponent = ({
 export const DetailsCard = memo(DetailsCardComponent, isEqual);
 
 
-const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking }: { thinkingSteps: SBChatMessagePart[][], isNetworkActive: boolean, isThinking: boolean }) => {
+const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking, toolTokenUsageMap }: { thinkingSteps: SBChatMessagePart[][], isNetworkActive: boolean, isThinking: boolean, toolTokenUsageMap?: Map<string, number> }) => {
     const { scrollRef, contentRef, scrollToBottom } = useStickToBottom();
     const [shouldStick, setShouldStick] = useState(isThinking);
     const prevIsThinking = usePrevious(isThinking);
@@ -240,7 +247,10 @@ const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking }: { thinkin
                     <div key={index}>
                         {step.map((part, index) => (
                             <div key={index} className="mb-2">
-                                <StepPartRenderer part={part} />
+                                <StepPartRenderer
+                                    part={part}
+                                    estimatedOutputTokens={'toolCallId' in part ? toolTokenUsageMap?.get(part.toolCallId) : undefined}
+                                />
                             </div>
                         ))}
                     </div>
@@ -251,7 +261,7 @@ const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking }: { thinkin
 }
 
 
-export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
+export const StepPartRenderer = ({ part, estimatedOutputTokens }: { part: SBChatMessagePart, estimatedOutputTokens?: number }) => {
     switch (part.type) {
         case 'reasoning':
         case 'text':
@@ -265,6 +275,7 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
             return (
                 <ToolOutputGuard
                     part={part}
+                    estimatedOutputTokens={estimatedOutputTokens}
                     loadingText="Reading file..."
                 >
                     {(output) => <ReadFileToolComponent {...output} />}
@@ -274,6 +285,7 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
             return (
                 <ToolOutputGuard
                     part={part}
+                    estimatedOutputTokens={estimatedOutputTokens}
                     loadingText={'Searching...'}
                 >
                     {(output) => <GrepToolComponent {...output} />}
@@ -283,6 +295,7 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
             return (
                 <ToolOutputGuard
                     part={part}
+                    estimatedOutputTokens={estimatedOutputTokens}
                     loadingText="Searching files..."
                 >
                     {(output) => <GlobToolComponent {...output} />}
@@ -292,6 +305,7 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
             return (
                 <ToolOutputGuard
                     part={part}
+                    estimatedOutputTokens={estimatedOutputTokens}
                     loadingText="Resolving definitions..."
                 >
                     {(output) => <FindSymbolDefinitionsToolComponent {...output} />}
@@ -301,6 +315,7 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
             return (
                 <ToolOutputGuard
                     part={part}
+                    estimatedOutputTokens={estimatedOutputTokens}
                     loadingText="Resolving references..."
                 >
                     {(output) => <FindSymbolReferencesToolComponent {...output} />}
@@ -310,6 +325,7 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
             return (
                 <ToolOutputGuard
                     part={part}
+                    estimatedOutputTokens={estimatedOutputTokens}
                     loadingText="Listing repositories..."
                 >
                     {(output) => <ListReposToolComponent {...output} />}
@@ -319,6 +335,7 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
             return (
                 <ToolOutputGuard
                     part={part}
+                    estimatedOutputTokens={estimatedOutputTokens}
                     loadingText="Listing commits..."
                 >
                     {(output) => <ListCommitsToolComponent {...output} />}
@@ -328,6 +345,7 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
             return (
                 <ToolOutputGuard
                     part={part}
+                    estimatedOutputTokens={estimatedOutputTokens}
                     loadingText="Comparing revisions..."
                 >
                     {(output) => <GetDiffToolComponent {...output} />}
@@ -337,6 +355,7 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
             return (
                 <ToolOutputGuard
                     part={part}
+                    estimatedOutputTokens={estimatedOutputTokens}
                     loadingText="Listing tree..."
                 >
                     {(output) => <ListTreeToolComponent {...output} />}
@@ -352,7 +371,7 @@ export const StepPartRenderer = ({ part }: { part: SBChatMessagePart }) => {
             return <ToolSearchToolComponent query={part.input.tool_to_activate_name} results={part.output.results ?? []} />;
         case 'dynamic-tool':
             if (part.toolName.startsWith('mcp_')) {
-                return <McpToolComponent part={part} />;
+                return <McpToolComponent part={part} estimatedOutputTokens={estimatedOutputTokens} />;
             }
             return null;
         case 'data-source':
