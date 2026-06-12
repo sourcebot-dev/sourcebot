@@ -25,15 +25,8 @@ export const estimateTokenCount = (content: string, bytesPerToken: number = ESTI
 }
 
 /**
- * Estimates the input-token footprint of a tool output for tools WITHOUT a
- * `toModelOutput` mapping. The AI SDK sends such outputs to the model as a
- * serialized JSON object, so the estimate measures that form — structural
- * overhead included.
- *
- * For tools that define `toModelOutput`, use
- * {@link estimateModelToolOutputTokens} on the mapped result instead:
- * estimating the raw output object would count payload (e.g. UI-only
- * metadata) the model never sees.
+ * Estimates the input-token footprint of an arbitrary value that reaches the
+ * model as a serialized JSON object — structural overhead included.
  */
 export const estimateToolOutputTokens = (output: unknown): number => {
     // JSON.stringify returns undefined (not a string) for undefined input.
@@ -52,7 +45,7 @@ export const estimateModelToolOutputTokens = (modelOutput: ToolResultOutput): nu
             return estimateTokenCount(modelOutput.value);
         case 'json':
         case 'error-json':
-            return estimateTokenCount(JSON.stringify(modelOutput.value) ?? '');
+            return estimateToolOutputTokens(modelOutput.value);
         case 'content':
             return modelOutput.value.reduce((sum, part) => {
                 if (part.type === 'text') {
@@ -60,9 +53,11 @@ export const estimateModelToolOutputTokens = (modelOutput: ToolResultOutput): nu
                 }
                 // Non-text parts (media, file references) have no meaningful
                 // text length; fall back to their serialized size.
-                return sum + estimateTokenCount(JSON.stringify(part) ?? '');
+                return sum + estimateToolOutputTokens(part);
             }, 0);
+        // Variants without estimable text (e.g. 'execution-denied') fall back
+        // to their serialized size.
         default:
-            return estimateTokenCount(JSON.stringify(modelOutput) ?? '');
+            return estimateToolOutputTokens(modelOutput);
     }
 }
