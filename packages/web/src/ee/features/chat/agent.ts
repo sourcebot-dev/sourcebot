@@ -1,4 +1,5 @@
-import { SBChatMessage, SBChatMessageMetadata } from "@/features/chat/types";
+import { SBChatMessage, SBChatMessageMetadata, ToolTokenUsageEntry } from "@/features/chat/types";
+import { estimateToolOutputTokens } from "@/features/chat/tokenEstimation";
 import { getFileSource } from '@/features/git';
 import { isServiceError } from "@/lib/utils";
 import { LanguageModelV3 as AISDKLanguageModelV3 } from "@ai-sdk/provider";
@@ -149,6 +150,8 @@ export const createMessageStream = async ({
 
             const startTime = new Date();
 
+            const collectedToolTokenUsage: ToolTokenUsageEntry[] = [];
+
             const researchStream = await createAgentStream({
                 model,
                 providerOptions: modelProviderOptions,
@@ -162,6 +165,9 @@ export const createMessageStream = async ({
                         type: 'data-source',
                         data: source,
                     });
+                },
+                onToolTokenUsage: (entry) => {
+                    collectedToolTokenUsage.push(entry);
                 },
                 onMcpServerDiscovered: (sanitizedName, faviconUrl) => {
                     writer.write({
@@ -200,6 +206,10 @@ export const createMessageStream = async ({
                     totalCacheReadTokens: (priorMetadata?.totalCacheReadTokens ?? 0) + (totalUsage.inputTokenDetails?.cacheReadTokens ?? 0),
                     totalCacheWriteTokens: (priorMetadata?.totalCacheWriteTokens ?? 0) + (totalUsage.inputTokenDetails?.cacheWriteTokens ?? 0),
                     totalResponseTimeMs: (priorMetadata?.totalResponseTimeMs ?? 0) + (new Date().getTime() - startTime.getTime()),
+                    // Unlike the token totals above, this is concatenated (not
+                    // summed) across approval-continuation phases so tool calls
+                    // from the pre-approval phase are preserved.
+                    toolTokenUsage: [...(priorMetadata?.toolTokenUsage ?? []), ...collectedToolTokenUsage],
                     modelName,
                     traceId,
                     ...metadata,
@@ -227,6 +237,7 @@ interface AgentOptions {
     inputMessages: ModelMessage[];
     inputSources: Source[];
     onWriteSource: (source: Source) => void;
+    onToolTokenUsage?: (entry: ToolTokenUsageEntry) => void;
     onMcpServerDiscovered: (sanitizedName: string, faviconUrl: string) => void;
     onMcpServerFailed: (serverName: string) => void;
     traceId: string;
@@ -245,6 +256,7 @@ const createAgentStream = async ({
     selectedRepos,
     disabledMcpServerIds,
     onWriteSource,
+    onToolTokenUsage,
     onMcpServerDiscovered,
     onMcpServerFailed,
     traceId,
@@ -431,7 +443,16 @@ const createAgentStream = async ({
                 return null;
             },
             onStepFinish: ({ toolResults }) => {
-                toolResults.forEach(({ output, dynamic }) => {
+                toolResults.forEach(({ toolCallId, toolName, output, dynamic }) => {
+                    // Token estimation runs for every tool result — including
+                    // dynamic (MCP) tools and error outputs — since they all
+                    // re-enter the model's context on the next step.
+                    onToolTokenUsage?.({
+                        toolCallId,
+                        toolName,
+                        estimatedOutputTokens: estimateToolOutputTokens(output),
+                    });
+
                     if (dynamic || isServiceError(output)) {
                         return;
                     }

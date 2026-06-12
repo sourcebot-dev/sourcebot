@@ -5,16 +5,20 @@ import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
 import { ToolUIPart } from "ai";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 import { useCallback, useState } from "react";
 import { JsonHighlighter, unescapeJsonStrings } from "./jsonHighlighter";
+import { ToolTokenBadge } from "./toolTokenBadge";
 
 export const ToolOutputGuard = <T extends ToolUIPart<{ [K in keyof SBChatMessageToolTypes]: SBChatMessageToolTypes[K] }>>({
     part,
     loadingText,
+    estimatedOutputTokens,
     children,
 }: {
     part: T,
     loadingText: string,
+    estimatedOutputTokens?: number,
     children: (output: Extract<T, { state: 'output-available' }>['output']) => React.ReactNode,
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -66,6 +70,12 @@ export const ToolOutputGuard = <T extends ToolUIPart<{ [K in keyof SBChatMessage
                         children(part.output as Extract<T, { state: 'output-available' }>['output'])
                     )}
                 </div>
+                {estimatedOutputTokens !== undefined && (
+                    <>
+                        <ToolTokenBadge estimatedOutputTokens={estimatedOutputTokens} />
+                        <Separator orientation="vertical" className="h-3 flex-shrink-0" />
+                    </>
+                )}
                 {hasInput && <ExpandButton isExpanded={isExpanded} onToggle={onToggle} />}
             </div>
             {hasInput && isExpanded && (

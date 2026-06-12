@@ -67,9 +67,21 @@ export const sbChatMessageMetadataSchema = z.object({
     selectedSearchScopes: z.array(searchScopeSchema).optional(),
     disabledMcpServerIds: z.array(z.string()).optional(),
     traceId: z.string().optional(),
+    // Estimated input-token footprint of each tool call's output (the cost the
+    // result imposes when fed back to the model on the next step). One entry
+    // per tool call made during this message's turn. These are local
+    // estimates — never to be confused with the authoritative
+    // `totalInputTokens` / `totalTokens` fields above.
+    toolTokenUsage: z.array(z.object({
+        toolCallId: z.string(),
+        toolName: z.string(),
+        estimatedOutputTokens: z.number(),
+    })).optional(),
 });
 
 export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;
+
+export type ToolTokenUsageEntry = NonNullable<SBChatMessageMetadata['toolTokenUsage']>[number];
 
 export type SBChatMessageToolTypes = {
     [K in keyof ReturnType<typeof createTools>]: InferUITool<ReturnType<typeof createTools>[K]>;
