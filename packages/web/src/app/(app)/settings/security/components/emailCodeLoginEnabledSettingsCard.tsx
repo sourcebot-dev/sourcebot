@@ -73,7 +73,7 @@ export function EmailCodeLoginEnabledSettingsCard({
             <Switch
                 checked={enabled}
                 onCheckedChange={handleToggle}
-                disabled={isLoading || !isEmailServiceConfigured}
+                disabled={isLoading || (!isEmailServiceConfigured && !enabled)}
             />
         </BasicSettingsCard>
     )

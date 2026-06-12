@@ -91,6 +91,7 @@ export function InviteLinkEnabledSettingsCard({ inviteLinkEnabled, inviteLink }:
                                     size="icon"
                                     className="shrink-0 border-border hover:bg-muted"
                                     disabled={!inviteLink}
+                                    aria-label={copied ? "Invite link copied" : "Copy invite link"}
                                 >
                                     {copied ? (
                                         <Check className="h-4 w-4 text-[var(--chart-2)]" />
