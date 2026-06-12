@@ -100,7 +100,9 @@ export class RepoIndexManager {
         logger.debug('Starting scheduler');
         // Cleanup any orphaned disk resources on startup
         await this.cleanupOrphanedDiskResources();
+        await this.markReposWithMissingShardsAsStale();
         this.interval = setIntervalAsync(async () => {
+            await this.markReposWithMissingShardsAsStale();
             await this.scheduleIndexJobs();
             await this.scheduleCleanupJobs();
         }, this.settings.reindexRepoPollingIntervalMs);
@@ -680,6 +682,66 @@ export class RepoIndexManager {
             Sentry.captureException(err);
             logger.error(`Exception thrown while executing lifecycle function \`onJobMaybeFailed\`.`, err);
         }
+    }
+
+    // Detects repos that are marked as indexed in the database but have no
+    // index shards on disk (e.g., because the index directory lives on
+    // ephemeral storage and was lost), and clears their `indexedAt` so the
+    // scheduler re-indexes them. This is the inverse of
+    // `cleanupOrphanedDiskResources`.
+    private async markReposWithMissingShardsAsStale() {
+        // @note: the DB is queried *before* the disk is scanned so that a repo
+        // whose first index job completes between the two reads is not falsely
+        // marked as stale (its shard is guaranteed to be visible by the time it
+        // appears in the query result).
+        //
+        // Empty repositories are excluded (via `indexedCommitHash`) since they
+        // complete indexing without producing a shard. Unconnected repos are
+        // excluded since clearing `indexedAt` would bypass the garbage
+        // collection grace period in `scheduleCleanupJobs`.
+        const indexedRepos = await this.db.repo.findMany({
+            where: {
+                indexedAt: { not: null },
+                indexedCommitHash: { not: null },
+                connections: { some: {} },
+            },
+            select: {
+                id: true,
+                name: true,
+            },
+        });
+
+        if (indexedRepos.length === 0) {
+            return;
+        }
+
+        const repoIdsWithShards = new Set<number>();
+        if (existsSync(INDEX_CACHE_DIR)) {
+            const entries = await readdir(INDEX_CACHE_DIR);
+            for (const entry of entries) {
+                // Ignore temporary files (e.g., `.tmp` files from in-flight or
+                // failed indexing operations) - only completed shards count.
+                if (!entry.endsWith('.zoekt')) {
+                    continue;
+                }
+                const repoId = getRepoIdFromShardFileName(entry);
+                if (repoId !== undefined) {
+                    repoIdsWithShards.add(repoId);
+                }
+            }
+        }
+
+        const staleRepos = indexedRepos.filter(repo => !repoIdsWithShards.has(repo.id));
+        if (staleRepos.length === 0) {
+            return;
+        }
+
+        logger.warn(`Found ${staleRepos.length} repo(s) marked as indexed but with no index shards on disk. Marking as stale for re-indexing: ${staleRepos.map(repo => repo.name).join(', ')}`);
+
+        await this.db.repo.updateMany({
+            where: { id: { in: staleRepos.map(repo => repo.id) } },
+            data: { indexedAt: null },
+        });
     }
 
     // Scans the repos and index directories on disk and removes any entries

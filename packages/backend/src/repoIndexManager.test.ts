@@ -37,6 +37,7 @@ vi.mock('@sourcebot/shared', () => ({
 vi.mock('./constants.js', () => ({
     WORKER_STOP_GRACEFUL_TIMEOUT_MS: 5000,
     INDEX_CACHE_DIR: 'test-data/index',
+    REPOS_CACHE_DIR: 'test-data/repos',
 }));
 
 vi.mock('./git.js', () => ({
@@ -65,6 +66,13 @@ vi.mock('./posthog.js', () => ({
 vi.mock('./utils.js', () => ({
     getAuthCredentialsForRepo: vi.fn().mockResolvedValue(null),
     getShardPrefix: vi.fn((orgId: number, repoId: number) => `${orgId}_${repoId}`),
+    getRepoIdFromShardFileName: vi.fn((fileName: string) => {
+        const match = fileName.match(/^(\d+)_(\d+)_/);
+        if (!match) {
+            return undefined;
+        }
+        return parseInt(match[2], 10);
+    }),
     measure: vi.fn(async (cb: () => Promise<unknown>) => {
         const data = await cb();
         return { data, durationMs: 100 };
@@ -148,6 +156,7 @@ const createMockPrisma = () => {
         repo: {
             findMany: vi.fn().mockResolvedValue([]),
             update: vi.fn(),
+            updateMany: vi.fn(),
             delete: vi.fn(),
         },
         repoIndexingJob: {
@@ -779,6 +788,128 @@ describe('RepoIndexManager', () => {
             expect(mockPromClient.repoIndexJobSuccessTotal.inc).toHaveBeenCalledWith({
                 repo: repo.name,
                 type: 'cleanup',
+            });
+        });
+    });
+
+    describe('Missing Shard Reconciliation', () => {
+        const indexedRepo = (id: number, name: string) => createMockRepo({
+            id,
+            name,
+            indexedAt: new Date(),
+            indexedCommitHash: 'abc123',
+        });
+
+        test('clears indexedAt for indexed repos whose shard files are missing on startup', async () => {
+            (existsSync as Mock).mockImplementation((path: string) => path === 'test-data/index');
+            // Repo 1 has a shard on disk; repo 2 does not.
+            (readdir as Mock).mockResolvedValue(['1_1_v16.00000.zoekt']);
+            (mockPrisma.repo.findMany as Mock).mockResolvedValue([
+                indexedRepo(1, 'repo-with-shard'),
+                indexedRepo(2, 'repo-missing-shard'),
+            ]);
+
+            manager = new RepoIndexManager(mockPrisma, mockSettings, mockRedis, mockPromClient as any);
+            await manager.startScheduler();
+
+            expect(mockPrisma.repo.updateMany).toHaveBeenCalledWith({
+                where: { id: { in: [2] } },
+                data: { indexedAt: null },
+            });
+        });
+
+        test('does not touch repos when all shards are present', async () => {
+            (existsSync as Mock).mockImplementation((path: string) => path === 'test-data/index');
+            (readdir as Mock).mockResolvedValue(['1_1_v16.00000.zoekt', '1_2_v16.00000.zoekt']);
+            (mockPrisma.repo.findMany as Mock).mockResolvedValue([
+                indexedRepo(1, 'repo-1'),
+                indexedRepo(2, 'repo-2'),
+            ]);
+
+            manager = new RepoIndexManager(mockPrisma, mockSettings, mockRedis, mockPromClient as any);
+            await manager.startScheduler();
+
+            expect(mockPrisma.repo.updateMany).not.toHaveBeenCalled();
+        });
+
+        test('marks all indexed repos as stale when the index directory is missing', async () => {
+            (existsSync as Mock).mockReturnValue(false);
+            (mockPrisma.repo.findMany as Mock).mockResolvedValue([
+                indexedRepo(1, 'repo-1'),
+                indexedRepo(2, 'repo-2'),
+            ]);
+
+            manager = new RepoIndexManager(mockPrisma, mockSettings, mockRedis, mockPromClient as any);
+            await manager.startScheduler();
+
+            expect(mockPrisma.repo.updateMany).toHaveBeenCalledWith({
+                where: { id: { in: [1, 2] } },
+                data: { indexedAt: null },
+            });
+        });
+
+        test('does not count temporary shard files as valid shards', async () => {
+            (existsSync as Mock).mockImplementation((path: string) => path === 'test-data/index');
+            (readdir as Mock).mockResolvedValue(['1_2_v16.00000.zoekt123.tmp']);
+            (mockPrisma.repo.findMany as Mock).mockResolvedValue([
+                indexedRepo(2, 'repo-with-only-tmp-shard'),
+            ]);
+
+            manager = new RepoIndexManager(mockPrisma, mockSettings, mockRedis, mockPromClient as any);
+            await manager.startScheduler();
+
+            expect(mockPrisma.repo.updateMany).toHaveBeenCalledWith({
+                where: { id: { in: [2] } },
+                data: { indexedAt: null },
+            });
+        });
+
+        test('only considers repos that are indexed, non-empty, and connected', async () => {
+            (existsSync as Mock).mockImplementation((path: string) => path === 'test-data/index');
+            (readdir as Mock).mockResolvedValue([]);
+            (mockPrisma.repo.findMany as Mock).mockResolvedValue([]);
+
+            manager = new RepoIndexManager(mockPrisma, mockSettings, mockRedis, mockPromClient as any);
+            await manager.startScheduler();
+
+            // The reconciliation query must exclude unindexed repos (nothing to mark),
+            // empty repos (indexing completes without producing a shard), and
+            // unconnected repos (clearing indexedAt would bypass the GC grace period).
+            expect(mockPrisma.repo.findMany).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: expect.objectContaining({
+                        indexedAt: { not: null },
+                        indexedCommitHash: { not: null },
+                        connections: { some: {} },
+                    }),
+                })
+            );
+
+            expect(mockPrisma.repo.updateMany).not.toHaveBeenCalled();
+        });
+
+        test('reconciles on every scheduler poll, not just startup', async () => {
+            (existsSync as Mock).mockImplementation((path: string) => path === 'test-data/index');
+            (readdir as Mock).mockResolvedValue(['1_1_v16.00000.zoekt']);
+            (mockPrisma.repo.findMany as Mock).mockResolvedValue([]);
+
+            manager = new RepoIndexManager(mockPrisma, mockSettings, mockRedis, mockPromClient as any);
+            await manager.startScheduler();
+
+            // Simulate the index directory being wiped while the worker is running,
+            // with repo 1 still marked as indexed in the DB.
+            (readdir as Mock).mockResolvedValue([]);
+            (mockPrisma.repo.findMany as Mock).mockResolvedValue([
+                indexedRepo(1, 'repo-1'),
+            ]);
+
+            const { setIntervalAsync } = await import('./utils.js');
+            const tick = (setIntervalAsync as Mock).mock.calls[0][0];
+            await tick();
+
+            expect(mockPrisma.repo.updateMany).toHaveBeenCalledWith({
+                where: { id: { in: [1] } },
+                data: { indexedAt: null },
             });
         });
     });
