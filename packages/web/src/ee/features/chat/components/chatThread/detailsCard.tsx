@@ -10,7 +10,7 @@ import { cn, getShortenedNumberDisplayString } from '@/lib/utils';
 import isEqual from "fast-deep-equal/react";
 import { useStickToBottom } from 'use-stick-to-bottom';
 import { Brain, ChevronDown, ChevronRight, Clock, InfoIcon, Loader2, ScanSearchIcon, ShieldQuestion, Wrench, Zap } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { usePrevious } from '@uidotdev/usehooks';
 import { SBChatMessageMetadata, SBChatMessagePart, StepTokenUsageEntry } from '@/features/chat/types';
 import { SearchScopeIcon } from '@/features/chat/components/searchScopeIcon';
@@ -29,6 +29,15 @@ import { McpToolComponent } from './tools/mcpToolComponent';
 import { ToolSearchToolComponent } from './tools/toolSearchToolComponent';
 
 
+// A UI-visible step: the parts of one LLM invocation, tagged with the
+// invocation's position in the turn. The stepIndex indexes directly into
+// `metadata.stepTokenUsage`, whose entries are recorded 1:1 with the turn's
+// steps in order (across approval-continuation phases).
+export interface ThinkingStep {
+    stepIndex: number;
+    parts: SBChatMessagePart[];
+}
+
 interface DetailsCardProps {
     chatId: string;
     isExpanded: boolean;
@@ -37,7 +46,10 @@ interface DetailsCardProps {
     isTurnInProgress: boolean;
     isNetworkActive: boolean;
     isAwaitingToolApproval: boolean;
-    thinkingSteps: SBChatMessagePart[][];
+    thinkingSteps: ThinkingStep[];
+    // Index of the step that produced the answer. That step is filtered out
+    // of `thinkingSteps`, so its usage is rendered as a dedicated final row.
+    answerStepIndex?: number;
     metadata?: SBChatMessageMetadata;
 }
 
@@ -51,10 +63,11 @@ const DetailsCardComponent = ({
     isAwaitingToolApproval,
     metadata,
     thinkingSteps,
+    answerStepIndex,
 }: DetailsCardProps) => {
     const captureEvent = useCaptureEvent();
 
-    const toolCallCount = useMemo(() => thinkingSteps.flat().filter(part =>
+    const toolCallCount = useMemo(() => thinkingSteps.flatMap(({ parts }) => parts).filter(part =>
         part.type.startsWith('tool-') ||
         (part.type === 'dynamic-tool' && part.toolName.startsWith('mcp_'))
     ).length, [thinkingSteps]);
@@ -62,26 +75,10 @@ const DetailsCardComponent = ({
     // Lookup of estimated output tokens by tool call id, used to badge
     // individual tool calls in the thinking steps.
     const toolTokenUsageMap = useMemo(() => new Map(
-        (metadata?.toolTokenUsage ?? []).map(({ toolCallId, estimatedOutputTokens }) => [toolCallId, estimatedOutputTokens])
-    ), [metadata?.toolTokenUsage]);
-
-    // Maps each tool call id to the provider-reported usage of the agent step
-    // it ran in. The UI's step groups can't be joined to steps by index (empty
-    // and answer-only steps are filtered out of `thinkingSteps`), so each group
-    // resolves its step's usage through the tool calls it contains.
-    const stepTokenUsageByToolCallId = useMemo(() => {
-        const map = new Map<string, StepTokenUsageEntry>();
-        const stepTokenUsage = metadata?.stepTokenUsage;
-        if (!stepTokenUsage) {
-            return map;
-        }
-        for (const { toolCallId, stepIndex } of metadata?.toolTokenUsage ?? []) {
-            if (stepIndex !== undefined && stepTokenUsage[stepIndex] !== undefined) {
-                map.set(toolCallId, stepTokenUsage[stepIndex]);
-            }
-        }
-        return map;
-    }, [metadata?.stepTokenUsage, metadata?.toolTokenUsage]);
+        (metadata?.stepTokenUsage ?? []).flatMap(({ tools }) =>
+            tools.map(({ toolCallId, estimatedOutputTokens }) => [toolCallId, estimatedOutputTokens] as const)
+        )
+    ), [metadata?.stepTokenUsage]);
 
     const cacheReadTokens = metadata?.totalCacheReadTokens ?? 0;
     const inputTokens = metadata?.totalInputTokens ?? 0;
@@ -227,7 +224,8 @@ const DetailsCardComponent = ({
                             isNetworkActive={isNetworkActive}
                             isThinking={isThinking}
                             toolTokenUsageMap={toolTokenUsageMap}
-                            stepTokenUsageByToolCallId={stepTokenUsageByToolCallId}
+                            stepTokenUsage={metadata?.stepTokenUsage}
+                            answerStepIndex={answerStepIndex}
                         />
                     </CardContent>
                 </CollapsibleContent>
@@ -239,7 +237,7 @@ const DetailsCardComponent = ({
 export const DetailsCard = memo(DetailsCardComponent, isEqual);
 
 
-const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking, toolTokenUsageMap, stepTokenUsageByToolCallId }: { thinkingSteps: SBChatMessagePart[][], isNetworkActive: boolean, isThinking: boolean, toolTokenUsageMap?: Map<string, number>, stepTokenUsageByToolCallId?: Map<string, StepTokenUsageEntry> }) => {
+const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking, toolTokenUsageMap, stepTokenUsage, answerStepIndex }: { thinkingSteps: ThinkingStep[], isNetworkActive: boolean, isThinking: boolean, toolTokenUsageMap?: Map<string, number>, stepTokenUsage?: StepTokenUsageEntry[], answerStepIndex?: number }) => {
     const { scrollRef, contentRef, scrollToBottom } = useStickToBottom();
     const [shouldStick, setShouldStick] = useState(isThinking);
     const prevIsThinking = usePrevious(isThinking);
@@ -253,6 +251,14 @@ const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking, toolTokenUs
         }
     }, [isThinking, prevIsThinking, scrollToBottom]);
 
+    // The answer step is normally filtered out of `thinkingSteps` (its only
+    // part is the answer text), so its usage gets a dedicated row. If the
+    // step is still visible (e.g. it also contained narration), the index
+    // join below already covers it — skip the extra row.
+    const answerUsage = answerStepIndex !== undefined && !thinkingSteps.some(({ stepIndex }) => stepIndex === answerStepIndex)
+        ? stepTokenUsage?.[answerStepIndex]
+        : undefined;
+
     return (
         <div ref={scrollRef} className="max-h-[350px] overflow-y-auto px-6 py-2">
             <div ref={shouldStick ? contentRef : undefined}>
@@ -262,47 +268,58 @@ const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking, toolTokenUs
                     ) : (
                         <p className="text-sm text-muted-foreground">No thinking steps</p>
                     )
-                ) : thinkingSteps.map((step, index) => {
-                    const stepUsage = step
-                        .map((part) => 'toolCallId' in part ? stepTokenUsageByToolCallId?.get(part.toolCallId) : undefined)
-                        .find((usage) => usage !== undefined);
+                ) : (
+                    <>
+                        {thinkingSteps.map(({ stepIndex, parts }) => {
+                            // A step's usage is simply the entry at its position
+                            // in the turn's step sequence. Out-of-range lookups
+                            // (e.g. an aborted turn whose last step never
+                            // finished) return undefined and render no usage line.
+                            const stepUsage = stepTokenUsage?.[stepIndex];
 
-                    // Inline the step's usage alongside the step's first part
-                    // when that part is narration text, so the cost reads as a
-                    // property of the step, not of the tool calls below it.
-                    // Steps that open directly with a tool call get the usage
-                    // on its own line instead — tool rows already carry their
-                    // own right-aligned info.
-                    const [firstPart, ...restParts] = step;
-                    const isFirstPartNarration = firstPart.type === 'text' || firstPart.type === 'reasoning';
+                            // Inline the step's usage alongside the step's first part
+                            // when that part is narration text, so the cost reads as a
+                            // property of the step, not of the tool calls below it.
+                            // Steps that open directly with a tool call get the usage
+                            // on its own line instead — tool rows already carry their
+                            // own right-aligned info.
+                            const [firstPart, ...restParts] = parts;
+                            const isFirstPartNarration = firstPart.type === 'text' || firstPart.type === 'reasoning';
 
-                    return (
-                        <div key={index}>
-                            {stepUsage && !isFirstPartNarration && (
-                                <div className="flex justify-end mb-2">
-                                    <StepTokenUsage usage={stepUsage} />
+                            return (
+                                <div key={stepIndex}>
+                                    {stepUsage && !isFirstPartNarration && (
+                                        <div className="flex justify-end mb-2">
+                                            <StepTokenUsage usage={stepUsage} />
+                                        </div>
+                                    )}
+                                    <div className="flex items-start gap-4">
+                                        <div className="mb-2 flex-1 min-w-0">
+                                            <StepPartRenderer
+                                                part={firstPart}
+                                                toolTokenUsageMap={toolTokenUsageMap}
+                                            />
+                                        </div>
+                                        {stepUsage && isFirstPartNarration && <StepTokenUsage usage={stepUsage} />}
+                                    </div>
+                                    {restParts.map((part, index) => (
+                                        <div key={index} className="mb-2">
+                                            <StepPartRenderer
+                                                part={part}
+                                                toolTokenUsageMap={toolTokenUsageMap}
+                                            />
+                                        </div>
+                                    ))}
                                 </div>
-                            )}
-                            <div className="flex items-start gap-4">
-                                <div className="mb-2 flex-1 min-w-0">
-                                    <StepPartRenderer
-                                        part={firstPart}
-                                        estimatedOutputTokens={'toolCallId' in firstPart ? toolTokenUsageMap?.get(firstPart.toolCallId) : undefined}
-                                    />
-                                </div>
-                                {stepUsage && isFirstPartNarration && <StepTokenUsage usage={stepUsage} />}
+                            );
+                        })}
+                        {answerUsage && (
+                            <div className="flex justify-end mb-2">
+                                <StepTokenUsage usage={answerUsage} label="answer" />
                             </div>
-                            {restParts.map((part, index) => (
-                                <div key={index} className="mb-2">
-                                    <StepPartRenderer
-                                        part={part}
-                                        estimatedOutputTokens={'toolCallId' in part ? toolTokenUsageMap?.get(part.toolCallId) : undefined}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    );
-                })}
+                        )}
+                    </>
+                )}
             </div>
         </div>
     );
@@ -311,7 +328,7 @@ const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking, toolTokenUs
 
 // The provider-reported input/output token pair of a single agent step,
 // rendered at the end of the step's group of parts.
-const StepTokenUsage = ({ usage }: { usage: StepTokenUsageEntry }) => {
+const StepTokenUsage = ({ usage, label = 'step' }: { usage: StepTokenUsageEntry, label?: string }) => {
     if (usage.inputTokens === undefined && usage.outputTokens === undefined) {
         return null;
     }
@@ -330,7 +347,7 @@ const StepTokenUsage = ({ usage }: { usage: StepTokenUsageEntry }) => {
             <Tooltip>
                 <TooltipTrigger asChild>
                     <span className="text-xs text-muted-foreground cursor-help whitespace-nowrap">
-                        step · {compactParts.join(' · ')}
+                        {label} · {compactParts.join(' · ')}
                     </span>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
@@ -350,7 +367,42 @@ const StepTokenUsage = ({ usage }: { usage: StepTokenUsageEntry }) => {
     );
 }
 
-export const StepPartRenderer = ({ part, estimatedOutputTokens }: { part: SBChatMessagePart, estimatedOutputTokens?: number }) => {
+type GuardedToolType =
+    | 'tool-read_file'
+    | 'tool-grep'
+    | 'tool-glob'
+    | 'tool-find_symbol_definitions'
+    | 'tool-find_symbol_references'
+    | 'tool-list_repos'
+    | 'tool-list_commits'
+    | 'tool-get_diff'
+    | 'tool-list_tree';
+
+type GuardedToolPart = Extract<SBChatMessagePart, { type: GuardedToolType }>;
+
+// The builtin tools that render through ToolOutputGuard, which differ only in
+// their loading text and output component. The `satisfies` mapped type checks
+// each entry's `render` against its own tool's output shape.
+const TOOL_GUARD_CONFIG = {
+    'tool-read_file': { loadingText: 'Reading file...', render: (output) => <ReadFileToolComponent {...output} /> },
+    'tool-grep': { loadingText: 'Searching...', render: (output) => <GrepToolComponent {...output} /> },
+    'tool-glob': { loadingText: 'Searching files...', render: (output) => <GlobToolComponent {...output} /> },
+    'tool-find_symbol_definitions': { loadingText: 'Resolving definitions...', render: (output) => <FindSymbolDefinitionsToolComponent {...output} /> },
+    'tool-find_symbol_references': { loadingText: 'Resolving references...', render: (output) => <FindSymbolReferencesToolComponent {...output} /> },
+    'tool-list_repos': { loadingText: 'Listing repositories...', render: (output) => <ListReposToolComponent {...output} /> },
+    'tool-list_commits': { loadingText: 'Listing commits...', render: (output) => <ListCommitsToolComponent {...output} /> },
+    'tool-get_diff': { loadingText: 'Comparing revisions...', render: (output) => <GetDiffToolComponent {...output} /> },
+    'tool-list_tree': { loadingText: 'Listing tree...', render: (output) => <ListTreeToolComponent {...output} /> },
+} satisfies {
+    [K in GuardedToolType]: {
+        loadingText: string;
+        render: (output: Extract<GuardedToolPart, { type: K, state: 'output-available' }>['output']) => ReactNode;
+    }
+};
+
+export const StepPartRenderer = ({ part, toolTokenUsageMap }: { part: SBChatMessagePart, toolTokenUsageMap?: Map<string, number> }) => {
+    const estimatedOutputTokens = 'toolCallId' in part ? toolTokenUsageMap?.get(part.toolCallId) : undefined;
+
     switch (part.type) {
         case 'reasoning':
         case 'text':
@@ -361,95 +413,30 @@ export const StepPartRenderer = ({ part, estimatedOutputTokens }: { part: SBChat
                 />
             )
         case 'tool-read_file':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    estimatedOutputTokens={estimatedOutputTokens}
-                    loadingText="Reading file..."
-                >
-                    {(output) => <ReadFileToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
         case 'tool-grep':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    estimatedOutputTokens={estimatedOutputTokens}
-                    loadingText={'Searching...'}
-                >
-                    {(output) => <GrepToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
         case 'tool-glob':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    estimatedOutputTokens={estimatedOutputTokens}
-                    loadingText="Searching files..."
-                >
-                    {(output) => <GlobToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
         case 'tool-find_symbol_definitions':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    estimatedOutputTokens={estimatedOutputTokens}
-                    loadingText="Resolving definitions..."
-                >
-                    {(output) => <FindSymbolDefinitionsToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
         case 'tool-find_symbol_references':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    estimatedOutputTokens={estimatedOutputTokens}
-                    loadingText="Resolving references..."
-                >
-                    {(output) => <FindSymbolReferencesToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
         case 'tool-list_repos':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    estimatedOutputTokens={estimatedOutputTokens}
-                    loadingText="Listing repositories..."
-                >
-                    {(output) => <ListReposToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
         case 'tool-list_commits':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    estimatedOutputTokens={estimatedOutputTokens}
-                    loadingText="Listing commits..."
-                >
-                    {(output) => <ListCommitsToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
         case 'tool-get_diff':
+        case 'tool-list_tree': {
+            const { loadingText, render } = TOOL_GUARD_CONFIG[part.type];
             return (
                 <ToolOutputGuard
                     part={part}
                     estimatedOutputTokens={estimatedOutputTokens}
-                    loadingText="Comparing revisions..."
+                    loadingText={loadingText}
                 >
-                    {(output) => <GetDiffToolComponent {...output} />}
+                    {/* The table lookup erases the per-tool correlation between
+                        `render` and `output` (TypeScript can't track it across
+                        a union), so re-assert it here. Each entry's `render` is
+                        checked against its own tool's output by the table's
+                        `satisfies` type. */}
+                    {(output) => (render as (o: typeof output) => ReactNode)(output)}
                 </ToolOutputGuard>
-            )
-        case 'tool-list_tree':
-            return (
-                <ToolOutputGuard
-                    part={part}
-                    estimatedOutputTokens={estimatedOutputTokens}
-                    loadingText="Listing tree..."
-                >
-                    {(output) => <ListTreeToolComponent {...output} />}
-                </ToolOutputGuard>
-            )
+            );
+        }
         case 'tool-tool_request_activation':
             if (part.state === 'output-error') {
                 return <span className="text-sm text-destructive">Tool activation failed: {part.errorText}</span>;
@@ -457,7 +444,7 @@ export const StepPartRenderer = ({ part, estimatedOutputTokens }: { part: SBChat
             if (part.state !== 'output-available') {
                 return <span className="text-sm text-muted-foreground animate-pulse">Activating tool...</span>;
             }
-            return <ToolSearchToolComponent query={part.input.tool_to_activate_name} results={part.output.results ?? []} />;
+            return <ToolSearchToolComponent query={part.input.tool_to_activate_name} results={part.output.results ?? []} estimatedOutputTokens={estimatedOutputTokens} />;
         case 'dynamic-tool':
             if (part.toolName.startsWith('mcp_')) {
                 return <McpToolComponent part={part} estimatedOutputTokens={estimatedOutputTokens} />;
