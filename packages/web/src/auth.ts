@@ -426,6 +426,7 @@ const nextAuthResult = NextAuth(async () => ({
     providers: (await getProviders()).map((provider) => provider.__provider),
     pages: {
         signIn: "/login",
+        error: "/login/error",
         // We set redirect to false in signInOptions so we can pass the email in as a param
         // verifyRequest: "/login/verify",
     }
