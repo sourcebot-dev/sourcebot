@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed repos not being re-indexed when their zoekt index shards are missing from disk (e.g., when the index directory is stored on ephemeral storage) while the database still marks them as indexed. [#1304](https://github.com/sourcebot-dev/sourcebot/pull/1304)
+
 ## [5.0.2] - 2026-06-11
 
 ### Changed
