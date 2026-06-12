@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the ability to configure email code and credentials login from the security settings. [#1303](https://github.com/sourcebot-dev/sourcebot/pull/1303)
 - Added a list of configured SSO providers from the security settings. [#1303](https://github.com/sourcebot-dev/sourcebot/pull/1303)
 
+### Fixed
+- Validated that `SOURCEBOT_ENCRYPTION_KEY` is exactly 32 characters at startup, failing fast with an actionable message instead of a runtime encryption error. [#1305](https://github.com/sourcebot-dev/sourcebot/pull/1305)
+
 ## [5.0.2] - 2026-06-11
 
 ### Changed
