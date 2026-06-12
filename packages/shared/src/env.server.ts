@@ -337,7 +337,13 @@ const options = {
         PERMISSION_SYNC_REPO_DRIVEN_ENABLED: booleanSchema.default('true'),
         EXPERIMENT_ASK_GH_ENABLED: booleanSchema.default('false'),
 
-        SOURCEBOT_ENCRYPTION_KEY: z.string(),
+        // Used as the key for AES-256-CBC encryption (@see shared/src/crypto.ts).
+        // The key is read as ASCII (1 char = 1 byte), so AES-256's 32-byte key
+        // requirement means this must be exactly 32 characters. Generate one with
+        // `openssl rand -base64 24` (24 random bytes => a 32-character base64 string).
+        SOURCEBOT_ENCRYPTION_KEY: z.string().length(32, {
+            message: "SOURCEBOT_ENCRYPTION_KEY must be exactly 32 characters (a 256-bit AES key). Generate one with `openssl rand -base64 24`.",
+        }),
         SOURCEBOT_INSTALL_ID: z.string().default("unknown"),
         SOURCEBOT_LIGHTHOUSE_URL: z.string().url().default("https://deployments.sourcebot.dev"),
 
