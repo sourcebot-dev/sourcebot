@@ -12,7 +12,7 @@ import { useStickToBottom } from 'use-stick-to-bottom';
 import { Brain, ChevronDown, ChevronRight, Clock, InfoIcon, Loader2, ScanSearchIcon, ShieldQuestion, Wrench, Zap } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { usePrevious } from '@uidotdev/usehooks';
-import { SBChatMessageMetadata, SBChatMessagePart } from '@/features/chat/types';
+import { SBChatMessageMetadata, SBChatMessagePart, StepTokenUsageEntry } from '@/features/chat/types';
 import { SearchScopeIcon } from '@/features/chat/components/searchScopeIcon';
 import { MarkdownRenderer } from './markdownRenderer';
 import { FindSymbolDefinitionsToolComponent } from './tools/findSymbolDefinitionsToolComponent';
@@ -64,6 +64,24 @@ const DetailsCardComponent = ({
     const toolTokenUsageMap = useMemo(() => new Map(
         (metadata?.toolTokenUsage ?? []).map(({ toolCallId, estimatedOutputTokens }) => [toolCallId, estimatedOutputTokens])
     ), [metadata?.toolTokenUsage]);
+
+    // Maps each tool call id to the provider-reported usage of the agent step
+    // it ran in. The UI's step groups can't be joined to steps by index (empty
+    // and answer-only steps are filtered out of `thinkingSteps`), so each group
+    // resolves its step's usage through the tool calls it contains.
+    const stepTokenUsageByToolCallId = useMemo(() => {
+        const map = new Map<string, StepTokenUsageEntry>();
+        const stepTokenUsage = metadata?.stepTokenUsage;
+        if (!stepTokenUsage) {
+            return map;
+        }
+        for (const { toolCallId, stepIndex } of metadata?.toolTokenUsage ?? []) {
+            if (stepIndex !== undefined && stepTokenUsage[stepIndex] !== undefined) {
+                map.set(toolCallId, stepTokenUsage[stepIndex]);
+            }
+        }
+        return map;
+    }, [metadata?.stepTokenUsage, metadata?.toolTokenUsage]);
 
     const cacheReadTokens = metadata?.totalCacheReadTokens ?? 0;
     const inputTokens = metadata?.totalInputTokens ?? 0;
@@ -209,6 +227,7 @@ const DetailsCardComponent = ({
                             isNetworkActive={isNetworkActive}
                             isThinking={isThinking}
                             toolTokenUsageMap={toolTokenUsageMap}
+                            stepTokenUsageByToolCallId={stepTokenUsageByToolCallId}
                         />
                     </CardContent>
                 </CollapsibleContent>
@@ -220,7 +239,7 @@ const DetailsCardComponent = ({
 export const DetailsCard = memo(DetailsCardComponent, isEqual);
 
 
-const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking, toolTokenUsageMap }: { thinkingSteps: SBChatMessagePart[][], isNetworkActive: boolean, isThinking: boolean, toolTokenUsageMap?: Map<string, number> }) => {
+const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking, toolTokenUsageMap, stepTokenUsageByToolCallId }: { thinkingSteps: SBChatMessagePart[][], isNetworkActive: boolean, isThinking: boolean, toolTokenUsageMap?: Map<string, number>, stepTokenUsageByToolCallId?: Map<string, StepTokenUsageEntry> }) => {
     const { scrollRef, contentRef, scrollToBottom } = useStickToBottom();
     const [shouldStick, setShouldStick] = useState(isThinking);
     const prevIsThinking = usePrevious(isThinking);
@@ -243,23 +262,71 @@ const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking, toolTokenUs
                     ) : (
                         <p className="text-sm text-muted-foreground">No thinking steps</p>
                     )
-                ) : thinkingSteps.map((step, index) => (
-                    <div key={index}>
-                        {step.map((part, index) => (
-                            <div key={index} className="mb-2">
-                                <StepPartRenderer
-                                    part={part}
-                                    estimatedOutputTokens={'toolCallId' in part ? toolTokenUsageMap?.get(part.toolCallId) : undefined}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                ))}
+                ) : thinkingSteps.map((step, index) => {
+                    const stepUsage = step
+                        .map((part) => 'toolCallId' in part ? stepTokenUsageByToolCallId?.get(part.toolCallId) : undefined)
+                        .find((usage) => usage !== undefined);
+
+                    return (
+                        <div key={index}>
+                            {step.map((part, index) => (
+                                <div key={index} className="mb-2">
+                                    <StepPartRenderer
+                                        part={part}
+                                        estimatedOutputTokens={'toolCallId' in part ? toolTokenUsageMap?.get(part.toolCallId) : undefined}
+                                    />
+                                </div>
+                            ))}
+                            {stepUsage && <StepTokenUsage usage={stepUsage} />}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
 }
 
+
+// The provider-reported input/output token pair of a single agent step,
+// rendered at the end of the step's group of parts.
+const StepTokenUsage = ({ usage }: { usage: StepTokenUsageEntry }) => {
+    if (usage.inputTokens === undefined && usage.outputTokens === undefined) {
+        return null;
+    }
+
+    const cachedPercent = usage.inputTokens && usage.cacheReadTokens
+        ? Math.round((usage.cacheReadTokens / usage.inputTokens) * 100)
+        : 0;
+
+    const compactParts = [
+        ...(usage.inputTokens !== undefined ? [`${getShortenedNumberDisplayString(usage.inputTokens, 0)} in`] : []),
+        ...(usage.outputTokens !== undefined ? [`${getShortenedNumberDisplayString(usage.outputTokens, 0)} out`] : []),
+    ];
+
+    return (
+        <div className="flex justify-end mb-2">
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <span className="text-xs text-muted-foreground cursor-help">
+                        step · {compactParts.join(' · ')}
+                    </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                    <div className="space-y-1 text-xs">
+                        <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Input</span>
+                            <span>{usage.inputTokens?.toLocaleString() ?? '—'}{cachedPercent > 0 ? ` (${cachedPercent}% cached)` : ''}</span>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Output</span>
+                            <span>{usage.outputTokens?.toLocaleString() ?? '—'}</span>
+                        </div>
+                    </div>
+                </TooltipContent>
+            </Tooltip>
+        </div>
+    );
+}
 
 export const StepPartRenderer = ({ part, estimatedOutputTokens }: { part: SBChatMessagePart, estimatedOutputTokens?: number }) => {
     switch (part.type) {

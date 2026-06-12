@@ -1,5 +1,5 @@
-import { SBChatMessage, SBChatMessageMetadata, ToolTokenUsageEntry } from "@/features/chat/types";
-import { estimateToolOutputTokens } from "@/features/chat/tokenEstimation";
+import { SBChatMessage, SBChatMessageMetadata, StepTokenUsageEntry, ToolTokenUsageEntry } from "@/features/chat/types";
+import { estimateModelToolOutputTokens, estimateToolOutputTokens } from "@/features/chat/tokenEstimation";
 import { getFileSource } from '@/features/git';
 import { isServiceError } from "@/lib/utils";
 import { LanguageModelV3 as AISDKLanguageModelV3 } from "@ai-sdk/provider";
@@ -151,6 +151,7 @@ export const createMessageStream = async ({
             const startTime = new Date();
 
             const collectedToolTokenUsage: ToolTokenUsageEntry[] = [];
+            const collectedStepTokenUsage: StepTokenUsageEntry[] = [];
 
             const researchStream = await createAgentStream({
                 model,
@@ -168,6 +169,9 @@ export const createMessageStream = async ({
                 },
                 onToolTokenUsage: (entry) => {
                     collectedToolTokenUsage.push(entry);
+                },
+                onStepTokenUsage: (entry) => {
+                    collectedStepTokenUsage.push(entry);
                 },
                 onMcpServerDiscovered: (sanitizedName, faviconUrl) => {
                     writer.write({
@@ -206,10 +210,22 @@ export const createMessageStream = async ({
                     totalCacheReadTokens: (priorMetadata?.totalCacheReadTokens ?? 0) + (totalUsage.inputTokenDetails?.cacheReadTokens ?? 0),
                     totalCacheWriteTokens: (priorMetadata?.totalCacheWriteTokens ?? 0) + (totalUsage.inputTokenDetails?.cacheWriteTokens ?? 0),
                     totalResponseTimeMs: (priorMetadata?.totalResponseTimeMs ?? 0) + (new Date().getTime() - startTime.getTime()),
-                    // Unlike the token totals above, this is concatenated (not
+                    // Unlike the token totals above, these are concatenated (not
                     // summed) across approval-continuation phases so tool calls
-                    // from the pre-approval phase are preserved.
-                    toolTokenUsage: [...(priorMetadata?.toolTokenUsage ?? []), ...collectedToolTokenUsage],
+                    // and steps from the pre-approval phase are preserved. Step
+                    // indices captured in this phase are relative to this phase's
+                    // stream, so offset them by the prior phase's step count to
+                    // keep them valid against the concatenated step array.
+                    toolTokenUsage: [
+                        ...(priorMetadata?.toolTokenUsage ?? []),
+                        ...collectedToolTokenUsage.map((entry) => ({
+                            ...entry,
+                            stepIndex: entry.stepIndex !== undefined
+                                ? entry.stepIndex + (priorMetadata?.stepTokenUsage?.length ?? 0)
+                                : undefined,
+                        })),
+                    ],
+                    stepTokenUsage: [...(priorMetadata?.stepTokenUsage ?? []), ...collectedStepTokenUsage],
                     modelName,
                     traceId,
                     ...metadata,
@@ -238,6 +254,7 @@ interface AgentOptions {
     inputSources: Source[];
     onWriteSource: (source: Source) => void;
     onToolTokenUsage?: (entry: ToolTokenUsageEntry) => void;
+    onStepTokenUsage?: (entry: StepTokenUsageEntry) => void;
     onMcpServerDiscovered: (sanitizedName: string, faviconUrl: string) => void;
     onMcpServerFailed: (serverName: string) => void;
     traceId: string;
@@ -257,6 +274,7 @@ const createAgentStream = async ({
     disabledMcpServerIds,
     onWriteSource,
     onToolTokenUsage,
+    onStepTokenUsage,
     onMcpServerDiscovered,
     onMcpServerFailed,
     traceId,
@@ -442,23 +460,41 @@ const createAgentStream = async ({
                 logger.warn(`Tool call repair failed for "${toolCall.toolName}": ${error.message}`);
                 return null;
             },
-            onStepFinish: ({ toolResults }) => {
-                toolResults.forEach(({ toolCallId, toolName, output, dynamic }) => {
+            onStepFinish: async ({ stepNumber, usage, toolResults }) => {
+                onStepTokenUsage?.({
+                    inputTokens: usage.inputTokens,
+                    outputTokens: usage.outputTokens,
+                    cacheReadTokens: usage.inputTokenDetails?.cacheReadTokens,
+                });
+
+                for (const { toolCallId, toolName, input, output, dynamic } of toolResults) {
                     // Token estimation runs for every tool result — including
                     // dynamic (MCP) tools and error outputs — since they all
                     // re-enter the model's context on the next step.
+                    //
+                    // The model never sees the raw output object of tools that
+                    // define a `toModelOutput` mapping (e.g. builtin tools send
+                    // only their `output` text, not the UI-only metadata), so
+                    // estimate the mapped payload when one exists. Tools without
+                    // the mapping have their output sent as a JSON object.
+                    const tool = allTools[toolName];
+                    const estimatedOutputTokens = tool?.toModelOutput
+                        ? estimateModelToolOutputTokens(await tool.toModelOutput({ toolCallId, input, output }))
+                        : estimateToolOutputTokens(output);
+
                     onToolTokenUsage?.({
                         toolCallId,
                         toolName,
-                        estimatedOutputTokens: estimateToolOutputTokens(output),
+                        estimatedOutputTokens,
+                        stepIndex: stepNumber,
                     });
 
                     if (dynamic || isServiceError(output)) {
-                        return;
+                        continue;
                     }
 
                     output.sources?.forEach(onWriteSource);
-                });
+                }
             },
             experimental_telemetry: {
                 isEnabled: env.SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED === 'true',
