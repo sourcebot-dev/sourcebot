@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed issue where using multiple identity providers of the same type (e.g., gitlab) would result in unexpected behaviours. [#1177](https://github.com/sourcebot-dev/sourcebot/pull/1177)
 - Fixed a race condition where large repositories could be indexed twice within a single reindex interval. [#1298](https://github.com/sourcebot-dev/sourcebot/pull/1298)
 - Upgraded `shell-quote` to `^1.8.4`. [#1299](https://github.com/sourcebot-dev/sourcebot/pull/1299)
+- [EE] Fixed MCP OAuth connectors (e.g. Atlassian) rejecting authorization when `offline_access` was not enabled. When adding a connector, the scopes dialog now pre-selects `offline_access` (admins can untick it) and warns when it is the only selected scope. [#1292](https://github.com/sourcebot-dev/sourcebot/pull/1292)
 
 ## [5.0.1] - 2026-06-04
 
