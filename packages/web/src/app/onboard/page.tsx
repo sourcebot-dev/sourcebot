@@ -5,7 +5,7 @@ import { SourcebotLogo } from "@/app/components/sourcebotLogo"
 import { auth } from "@/auth";
 import { WelcomeStep } from "./components/welcomeStep";
 import { OwnerSignupStep } from "./components/ownerSignupStep";
-import { ConfigureOrgStep } from "./components/configureOrgStep";
+import { AccessSettingsStep } from "./components/accessSettingsStep";
 import { TrialStep, TrialStepTitle, TrialStepSubtitle } from "./components/trialStep";
 import { AlreadyLicensedStep } from "./components/alreadyLicensedStep";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
@@ -116,7 +116,12 @@ export default async function Onboarding(props: OnboardingProps) {
                 </a>
             </>
         ),
-        component: <ConfigureOrgStep nextStep={steps.length + 1} />,
+        component: (
+            <AccessSettingsStep
+                nextStep={steps.length + 1}
+                org={org}
+            />
+        )
     });
 
     const finalStepIndex = steps.length;
@@ -156,38 +161,35 @@ export default async function Onboarding(props: OnboardingProps) {
                                         {steps.map((step, index) => (
                                             <div key={step.id} className="flex items-center group">
                                                 <div className="flex items-center space-x-4 flex-1">
-                                                                                        <div className="relative">
-                                        {/* Connecting line */}
-                                        {index < steps.length - 1 && (
-                                            <div
-                                                className={`absolute top-10 left-1/2 transform -translate-x-1/2 w-0.5 h-8 transition-all duration-300 ${
-                                                    index < currentStep ? "bg-primary" : "bg-border"
-                                                }`}
-                                            />
-                                        )}
-                                        {/* Circle - positioned above the line with z-index */}
-                                        <div
-                                            className={`relative z-10 w-10 h-10 rounded-full border-2 flex items-center justify-center font-semibold text-sm transition-all duration-300 ${
-                                                index < currentStep
-                                                    ? "bg-primary border-primary text-primary-foreground"
-                                                    : index === currentStep
-                                                        ? "bg-primary border-primary text-primary-foreground scale-110 shadow-lg"
-                                                        : "bg-background border-border text-muted-foreground"
-                                            }`}
-                                        >
-                                            {index < currentStep ? (
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            ) : (
-                                                <span>{index + 1}</span>
-                                            )}
-                                        </div>
-                                    </div>
+                                                    <div className="relative">
+                                                        {/* Connecting line */}
+                                                        {index < steps.length - 1 && (
+                                                            <div
+                                                                className={`absolute top-10 left-1/2 transform -translate-x-1/2 w-0.5 h-8 transition-all duration-300 ${index < currentStep ? "bg-primary" : "bg-border"
+                                                                    }`}
+                                                            />
+                                                        )}
+                                                        {/* Circle - positioned above the line with z-index */}
+                                                        <div
+                                                            className={`relative z-10 w-10 h-10 rounded-full border-2 flex items-center justify-center font-semibold text-sm transition-all duration-300 ${index < currentStep
+                                                                    ? "bg-primary border-primary text-primary-foreground"
+                                                                    : index === currentStep
+                                                                        ? "bg-primary border-primary text-primary-foreground scale-110 shadow-lg"
+                                                                        : "bg-background border-border text-muted-foreground"
+                                                                }`}
+                                                        >
+                                                            {index < currentStep ? (
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                            ) : (
+                                                                <span>{index + 1}</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                     <div className="flex-1">
-                                                        <div className={`font-medium text-sm transition-all duration-200 ${
-                                                            index <= currentStep ? "text-foreground" : "text-muted-foreground"
-                                                        }`}>
+                                                        <div className={`font-medium text-sm transition-all duration-200 ${index <= currentStep ? "text-foreground" : "text-muted-foreground"
+                                                            }`}>
                                                             {step.title}
                                                         </div>
                                                     </div>
