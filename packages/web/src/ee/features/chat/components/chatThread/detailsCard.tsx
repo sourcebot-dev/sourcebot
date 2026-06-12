@@ -267,9 +267,32 @@ const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking, toolTokenUs
                         .map((part) => 'toolCallId' in part ? stepTokenUsageByToolCallId?.get(part.toolCallId) : undefined)
                         .find((usage) => usage !== undefined);
 
+                    // Inline the step's usage alongside the step's first part
+                    // when that part is narration text, so the cost reads as a
+                    // property of the step, not of the tool calls below it.
+                    // Steps that open directly with a tool call get the usage
+                    // on its own line instead — tool rows already carry their
+                    // own right-aligned info.
+                    const [firstPart, ...restParts] = step;
+                    const isFirstPartNarration = firstPart.type === 'text' || firstPart.type === 'reasoning';
+
                     return (
                         <div key={index}>
-                            {step.map((part, index) => (
+                            {stepUsage && !isFirstPartNarration && (
+                                <div className="flex justify-end mb-2">
+                                    <StepTokenUsage usage={stepUsage} />
+                                </div>
+                            )}
+                            <div className="flex items-start gap-4">
+                                <div className="mb-2 flex-1 min-w-0">
+                                    <StepPartRenderer
+                                        part={firstPart}
+                                        estimatedOutputTokens={'toolCallId' in firstPart ? toolTokenUsageMap?.get(firstPart.toolCallId) : undefined}
+                                    />
+                                </div>
+                                {stepUsage && isFirstPartNarration && <StepTokenUsage usage={stepUsage} />}
+                            </div>
+                            {restParts.map((part, index) => (
                                 <div key={index} className="mb-2">
                                     <StepPartRenderer
                                         part={part}
@@ -277,7 +300,6 @@ const ThinkingSteps = ({ thinkingSteps, isNetworkActive, isThinking, toolTokenUs
                                     />
                                 </div>
                             ))}
-                            {stepUsage && <StepTokenUsage usage={stepUsage} />}
                         </div>
                     );
                 })}
@@ -304,10 +326,10 @@ const StepTokenUsage = ({ usage }: { usage: StepTokenUsageEntry }) => {
     ];
 
     return (
-        <div className="flex justify-end mb-2">
+        <div className="flex-shrink-0 mt-0.5">
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <span className="text-xs text-muted-foreground cursor-help">
+                    <span className="text-xs text-muted-foreground cursor-help whitespace-nowrap">
                         step · {compactParts.join(' · ')}
                     </span>
                 </TooltipTrigger>
