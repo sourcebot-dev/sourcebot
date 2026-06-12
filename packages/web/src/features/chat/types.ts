@@ -76,12 +76,22 @@ export const sbChatMessageMetadataSchema = z.object({
         toolCallId: z.string(),
         toolName: z.string(),
         estimatedOutputTokens: z.number(),
+        // Index into `stepTokenUsage` of the step this tool call ran in.
+        stepIndex: z.number().optional(),
+    })).optional(),
+    // Provider-reported (billed, not estimated) token usage of each agent
+    // step in this message's turn, in step order across all phases.
+    stepTokenUsage: z.array(z.object({
+        inputTokens: z.number().optional(),
+        outputTokens: z.number().optional(),
+        cacheReadTokens: z.number().optional(),
     })).optional(),
 });
 
 export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;
 
 export type ToolTokenUsageEntry = NonNullable<SBChatMessageMetadata['toolTokenUsage']>[number];
+export type StepTokenUsageEntry = NonNullable<SBChatMessageMetadata['stepTokenUsage']>[number];
 
 export type SBChatMessageToolTypes = {
     [K in keyof ReturnType<typeof createTools>]: InferUITool<ReturnType<typeof createTools>[K]>;
