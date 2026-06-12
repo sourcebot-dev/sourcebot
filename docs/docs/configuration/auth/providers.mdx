@@ -10,23 +10,18 @@ If there's an authentication provider you'd like us to support, please [reach ou
 # Core Authentication Providers
 
 ### Email / Password
----
 Email / password authentication is enabled by default. You can toggle it from **Settings → Security** using the **Email login** setting.
 
-The `AUTH_CREDENTIALS_LOGIN_ENABLED` environment variable is deprecated. It still works, but when it is set it overrides the UI setting and locks the toggle. Leave it unset to manage email login from the UI.
-
-Email login can't be disabled when no other login method is configured (no SSO identity provider and no email-code login), since that would leave no way to sign in.
+<Frame>
+  <img src="/images/email_password_login_setting.png" alt="Email & password login setting toggle in Settings → Security" />
+</Frame>
 
 ### Email codes
----
-Email codes are 6 digit codes sent to a provided email. Email codes are enabled when transactional emails are configured using the following environment variables:
+Email codes are 6 digit codes sent to a provided email. Email codes are enabled when [transactional emails](/docs/configuration/transactional-emails) and the **Email code** setting is toggled from **Settings → Security**:
 
-- `AUTH_EMAIL_CODE_LOGIN_ENABLED`
-- `SMTP_CONNECTION_URL`
-- `EMAIL_FROM_ADDRESS`
-
-
-See [transactional emails](/docs/configuration/transactional-emails) for more details.
+<Frame>
+  <img src="/images/email_code_login_setting.png" alt="Email code login setting toggle in Settings → Security" />
+</Frame>
 
 # Enterprise Authentication Providers
 
