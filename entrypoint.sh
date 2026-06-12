@@ -196,5 +196,51 @@ DATABASE_URL="$DATABASE_URL" yarn workspace @sourcebot/db prisma:migrate:prod
 # Create the log directory if it doesn't exist
 mkdir -p /var/log/sourcebot
 
+# --- Node.js heap sizing ---------------------------------------------------
+# `web` and `backend` are Node processes that share this container's memory
+# limit with `zoekt`. V8's default old-space heap does NOT track the cgroup
+# limit, so by default `web` caps near ~4GB regardless of a larger container
+# (and OOMs there once its working set grows). Derive a per-process
+# --max-old-space-size from the container's memory limit so each Node process
+# gets an appropriate slice without the two heaps over-committing the cgroup.
+# These values are passed to the `web`/`backend` commands in supervisord.conf.
+# A value of 0 means "let V8 pick its own default" (used when no limit is set).
+#
+# Optional overrides (env):
+#   WEB_HEAP_PERCENT / BACKEND_HEAP_PERCENT          - % of the container limit
+#                                                      (defaults: 55 / 20)
+#   WEB_MAX_OLD_SPACE_SIZE / BACKEND_MAX_OLD_SPACE_SIZE - absolute MB; when set,
+#                                                      used as-is (skips the %).
+container_mem_limit_mb() {
+    _limit=""
+    if [ -r /sys/fs/cgroup/memory.max ]; then                      # cgroup v2
+        _limit=$(cat /sys/fs/cgroup/memory.max 2>/dev/null)
+    elif [ -r /sys/fs/cgroup/memory/memory.limit_in_bytes ]; then  # cgroup v1
+        _limit=$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes 2>/dev/null)
+    fi
+    # "max" (v2) or the v1 unlimited sentinel (~2^63) both mean "no limit".
+    case "$_limit" in
+        ''|max) echo 0; return;;
+    esac
+    if [ "$_limit" -gt 9223372036854000000 ] 2>/dev/null; then echo 0; return; fi
+    echo $(( _limit / 1024 / 1024 ))
+}
+
+resolve_heap_mb() {  # $1=explicit override  $2=percent  $3=default-percent
+    if [ -n "$1" ]; then echo "$1"; return; fi
+    _pct="${2:-$3}"
+    if [ "$MEM_LIMIT_MB" -gt 0 ]; then echo $(( MEM_LIMIT_MB * _pct / 100 )); else echo 0; fi
+}
+
+MEM_LIMIT_MB=$(container_mem_limit_mb)
+export WEB_MAX_OLD_SPACE_SIZE=$(resolve_heap_mb "$WEB_MAX_OLD_SPACE_SIZE" "$WEB_HEAP_PERCENT" 55)
+export BACKEND_MAX_OLD_SPACE_SIZE=$(resolve_heap_mb "$BACKEND_MAX_OLD_SPACE_SIZE" "$BACKEND_HEAP_PERCENT" 20)
+
+if [ "$MEM_LIMIT_MB" -gt 0 ]; then
+    echo -e "\e[34m[Info] Container memory limit: ${MEM_LIMIT_MB}MB. Node heap caps (--max-old-space-size) — web: ${WEB_MAX_OLD_SPACE_SIZE}MB, backend: ${BACKEND_MAX_OLD_SPACE_SIZE}MB.\e[0m"
+else
+    echo -e "\e[34m[Info] No container memory limit detected; using V8 default heap sizing for web/backend.\e[0m"
+fi
+
 # Run supervisord
 exec supervisord -c /etc/supervisor/conf.d/supervisord.conf
