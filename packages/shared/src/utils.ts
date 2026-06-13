@@ -1,6 +1,7 @@
 import { readFile } from 'fs/promises';
 import stripJsonComments from 'strip-json-comments';
 import { z } from "zod";
+import { fileURLToPath } from 'node:url';
 import { DEFAULT_CONFIG_SETTINGS } from "./constants.js";
 import { ConfigSettings } from "./types.js";
 import { Org, Repo } from "@sourcebot/db";
@@ -102,13 +103,20 @@ export const getRepoIdFromPath = (repoPath: string): number | undefined => {
     return isNaN(id) ? undefined : id;
 }
 
+/**
+ * Resolves the filesystem path for a given repository.
+ * If the repository is a local generic git host (cloned via file://), the path is decoded properly.
+ * 
+ * @param repo - The repository record from the database.
+ * @returns An object containing the absolute path to the repository and whether it should be treated as read-only.
+ */
 export const getRepoPath = (repo: Repo): { path: string, isReadOnly: boolean } => {
     // If we are dealing with a local repository, then use that as the path.
     // Mark as read-only since we aren't guaranteed to have write access to the local filesystem.
     const cloneUrl = new URL(repo.cloneUrl);
     if (repo.external_codeHostType === 'genericGitHost' && cloneUrl.protocol === 'file:') {
         return {
-            path: cloneUrl.pathname,
+            path: fileURLToPath(cloneUrl),
             isReadOnly: true,
         }
     }
