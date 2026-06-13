@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { NavigationGuardProvider, useNavigationGuard } from "next-navigation-guard";
 import { ArrowLeftIcon, PanelRightCloseIcon, PanelRightOpenIcon, PencilIcon, PlusIcon, UploadIcon } from "lucide-react";
 import { useToast } from "@/components/hooks/use-toast";
 import {
@@ -16,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createPersonalAgentSkill, updatePersonalAgentSkill } from "@/ee/features/chat/skills/actions";
 import { normalizeAgentSkillSlug, parseAgentSkillMarkdown, type AgentSkillInput, type AgentSkillListItem } from "@/ee/features/chat/skills/types";
+import { useUnsavedChangesGuard } from "@/ee/features/chat/useUnsavedChangesGuard";
 import { isServiceError } from "@/lib/utils";
 
 const INSTRUCTIONS_MAX_LENGTH = 20000;
@@ -32,15 +32,8 @@ interface PersonalSkillEditorPageProps {
     skill: AgentSkillListItem | null;
 }
 
-// The NavigationGuardProvider must be an ancestor of the component that calls
-// useNavigationGuard, so it patches the router / intercepts the in-editor links
-// (Cancel, Back) used by SkillEditor.
 export function PersonalSkillEditorPage(props: PersonalSkillEditorPageProps) {
-    return (
-        <NavigationGuardProvider>
-            <SkillEditor {...props} />
-        </NavigationGuardProvider>
-    );
+    return <SkillEditor {...props} />;
 }
 
 function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
@@ -67,67 +60,10 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         form.description !== initialForm.description ||
         form.instructions !== initialForm.instructions;
 
-    // Set just before a deliberate save-then-navigate so the discard guard does
-    // not prompt on the post-save redirect (the form is still "dirty" vs. its
-    // initial values at that point).
-    const bypassGuardRef = useRef(false);
-
-    // Intercept in-app navigation (the Cancel button, the Back link, and the
-    // browser back button) while there are unsaved changes, and resolve it
-    // through a themed dialog. `beforeunload` (refresh / tab close) is left to
-    // the native handler below since browsers won't render custom dialogs there.
-    // The settings sidebar lives in a separate parallel-route slot outside this
-    // provider, so navigating away via a sidebar link is not currently guarded.
-    const navGuard = useNavigationGuard({
-        enabled: ({ type }) => {
-            if (bypassGuardRef.current) {
-                return false;
-            }
-            if (type === "beforeunload") {
-                return false;
-            }
-            return isDirty;
-        },
-    });
-
-    // Each time the guard re-activates, reset the one-shot decision latch that
-    // keeps accept()/reject() from both firing (the action buttons close the
-    // dialog, which would otherwise also trigger the onOpenChange path).
-    const guardDecisionMadeRef = useRef(false);
-    useEffect(() => {
-        if (navGuard.active) {
-            guardDecisionMadeRef.current = false;
-        }
-    }, [navGuard.active]);
-
-    const resolveNavGuard = (discard: boolean) => {
-        if (guardDecisionMadeRef.current) {
-            return;
-        }
-        guardDecisionMadeRef.current = true;
-        if (discard) {
-            navGuard.accept();
-        } else {
-            navGuard.reject();
-        }
-    };
-
-    // Warn before a full-page unload (refresh, tab close, external navigation)
-    // when there are unsaved changes. The themed guard above covers in-app
-    // navigation; this native prompt is the unavoidable browser fallback.
-    useEffect(() => {
-        if (!isDirty) {
-            return;
-        }
-
-        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-            event.preventDefault();
-            event.returnValue = "";
-        };
-
-        window.addEventListener("beforeunload", handleBeforeUnload);
-        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-    }, [isDirty]);
+    // Intercept in-app navigation (the Cancel button, the Back link, settings
+    // sidebar links, and the browser back button) while there are unsaved
+    // changes, and resolve it through the themed dialog below.
+    const navGuard = useUnsavedChangesGuard({ enabled: isDirty });
 
     // Restore the panel preference after mount to avoid an SSR hydration mismatch.
     // Creating a skill always starts with details expanded so name/command are
@@ -205,7 +141,9 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
             }
 
             toast({ description: isEditing ? "Skill updated." : "Skill created." });
-            bypassGuardRef.current = true;
+            // The form is still "dirty" versus its initial values at this point,
+            // so suppress the guard for the post-save redirect.
+            navGuard.bypass();
             router.push("/settings/accountAskAgent");
         } catch {
             toast({ title: "Error", description: "Failed to save skill.", variant: "destructive" });
@@ -420,7 +358,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
             open={navGuard.active}
             onOpenChange={(open) => {
                 if (!open) {
-                    resolveNavGuard(false);
+                    navGuard.resolve(false);
                 }
             }}
         >
@@ -432,12 +370,12 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => resolveNavGuard(false)}>
+                    <AlertDialogCancel onClick={() => navGuard.resolve(false)}>
                         Keep editing
                     </AlertDialogCancel>
                     <AlertDialogAction
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={() => resolveNavGuard(true)}
+                        onClick={() => navGuard.resolve(true)}
                     >
                         Discard changes
                     </AlertDialogAction>
