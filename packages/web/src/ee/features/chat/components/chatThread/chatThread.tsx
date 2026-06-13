@@ -9,11 +9,11 @@ import { createUIMessage, getAllMentionElements, getTurnProgressState, getUserMe
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
 import { ArrowDownIcon, CopyIcon } from 'lucide-react';
-import { useNavigationGuard } from 'next-navigation-guard';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStickToBottom } from 'use-stick-to-bottom';
 import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
+import { useUnsavedChangesGuard } from '../../useUnsavedChangesGuard';
 import { useSelectedLanguageModel } from '@/features/chat/useSelectedLanguageModel';
 import { ChatBox, ChatBoxHandle } from '@/features/chat/components/chatBox';
 import { ChatBoxToolbar } from '@/features/chat/components/chatBox/chatBoxToolbar';
@@ -250,18 +250,8 @@ export const ChatThread = ({
         shouldGuardNavigation,
     } = useMemo(() => getTurnProgressState({ messages, status }), [messages, status]);
 
-    useNavigationGuard({
-        enabled: ({ type }) => {
-            // @note: a "refresh" in this context means we have triggered a client side
-            // refresh via `router.refresh()`, and not the user pressing "CMD+R"
-            // (that would be a "beforeunload" event). We can safely peform refreshes
-            // without loosing any unsaved changes.
-            if (type === "refresh") {
-                return false;
-            }
-
-            return shouldGuardNavigation;
-        },
+    useUnsavedChangesGuard({
+        enabled: shouldGuardNavigation,
         confirm: () => window.confirm("You have unsaved changes that will be lost."),
     });
 
