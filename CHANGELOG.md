@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added the ability to configure email code and credentials login from the security settings. [#1303](https://github.com/sourcebot-dev/sourcebot/pull/1303)
 - Added a list of configured SSO providers from the security settings. [#1303](https://github.com/sourcebot-dev/sourcebot/pull/1303)
+- [EE] Added a SCIM 2.0 server for automated user provisioning and deprovisioning from identity providers (Okta, Entra). [#1306](https://github.com/sourcebot-dev/sourcebot/pull/1306)
 
 ### Fixed
 - Validated that `SOURCEBOT_ENCRYPTION_KEY` is exactly 32 characters at startup, failing fast with an actionable message instead of a runtime encryption error. [#1305](https://github.com/sourcebot-dev/sourcebot/pull/1305)
