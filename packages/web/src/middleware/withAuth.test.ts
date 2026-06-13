@@ -319,6 +319,8 @@ describe('getAuthContext', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.MEMBER,
         });
 
@@ -349,6 +351,8 @@ describe('getAuthContext', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.OWNER,
         });
 
@@ -415,6 +419,8 @@ describe('getAuthContext', () => {
                 joinedAt: new Date(),
                 userId,
                 orgId: MOCK_ORG.id,
+                isActive: true,
+                scimExternalId: null,
                 role: OrgRole.MEMBER,
             });
             prisma.apiKey.findUnique.mockResolvedValue({ ...MOCK_API_KEY, hash: 'apikey', createdById: userId });
@@ -437,6 +443,8 @@ describe('getAuthContext', () => {
                 joinedAt: new Date(),
                 userId,
                 orgId: MOCK_ORG.id,
+                isActive: true,
+                scimExternalId: null,
                 role: OrgRole.OWNER,
             });
             prisma.apiKey.findUnique.mockResolvedValue({ ...MOCK_API_KEY, hash: 'apikey', createdById: userId });
@@ -460,6 +468,8 @@ describe('getAuthContext', () => {
                 joinedAt: new Date(),
                 userId,
                 orgId: MOCK_ORG.id,
+                isActive: true,
+                scimExternalId: null,
                 role: OrgRole.MEMBER,
             });
             setMockSession(createMockSession({ user: { id: userId } }));
@@ -493,6 +503,8 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.MEMBER,
         });
         vi.mocked(userScopedPrismaClientExtension).mockResolvedValue(extension as never);
@@ -522,6 +534,8 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.MEMBER,
         });
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
@@ -552,6 +566,8 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.OWNER,
         });
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
@@ -582,6 +598,8 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.MEMBER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -617,6 +635,8 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.OWNER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -652,6 +672,8 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.MEMBER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -687,6 +709,8 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.OWNER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -722,6 +746,8 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.MEMBER,
         });
         setMockSession(null);
@@ -765,6 +791,8 @@ describe('withOptionalAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.MEMBER,
         });
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
@@ -795,6 +823,8 @@ describe('withOptionalAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.OWNER,
         });
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
@@ -825,6 +855,8 @@ describe('withOptionalAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.MEMBER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -860,6 +892,8 @@ describe('withOptionalAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.OWNER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -895,6 +929,8 @@ describe('withOptionalAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.MEMBER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -930,6 +966,8 @@ describe('withOptionalAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.OWNER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -965,6 +1003,8 @@ describe('withOptionalAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
+            isActive: true,
+            scimExternalId: null,
             role: OrgRole.MEMBER,
         });
         setMockSession(null);

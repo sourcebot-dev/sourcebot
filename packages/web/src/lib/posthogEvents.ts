@@ -10,6 +10,7 @@ export type UpsellSource =
     'license_settings' |
     'mcp_settings' |
     'sso_settings' |
+    'scim_settings' |
     'chat_connectors';
 
 export type SourcebotWebClientSource = 'sourcebot-web-client';

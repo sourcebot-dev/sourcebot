@@ -5,6 +5,7 @@ import { syncWithLighthouse } from "@/features/billing/servicePing";
 import InviteUserEmail from "@/emails/inviteUserEmail";
 import JoinRequestApprovedEmail from "@/emails/joinRequestApprovedEmail";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
+import { invalidateAllSessionsForUser, revokeUserApiKeysInOrg, revokeUserOAuthTokens } from "./membershipMutations";
 import { ErrorCode } from "@/lib/errorCodes";
 import { notFound, ServiceError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
@@ -486,6 +487,7 @@ export const getOrgMembers = async () => sew(() =>
                 avatarUrl: member.user.image ?? undefined,
                 role: member.role,
                 joinedAt: member.joinedAt,
+                isActive: member.isActive,
             }));
         })));
 
@@ -527,53 +529,4 @@ export const getOrgAccountRequests = async () => sew(() =>
             }));
         })));
 
-/**
- * Invalidates every active JWT cookie for the given user by incrementing
- * their `sessionVersion`. The next request from any of their active
- * sessions will compare the cookie's baked-in version against the
- * (now-bumped) value on the User row, fail, and be treated as logged out.
- */
-const invalidateAllSessionsForUser = async (
-    prisma: Prisma.TransactionClient,
-    userId: string,
-): Promise<void> => {
-    await prisma.user.update({
-        where: { id: userId },
-        data: { sessionVersion: { increment: 1 } },
-    });
-};
-
-const revokeUserApiKeysInOrg = async (
-    prisma: Prisma.TransactionClient,
-    userId: string,
-    orgId: number,
-): Promise<void> => {
-    await prisma.apiKey.deleteMany({
-        where: {
-            createdById: userId,
-            orgId,
-        }
-    });
-};
-
-const revokeUserOAuthTokens = async (
-    prisma: Prisma.TransactionClient,
-    userId: string,
-): Promise<void> => {
-    await prisma.oAuthToken.deleteMany({
-        where: {
-            userId
-        }
-    });
-    await prisma.oAuthRefreshToken.deleteMany({
-        where: {
-            userId
-        }
-    });
-    await prisma.oAuthAuthorizationCode.deleteMany({
-        where: {
-            userId
-        }
-    });
-};
 

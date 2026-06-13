@@ -12,6 +12,20 @@ import { hasEntitlement } from "./entitlements";
 
 const logger = createLogger('web-auth-utils');
 
+/**
+ * SCIM is "enabled" for an org once it has at least one SCIM token configured
+ * (and the entitlement is present). When enabled, the IdP directory is the
+ * source of truth for membership, so interactive-login JIT auto-join is
+ * suppressed — users must be provisioned via SCIM.
+ */
+export const isScimEnabled = async (orgId: number): Promise<boolean> => {
+    if (!await hasEntitlement('scim')) {
+        return false;
+    }
+    const tokenCount = await __unsafePrisma.scimToken.count({ where: { orgId } });
+    return tokenCount > 0;
+};
+
 export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
     if (!user.id) {
         logger.error("User ID is undefined on user creation");
@@ -115,7 +129,11 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
     // distinction exists without the entitlement). If memberApprovalRequired
     // is true, the user is left without a membership and must submit an
     // AccountRequest for an owner to approve via addUserToOrganization.
-    else if (!defaultOrg.memberApprovalRequired) {
+    //
+    // When SCIM is enabled, auto-join is suppressed entirely: the IdP is the
+    // source of truth, so a login for a user the IdP hasn't provisioned creates
+    // the User row but no membership (they're denied until SCIM provisions them).
+    else if (!defaultOrg.memberApprovalRequired && !(await isScimEnabled(SINGLE_TENANT_ORG_ID))) {
         // Don't exceed the licensed seat count. The user row still exists;
         // they just aren't attached to the org until a seat frees up.
         const hasAvailability = await orgHasAvailability(defaultOrg.id);
@@ -162,23 +180,22 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
  * the offline license key, if available.
  */
 export const orgHasAvailability = async (orgId: number): Promise<boolean> => {
-    const org = await __unsafePrisma.org.findUniqueOrThrow({
-        where: {
-            id: orgId,
-        },
-        include: {
-            members: true,
-        }
-    });
-
     const seatCap = getSeatCap();
-    const memberCount = org.members.length;
+
+    // SCIM-deactivated members don't consume a seat, so they free up capacity
+    // for new provisions while their membership row is preserved.
+    const memberCount = await __unsafePrisma.userToOrg.count({
+        where: {
+            orgId,
+            isActive: true,
+        },
+    });
 
     if (
         seatCap &&
         memberCount >= seatCap
     ) {
-        logger.error(`orgHasAvailability: org ${org.id} has reached max capacity`);
+        logger.error(`orgHasAvailability: org ${orgId} has reached max capacity`);
         return false;
     }
 

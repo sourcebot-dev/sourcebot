@@ -85,7 +85,10 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         },
     }) : null;
 
-    const role = membership?.role;
+    // A SCIM-deactivated membership is treated as if the user is not a member:
+    // they get no role and are denied by `withAuth`. This is also the only gate
+    // for API-key auth, which bypasses the JWT `sessionVersion` logout check.
+    const role = membership?.isActive ? membership.role : undefined;
 
     if (
         env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'true' &&

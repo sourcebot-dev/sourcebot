@@ -272,6 +272,7 @@ model Org {
   connections Connection[]
   repos       Repo[]
   apiKeys     ApiKey[]
+  scimTokens  ScimToken[]
   isOnboarded Boolean      @default(false)
   imageUrl    String?
 
@@ -387,7 +388,17 @@ model UserToOrg {
 
   role OrgRole @default(MEMBER)
 
+  /// SCIM soft-deactivation flag. When false, the membership is suspended by
+  /// the IdP: the user is treated as a non-member for auth purposes (see
+  /// `getAuthContext`) but the row is preserved so the IdP can reactivate it.
+  isActive Boolean @default(true)
+
+  /// The IdP-supplied `externalId` for this membership when provisioned via
+  /// SCIM. Null for members that joined through invites or self-serve sign-up.
+  scimExternalId String?
+
   @@id([orgId, userId])
+  @@index([orgId, scimExternalId])
 }
 
 model ApiKey {
@@ -402,6 +413,23 @@ model ApiKey {
 
   createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdById String
+}
+
+/// Org-scoped bearer token presented by an IdP (Okta, Entra) to authenticate
+/// against the SCIM provisioning endpoints. Unlike `ApiKey`, a SCIM token is
+/// not tied to a user — it acts on behalf of the SCIM integration for the
+/// whole org. Only the HMAC hash of the secret is stored.
+model ScimToken {
+  name String
+  hash String @id @unique
+
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  @@index([orgId])
 }
 
 model Audit {
