@@ -375,6 +375,15 @@ const createReposMapForChunk = async (chunk: ZoektGrpcSearchResponse, reposMapCa
     return reposMap;
 }
 
+/**
+ * Transforms a raw Zoekt gRPC search response into a structured search result.
+ * Resolves repository metadata, maps file matches to structured SearchResultFile objects
+ * (including the git commit ref/SHA from the zoekt version field), and computes aggregate stats.
+ *
+ * @param response - The raw gRPC search response from zoekt.
+ * @param reposMapCache - A mutable cache mapping repository IDs to Repo records for efficient lookups.
+ * @returns An object containing the transformed files array, repository info, and search stats.
+ */
 const transformZoektSearchResponse = async (response: ZoektGrpcSearchResponse, reposMapCache: Map<string | number, Repo>): Promise<{
     stats: SearchStats,
     files: SearchResultFile[],
@@ -465,6 +474,7 @@ const transformZoektSearchResponse = async (response: ZoektGrpcSearchResponse, r
                     }
                 }),
             branches: file.branches,
+            ref: file.version || undefined,
             content: file.content ? file.content.toString('utf-8') : undefined,
         }
     }).filter(file => file !== undefined);

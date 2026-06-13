@@ -13,6 +13,14 @@ import escapeStringRegexp from "escape-string-regexp";
 // The maximum number of matches to return from the search API.
 const MAX_REFERENCE_COUNT = 1000;
 
+/**
+ * Finds all search-based symbol references for a given symbol name.
+ * Constructs a Zoekt IR query filtering by symbol name, branch, language, and repository,
+ * then parses the search response to extract matching file results (including the commit ref).
+ *
+ * @param props - The request parameters including symbolName, language, revisionName, and repoName.
+ * @returns The matching files with their references, or a ServiceError on failure.
+ */
 export const findSearchBasedSymbolReferences = async (props: FindRelatedSymbolsRequest): Promise<FindRelatedSymbolsResponse | ServiceError> => sew(() =>
     withOptionalAuth(async () => {
         const {
@@ -67,6 +75,14 @@ export const findSearchBasedSymbolReferences = async (props: FindRelatedSymbolsR
     }));
 
 
+/**
+ * Finds all search-based symbol definitions for a given symbol name.
+ * Uses Zoekt's symbol search to locate definition sites, filtering by branch, language, and repository.
+ * The response includes the commit ref (SHA) for each matched file.
+ *
+ * @param props - The request parameters including symbolName, language, revisionName, and repoName.
+ * @returns The matching files with their definitions, or a ServiceError on failure.
+ */
 export const findSearchBasedSymbolDefinitions = async (props: FindRelatedSymbolsRequest): Promise<FindRelatedSymbolsResponse | ServiceError> => sew(() =>
     withOptionalAuth(async () => {
         const {
@@ -124,6 +140,14 @@ export const findSearchBasedSymbolDefinitions = async (props: FindRelatedSymbols
         return parseRelatedSymbolsSearchResponse(searchResult);
     }));
 
+/**
+ * Transforms a raw Zoekt SearchResponse into a FindRelatedSymbolsResponse.
+ * Maps each file's chunks and match ranges into a structured response, including
+ * the git commit ref (SHA) from the search result.
+ *
+ * @param searchResult - The raw search response from the Zoekt searcher.
+ * @returns A structured response containing stats, matched files with refs, and repository info.
+ */
 const parseRelatedSymbolsSearchResponse = (searchResult: SearchResponse): FindRelatedSymbolsResponse => {
     return {
         stats: {
@@ -138,6 +162,7 @@ const parseRelatedSymbolsSearchResponse = (searchResult: SearchResponse): FindRe
                 repositoryId: file.repositoryId,
                 webUrl: file.webUrl,
                 language: file.language,
+                ref: file.ref,
                 matches: chunks.flatMap((chunk) => {
                     return chunk.matchRanges.map((range) => ({
                         lineContent: chunk.content,

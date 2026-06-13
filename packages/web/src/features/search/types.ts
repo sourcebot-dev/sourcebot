@@ -78,6 +78,7 @@ export const searchFileSchema = z.object({
         })).optional(),
     })),
     branches: z.array(z.string()).optional(),
+    ref: z.string().optional().describe('The git ref/commit SHA of the file.'),
     // Set if `whole` is true.
     content: z.string().optional(),
 });
