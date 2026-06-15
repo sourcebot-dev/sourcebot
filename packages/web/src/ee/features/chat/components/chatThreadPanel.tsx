@@ -8,12 +8,14 @@ import { CreateUIMessage } from 'ai';
 import { useEffect, useState } from 'react';
 import { useChatId } from '@/app/(app)/chat/useChatId';
 import { useSessionStorage } from 'usehooks-ts';
+import type { AskCommandDefinition } from '@/features/chat/commands/types';
 
 interface ChatThreadPanelProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
     messages: SBChatMessage[];
+    askCommands: AskCommandDefinition[];
     isOwner: boolean;
     isAuthenticated: boolean;
     isLoginWallEnabled: boolean;
@@ -34,6 +36,7 @@ export const ChatThreadPanel = ({
     repos,
     searchContexts,
     messages,
+    askCommands,
     isOwner,
     isAuthenticated,
     isLoginWallEnabled,
@@ -85,6 +88,7 @@ export const ChatThreadPanel = ({
                 languageModels={languageModels}
                 repos={repos}
                 searchContexts={searchContexts}
+                askCommands={askCommands}
                 selectedSearchScopes={selectedSearchScopes}
                 onSelectedSearchScopesChange={setSelectedSearchScopes}
                 disabledMcpServerIds={disabledMcpServerIds}

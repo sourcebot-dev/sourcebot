@@ -8,6 +8,9 @@ vi.mock('@/app/api/(client)/client', () => ({
 vi.mock('@/ee/features/chat/mcp/actions', () => ({
     disconnectMcpServer: vi.fn(),
 }));
+vi.mock('@/ee/features/chat/skills/actions', () => ({
+    deletePersonalAgentSkill: vi.fn(),
+}));
 
 const { AccountAskAgentEmptyState } = await import('./accountAskAgentPage');
 

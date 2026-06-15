@@ -11,6 +11,7 @@ import { auth } from "@/auth";
 import { hasEntitlement } from "@/lib/entitlements";
 import { ChatEntitlementMessage } from "@/features/chat/components/chatEntitlementMessage";
 import { env } from "@sourcebot/shared";
+import { listPersonalAgentSkillCommandsOrEmpty } from "@/ee/features/chat/skills/commands.server";
 
 interface PageProps {
     params: Promise<{ owner: string; repo: string }>;
@@ -54,6 +55,9 @@ export default async function GitHubRepoPage(props: PageProps) {
 
     const repoInfo = await getRepoInfo(repoId)
     const languageModels = await getConfiguredLanguageModelsInfo()
+    const askCommands = session?.user
+        ? await listPersonalAgentSkillCommandsOrEmpty()
+        : [];
 
     if (isServiceError(repoInfo)) {
         throw new ServiceErrorException(repoInfo);
@@ -68,6 +72,7 @@ export default async function GitHubRepoPage(props: PageProps) {
                     repoDisplayName={repoInfo.displayName ?? undefined}
                     imageUrl={repoInfo.imageUrl ?? undefined}
                     repoId={repoInfo.id}
+                    askCommands={askCommands}
                     isAuthenticated={!!session?.user}
                     maxImageBytes={env.SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES}
                 />

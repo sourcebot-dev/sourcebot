@@ -1,6 +1,7 @@
 'use server';
 
 import { checkAskEntitlement } from "@/features/chat/utils.server";
+import { ASK_COMMAND_SOURCE_PERSONAL_SKILL, type AskCommandDefinition } from "@/features/chat/commands/types";
 import { ErrorCode } from "@/lib/errorCodes";
 import { isUniqueConstraintError } from "@/lib/prismaErrors";
 import { requestBodySchemaValidationError, ServiceError } from "@/lib/serviceError";
@@ -48,6 +49,36 @@ export const listPersonalAgentSkills = async (): Promise<AgentSkillListItem[] | 
         });
 
         return skills.map(toAgentSkillListItem);
+    }));
+
+export const listPersonalAgentSkillCommands = async (): Promise<AskCommandDefinition[] | ServiceError> => sew(() =>
+    withAuth(async ({ user, prisma }) => {
+        const askError = await checkAskEntitlement();
+        if (askError) {
+            return askError;
+        }
+
+        const skills = await prisma.agentSkill.findMany({
+            where: {
+                namespaceKey: personalNamespaceKey(user.id),
+                enabled: true,
+            },
+            orderBy: agentSkillOrderBy,
+            select: {
+                id: true,
+                slug: true,
+                name: true,
+                description: true,
+            },
+        });
+
+        return skills.map((skill) => ({
+            id: skill.id,
+            sourceId: ASK_COMMAND_SOURCE_PERSONAL_SKILL,
+            slug: skill.slug,
+            name: skill.name,
+            description: skill.description,
+        }));
     }));
 
 export const getPersonalAgentSkill = async (

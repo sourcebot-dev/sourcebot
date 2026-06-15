@@ -3,10 +3,12 @@
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { forwardRef, useMemo } from "react";
+import { forwardRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { VscFiles } from "react-icons/vsc";
 import { FileSuggestion, RefineSuggestion, Suggestion } from "./types";
+import { BookOpenIcon } from "lucide-react";
+import type { AskCommandSuggestion } from "@/features/chat/commands/types";
 
 interface SuggestionBoxProps {
     selectedIndex: number;
@@ -66,6 +68,11 @@ export const SuggestionBox = forwardRef<HTMLDivElement, SuggestionBoxProps>(({
                                             <RefineSuggestionListItem refine={suggestion} />
                                         )
                                     }
+                                    {
+                                        suggestion.type === 'command' && (
+                                            <CommandSuggestionListItem command={suggestion} />
+                                        )
+                                    }
                                 </div>
                             ))}
                         </div>
@@ -80,38 +87,72 @@ SuggestionBox.displayName = 'SuggestionBox';
 
 const FileSuggestionListItem = ({ file }: { file: FileSuggestion }) => {
     return (
-        <>
-            <VscodeFileIcon fileName={file.name} className="mt-1" />
-            <div className="flex flex-col w-full">
-                <span className="text-sm font-medium">
-                    {file.name}
-                </span>
-                <span className="text-xs text-muted-foreground">
+        <SuggestionListItem
+            description={
+                <>
                     <span className="font-medium">{file.repo.split('/').pop()}</span>/{file.path}
-                </span>
-            </div>
-        </>
+                </>
+            }
+            icon={<VscodeFileIcon fileName={file.name} className="mt-1" />}
+            title={file.name}
+        />
     )
 }
 
 const RefineSuggestionListItem = ({ refine }: { refine: RefineSuggestion }) => {
+    return (
+        <SuggestionListItem
+            description={refine.description}
+            icon={<VscFiles className="w-4 h-4 flex-shrink-0 mt-1" />}
+            title={refine.name}
+        />
+    )
+}
 
-    const Icon = useMemo(() => {
-        switch (refine.targetSuggestionMode) {
-            case 'file':
-                return VscFiles;
-        }
-    }, [refine.targetSuggestionMode]);
+const CommandSuggestionListItem = ({ command }: { command: AskCommandSuggestion }) => {
+    return (
+        <SuggestionListItem
+            description={command.argumentHint ? `${command.argumentHint} - ${command.description}` : command.description}
+            icon={<BookOpenIcon className="w-4 h-4 flex-shrink-0 mt-1" />}
+            title={`/${command.slug}`}
+            titleDetail={command.name}
+        />
+    )
+}
 
+interface SuggestionListItemProps {
+    description: ReactNode;
+    icon: ReactNode;
+    title: ReactNode;
+    titleDetail?: ReactNode;
+}
+
+const SuggestionListItem = ({
+    description,
+    icon,
+    title,
+    titleDetail,
+}: SuggestionListItemProps) => {
     return (
         <>
-            <Icon className="w-4 h-4 flex-shrink-0 mt-1" />
-            <div className="flex flex-col w-full">
-                <span className="text-sm font-medium">
-                    {refine.name}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                    {refine.description}
+            {icon}
+            <div className="flex flex-col w-full min-w-0">
+                {titleDetail ? (
+                    <div className="flex flex-row items-baseline gap-2 min-w-0">
+                        <span className="text-sm font-medium truncate">
+                            {title}
+                        </span>
+                        <span className="text-sm text-muted-foreground truncate">
+                            {titleDetail}
+                        </span>
+                    </div>
+                ) : (
+                    <span className="text-sm font-medium truncate">
+                        {title}
+                    </span>
+                )}
+                <span className="text-xs text-muted-foreground truncate">
+                    {description}
                 </span>
             </div>
         </>

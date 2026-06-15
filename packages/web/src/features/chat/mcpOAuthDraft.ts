@@ -1,6 +1,7 @@
 import type { Descendant } from "slate";
 import { MCP_OAUTH_DRAFT_SESSION_STORAGE_KEY } from "@/features/chat/constants";
-import type { CustomText, MentionElement, ParagraphElement, SearchScope } from "@/features/chat/types";
+import { isFileMentionData, type CustomText, type MentionElement, type ParagraphElement, type SearchScope } from "@/features/chat/types";
+import { isCommandMentionData } from "@/features/chat/commands/types";
 
 const MCP_OAUTH_DRAFT_BASE_URL = 'https://sourcebot.invalid';
 const MCP_OAUTH_DRAFT_MAX_AGE_MS = 30 * 60 * 1000;
@@ -37,13 +38,7 @@ function isMentionElement(value: unknown): value is MentionElement {
     return (
         isRecord(value) &&
         value.type === 'mention' &&
-        isRecord(value.data) &&
-        value.data.type === 'file' &&
-        typeof value.data.repo === 'string' &&
-        typeof value.data.path === 'string' &&
-        typeof value.data.name === 'string' &&
-        typeof value.data.language === 'string' &&
-        typeof value.data.revision === 'string' &&
+        (isFileMentionData(value.data) || isCommandMentionData(value.data)) &&
         Array.isArray(value.children) &&
         value.children.every(isCustomText)
     );
