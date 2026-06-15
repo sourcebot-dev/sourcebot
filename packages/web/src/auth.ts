@@ -143,7 +143,7 @@ export const getProviders = async () => {
                             sessionVersion: newUser.sessionVersion,
                         }
 
-                        onCreateUser({ user: authJsUser });
+                        await onCreateUser({ user: authJsUser });
                         return authJsUser;
 
                         // Otherwise, the user exists, so verify the password.
