@@ -10,6 +10,7 @@ import type { createTools } from "@/ee/features/chat/tools";
 export { sourceSchema } from "@/features/tools/types";
 export type { FileSource, Source } from "@/features/tools/types";
 import type { Source } from "@/features/tools/types";
+import type { CommandMentionData } from "./commands/types";
 
 const fileReferenceSchema = z.object({
     type: z.literal('file'),
@@ -170,16 +171,21 @@ export type ParagraphElement = {
     children: Descendant[];
 }
 
-export type FileMentionData = {
-    type: 'file';
-    repo: string;
-    path: string;
-    name: string;
-    language: string;
-    revision: string;
-}
+export const fileMentionDataSchema = z.object({
+    type: z.literal('file'),
+    repo: z.string(),
+    path: z.string(),
+    name: z.string(),
+    language: z.string(),
+    revision: z.string(),
+});
 
-export type MentionData = FileMentionData;
+export type FileMentionData = z.infer<typeof fileMentionDataSchema>;
+
+export const isFileMentionData = (value: unknown): value is FileMentionData =>
+    fileMentionDataSchema.safeParse(value).success;
+
+export type MentionData = FileMentionData | CommandMentionData;
 
 export type MentionElement = {
     type: 'mention';

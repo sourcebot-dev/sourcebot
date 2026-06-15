@@ -33,6 +33,7 @@ import { ToolApprovalProvider } from '../../toolApprovalContext';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { SignInPromptBanner } from './signInPromptBanner';
 import { DuplicateChatDialog } from '@/app/(app)/chat/components/duplicateChatDialog';
+import type { AskCommandDefinition } from '@/features/chat/commands/types';
 
 type ChatHistoryState = {
     scrollOffset?: number;
@@ -45,6 +46,7 @@ interface ChatThreadProps {
     languageModels: LanguageModelInfo[];
     repos: RepositoryQuery[];
     searchContexts: SearchContextQuery[];
+    askCommands: AskCommandDefinition[];
     selectedSearchScopes: SearchScope[];
     onSelectedSearchScopesChange: (items: SearchScope[]) => void;
     disabledMcpServerIds: string[];
@@ -63,6 +65,7 @@ export const ChatThread = ({
     languageModels,
     repos,
     searchContexts,
+    askCommands,
     selectedSearchScopes,
     onSelectedSearchScopesChange,
     disabledMcpServerIds,
@@ -478,6 +481,7 @@ export const ChatThread = ({
                                     onStop={stop}
                                     selectedSearchScopes={selectedSearchScopes}
                                     searchContexts={searchContexts}
+                                    askCommands={askCommands}
                                     isDisabled={languageModels.length === 0}
                                     isAuthenticated={isAuthenticated}
                                     isLoginWallEnabled={isLoginWallEnabled}

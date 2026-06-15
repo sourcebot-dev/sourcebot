@@ -129,8 +129,16 @@ export const isParagraphElement = (element: Descendant): element is ParagraphEle
     return 'type' in element && element.type === 'paragraph';
 }
 
+const commandMentionSeparator = (nextChild: Descendant | undefined) => {
+    if (nextChild && isCustomTextElement(nextChild) && /^\s/.test(nextChild.text)) {
+        return "";
+    }
+
+    return " ";
+}
+
 export const slateContentToString = (children: Descendant[]): string => {
-    return children.map((child) => {
+    return children.map((child, index) => {
         if (isCustomTextElement(child)) {
             return child.text;
         }
@@ -141,6 +149,8 @@ export const slateContentToString = (children: Descendant[]): string => {
             switch (type) {
                 case 'file':
                     return `${fileReferenceToString({ repo: child.data.repo, path: child.data.path })} `;
+                case 'command':
+                    return `/${child.data.slug}${commandMentionSeparator(children[index + 1])}`;
             }
         }
 
