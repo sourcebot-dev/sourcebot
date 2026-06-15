@@ -1,6 +1,5 @@
 import { __unsafePrisma } from "@/prisma";
 import { hasEntitlement } from "@/lib/entitlements";
-import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { hashSecret, SCIM_TOKEN_PREFIX, createLogger } from "@sourcebot/shared";
 import { Org, PrismaClient } from "@sourcebot/db";
 import { NextRequest } from "next/server";
@@ -10,8 +9,6 @@ const logger = createLogger('scim-auth');
 
 export type ScimAuthContext = {
     org: Org;
-    // SCIM acts on behalf of the IdP integration for the whole org — there is
-    // no user, so we use the unscoped client rather than the user-scoped one.
     prisma: PrismaClient;
 };
 
@@ -43,6 +40,7 @@ export const withScimAuth = async (
 
     const scimToken = await __unsafePrisma.scimToken.findUnique({
         where: { hash: hashSecret(secret) },
+        include: { org: true },
     });
     if (!scimToken) {
         return scimError(401, "Invalid SCIM token");
@@ -54,12 +52,6 @@ export const withScimAuth = async (
         return scimError(403, "SCIM provisioning is not available in your current plan");
     }
 
-    const org = await __unsafePrisma.org.findUnique({
-        where: { id: SINGLE_TENANT_ORG_ID },
-    });
-    if (!org) {
-        return scimError(500, "Organization not found");
-    }
 
     // Best-effort usage tracking; never block the request on it.
     __unsafePrisma.scimToken.update({
@@ -68,7 +60,10 @@ export const withScimAuth = async (
     }).catch(() => { /* ignore */ });
 
     try {
-        return await fn({ org, prisma: __unsafePrisma });
+        return await fn({
+            org: scimToken.org,
+            prisma: __unsafePrisma
+        });
     } catch (error) {
         logger.error(`Unhandled SCIM error: ${error instanceof Error ? error.message : String(error)}`);
         return scimError(500, "Internal server error");
