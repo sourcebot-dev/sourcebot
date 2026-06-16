@@ -430,7 +430,7 @@ model Audit {
 model User {
   id              String                 @id @default(cuid())
   name            String?
-  email           String?                @unique
+  email           String                 @unique
   hashedPassword  String?
   emailVerified   DateTime?
   image           String?

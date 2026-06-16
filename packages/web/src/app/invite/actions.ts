@@ -195,12 +195,12 @@ export const getInviteInfo = async (inviteId: string) => sew(async () => {
         orgImageUrl: invite.org.imageUrl ?? undefined,
         host: {
             name: invite.host.name ?? undefined,
-            email: invite.host.email!,
+            email: invite.host.email,
             avatarUrl: invite.host.image ?? undefined,
         },
         recipient: {
             name: user.name ?? undefined,
-            email: user.email!,
+            email: user.email,
         }
     };
 });
