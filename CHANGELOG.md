@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Validated that `SOURCEBOT_ENCRYPTION_KEY` is exactly 32 characters at startup, failing fast with an actionable message instead of a runtime encryption error. [#1305](https://github.com/sourcebot-dev/sourcebot/pull/1305)
+- Fixed the web UI crashing when anonymous access is enabled and a request omits the `User-Agent` header (e.g. proxy or health-check probes). [#1309](https://github.com/sourcebot-dev/sourcebot/pull/1309)
 
 ## [5.0.2] - 2026-06-11
 
