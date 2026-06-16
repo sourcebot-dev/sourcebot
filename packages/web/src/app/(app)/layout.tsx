@@ -148,7 +148,7 @@ export default async function Layout(props: LayoutProps) {
     const headersList = await headers();
     const cookieStore = await cookies()
     const userAgent = headersList.get('user-agent');
-    const { isMobile } = getSelectorsByUserAgent(userAgent ?? '');
+    const { isMobile } = userAgent ? getSelectorsByUserAgent(userAgent) : { isMobile: false };
 
     if (isMobile && !cookieStore.has(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME)) {
         return (
