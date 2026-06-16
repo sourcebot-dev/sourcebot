@@ -318,14 +318,7 @@ const nextAuthResult = NextAuth(async () => ({
                 return false;
             }
 
-            // Reject any sign-in that arrives without an email. `email` is a required
-            // column, so a null would otherwise fail the `createUser` insert at the
-            // database; historically these rows also crashed the members list and other
-            // surfaces that assume an email is present. Returning false surfaces the auth
-            // error page instead. In practice only OAuth/OIDC profiles can lack an email
-            // (credentials and email providers always carry one), but the check is left
-            // unconditional so any future provider or edge case is covered too. `user` is
-            // always defined in the signIn callback, so it needs no guard.
+            // Reject any sign-in that arrives without an email.
             // @see 20260616000000_make_user_email_required/migration.sql
             if (!user.email) {
                 return false;
