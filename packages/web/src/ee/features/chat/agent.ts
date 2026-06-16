@@ -31,6 +31,7 @@ import { getMcpTools, McpToolsResult } from "@/ee/features/chat/mcp/mcpToolSets"
 import { buildMcpToolRegistry, McpToolRegistryEntry, searchMcpTools } from "@/ee/features/chat/mcp/mcpToolRegistry";
 import { PromptCacheStrategy, mergeProviderOptions, detectPromptCacheBreak, detectUnexpectedCacheMiss } from "./promptCaching";
 import { hasEntitlement } from '@/lib/entitlements';
+import { getUserMessageModelText } from "./skills/commandResolution";
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -121,14 +122,16 @@ const resolveTurnMedia = async ({
 // appended so the model knows context was dropped.
 const buildUserModelMessage = ({
     message,
+    modelText,
     acceptedModalities,
     resolvedMedia,
 }: {
     message: SBChatMessage;
+    modelText?: string;
     acceptedModalities: InputModality[];
     resolvedMedia?: ResolvedTurnMedia;
 }): ModelMessage => {
-    const text = getUserMessageText(message);
+    const text = modelText ?? getUserMessageText(message);
     const attachmentsBlock = formatAttachmentsForPrompt(
         getUserMessageAttachments(message),
     );
@@ -246,6 +249,13 @@ export const createMessageStream = async ({
     // We will use this as the context we carry between messages.
     // Server requests always receive persisted messages between client streams, so evaluate them in the ready state.
     const incomingTurnProgress = getTurnProgressState({ messages, status: 'ready' });
+    const userMessageModelTexts = messages.map((message) => {
+        if (message.role !== 'user') {
+            return undefined;
+        }
+
+        return getUserMessageModelText(message);
+    });
 
     // Media attachment bytes are re-sent on every turn (decision: keep
     // attachments in context across turns rather than dropping them after the
@@ -265,6 +275,7 @@ export const createMessageStream = async ({
             if (message.role === 'user') {
                 return buildUserModelMessage({
                     message,
+                    modelText: userMessageModelTexts[index],
                     acceptedModalities,
                     resolvedMedia,
                 });

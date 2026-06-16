@@ -27,9 +27,17 @@ export const commandMentionDataSchema = z.object({
     sourceId: z.string(),
     slug: z.string(),
     name: z.string(),
+    argumentHint: z.string().optional(),
 });
 
 export type CommandMentionData = z.infer<typeof commandMentionDataSchema>;
 
 export const isCommandMentionData = (value: unknown): value is CommandMentionData =>
     commandMentionDataSchema.safeParse(value).success;
+
+export const commandInvocationDataSchema = commandMentionDataSchema.extend({
+    rawArguments: z.string(),
+    expandedText: z.string().optional(),
+});
+
+export type CommandInvocationData = z.infer<typeof commandInvocationDataSchema>;

@@ -10,7 +10,7 @@ import type { createTools } from "@/ee/features/chat/tools";
 export { sourceSchema } from "@/features/tools/types";
 export type { FileSource, Source } from "@/features/tools/types";
 import type { Source } from "@/features/tools/types";
-import type { CommandMentionData } from "./commands/types";
+import type { CommandInvocationData, CommandMentionData } from "./commands/types";
 
 const fileReferenceSchema = z.object({
     type: z.literal('file'),
@@ -148,6 +148,9 @@ export type SBChatMessageDataParts = {
     "mcp-failed-server": { serverName: string },
     // A user-provided file attachment included with the message.
     "attachment": AttachmentData,
+    // The `command` data type preserves the slash command identity and raw arguments
+    // so the server can resolve and expand the command template securely.
+    "command": CommandInvocationData,
 }
 
 export type SBChatMessage = UIMessage<
