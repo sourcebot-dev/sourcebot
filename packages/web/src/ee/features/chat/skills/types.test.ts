@@ -56,6 +56,44 @@ describe("agentSkillInputSchema", () => {
             expect(result.data.description).toBe("");
         }
     });
+
+    test("defaults argument names to an empty array", () => {
+        const result = agentSkillInputSchema.safeParse({
+            name: "PR review",
+            slug: "pr-review",
+            description: "",
+            instructions: "Find correctness issues.",
+        });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data.argumentNames).toEqual([]);
+        }
+    });
+
+    test("rejects invalid argument names", () => {
+        const result = agentSkillInputSchema.safeParse({
+            name: "Tutorial",
+            slug: "tutorial",
+            description: "",
+            instructions: "Write about $topic.",
+            argumentNames: ["0", "topic"],
+        });
+
+        expect(result.success).toBe(false);
+    });
+
+    test("rejects duplicate argument names", () => {
+        const result = agentSkillInputSchema.safeParse({
+            name: "Tutorial",
+            slug: "tutorial",
+            description: "",
+            instructions: "Write about $topic.",
+            argumentNames: ["topic", "topic"],
+        });
+
+        expect(result.success).toBe(false);
+    });
 });
 
 describe("sortAgentSkillListItems", () => {
@@ -66,6 +104,7 @@ describe("sortAgentSkillListItems", () => {
         name: "Skill",
         description: "Description.",
         instructions: "Instructions.",
+        argumentNames: [],
         enabled: true,
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:00.000Z",
@@ -94,6 +133,7 @@ describe("parseAgentSkillMarkdown", () => {
 name: PR Review
 slug: review-pr
 description: Review a pull request for risky changes.
+arguments: branch topic
 ---
 # Workflow
 
@@ -104,6 +144,7 @@ Look for bugs first.
             name: "PR Review",
             slug: "review-pr",
             description: "Review a pull request for risky changes.",
+            argumentNames: ["branch", "topic"],
             instructions: "# Workflow\n\nLook for bugs first.",
             hasFrontmatter: true,
         });
@@ -124,6 +165,20 @@ Summarize merged changes.
         expect(result.instructions).toBe("Summarize merged changes.");
     });
 
+    test("parses argument names from front matter arrays", () => {
+        const result = parseAgentSkillMarkdown(`---
+name: Tutorial
+arguments:
+  - language
+  - topic
+---
+Write a tutorial.
+`);
+
+        expect(result.argumentNames).toEqual(["language", "topic"]);
+        expect(result.frontmatterError).toBeUndefined();
+    });
+
     test("derives the slug from the name when no explicit slug is given", () => {
         const result = parseAgentSkillMarkdown(`---
 name: Release notes
@@ -133,6 +188,54 @@ Summarize merged changes.
 `);
 
         expect(result.slug).toBe("release-notes");
+    });
+
+    test("preserves valid front matter when argument names are invalid", () => {
+        const result = parseAgentSkillMarkdown(`---
+name: Tutorial
+command: /tutorial
+description: Draft a tutorial.
+arguments: 0 topic
+---
+Write a tutorial.
+`);
+
+        expect(result).toEqual({
+            name: "Tutorial",
+            slug: "tutorial",
+            description: "Draft a tutorial.",
+            argumentNames: undefined,
+            instructions: "Write a tutorial.",
+            hasFrontmatter: true,
+            frontmatterError: "Invalid arguments front matter: Invalid argument name: 0",
+        });
+    });
+
+    test("does not drop empty argument names from front matter arrays", () => {
+        const result = parseAgentSkillMarkdown(`---
+name: Tutorial
+arguments:
+  - language
+  - ""
+  - topic
+---
+Write a tutorial.
+`);
+
+        expect(result.argumentNames).toBeUndefined();
+        expect(result.frontmatterError).toBe("Invalid arguments front matter: Invalid argument name: ");
+    });
+
+    test("rejects duplicate argument names in front matter", () => {
+        const result = parseAgentSkillMarkdown(`---
+name: Tutorial
+arguments: topic topic
+---
+Write a tutorial.
+`);
+
+        expect(result.argumentNames).toBeUndefined();
+        expect(result.frontmatterError).toBe("Invalid arguments front matter: Argument names must be unique.");
     });
 
     test("falls back to the filename when no front matter exists", () => {

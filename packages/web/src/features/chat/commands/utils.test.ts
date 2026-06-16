@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { ASK_COMMAND_SOURCE_PERSONAL_SKILL, type AskCommandDefinition } from './types';
-import { filterAskCommandDefinitions, toAskCommandSuggestion } from './utils';
+import { createCommandInvocationData, filterAskCommandDefinitions, toAskCommandSuggestion } from './utils';
 
 const command = (overrides: Partial<AskCommandDefinition>): AskCommandDefinition => ({
     id: 'skill-1',
@@ -45,6 +45,66 @@ describe('toAskCommandSuggestion', () => {
         expect(toAskCommandSuggestion(command({}))).toMatchObject({
             type: 'command',
             slug: 'review-pr',
+        });
+    });
+});
+
+describe('createCommandInvocationData', () => {
+    const commandMention = {
+        type: 'command' as const,
+        commandId: 'skill-1',
+        sourceId: ASK_COMMAND_SOURCE_PERSONAL_SKILL,
+        slug: 'review-pr',
+        name: 'Review PR',
+    };
+
+    test('captures raw arguments after a leading command mention', () => {
+        expect(createCommandInvocationData('/review-pr src/auth/session.ts\n', [commandMention])).toEqual({
+            ...commandMention,
+            rawArguments: 'src/auth/session.ts',
+        });
+    });
+
+    test('does not include UI-only argument hints in invocation data', () => {
+        expect(createCommandInvocationData('/review-pr src/auth/session.ts\n', [{
+            ...commandMention,
+            argumentHint: '<path>',
+        }])).toEqual({
+            ...commandMention,
+            rawArguments: 'src/auth/session.ts',
+        });
+    });
+
+    test('captures arguments when text appears before the command mention', () => {
+        expect(createCommandInvocationData('please /review-pr src/auth/session.ts', [commandMention])).toEqual({
+            ...commandMention,
+            rawArguments: 'src/auth/session.ts',
+        });
+    });
+
+    test('does not match adjacent command-like text', () => {
+        expect(createCommandInvocationData('/review-pr-extra src/auth/session.ts', [commandMention])).toBeUndefined();
+    });
+
+    test('captures empty raw arguments when the command has none', () => {
+        expect(createCommandInvocationData('/review-pr', [commandMention])).toEqual({
+            ...commandMention,
+            rawArguments: '',
+        });
+        expect(createCommandInvocationData('/review-pr\n', [commandMention])).toEqual({
+            ...commandMention,
+            rawArguments: '',
+        });
+    });
+
+    test('does not match a command preceded by non-whitespace', () => {
+        expect(createCommandInvocationData('foo/review-pr src/auth/session.ts', [commandMention])).toBeUndefined();
+    });
+
+    test('skips an embedded false match and resolves a later valid occurrence', () => {
+        expect(createCommandInvocationData('x/review-prX then /review-pr real', [commandMention])).toEqual({
+            ...commandMention,
+            rawArguments: 'real',
         });
     });
 });

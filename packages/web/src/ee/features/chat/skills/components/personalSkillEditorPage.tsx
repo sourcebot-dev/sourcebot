@@ -26,6 +26,7 @@ const emptySkillForm: AgentSkillInput = {
     slug: "",
     description: "",
     instructions: "",
+    argumentNames: [],
 };
 
 interface PersonalSkillEditorPageProps {
@@ -46,9 +47,11 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
             slug: skill.slug,
             description: skill.description,
             instructions: skill.instructions,
+            argumentNames: skill.argumentNames,
         }
         : emptySkillForm;
     const [form, setForm] = useState<AgentSkillInput>(initialForm);
+    const [argumentNamesText, setArgumentNamesText] = useState(initialForm.argumentNames.join(" "));
     const [isSlugTouched, setIsSlugTouched] = useState(skill !== null);
     const [isSaving, setIsSaving] = useState(false);
     const [isDetailsCollapsed, setIsDetailsCollapsed] = useState(false);
@@ -58,7 +61,8 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         form.name !== initialForm.name ||
         form.slug !== initialForm.slug ||
         form.description !== initialForm.description ||
-        form.instructions !== initialForm.instructions;
+        form.instructions !== initialForm.instructions ||
+        form.argumentNames.join("\0") !== initialForm.argumentNames.join("\0");
 
     // Intercept in-app navigation (the Cancel button, the Back link, settings
     // sidebar links, and the browser back button) while there are unsaved
@@ -104,21 +108,24 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         try {
             const text = await file.text();
             const parsed = parseAgentSkillMarkdown(text, file.name);
+            const importedArgumentNames = parsed.argumentNames ?? [];
             setForm((current) => ({
                 name: parsed.name ?? current.name,
                 slug: parsed.slug ?? current.slug,
                 description: parsed.description ?? current.description,
                 instructions: parsed.instructions,
+                argumentNames: importedArgumentNames,
             }));
+            setArgumentNamesText(importedArgumentNames.join(" "));
 
             if (parsed.slug || parsed.name) {
                 setIsSlugTouched(true);
             }
 
             toast({
-                title: parsed.frontmatterError ? "Front matter not parsed" : undefined,
+                title: parsed.frontmatterError ? "Front matter issue" : undefined,
                 description: parsed.frontmatterError
-                    ? "The markdown body was imported, but front matter could not be parsed."
+                    ? `Markdown skill imported. ${parsed.frontmatterError}`
                     : "Markdown skill imported.",
                 variant: parsed.frontmatterError ? "destructive" : undefined,
             });
@@ -158,6 +165,14 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
 
     const triggerMarkdownImport = () => {
         markdownFileInputRef.current?.click();
+    };
+
+    const handleArgumentNamesChange = (value: string) => {
+        setArgumentNamesText(value);
+        setForm((current) => ({
+            ...current,
+            argumentNames: value.trim().length === 0 ? [] : value.trim().split(/\s+/),
+        }));
     };
 
     return (
@@ -332,6 +347,20 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                     maxLength={500}
                                 />
                             </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="agent-skill-arguments">
+                                    Arguments
+                                    <span className="ml-1 font-normal text-muted-foreground">(optional)</span>
+                                </Label>
+                                <Input
+                                    id="agent-skill-arguments"
+                                    value={argumentNamesText}
+                                    onChange={(event) => handleArgumentNamesChange(event.target.value)}
+                                    placeholder="language topic"
+                                    className="font-mono"
+                                />
+                            </div>
                         </div>
 
                         <div className="shrink-0 space-y-2 border-t px-5 py-4">
@@ -346,7 +375,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                 Import markdown
                             </Button>
                             <p className="text-xs text-muted-foreground">
-                                Front matter can fill name, command, and description on import.
+                                Front matter can fill name, command, arguments, and description on import.
                             </p>
                         </div>
                     </aside>

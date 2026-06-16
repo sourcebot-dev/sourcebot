@@ -10,6 +10,7 @@ import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.serv
 import { checkAskEntitlement, commitMessageAttachments, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
+import { materializeCommandMessageTexts } from "@/ee/features/chat/skills/commandResolution";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
@@ -202,9 +203,15 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 ...(env.EXPERIMENT_ASK_GH_ENABLED === 'true' ? { selectedRepos: expandedRepos } : {}),
             });
 
+            const messagesWithMaterializedCommands = await materializeCommandMessageTexts({
+                messages,
+                prisma,
+                userId: user?.id,
+            });
+
             const stream = await createMessageStream({
                 chatId: id,
-                messages,
+                messages: messagesWithMaterializedCommands,
                 metadata: {
                     selectedSearchScopes,
                 },

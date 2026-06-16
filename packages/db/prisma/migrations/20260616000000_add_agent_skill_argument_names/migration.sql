@@ -1,0 +1,1 @@
+ALTER TABLE "AgentSkill" ADD COLUMN "argumentNames" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

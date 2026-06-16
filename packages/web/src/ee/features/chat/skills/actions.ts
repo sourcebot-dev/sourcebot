@@ -1,6 +1,7 @@
 'use server';
 
 import { checkAskEntitlement } from "@/features/chat/utils.server";
+import { getArgumentHint } from "@/features/chat/commands/argumentSubstitution";
 import { ASK_COMMAND_SOURCE_PERSONAL_SKILL, type AskCommandDefinition } from "@/features/chat/commands/types";
 import { ErrorCode } from "@/lib/errorCodes";
 import { isUniqueConstraintError } from "@/lib/prismaErrors";
@@ -69,6 +70,8 @@ export const listPersonalAgentSkillCommands = async (): Promise<AskCommandDefini
                 slug: true,
                 name: true,
                 description: true,
+                instructions: true,
+                argumentNames: true,
             },
         });
 
@@ -78,6 +81,7 @@ export const listPersonalAgentSkillCommands = async (): Promise<AskCommandDefini
             slug: skill.slug,
             name: skill.name,
             description: skill.description,
+            argumentHint: getArgumentHint(skill.instructions, skill.argumentNames),
         }));
     }));
 
@@ -129,6 +133,7 @@ export const createPersonalAgentSkill = async (
                         name: parsed.data.name,
                         description: parsed.data.description,
                         instructions: parsed.data.instructions,
+                        argumentNames: parsed.data.argumentNames,
                         createdById: user.id,
                         orgId: null,
                     },
@@ -181,6 +186,7 @@ export const updatePersonalAgentSkill = async (
                         name: parsed.data.name,
                         description: parsed.data.description,
                         instructions: parsed.data.instructions,
+                        argumentNames: parsed.data.argumentNames,
                     },
                 });
 

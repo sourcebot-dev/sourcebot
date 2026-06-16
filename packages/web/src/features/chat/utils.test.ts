@@ -795,8 +795,8 @@ describe('createUIMessage', () => {
         expect(result.metadata?.disabledMcpServerIds).toEqual(['disabled1']);
     });
 
-    test('does not convert command mentions into sources', () => {
-        const result = createUIMessage('hello', [{
+    test('converts a leading command mention into command data', () => {
+        const result = createUIMessage('/review-pr src/auth/session.ts\n', [{
             type: 'command',
             commandId: 'skill-1',
             sourceId: 'personal-skill',
@@ -804,9 +804,50 @@ describe('createUIMessage', () => {
             name: 'Review PR',
         }], [], []);
 
-        expect(result.parts).toEqual([{
-            type: 'text',
-            text: 'hello',
-        }]);
+        expect(result.parts).toEqual([
+            {
+                type: 'text',
+                text: '/review-pr src/auth/session.ts\n',
+            },
+            {
+                type: 'data-command',
+                data: {
+                    type: 'command',
+                    commandId: 'skill-1',
+                    sourceId: 'personal-skill',
+                    slug: 'review-pr',
+                    name: 'Review PR',
+                    rawArguments: 'src/auth/session.ts',
+                },
+            },
+        ]);
+    });
+
+    test('converts non-leading command mentions into command data', () => {
+        const result = createUIMessage('please /review-pr src/auth/session.ts', [{
+            type: 'command',
+            commandId: 'skill-1',
+            sourceId: 'personal-skill',
+            slug: 'review-pr',
+            name: 'Review PR',
+        }], [], []);
+
+        expect(result.parts).toEqual([
+            {
+                type: 'text',
+                text: 'please /review-pr src/auth/session.ts',
+            },
+            {
+                type: 'data-command',
+                data: {
+                    type: 'command',
+                    commandId: 'skill-1',
+                    sourceId: 'personal-skill',
+                    slug: 'review-pr',
+                    name: 'Review PR',
+                    rawArguments: 'src/auth/session.ts',
+                },
+            },
+        ]);
     });
 });

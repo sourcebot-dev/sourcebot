@@ -754,6 +754,7 @@ model AgentSkill {
   name         String
   description  String
   instructions String
+  argumentNames String[] @default([])
 
   createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdById String

@@ -3,6 +3,8 @@
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { getArgumentHintTokenStates } from "@/features/chat/commands/argumentSubstitution";
+import { createCommandInvocationData } from "@/features/chat/commands/utils";
 import { AttachmentData, CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
 import { createPastedTextAttachment, getSubmittedTextBytes, PendingAttachment, PendingImageAttachment, readFilesAsAttachments, shouldAutoConvertPaste, toAttachmentData, uploadImageAttachment } from "@/features/chat/attachmentUtils";
@@ -30,7 +32,7 @@ import { ATTACHMENT_MAX_IMAGE_BYTES, ATTACHMENT_MAX_TURN_TEXT_BYTES, PENDING_CHA
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { UpsellDialog } from "@/features/billing/upsellDialog";
-import type { AskCommandDefinition } from "@/features/chat/commands/types";
+import type { AskCommandDefinition, CommandMentionData } from "@/features/chat/commands/types";
 import { shouldUsePlainComposerEnterBehavior } from "./keyboard";
 
 export interface ChatBoxHandle {
@@ -524,6 +526,7 @@ const ChatBoxComponent = ({
                     sourceId: suggestion.sourceId,
                     slug: suggestion.slug,
                     name: suggestion.name,
+                    argumentHint: suggestion.argumentHint,
                 }, range);
                 insertText(editor, ' ');
                 break;
@@ -829,11 +832,7 @@ const MentionComponent = ({
                 focused={focused}
                 isMac={isMac}
                 selected={selected}
-                tooltipContent={
-                    <span className="text-xs">
-                        {data.name}
-                    </span>
-                }
+                tooltipContent={<CommandMentionTooltip data={data} />}
             >
                 {children}
             </MentionChip>
@@ -842,6 +841,36 @@ const MentionComponent = ({
 
     return null;
 }
+
+const CommandMentionTooltip = ({ data }: { data: CommandMentionData }) => {
+    const editor = useSlate();
+    const rawArguments = data.argumentHint
+        ? createCommandInvocationData(slateContentToString(editor.children), [data])?.rawArguments ?? ""
+        : "";
+    const tokenStates = data.argumentHint
+        ? getArgumentHintTokenStates(data.argumentHint, rawArguments)
+        : [];
+
+    return (
+        <span className="flex flex-col gap-1 text-xs">
+            <span>{data.name}</span>
+            {tokenStates.length > 0 && (
+                <span className="flex flex-wrap gap-1 font-mono">
+                    {tokenStates.map(({ token, isFilled }, index) => (
+                        <span
+                            key={`${token}-${index}`}
+                            className={cn(
+                                isFilled ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
+                            )}
+                        >
+                            {token}
+                        </span>
+                    ))}
+                </span>
+            )}
+        </span>
+    );
+};
 
 interface MentionChipProps {
     attributes: RenderElementPropsFor<MentionElement>["attributes"];
