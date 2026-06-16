@@ -3,28 +3,15 @@ import { __unsafePrisma } from "@/prisma";
 import { OrgRole } from "@sourcebot/db";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { orgNotFound, ServiceError, userNotFound } from "@/lib/serviceError";
-import { createLogger, getSeatCap } from "@sourcebot/shared";
+import { createLogger, getSeatCap, isMemberApprovalRequired } from "@sourcebot/shared";
 import { createAudit } from "@/ee/features/audit/audit";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
 import { syncWithLighthouse } from "@/features/billing/servicePing";
 import { hasEntitlement } from "./entitlements";
+import { isScimEnabled } from "@/features/scim/utils";
 
 const logger = createLogger('web-auth-utils');
-
-/**
- * SCIM is "enabled" for an org once it has at least one SCIM token configured
- * (and the entitlement is present). When enabled, the IdP directory is the
- * source of truth for membership, so interactive-login JIT auto-join is
- * suppressed — users must be provisioned via SCIM.
- */
-export const isScimEnabled = async (orgId: number): Promise<boolean> => {
-    if (!await hasEntitlement('scim')) {
-        return false;
-    }
-    const tokenCount = await __unsafePrisma.scimToken.count({ where: { orgId } });
-    return tokenCount > 0;
-};
 
 export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
     if (!user.id) {
@@ -133,7 +120,10 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
     // When SCIM is enabled, auto-join is suppressed entirely: the IdP is the
     // source of truth, so a login for a user the IdP hasn't provisioned creates
     // the User row but no membership (they're denied until SCIM provisions them).
-    else if (!defaultOrg.memberApprovalRequired && !(await isScimEnabled(SINGLE_TENANT_ORG_ID))) {
+    else if (
+        !isMemberApprovalRequired(defaultOrg) &&
+        !(await isScimEnabled(defaultOrg.id))
+    ) {
         // Don't exceed the licensed seat count. The user row still exists;
         // they just aren't attached to the org until a seat frees up.
         const hasAvailability = await orgHasAvailability(defaultOrg.id);
