@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const ASK_COMMAND_SOURCE_PERSONAL_SKILL = "personal-skill";
+export const ASK_COMMAND_SOURCE_ORG_SKILL = "org-skill";
 
 export type AskCommandDefinition = {
     id: string;
@@ -9,6 +10,7 @@ export type AskCommandDefinition = {
     slug: string;
     name: string;
     description: string;
+    sourceLabel?: string;
     aliases?: string[];
     argumentHint?: string;
     isHidden?: boolean;
@@ -27,6 +29,7 @@ export const commandMentionDataSchema = z.object({
     sourceId: z.string(),
     slug: z.string(),
     name: z.string(),
+    sourceLabel: z.string().optional(),
     argumentHint: z.string().optional(),
 });
 

@@ -4,6 +4,7 @@ import {
     normalizeAgentSkillSlug,
     parseAgentSkillMarkdown,
     sortAgentSkillListItems,
+    toOrgAgentSkillCatalogItem,
     type AgentSkillListItem,
 } from "./types";
 
@@ -124,6 +125,42 @@ describe("sortAgentSkillListItems", () => {
             "older",
         ]);
         expect(skills.map((item) => item.id)).toEqual(["older", "z-newer", "a-newer"]);
+    });
+});
+
+describe("toOrgAgentSkillCatalogItem", () => {
+    test("does not expose instructions or author identity", () => {
+        const item = toOrgAgentSkillCatalogItem({
+            id: "skill-1",
+            visibility: "ORG",
+            slug: "review",
+            name: "Review",
+            description: "Review risky changes.",
+            argumentNames: ["path"],
+            enabled: true,
+            featured: false,
+            autoEnrolled: true,
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+            adoptions: [{ id: "adoption-1" }],
+        });
+
+        expect(item).toEqual({
+            id: "skill-1",
+            scope: "ORG",
+            slug: "review",
+            name: "Review",
+            description: "Review risky changes.",
+            argumentNames: ["path"],
+            enabled: true,
+            featured: false,
+            autoEnrolled: true,
+            isAdopted: true,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-02T00:00:00.000Z",
+        });
+        expect(item).not.toHaveProperty("instructions");
+        expect(item).not.toHaveProperty("author");
     });
 });
 

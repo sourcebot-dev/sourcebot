@@ -54,9 +54,18 @@ export const agentSkillListItemSchema = z.object({
     updatedAt: z.string(),
 });
 
+export const orgAgentSkillCatalogItemSchema = agentSkillListItemSchema.omit({
+    instructions: true,
+}).extend({
+    featured: z.boolean(),
+    autoEnrolled: z.boolean(),
+    isAdopted: z.boolean(),
+});
+
 export type AgentSkillInput = z.infer<typeof agentSkillInputSchema>;
 export type UpdateAgentSkillInput = z.infer<typeof updateAgentSkillInputSchema>;
 export type AgentSkillListItem = z.infer<typeof agentSkillListItemSchema>;
+export type OrgAgentSkillCatalogItem = z.infer<typeof orgAgentSkillCatalogItemSchema>;
 
 export const agentSkillOrderBy = [
     { updatedAt: "desc" },
@@ -197,4 +206,23 @@ export const toAgentSkillListItem = (
     enabled: skill.enabled,
     createdAt: skill.createdAt.toISOString(),
     updatedAt: skill.updatedAt.toISOString(),
+});
+
+export const toOrgAgentSkillCatalogItem = (
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "argumentNames" | "enabled" | "featured" | "autoEnrolled" | "createdAt" | "updatedAt"> & {
+        adoptions: { id: string }[];
+    },
+): OrgAgentSkillCatalogItem => ({
+    id: skill.id,
+    scope: skill.visibility,
+    slug: skill.slug,
+    name: skill.name,
+    description: skill.description,
+    argumentNames: skill.argumentNames,
+    enabled: skill.enabled,
+    createdAt: skill.createdAt.toISOString(),
+    updatedAt: skill.updatedAt.toISOString(),
+    featured: skill.featured,
+    autoEnrolled: skill.autoEnrolled,
+    isAdopted: skill.adoptions.length > 0,
 });

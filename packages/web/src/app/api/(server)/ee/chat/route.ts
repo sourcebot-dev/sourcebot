@@ -207,6 +207,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 messages,
                 prisma,
                 userId: user?.id,
+                orgId: org.id,
             });
 
             const stream = await createMessageStream({

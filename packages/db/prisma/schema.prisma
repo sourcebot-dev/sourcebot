@@ -335,6 +335,7 @@ model Org {
 
   mcpServers McpServer[]
   agentSkills AgentSkill[]
+  agentSkillAdoptions AgentSkillAdoption[]
 
   license License?
   servicePingEvents ServicePingEvent[]
@@ -520,7 +521,9 @@ model User {
   sessionVersion Int @default(0)
 
   userMcpServers       UserMcpServer[]
-  createdAgentSkills   AgentSkill[]
+  createdAgentSkills   AgentSkill[] @relation("AgentSkillCreatedBy")
+  updatedAgentSkills   AgentSkill[] @relation("AgentSkillUpdatedBy")
+  agentSkillAdoptions  AgentSkillAdoption[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -769,21 +772,51 @@ model AgentSkill {
 
   // The user who authored the skill. This is audit metadata, separate from
   // the namespace that owns the slash-command slug.
-  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy   User   @relation("AgentSkillCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
   createdById String
+
+  updatedBy   User?   @relation("AgentSkillUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedById String?
 
   // Set only for org-scoped skills. Personal skills are user-global and keep this null.
   org   Org? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int?
 
-  enabled   Boolean  @default(true)
+  enabled      Boolean  @default(true)
+  featured     Boolean  @default(false)
+  autoEnrolled Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  adoptions AgentSkillAdoption[]
+
   @@unique([visibility, scopeId, slug])
   @@index([createdById])
+  @@index([updatedById])
   @@index([orgId])
   @@index([visibility, scopeId])
+  @@index([orgId, visibility, scopeId, enabled, featured(sort: Desc), updatedAt(sort: Desc), name], map: "AgentSkill_org_catalog_idx")
+  @@index([orgId, visibility, scopeId, enabled, autoEnrolled, updatedAt(sort: Desc), name], map: "AgentSkill_org_commands_idx")
+}
+
+model AgentSkillAdoption {
+  id String @id @default(cuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+
+  agentSkill   AgentSkill @relation(fields: [agentSkillId], references: [id], onDelete: Cascade)
+  agentSkillId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([orgId, userId, agentSkillId])
+  @@index([userId, orgId])
+  @@index([agentSkillId])
+  @@index([orgId])
 }
 
 // OAuth2 Authorization Server models

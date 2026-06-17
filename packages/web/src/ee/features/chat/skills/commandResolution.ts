@@ -1,7 +1,7 @@
 import { substituteArguments } from "@/features/chat/commands/argumentSubstitution";
-import { ASK_COMMAND_SOURCE_PERSONAL_SKILL, commandInvocationDataSchema, type CommandInvocationData } from "@/features/chat/commands/types";
+import { ASK_COMMAND_SOURCE_ORG_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL, commandInvocationDataSchema, type CommandInvocationData } from "@/features/chat/commands/types";
 import type { SBChatMessage, SBChatMessagePart } from "@/features/chat/types";
-import { personalAgentSkillScope, type PrismaClient } from "@sourcebot/db";
+import { orgAgentSkillVisibleToUserWhere, personalAgentSkillAuthScope, type PrismaClient } from "@sourcebot/db";
 
 const getTextPartContent = (message: SBChatMessage) =>
     message.parts.find((part) => part.type === "text")?.text ?? "";
@@ -67,19 +67,33 @@ type ResolvableCommandMessage = {
     fallbackText: string;
 };
 
+const commandLookupKey = (sourceId: string, commandId: string) => `${sourceId}:${commandId}`;
+
+const getCommandIdsForSource = (
+    resolvableCommands: ResolvableCommandMessage[],
+    sourceId: string,
+) => Array.from(new Set(
+    resolvableCommands
+        .filter(({ command }) => command.sourceId === sourceId)
+        .map(({ command }) => command.commandId)
+));
+
 export const materializeCommandMessageText = async ({
     message,
     prisma,
     userId,
+    orgId,
 }: {
     message: SBChatMessage;
     prisma: PrismaClient;
     userId?: string;
+    orgId?: number;
 }): Promise<SBChatMessage> => {
     const [materializedMessage] = await materializeCommandMessageTexts({
         messages: [message],
         prisma,
         userId,
+        orgId,
     });
 
     return materializedMessage;
@@ -89,10 +103,12 @@ export const materializeCommandMessageTexts = async ({
     messages,
     prisma,
     userId,
+    orgId,
 }: {
     messages: SBChatMessage[];
     prisma: PrismaClient;
     userId?: string;
+    orgId?: number;
 }): Promise<SBChatMessage[]> => {
     const resolvableCommands = messages
         .map((message, index): ResolvableCommandMessage | undefined => {
@@ -117,31 +133,57 @@ export const materializeCommandMessageTexts = async ({
         return messages;
     }
 
-    const personalScope = userId ? personalAgentSkillScope(userId) : undefined;
-    const personalSkillCommandIds = Array.from(new Set(
-        resolvableCommands
-            .filter(({ command }) => command.sourceId === ASK_COMMAND_SOURCE_PERSONAL_SKILL)
-            .map(({ command }) => command.commandId)
-    ));
-    const skills = personalScope && personalSkillCommandIds.length > 0
-        ? await prisma.agentSkill.findMany({
-            where: {
-                id: { in: personalSkillCommandIds },
-                ...personalScope,
-                enabled: true,
-            },
-            select: {
-                id: true,
-                instructions: true,
-                argumentNames: true,
-            },
-        })
-        : [];
-    const skillById = new Map(skills.map((skill) => [skill.id, skill]));
+    const personalScope = userId ? personalAgentSkillAuthScope(userId) : undefined;
+    const orgVisibleWhere = userId !== undefined && orgId !== undefined
+        ? orgAgentSkillVisibleToUserWhere(userId, orgId)
+        : undefined;
+    const personalSkillCommandIds = getCommandIdsForSource(resolvableCommands, ASK_COMMAND_SOURCE_PERSONAL_SKILL);
+    const orgSkillCommandIds = getCommandIdsForSource(resolvableCommands, ASK_COMMAND_SOURCE_ORG_SKILL);
+
+    const [personalSkills, orgSkills] = await Promise.all([
+        personalScope && personalSkillCommandIds.length > 0
+            ? prisma.agentSkill.findMany({
+                where: {
+                    id: { in: personalSkillCommandIds },
+                    ...personalScope,
+                    enabled: true,
+                },
+                select: {
+                    id: true,
+                    instructions: true,
+                    argumentNames: true,
+                },
+            })
+            : [],
+        orgVisibleWhere && orgSkillCommandIds.length > 0
+            ? prisma.agentSkill.findMany({
+                where: {
+                    id: { in: orgSkillCommandIds },
+                    ...orgVisibleWhere,
+                },
+                select: {
+                    id: true,
+                    instructions: true,
+                    argumentNames: true,
+                },
+            })
+            : [],
+    ]);
+
+    const skillById = new Map([
+        ...personalSkills.map((skill) => [
+            commandLookupKey(ASK_COMMAND_SOURCE_PERSONAL_SKILL, skill.id),
+            skill,
+        ] as const),
+        ...orgSkills.map((skill) => [
+            commandLookupKey(ASK_COMMAND_SOURCE_ORG_SKILL, skill.id),
+            skill,
+        ] as const),
+    ]);
 
     const materializedMessages = [...messages];
     for (const { index, message, commandPart, command, fallbackText } of resolvableCommands) {
-        const skill = skillById.get(command.commandId);
+        const skill = skillById.get(commandLookupKey(command.sourceId, command.commandId));
         const expandedText = skill
             ? substituteArguments(skill.instructions, command.rawArguments, skill.argumentNames)
             : fallbackText;

@@ -14,7 +14,7 @@ import { loadJsonFile } from "@sourcebot/shared";
 import { DemoExamples, demoExamplesSchema } from "@/types";
 import { auth } from "@/auth";
 import { hasEntitlement } from "@/lib/entitlements";
-import { listPersonalAgentSkillCommandsOrEmpty } from "@/ee/features/chat/skills/commands.server";
+import { listAgentSkillCommandsOrEmpty } from "@/ee/features/chat/skills/commands.server";
 
 export async function ChatLandingPage() {
     const languageModels = await getConfiguredLanguageModelsInfo();
@@ -23,7 +23,7 @@ export async function ChatLandingPage() {
     const session = await auth();
     const hasAskEntitlement = await hasEntitlement('ask');
     const askCommands = session?.user && hasAskEntitlement
-        ? await listPersonalAgentSkillCommandsOrEmpty()
+        ? await listAgentSkillCommandsOrEmpty()
         : [];
 
     const carouselRepos = await getRepos({

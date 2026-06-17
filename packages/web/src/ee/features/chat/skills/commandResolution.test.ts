@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import { ASK_COMMAND_SOURCE_PERSONAL_SKILL } from "@/features/chat/commands/types";
+import { ASK_COMMAND_SOURCE_ORG_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL } from "@/features/chat/commands/types";
 import type { SBChatMessage } from "@/features/chat/types";
 import { getUserMessageModelText, materializeCommandMessageText, materializeCommandMessageTexts } from "./commandResolution";
 
@@ -9,6 +9,7 @@ const createCommandMessage = (
     overrides: Partial<{
         id: string;
         commandId: string;
+        sourceId: string;
     }> = {},
 ): SBChatMessage => ({
     id: overrides.id ?? "message-1",
@@ -23,7 +24,7 @@ const createCommandMessage = (
             data: {
                 type: "command",
                 commandId: overrides.commandId ?? "skill-1",
-                sourceId: ASK_COMMAND_SOURCE_PERSONAL_SKILL,
+                sourceId: overrides.sourceId ?? ASK_COMMAND_SOURCE_PERSONAL_SKILL,
                 slug: "translate",
                 name: "Translate",
                 rawArguments,
@@ -80,6 +81,8 @@ describe("materializeCommandMessageText", () => {
                 id: { in: ["skill-1"] },
                 visibility: "PERSONAL",
                 scopeId: "user-1",
+                createdById: "user-1",
+                orgId: null,
                 enabled: true,
             },
             select: {
@@ -144,6 +147,75 @@ describe("materializeCommandMessageText", () => {
         expect(getUserMessageModelText(message)).toBe("/translate hello French");
     });
 
+    test("materializes adopted org skills within the active org", async () => {
+        const prisma = {
+            agentSkill: {
+                findMany: vi.fn().mockResolvedValue([{
+                    id: "org-skill-1",
+                    instructions: "Explain $0 using the team style guide.",
+                    argumentNames: [],
+                }]),
+            },
+        };
+
+        const message = await materializeCommandMessageText({
+            message: createCommandMessage("decorators", undefined, {
+                commandId: "org-skill-1",
+                sourceId: ASK_COMMAND_SOURCE_ORG_SKILL,
+            }),
+            prisma: prisma as never,
+            userId: "user-1",
+            orgId: 7,
+        });
+
+        expect(prisma.agentSkill.findMany).toHaveBeenCalledWith({
+            where: {
+                id: { in: ["org-skill-1"] },
+                visibility: "ORG",
+                scopeId: "7",
+                orgId: 7,
+                enabled: true,
+                OR: [
+                    { autoEnrolled: true },
+                    {
+                        adoptions: {
+                            some: {
+                                userId: "user-1",
+                                orgId: 7,
+                            },
+                        },
+                    },
+                ],
+            },
+            select: {
+                id: true,
+                instructions: true,
+                argumentNames: true,
+            },
+        });
+        expect(getUserMessageModelText(message)).toBe("Explain decorators using the team style guide.");
+    });
+
+    test("does not materialize an org skill that is neither adopted nor auto-enrolled", async () => {
+        const prisma = {
+            agentSkill: {
+                findMany: vi.fn().mockResolvedValue([]),
+            },
+        };
+
+        const message = await materializeCommandMessageText({
+            message: createCommandMessage("decorators", undefined, {
+                commandId: "org-skill-1",
+                sourceId: ASK_COMMAND_SOURCE_ORG_SKILL,
+            }),
+            prisma: prisma as never,
+            userId: "user-1",
+            orgId: 7,
+        });
+
+        expect(getUserMessageModelText(message)).toBe("/translate decorators");
+    });
+
     test("does not query and falls back to visible text without a user", async () => {
         const prisma = {
             agentSkill: {
@@ -196,6 +268,8 @@ describe("materializeCommandMessageTexts", () => {
                 id: { in: ["skill-1", "skill-2"] },
                 visibility: "PERSONAL",
                 scopeId: "user-1",
+                createdById: "user-1",
+                orgId: null,
                 enabled: true,
             },
             select: {
@@ -207,6 +281,52 @@ describe("materializeCommandMessageTexts", () => {
         expect(messages.map(getUserMessageModelText)).toEqual([
             'Translate "hello" into French.',
             "Generate a Python tutorial about decorators.",
+        ]);
+    });
+
+    test("resolves personal and org skills that share a command id without collision", async () => {
+        const prisma = {
+            agentSkill: {
+                findMany: vi.fn().mockImplementation(async ({ where }) => {
+                    if (where.visibility === "PERSONAL") {
+                        return [{
+                            id: "skill-1",
+                            instructions: "Personal translation of $0.",
+                            argumentNames: [],
+                        }];
+                    }
+
+                    return [{
+                        id: "skill-1",
+                        instructions: "Workspace translation of $0.",
+                        argumentNames: [],
+                    }];
+                }),
+            },
+        };
+
+        const messages = await materializeCommandMessageTexts({
+            messages: [
+                createCommandMessage("hello", undefined, {
+                    id: "message-1",
+                    commandId: "skill-1",
+                    sourceId: ASK_COMMAND_SOURCE_PERSONAL_SKILL,
+                }),
+                createCommandMessage("hello", undefined, {
+                    id: "message-2",
+                    commandId: "skill-1",
+                    sourceId: ASK_COMMAND_SOURCE_ORG_SKILL,
+                }),
+            ],
+            prisma: prisma as never,
+            userId: "user-1",
+            orgId: 7,
+        });
+
+        expect(prisma.agentSkill.findMany).toHaveBeenCalledTimes(2);
+        expect(messages.map(getUserMessageModelText)).toEqual([
+            "Personal translation of hello.",
+            "Workspace translation of hello.",
         ]);
     });
 });

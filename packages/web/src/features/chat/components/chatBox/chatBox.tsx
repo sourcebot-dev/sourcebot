@@ -34,6 +34,7 @@ import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { UpsellDialog } from "@/features/billing/upsellDialog";
 import type { AskCommandDefinition, CommandMentionData } from "@/features/chat/commands/types";
 import { shouldUsePlainComposerEnterBehavior } from "./keyboard";
+import { SourceLabelBadge } from "./sourceLabelBadge";
 
 export interface ChatBoxHandle {
     addFiles: (files: File[]) => void;
@@ -526,6 +527,7 @@ const ChatBoxComponent = ({
                     sourceId: suggestion.sourceId,
                     slug: suggestion.slug,
                     name: suggestion.name,
+                    sourceLabel: suggestion.sourceLabel,
                     argumentHint: suggestion.argumentHint,
                 }, range);
                 insertText(editor, ' ');
@@ -828,7 +830,14 @@ const MentionComponent = ({
         return (
             <MentionChip
                 attributes={attributes}
-                content={`/${data.slug}`}
+                content={
+                    <span className="inline-flex items-center gap-1">
+                        <span>{`/${data.slug}`}</span>
+                        {data.sourceLabel && (
+                            <SourceLabelBadge>{data.sourceLabel}</SourceLabelBadge>
+                        )}
+                    </span>
+                }
                 focused={focused}
                 isMac={isMac}
                 selected={selected}
@@ -853,7 +862,12 @@ const CommandMentionTooltip = ({ data }: { data: CommandMentionData }) => {
 
     return (
         <span className="flex flex-col gap-1 text-xs">
-            <span>{data.name}</span>
+            <span className="flex items-center gap-1.5">
+                <span>{data.name}</span>
+                {data.sourceLabel && (
+                    <SourceLabelBadge>{data.sourceLabel}</SourceLabelBadge>
+                )}
+            </span>
             {tokenStates.length > 0 && (
                 <span className="flex flex-wrap gap-1 font-mono">
                     {tokenStates.map(({ token, isFilled }, index) => (

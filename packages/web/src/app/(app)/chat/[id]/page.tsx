@@ -19,7 +19,7 @@ import { env } from '@sourcebot/shared';
 import { hasEntitlement } from '@/lib/entitlements';
 import { ChatEntitlementMessage } from '@/features/chat/components/chatEntitlementMessage';
 import { captureEvent } from '@/lib/posthog';
-import { listPersonalAgentSkillCommandsOrEmpty } from '@/ee/features/chat/skills/commands.server';
+import { listAgentSkillCommandsOrEmpty } from '@/ee/features/chat/skills/commands.server';
 
 interface PageProps {
     params: Promise<{
@@ -120,7 +120,7 @@ export default async function Page(props: PageProps) {
 
     const { messages, name, visibility, isOwner, isSharedWithUser } = chatInfo;
     const askCommands = session?.user && isOwner
-        ? await listPersonalAgentSkillCommandsOrEmpty()
+        ? await listAgentSkillCommandsOrEmpty()
         : [];
 
     // Track when a non-owner views a shared chat
