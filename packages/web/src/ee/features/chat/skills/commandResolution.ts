@@ -1,7 +1,7 @@
 import { substituteArguments } from "@/features/chat/commands/argumentSubstitution";
 import { ASK_COMMAND_SOURCE_PERSONAL_SKILL, commandInvocationDataSchema, type CommandInvocationData } from "@/features/chat/commands/types";
 import type { SBChatMessage, SBChatMessagePart } from "@/features/chat/types";
-import { getAgentSkillNamespaceKey, type PrismaClient } from "@sourcebot/db";
+import { personalAgentSkillScope, type PrismaClient } from "@sourcebot/db";
 
 const getTextPartContent = (message: SBChatMessage) =>
     message.parts.find((part) => part.type === "text")?.text ?? "";
@@ -117,17 +117,17 @@ export const materializeCommandMessageTexts = async ({
         return messages;
     }
 
-    const namespaceKey = userId ? getAgentSkillNamespaceKey({ scope: "PERSONAL", userId }) : undefined;
+    const personalScope = userId ? personalAgentSkillScope(userId) : undefined;
     const personalSkillCommandIds = Array.from(new Set(
         resolvableCommands
             .filter(({ command }) => command.sourceId === ASK_COMMAND_SOURCE_PERSONAL_SKILL)
             .map(({ command }) => command.commandId)
     ));
-    const skills = namespaceKey && personalSkillCommandIds.length > 0
+    const skills = personalScope && personalSkillCommandIds.length > 0
         ? await prisma.agentSkill.findMany({
             where: {
                 id: { in: personalSkillCommandIds },
-                namespaceKey,
+                ...personalScope,
                 enabled: true,
             },
             select: {

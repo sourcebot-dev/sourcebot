@@ -8,7 +8,7 @@ import { isUniqueConstraintError } from "@/lib/prismaErrors";
 import { requestBodySchemaValidationError, ServiceError } from "@/lib/serviceError";
 import { sew } from "@/middleware/sew";
 import { withAuth } from "@/middleware/withAuth";
-import { getAgentSkillNamespaceKey } from "@sourcebot/db";
+import { personalAgentSkillScope } from "@sourcebot/db";
 import { StatusCodes } from "http-status-codes";
 import {
     agentSkillInputSchema,
@@ -19,9 +19,6 @@ import {
     type AgentSkillListItem,
     type UpdateAgentSkillInput,
 } from "./types";
-
-const personalNamespaceKey = (userId: string) =>
-    getAgentSkillNamespaceKey({ scope: "PERSONAL", userId });
 
 const skillAlreadyExists = (slug: string): ServiceError => ({
     statusCode: StatusCodes.CONFLICT,
@@ -44,7 +41,7 @@ export const listPersonalAgentSkills = async (): Promise<AgentSkillListItem[] | 
 
         const skills = await prisma.agentSkill.findMany({
             where: {
-                namespaceKey: personalNamespaceKey(user.id),
+                ...personalAgentSkillScope(user.id),
             },
             orderBy: agentSkillOrderBy,
         });
@@ -61,7 +58,7 @@ export const listPersonalAgentSkillCommands = async (): Promise<AskCommandDefini
 
         const skills = await prisma.agentSkill.findMany({
             where: {
-                namespaceKey: personalNamespaceKey(user.id),
+                ...personalAgentSkillScope(user.id),
                 enabled: true,
             },
             orderBy: agentSkillOrderBy,
@@ -97,7 +94,7 @@ export const getPersonalAgentSkill = async (
         const skill = await prisma.agentSkill.findFirst({
             where: {
                 id: skillId,
-                namespaceKey: personalNamespaceKey(user.id),
+                ...personalAgentSkillScope(user.id),
             },
         });
 
@@ -123,12 +120,12 @@ export const createPersonalAgentSkill = async (
                 return askError;
             }
 
-            const namespaceKey = personalNamespaceKey(user.id);
+            const scope = personalAgentSkillScope(user.id);
 
             try {
                 const skill = await prisma.agentSkill.create({
                     data: {
-                        namespaceKey,
+                        ...scope,
                         slug: parsed.data.slug,
                         name: parsed.data.name,
                         description: parsed.data.description,
@@ -165,11 +162,11 @@ export const updatePersonalAgentSkill = async (
                 return askError;
             }
 
-            const namespaceKey = personalNamespaceKey(user.id);
+            const scope = personalAgentSkillScope(user.id);
             const existingSkill = await prisma.agentSkill.findFirst({
                 where: {
                     id: parsed.data.id,
-                    namespaceKey,
+                    ...scope,
                 },
                 select: { id: true },
             });
@@ -213,7 +210,7 @@ export const deletePersonalAgentSkill = async (
         const result = await prisma.agentSkill.deleteMany({
             where: {
                 id: skillId,
-                namespaceKey: personalNamespaceKey(user.id),
+                ...personalAgentSkillScope(user.id),
             },
         });
 

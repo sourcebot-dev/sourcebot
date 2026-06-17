@@ -20,6 +20,16 @@ import { isServiceError } from "@/lib/utils";
 
 const INSTRUCTIONS_MAX_LENGTH = 20000;
 const DETAILS_COLLAPSED_STORAGE_KEY = "sb.skillEditor.detailsCollapsed";
+const INSTRUCTIONS_PLACEHOLDER = `Find where $symbol is defined and used in $area.
+
+<!-- Argument alternatives: use $0/$1 or $ARGUMENTS[0]/$ARGUMENTS[1] for positional args, or $ARGUMENTS for the full input. -->
+
+Search for exact matches, related types, tests, and call sites. Prioritize the files most likely to explain the behavior.
+
+Return:
+- the most relevant files and symbols
+- a short explanation of how the code is connected
+- any follow-up searches that would narrow the answer`;
 
 const emptySkillForm: AgentSkillInput = {
     name: "",
@@ -241,7 +251,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                             id="agent-skill-instructions"
                             value={form.instructions}
                             onChange={(event) => setForm((current) => ({ ...current, instructions: event.target.value }))}
-                            placeholder="Focus on bugs, regressions, security issues, and test gaps. Prioritize findings by severity."
+                            placeholder={INSTRUCTIONS_PLACEHOLDER}
                             className="h-full resize-none pb-8 font-mono text-sm leading-relaxed"
                             maxLength={INSTRUCTIONS_MAX_LENGTH}
                             required
@@ -296,7 +306,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                     id="agent-skill-name"
                                     value={form.name}
                                     onChange={(event) => handleNameChange(event.target.value)}
-                                    placeholder="PR review"
+                                    placeholder="Find references"
                                     maxLength={80}
                                     required
                                 />
@@ -325,7 +335,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                                 slug: normalizeAgentSkillSlug(current.slug),
                                             }));
                                         }}
-                                        placeholder="pr-review"
+                                        placeholder="find-refs"
                                         className="pl-7 font-mono"
                                         maxLength={64}
                                         required
@@ -342,7 +352,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                     id="agent-skill-description"
                                     value={form.description}
                                     onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                                    placeholder="Review a pull request for correctness, risky changes, and missing tests."
+                                    placeholder="Search for a symbol or API and summarize where it is defined, used, and tested."
                                     className="min-h-72 resize-y"
                                     maxLength={500}
                                 />
@@ -357,7 +367,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                     id="agent-skill-arguments"
                                     value={argumentNamesText}
                                     onChange={(event) => handleArgumentNamesChange(event.target.value)}
-                                    placeholder="language topic"
+                                    placeholder="symbol area"
                                     className="font-mono"
                                 />
                             </div>

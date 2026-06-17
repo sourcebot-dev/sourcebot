@@ -743,22 +743,36 @@ model ChatAccess {
   @@unique([chatId, userId])
 }
 
+enum AgentSkillVisibility {
+  PERSONAL
+  ORG
+}
+
 model AgentSkill {
   id String @id @default(cuid())
 
-  // Encodes both the scope and owner of the skill, e.g. "user:<userId>" (personal)
-  // or "org:<orgId>" (organization). See getAgentSkillNamespaceKey in @sourcebot/db.
-  namespaceKey String
-  slug         String
+  // Namespace identity for slash-command uniqueness and lookup.
+  // This is not a foreign key and should not be used as an authorization check by itself.
+  //
+  // PERSONAL: scopeId is the user id, orgId is null, and the skill follows the user across orgs.
+  // ORG:      scopeId is String(orgId), orgId is set, and access is scoped to that org.
+  //
+  // Future sharing/grants should treat this as the skill's home namespace, not as the ACL.
+  visibility AgentSkillVisibility
+  scopeId    String
+  slug       String
 
   name         String
   description  String
   instructions String
   argumentNames String[] @default([])
 
+  // The user who authored the skill. This is audit metadata, separate from
+  // the namespace that owns the slash-command slug.
   createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdById String
 
+  // Set only for org-scoped skills. Personal skills are user-global and keep this null.
   org   Org? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   orgId Int?
 
@@ -766,9 +780,10 @@ model AgentSkill {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([namespaceKey, slug])
+  @@unique([visibility, scopeId, slug])
   @@index([createdById])
   @@index([orgId])
+  @@index([visibility, scopeId])
 }
 
 // OAuth2 Authorization Server models

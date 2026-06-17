@@ -1,4 +1,4 @@
-import { getAgentSkillScopeFromNamespaceKey, type AgentSkill, type AgentSkillScope, type Prisma } from "@sourcebot/db";
+import type { AgentSkill, AgentSkillVisibility, Prisma } from "@sourcebot/db";
 import { isValidArgumentName, parseArgumentNames } from "@/features/chat/commands/argumentSubstitution";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
@@ -43,7 +43,7 @@ export const updateAgentSkillInputSchema = agentSkillInputSchema.extend({
 
 export const agentSkillListItemSchema = z.object({
     id: z.string(),
-    scope: z.custom<AgentSkillScope>(),
+    scope: z.custom<AgentSkillVisibility>(),
     slug: z.string(),
     name: z.string(),
     description: z.string(),
@@ -185,10 +185,10 @@ export const parseAgentSkillMarkdown = (
 };
 
 export const toAgentSkillListItem = (
-    skill: Pick<AgentSkill, "id" | "namespaceKey" | "slug" | "name" | "description" | "instructions" | "argumentNames" | "enabled" | "createdAt" | "updatedAt">,
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "instructions" | "argumentNames" | "enabled" | "createdAt" | "updatedAt">,
 ): AgentSkillListItem => ({
     id: skill.id,
-    scope: getAgentSkillScopeFromNamespaceKey(skill.namespaceKey),
+    scope: skill.visibility,
     slug: skill.slug,
     name: skill.name,
     description: skill.description,
