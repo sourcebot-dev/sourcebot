@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Upgraded `@grpc/grpc-js` to `^1.14.4`. [#1315](https://github.com/sourcebot-dev/sourcebot/pull/1315)
 - Upgraded `vite` to `^8.0.16`. [#1313](https://github.com/sourcebot-dev/sourcebot/pull/1313)
+- Upgraded `ws` to `^8.21.0`. [#1324](https://github.com/sourcebot-dev/sourcebot/pull/1324)
 - Upgraded `@babel/core` to `^7.29.6`. [#1333](https://github.com/sourcebot-dev/sourcebot/pull/1333)
 - Upgraded `markdown-it` to `^14.2.0`. [#1321](https://github.com/sourcebot-dev/sourcebot/pull/1321)
 - Upgraded `form-data` to `^4.0.6`. [#1316](https://github.com/sourcebot-dev/sourcebot/pull/1316)
