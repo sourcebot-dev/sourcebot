@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `nodemailer` to `^8.0.9`. [#1331](https://github.com/sourcebot-dev/sourcebot/pull/1331)
 - Upgraded `nodemailer` to `^8.0.11`. [#1328](https://github.com/sourcebot-dev/sourcebot/pull/1328)
 - Upgraded `tar` to `^7.5.16`. [#1338](https://github.com/sourcebot-dev/sourcebot/pull/1338)
+- Upgraded `esbuild` to `^0.28.1`. [#1342](https://github.com/sourcebot-dev/sourcebot/pull/1342)
 
 ## [5.0.3] - 2026-06-17
 
