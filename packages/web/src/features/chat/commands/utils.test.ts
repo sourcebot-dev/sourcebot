@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { ASK_COMMAND_SOURCE_PERSONAL_SKILL, type AskCommandDefinition } from './types';
+import { ASK_COMMAND_SOURCE_ORG_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL, type AskCommandDefinition } from './types';
 import { createCommandInvocationData, filterAskCommandDefinitions, toAskCommandSuggestion } from './utils';
 
 const command = (overrides: Partial<AskCommandDefinition>): AskCommandDefinition => ({
@@ -38,6 +38,18 @@ describe('filterAskCommandDefinitions', () => {
     test('normalizes a leading slash in the query', () => {
         expect(filterAskCommandDefinitions([command({})], '/review').map((item) => item.id)).toEqual(['skill-1']);
     });
+
+    test('keeps commands with the same slug from different sources', () => {
+        const commands = [
+            command({ id: 'personal-skill', sourceId: ASK_COMMAND_SOURCE_PERSONAL_SKILL, slug: 'review' }),
+            command({ id: 'org-skill', sourceId: ASK_COMMAND_SOURCE_ORG_SKILL, slug: 'review' }),
+        ];
+
+        expect(filterAskCommandDefinitions(commands, '/review').map((item) => item.id)).toEqual([
+            'personal-skill',
+            'org-skill',
+        ]);
+    });
 });
 
 describe('toAskCommandSuggestion', () => {
@@ -71,6 +83,17 @@ describe('createCommandInvocationData', () => {
             argumentHint: '<path>',
         }])).toEqual({
             ...commandMention,
+            rawArguments: 'src/auth/session.ts',
+        });
+    });
+
+    test('preserves the command source label when present', () => {
+        expect(createCommandInvocationData('/review-pr src/auth/session.ts\n', [{
+            ...commandMention,
+            sourceLabel: 'Personal',
+        }])).toEqual({
+            ...commandMention,
+            sourceLabel: 'Personal',
             rawArguments: 'src/auth/session.ts',
         });
     });

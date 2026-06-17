@@ -9,6 +9,7 @@ import { VscFiles } from "react-icons/vsc";
 import { FileSuggestion, RefineSuggestion, Suggestion } from "./types";
 import { BookOpenIcon } from "lucide-react";
 import type { AskCommandSuggestion } from "@/features/chat/commands/types";
+import { SourceLabelBadge } from "./sourceLabelBadge";
 
 interface SuggestionBoxProps {
     selectedIndex: number;
@@ -116,6 +117,7 @@ const CommandSuggestionListItem = ({ command }: { command: AskCommandSuggestion 
             icon={<BookOpenIcon className="w-4 h-4 flex-shrink-0 mt-1" />}
             title={`/${command.slug}`}
             titleDetail={command.name}
+            badge={command.sourceLabel}
         />
     )
 }
@@ -124,10 +126,12 @@ interface SuggestionListItemProps {
     description: ReactNode;
     icon: ReactNode;
     title: ReactNode;
+    badge?: ReactNode;
     titleDetail?: ReactNode;
 }
 
 const SuggestionListItem = ({
+    badge,
     description,
     icon,
     title,
@@ -145,11 +149,19 @@ const SuggestionListItem = ({
                         <span className="text-sm text-muted-foreground truncate">
                             {titleDetail}
                         </span>
+                        {badge && (
+                            <SourceLabelBadge className="ml-auto">{badge}</SourceLabelBadge>
+                        )}
                     </div>
                 ) : (
-                    <span className="text-sm font-medium truncate">
-                        {title}
-                    </span>
+                    <div className="flex flex-row items-baseline gap-2 min-w-0">
+                        <span className="text-sm font-medium truncate">
+                            {title}
+                        </span>
+                        {badge && (
+                            <SourceLabelBadge className="ml-auto">{badge}</SourceLabelBadge>
+                        )}
+                    </div>
                 )}
                 <span className="text-xs text-muted-foreground truncate">
                     {description}

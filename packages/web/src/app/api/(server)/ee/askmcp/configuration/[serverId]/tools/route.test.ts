@@ -29,6 +29,10 @@ vi.mock('@/ee/features/chat/mcp/mcpToolMetadata', () => ({
 vi.mock('@/prisma', () => ({
     __unsafePrisma: mocks.unsafePrisma,
 }));
+vi.mock('@sourcebot/shared', () => ({
+    createLogger: () => ({ error: vi.fn(), info: vi.fn(), warn: vi.fn(), debug: vi.fn() }),
+    env: { NODE_ENV: 'test' },
+}));
 
 const { GET } = await import('./route');
 
