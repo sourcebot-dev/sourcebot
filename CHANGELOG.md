@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Upgraded `vite` to `^8.0.16`. [#1312](https://github.com/sourcebot-dev/sourcebot/pull/1312)
+- Upgraded `vite` to `^8.0.16`. [#1313](https://github.com/sourcebot-dev/sourcebot/pull/1313)
 
 ## [5.0.3] - 2026-06-17
 
