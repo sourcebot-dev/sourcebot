@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Upgraded `@grpc/grpc-js` to `^1.14.4`. [#1315](https://github.com/sourcebot-dev/sourcebot/pull/1315)
 - Upgraded `vite` to `^8.0.16`. [#1313](https://github.com/sourcebot-dev/sourcebot/pull/1313)
+- Upgraded `hono` to `^4.12.25`. [#1322](https://github.com/sourcebot-dev/sourcebot/pull/1322)
 
 ## [5.0.3] - 2026-06-17
 
