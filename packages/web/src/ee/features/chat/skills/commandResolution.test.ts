@@ -78,7 +78,8 @@ describe("materializeCommandMessageText", () => {
         expect(prisma.agentSkill.findMany).toHaveBeenCalledWith({
             where: {
                 id: { in: ["skill-1"] },
-                namespaceKey: "user:user-1",
+                visibility: "PERSONAL",
+                scopeId: "user-1",
                 enabled: true,
             },
             select: {
@@ -193,7 +194,8 @@ describe("materializeCommandMessageTexts", () => {
         expect(prisma.agentSkill.findMany).toHaveBeenCalledWith({
             where: {
                 id: { in: ["skill-1", "skill-2"] },
-                namespaceKey: "user:user-1",
+                visibility: "PERSONAL",
+                scopeId: "user-1",
                 enabled: true,
             },
             select: {
