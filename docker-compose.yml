@@ -22,7 +22,7 @@ services:
       - CONFIG_PATH=/data/config.json
       - AUTH_URL=${AUTH_URL:-http://localhost:3000}
       - AUTH_SECRET=${AUTH_SECRET:-000000000000000000000000000000000} # CHANGEME: generate via `openssl rand -base64 33`
-      - SOURCEBOT_ENCRYPTION_KEY=${SOURCEBOT_ENCRYPTION_KEY:-000000000000000000000000000000000} # CHANGEME: generate via `openssl rand -base64 24`
+      - SOURCEBOT_ENCRYPTION_KEY=${SOURCEBOT_ENCRYPTION_KEY:-00000000000000000000000000000000} # CHANGEME: generate via `openssl rand -base64 24`
       - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/postgres} # CHANGEME
       - REDIS_URL=${REDIS_URL:-redis://redis:6379} # CHANGEME
 
