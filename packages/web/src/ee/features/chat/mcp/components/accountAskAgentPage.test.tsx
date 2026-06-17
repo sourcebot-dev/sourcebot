@@ -9,7 +9,11 @@ vi.mock('@/ee/features/chat/mcp/actions', () => ({
     disconnectMcpServer: vi.fn(),
 }));
 vi.mock('@/ee/features/chat/skills/actions', () => ({
+    adoptOrgSkill: vi.fn(),
     deletePersonalAgentSkill: vi.fn(),
+    publishPersonalAgentSkillToOrg: vi.fn(),
+    setOrgSkillFlag: vi.fn(),
+    unadoptOrgSkill: vi.fn(),
 }));
 
 const { AccountAskAgentEmptyState } = await import('./accountAskAgentPage');

@@ -78,6 +78,16 @@ export const sortAgentSkillListItems = (skills: AgentSkillListItem[]) =>
         return updatedDiff !== 0 ? updatedDiff : a.name.localeCompare(b.name);
     });
 
+export const sortOrgAgentSkillCatalogItems = (skills: OrgAgentSkillCatalogItem[]) =>
+    [...skills].sort((a, b) => {
+        if (a.featured !== b.featured) {
+            return a.featured ? -1 : 1;
+        }
+
+        const updatedDiff = new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        return updatedDiff !== 0 ? updatedDiff : a.name.localeCompare(b.name);
+    });
+
 export interface ParsedAgentSkillMarkdown {
     name?: string;
     slug?: string;

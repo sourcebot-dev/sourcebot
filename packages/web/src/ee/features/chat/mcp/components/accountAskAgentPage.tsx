@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpenIcon, CableIcon, ExternalLink, MoreHorizontal, PencilIcon, PlusIcon, SearchIcon, Settings2Icon, Trash2Icon, Unplug } from "lucide-react";
+import { BookOpenIcon, Building2Icon, CableIcon, CheckIcon, ExternalLink, Loader2Icon, MoreHorizontal, PencilIcon, PlusIcon, SearchIcon, Settings2Icon, SparklesIcon, StarIcon, Trash2Icon, Unplug } from "lucide-react";
 import { getMcpServersWithStatus } from "@/app/api/(client)/client";
 import { useToast } from "@/components/hooks/use-toast";
 import {
@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { ConnectMcpButton } from "@/ee/features/chat/mcp/components/connectMcpButton";
 import { ConnectorCard } from "@/ee/features/chat/mcp/components/connectorCard";
 import { ConnectorRowInfo } from "@/ee/features/chat/mcp/components/connectorRowInfo";
@@ -25,8 +26,8 @@ import { ConnectorToolTrigger } from "@/ee/features/chat/mcp/components/connecto
 import { useConnectMcp } from "@/ee/features/chat/mcp/hooks/useConnectMcp";
 import { useMcpToolMetadata } from "@/ee/features/chat/mcp/hooks/useMcpToolMetadata";
 import { disconnectMcpServer } from "@/ee/features/chat/mcp/actions";
-import { deletePersonalAgentSkill } from "@/ee/features/chat/skills/actions";
-import { sortAgentSkillListItems, type AgentSkillListItem } from "@/ee/features/chat/skills/types";
+import { adoptOrgSkill, deletePersonalAgentSkill, publishPersonalAgentSkillToOrg, setOrgSkillFlag, unadoptOrgSkill } from "@/ee/features/chat/skills/actions";
+import { sortAgentSkillListItems, sortOrgAgentSkillCatalogItems, type AgentSkillListItem, type OrgAgentSkillCatalogItem } from "@/ee/features/chat/skills/types";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/chat/mcp/queryKeys";
 import { pluralize } from "@/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
@@ -34,6 +35,7 @@ import type { McpServerWithStatus } from "@/app/api/(server)/ee/askmcp/servers/r
 import type { ServerToolsEntry } from "@/ee/features/chat/mcp/types";
 
 type FilterTab = "all" | "connected";
+type OrgSkillFlagKey = "featured" | "autoEnrolled";
 
 function clearCallbackParams() {
     const url = new URL(window.location.href);
@@ -48,18 +50,47 @@ interface AccountAskAgentPageProps {
     callbackServer?: string;
     callbackMessage?: string;
     canManageConnectors: boolean;
+    canManageOrgSkills: boolean;
     initialPersonalSkills: AgentSkillListItem[];
+    initialOrgSkills: OrgAgentSkillCatalogItem[];
 }
 
 const newSkillHref = "/settings/accountAskAgent/skills/new";
 const editSkillHref = (skill: AgentSkillListItem) => `/settings/accountAskAgent/skills/${skill.id}`;
 
+function SkillCommandBadge({ slug }: { slug: string }) {
+    return (
+        <span className="rounded border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+            /{slug}
+        </span>
+    );
+}
+
+function SkillStatusBadge({
+    children,
+    icon,
+}: {
+    children: ReactNode;
+    icon?: ReactNode;
+}) {
+    return (
+        <span className="inline-flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+            {icon}
+            {children}
+        </span>
+    );
+}
+
 function PersonalSkillCard({
     skill,
     onDelete,
+    onPublish,
+    isPublishing,
 }: {
     skill: AgentSkillListItem;
     onDelete: (skill: AgentSkillListItem) => void;
+    onPublish: (skill: AgentSkillListItem) => void;
+    isPublishing: boolean;
 }) {
     return (
         <Card>
@@ -70,9 +101,7 @@ function PersonalSkillCard({
                 <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                         <p className="truncate text-sm font-medium text-foreground">{skill.name}</p>
-                        <span className="rounded border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
-                            /{skill.slug}
-                        </span>
+                        <SkillCommandBadge slug={skill.slug} />
                     </div>
                     {skill.description && (
                         <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
@@ -94,6 +123,17 @@ function PersonalSkillCard({
                             </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
+                            disabled={isPublishing}
+                            onClick={() => onPublish(skill)}
+                        >
+                            {isPublishing ? (
+                                <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <Building2Icon className="h-4 w-4 mr-2" />
+                            )}
+                            {isPublishing ? "Publishing..." : "Publish to workspace"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={() => onDelete(skill)}
                         >
@@ -102,6 +142,141 @@ function PersonalSkillCard({
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
+            </CardContent>
+        </Card>
+    );
+}
+
+function OrgSkillFlagToggle({
+    label,
+    checked,
+    disabled,
+    onCheckedChange,
+}: {
+    label: string;
+    checked: boolean;
+    disabled: boolean;
+    onCheckedChange: (checked: boolean) => void;
+}) {
+    return (
+        <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <span>{label}</span>
+            <Switch
+                checked={checked}
+                disabled={disabled}
+                onCheckedChange={onCheckedChange}
+                className="scale-75"
+            />
+        </label>
+    );
+}
+
+function OrgSkillCatalogCard({
+    skill,
+    canManageOrgSkills,
+    adoptionPending,
+    flagPending,
+    onAdoptionChange,
+    onFlagChange,
+}: {
+    skill: OrgAgentSkillCatalogItem;
+    canManageOrgSkills: boolean;
+    adoptionPending: boolean;
+    flagPending: OrgSkillFlagKey | null;
+    onAdoptionChange: (skill: OrgAgentSkillCatalogItem, adopt: boolean) => void;
+    onFlagChange: (skill: OrgAgentSkillCatalogItem, flag: OrgSkillFlagKey, checked: boolean) => void;
+}) {
+    const adoptionButton = skill.autoEnrolled ? (
+        <Button variant="outline" size="sm" className="h-8 shrink-0" disabled>
+            <CheckIcon className="h-4 w-4 mr-2" />
+            Enabled
+        </Button>
+    ) : (
+        <Button
+            variant={skill.isAdopted ? "outline" : "default"}
+            size="sm"
+            className="h-8 shrink-0"
+            disabled={adoptionPending}
+            onClick={() => onAdoptionChange(skill, !skill.isAdopted)}
+        >
+            {adoptionPending && <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />}
+            {adoptionPending
+                ? "Saving..."
+                : skill.isAdopted
+                    ? "Remove"
+                    : "Add"}
+        </Button>
+    );
+
+    return (
+        <Card>
+            <CardContent className="flex flex-col gap-3 p-3 sm:flex-row sm:items-start">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <Building2Icon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-medium text-foreground">{skill.name}</p>
+                        <SkillCommandBadge slug={skill.slug} />
+                        {skill.featured && (
+                            <SkillStatusBadge icon={<StarIcon className="h-3 w-3" />}>
+                                Featured
+                            </SkillStatusBadge>
+                        )}
+                        {skill.autoEnrolled && (
+                            <SkillStatusBadge icon={<SparklesIcon className="h-3 w-3" />}>
+                                Auto
+                            </SkillStatusBadge>
+                        )}
+                        {!skill.autoEnrolled && skill.isAdopted && (
+                            <SkillStatusBadge icon={<CheckIcon className="h-3 w-3" />}>
+                                Added
+                            </SkillStatusBadge>
+                        )}
+                    </div>
+                    {skill.description && (
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                            {skill.description}
+                        </p>
+                    )}
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+                    {canManageOrgSkills && (
+                        <div className="flex items-center gap-3 rounded-md border bg-muted/30 px-2 py-1">
+                            <OrgSkillFlagToggle
+                                label="Featured"
+                                checked={skill.featured}
+                                disabled={flagPending !== null}
+                                onCheckedChange={(checked) => onFlagChange(skill, "featured", checked)}
+                            />
+                            <OrgSkillFlagToggle
+                                label="Auto"
+                                checked={skill.autoEnrolled}
+                                disabled={flagPending !== null}
+                                onCheckedChange={(checked) => onFlagChange(skill, "autoEnrolled", checked)}
+                            />
+                        </div>
+                    )}
+                    {adoptionButton}
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+function WorkspaceSkillsEmptyState() {
+    return (
+        <Card>
+            <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="rounded-full bg-muted p-3 mb-4">
+                    <Building2Icon className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-foreground mb-1">
+                    No workspace skills yet
+                </p>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                    Publish a personal skill to share it with this workspace.
+                </p>
             </CardContent>
         </Card>
     );
@@ -269,7 +444,9 @@ export function AccountAskAgentPage({
     callbackServer,
     callbackMessage,
     canManageConnectors,
+    canManageOrgSkills,
     initialPersonalSkills,
+    initialOrgSkills,
 }: AccountAskAgentPageProps) {
     const { toast } = useToast();
     const queryClient = useQueryClient();
@@ -277,7 +454,11 @@ export function AccountAskAgentPage({
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState<FilterTab>("all");
     const [personalSkills, setPersonalSkills] = useState(() => sortAgentSkillListItems(initialPersonalSkills));
+    const [orgSkills, setOrgSkills] = useState(() => sortOrgAgentSkillCatalogItems(initialOrgSkills));
     const [deletingSkillId, setDeletingSkillId] = useState<string | null>(null);
+    const [publishingSkillId, setPublishingSkillId] = useState<string | null>(null);
+    const [adoptionPendingSkillId, setAdoptionPendingSkillId] = useState<string | null>(null);
+    const [flagPendingSkill, setFlagPendingSkill] = useState<{ skillId: string; flag: OrgSkillFlagKey } | null>(null);
     const [confirmDeleteSkill, setConfirmDeleteSkill] = useState<AgentSkillListItem | null>(null);
     const [disconnectingServerId, setDisconnectingServerId] = useState<string | null>(null);
     const [confirmDisconnectServer, setConfirmDisconnectServer] = useState<{ id: string; name: string } | null>(null);
@@ -391,6 +572,80 @@ export function AccountAskAgentPage({
         }
     };
 
+    const handlePublishSkill = async (skill: AgentSkillListItem) => {
+        setPublishingSkillId(skill.id);
+        try {
+            const result = await publishPersonalAgentSkillToOrg(skill.id);
+            if (isServiceError(result)) {
+                toast({ title: "Error", description: result.message, variant: "destructive" });
+                return;
+            }
+
+            setOrgSkills((current) => sortOrgAgentSkillCatalogItems([
+                result,
+                ...current.filter((item) => item.id !== result.id),
+            ]));
+            toast({ description: "Skill published to workspace." });
+        } catch {
+            toast({ title: "Error", description: "Failed to publish skill.", variant: "destructive" });
+        } finally {
+            setPublishingSkillId(null);
+        }
+    };
+
+    const handleOrgSkillAdoptionChange = async (skill: OrgAgentSkillCatalogItem, adopt: boolean) => {
+        setAdoptionPendingSkillId(skill.id);
+        try {
+            const result = adopt
+                ? await adoptOrgSkill(skill.id)
+                : await unadoptOrgSkill(skill.id);
+            if (isServiceError(result)) {
+                toast({ title: "Error", description: result.message, variant: "destructive" });
+                return;
+            }
+
+            setOrgSkills((current) => sortOrgAgentSkillCatalogItems(current.map((item) =>
+                item.id === skill.id
+                    ? { ...item, isAdopted: adopt }
+                    : item,
+            )));
+            toast({ description: adopt ? "Skill added." : "Skill removed." });
+        } catch {
+            toast({ title: "Error", description: "Failed to update skill.", variant: "destructive" });
+        } finally {
+            setAdoptionPendingSkillId(null);
+        }
+    };
+
+    const handleOrgSkillFlagChange = async (
+        skill: OrgAgentSkillCatalogItem,
+        flag: OrgSkillFlagKey,
+        checked: boolean,
+    ) => {
+        setFlagPendingSkill({ skillId: skill.id, flag });
+        try {
+            const result = await setOrgSkillFlag({
+                skillId: skill.id,
+                data: flag === "featured"
+                    ? { featured: checked }
+                    : { autoEnrolled: checked },
+            });
+            if (isServiceError(result)) {
+                toast({ title: "Error", description: result.message, variant: "destructive" });
+                return;
+            }
+
+            setOrgSkills((current) => sortOrgAgentSkillCatalogItems(current.map((item) =>
+                item.id === result.id ? result : item,
+            )));
+            toast({ description: "Workspace skill updated." });
+        } catch {
+            toast({ title: "Error", description: "Failed to update workspace skill.", variant: "destructive" });
+        } finally {
+            setFlagPendingSkill(null);
+        }
+    };
+
     const isDeletingConfirmedSkill = deletingSkillId !== null && deletingSkillId === confirmDeleteSkill?.id;
 
     const skillsSection = (
@@ -429,10 +684,42 @@ export function AccountAskAgentPage({
                             key={skill.id}
                             skill={skill}
                             onDelete={setConfirmDeleteSkill}
+                            onPublish={(skillToPublish) => { void handlePublishSkill(skillToPublish); }}
+                            isPublishing={publishingSkillId === skill.id}
                         />
                     ))}
                 </div>
             )}
+
+            <div className="space-y-2 pt-3">
+                <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Workspace
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        {orgSkills.length} {pluralize(orgSkills.length, "skill")}
+                    </p>
+                </div>
+                {orgSkills.length === 0 ? (
+                    <WorkspaceSkillsEmptyState />
+                ) : (
+                    orgSkills.map((skill) => (
+                        <OrgSkillCatalogCard
+                            key={skill.id}
+                            skill={skill}
+                            canManageOrgSkills={canManageOrgSkills}
+                            adoptionPending={adoptionPendingSkillId === skill.id}
+                            flagPending={flagPendingSkill?.skillId === skill.id ? flagPendingSkill.flag : null}
+                            onAdoptionChange={(skillToUpdate, adopt) => {
+                                void handleOrgSkillAdoptionChange(skillToUpdate, adopt);
+                            }}
+                            onFlagChange={(skillToUpdate, flag, checked) => {
+                                void handleOrgSkillFlagChange(skillToUpdate, flag, checked);
+                            }}
+                        />
+                    ))
+                )}
+            </div>
         </div>
     );
 

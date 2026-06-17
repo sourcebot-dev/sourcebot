@@ -328,6 +328,93 @@ export const deletePersonalAgentSkill = async (
         return { success: true };
     }));
 
+export const publishPersonalAgentSkillToOrg = async (
+    skillId: string,
+): Promise<OrgAgentSkillCatalogItem | ServiceError> => sew(() =>
+    withAuth(async ({ org, user, prisma }) => {
+        const askError = await checkAskEntitlement();
+        if (askError) {
+            return askError;
+        }
+
+        const personalSkill = await prisma.agentSkill.findFirst({
+            where: {
+                id: skillId,
+                ...personalAgentSkillAuthScope(user.id),
+            },
+            select: {
+                slug: true,
+                name: true,
+                description: true,
+                instructions: true,
+                argumentNames: true,
+            },
+        });
+
+        if (!personalSkill) {
+            return skillNotFound();
+        }
+
+        try {
+            const orgSkill = await prisma.$transaction(async (tx) => {
+                const createdSkill = await tx.agentSkill.create({
+                    data: {
+                        ...orgAgentSkillScope(org.id),
+                        slug: personalSkill.slug,
+                        name: personalSkill.name,
+                        description: personalSkill.description,
+                        instructions: personalSkill.instructions,
+                        argumentNames: personalSkill.argumentNames,
+                        createdById: user.id,
+                        updatedById: user.id,
+                        orgId: org.id,
+                    },
+                    select: {
+                        id: true,
+                    },
+                });
+
+                await tx.agentSkillAdoption.upsert({
+                    where: {
+                        orgId_userId_agentSkillId: {
+                            orgId: org.id,
+                            userId: user.id,
+                            agentSkillId: createdSkill.id,
+                        },
+                    },
+                    create: {
+                        orgId: org.id,
+                        userId: user.id,
+                        agentSkillId: createdSkill.id,
+                    },
+                    update: {},
+                });
+
+                const selectedSkill = await tx.agentSkill.findFirst({
+                    where: {
+                        id: createdSkill.id,
+                        ...orgAgentSkillAuthScope(org.id),
+                    },
+                    select: orgCatalogSkillSelect(user.id, org.id),
+                });
+
+                if (!selectedSkill) {
+                    throw new Error("Created org skill was not found.");
+                }
+
+                return selectedSkill;
+            });
+
+            return toOrgAgentSkillCatalogItem(orgSkill);
+        } catch (error) {
+            if (isUniqueConstraintError(error)) {
+                return skillAlreadyExists(personalSkill.slug);
+            }
+
+            throw error;
+        }
+    }));
+
 export const listOrgAgentSkillCatalog = async (): Promise<OrgAgentSkillCatalogItem[] | ServiceError> => sew(() =>
     withAuth(async ({ org, user, prisma }) => {
         const askError = await checkAskEntitlement();
