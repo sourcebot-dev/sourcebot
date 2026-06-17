@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.3] - 2026-06-17
+
 ### Changed
 - Changed the workspace "Access" page to a "Security" page. [#1303](https://github.com/sourcebot-dev/sourcebot/pull/1303)
 
