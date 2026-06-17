@@ -233,7 +233,7 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
                     baseUrl: env.AUTH_URL,
                     user: {
                         name: request.requestedBy.name ?? undefined,
-                        email: request.requestedBy.email!,
+                        email: request.requestedBy.email,
                         avatarUrl: request.requestedBy.image ?? undefined,
                     },
                     orgName: org.name,
@@ -241,7 +241,7 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
 
                 const transport = createTransport(smtpConnectionUrl);
                 const result = await transport.sendMail({
-                    to: request.requestedBy.email!,
+                    to: request.requestedBy.email,
                     from: env.EMAIL_FROM_ADDRESS,
                     subject: `Your request to join ${org.name} has been approved`,
                     html,
@@ -391,7 +391,7 @@ export const createInvites = async (emails: string[]): Promise<{ success: boolea
                         baseUrl: env.AUTH_URL,
                         host: {
                             name: user.name ?? undefined,
-                            email: user.email!,
+                            email: user.email,
                             avatarUrl: user.image ?? undefined,
                         },
                         recipient: {
@@ -481,7 +481,7 @@ export const getOrgMembers = async () => sew(() =>
 
             return members.map((member) => ({
                 id: member.userId,
-                email: member.user.email!,
+                email: member.user.email,
                 name: member.user.name ?? undefined,
                 avatarUrl: member.user.image ?? undefined,
                 role: member.role,
@@ -520,7 +520,7 @@ export const getOrgAccountRequests = async () => sew(() =>
 
             return requests.map((request) => ({
                 id: request.id,
-                email: request.requestedBy.email!,
+                email: request.requestedBy.email,
                 createdAt: request.createdAt,
                 name: request.requestedBy.name ?? undefined,
                 image: request.requestedBy.image ?? undefined,

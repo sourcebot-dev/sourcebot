@@ -20,6 +20,10 @@ const ERROR_CONTENT: Record<string, { title: string; description: string }> = {
         title: "Access denied",
         description: "You do not have permission to sign in.",
     },
+    EmailRequired: {
+        title: "No email on your account",
+        description: "Your identity provider didn't share an email address, which Sourcebot requires to sign you in. Add or verify an email on your upstream account, then try again.",
+    },
     Verification: {
         title: "This sign-in link has expired",
         description: "The code or link you used is no longer valid - it may have expired or already been used. Request a new one and try again.",
