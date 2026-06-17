@@ -15,8 +15,17 @@ const generateIV = (): Buffer => {
     return crypto.randomBytes(ivLength);
 };
 
+// @hack in our docker-compose.yml, we mistakenly used an encryption key with
+// _33_ zeros. As a hacky mechanism to fix peoples deployments without requiring
+// them to update their encryption key, we look for keys with this pattern and
+// coerce them into _32_ zeros (AES-256 requires a 32-byte key).
+// @see https://github.com/sourcebot-dev/sourcebot/commit/e30e75e7af96308b3b063bb3aed8369f5b15aa2e
+const coerceEncryptionKey = (key: string): string => {
+    return key === "0".repeat(33) ? "0".repeat(32) : key;
+};
+
 export function encrypt(text: string): { iv: string; encryptedData: string } {
-    const encryptionKey = Buffer.from(env.SOURCEBOT_ENCRYPTION_KEY, 'ascii');
+    const encryptionKey = Buffer.from(coerceEncryptionKey(env.SOURCEBOT_ENCRYPTION_KEY), 'ascii');
 
     const iv = generateIV();
     const cipher = crypto.createCipheriv(algorithm, encryptionKey, iv);
@@ -28,7 +37,7 @@ export function encrypt(text: string): { iv: string; encryptedData: string } {
 }
 
 export function decrypt(iv: string, encryptedText: string): string {
-    const encryptionKey = Buffer.from(env.SOURCEBOT_ENCRYPTION_KEY, 'ascii');
+    const encryptionKey = Buffer.from(coerceEncryptionKey(env.SOURCEBOT_ENCRYPTION_KEY), 'ascii');
 
     const ivBuffer = Buffer.from(iv, 'hex');
     const encryptedBuffer = Buffer.from(encryptedText, 'hex');

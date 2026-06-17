@@ -341,18 +341,8 @@ const options = {
         // The key is read as ASCII (1 char = 1 byte), so AES-256's 32-byte key
         // requirement means this must be exactly 32 characters. Generate one with
         // `openssl rand -base64 24` (24 random bytes => a 32-character base64 string).
-        SOURCEBOT_ENCRYPTION_KEY: z.preprocess(
-            // @hack in our docker-compose.yml, we mistakenly used a
-            // encryption key with _33_ zeros. As a hacky mechanism to
-            // fix peoples deployments without requiring them to update
-            // their encryption key, we look for keys with this pattern
-            // and coerce them into _32_ zeros.
-            // @see https://github.com/sourcebot-dev/sourcebot/commit/e30e75e7af96308b3b063bb3aed8369f5b15aa2e
-            (value) => value === "0".repeat(33) ? "0".repeat(32) : value,
-            z.string().length(32, {
-                message: "SOURCEBOT_ENCRYPTION_KEY must be exactly 32 characters (a 256-bit AES key). Generate one with `openssl rand -base64 24`.",
-            }),
-        ),
+        // @note: the key is normalized in shared/src/crypto.ts before use.
+        SOURCEBOT_ENCRYPTION_KEY: z.string(),
         SOURCEBOT_INSTALL_ID: z.string().default("unknown"),
         SOURCEBOT_LIGHTHOUSE_URL: z.string().url().default("https://deployments.sourcebot.dev"),
 
