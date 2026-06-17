@@ -25,14 +25,16 @@ const {
     adoptOrgSkill,
     deleteOrgAgentSkill,
     listAgentSkillCommands,
+    publishPersonalAgentSkillToOrg,
     setOrgSkillFlag,
     unadoptOrgSkill,
     updateOrgAgentSkill,
 } = await import("./actions");
 
 function createPrismaMock() {
-    return {
+    const prisma = {
         agentSkill: {
+            create: vi.fn(),
             delete: vi.fn(),
             findFirst: vi.fn(),
             findMany: vi.fn(),
@@ -42,6 +44,10 @@ function createPrismaMock() {
             upsert: vi.fn(),
             deleteMany: vi.fn(),
         },
+    };
+    return {
+        ...prisma,
+        $transaction: vi.fn((callback) => callback(prisma)),
     };
 }
 
@@ -159,6 +165,102 @@ describe("listAgentSkillCommands", () => {
                 slug: "review",
             },
         ]);
+    });
+});
+
+describe("publishPersonalAgentSkillToOrg", () => {
+    test("creates an org copy and adopts it for the publisher", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst
+            .mockResolvedValueOnce({
+                slug: "review",
+                name: "Review",
+                description: "Review risky changes.",
+                instructions: "Review $0.",
+                argumentNames: ["topic"],
+            })
+            .mockResolvedValueOnce({
+                id: "org-skill",
+                visibility: "ORG",
+                slug: "review",
+                name: "Review",
+                description: "Review risky changes.",
+                argumentNames: ["topic"],
+                enabled: true,
+                featured: false,
+                autoEnrolled: false,
+                createdAt: new Date("2026-01-01T00:00:00.000Z"),
+                updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+                adoptions: [{ id: "adoption-1" }],
+            });
+        prisma.agentSkill.create.mockResolvedValue({
+            id: "org-skill",
+        });
+
+        const result = await publishPersonalAgentSkillToOrg("personal-skill");
+
+        expect(result).toMatchObject({
+            id: "org-skill",
+            slug: "review",
+            isAdopted: true,
+        });
+        expect(prisma.agentSkill.findFirst).toHaveBeenNthCalledWith(1, {
+            where: {
+                id: "personal-skill",
+                visibility: "PERSONAL",
+                scopeId: "member-1",
+                createdById: "member-1",
+                orgId: null,
+            },
+            select: {
+                slug: true,
+                name: true,
+                description: true,
+                instructions: true,
+                argumentNames: true,
+            },
+        });
+        expect(prisma.agentSkill.create).toHaveBeenCalledWith({
+            data: {
+                visibility: "ORG",
+                scopeId: "1",
+                slug: "review",
+                name: "Review",
+                description: "Review risky changes.",
+                instructions: "Review $0.",
+                argumentNames: ["topic"],
+                createdById: "member-1",
+                updatedById: "member-1",
+                orgId: 1,
+            },
+            select: {
+                id: true,
+            },
+        });
+        expect(prisma.agentSkillAdoption.upsert).toHaveBeenCalledWith({
+            where: {
+                orgId_userId_agentSkillId: {
+                    orgId: 1,
+                    userId: "member-1",
+                    agentSkillId: "org-skill",
+                },
+            },
+            create: {
+                orgId: 1,
+                userId: "member-1",
+                agentSkillId: "org-skill",
+            },
+            update: {},
+        });
+        expect(prisma.agentSkill.findFirst).toHaveBeenNthCalledWith(2, {
+            where: {
+                id: "org-skill",
+                visibility: "ORG",
+                scopeId: "1",
+                orgId: 1,
+            },
+            select: expect.any(Object),
+        });
     });
 });
 

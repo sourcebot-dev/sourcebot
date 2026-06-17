@@ -1,6 +1,6 @@
 import { AccountAskAgentPage } from "@/ee/features/chat/mcp/components/accountAskAgentPage";
 import { AccountAskAgentEntitlementMessage } from "./accountAskAgentEntitlementMessage";
-import { listPersonalAgentSkills } from "@/ee/features/chat/skills/actions";
+import { listOrgAgentSkillCatalog, listPersonalAgentSkills } from "@/ee/features/chat/skills/actions";
 import { hasEntitlement } from "@/lib/entitlements";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
@@ -24,9 +24,15 @@ export default authenticatedPage<PageProps>(async ({ role }, { searchParams }) =
     }
 
     const { status, server, message } = await searchParams;
-    const personalSkills = await listPersonalAgentSkills();
+    const [personalSkills, orgSkills] = await Promise.all([
+        listPersonalAgentSkills(),
+        listOrgAgentSkillCatalog(),
+    ]);
     if (isServiceError(personalSkills)) {
         throw new ServiceErrorException(personalSkills);
+    }
+    if (isServiceError(orgSkills)) {
+        throw new ServiceErrorException(orgSkills);
     }
 
     return (
@@ -35,7 +41,9 @@ export default authenticatedPage<PageProps>(async ({ role }, { searchParams }) =
             callbackServer={server}
             callbackMessage={message}
             canManageConnectors={role === OrgRole.OWNER}
+            canManageOrgSkills={role === OrgRole.OWNER}
             initialPersonalSkills={personalSkills}
+            initialOrgSkills={orgSkills}
         />
     );
 });
