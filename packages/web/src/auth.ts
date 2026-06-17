@@ -321,7 +321,7 @@ const nextAuthResult = NextAuth(async () => ({
             // Reject any sign-in that arrives without an email.
             // @see 20260616000000_make_user_email_required/migration.sql
             if (!user.email) {
-                return false;
+                return '/login/error?error=EmailRequired';
             }
 
             return true;
