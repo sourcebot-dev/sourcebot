@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Validated that `SOURCEBOT_ENCRYPTION_KEY` is exactly 32 characters at startup, failing fast with an actionable message instead of a runtime encryption error. [#1305](https://github.com/sourcebot-dev/sourcebot/pull/1305)
 - Fixed the web UI crashing when anonymous access is enabled and a request omits the `User-Agent` header (e.g. proxy or health-check probes). [#1309](https://github.com/sourcebot-dev/sourcebot/pull/1309)
 - Fixed the Members page crashing when a `User` had a null email. `User.email` is now required (with a backfilling migration), and SSO sign-ins without an email are rejected. [#1310](https://github.com/sourcebot-dev/sourcebot/pull/1310)
+- Fixed the default `SOURCEBOT_ENCRYPTION_KEY` (33 zeros) failing the 32-character validation by normalizing it to 32 characters at startup. [#1311](https://github.com/sourcebot-dev/sourcebot/pull/1311)
 
 ## [5.0.2] - 2026-06-11
 
