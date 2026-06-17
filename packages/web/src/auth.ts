@@ -288,7 +288,7 @@ const nextAuthResult = NextAuth(async () => ({
         }
     },
     callbacks: {
-        async signIn({ account }) {
+        async signIn({ account, user }) {
             const matchingProvider = account
                 ? (await getProviders()).find((p) => p.id === account.provider)
                 : undefined;
@@ -316,6 +316,12 @@ const nextAuthResult = NextAuth(async () => ({
             const session = await auth();
             if (isAccountLinkingAttempt && session === null) {
                 return false;
+            }
+
+            // Reject any sign-in that arrives without an email.
+            // @see 20260616000000_make_user_email_required/migration.sql
+            if (!user.email) {
+                return '/login/error?error=EmailRequired';
             }
 
             return true;
