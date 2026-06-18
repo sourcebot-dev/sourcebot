@@ -41,6 +41,10 @@ const fetchAllGitLabPages = async <T>(
         if (!nextPage) {
             break;
         }
+        if (nextPage <= page) {
+            logger.warn(`Stopping pagination for ${identifier}: GitLab returned non-advancing next page ${nextPage} after page ${page}.`);
+            break;
+        }
 
         page = nextPage;
     }
@@ -54,10 +58,11 @@ export const getGitLabProjectsForGroupTree = async (
 ): Promise<ProjectSchema[]> => {
     const projectsById = new Map<number, ProjectSchema>();
     const groupsToVisit: Array<string | number> = [rootGroup];
+    let groupIndex = 0;
     const visitedGroups = new Set<string>();
 
-    while (groupsToVisit.length > 0) {
-        const group = groupsToVisit.shift()!;
+    while (groupIndex < groupsToVisit.length) {
+        const group = groupsToVisit[groupIndex++]!;
         const groupKey = String(group);
         if (visitedGroups.has(groupKey)) {
             continue;

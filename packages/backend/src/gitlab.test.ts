@@ -251,3 +251,32 @@ test('getGitLabProjectsForGroupTree walks paginated subgroup trees without inclu
         includeSubgroups: true,
     }));
 });
+
+test('getGitLabProjectsForGroupTree stops when GitLab returns a non-advancing next page.', async () => {
+    const project = {
+        id: 1,
+        path_with_namespace: 'root/project-a',
+    } as ProjectSchema;
+
+    const api = {
+        Groups: {
+            allProjects: vi.fn(async () => ({
+                data: [project],
+                paginationInfo: {
+                    next: 1,
+                },
+            })),
+            allSubgroups: vi.fn(async () => ({
+                data: [],
+                paginationInfo: {
+                    next: null,
+                },
+            })),
+        },
+    } as unknown as InstanceType<typeof Gitlab>;
+
+    const projects = await getGitLabProjectsForGroupTree(api, 'root');
+
+    expect(projects).toEqual([project]);
+    expect(api.Groups.allProjects).toHaveBeenCalledTimes(1);
+});
