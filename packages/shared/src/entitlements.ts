@@ -128,10 +128,18 @@ const getValidOnlineLicense = (_license: License | null): License | null => {
     return null;
 }
 
+export const isValidOfflineLicenseActive = (): boolean => {
+    return getValidOfflineLicense() !== null;
+}
+
+export const isValidOnlineLicenseActive = (_license: License | null): boolean => {
+    return getValidOnlineLicense(_license) !== null;
+}
+
 export const isValidLicenseActive = (_license: License | null): boolean => {
     return (
-        getValidOfflineLicense() !== null ||
-        getValidOnlineLicense(_license) !== null
+        isValidOfflineLicenseActive() ||
+        isValidOnlineLicenseActive(_license)
     );
 }
 
