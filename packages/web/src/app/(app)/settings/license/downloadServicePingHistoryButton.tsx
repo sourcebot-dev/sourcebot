@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useState } from "react";
-import { Download, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { useToast } from "@/components/hooks/use-toast";
 import { isServiceError } from "@/lib/utils";
 import { getServicePingHistory } from "./actions";
@@ -48,18 +48,14 @@ export function DownloadServicePingHistoryButton() {
     }, [toast]);
 
     return (
-        <Button
+        <LoadingButton
             variant="outline"
             size="sm"
             onClick={handleDownload}
-            disabled={isLoading}
+            loading={isLoading}
         >
-            {isLoading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-                <Download className="h-3.5 w-3.5" />
-            )}
+            {!isLoading && <Download className="h-3.5 w-3.5" />}
             Download usage report
-        </Button>
+        </LoadingButton>
     );
 }
