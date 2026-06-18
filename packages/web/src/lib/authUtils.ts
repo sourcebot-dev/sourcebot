@@ -8,6 +8,7 @@ import { createAudit } from "@/ee/features/audit/audit";
 import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "./errorCodes";
 import { syncWithLighthouse } from "@/features/billing/servicePing";
+import { recordSeatChange } from "@/features/billing/seatUsage";
 import { hasEntitlement } from "./entitlements";
 
 const logger = createLogger('web-auth-utils');
@@ -83,6 +84,8 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
                     }
                 }
             });
+
+            await recordSeatChange(tx, SINGLE_TENANT_ORG_ID);
         });
 
         await createAudit({
@@ -126,12 +129,18 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
 
         const hasOrgManagement = await hasEntitlement("org-management");
 
-        await __unsafePrisma.userToOrg.create({
-            data: {
-                userId: user.id,
-                orgId: SINGLE_TENANT_ORG_ID,
-                role: hasOrgManagement ? OrgRole.MEMBER : OrgRole.OWNER,
-            }
+        await __unsafePrisma.$transaction(async (tx) => {
+            await tx.userToOrg.create({
+                data: {
+                    // Non-null: guarded by the `!user.id` throw at the top of
+                    // onCreateUser; the narrowing is lost inside this closure.
+                    userId: user.id!,
+                    orgId: SINGLE_TENANT_ORG_ID,
+                    role: hasOrgManagement ? OrgRole.MEMBER : OrgRole.OWNER,
+                }
+            });
+
+            await recordSeatChange(tx, SINGLE_TENANT_ORG_ID);
         });
 
         await createAudit({
@@ -237,6 +246,8 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
             },
             update: {},
         });
+
+        await recordSeatChange(tx, org.id);
 
         // Delete the account request if it exists since we've added the user to the org
         const accountRequest = await tx.accountRequest.findUnique({

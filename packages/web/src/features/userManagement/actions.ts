@@ -2,6 +2,7 @@
 
 import { createAudit } from "@/ee/features/audit/audit";
 import { syncWithLighthouse } from "@/features/billing/servicePing";
+import { recordSeatChange } from "@/features/billing/seatUsage";
 import InviteUserEmail from "@/emails/inviteUserEmail";
 import JoinRequestApprovedEmail from "@/emails/joinRequestApprovedEmail";
 import { addUserToOrganization, orgHasAvailability } from "@/lib/authUtils";
@@ -121,6 +122,8 @@ const _removeUserFromOrg = async (
                 }
             }
         });
+
+        await recordSeatChange(tx, orgId);
 
         return null;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

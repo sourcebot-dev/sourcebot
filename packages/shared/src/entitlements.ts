@@ -14,10 +14,12 @@ const offlineLicensePayloadSchema = z.object({
     seats: z.number().optional(),
     // ISO 8601 date string
     expiryDate: z.string().datetime(),
+    // ISO 8601 instant. Optional for back-compat
+    startDate: z.string().datetime().optional(),
     sig: z.string(),
 });
 
-type getValidOfflineLicense = z.infer<typeof offlineLicensePayloadSchema>;
+type OfflineLicensePayload = z.infer<typeof offlineLicensePayloadSchema>;
 
 const ACTIVE_ONLINE_LICENSE_STATUSES: LicenseStatus[] = [
     'active',
@@ -44,16 +46,21 @@ const ALL_ENTITLEMENTS = [
 ] as const;
 export type Entitlement = (typeof ALL_ENTITLEMENTS)[number];
 
-const decodeOfflineLicenseKeyPayload = (payload: string): getValidOfflineLicense | null => {
+const decodeOfflineLicenseKeyPayload = (payload: string): OfflineLicensePayload | null => {
     try {
         const decodedPayload = base64Decode(payload);
         const payloadJson = JSON.parse(decodedPayload);
         const licenseData = offlineLicensePayloadSchema.parse(payloadJson);
 
+        // NOTE: key order here is the signed-blob serialization order and must
+        // match the signer exactly. `startDate` is appended last so
+        // that for older licenses (where it is undefined) JSON.stringify omits
+        // it, leaving the blob byte-identical and existing signatures valid.
         const dataToVerify = JSON.stringify({
             expiryDate: licenseData.expiryDate,
             id: licenseData.id,
-            seats: licenseData.seats
+            seats: licenseData.seats,
+            startDate: licenseData.startDate
         });
 
         const isSignatureValid = verifySignature(dataToVerify, licenseData.sig, env.SOURCEBOT_PUBLIC_KEY_PATH);
@@ -69,7 +76,7 @@ const decodeOfflineLicenseKeyPayload = (payload: string): getValidOfflineLicense
     }
 }
 
-const getDecodedOfflineLicense = (): getValidOfflineLicense | null => {
+const getDecodedOfflineLicense = (): OfflineLicensePayload | null => {
     const licenseKey = env.SOURCEBOT_EE_LICENSE_KEY;
     if (!licenseKey || !licenseKey.startsWith(offlineLicensePrefix)) {
         return null;
@@ -78,7 +85,7 @@ const getDecodedOfflineLicense = (): getValidOfflineLicense | null => {
     return decodeOfflineLicenseKeyPayload(licenseKey.substring(offlineLicensePrefix.length));
 }
 
-const getValidOfflineLicense = (): getValidOfflineLicense | null => {
+const getValidOfflineLicense = (): OfflineLicensePayload | null => {
     const payload = getDecodedOfflineLicense();
     if (!payload) {
         return null;
@@ -164,6 +171,7 @@ export type OfflineLicenseMetadata = {
     id: string;
     seats?: number;
     expiryDate: string;
+    startDate?: string;
 }
 
 // Returns the metadata of the offline license if one is configured, even
@@ -179,6 +187,7 @@ export const getOfflineLicenseMetadata = (): OfflineLicenseMetadata | null => {
         id: license.id,
         seats: license.seats,
         expiryDate: license.expiryDate,
+        startDate: license.startDate,
     };
 }
 

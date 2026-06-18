@@ -7,8 +7,10 @@ import { redirect } from "next/navigation";
 import { ActivationCodeCard } from "./activationCodeCard";
 import { OnlineLicenseCard } from "./onlineLicenseCard/onlineLicenseCard";
 import { OfflineLicenseCard } from "./offlineLicenseCard";
+import { OfflineUsageReportCard } from "./offlineUsageReportCard";
 import { RecentInvoicesCard } from "./recentInvoicesCard";
 import { YearlyTermSeatsUsageCard } from "./yearlyTermSeatsUsageCard";
+import { computeMonthlyUsage } from "@/features/billing/seatUsageReport";
 import { SettingsCard } from "../components/settingsCard";
 import { UpsellPanel } from "@/features/billing/upsellDialog";
 import { getAllInvoices } from "@/ee/features/lighthouse/actions";
@@ -51,6 +53,21 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
     const yearlyTermStatus = getYearlyTermStatus(license);
     const currentUserCount = await prisma.userToOrg.count({ where: { orgId: org.id } });
 
+    // Usage-based offline licenses (those carrying a subscription start date)
+    // reconcile Add-On Users from the seat-usage ledger. Bucket it into
+    // subscription-anchored Months for the in-app report.
+    const seatUsageMonths = offlineLicense?.startDate
+        ? computeMonthlyUsage(
+            await prisma.seatUsageEvent.findMany({
+                where: { orgId: org.id },
+                orderBy: { timestamp: 'asc' },
+                select: { timestamp: true, seatCount: true },
+            }),
+            new Date(offlineLicense.startDate),
+            new Date(),
+        )
+        : null;
+
     const invoicesResult = license ? await getAllInvoices() : null;
     const invoices = invoicesResult && !isServiceError(invoicesResult) ? invoicesResult : [];
 
@@ -91,6 +108,13 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
             )}
             {offlineLicense && (
                 <OfflineLicenseCard license={offlineLicense} isExpired={isOfflineLicenseExpired} />
+            )}
+            {offlineLicense && seatUsageMonths && (
+                <OfflineUsageReportCard
+                    licenseId={offlineLicense.id}
+                    startDate={offlineLicense.startDate!}
+                    months={seatUsageMonths}
+                />
             )}
             {license && <OnlineLicenseCard license={license} />}
             {license

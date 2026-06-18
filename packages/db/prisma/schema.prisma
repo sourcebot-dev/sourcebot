@@ -308,6 +308,8 @@ model Org {
 
   audits Audit[]
 
+  seatUsageEvents SeatUsageEvent[]
+
   accountRequests AccountRequest[]
 
   searchContexts SearchContext[]
@@ -424,6 +426,17 @@ model Audit {
   @@index([orgId, timestamp, action, actorId], map: "idx_audit_core_actions_full")
   // Fast path for analytics queries for a specific user
   @@index([actorId, timestamp], map: "idx_audit_actor_time_full")
+}
+
+/// Append-only ledger of an org's seat count over time, used to generate
+/// usage reports for offline license reconciliation. 
+model SeatUsageEvent {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  seatCount Int
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
+  @@index([orgId, timestamp])
 }
 
 // @see : https://authjs.dev/concepts/database-models#user
