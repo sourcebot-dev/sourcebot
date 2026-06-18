@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- [EE] Decoupled offline-license anonymous access from the seat cap. Anonymous access is now controlled by an explicit `anonymousAccess` field on the license key instead of being implied by an unlimited (uncapped) seat count. [#1349](https://github.com/sourcebot-dev/sourcebot/pull/1349)
+
 ### Fixed
 - Upgraded `@grpc/grpc-js` to `^1.14.4`. [#1315](https://github.com/sourcebot-dev/sourcebot/pull/1315)
 - Upgraded `vite` to `^8.0.16`. [#1313](https://github.com/sourcebot-dev/sourcebot/pull/1313)
