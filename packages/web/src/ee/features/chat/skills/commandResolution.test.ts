@@ -175,13 +175,31 @@ describe("materializeCommandMessageText", () => {
                 scopeId: "7",
                 orgId: 7,
                 enabled: true,
-                OR: [
-                    { autoEnrolled: true },
+                AND: [
                     {
-                        adoptions: {
-                            some: {
-                                userId: "user-1",
-                                orgId: 7,
+                        OR: [
+                            { autoEnrolled: true },
+                            {
+                                adoptions: {
+                                    some: {
+                                        userId: "user-1",
+                                        orgId: 7,
+                                        removedAt: null,
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                    {
+                        NOT: {
+                            adoptions: {
+                                some: {
+                                    userId: "user-1",
+                                    orgId: 7,
+                                    removedAt: {
+                                        not: null,
+                                    },
+                                },
                             },
                         },
                     },

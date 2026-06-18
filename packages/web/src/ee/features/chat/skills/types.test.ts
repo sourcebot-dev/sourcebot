@@ -5,6 +5,7 @@ import {
     parseAgentSkillMarkdown,
     sortAgentSkillListItems,
     toOrgAgentSkillCatalogItem,
+    toOrgAgentSkillManagementItem,
     type AgentSkillListItem,
 } from "./types";
 
@@ -140,10 +141,11 @@ describe("toOrgAgentSkillCatalogItem", () => {
             enabled: true,
             featured: false,
             autoEnrolled: true,
+            createdById: "user-1",
             createdAt: new Date("2026-01-01T00:00:00.000Z"),
             updatedAt: new Date("2026-01-02T00:00:00.000Z"),
-            adoptions: [{ id: "adoption-1" }],
-        });
+            adoptions: [{ id: "adoption-1", removedAt: null }],
+        }, "user-1");
 
         expect(item).toEqual({
             id: "skill-1",
@@ -156,11 +158,51 @@ describe("toOrgAgentSkillCatalogItem", () => {
             featured: false,
             autoEnrolled: true,
             isAdopted: true,
+            isRemoved: false,
+            isVisibleToUser: true,
+            isCreatedByUser: true,
             createdAt: "2026-01-01T00:00:00.000Z",
             updatedAt: "2026-01-02T00:00:00.000Z",
         });
         expect(item).not.toHaveProperty("instructions");
         expect(item).not.toHaveProperty("author");
+        expect(item).not.toHaveProperty("createdById");
+    });
+});
+
+describe("toOrgAgentSkillManagementItem", () => {
+    test("contains global management fields without requester adoption state", () => {
+        const item = toOrgAgentSkillManagementItem({
+            id: "skill-1",
+            visibility: "ORG",
+            slug: "review",
+            name: "Review",
+            description: "Review risky changes.",
+            argumentNames: ["path"],
+            enabled: true,
+            featured: true,
+            autoEnrolled: false,
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+        });
+
+        expect(item).toEqual({
+            id: "skill-1",
+            scope: "ORG",
+            slug: "review",
+            name: "Review",
+            description: "Review risky changes.",
+            argumentNames: ["path"],
+            enabled: true,
+            featured: true,
+            autoEnrolled: false,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-02T00:00:00.000Z",
+        });
+        expect(item).not.toHaveProperty("instructions");
+        expect(item).not.toHaveProperty("isAdopted");
+        expect(item).not.toHaveProperty("isVisibleToUser");
+        expect(item).not.toHaveProperty("isCreatedByUser");
     });
 });
 

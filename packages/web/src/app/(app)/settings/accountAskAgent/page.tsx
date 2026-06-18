@@ -41,7 +41,6 @@ export default authenticatedPage<PageProps>(async ({ role }, { searchParams }) =
             callbackServer={server}
             callbackMessage={message}
             canManageConnectors={role === OrgRole.OWNER}
-            canManageOrgSkills={role === OrgRole.OWNER}
             initialPersonalSkills={personalSkills}
             initialOrgSkills={orgSkills}
         />

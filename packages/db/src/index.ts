@@ -26,13 +26,31 @@ export const orgAgentSkillAuthScope = (orgId: number) => ({
 export const orgAgentSkillVisibleToUserWhere = (userId: string, orgId: number) => ({
     ...orgAgentSkillAuthScope(orgId),
     enabled: true,
-    OR: [
-        { autoEnrolled: true },
+    AND: [
         {
-            adoptions: {
-                some: {
-                    userId,
-                    orgId,
+            OR: [
+                { autoEnrolled: true },
+                {
+                    adoptions: {
+                        some: {
+                            userId,
+                            orgId,
+                            removedAt: null,
+                        },
+                    },
+                },
+            ],
+        },
+        {
+            NOT: {
+                adoptions: {
+                    some: {
+                        userId,
+                        orgId,
+                        removedAt: {
+                            not: null,
+                        },
+                    },
                 },
             },
         },

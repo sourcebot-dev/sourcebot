@@ -54,18 +54,28 @@ export const agentSkillListItemSchema = z.object({
     updatedAt: z.string(),
 });
 
-export const orgAgentSkillCatalogItemSchema = agentSkillListItemSchema.omit({
+export const orgAgentSkillBaseItemSchema = agentSkillListItemSchema.omit({
     instructions: true,
 }).extend({
     featured: z.boolean(),
     autoEnrolled: z.boolean(),
-    isAdopted: z.boolean(),
 });
+
+export const orgAgentSkillCatalogItemSchema = orgAgentSkillBaseItemSchema.extend({
+    isAdopted: z.boolean(),
+    isRemoved: z.boolean(),
+    isVisibleToUser: z.boolean(),
+    isCreatedByUser: z.boolean(),
+});
+
+export const orgAgentSkillManagementItemSchema = orgAgentSkillBaseItemSchema;
 
 export type AgentSkillInput = z.infer<typeof agentSkillInputSchema>;
 export type UpdateAgentSkillInput = z.infer<typeof updateAgentSkillInputSchema>;
 export type AgentSkillListItem = z.infer<typeof agentSkillListItemSchema>;
+export type OrgAgentSkillBaseItem = z.infer<typeof orgAgentSkillBaseItemSchema>;
 export type OrgAgentSkillCatalogItem = z.infer<typeof orgAgentSkillCatalogItemSchema>;
+export type OrgAgentSkillManagementItem = z.infer<typeof orgAgentSkillManagementItemSchema>;
 
 export const agentSkillOrderBy = [
     { updatedAt: "desc" },
@@ -78,7 +88,7 @@ export const sortAgentSkillListItems = (skills: AgentSkillListItem[]) =>
         return updatedDiff !== 0 ? updatedDiff : a.name.localeCompare(b.name);
     });
 
-export const sortOrgAgentSkillCatalogItems = (skills: OrgAgentSkillCatalogItem[]) =>
+export const sortOrgAgentSkillCatalogItems = <T extends Pick<OrgAgentSkillBaseItem, "featured" | "updatedAt" | "name">>(skills: T[]) =>
     [...skills].sort((a, b) => {
         if (a.featured !== b.featured) {
             return a.featured ? -1 : 1;
@@ -218,11 +228,9 @@ export const toAgentSkillListItem = (
     updatedAt: skill.updatedAt.toISOString(),
 });
 
-export const toOrgAgentSkillCatalogItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "argumentNames" | "enabled" | "featured" | "autoEnrolled" | "createdAt" | "updatedAt"> & {
-        adoptions: { id: string }[];
-    },
-): OrgAgentSkillCatalogItem => ({
+const toOrgAgentSkillBaseItem = (
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "argumentNames" | "enabled" | "featured" | "autoEnrolled" | "createdAt" | "updatedAt">,
+): OrgAgentSkillBaseItem => ({
     id: skill.id,
     scope: skill.visibility,
     slug: skill.slug,
@@ -234,5 +242,25 @@ export const toOrgAgentSkillCatalogItem = (
     updatedAt: skill.updatedAt.toISOString(),
     featured: skill.featured,
     autoEnrolled: skill.autoEnrolled,
-    isAdopted: skill.adoptions.length > 0,
 });
+
+export const toOrgAgentSkillManagementItem = (
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "argumentNames" | "enabled" | "featured" | "autoEnrolled" | "createdAt" | "updatedAt">,
+): OrgAgentSkillManagementItem => toOrgAgentSkillBaseItem(skill);
+
+export const toOrgAgentSkillCatalogItem = (
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "argumentNames" | "enabled" | "featured" | "autoEnrolled" | "createdById" | "createdAt" | "updatedAt"> & {
+        adoptions: { id: string; removedAt: Date | null }[];
+    },
+    userId: string,
+): OrgAgentSkillCatalogItem => {
+    const isAdopted = skill.adoptions.some((adoption) => adoption.removedAt === null);
+    const isRemoved = skill.adoptions.some((adoption) => adoption.removedAt !== null);
+    return {
+        ...toOrgAgentSkillBaseItem(skill),
+        isAdopted,
+        isRemoved,
+        isVisibleToUser: (skill.autoEnrolled || isAdopted) && !isRemoved,
+        isCreatedByUser: skill.createdById === userId,
+    };
+};

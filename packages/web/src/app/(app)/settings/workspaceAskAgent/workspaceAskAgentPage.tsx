@@ -32,10 +32,25 @@ import { buildMcpOAuthScopeEntries, getMcpRequestedOAuthScopes, normalizeMcpRequ
 import { pluralize } from "@/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangleIcon, CableIcon, CopyIcon, InfoIcon, KeyRoundIcon, Loader2, MoreHorizontalIcon, PlusIcon, Trash2Icon, WrenchIcon } from "lucide-react";
+import { AlertTriangleIcon, Building2Icon, CableIcon, CopyIcon, InfoIcon, KeyRoundIcon, Loader2, MoreHorizontalIcon, PlusIcon, SparklesIcon, StarIcon, Trash2Icon, WrenchIcon } from "lucide-react";
 import { PrefabConnectorPopover } from "@/ee/features/chat/mcp/components/prefabConnectorPopover";
 import Markdown from "react-markdown";
 import { getStaticOAuthDescription, type PrefabMcpServer } from "@/ee/features/chat/mcp/prefabMcpServers";
+import {
+    deleteWorkspaceSkill,
+    updateWorkspaceSkillFlag,
+    type OrgSkillFlagKey,
+} from "@/ee/features/chat/skills/components/workspaceSkillMutations";
+import {
+    AUTO_ENROLLED_SKILL_TOOLTIP,
+    DeleteWorkspaceSkillDialog,
+    FEATURED_SKILL_TOOLTIP,
+    OrgSkillFlagToggle,
+    SkillCommandBadge,
+    SkillStatusBadge,
+    WorkspaceSkillsEmptyState,
+} from "@/ee/features/chat/skills/components/workspaceSkillShared";
+import { sortOrgAgentSkillCatalogItems, type OrgAgentSkillManagementItem } from "@/ee/features/chat/skills/types";
 import type { McpConfigurationServer, ServerToolsEntry } from "@/ee/features/chat/mcp/types";
 
 function clearCallbackParams() {
@@ -55,6 +70,7 @@ interface WorkspaceAskAgentPageProps {
     callbackServer?: string;
     callbackMessage?: string;
     oauthRedirectUrl: string;
+    initialOrgSkills: OrgAgentSkillManagementItem[];
 }
 
 type WorkspaceConnectorStatus = {
@@ -344,11 +360,96 @@ function WorkspaceConnectorCard({
     );
 }
 
-export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callbackMessage, oauthRedirectUrl }: WorkspaceAskAgentPageProps) {
+function WorkspaceOrgSkillCard({
+    skill,
+    flagPending,
+    isDeleting,
+    onFlagChange,
+    onDelete,
+}: {
+    skill: OrgAgentSkillManagementItem;
+    flagPending: OrgSkillFlagKey | null;
+    isDeleting: boolean;
+    onFlagChange: (skill: OrgAgentSkillManagementItem, flag: OrgSkillFlagKey, checked: boolean) => void;
+    onDelete: (skill: OrgAgentSkillManagementItem) => void;
+}) {
+    const isActionPending = isDeleting || flagPending !== null;
+
+    return (
+        <Card>
+            <CardContent className="flex flex-col gap-3 p-3 sm:flex-row sm:items-start">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <Building2Icon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-medium text-foreground">{skill.name}</p>
+                        <SkillCommandBadge slug={skill.slug} />
+                        {skill.featured && (
+                            <SkillStatusBadge
+                                icon={<StarIcon className="h-3 w-3" />}
+                                tooltip={FEATURED_SKILL_TOOLTIP}
+                            >
+                                Featured
+                            </SkillStatusBadge>
+                        )}
+                        {skill.autoEnrolled && (
+                            <SkillStatusBadge
+                                icon={<SparklesIcon className="h-3 w-3" />}
+                                tooltip={AUTO_ENROLLED_SKILL_TOOLTIP}
+                            >
+                                Auto
+                            </SkillStatusBadge>
+                        )}
+                    </div>
+                    {skill.description && (
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                            {skill.description}
+                        </p>
+                    )}
+                </div>
+                <div className="flex shrink-0 items-center gap-3 rounded-md border bg-muted/30 px-2 py-1 sm:justify-end">
+                    <OrgSkillFlagToggle
+                        label="Featured"
+                        checked={skill.featured}
+                        disabled={flagPending !== null}
+                        onCheckedChange={(checked) => onFlagChange(skill, "featured", checked)}
+                    />
+                    <OrgSkillFlagToggle
+                        label="Auto"
+                        checked={skill.autoEnrolled}
+                        disabled={flagPending !== null}
+                        onCheckedChange={(checked) => onFlagChange(skill, "autoEnrolled", checked)}
+                    />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        disabled={isActionPending}
+                        onClick={() => onDelete(skill)}
+                        aria-label={`Delete ${skill.name}`}
+                    >
+                        {isDeleting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Trash2Icon className="h-4 w-4" />
+                        )}
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callbackMessage, oauthRedirectUrl, initialOrgSkills }: WorkspaceAskAgentPageProps) {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const router = useRouter();
     const didHandleCallbackRef = useRef(false);
+    const [orgSkills, setOrgSkills] = useState(() => sortOrgAgentSkillCatalogItems(initialOrgSkills));
+    const [flagPendingSkills, setFlagPendingSkills] = useState<Record<string, OrgSkillFlagKey>>({});
+    const [deletingSkillId, setDeletingSkillId] = useState<string | null>(null);
+    const [skillToDelete, setSkillToDelete] = useState<OrgAgentSkillManagementItem | null>(null);
 
     useEffect(() => {
         if (didHandleCallbackRef.current) {
@@ -419,6 +520,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
     const servers = data?.servers ?? [];
     const canCreateConnectors = data?.isAskAgentAvailable === true;
     const isAskAgentUnavailable = data?.isAskAgentAvailable === false;
+    const canManageWorkspaceSkills = data?.isAskAgentAvailable === true;
     const connectedServerCount = useMemo(
         () => serversWithStatus?.filter((server) => server.isConnected).length ?? 0,
         [serversWithStatus],
@@ -724,6 +826,68 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
         toast({ title: "Copied", description: "Connector URL copied to clipboard." });
     };
 
+    const handleOrgSkillFlagChange = async (
+        skill: OrgAgentSkillManagementItem,
+        flag: OrgSkillFlagKey,
+        checked: boolean,
+    ) => {
+        if (flagPendingSkills[skill.id] !== undefined) {
+            return;
+        }
+
+        setFlagPendingSkills((current) => ({
+            ...current,
+            [skill.id]: flag,
+        }));
+        try {
+            const error = await updateWorkspaceSkillFlag({
+                skillId: skill.id,
+                flag,
+                checked,
+                updateOrgSkills: setOrgSkills,
+            });
+            if (error) {
+                toast({ title: "Error", description: error.message, variant: "destructive" });
+                return;
+            }
+
+            toast({ description: "Workspace skill updated." });
+        } catch {
+            toast({ title: "Error", description: "Failed to update workspace skill.", variant: "destructive" });
+        } finally {
+            setFlagPendingSkills((current) => {
+                const next = { ...current };
+                delete next[skill.id];
+                return next;
+            });
+        }
+    };
+
+    const handleDeleteOrgSkill = async (skillId: string) => {
+        if (flagPendingSkills[skillId] !== undefined) {
+            return;
+        }
+
+        setDeletingSkillId(skillId);
+        try {
+            const error = await deleteWorkspaceSkill({
+                skillId,
+                updateOrgSkills: setOrgSkills,
+            });
+            if (error) {
+                toast({ title: "Error", description: error.message, variant: "destructive" });
+                return;
+            }
+
+            setSkillToDelete(null);
+            toast({ description: "Workspace skill deleted." });
+        } catch {
+            toast({ title: "Error", description: "Failed to delete workspace skill.", variant: "destructive" });
+        } finally {
+            setDeletingSkillId(null);
+        }
+    };
+
     if (isError) {
         return <div>Error loading Ask Sourcebot settings</div>;
     }
@@ -758,6 +922,51 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                         </p>
                     </div>
                 </div>
+            )}
+
+            {canManageWorkspaceSkills && (
+                <>
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-3">
+                            <div>
+                                <h4 className="text-sm font-semibold text-foreground">Skills</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    Manage workspace slash-command behavior for Ask Sourcebot.
+                                </p>
+                            </div>
+                            <p className="shrink-0 text-xs text-muted-foreground">
+                                {orgSkills.length} {pluralize(orgSkills.length, "skill")}
+                            </p>
+                        </div>
+
+                        <div className="space-y-2">
+                            {orgSkills.length === 0 ? (
+                                <WorkspaceSkillsEmptyState />
+                            ) : (
+                                orgSkills.map((skill) => (
+                                    <WorkspaceOrgSkillCard
+                                        key={skill.id}
+                                        skill={skill}
+                                        flagPending={flagPendingSkills[skill.id] ?? null}
+                                        isDeleting={deletingSkillId === skill.id}
+                                        onFlagChange={(skillToUpdate, flag, checked) => {
+                                            void handleOrgSkillFlagChange(skillToUpdate, flag, checked);
+                                        }}
+                                        onDelete={(skillToDelete) => {
+                                            if (flagPendingSkills[skillToDelete.id] !== undefined) {
+                                                return;
+                                            }
+
+                                            setSkillToDelete(skillToDelete);
+                                        }}
+                                    />
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    <Separator />
+                </>
             )}
 
             {/* Connectors section */}
@@ -864,6 +1073,22 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <DeleteWorkspaceSkillDialog
+                skill={skillToDelete}
+                isDeleting={deletingSkillId !== null}
+                disabled={skillToDelete ? flagPendingSkills[skillToDelete.id] !== undefined : false}
+                onOpenChange={(open) => {
+                    if (!open && deletingSkillId === null) {
+                        setSkillToDelete(null);
+                    }
+                }}
+                onConfirm={() => {
+                    if (skillToDelete && flagPendingSkills[skillToDelete.id] === undefined) {
+                        void handleDeleteOrgSkill(skillToDelete.id);
+                    }
+                }}
+            />
 
             {/* Add connector dialog */}
             <Dialog open={isCreateDialogOpen} onOpenChange={handleCreateDialogOpenChange}>
