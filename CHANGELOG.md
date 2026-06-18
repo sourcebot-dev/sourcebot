@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.4] - 2026-06-18
+
 ### Changed
 - Decoupled offline-license anonymous access from the seat cap. [#1349](https://github.com/sourcebot-dev/sourcebot/pull/1349)
 
