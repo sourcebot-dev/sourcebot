@@ -83,6 +83,8 @@ export const syncWithLighthouse = async (orgId: number) => {
         ...(activationCode && { activationCode }),
     };
 
+    await recordServicePingInDB(payload);
+
     const response = await client.ping(payload);
     if (isServiceError(response)) {
         logger.error(`Service ping failed:\n ${JSON.stringify(response, null, 2)}`)
@@ -171,4 +173,23 @@ const inferDeploymentType = (): string => {
         return 'docker';
     }
     return 'other';
+};
+
+const recordServicePingInDB = async (payload: ServicePingRequest) => {
+    // Strip the activation code before persisting. This history is meant to be
+    // exported and sent back to us by offline deployments, so it should not
+    // contain the instance's secret activation code.
+    const { activationCode: _activationCode, ...sanitizedPayload } = payload;
+
+    try {
+        await __unsafePrisma.servicePingEvent.create({
+            data: {
+                payload: sanitizedPayload,
+            },
+        });
+    } catch (error) {
+        // Recording the ping is best-effort: a failure here must not prevent
+        // the actual ping from being sent to Lighthouse.
+        logger.error(`Failed to record service ping in database:\n ${error}`);
+    }
 };

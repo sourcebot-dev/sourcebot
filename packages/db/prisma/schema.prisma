@@ -358,6 +358,12 @@ model License {
   updatedAt         DateTime @updatedAt
 }
 
+model ServicePingEvent {
+  id String @id @default(cuid())
+  payload Json
+  createdAt DateTime @default(now())
+}
+
 enum OrgRole {
   OWNER
   MEMBER
