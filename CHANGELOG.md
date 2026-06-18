@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Decoupled offline-license anonymous access from the seat cap. [#1349](https://github.com/sourcebot-dev/sourcebot/pull/1349)
+
 ### Added
 - Recorded service ping history locally and added a "Download usage report" button to the offline license settings page, so offline deployments can export their usage and send it to us. [#1348](https://github.com/sourcebot-dev/sourcebot/pull/1348)
 
