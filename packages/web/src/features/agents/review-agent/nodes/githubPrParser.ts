@@ -12,12 +12,12 @@ export const githubPrParser = async (octokit: Octokit, pullRequest: GitHubPullRe
     let parsedDiff: parse.File[] = [];  
     try {
     const { owner, name: repo } = pullRequest.base.repo;
-    const pull_number = pullRequest.number;
+    const pullNumber = pullRequest.number;
 
     const diff = await octokit.request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
         owner: owner.login,
         repo,
-        pull_number,
+        pull_number: pullNumber,
         headers: {
             accept: "application/vnd.github.diff",
         },
