@@ -16,8 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `form-data` to `^4.0.6`. [#1316](https://github.com/sourcebot-dev/sourcebot/pull/1316)
 - Upgraded `hono` to `^4.12.25`. [#1322](https://github.com/sourcebot-dev/sourcebot/pull/1322)
 - Upgraded `dompurify` to `^3.4.11`. [#1332](https://github.com/sourcebot-dev/sourcebot/pull/1332)
-- Upgraded `nodemailer` to `^8.0.9`. [#1331](https://github.com/sourcebot-dev/sourcebot/pull/1331)
 - Upgraded `nodemailer` to `^8.0.11`. [#1328](https://github.com/sourcebot-dev/sourcebot/pull/1328)
+- Upgraded `js-yaml` to `^4.2.0`. [#1335](https://github.com/sourcebot-dev/sourcebot/pull/1335)
+- Upgraded `protobufjs` to `^7.6.4`. [#1336](https://github.com/sourcebot-dev/sourcebot/pull/1336)
+- Upgraded `tar` to `^7.5.16`. [#1338](https://github.com/sourcebot-dev/sourcebot/pull/1338)
+- Upgraded `esbuild` to `^0.28.1`. [#1342](https://github.com/sourcebot-dev/sourcebot/pull/1342)
 
 ## [5.0.3] - 2026-06-17
 
