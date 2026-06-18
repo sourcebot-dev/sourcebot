@@ -750,6 +750,7 @@ export class RepoIndexManager {
     }
 
     private async scheduleMissingShardReindexJobs() {
+        const timeoutDate = new Date(Date.now() - this.settings.repoIndexTimeoutMs);
         const repoIdsWithShards = new Set<number>();
 
         if (existsSync(INDEX_CACHE_DIR)) {
@@ -773,13 +774,25 @@ export class RepoIndexManager {
                 NOT: {
                     jobs: {
                         some: {
-                            type: RepoIndexingJobType.INDEX,
-                            status: {
-                                in: [
-                                    RepoIndexingJobStatus.PENDING,
-                                    RepoIndexingJobStatus.IN_PROGRESS,
-                                ]
-                            }
+                            AND: [
+                                {
+                                    type: RepoIndexingJobType.INDEX,
+                                },
+                                {
+                                    status: {
+                                        in: [
+                                            RepoIndexingJobStatus.PENDING,
+                                            RepoIndexingJobStatus.IN_PROGRESS,
+                                        ]
+                                    },
+                                },
+                                {
+                                    OR: [
+                                        { createdAt: { gt: timeoutDate } },
+                                        { updatedAt: { gt: timeoutDate } },
+                                    ],
+                                },
+                            ],
                         }
                     }
                 }

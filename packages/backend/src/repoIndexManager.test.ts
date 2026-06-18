@@ -752,6 +752,36 @@ describe('RepoIndexManager', () => {
 
             await manager.startScheduler();
 
+            expect(mockPrisma.repo.findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
+                where: expect.objectContaining({
+                    NOT: {
+                        jobs: {
+                            some: {
+                                AND: expect.arrayContaining([
+                                    {
+                                        type: RepoIndexingJobType.INDEX,
+                                    },
+                                    {
+                                        status: {
+                                            in: [
+                                                RepoIndexingJobStatus.PENDING,
+                                                RepoIndexingJobStatus.IN_PROGRESS,
+                                            ],
+                                        },
+                                    },
+                                    {
+                                        OR: [
+                                            { createdAt: { gt: expect.any(Date) } },
+                                            { updatedAt: { gt: expect.any(Date) } },
+                                        ],
+                                    },
+                                ]),
+                            },
+                        },
+                    },
+                }),
+            }));
+
             expect(mockPrisma.repo.updateMany).toHaveBeenCalledWith({
                 where: {
                     id: {
