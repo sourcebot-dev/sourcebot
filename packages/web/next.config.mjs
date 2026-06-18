@@ -5,6 +5,10 @@ import { withSentryConfig } from "@sentry/nextjs";
 const nextConfig = {
     output: "standalone",
 
+    // Version skew protection for rolling deploys.
+    // @see: https://nextjs.org/docs/app/guides/self-hosting#version-skew
+    deploymentId: process.env.NEXT_PUBLIC_BUILD_COMMIT_SHA,
+
     // This is required when using standalone builds.
     // @see: https://env.t3.gg/docs/nextjs#create-your-schema
     transpilePackages: ["@t3-oss/env-core"],
