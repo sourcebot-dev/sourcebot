@@ -176,9 +176,7 @@ const inferDeploymentType = (): string => {
 };
 
 const recordServicePingInDB = async (payload: ServicePingRequest) => {
-    // Strip the activation code before persisting. This history is meant to be
-    // exported and sent back to us by offline deployments, so it should not
-    // contain the instance's secret activation code.
+    // Strip the activation code before persisting.
     const { activationCode: _activationCode, ...sanitizedPayload } = payload;
 
     try {
