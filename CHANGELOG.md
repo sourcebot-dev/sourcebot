@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [EE] Added a seat-usage report to the license settings page for offline license reconciliation. It tracks the org's seat count over time and surfaces the peak number of provisioned users for each subscription month, with a JSON export to send for reconciliation. [#1347](https://github.com/sourcebot-dev/sourcebot/pull/1347)
+
 ### Fixed
 - Upgraded `@grpc/grpc-js` to `^1.14.4`. [#1315](https://github.com/sourcebot-dev/sourcebot/pull/1315)
 - Upgraded `vite` to `^8.0.16`. [#1313](https://github.com/sourcebot-dev/sourcebot/pull/1313)
