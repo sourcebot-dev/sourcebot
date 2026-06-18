@@ -318,6 +318,7 @@ model Org {
   mcpServers McpServer[]
 
   license License?
+  servicePingEvents ServicePingEvent[]
 }
 
 model License {
@@ -362,6 +363,9 @@ model ServicePingEvent {
   id String @id @default(cuid())
   payload Json
   createdAt DateTime @default(now())
+
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
 }
 
 enum OrgRole {

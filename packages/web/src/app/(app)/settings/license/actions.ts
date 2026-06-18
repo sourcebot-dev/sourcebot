@@ -14,9 +14,10 @@ export interface ServicePingHistoryEntry {
 // Returns the recorded Service Ping history so offline deployments can export
 // it and send it back to us out-of-band (they can't reach Lighthouse directly).
 export const getServicePingHistory = async (): Promise<ServicePingHistoryEntry[] | ServiceError> => sew(() =>
-    withAuth(async ({ role, prisma }) =>
+    withAuth(async ({ org, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const events = await prisma.servicePingEvent.findMany({
+                where: { orgId: org.id },
                 orderBy: { createdAt: 'asc' },
             });
 
