@@ -812,9 +812,10 @@ model AgentSkillAdoption {
   agentSkillId String
 
   createdAt DateTime @default(now())
+  removedAt DateTime?
 
   @@unique([orgId, userId, agentSkillId])
-  @@index([userId, orgId])
+  @@index([userId, orgId, removedAt])
   @@index([agentSkillId])
   @@index([orgId])
 }

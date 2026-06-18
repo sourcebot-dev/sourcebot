@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 // centered column shared by the rest of settings.
 const FULL_BLEED_ROUTE_PATTERNS = [
     /^\/settings\/accountAskAgent\/skills(\/|$)/,
+    /^\/settings\/accountAskAgent\/workspaceSkills(\/|$)/,
 ];
 
 export function SettingsContentFrame({ children }: { children: React.ReactNode }) {

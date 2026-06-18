@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, PanelRightCloseIcon, PanelRightOpenIcon, PencilIcon, PlusIcon, UploadIcon } from "lucide-react";
+import { ArrowLeftIcon, Building2Icon, PanelRightCloseIcon, PanelRightOpenIcon, PencilIcon, PlusIcon, UploadIcon } from "lucide-react";
 import { useToast } from "@/components/hooks/use-toast";
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -12,8 +12,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { createPersonalAgentSkill, updatePersonalAgentSkill } from "@/ee/features/chat/skills/actions";
+import { createOrgAgentSkill, createPersonalAgentSkill, updateOrgAgentSkill, updatePersonalAgentSkill } from "@/ee/features/chat/skills/actions";
 import { normalizeAgentSkillSlug, parseAgentSkillMarkdown, type AgentSkillInput, type AgentSkillListItem } from "@/ee/features/chat/skills/types";
 import { useUnsavedChangesGuard } from "@/ee/features/chat/useUnsavedChangesGuard";
 import { isServiceError } from "@/lib/utils";
@@ -39,11 +40,44 @@ const emptySkillForm: AgentSkillInput = {
     argumentNames: [],
 };
 
+type SaveMode = "editWorkspace" | "editPersonal" | "createWorkspace" | "createPersonal";
+
+const saveModeConfig = {
+    editWorkspace: {
+        icon: PencilIcon,
+        buttonLabel: "Save skill",
+        successToast: "Workspace skill updated.",
+    },
+    editPersonal: {
+        icon: PencilIcon,
+        buttonLabel: "Save skill",
+        successToast: "Skill updated.",
+    },
+    createWorkspace: {
+        icon: Building2Icon,
+        buttonLabel: "Create workspace skill",
+        successToast: "Workspace skill created.",
+    },
+    createPersonal: {
+        icon: PlusIcon,
+        buttonLabel: "Create skill",
+        successToast: "Skill created.",
+    },
+} satisfies Record<SaveMode, {
+    icon: typeof PencilIcon;
+    buttonLabel: string;
+    successToast: string;
+}>;
+
 interface PersonalSkillEditorPageProps {
     skill: AgentSkillListItem | null;
 }
 
 export function PersonalSkillEditorPage(props: PersonalSkillEditorPageProps) {
+    return <SkillEditor {...props} />;
+}
+
+export function OrgSkillEditorPage(props: { skill: AgentSkillListItem }) {
     return <SkillEditor {...props} />;
 }
 
@@ -65,14 +99,22 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
     const [isSlugTouched, setIsSlugTouched] = useState(skill !== null);
     const [isSaving, setIsSaving] = useState(false);
     const [isDetailsCollapsed, setIsDetailsCollapsed] = useState(false);
+    const [publishToWorkspace, setPublishToWorkspace] = useState(false);
     const isEditing = skill !== null;
+    const isEditingWorkspaceSkill = skill?.scope === "ORG";
+    const saveMode: SaveMode = isEditing
+        ? isEditingWorkspaceSkill ? "editWorkspace" : "editPersonal"
+        : publishToWorkspace ? "createWorkspace" : "createPersonal";
+    const saveConfig = saveModeConfig[saveMode];
+    const SaveIcon = saveConfig.icon;
 
     const isDirty =
         form.name !== initialForm.name ||
         form.slug !== initialForm.slug ||
         form.description !== initialForm.description ||
         form.instructions !== initialForm.instructions ||
-        form.argumentNames.join("\0") !== initialForm.argumentNames.join("\0");
+        form.argumentNames.join("\0") !== initialForm.argumentNames.join("\0") ||
+        (!isEditing && publishToWorkspace);
 
     // Intercept in-app navigation (the Cancel button, the Back link, settings
     // sidebar links, and the browser back button) while there are unsaved
@@ -148,16 +190,21 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         event.preventDefault();
         setIsSaving(true);
         try {
-            const result = isEditing
-                ? await updatePersonalAgentSkill({ id: skill.id, ...form })
-                : await createPersonalAgentSkill(form);
+            const result = await ({
+                editWorkspace: () => updateOrgAgentSkill({ id: skill!.id, ...form }),
+                editPersonal: () => updatePersonalAgentSkill({ id: skill!.id, ...form }),
+                createWorkspace: () => createOrgAgentSkill(form),
+                createPersonal: () => createPersonalAgentSkill(form),
+            } satisfies Record<SaveMode, () => ReturnType<typeof createPersonalAgentSkill>>)[saveMode]();
 
             if (isServiceError(result)) {
                 toast({ title: "Error", description: result.message, variant: "destructive" });
                 return;
             }
 
-            toast({ description: isEditing ? "Skill updated." : "Skill created." });
+            toast({
+                description: saveConfig.successToast,
+            });
             // The form is still "dirty" versus its initial values at this point,
             // so suppress the guard for the post-save redirect.
             navGuard.bypass();
@@ -226,8 +273,8 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                         Cancel
                     </Button>
                     <Button type="submit" disabled={isSaving}>
-                        {isEditing ? <PencilIcon className="h-4 w-4 mr-2" /> : <PlusIcon className="h-4 w-4 mr-2" />}
-                        {isSaving ? "Saving..." : isEditing ? "Save skill" : "Create skill"}
+                        <SaveIcon className="h-4 w-4 mr-2" />
+                        {isSaving ? "Saving..." : saveConfig.buttonLabel}
                     </Button>
                 </div>
             </header>
@@ -371,6 +418,24 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                     className="font-mono"
                                 />
                             </div>
+
+                            {!isEditing && (
+                                <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2">
+                                    <Label
+                                        htmlFor="agent-skill-publish-to-workspace"
+                                        className="flex min-w-0 items-center gap-2 text-sm font-medium"
+                                    >
+                                        <Building2Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                        <span className="truncate">Create as workspace skill</span>
+                                    </Label>
+                                    <Switch
+                                        id="agent-skill-publish-to-workspace"
+                                        checked={publishToWorkspace}
+                                        disabled={isSaving}
+                                        onCheckedChange={setPublishToWorkspace}
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         <div className="shrink-0 space-y-2 border-t px-5 py-4">
