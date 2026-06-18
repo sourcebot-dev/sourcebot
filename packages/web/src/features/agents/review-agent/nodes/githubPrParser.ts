@@ -11,12 +11,23 @@ export const githubPrParser = async (octokit: Octokit, pullRequest: GitHubPullRe
 
     let parsedDiff: parse.File[] = [];  
     try {
-        const diff = await octokit.request(pullRequest.diff_url);
-        parsedDiff = parse(diff.data);
-    } catch (error) {
-        logger.error("Error fetching diff: ", error);
-        throw error;
-    }
+    const { owner, name: repo } = pullRequest.base.repo;
+    const pull_number = pullRequest.number;
+
+    const diff = await octokit.request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
+        owner: owner.login,
+        repo,
+        pull_number,
+        headers: {
+            accept: "application/vnd.github.diff",
+        },
+    });
+
+    parsedDiff = parse(diff.data as string);
+} catch (error) {
+    logger.error("Error fetching diff: ", error);
+    throw error;
+}
 
     const sourcebotFileDiffs: (sourcebot_file_diff | null)[] = parsedDiff.map((file) => {
         if (!file.from || !file.to) {
