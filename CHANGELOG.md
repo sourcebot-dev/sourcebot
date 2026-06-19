@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Changed the new version available banner copy from "Upgrade" to "Update" to avoid confusion with upgrading plan tiers. [#1282](https://github.com/sourcebot-dev/sourcebot/pull/1282)
+
 ### Fixed
 - Upgraded `protobufjs` to `^7.6.2`. [#1281](https://github.com/sourcebot-dev/sourcebot/pull/1281)
 
