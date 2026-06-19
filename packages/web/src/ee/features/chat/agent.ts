@@ -1,5 +1,5 @@
 import { SBChatMessage, SBChatMessageMetadata, StepTokenUsageEntry, ToolTokenUsageEntry } from "@/features/chat/types";
-import { estimateModelToolOutputTokens } from "@/features/chat/tokenEstimation";
+import { estimateModelToolOutputTokens } from "@/ee/features/chat/tokenEstimation";
 import { getFileSource } from '@/features/git';
 import { isServiceError } from "@/lib/utils";
 import { LanguageModelV3 as AISDKLanguageModelV3 } from "@ai-sdk/provider";
