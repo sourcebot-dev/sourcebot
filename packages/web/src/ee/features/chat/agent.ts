@@ -248,6 +248,8 @@ export const createMessageStream = async ({
             writer.write({
                 type: 'message-metadata',
                 messageMetadata: {
+                    // Spread first so the derived fields below can't be overwritten by caller metadata.
+                    ...metadata,
                     totalTokens: (priorMetadata?.totalTokens ?? 0) + (totalUsage.totalTokens ?? 0),
                     totalInputTokens: (priorMetadata?.totalInputTokens ?? 0) + (totalUsage.inputTokens ?? 0),
                     totalOutputTokens: (priorMetadata?.totalOutputTokens ?? 0) + (totalUsage.outputTokens ?? 0),
@@ -259,7 +261,6 @@ export const createMessageStream = async ({
                     stepTokenUsage: [...(priorMetadata?.stepTokenUsage ?? []), ...stepTokenUsage],
                     modelName,
                     traceId,
-                    ...metadata,
                 }
             });
 
