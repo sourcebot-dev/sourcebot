@@ -443,7 +443,7 @@ export const createAccountRequest = async () => sew(async () => {
                     baseUrl: deploymentUrl,
                     requestor: {
                         name: user.name ?? undefined,
-                        email: user.email!,
+                        email: user.email,
                         avatarUrl: user.image ?? undefined,
                     },
                     orgName: org.name,

@@ -267,7 +267,7 @@ export const addUserToOrganization = async (userId: string, orgId: number): Prom
         // Delete any invites that may exist for this user since we've added them to the org
         const invites = await tx.invite.findMany({
             where: {
-                recipientEmail: user.email!,
+                recipientEmail: user.email,
                 orgId: org.id,
             },
         })

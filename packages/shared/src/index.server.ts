@@ -6,6 +6,8 @@ export {
     getEntitlements as _getEntitlements,
     isAnonymousAccessAvailable as _isAnonymousAccessAvailable,
     isValidLicenseActive as _isValidLicenseActive,
+    isValidOfflineLicenseActive,
+    isValidOnlineLicenseActive as _isValidOnlineLicenseActive,
     getSeatCap,
     getOfflineLicenseMetadata,
     STALE_ONLINE_LICENSE_THRESHOLD_MS,

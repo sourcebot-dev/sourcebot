@@ -342,7 +342,7 @@ const options = {
         // requirement means this must be exactly 32 characters. Generate one with
         // `openssl rand -base64 24` (24 random bytes => a 32-character base64 string).
         SOURCEBOT_ENCRYPTION_KEY: z.string().length(32, {
-            message: "SOURCEBOT_ENCRYPTION_KEY must be exactly 32 characters (a 256-bit AES key). Generate one with `openssl rand -base64 24`.",
+            message: "SOURCEBOT_ENCRYPTION_KEY must be exactly 32 characters (a 256-bit AES key). Generate one with `openssl rand -base64 24`.\nWARNING: Updating this value will invalidate any existing API keys.",
         }),
         SOURCEBOT_INSTALL_ID: z.string().default("unknown"),
         SOURCEBOT_LIGHTHOUSE_URL: z.string().url().default("https://deployments.sourcebot.dev"),
