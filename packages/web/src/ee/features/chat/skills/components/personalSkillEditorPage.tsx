@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { createOrgAgentSkill, createPersonalAgentSkill, updateOrgAgentSkill, updatePersonalAgentSkill } from "@/ee/features/chat/skills/actions";
+import { SkillInstructionsEditor } from "@/ee/features/chat/skills/components/skillInstructionsEditor";
 import { normalizeAgentSkillSlug, parseAgentSkillMarkdown, type AgentSkillInput, type AgentSkillListItem } from "@/ee/features/chat/skills/types";
 import { useUnsavedChangesGuard } from "@/ee/features/chat/useUnsavedChangesGuard";
 import { isServiceError } from "@/lib/utils";
@@ -99,6 +100,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
     const [isSlugTouched, setIsSlugTouched] = useState(skill !== null);
     const [isSaving, setIsSaving] = useState(false);
     const [isDetailsCollapsed, setIsDetailsCollapsed] = useState(false);
+    const [instructionsEditorKey, setInstructionsEditorKey] = useState(0);
     const [publishToWorkspace, setPublishToWorkspace] = useState(false);
     const isEditing = skill !== null;
     const isEditingWorkspaceSkill = skill?.scope === "ORG";
@@ -169,6 +171,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                 argumentNames: importedArgumentNames,
             }));
             setArgumentNamesText(importedArgumentNames.join(" "));
+            setInstructionsEditorKey((key) => key + 1);
 
             if (parsed.slug || parsed.name) {
                 setIsSlugTouched(true);
@@ -294,14 +297,13 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                         </span>
                     </div>
                     <div className="relative min-h-0 flex-1">
-                        <Textarea
+                        <SkillInstructionsEditor
+                            key={instructionsEditorKey}
                             id="agent-skill-instructions"
                             value={form.instructions}
-                            onChange={(event) => setForm((current) => ({ ...current, instructions: event.target.value }))}
+                            onChange={(instructions) => setForm((current) => ({ ...current, instructions }))}
                             placeholder={INSTRUCTIONS_PLACEHOLDER}
                             className="h-full resize-none pb-8 font-mono text-sm leading-relaxed"
-                            maxLength={INSTRUCTIONS_MAX_LENGTH}
-                            required
                         />
                         <span className="pointer-events-none absolute bottom-3 right-4 text-xs text-muted-foreground">
                             {form.instructions.length.toLocaleString()} / {INSTRUCTIONS_MAX_LENGTH.toLocaleString()}

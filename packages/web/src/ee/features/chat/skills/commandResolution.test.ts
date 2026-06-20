@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { ASK_COMMAND_SOURCE_ORG_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL } from "@/features/chat/commands/types";
-import type { SBChatMessage } from "@/features/chat/types";
-import { getUserMessageModelText, materializeCommandMessageText, materializeCommandMessageTexts } from "./commandResolution";
+import type { FileSource, SBChatMessage } from "@/features/chat/types";
+import { getFileSourcesFromText, getUserMessageModelText, materializeCommandMessageText, materializeCommandMessageTexts } from "./commandResolution";
 
 const createCommandMessage = (
     rawArguments: string,
@@ -10,6 +10,7 @@ const createCommandMessage = (
         id: string;
         commandId: string;
         sourceId: string;
+        sources: FileSource[];
     }> = {},
 ): SBChatMessage => ({
     id: overrides.id ?? "message-1",
@@ -31,7 +32,27 @@ const createCommandMessage = (
                 ...(expandedText !== undefined ? { expandedText } : {}),
             },
         },
+        ...(overrides.sources ?? []).map((source) => ({
+            type: "data-source" as const,
+            data: source,
+        })),
     ],
+});
+
+describe("getFileSourcesFromText", () => {
+    test("extracts and dedupes canonical file references", () => {
+        expect(getFileSourcesFromText(
+            "Read @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts} and @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts}.",
+        )).toEqual([
+            {
+                type: "file",
+                repo: "github.com/sourcebot-dev/sourcebot",
+                path: "packages/web/src/auth.ts",
+                name: "auth.ts",
+                revision: "HEAD",
+            },
+        ]);
+    });
 });
 
 describe("getUserMessageModelText", () => {
@@ -113,6 +134,68 @@ describe("materializeCommandMessageText", () => {
         expect(getUserMessageModelText(message)).toBe("Generate a beginner-friendly Python tutorial about decorators.");
     });
 
+    test("adds file sources from materialized skill instructions", async () => {
+        const prisma = {
+            agentSkill: {
+                findMany: vi.fn().mockResolvedValue([{
+                    id: "skill-1",
+                    instructions: "Review @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts} for $0.",
+                    argumentNames: [],
+                }]),
+            },
+        };
+
+        const message = await materializeCommandMessageText({
+            message: createCommandMessage("session"),
+            prisma: prisma as never,
+            userId: "user-1",
+        });
+
+        expect(message.parts).toContainEqual({
+            type: "data-source",
+            data: {
+                type: "file",
+                repo: "github.com/sourcebot-dev/sourcebot",
+                path: "packages/web/src/auth.ts",
+                name: "auth.ts",
+                revision: "HEAD",
+            },
+        });
+        expect(getUserMessageModelText(message)).toBe("Review @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts} for session.");
+    });
+
+    test("does not duplicate file sources already present on the message", async () => {
+        const existingSource = {
+            type: "file",
+            repo: "github.com/sourcebot-dev/sourcebot",
+            path: "packages/web/src/auth.ts",
+            name: "auth.ts",
+            revision: "HEAD",
+        } satisfies FileSource;
+        const prisma = {
+            agentSkill: {
+                findMany: vi.fn().mockResolvedValue([{
+                    id: "skill-1",
+                    instructions: "Review @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts}.",
+                    argumentNames: [],
+                }]),
+            },
+        };
+
+        const message = await materializeCommandMessageText({
+            message: createCommandMessage("", undefined, { sources: [existingSource] }),
+            prisma: prisma as never,
+            userId: "user-1",
+        });
+
+        expect(message.parts.filter((part) => part.type === "data-source")).toEqual([
+            {
+                type: "data-source",
+                data: existingSource,
+            },
+        ]);
+    });
+
     test("does not rematerialize an existing expanded text snapshot", async () => {
         const prisma = {
             agentSkill: {
@@ -129,6 +212,35 @@ describe("materializeCommandMessageText", () => {
 
         expect(message).toBe(originalMessage);
         expect(prisma.agentSkill.findMany).not.toHaveBeenCalled();
+    });
+
+    test("adds file sources from an existing expanded text snapshot without querying", async () => {
+        const prisma = {
+            agentSkill: {
+                findMany: vi.fn(),
+            },
+        };
+
+        const message = await materializeCommandMessageText({
+            message: createCommandMessage(
+                "session handling",
+                "Review @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts}.",
+            ),
+            prisma: prisma as never,
+            userId: "user-1",
+        });
+
+        expect(prisma.agentSkill.findMany).not.toHaveBeenCalled();
+        expect(message.parts).toContainEqual({
+            type: "data-source",
+            data: {
+                type: "file",
+                repo: "github.com/sourcebot-dev/sourcebot",
+                path: "packages/web/src/auth.ts",
+                name: "auth.ts",
+                revision: "HEAD",
+            },
+        });
     });
 
     test("falls back to visible text when the skill is not accessible", async () => {

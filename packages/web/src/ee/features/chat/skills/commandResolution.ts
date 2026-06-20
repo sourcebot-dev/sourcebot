@@ -1,6 +1,7 @@
 import { substituteArguments } from "@/features/chat/commands/argumentSubstitution";
 import { ASK_COMMAND_SOURCE_ORG_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL, commandInvocationDataSchema, type CommandInvocationData } from "@/features/chat/commands/types";
-import type { SBChatMessage, SBChatMessagePart } from "@/features/chat/types";
+import { FILE_REFERENCE_REGEX } from "@/features/chat/constants";
+import type { FileSource, SBChatMessage, SBChatMessagePart } from "@/features/chat/types";
 import { orgAgentSkillVisibleToUserWhere, personalAgentSkillAuthScope, type PrismaClient } from "@sourcebot/db";
 
 const getTextPartContent = (message: SBChatMessage) =>
@@ -78,6 +79,88 @@ const getCommandIdsForSource = (
         .map(({ command }) => command.commandId)
 ));
 
+const DEFAULT_SKILL_FILE_REFERENCE_REVISION = "HEAD";
+
+const getFileSourceKey = (source: Pick<FileSource, "repo" | "path" | "revision">) =>
+    `${source.repo}\0${source.path}\0${source.revision}`;
+
+export const getFileSourcesFromText = (text: string): FileSource[] => {
+    const sources: FileSource[] = [];
+    const seen = new Set<string>();
+
+    FILE_REFERENCE_REGEX.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = FILE_REFERENCE_REGEX.exec(text)) !== null) {
+        const [, repo, path] = match;
+        if (!repo || !path) {
+            continue;
+        }
+
+        const source: FileSource = {
+            type: "file",
+            repo,
+            path,
+            name: path.split("/").pop() || path,
+            revision: DEFAULT_SKILL_FILE_REFERENCE_REVISION,
+        };
+        const key = getFileSourceKey(source);
+        if (seen.has(key)) {
+            continue;
+        }
+
+        seen.add(key);
+        sources.push(source);
+    }
+    FILE_REFERENCE_REGEX.lastIndex = 0;
+
+    return sources;
+};
+
+type DataSourceMessagePart = Extract<SBChatMessagePart, { type: "data-source" }>;
+
+const isDataSourceMessagePart = (part: SBChatMessagePart): part is DataSourceMessagePart =>
+    part.type === "data-source";
+
+const withFileSourcesFromMaterializedCommandText = (
+    message: SBChatMessage,
+    expandedText: string,
+): SBChatMessage => {
+    const fileSources = getFileSourcesFromText(expandedText);
+    if (fileSources.length === 0) {
+        return message;
+    }
+
+    const existingSourceKeys = new Set(
+        message.parts
+            .filter(isDataSourceMessagePart)
+            .map((part) => getFileSourceKey(part.data)),
+    );
+    const newSourceParts = fileSources
+        .filter((source) => !existingSourceKeys.has(getFileSourceKey(source)))
+        .map((source): DataSourceMessagePart => ({
+            type: "data-source",
+            data: source,
+        }));
+
+    if (newSourceParts.length === 0) {
+        return message;
+    }
+
+    return {
+        ...message,
+        parts: [...message.parts, ...newSourceParts],
+    };
+};
+
+const withFileSourcesFromExistingMaterializedCommand = (message: SBChatMessage): SBChatMessage => {
+    const invocation = getCommandInvocation(message);
+    if (!invocation || invocation.command.expandedText === undefined) {
+        return message;
+    }
+
+    return withFileSourcesFromMaterializedCommandText(message, invocation.command.expandedText);
+};
+
 export const materializeCommandMessageText = async ({
     message,
     prisma,
@@ -130,7 +213,7 @@ export const materializeCommandMessageTexts = async ({
         .filter((message) => message !== undefined);
 
     if (resolvableCommands.length === 0) {
-        return messages;
+        return messages.map(withFileSourcesFromExistingMaterializedCommand);
     }
 
     const personalScope = userId ? personalAgentSkillAuthScope(userId) : undefined;
@@ -190,7 +273,7 @@ export const materializeCommandMessageTexts = async ({
         materializedMessages[index] = withExpandedCommandText(message, commandPart, command, expandedText);
     }
 
-    return materializedMessages;
+    return materializedMessages.map(withFileSourcesFromExistingMaterializedCommand);
 };
 
 export const getUserMessageModelText = (message: SBChatMessage): string => {
