@@ -1,4 +1,7 @@
 -- AlterTable
+ALTER TABLE "Org" ADD COLUMN     "isScimEnabled" BOOLEAN NOT NULL DEFAULT false;
+
+-- AlterTable
 ALTER TABLE "UserToOrg" ADD COLUMN     "isActive" BOOLEAN NOT NULL DEFAULT true,
 ADD COLUMN     "scimExternalId" TEXT;
 

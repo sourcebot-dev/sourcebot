@@ -409,6 +409,71 @@ describe('getAuthContext', () => {
         });
     });
 
+    test('should not grant a role when the membership is SCIM-deactivated (isActive: false), even though the membership row exists', async () => {
+        const userId = 'test-user-id';
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.org.findUnique.mockResolvedValue({
+            ...MOCK_ORG,
+        });
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId: userId,
+            orgId: MOCK_ORG.id,
+            isActive: false,
+            scimExternalId: null,
+            role: OrgRole.OWNER,
+        });
+
+        setMockSession(createMockSession({ user: { id: userId } }));
+        const authContext = await getAuthContext();
+        expect(authContext).toStrictEqual({
+            user: {
+                ...MOCK_USER_WITH_ACCOUNTS,
+                id: userId,
+            },
+            org: MOCK_ORG,
+            prisma: undefined,
+        });
+    });
+
+    test('should not grant a role to a SCIM-deactivated member authenticating via API key (API-key auth bypasses the JWT sessionVersion logout, so this gate is what denies them)', async () => {
+        const userId = 'test-user-id';
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.org.findUnique.mockResolvedValue({
+            ...MOCK_ORG,
+        });
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId: userId,
+            orgId: MOCK_ORG.id,
+            isActive: false,
+            scimExternalId: null,
+            role: OrgRole.MEMBER,
+        });
+        prisma.apiKey.findUnique.mockResolvedValue({
+            ...MOCK_API_KEY,
+            hash: 'apikey',
+            createdById: userId,
+        });
+        setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));
+
+        const authContext = await getAuthContext();
+        expect(authContext).toStrictEqual({
+            user: {
+                ...MOCK_USER_WITH_ACCOUNTS,
+                id: userId,
+            },
+            org: MOCK_ORG,
+            prisma: undefined,
+        });
+    });
+
     describe('DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS', () => {
         test('should return a 403 service error when flag is enabled and a non-owner authenticates via api key', async () => {
             mocks.env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS = 'true';
@@ -769,6 +834,61 @@ describe('withAuth', () => {
         });
         // user is not a member of the organization
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
+
+        const cb = vi.fn();
+        const result = await withAuth(cb);
+        expect(cb).not.toHaveBeenCalled();
+        expect(result).toStrictEqual(notAuthenticated());
+    });
+
+    test('should return a service error when the membership is SCIM-deactivated (isActive: false), even with a valid session', async () => {
+        const userId = 'test-user-id';
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.org.findUnique.mockResolvedValue({
+            ...MOCK_ORG,
+        });
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId: userId,
+            orgId: MOCK_ORG.id,
+            isActive: false,
+            scimExternalId: null,
+            role: OrgRole.OWNER,
+        });
+        setMockSession(createMockSession({ user: { id: userId } }));
+
+        const cb = vi.fn();
+        const result = await withAuth(cb);
+        expect(cb).not.toHaveBeenCalled();
+        expect(result).toStrictEqual(notAuthenticated());
+    });
+
+    test('should deny a SCIM-deactivated member authenticating via API key', async () => {
+        const userId = 'test-user-id';
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.org.findUnique.mockResolvedValue({
+            ...MOCK_ORG,
+        });
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId: userId,
+            orgId: MOCK_ORG.id,
+            isActive: false,
+            scimExternalId: null,
+            role: OrgRole.MEMBER,
+        });
+        prisma.apiKey.findUnique.mockResolvedValue({
+            ...MOCK_API_KEY,
+            hash: 'apikey',
+            createdById: userId,
+        });
+        setMockHeaders(new Headers({ 'X-Sourcebot-Api-Key': 'sourcebot-apikey' }));
 
         const cb = vi.fn();
         const result = await withAuth(cb);

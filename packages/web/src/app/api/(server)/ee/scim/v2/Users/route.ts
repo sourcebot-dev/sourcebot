@@ -1,6 +1,5 @@
 import { apiHandler } from '@/lib/apiHandler';
-import { orgHasAvailability } from '@/lib/authUtils';
-import { reactivateScimMember } from '@/ee/features/scim/membership';
+import { addMember, setMemberActive } from '@/features/membership/membership.service';
 import { scimError, scimJson, toScimListResponse, toScimUser } from '@/ee/features/scim/mapper';
 import {
     coerceActive,
@@ -9,6 +8,7 @@ import {
     scimUserCreateSchema,
 } from '@/ee/features/scim/schemas';
 import { withScimAuth } from '@/ee/features/scim/withScimAuth';
+import { ErrorCode } from '@/lib/errorCodes';
 import { isServiceError } from '@/lib/utils';
 import { OrgRole } from '@sourcebot/db';
 import { env } from '@sourcebot/shared';
@@ -60,51 +60,62 @@ export const POST = apiHandler(async (request: NextRequest) =>
         const payload = parsed.data;
         const email = resolveEmail(payload);
         const name = payload.name?.formatted ?? payload.displayName ?? undefined;
-        const isActive = coerceActive(payload.active) ?? true;
+        const desiredActive = coerceActive(payload.active) ?? true;
 
-        // Find-or-create the user by email. We deliberately bypass `onCreateUser`
-        // (its JIT/bootstrap logic is for interactive login, not provisioning).
+        // Find-or-create the user by email.
         let user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
             user = await prisma.user.create({ data: { email, name } });
         }
 
+        const scimActor = { id: 'scim', type: 'scim_token' } as const;
         const existing = await prisma.userToOrg.findUnique({
+            where: { orgId_userId: { orgId: org.id, userId: user.id } },
+        });
+
+        // Map the membership state to the SCIM response: an active member is a
+        // conflict, a deactivated member is reactivated (role preserved), and a
+        // brand-new member is created.
+        let httpStatus: number;
+        if (existing?.isActive) {
+            return scimError(409, 'User is already a member of this organization', 'uniqueness');
+        } else if (existing) {
+            const result = await setMemberActive(org.id, user.id, true, {
+                actor: scimActor,
+                scimExternalId: payload.externalId,
+            });
+            if (isServiceError(result)) {
+                const scimType = result.errorCode === ErrorCode.ORG_SEAT_COUNT_REACHED ? 'tooMany' : undefined;
+                return scimError(result.statusCode, result.message, scimType);
+            }
+            httpStatus = 200;
+        } else {
+            const result = await addMember(org.id, user.id, {
+                actor: scimActor,
+                role: OrgRole.MEMBER,
+                scimExternalId: payload.externalId,
+            });
+            if (isServiceError(result)) {
+                const scimType = result.errorCode === ErrorCode.ORG_SEAT_COUNT_REACHED ? 'tooMany' : undefined;
+                return scimError(result.statusCode, result.message, scimType);
+            }
+            httpStatus = 201;
+        }
+
+        // IdPs normally provision active and suspend later via PATCH; honor a rare
+        // explicit `active: false` on provisioning.
+        if (!desiredActive) {
+            const deactivated = await setMemberActive(org.id, user.id, false, { actor: scimActor });
+            if (isServiceError(deactivated)) {
+                return scimError(deactivated.statusCode, deactivated.message);
+            }
+        }
+
+        const membership = await prisma.userToOrg.findUniqueOrThrow({
             where: { orgId_userId: { orgId: org.id, userId: user.id } },
             include: { user: true },
         });
-
-        if (existing) {
-            if (existing.isActive) {
-                return scimError(409, 'User is already a member of this organization', 'uniqueness');
-            }
-            // Re-provisioning a previously deactivated user → reactivate.
-            const result = await reactivateScimMember(org.id, user.id, payload.externalId);
-            if (isServiceError(result)) {
-                return scimError(result.statusCode, result.message);
-            }
-            const refreshed = await prisma.userToOrg.findUniqueOrThrow({
-                where: { orgId_userId: { orgId: org.id, userId: user.id } },
-                include: { user: true },
-            });
-            return scimJson(toScimUser(refreshed), 200, { Location: `${env.AUTH_URL.replace(/\/$/, '')}/scim/v2/Users/${user.id}` });
-        }
-
-        // New membership: enforce the seat cap before creating.
-        if (isActive && !(await orgHasAvailability(org.id))) {
-            return scimError(400, 'Organization seat limit reached', 'tooMany');
-        }
-
-        const membership = await prisma.userToOrg.create({
-            data: {
-                userId: user.id,
-                orgId: org.id,
-                role: OrgRole.MEMBER,
-                isActive,
-                scimExternalId: payload.externalId,
-            },
-            include: { user: true },
+        return scimJson(toScimUser(membership), httpStatus, {
+            Location: `${env.AUTH_URL.replace(/\/$/, '')}/scim/v2/Users/${user.id}`,
         });
-
-        return scimJson(toScimUser(membership), 201, { Location: `${env.AUTH_URL.replace(/\/$/, '')}/scim/v2/Users/${user.id}` });
     }));

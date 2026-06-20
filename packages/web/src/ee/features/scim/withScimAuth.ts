@@ -52,6 +52,12 @@ export const withScimAuth = async (
         return scimError(403, "SCIM provisioning is not available in your current plan");
     }
 
+    // SCIM is an explicit opt-in: a valid token is rejected unless an owner has
+    // toggled provisioning on. Disabling acts as a kill switch that pauses all
+    // provisioning without requiring tokens to be revoked.
+    if (!scimToken.org.isScimEnabled) {
+        return scimError(403, "SCIM provisioning is disabled for this organization");
+    }
 
     // Best-effort usage tracking; never block the request on it.
     __unsafePrisma.scimToken.update({

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { isServiceError } from "@/lib/utils";
 import { getConnectionStats } from "@/actions";
-import { getOrgAccountRequests } from "@/features/userManagement/actions";
+import { getOrgAccountRequests } from "@/features/membership/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { OrgRole } from "@prisma/client";
 import { env } from "@sourcebot/shared";

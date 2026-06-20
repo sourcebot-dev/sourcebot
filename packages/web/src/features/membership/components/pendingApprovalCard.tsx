@@ -1,17 +1,9 @@
 import { LogoutEscapeHatch } from "@/app/components/logoutEscapeHatch"
 import { SourcebotLogo } from "@/app/components/sourcebotLogo"
-import { auth } from "@/auth"
 
 export const PendingApprovalCard = async () => {
-    const session = await auth()
-    const userId = session?.user?.id
-
-    if (!userId) {
-        return null
-    }
-
     return (
-        <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-6">
+        <div className="min-h-screen flex items-center justify-center p-6">
             <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
             
             <div className="w-full max-w-md">

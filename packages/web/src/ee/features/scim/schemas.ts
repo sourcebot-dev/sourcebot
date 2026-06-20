@@ -65,6 +65,110 @@ export const resolveEmail = (payload: ScimUserCreate): string => {
     return (primary ?? payload.emails?.[0]?.value ?? payload.userName).toLowerCase();
 };
 
+/** The subset of attributes Sourcebot persists from a SCIM PatchOp. */
+export interface ScimPatchChanges {
+    name?: string;
+    email?: string;
+    active?: boolean;
+}
+
+// Resolves a display name from a SCIM `name` complex value / `displayName`,
+// mirroring the precedence used elsewhere (formatted, then displayName).
+const resolveNameFromValue = (value: Record<string, unknown>): string | undefined => {
+    const name = value.name;
+    const formatted = (name && typeof name === "object" && !Array.isArray(name))
+        ? (name as Record<string, unknown>).formatted
+        : undefined;
+    if (typeof formatted === "string") {
+        return formatted;
+    }
+    if (typeof value.displayName === "string") {
+        return value.displayName;
+    }
+    return undefined;
+};
+
+// Resolves the primary email from a SCIM `emails` array / `userName` value.
+const resolveEmailFromValue = (value: Record<string, unknown>): string | undefined => {
+    const emails = value.emails;
+    if (Array.isArray(emails)) {
+        const primary = emails.find((e) => e && typeof e === "object" && (e as Record<string, unknown>).primary)
+            ?? emails[0];
+        const email = (primary && typeof primary === "object") ? (primary as Record<string, unknown>).value : undefined;
+        if (typeof email === "string") {
+            return email.toLowerCase();
+        }
+    }
+    if (typeof value.userName === "string") {
+        return value.userName.toLowerCase();
+    }
+    return undefined;
+};
+
+/**
+ * Reduces a SCIM PatchOp's operations into the subset of changes Sourcebot
+ * persists: display name, email, and active state. Handles both path-based ops
+ * (`{op,path,value}`, e.g. `name.formatted`, `userName`, `active`) and the
+ * no-path bulk form (`{op,value:{...}}`). Operator and attribute names are
+ * matched case-insensitively. Later operations override earlier ones, and any
+ * unrecognized op/path is ignored (lenient, never an error).
+ */
+export const parseScimPatchOperations = (operations: ScimPatchOp["Operations"]): ScimPatchChanges => {
+    const changes: ScimPatchChanges = {};
+
+    for (const operation of operations) {
+        const op = operation.op.toLowerCase();
+        if (op !== "replace" && op !== "add") {
+            continue;
+        }
+
+        const value = operation.value;
+        const path = operation.path?.toLowerCase();
+
+        // No-path bulk form: `value` is an object of attributes to replace.
+        if (path === undefined) {
+            if (value && typeof value === "object" && !Array.isArray(value)) {
+                const record = value as Record<string, unknown>;
+                const active = coerceActive(record.active);
+                if (active !== undefined) {
+                    changes.active = active;
+                }
+                const name = resolveNameFromValue(record);
+                if (name !== undefined) {
+                    changes.name = name;
+                }
+                const email = resolveEmailFromValue(record);
+                if (email !== undefined) {
+                    changes.email = email;
+                }
+            }
+            continue;
+        }
+
+        if (path === "active") {
+            const active = coerceActive(value);
+            if (active !== undefined) {
+                changes.active = active;
+            }
+        } else if (path === "username") {
+            if (typeof value === "string") {
+                changes.email = value.toLowerCase();
+            }
+        } else if (path === "displayname" || path === "name.formatted") {
+            if (typeof value === "string") {
+                changes.name = value;
+            }
+        } else if (path.startsWith("emails")) {
+            // e.g. `emails[type eq "work"].value` → maps to the primary email.
+            if (typeof value === "string") {
+                changes.email = value.toLowerCase();
+            }
+        }
+    }
+
+    return changes;
+};
+
 // ----- Filter parsing -----
 
 export type ScimFilter =

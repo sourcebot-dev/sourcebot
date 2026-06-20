@@ -30,6 +30,46 @@ export const getScimBaseUrl = async (): Promise<{ baseUrl: string } | ServiceErr
             return { baseUrl: `${env.AUTH_URL.replace(/\/$/, '')}/scim/v2` };
         })));
 
+/**
+ * Whether SCIM provisioning is currently enabled (toggled on) for the org.
+ * This is the explicit opt-in switch, independent of whether any tokens exist.
+ */
+export const getIsScimEnabled = async (): Promise<{ enabled: boolean } | ServiceError> => sew(() =>
+    withAuth(async ({ org, role }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            if (!await hasEntitlement('scim')) {
+                return scimNotAvailable();
+            }
+            return { enabled: org.isScimEnabled };
+        })));
+
+/**
+ * Enables or disables SCIM provisioning for the org. Disabling is a kill switch:
+ * existing tokens stop authenticating and JIT suppression lifts, but tokens are
+ * preserved so provisioning can be resumed by toggling back on.
+ */
+export const setScimEnabled = async (enabled: boolean): Promise<{ success: boolean } | ServiceError> => sew(() =>
+    withAuth(async ({ org, user, role, prisma }) =>
+        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
+            if (!await hasEntitlement('scim')) {
+                return scimNotAvailable();
+            }
+
+            await prisma.org.update({
+                where: { id: org.id },
+                data: { isScimEnabled: enabled },
+            });
+
+            await createAudit({
+                action: enabled ? "scim.enabled" : "scim.disabled",
+                actor: { id: user.id, type: "user" },
+                target: { id: org.id.toString(), type: "org" },
+                orgId: org.id,
+            });
+
+            return { success: true };
+        })));
+
 export const generateScimToken = async (name: string): Promise<{ token: string } | ServiceError> => sew(() =>
     withAuth(async ({ org, user, role, prisma }) =>
         withMinimumOrgRole(role, OrgRole.OWNER, async () => {

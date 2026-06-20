@@ -15,13 +15,13 @@ import MagicLinkEmail from './emails/magicLinkEmail';
 import bcrypt from 'bcryptjs';
 import { getEEIdentityProviders } from '@/ee/features/sso/sso';
 import { hasEntitlement } from '@/lib/entitlements';
-import { onCreateUser } from '@/lib/authUtils';
 import { createAudit } from '@/ee/features/audit/audit';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
 import { EncryptedPrismaAdapter, encryptAccountData } from '@/lib/encryptedPrismaAdapter';
 import { getAnonymousId } from '@/lib/anonymousId';
 import { captureEvent } from '@/lib/posthog';
 import { isEmailCodeLoginEnabled, isCredentialsLoginEnabled } from '@sourcebot/shared'
+import { onCreateUser } from './features/membership/onCreateUser';
 
 export const runtime = 'nodejs';
 

@@ -1,5 +1,5 @@
 import { MembersList } from "./components/membersList";
-import { getOrgMembers, getOrgInvites, getOrgAccountRequests } from "@/features/userManagement/actions";
+import { getOrgInvites, getOrgMembers, getOrgAccountRequests} from "@/features/membership/actions";
 import { isServiceError } from "@/lib/utils";
 import { InviteMemberCard } from "./components/inviteMemberCard";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -12,7 +12,9 @@ import { OrgRole } from "@sourcebot/db";
 import { NotificationDot } from "../../components/notificationDot";
 import { Badge } from "@/components/ui/badge";
 import { authenticatedPage } from "@/middleware/authenticatedPage";
-import { orgHasAvailability } from "@/lib/authUtils";
+import { orgHasAvailability } from "@/features/membership/utils";
+import { isScimEnabled } from "@/features/scim/utils";
+import { ManagedByScimNotice } from "@/features/membership/components/managedByScimNotice";
 import { getSeatCap } from "@sourcebot/shared";
 
 type MembersSettingsPageProps = {
@@ -47,6 +49,7 @@ export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role, u
 
     const hasAvailability = await orgHasAvailability(org.id);
     const seatCap = getSeatCap();
+    const scimEnabled = await isScimEnabled(org);
 
     return (
         <div className="flex flex-col gap-6">
@@ -67,10 +70,16 @@ export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role, u
                 )}
             </div>
 
-            <InviteMemberCard
-                currentUserRole={role}
-                seatsAvailable={hasAvailability}
-            />
+            {scimEnabled ? (
+                <ManagedByScimNotice>
+                    SCIM provisioning is enabled. Members are provisioned through your identity provider.
+                </ManagedByScimNotice>
+            ) : (
+                <InviteMemberCard
+                    currentUserRole={role}
+                    seatsAvailable={hasAvailability}
+                />
+            )}
 
             <Tabs value={currentTab}>
                 <div className="border-b border-border w-full">
@@ -128,7 +137,6 @@ export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role, u
                         members={members}
                         currentUserId={user.id}
                         currentUserRole={role}
-                        orgName={org.name}
                         hasOrgManagement={await hasEntitlement('org-management')}
                     />
                 </TabsContent>

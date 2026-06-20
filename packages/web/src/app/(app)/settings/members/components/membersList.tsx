@@ -9,14 +9,16 @@ import { useCallback, useMemo, useState } from "react";
 import { OrgRole } from "@prisma/client";
 import { UserAvatar } from "@/components/userAvatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { promoteToOwner, demoteToMember } from "@/ee/features/userManagement/actions";
-import { leaveOrg, removeMemberFromOrg } from "@/features/userManagement/actions";
+import { promoteToOwner, demoteToMember } from "@/ee/features/membership/actions";
+import { leaveOrg, removeMemberFromOrg } from "@/features/membership/actions";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useRouter } from "next/navigation";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import Link from "next/link";
+import { ManagedByScimBadge } from "@/features/membership/components/managedByScimBadge";
+import { DeactivatedMemberBadge } from "@/features/membership/components/deactivatedMemberBadge";
 
 type Member = {
     id: string
@@ -25,19 +27,20 @@ type Member = {
     role: OrgRole
     joinedAt: Date
     avatarUrl?: string
+    scimManaged?: boolean
+    isActive?: boolean
 }
 
 export interface MembersListProps {
     members: Member[],
     currentUserId: string,
     currentUserRole: OrgRole,
-    orgName: string,
     hasOrgManagement: boolean,
 }
 
 const ROLES_AND_PERMISSIONS_DOCS_LINK = "https://docs.sourcebot.dev/docs/configuration/auth/roles-and-permissions"
 
-export const MembersList = ({ members, currentUserId, currentUserRole, orgName, hasOrgManagement }: MembersListProps) => {
+export const MembersList = ({ members, currentUserId, currentUserRole, hasOrgManagement }: MembersListProps) => {
     const [searchQuery, setSearchQuery] = useState("")
     const [roleFilter, setRoleFilter] = useState<"all" | OrgRole>("all")
     const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest")
@@ -64,6 +67,12 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName, 
                 return matchesSearch && matchesRole;
             })
             .sort((a, b) => {
+                // Deactivated members sink to the bottom, regardless of date sort.
+                const aActive = a.isActive !== false;
+                const bActive = b.isActive !== false;
+                if (aActive !== bActive) {
+                    return aActive ? -1 : 1;
+                }
                 return dateSort === "newest"
                     ? b.joinedAt.getTime() - a.joinedAt.getTime()
                     : a.joinedAt.getTime() - b.joinedAt.getTime()
@@ -197,18 +206,22 @@ export const MembersList = ({ members, currentUserId, currentUserRole, orgName, 
                             </div>
                         ) : (
                             filteredMembers.map((member) => (
-                                <div key={member.id} className="p-4 flex items-center justify-between bg-background">
-                                    <div className="flex items-center gap-3">
+                                <div key={member.id} className="p-4 flex items-center justify-between gap-4 bg-background">
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
                                         <UserAvatar
                                             email={member.email}
                                             imageUrl={member.avatarUrl}
                                         />
-                                        <div>
-                                            <div className="font-medium">{member.name}</div>
-                                            <div className="text-sm text-muted-foreground">{member.email}</div>
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <span className="font-medium truncate">{member.name}</span>
+                                                {member.isActive === false && <DeactivatedMemberBadge />}
+                                                {member.scimManaged && <ManagedByScimBadge />}
+                                            </div>
+                                            <div className="text-sm text-muted-foreground truncate">{member.email}</div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-4 flex-shrink-0">
                                         <span className="text-sm text-muted-foreground capitalize">{member.role.toLowerCase()}</span>
                                         <DropdownMenu modal={false}>
                                             <DropdownMenuTrigger asChild>

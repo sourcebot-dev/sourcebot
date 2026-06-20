@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { HOME_VIEW_COOKIE_NAME } from "@/lib/constants";
 import { HomeView } from "@/hooks/useHomeView";
 import { getConnectionStats } from "@/actions";
-import { getOrgAccountRequests } from "@/features/userManagement/actions";
+import { getOrgAccountRequests } from "@/features/membership/actions";
 import { isServiceError } from "@/lib/utils";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { OrgRole } from "@prisma/client";

@@ -11,7 +11,7 @@ import { z } from "zod";
 import { PlusCircleIcon, Loader2, AlertTriangle } from "lucide-react";
 import { OrgRole } from "@prisma/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { createInvites } from "@/features/userManagement/actions";
+import { createInvites } from "@/features/membership/actions";
 import { isServiceError } from "@/lib/utils";
 import { useToast } from "@/components/hooks/use-toast";
 import { useRouter } from "next/navigation";

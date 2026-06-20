@@ -276,6 +276,8 @@ model Org {
   isOnboarded Boolean      @default(false)
   imageUrl    String?
 
+  isScimEnabled Boolean    @default(false)
+
   /// @deprecated This property can be controlled by the environment
   /// variable `REQUIRE_APPROVAL_NEW_MEMBERS`. To ensure that we use
   /// the correct setting, use the helper function `isMemberApprovalRequired`

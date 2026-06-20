@@ -6,6 +6,7 @@ import { EmailCodeLoginEnabledSettingsCard } from "./components/emailCodeLoginEn
 import { IdentityProviderSettingsCard } from "./components/identityProviderSettingsCard";
 import { IdentityProviderUpsellCard } from "./components/identityProviderUpsellCard";
 import { ScimProvisioningSettings } from "./components/scimProvisioningSettings";
+import { ScimEnabledSettingsCard } from "./components/scimEnabledSettingsCard";
 import { ScimUpsellCard } from "./components/scimUpsellCard";
 import { getScimTokens } from "@/ee/features/scim/actions";
 import { UpgradeBadge } from "@/app/(app)/@sidebar/components/upgradeBadge";
@@ -18,6 +19,7 @@ import { env, getSMTPConnectionURL, isCredentialsLoginEnabled, isEmailCodeLoginE
 import { SettingsCardGroup } from "../components/settingsCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
+import { isScimEnabled } from "@/features/scim/utils";
 
 export default authenticatedPage(async ({ org }) => {
     const anonymousAccessEnabled = await isAnonymousAccessEnabled();
@@ -29,6 +31,7 @@ export default authenticatedPage(async ({ org }) => {
     const scimBaseUrl = `${env.AUTH_URL.replace(/\/$/, '')}/scim/v2`;
     const scimTokensResult = hasScimEntitlement ? await getScimTokens() : [];
     const scimTokens = isServiceError(scimTokensResult) ? [] : scimTokensResult;
+    const scimEnabled = await isScimEnabled(org)
 
 
     return (
@@ -53,9 +56,11 @@ export default authenticatedPage(async ({ org }) => {
                     <InviteLinkEnabledSettingsCard
                         inviteLinkEnabled={org.inviteLinkEnabled}
                         inviteLink={inviteLink}
+                        scimManaged={scimEnabled}
                     />
                     <MemberApprovalRequiredSettingsCard
                         memberApprovalRequired={isMemberApprovalRequired(org)}
+                        scimManaged={scimEnabled}
                     />
                     <AnonymousAccessEnabledSettingsCard
                         anonymousAccessEnabled={anonymousAccessEnabled}
@@ -136,7 +141,14 @@ export default authenticatedPage(async ({ org }) => {
                 {!hasScimEntitlement ? (
                     <ScimUpsellCard />
                 ) : (
-                    <ScimProvisioningSettings baseUrl={scimBaseUrl} tokens={scimTokens} />
+                    <>
+                        <SettingsCardGroup>
+                            <ScimEnabledSettingsCard isScimEnabled={scimEnabled} />
+                        </SettingsCardGroup>
+                        {scimEnabled && (
+                            <ScimProvisioningSettings baseUrl={scimBaseUrl} tokens={scimTokens} />
+                        )}
+                    </>
                 )}
             </div>
         </div>
