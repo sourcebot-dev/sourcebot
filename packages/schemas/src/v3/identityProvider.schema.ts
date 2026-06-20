@@ -10,6 +10,10 @@ const schema = {
         "provider": {
           "const": "github"
         },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'GitHub'."
+        },
         "purpose": {
           "enum": [
             "sso",
@@ -105,6 +109,10 @@ const schema = {
       "properties": {
         "provider": {
           "const": "gitlab"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'GitLab'."
         },
         "purpose": {
           "enum": [
@@ -202,6 +210,10 @@ const schema = {
         "provider": {
           "const": "google"
         },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'Google'."
+        },
         "purpose": {
           "const": "sso"
         },
@@ -279,6 +291,10 @@ const schema = {
       "properties": {
         "provider": {
           "const": "okta"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'Okta'."
         },
         "purpose": {
           "const": "sso"
@@ -389,6 +405,10 @@ const schema = {
         "provider": {
           "const": "keycloak"
         },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'Keycloak'."
+        },
         "purpose": {
           "const": "sso"
         },
@@ -497,6 +517,10 @@ const schema = {
       "properties": {
         "provider": {
           "const": "microsoft-entra-id"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'Microsoft Entra ID'."
         },
         "purpose": {
           "const": "sso"
@@ -607,6 +631,10 @@ const schema = {
         "provider": {
           "const": "gcp-iap"
         },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'Google Cloud IAP'."
+        },
         "purpose": {
           "const": "sso"
         },
@@ -653,6 +681,10 @@ const schema = {
       "properties": {
         "provider": {
           "const": "bitbucket-cloud"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen and account settings. Defaults to 'Bitbucket Cloud'."
         },
         "purpose": {
           "enum": [
@@ -738,6 +770,10 @@ const schema = {
       "properties": {
         "provider": {
           "const": "authentik"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'Authentik'."
         },
         "purpose": {
           "const": "sso"
@@ -848,6 +884,10 @@ const schema = {
         "provider": {
           "const": "jumpcloud"
         },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'JumpCloud'."
+        },
         "purpose": {
           "const": "sso"
         },
@@ -957,6 +997,10 @@ const schema = {
         "provider": {
           "const": "bitbucket-server"
         },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen and account settings. Defaults to 'Bitbucket Server'."
+        },
         "purpose": {
           "enum": [
             "sso",
@@ -1052,6 +1096,10 @@ const schema = {
       "properties": {
         "provider": {
           "const": "github"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'GitHub'."
         },
         "purpose": {
           "enum": [
@@ -1149,6 +1197,10 @@ const schema = {
         "provider": {
           "const": "gitlab"
         },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'GitLab'."
+        },
         "purpose": {
           "enum": [
             "sso",
@@ -1245,6 +1297,10 @@ const schema = {
         "provider": {
           "const": "google"
         },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'Google'."
+        },
         "purpose": {
           "const": "sso"
         },
@@ -1322,6 +1378,10 @@ const schema = {
       "properties": {
         "provider": {
           "const": "okta"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'Okta'."
         },
         "purpose": {
           "const": "sso"
@@ -1432,6 +1492,10 @@ const schema = {
         "provider": {
           "const": "keycloak"
         },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'Keycloak'."
+        },
         "purpose": {
           "const": "sso"
         },
@@ -1540,6 +1604,10 @@ const schema = {
       "properties": {
         "provider": {
           "const": "microsoft-entra-id"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'Microsoft Entra ID'."
         },
         "purpose": {
           "const": "sso"
@@ -1650,6 +1718,10 @@ const schema = {
         "provider": {
           "const": "gcp-iap"
         },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'Google Cloud IAP'."
+        },
         "purpose": {
           "const": "sso"
         },
@@ -1696,6 +1768,10 @@ const schema = {
       "properties": {
         "provider": {
           "const": "authentik"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'Authentik'."
         },
         "purpose": {
           "const": "sso"
@@ -1806,6 +1882,10 @@ const schema = {
         "provider": {
           "const": "bitbucket-cloud"
         },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen and account settings. Defaults to 'Bitbucket Cloud'."
+        },
         "purpose": {
           "enum": [
             "sso",
@@ -1890,6 +1970,10 @@ const schema = {
       "properties": {
         "provider": {
           "const": "jumpcloud"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen. Defaults to 'JumpCloud'."
         },
         "purpose": {
           "const": "sso"
@@ -1999,6 +2083,10 @@ const schema = {
       "properties": {
         "provider": {
           "const": "bitbucket-server"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional human-readable label shown on the login screen and account settings. Defaults to 'Bitbucket Server'."
         },
         "purpose": {
           "enum": [

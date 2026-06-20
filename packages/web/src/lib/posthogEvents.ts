@@ -9,6 +9,7 @@ export type UpsellSource =
     'onboard' |
     'license_settings' |
     'mcp_settings' |
+    'sso_settings' |
     'chat_connectors';
 
 export type SourcebotWebClientSource = 'sourcebot-web-client';

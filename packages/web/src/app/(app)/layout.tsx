@@ -1,9 +1,3 @@
-/**
- * All routes under (app) are dynamic since the layout calls auth() and
- * accesses headers.
- */
-export const dynamic = 'force-dynamic';
-
 import { __unsafePrisma } from "@/prisma";
 import { auth } from "@/auth";
 import { isServiceError } from "@/lib/utils";
@@ -18,7 +12,7 @@ import { SyntaxGuideProvider } from "./components/syntaxGuideProvider";
 import { notFound, redirect } from "next/navigation";
 import { PendingApprovalCard } from "./components/pendingApproval";
 import { SubmitJoinRequest } from "./components/submitJoinRequest";
-import { env, getOfflineLicenseMetadata, SOURCEBOT_VERSION } from "@sourcebot/shared";
+import { env, getOfflineLicenseMetadata, SOURCEBOT_VERSION, isMemberApprovalRequired } from "@sourcebot/shared";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { GcpIapAuth } from "./components/gcpIapAuth";
 import { JoinOrganizationCard } from "@/app/components/joinOrganizationCard";
@@ -36,6 +30,8 @@ import { CheckoutReturnHandler } from "@/features/billing/checkoutReturnHandler"
 import { RoleProvider } from "@/features/auth/roleProvider";
 import { HasLicenseProvider } from "@/features/billing/hasLicenseProvider";
 import { tryGetLatestSourcebotTag } from "./components/banners/actions";
+import { LanguageModelProvider } from "@/features/chat/languageModelContext";
+import { getConfiguredLanguageModelsInfo } from "@/features/chat/utils.server";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -80,7 +76,7 @@ export default async function Layout(props: LayoutProps) {
         // the join organization card to allow them to join the org if seat capacity is freed up. This card handles checking if the org has available seats.
         // 2. The org requires member approval, and they haven't been approved yet. In this case, we allow them to submit a request to join the org.
         if (!membership) {
-            if (!org.memberApprovalRequired) {
+            if (!isMemberApprovalRequired(org)) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-6">
                         <LogoutEscapeHatch className="absolute top-0 right-0 p-6" />
@@ -152,7 +148,7 @@ export default async function Layout(props: LayoutProps) {
     const headersList = await headers();
     const cookieStore = await cookies()
     const userAgent = headersList.get('user-agent');
-    const { isMobile } = getSelectorsByUserAgent(userAgent ?? '');
+    const { isMobile } = userAgent ? getSelectorsByUserAgent(userAgent) : { isMobile: false };
 
     if (isMobile && !cookieStore.has(MOBILE_UNSUPPORTED_SPLASH_SCREEN_DISMISSED_COOKIE_NAME)) {
         return (
@@ -175,39 +171,43 @@ export default async function Layout(props: LayoutProps) {
         timeoutMs: 3000
     });
 
+    const languageModels = await getConfiguredLanguageModelsInfo();
+
     return (
         <RoleProvider role={role}>
             <HasLicenseProvider
                 hasLicense={offlineLicense !== null || license !== null}
             >
-                <SyntaxGuideProvider>
-                    <div className="fixed inset-0 flex bg-shell">
-                        <SidebarProvider defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}>
-                            {sidebar}
-                            <div className="flex-1 min-h-0 flex flex-col pt-2 pb-2 pr-2 pl-2 md:pl-0">
-                                <div className="flex-1 min-h-0 bg-background flex flex-col border border-[#e6e6e6] dark:border-[#1d1d1f] rounded-xl overflow-hidden">
-                                    <BannerHeightObserver>
-                                        <BannerSlot
-                                            role={role}
-                                            license={license}
-                                            offlineLicense={offlineLicense}
-                                            hasPermissionSyncEntitlement={hasPermissionSyncEntitlement}
-                                            hasPendingFirstSync={hasPendingFirstSync}
-                                            currentVersion={SOURCEBOT_VERSION}
-                                            latestVersion={latestVersion}
-                                        />
-                                    </BannerHeightObserver>
-                                    <div className="flex-1 min-h-0 overflow-y-scroll [scrollbar-gutter:stable]">
-                                        {children}
+                <LanguageModelProvider languageModels={languageModels}>
+                    <SyntaxGuideProvider>
+                        <div className="fixed inset-0 flex bg-shell">
+                            <SidebarProvider defaultOpen={cookieStore.get("sidebar_state")?.value !== "false"}>
+                                {sidebar}
+                                <div className="flex-1 min-h-0 flex flex-col pt-2 pb-2 pr-2 pl-2 md:pl-0">
+                                    <div className="flex-1 min-h-0 bg-background flex flex-col border border-[#e6e6e6] dark:border-[#1d1d1f] rounded-xl overflow-hidden">
+                                        <BannerHeightObserver>
+                                            <BannerSlot
+                                                role={role}
+                                                license={license}
+                                                offlineLicense={offlineLicense}
+                                                hasPermissionSyncEntitlement={hasPermissionSyncEntitlement}
+                                                hasPendingFirstSync={hasPendingFirstSync}
+                                                currentVersion={SOURCEBOT_VERSION}
+                                                latestVersion={latestVersion}
+                                            />
+                                        </BannerHeightObserver>
+                                        <div className="flex-1 min-h-0 overflow-y-scroll [scrollbar-gutter:stable]">
+                                            {children}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </SidebarProvider>
-                    </div>
-                    <SyntaxReferenceGuide />
-                    <GitHubStarToast />
-                    <CheckoutReturnHandler />
-                </SyntaxGuideProvider>
+                            </SidebarProvider>
+                        </div>
+                        <SyntaxReferenceGuide />
+                        <GitHubStarToast />
+                        <CheckoutReturnHandler />
+                    </SyntaxGuideProvider>
+                </LanguageModelProvider>
             </HasLicenseProvider>
         </RoleProvider>
     )

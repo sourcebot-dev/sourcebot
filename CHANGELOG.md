@@ -7,11 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added per-step token cost tracking and estimated tool call token usage to Ask Sourcebot chat history. [#1353](https://github.com/sourcebot-dev/sourcebot/pull/1353)
+
+## [5.0.4] - 2026-06-18
+
 ### Changed
-- Changed the new version available banner copy from "Upgrade" to "Update" to avoid confusion with upgrading plan tiers. [#1354](https://github.com/sourcebot-dev/sourcebot/pull/1354)
+- Decoupled offline-license anonymous access from the seat cap. [#1349](https://github.com/sourcebot-dev/sourcebot/pull/1349)
+
+### Added
+- Recorded service ping history locally and added a "Download usage report" button to the offline license settings page, so offline deployments can export their usage and send it to us. [#1348](https://github.com/sourcebot-dev/sourcebot/pull/1348)
+
+### Fixed
+- Upgraded `@grpc/grpc-js` to `^1.14.4`. [#1315](https://github.com/sourcebot-dev/sourcebot/pull/1315)
+- Upgraded `vite` to `^8.0.16`. [#1313](https://github.com/sourcebot-dev/sourcebot/pull/1313)
+- Upgraded `ws` to `^8.21.0`. [#1324](https://github.com/sourcebot-dev/sourcebot/pull/1324)
+- Upgraded `@babel/core` to `^7.29.6`. [#1333](https://github.com/sourcebot-dev/sourcebot/pull/1333)
+- Upgraded `markdown-it` to `^14.2.0`. [#1321](https://github.com/sourcebot-dev/sourcebot/pull/1321)
+- Upgraded `form-data` to `^4.0.6`. [#1316](https://github.com/sourcebot-dev/sourcebot/pull/1316)
+- Upgraded `hono` to `^4.12.25`. [#1322](https://github.com/sourcebot-dev/sourcebot/pull/1322)
+- Upgraded `dompurify` to `^3.4.11`. [#1332](https://github.com/sourcebot-dev/sourcebot/pull/1332)
+- Upgraded `nodemailer` to `^8.0.11`. [#1328](https://github.com/sourcebot-dev/sourcebot/pull/1328)
+- Upgraded `js-yaml` to `^4.2.0`. [#1335](https://github.com/sourcebot-dev/sourcebot/pull/1335)
+- Upgraded `protobufjs` to `^7.6.4`. [#1336](https://github.com/sourcebot-dev/sourcebot/pull/1336)
+- Upgraded `tar` to `^7.5.16`. [#1338](https://github.com/sourcebot-dev/sourcebot/pull/1338)
+- Upgraded `esbuild` to `^0.28.1`. [#1342](https://github.com/sourcebot-dev/sourcebot/pull/1342)
+- Enabled Next.js version skew protection to fix "Failed to load chunk" errors during rolling deploys. [#1346](https://github.com/sourcebot-dev/sourcebot/pull/1346)
+
+## [5.0.3] - 2026-06-17
+
+### Changed
+- Changed the workspace "Access" page to a "Security" page. [#1303](https://github.com/sourcebot-dev/sourcebot/pull/1303)
+
+### Added
+- Added the ability to configure email code and credentials login from the security settings. [#1303](https://github.com/sourcebot-dev/sourcebot/pull/1303)
+- Added a list of configured SSO providers from the security settings. [#1303](https://github.com/sourcebot-dev/sourcebot/pull/1303)
+
+### Fixed
+- Validated that `SOURCEBOT_ENCRYPTION_KEY` is exactly 32 characters at startup, failing fast with an actionable message instead of a runtime encryption error. [#1305](https://github.com/sourcebot-dev/sourcebot/pull/1305)
+- Fixed the web UI crashing when anonymous access is enabled and a request omits the `User-Agent` header (e.g. proxy or health-check probes). [#1309](https://github.com/sourcebot-dev/sourcebot/pull/1309)
+- Fixed the Members page crashing when a `User` had a null email. `User.email` is now required (with a backfilling migration), and SSO sign-ins without an email are rejected. [#1310](https://github.com/sourcebot-dev/sourcebot/pull/1310)
+
+## [5.0.2] - 2026-06-11
+
+### Changed
+- Removed support for configuring the GitHub, GitLab, Google, Okta, Keycloak, and Microsoft Entra ID identity providers via the deprecated `AUTH_EE_*` environment variables. See the [v5 migration guide](http://docs.sourcebot.dev/docs/upgrade/v4-to-v5-guide#identity-providers-must-be-configured-via-the-config-file) for more details. [#1297](https://github.com/sourcebot-dev/sourcebot/pull/1297)
+- Anthropic thinking mode (adaptive vs. extended) is now resolved from the model's capabilities via the Anthropic Models API instead of a hardcoded model list. [#1294](https://github.com/sourcebot-dev/sourcebot/pull/1294)
+
+### Added
+- [EE] Added prompt caching for Ask Sourcebot. For Anthropic models, the static prompt prefix (tool definitions, system prompt, and conversation history) is marked with a cache breakpoint so it is billed at the provider's discounted cache-read rate on subsequent agent steps and follow-up turns. Toggle with `SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED` (default `true`). [#1278](https://github.com/sourcebot-dev/sourcebot/pull/1278)
+- [EE] Added a cached-token breakdown to the Ask Sourcebot message details, showing what share of the input tokens were served from the model provider's prompt cache. [#1278](https://github.com/sourcebot-dev/sourcebot/pull/1278)
+- Added `isLanguageModelConfigured` to the service ping, indicating whether at least one language model is configured. [#1296](https://github.com/sourcebot-dev/sourcebot/pull/1296)
 
 ### Fixed
 - Upgraded `protobufjs` to `^7.6.2`. [#1281](https://github.com/sourcebot-dev/sourcebot/pull/1281)
+- Upgraded `picomatch` to `^4.0.4`. [#1283](https://github.com/sourcebot-dev/sourcebot/pull/1283)
+- Fixed GitLab MR inline review comments returning 400 Bad Request on context (unchanged) lines and renamed files. [#1149](https://github.com/sourcebot-dev/sourcebot/pull/1149)
+- Upgraded `ws` to `^8.20.1`. [#1286](https://github.com/sourcebot-dev/sourcebot/pull/1286)
+- Upgraded `hono` to `^4.12.24`. [#1289](https://github.com/sourcebot-dev/sourcebot/pull/1289)
+- Surfaced an actionable error when the Lighthouse licensing service is unreachable, instead of a generic "unexpected error". [#1293](https://github.com/sourcebot-dev/sourcebot/pull/1293)
+- Fixed the selected language model rapidly flipping in local storage after a language model was removed. [#1295](https://github.com/sourcebot-dev/sourcebot/pull/1295)
+- Fixed issue where using multiple identity providers of the same type (e.g., gitlab) would result in unexpected behaviours. [#1177](https://github.com/sourcebot-dev/sourcebot/pull/1177)
+- Fixed a race condition where large repositories could be indexed twice within a single reindex interval. [#1298](https://github.com/sourcebot-dev/sourcebot/pull/1298)
+- Upgraded `shell-quote` to `^1.8.4`. [#1299](https://github.com/sourcebot-dev/sourcebot/pull/1299)
+- [EE] Fixed MCP OAuth connectors (e.g. Atlassian) rejecting authorization when `offline_access` was not enabled. When adding a connector, the scopes dialog now pre-selects `offline_access` (admins can untick it) and warns when it is the only selected scope. [#1292](https://github.com/sourcebot-dev/sourcebot/pull/1292)
 
 ## [5.0.1] - 2026-06-04
 

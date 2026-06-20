@@ -1,3 +1,5 @@
+"use client"
+
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { OFFERINGS_DOCS_LINK } from "@/lib/constants"
@@ -9,7 +11,7 @@ export const UpgradeBadge = () => {
         <Tooltip>
             <TooltipTrigger asChild>
                 <Badge
-                    className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-[10px] px-1.5 py-0 rounded-md leading-normal tracking-wide"
+                    className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-[10px] px-1.5 py-0 rounded-md leading-normal tracking-wide select-none"
                 >
                     Pro
                 </Badge>

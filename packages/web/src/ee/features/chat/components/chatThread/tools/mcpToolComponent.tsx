@@ -4,10 +4,12 @@ import { CopyIconButton } from "@/app/(app)/components/copyIconButton";
 import { McpFavicon } from "@/ee/features/chat/mcp/components/mcpFavicon";
 import { useMcpServerIconMap } from "@/ee/features/chat/mcpServerIconContext";
 import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 import { DynamicToolUIPart } from "ai";
 import { CheckCircle, ChevronDown, XCircle } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { JsonHighlighter, unescapeJsonStrings } from "./jsonHighlighter";
+import { ToolTokenBadge } from "./toolTokenBadge";
 
 export function parseMcpToolName(toolName: string): { serverName: string; toolName: string } | null {
     if (!toolName.startsWith('mcp_')) {
@@ -24,7 +26,7 @@ export function parseMcpToolName(toolName: string): { serverName: string; toolNa
     };
 }
 
-export const McpToolComponent = ({ part }: { part: DynamicToolUIPart }) => {
+export const McpToolComponent = ({ part, estimatedOutputTokens }: { part: DynamicToolUIPart, estimatedOutputTokens?: number }) => {
     const needsApproval = part.state === 'approval-requested';
     const [isExpanded, setIsExpanded] = useState(needsApproval);
     const onToggle = useCallback(() => setIsExpanded(v => !v), []);
@@ -128,6 +130,12 @@ export const McpToolComponent = ({ part }: { part: DynamicToolUIPart }) => {
                 <div className="flex-1 min-w-0">
                     {renderStatus()}
                 </div>
+                {estimatedOutputTokens !== undefined && (
+                    <>
+                        <ToolTokenBadge estimatedOutputTokens={estimatedOutputTokens} />
+                        <Separator orientation="vertical" className="h-3 flex-shrink-0" />
+                    </>
+                )}
                 {hasInput && (
                     <button
                         onClick={onToggle}

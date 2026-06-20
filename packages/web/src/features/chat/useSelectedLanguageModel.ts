@@ -1,43 +1,17 @@
 'use client';
 
-import { useLocalStorage } from "usehooks-ts";
-import { LanguageModelInfo } from "./types";
-import { useEffect } from "react";
-import { getLanguageModelKey } from "./utils";
+import { useContext } from "react";
+import { SelectedLanguageModelContext } from "./languageModelContext";
 
-type Props = {
-    languageModels: LanguageModelInfo[];
-}
+export const useSelectedLanguageModel = () => {
+    const context = useContext(SelectedLanguageModelContext);
+    if (!context) {
+        throw new Error("useSelectedLanguageModel must be used within a LanguageModelProvider");
+    }
 
-export const useSelectedLanguageModel = ({
-    languageModels,
-}: Props) => {
-    const fallbackLanguageModel = languageModels.length > 0 ? languageModels[0] : undefined;
-    const [selectedLanguageModel, setSelectedLanguageModel] = useLocalStorage<LanguageModelInfo | undefined>(
-        "selectedLanguageModel",
-        fallbackLanguageModel,
-        {
-            initializeWithValue: false,
-        }
-    );
-
-    // Handle the case where the selected language model is no longer
-    // available. Reset to the fallback language model in this case.
-    useEffect(() => {
-        if (!selectedLanguageModel || !languageModels.find(
-            (model) => getLanguageModelKey(model) === getLanguageModelKey(selectedLanguageModel)
-        )) {
-            setSelectedLanguageModel(fallbackLanguageModel);
-        }
-    }, [
-        fallbackLanguageModel,
-        languageModels,
-        selectedLanguageModel,
-        setSelectedLanguageModel,
-    ]);
-
+    const { selectedLanguageModel, setSelectedLanguageModel } = context;
     return {
         selectedLanguageModel,
         setSelectedLanguageModel,
     };
-}
+};

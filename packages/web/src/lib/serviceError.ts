@@ -69,6 +69,16 @@ export const unexpectedError = (message: string): ServiceError => {
     };
 }
 
+export const lighthouseUnreachable = (url: string, error: unknown): ServiceError => {
+    const detail = error instanceof Error ? error.message : String(error);
+    return {
+        statusCode: StatusCodes.SERVICE_UNAVAILABLE,
+        errorCode: ErrorCode.LIGHTHOUSE_UNREACHABLE,
+        message: `Could not reach the Sourcebot licensing service at ${url}. `
+            + `Verify this host has outbound network access to it, then try again. Details: ${detail}`,
+    };
+}
+
 export const notAuthenticated = (): ServiceError => {
     return {
         statusCode: StatusCodes.UNAUTHORIZED,

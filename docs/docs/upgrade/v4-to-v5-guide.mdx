@@ -3,7 +3,7 @@ title: V4 to V5 Guide
 sidebarTitle: V4 to V5 guide
 ---
 
-This guide will walk you through upgrading your Sourcebot deployment from v4 to v5.
+This guide will walk you through upgrading your Sourcebot deployment from v4 to [v5](https://www.sourcebot.dev/changelog/v5).
 
 ## Breaking Changes
 
@@ -174,6 +174,67 @@ docker exec sourcebot rm /data/.sourcebot/.secret /data/.sourcebot/.authjs-secre
 ```
 
 Sourcebot warns at startup if either file is still present.
+</Expandable>
+
+### Identity providers must be configured via the config file
+<Note>
+**Who's affected:** Deployments that configure GitHub, GitLab, Google, Okta, Keycloak, or Microsoft Entra ID single sign-on through the deprecated `AUTH_EE_*` environment variables. Deployments that already define these providers in the [`identityProviders`](/docs/configuration/idp) config file section are not affected.
+</Note>
+
+#### Description
+
+In v4, you could configure these identity providers using `AUTH_EE_*` environment variables (for example `AUTH_EE_GITHUB_CLIENT_ID`). Those variables were deprecated in favor of the [`identityProviders`](/docs/configuration/idp) section of the config file. Starting in v5.0.2, the environment variable path has been removed. Sourcebot no longer reads these variables, and any provider configured only through them will stop appearing on the login screen. This also applies if you are upgrading from an earlier v5 release (v5.0.0 or v5.0.1), where these variables were still supported.
+
+The following environment variables are no longer read:
+
+| Provider | Removed environment variables |
+| :------- | :---------------------------- |
+| GitHub | `AUTH_EE_GITHUB_CLIENT_ID`, `AUTH_EE_GITHUB_CLIENT_SECRET`, `AUTH_EE_GITHUB_BASE_URL` |
+| GitLab | `AUTH_EE_GITLAB_CLIENT_ID`, `AUTH_EE_GITLAB_CLIENT_SECRET`, `AUTH_EE_GITLAB_BASE_URL` |
+| Google | `AUTH_EE_GOOGLE_CLIENT_ID`, `AUTH_EE_GOOGLE_CLIENT_SECRET` |
+| Okta | `AUTH_EE_OKTA_CLIENT_ID`, `AUTH_EE_OKTA_CLIENT_SECRET`, `AUTH_EE_OKTA_ISSUER` |
+| Keycloak | `AUTH_EE_KEYCLOAK_CLIENT_ID`, `AUTH_EE_KEYCLOAK_CLIENT_SECRET`, `AUTH_EE_KEYCLOAK_ISSUER` |
+| Microsoft Entra ID | `AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID`, `AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET`, `AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER` |
+
+#### Action Items
+
+<Expandable title="Migrating to the config file">
+<br/>
+
+Move each affected provider into the `identityProviders` array in your [config file](/docs/configuration/config-file). You don't need to rotate any secrets. Reference your existing environment variable values from the config using [tokens](/docs/configuration/config-file#tokens), keeping the same variable names if you like.
+
+For example, a GitHub provider previously configured with environment variables:
+
+```bash wrap icon="terminal"
+AUTH_EE_GITHUB_CLIENT_ID='your-client-id'
+AUTH_EE_GITHUB_CLIENT_SECRET='your-client-secret'
+```
+
+becomes the following in the config file:
+
+```json wrap icon="code"
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "identityProviders": [
+        {
+            "provider": "github",
+            "purpose": "sso",
+            "clientId": {
+                "env": "AUTH_EE_GITHUB_CLIENT_ID"
+            },
+            "clientSecret": {
+                "env": "AUTH_EE_GITHUB_CLIENT_SECRET"
+            }
+        }
+    ]
+}
+```
+
+<Note>
+Set `purpose` to `sso` to keep the provider usable for login. For providers that take an issuer (Okta, Keycloak, Microsoft Entra ID), add an `issuer` token. For self-hosted GitHub or GitLab, add a `baseUrl` string (this replaces `AUTH_EE_GITHUB_BASE_URL` and `AUTH_EE_GITLAB_BASE_URL`).
+</Note>
+
+See the [external identity providers](/docs/configuration/idp) docs for the full per-provider config reference.
 </Expandable>
 
 

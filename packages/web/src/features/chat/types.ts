@@ -55,6 +55,9 @@ export const sbChatMessageMetadataSchema = z.object({
     totalInputTokens: z.number().optional(),
     totalOutputTokens: z.number().optional(),
     totalTokens: z.number().optional(),
+    // Portion of input tokens served from / written to the prompt cache.
+    totalCacheReadTokens: z.number().optional(),
+    totalCacheWriteTokens: z.number().optional(),
     totalResponseTimeMs: z.number().optional(),
     feedback: z.array(z.object({
         type: z.enum(['like', 'dislike']),
@@ -64,9 +67,31 @@ export const sbChatMessageMetadataSchema = z.object({
     selectedSearchScopes: z.array(searchScopeSchema).optional(),
     disabledMcpServerIds: z.array(z.string()).optional(),
     traceId: z.string().optional(),
+    // Token usage of each agent step in this message's turn, in step order
+    // across all approval-continuation phases. The step array position is the
+    // step's identity: the UI joins these entries to its steps by array
+    // index, so the array must stay 1:1 with the turn's steps.
+    stepTokenUsage: z.array(z.object({
+        // Provider-reported (billed, not estimated) usage of this step.
+        inputTokens: z.number().optional(),
+        outputTokens: z.number().optional(),
+        cacheReadTokens: z.number().optional(),
+        // Tool calls that ran in this step, each with the estimated
+        // input-token footprint its output imposes when fed back to the model
+        // on the next step. These are local estimates — never to be confused
+        // with the authoritative provider-reported fields.
+        tools: z.array(z.object({
+            toolCallId: z.string(),
+            toolName: z.string(),
+            estimatedOutputTokens: z.number(),
+        })),
+    })).optional(),
 });
 
 export type SBChatMessageMetadata = z.infer<typeof sbChatMessageMetadataSchema>;
+
+export type StepTokenUsageEntry = NonNullable<SBChatMessageMetadata['stepTokenUsage']>[number];
+export type ToolTokenUsageEntry = StepTokenUsageEntry['tools'][number];
 
 export type SBChatMessageToolTypes = {
     [K in keyof ReturnType<typeof createTools>]: InferUITool<ReturnType<typeof createTools>[K]>;

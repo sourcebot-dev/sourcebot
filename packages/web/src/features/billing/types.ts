@@ -11,6 +11,7 @@ export const servicePingRequestSchema = z.object({
     mauCount: z.number().int().nonnegative(),
     deploymentType: z.string(),
     isTelemetryEnabled: z.boolean(),
+    isLanguageModelConfigured: z.boolean(),
     activationCode: z.string().optional(),
 });
 export type ServicePingRequest = z.infer<typeof servicePingRequestSchema>;

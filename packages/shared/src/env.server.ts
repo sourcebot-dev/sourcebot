@@ -1,5 +1,5 @@
 import { indexSchema } from "@sourcebot/schemas/v3/index.schema";
-import { SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
+import { IdentityProviderConfig, SourcebotConfig } from "@sourcebot/schemas/v3/index.type";
 import { createEnv } from "@t3-oss/env-core";
 import { Ajv } from "ajv";
 import { readFile } from 'fs/promises';
@@ -56,6 +56,7 @@ export const isRemotePath = (path: string) => {
     return path.startsWith('https://') || path.startsWith('http://');
 }
 
+
 export const loadConfig = async (configPath?: string): Promise<SourcebotConfig> => {
     if (!configPath) {
         throw new Error('CONFIG_PATH is required but not provided');
@@ -109,7 +110,46 @@ export const loadConfig = async (configPath?: string): Promise<SourcebotConfig> 
     if (!isValidConfig) {
         throw new Error(`Config file '${configPath}' is invalid: ${ajv.errorsText(ajv.errors)}`);
     }
+
     return config;
+}
+
+
+export const getIdentityProviderConfigs = async (): Promise<Record<string, IdentityProviderConfig>> => {
+    const config = await loadConfig(env.CONFIG_PATH);
+
+    // Collapses the dual-form `identityProviders` field into the canonical object
+    // form keyed by id.
+    const idpConfigs = (() => {
+        if (!config.identityProviders) {
+            return undefined;
+        }
+        if (!Array.isArray(config.identityProviders)) {
+            return config.identityProviders;
+        }
+
+        const result: Record<string, IdentityProviderConfig> = {};
+        for (const entry of config.identityProviders) {
+            const id = entry.provider;
+            if (result[id]) {
+                throw new Error(
+                    `Duplicate identity provider id "${id}" in array-form \`identityProviders\`. ` +
+                    `The array form is deprecated and only supports one instance per provider type. ` +
+                    `Migrate to the object form (keyed by id) to configure multiple instances.`,
+                );
+            }
+            result[id] = entry;
+        }
+        return result;
+    })();
+
+    return idpConfigs ?? {};
+}
+
+export const getIdentityProviderConfig = async (id: string): Promise<IdentityProviderConfig | undefined> => {
+    const idps = await getIdentityProviderConfigs();
+    const idp = idps[id] as IdentityProviderConfig | undefined;
+    return idp;
 }
 
 // Merge process.env with environment variables resolved from config.json
@@ -133,12 +173,8 @@ const options = {
         ZOEKT_WEBSERVER_URL: z.string().url().default("http://localhost:6070"),
 
         // Auth
-        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.default('false'),
-        REQUIRE_APPROVAL_NEW_MEMBERS: booleanSchema.optional(),
         AUTH_SECRET: z.string(),
         AUTH_URL: z.string().url(),
-        AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.default('true'),
-        AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.default('false'),
 
         /**
          * Relative time from now in seconds when to expire the session.
@@ -268,21 +304,13 @@ const options = {
         GOOGLE_VERTEX_REGION: z.string().default('us-central1'),
         GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
 
-        /**
-         * @deprecated Use `thinkingBudget` in the language model config instead.
-         */
-        GOOGLE_VERTEX_THINKING_BUDGET_TOKENS: numberSchema.optional(),
-
         AWS_ACCESS_KEY_ID: z.string().optional(),
         AWS_SECRET_ACCESS_KEY: z.string().optional(),
         AWS_SESSION_TOKEN: z.string().optional(),
         AWS_REGION: z.string().optional(),
 
-        /**
-         * @deprecated Use per-model `temperature` in the language model config instead.
-         */
-        SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.optional(),
         SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(100),
+        SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED: booleanSchema.default('true'),
         SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS: numberSchema.int().positive().max(maxTimerDelayMs).default(60000),
 
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
@@ -301,12 +329,6 @@ const options = {
                 return value ?? ((process.env.EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS as 'true' | 'false') ?? 'false');
             }),
 
-        /**
-         * @deprecated Use `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` instead.
-         */
-        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
-
-
         // Experimental Environment Variables
         // @note: These environment variables are subject to change at any time and are not garunteed to be backwards compatible.
         EXPERIMENT_SELF_SERVE_REPO_INDEXING_ENABLED: booleanSchema.default('false'),
@@ -315,7 +337,13 @@ const options = {
         PERMISSION_SYNC_REPO_DRIVEN_ENABLED: booleanSchema.default('true'),
         EXPERIMENT_ASK_GH_ENABLED: booleanSchema.default('false'),
 
-        SOURCEBOT_ENCRYPTION_KEY: z.string(),
+        // Used as the key for AES-256-CBC encryption (@see shared/src/crypto.ts).
+        // The key is read as ASCII (1 char = 1 byte), so AES-256's 32-byte key
+        // requirement means this must be exactly 32 characters. Generate one with
+        // `openssl rand -base64 24` (24 random bytes => a 32-character base64 string).
+        SOURCEBOT_ENCRYPTION_KEY: z.string().length(32, {
+            message: "SOURCEBOT_ENCRYPTION_KEY must be exactly 32 characters (a 256-bit AES key). Generate one with `openssl rand -base64 24`.\nWARNING: Updating this value will invalidate any existing API keys.",
+        }),
         SOURCEBOT_INSTALL_ID: z.string().default("unknown"),
         SOURCEBOT_LIGHTHOUSE_URL: z.string().url().default("https://deployments.sourcebot.dev"),
 
@@ -367,11 +395,6 @@ const options = {
             }),
 
         /**
-         * @deprecated Use `PERMISSION_SYNC_ENABLED` instead.
-         */
-        EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
-
-        /**
          * Configure whether to send telemetry events.
          * By default, all events are anonymized and do not contain PII data,
          * unless SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED is set to true.
@@ -385,93 +408,58 @@ const options = {
          */
         SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED: booleanSchema.default('false'),
 
-        //// DEPRECATED ////
+        //////////// Deprecated ////////////
+        /**
+         * @deprecated Configure this setting via the "Require approval
+         * for new members" toggle in Settings → Security intsead.
+         */
+        REQUIRE_APPROVAL_NEW_MEMBERS: booleanSchema.optional(),
 
         /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
+         * @deprecated Configure email + password login via the "Email & password login"
+         * toggle in Settings → Security instead. When set, this env var overrides the UI
+         * setting and locks the toggle; when unset, the DB-backed
+         * `Org.isCredentialsLoginEnabled` setting is used.
          */
-        AUTH_EE_GITHUB_CLIENT_ID: z.string().optional(),
+        AUTH_CREDENTIALS_LOGIN_ENABLED: booleanSchema.optional(),
 
         /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
+         * @deprecated Configure email code login via the UI in Settings → Security
+         * instead. When set, this env var overrides the UI setting and locks the toggle;
+         * when unset, the DB-backed `Org.isEmailCodeLoginEnabled` setting is used. Left
+         * optional (rather than defaulting to 'false') so we can detect whether it was
+         * explicitly set.
          */
-        AUTH_EE_GITHUB_CLIENT_SECRET: z.string().optional(),
+        AUTH_EMAIL_CODE_LOGIN_ENABLED: booleanSchema.optional(),
 
         /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
+         * @deprecated Configure anonymous access via the UI in Settings → Security
+         * instead. When set, this env var overrides the UI setting and locks the toggle;
+         * when unset, the DB-backed `Org.isAnonymousAccessEnabled` setting is used. Left
+         * optional (rather than defaulting to 'false') so we can detect whether it was
+         * explicitly set.
          */
-        AUTH_EE_GITHUB_BASE_URL: z.string().optional(),
+        FORCE_ENABLE_ANONYMOUS_ACCESS: booleanSchema.optional(),
 
         /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
+         * @deprecated Use `PERMISSION_SYNC_ENABLED` instead.
          */
-        AUTH_EE_GITLAB_CLIENT_ID: z.string().optional(),
+        EXPERIMENT_EE_PERMISSION_SYNC_ENABLED: booleanSchema.default('false'),
 
         /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
+         * @deprecated Use `thinkingBudget` in the language model config instead.
          */
-        AUTH_EE_GITLAB_CLIENT_SECRET: z.string().optional(),
+        GOOGLE_VERTEX_THINKING_BUDGET_TOKENS: numberSchema.optional(),
 
         /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
+         * @deprecated Use per-model `temperature` in the language model config instead.
          */
-        AUTH_EE_GITLAB_BASE_URL: z.string().default("https://gitlab.com"),
+        SOURCEBOT_CHAT_MODEL_TEMPERATURE: numberSchema.optional(),
 
         /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
+         * @deprecated Use `DISABLE_API_KEY_CREATION_FOR_NON_OWNER_USERS` instead.
          */
-        AUTH_EE_GOOGLE_CLIENT_ID: z.string().optional(),
-
-        /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
-         */
-        AUTH_EE_GOOGLE_CLIENT_SECRET: z.string().optional(),
-
-        /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
-         */
-        AUTH_EE_OKTA_CLIENT_ID: z.string().optional(),
-
-        /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
-         */
-        AUTH_EE_OKTA_CLIENT_SECRET: z.string().optional(),
-
-        /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
-         */
-        AUTH_EE_OKTA_ISSUER: z.string().optional(),
-
-        /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
-         */
-        AUTH_EE_KEYCLOAK_CLIENT_ID: z.string().optional(),
-
-        /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
-         */
-        AUTH_EE_KEYCLOAK_CLIENT_SECRET: z.string().optional(),
-
-        /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
-         */
-        AUTH_EE_KEYCLOAK_ISSUER: z.string().optional(),
-
-        /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
-         */
-        AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_ID: z.string().optional(),
-
-        /**
-         * @deprecated
-         * This setting is deprecated. Please use the `identityProviders` section of the config file instead.
-         */
-        AUTH_EE_MICROSOFT_ENTRA_ID_CLIENT_SECRET: z.string().optional(),
-
-        /**
-         * @deprecated This setting is deprecated. Please use the `identityProviders` section of the config file instead.
-         */
-        AUTH_EE_MICROSOFT_ENTRA_ID_ISSUER: z.string().optional(),
+        EXPERIMENT_DISABLE_API_KEY_CREATION_FOR_NON_ADMIN_USERS: booleanSchema.default('false'),
     },
     runtimeEnv,
     emptyStringAsUndefined: true,

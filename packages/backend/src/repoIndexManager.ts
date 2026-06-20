@@ -351,7 +351,7 @@ export class RepoIndexManager {
 
         const metadata = repoMetadataSchema.parse(repo.metadata);
 
-        const credentials = await getAuthCredentialsForRepo(repo);
+        const credentials = await getAuthCredentialsForRepo(repo, logger);
         const cloneUrlMaybeWithToken = credentials?.cloneUrlWithToken ?? repo.cloneUrl;
         const authHeader = credentials?.authHeader ?? undefined;
 
@@ -545,23 +545,16 @@ export class RepoIndexManager {
     private async onJobCompleted(job: Job<JobPayload>) {
         try {
             const logger = createJobLogger(job.data.jobId);
-            const jobData = await this.db.repoIndexingJob.update({
+            const jobData = await this.db.repoIndexingJob.findUniqueOrThrow({
                 where: { id: job.data.jobId },
-                data: {
-                    status: RepoIndexingJobStatus.COMPLETED,
-                    completedAt: new Date(),
-                    repo: {
-                        update: {
-                            latestIndexingJobStatus: RepoIndexingJobStatus.COMPLETED,
-                        }
-                    }
-                },
                 include: {
                     repo: true,
                 }
             });
 
             const jobTypeLabel = getJobTypePrometheusLabel(jobData.type);
+            // @note: capture this before the update below, since the update sets indexedAt.
+            const isFirstIndex = jobData.repo.indexedAt === null;
 
             if (jobData.type === RepoIndexingJobType.INDEX) {
                 const { path: repoPath } = getRepoPath(jobData.repo);
@@ -576,29 +569,47 @@ export class RepoIndexManager {
 
                 const jobMetadata = repoIndexingJobMetadataSchema.parse(jobData.metadata);
 
-                const repo = await this.db.repo.update({
-                    where: { id: jobData.repoId },
+                const { repo } = await this.db.repoIndexingJob.update({
+                    where: { id: job.data.jobId },
                     data: {
-                        indexedAt: new Date(),
-                        indexedCommitHash: commitHash,
-                        pushedAt: pushedAt,
-                        metadata: {
-                            ...(jobData.repo.metadata as RepoMetadata),
-                            indexedRevisions: jobMetadata.indexedRevisions,
-                        } satisfies RepoMetadata,
-                        // @note: always update the default branch. While this field can be set
-                        // during connection syncing, by setting it here we ensure that a) the
-                        // default branch is as up to date as possible (since repo indexing happens
-                        // more frequently than connection syncing) and b) for hosts where it is
-                        // impossible to determine the default branch from the host's API
-                        // (e.g., generic git url), we still set the default branch here.
-                        defaultBranch: defaultBranch,
+                        status: RepoIndexingJobStatus.COMPLETED,
+                        completedAt: new Date(),
+                        repo: {
+                            update: {
+                                latestIndexingJobStatus: RepoIndexingJobStatus.COMPLETED,
+                                indexedAt: new Date(),
+                                indexedCommitHash: commitHash,
+                                pushedAt: pushedAt,
+                                metadata: {
+                                    ...(jobData.repo.metadata as RepoMetadata),
+                                    indexedRevisions: jobMetadata.indexedRevisions,
+                                } satisfies RepoMetadata,
+                                // @note: always update the default branch. While this field can be set
+                                // during connection syncing, by setting it here we ensure that a) the
+                                // default branch is as up to date as possible (since repo indexing happens
+                                // more frequently than connection syncing) and b) for hosts where it is
+                                // impossible to determine the default branch from the host's API
+                                // (e.g., generic git url), we still set the default branch here.
+                                defaultBranch: defaultBranch,
+                            }
+                        }
+                    },
+                    include: {
+                        repo: true,
                     }
                 });
 
                 logger.debug(`Completed index job ${job.data.jobId} for repo ${repo.name} (id: ${repo.id})`);
             }
             else if (jobData.type === RepoIndexingJobType.CLEANUP) {
+                await this.db.repoIndexingJob.update({
+                    where: { id: job.data.jobId },
+                    data: {
+                        status: RepoIndexingJobStatus.COMPLETED,
+                        completedAt: new Date(),
+                    }
+                });
+
                 const repo = await this.db.repo.delete({
                     where: { id: jobData.repoId },
                 });
@@ -610,7 +621,7 @@ export class RepoIndexManager {
             this.promClient.activeRepoIndexJobs.dec({ repo: job.data.repoName, type: jobTypeLabel });
             this.promClient.repoIndexJobSuccessTotal.inc({ repo: job.data.repoName, type: jobTypeLabel });
 
-            if (jobData.type === RepoIndexingJobType.INDEX && jobData.repo.indexedAt === null) {
+            if (jobData.type === RepoIndexingJobType.INDEX && isFirstIndex) {
                 captureEvent('backend_repo_first_indexed', {
                     repoId: job.data.repoId,
                     type: jobData.repo.external_codeHostType,

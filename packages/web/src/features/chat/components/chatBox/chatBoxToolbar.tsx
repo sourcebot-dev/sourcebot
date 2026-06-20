@@ -34,9 +34,7 @@ export const ChatBoxToolbar = ({
     onDisabledMcpServerIdsChange,
     isAuthenticated,
 }: ChatBoxToolbarProps) => {
-    const { selectedLanguageModel, setSelectedLanguageModel } = useSelectedLanguageModel({
-        languageModels,
-    });
+    const { selectedLanguageModel, setSelectedLanguageModel } = useSelectedLanguageModel();
 
     return (
         <>

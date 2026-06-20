@@ -14,8 +14,7 @@ import microsoftLogo from "@/public/microsoft_entra.svg";
 import authentikLogo from "@/public/authentik.svg";
 import jumpcloudLogo from "@/public/jumpcloud.svg";
 import { ServiceError } from "./serviceError";
-import { ConnectionType, Org } from "@sourcebot/db";
-import { OrgMetadata, orgMetadataSchema } from "@/types";
+import { ConnectionType } from "@sourcebot/db";
 import { CodeHostType } from "@sourcebot/db";
 
 export function cn(...inputs: ClassValue[]) {
@@ -80,8 +79,8 @@ type AuthProviderInfo = {
     icon: { src: string; className?: string } | null;
 }
 
-export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
-    switch (providerId) {
+export const getAuthProviderInfo = (providerType: string): AuthProviderInfo => {
+    switch (providerType) {
         case "github":
             return {
                 id: "github",
@@ -190,9 +189,9 @@ export const getAuthProviderInfo = (providerId: string): AuthProviderInfo => {
             };
         default:
             return {
-                id: providerId,
-                name: providerId,
-                displayName: providerId.charAt(0).toUpperCase() + providerId.slice(1),
+                id: providerType,
+                name: providerType,
+                displayName: providerType.charAt(0).toUpperCase() + providerType.slice(1),
                 icon: null,
             };
     }
@@ -618,11 +617,6 @@ export const getRepoImageSrc = (imageUrl: string | undefined, repoId: number): s
         return imageUrl;
     }
 };
-
-export const getOrgMetadata = (org: Org): OrgMetadata | null => {
-    const currentMetadata = orgMetadataSchema.safeParse(org.metadata);
-    return currentMetadata.success ? currentMetadata.data : null;
-}
 
 export const isHttpError = (error: unknown, status: number): boolean => {
     return error !== null

@@ -1,6 +1,8 @@
 import 'server-only';
 
 import { createPostHogClient, tryGetPostHogDistinctId } from "@/lib/posthog";
+import { logger } from "./logger";
+import Anthropic from "@anthropic-ai/sdk";
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { createAzure } from '@ai-sdk/azure';
@@ -20,6 +22,7 @@ import { LanguageModel } from '@sourcebot/schemas/v3/languageModel.type';
 import { Token } from "@sourcebot/schemas/v3/shared.type";
 import { env, getTokenFromConfig } from '@sourcebot/shared';
 import { extractReasoningMiddleware, JSONValue, wrapLanguageModel } from "ai";
+import * as Sentry from "@sentry/nextjs";
 
 // @note: This module resolves a configured language model into an AI SDK
 // provider object. It is intentionally FSL (open source) provider plumbing —
@@ -68,34 +71,36 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                 };
             }
             case 'anthropic': {
+                const apiKey = config.token
+                    ? await getTokenFromConfig(config.token)
+                    : env.ANTHROPIC_API_KEY;
+                const authToken = config.authToken
+                    ? await getTokenFromConfig(config.authToken)
+                    : env.ANTHROPIC_AUTH_TOKEN;
+                const headers = config.headers
+                    ? await extractLanguageModelKeyValuePairs(config.headers)
+                    : undefined;
+
                 const anthropic = createAnthropic({
                     baseURL: config.baseUrl,
-                    apiKey: config.token
-                        ? await getTokenFromConfig(config.token)
-                        : env.ANTHROPIC_API_KEY,
-                    authToken: config.authToken
-                        ? await getTokenFromConfig(config.authToken)
-                        : env.ANTHROPIC_AUTH_TOKEN,
-                    headers: config.headers
-                        ? await extractLanguageModelKeyValuePairs(config.headers)
-                        : undefined,
+                    apiKey,
+                    authToken,
+                    headers,
                 });
 
-                const isAdaptiveThinkingSupported =
-                    modelId.startsWith('claude-opus-4-7') ||
-                    modelId.startsWith('claude-opus-4-8');
+                const thinking = await tryResolveAnthropicThinkingConfig({
+                    modelId,
+                    baseUrl: config.baseUrl,
+                    apiKey,
+                    authToken,
+                    headers,
+                });
 
                 return {
                     model: anthropic(modelId),
                     providerOptions: {
                         anthropic: {
-                            thinking: isAdaptiveThinkingSupported ? {
-                                type: "adaptive",
-                                display: "summarized"
-                            } : {
-                                type: "enabled",
-                                budgetTokens: env.ANTHROPIC_THINKING_BUDGET_TOKENS,
-                            }
+                            ...(thinking ? { thinking } : {}),
                         } satisfies AnthropicProviderOptions,
                     },
                 };
@@ -343,4 +348,112 @@ const extractLanguageModelKeyValuePairs = async (
     }
 
     return resolvedPairs;
+};
+
+type AnthropicThinkingConfig = NonNullable<AnthropicProviderOptions['thinking']>;
+const anthropicThinkingConfigCache = new Map<string, AnthropicThinkingConfig | undefined>();
+
+/**
+ * Resolves the `thinking` provider option we pass to the
+ * ai sdk for anthropic models. Queries the Models API to
+ * determine the model's capabilities. Returns undefined
+ * if we are unable to resolve. Results are cached in a
+ * in-memory cache.
+ * 
+ * @see https://docs.anthropic.com/en/api/models
+ */
+const tryResolveAnthropicThinkingConfig = async ({
+    modelId,
+    baseUrl,
+    apiKey,
+    authToken,
+    headers,
+}: {
+    modelId: string,
+    baseUrl?: string,
+    apiKey?: string,
+    authToken?: string,
+    headers?: Record<string, string>,
+}): Promise<AnthropicThinkingConfig | undefined> => {
+    const cacheKey = `${baseUrl ?? 'default'}::${modelId}`;
+    if (anthropicThinkingConfigCache.has(cacheKey)) {
+        return anthropicThinkingConfigCache.get(cacheKey);
+    }
+
+    const {
+        thinkingConfig,
+        shouldCache
+    } = await (async (): Promise<{ thinkingConfig: AnthropicThinkingConfig | undefined, shouldCache: boolean }> => {
+        try {
+            // `@ai-sdk/anthropic` expects `baseURL` to include the `/v1` path segment,
+            // whereas the SDK client appends `/v1` itself — so strip a trailing `/v1`
+            // from the same configured value before handing it to the client.
+            const baseURL = baseUrl
+                ? (baseUrl.replace(/\/+$/, '').replace(/\/v1$/, '') || undefined)
+                : undefined;
+
+            const client = new Anthropic({
+                apiKey,
+                authToken,
+                baseURL,
+                defaultHeaders: headers,
+                maxRetries: 1,
+            });
+
+            const { capabilities } = await client.models.retrieve(modelId, undefined, {
+                timeout: 10_000,
+            });
+
+            if (!capabilities) {
+                throw new Error('the models API did not return a capabilities object.');
+            }
+
+            const thinking = capabilities.thinking;
+            if (thinking.supported === false) {
+                return {
+                    thinkingConfig: undefined,
+                    shouldCache: true
+                };
+            }
+
+            if (thinking.types.adaptive.supported) {
+                return {
+                    thinkingConfig: {
+                        type: "adaptive",
+                        display: "summarized",
+                    } satisfies AnthropicThinkingConfig,
+                    shouldCache: true,
+                };
+            }
+
+            if (thinking.types.enabled.supported) {
+                return {
+                    thinkingConfig: {
+                        type: "enabled",
+                        budgetTokens: env.ANTHROPIC_THINKING_BUDGET_TOKENS,
+                    } satisfies AnthropicThinkingConfig,
+                    shouldCache: true,
+                };
+            }
+
+            return {
+                thinkingConfig: undefined,
+                shouldCache: true
+            };
+        } catch (error) {
+            Sentry.captureException(error);
+            logger.warn(`Failed to fetch Anthropic model capabilities for '${modelId}'. Omitting the thinking option. ${error}`);
+            return {
+                thinkingConfig: undefined,
+                shouldCache: false
+            };
+        }
+    })();
+
+
+    if (shouldCache) {
+        anthropicThinkingConfigCache.set(cacheKey, thinkingConfig);
+    }
+
+    return thinkingConfig;
 };

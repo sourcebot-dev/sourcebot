@@ -137,7 +137,8 @@ const createAssistantMessage = (parts: SBChatMessagePart[]): SBChatMessage => ({
 });
 
 const createFakeStreamResult = () => ({
-    response: Promise.resolve(new Response()),
+    response: Promise.resolve({ messages: [] }),
+    steps: Promise.resolve([]),
     totalUsage: Promise.resolve({
         inputTokens: 1,
         outputTokens: 1,

@@ -1,0 +1,10 @@
+# Trivy vulnerability ignore file
+# Docs: https://trivy.dev/latest/docs/configuration/filtering/#by-finding-ids
+# Auto-detected by Trivy in the repo root (see trivy.yaml / .github/workflows/vulnerability-triage.yml).
+# Each entry should note why it is suppressed.
+
+# CVE-2026-41305 — PostCSS XSS via unescaped </style> in CSS stringify output.
+# postcss is a build-time-only dependency here (Tailwind/Next CSS tooling); we do
+# not stringify untrusted CSS ASTs at runtime, so this is not exploitable.
+# @see https://github.com/vercel/next.js/issues/93234#issuecomment-4333397286
+CVE-2026-41305
