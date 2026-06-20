@@ -1,4 +1,5 @@
-import { SBChatMessage, SBChatMessageMetadata } from "@/features/chat/types";
+import { SBChatMessage, SBChatMessageMetadata, StepTokenUsageEntry, ToolTokenUsageEntry } from "@/features/chat/types";
+import { estimateModelToolOutputTokens } from "@/ee/features/chat/tokenEstimation";
 import { getFileSource } from '@/features/git';
 import { isServiceError } from "@/lib/utils";
 import { LanguageModelV3 as AISDKLanguageModelV3 } from "@ai-sdk/provider";
@@ -190,19 +191,76 @@ export const createMessageStream = async ({
             });
 
             const totalUsage = await researchStream.totalUsage;
+            const steps = await researchStream.steps;
+            const response = await researchStream.response;
+
+            // Tool output estimates are derived from `response.messages` rather
+            // than per-step `toolResults` because the response messages cover
+            // tool calls that never run inside a step — approval-gated tools
+            // execute before the step loop, and thrown tool errors are recorded
+            // as `tool-error` parts that `toolResults` excludes. Their
+            // `tool-result` parts also carry the output in model-visible form
+            // (`toModelOutput` already applied), which is exactly the payload
+            // whose token footprint we want to estimate.
+            const toolUsageByToolCallId = new Map<string, ToolTokenUsageEntry>(
+                response.messages.flatMap((message) =>
+                    message.role !== 'tool' ? [] : message.content.flatMap((part) =>
+                        part.type !== 'tool-result' ? [] : [[part.toolCallId, {
+                            toolCallId: part.toolCallId,
+                            toolName: part.toolName,
+                            estimatedOutputTokens: estimateModelToolOutputTokens(part.output),
+                        }] as const]
+                    )
+                )
+            );
+
+            // One entry per step, in step order. The UI joins its step groups
+            // to these entries by array position, so the order and count must
+            // mirror the stream's steps exactly. Tool calls nest under the
+            // step they ran in; `content` is matched rather than `toolResults`
+            // so that thrown tool errors (`tool-error` parts, which
+            // `toolResults` excludes) are still attributed to their step.
+            const stepTokenUsage: StepTokenUsageEntry[] = steps.map(({ usage, content }) => ({
+                inputTokens: usage.inputTokens,
+                outputTokens: usage.outputTokens,
+                cacheReadTokens: usage.inputTokenDetails?.cacheReadTokens,
+                tools: content.flatMap((part) => {
+                    if (part.type !== 'tool-result' && part.type !== 'tool-error') {
+                        return [];
+                    }
+                    const entry = toolUsageByToolCallId.get(part.toolCallId);
+                    if (!entry) {
+                        return [];
+                    }
+                    toolUsageByToolCallId.delete(part.toolCallId);
+                    return [entry];
+                }),
+            }));
+
+            // Any estimates left unclaimed belong to tool calls that executed
+            // before the step loop (approval continuations). Their output
+            // enters the context as input to this phase's first step, so nest
+            // them under it.
+            if (toolUsageByToolCallId.size > 0 && stepTokenUsage.length > 0) {
+                stepTokenUsage[0].tools.unshift(...toolUsageByToolCallId.values());
+            }
 
             writer.write({
                 type: 'message-metadata',
                 messageMetadata: {
+                    // Spread first so the derived fields below can't be overwritten by caller metadata.
+                    ...metadata,
                     totalTokens: (priorMetadata?.totalTokens ?? 0) + (totalUsage.totalTokens ?? 0),
                     totalInputTokens: (priorMetadata?.totalInputTokens ?? 0) + (totalUsage.inputTokens ?? 0),
                     totalOutputTokens: (priorMetadata?.totalOutputTokens ?? 0) + (totalUsage.outputTokens ?? 0),
                     totalCacheReadTokens: (priorMetadata?.totalCacheReadTokens ?? 0) + (totalUsage.inputTokenDetails?.cacheReadTokens ?? 0),
                     totalCacheWriteTokens: (priorMetadata?.totalCacheWriteTokens ?? 0) + (totalUsage.inputTokenDetails?.cacheWriteTokens ?? 0),
                     totalResponseTimeMs: (priorMetadata?.totalResponseTimeMs ?? 0) + (new Date().getTime() - startTime.getTime()),
+                    // Concatenated (not summed) across approval-continuation
+                    // phases so earlier phases' steps are preserved in order.
+                    stepTokenUsage: [...(priorMetadata?.stepTokenUsage ?? []), ...stepTokenUsage],
                     modelName,
                     traceId,
-                    ...metadata,
                 }
             });
 
@@ -430,6 +488,13 @@ const createAgentStream = async ({
                 logger.warn(`Tool call repair failed for "${toolCall.toolName}": ${error.message}`);
                 return null;
             },
+            // Token usage collection deliberately does NOT happen here: the SDK
+            // awaits this callback before starting the next step, so it must
+            // stay cheap, and `toolResults` misses tool calls that never run
+            // inside a step (approval-gated tools execute before the step loop)
+            // as well as thrown tool errors (recorded as `tool-error` parts).
+            // Both are instead derived post-stream in `createMessageStream`
+            // from `steps` and `response.messages`.
             onStepFinish: ({ toolResults }) => {
                 toolResults.forEach(({ output, dynamic }) => {
                     if (dynamic || isServiceError(output)) {
