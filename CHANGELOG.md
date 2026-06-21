@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added per-step token cost tracking and estimated tool call token usage to Ask Sourcebot chat history. [#1353](https://github.com/sourcebot-dev/sourcebot/pull/1353)
+
+## [5.0.4] - 2026-06-18
+
+### Changed
+- Decoupled offline-license anonymous access from the seat cap. [#1349](https://github.com/sourcebot-dev/sourcebot/pull/1349)
+
+### Added
+- Recorded service ping history locally and added a "Download usage report" button to the offline license settings page, so offline deployments can export their usage and send it to us. [#1348](https://github.com/sourcebot-dev/sourcebot/pull/1348)
+
+### Fixed
+- Upgraded `@grpc/grpc-js` to `^1.14.4`. [#1315](https://github.com/sourcebot-dev/sourcebot/pull/1315)
+- Upgraded `vite` to `^8.0.16`. [#1313](https://github.com/sourcebot-dev/sourcebot/pull/1313)
+- Upgraded `ws` to `^8.21.0`. [#1324](https://github.com/sourcebot-dev/sourcebot/pull/1324)
+- Upgraded `@babel/core` to `^7.29.6`. [#1333](https://github.com/sourcebot-dev/sourcebot/pull/1333)
+- Upgraded `markdown-it` to `^14.2.0`. [#1321](https://github.com/sourcebot-dev/sourcebot/pull/1321)
+- Upgraded `form-data` to `^4.0.6`. [#1316](https://github.com/sourcebot-dev/sourcebot/pull/1316)
+- Upgraded `hono` to `^4.12.25`. [#1322](https://github.com/sourcebot-dev/sourcebot/pull/1322)
+- Upgraded `dompurify` to `^3.4.11`. [#1332](https://github.com/sourcebot-dev/sourcebot/pull/1332)
+- Upgraded `nodemailer` to `^8.0.11`. [#1328](https://github.com/sourcebot-dev/sourcebot/pull/1328)
+- Upgraded `js-yaml` to `^4.2.0`. [#1335](https://github.com/sourcebot-dev/sourcebot/pull/1335)
+- Upgraded `protobufjs` to `^7.6.4`. [#1336](https://github.com/sourcebot-dev/sourcebot/pull/1336)
+- Upgraded `tar` to `^7.5.16`. [#1338](https://github.com/sourcebot-dev/sourcebot/pull/1338)
+- Upgraded `esbuild` to `^0.28.1`. [#1342](https://github.com/sourcebot-dev/sourcebot/pull/1342)
+- Enabled Next.js version skew protection to fix "Failed to load chunk" errors during rolling deploys. [#1346](https://github.com/sourcebot-dev/sourcebot/pull/1346)
+
 ## [5.0.3] - 2026-06-17
 
 ### Changed

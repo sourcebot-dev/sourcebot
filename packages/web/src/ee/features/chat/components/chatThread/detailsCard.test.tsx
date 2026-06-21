@@ -111,7 +111,7 @@ describe('DetailsCard', () => {
                     isTurnInProgress={true}
                     isNetworkActive={false}
                     isAwaitingToolApproval={false}
-                    thinkingSteps={[[failedActivationPart]]}
+                    thinkingSteps={[{ stepIndex: 0, parts: [failedActivationPart] }]}
                 />
             </TooltipProvider>
         );
