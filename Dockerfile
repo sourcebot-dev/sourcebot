@@ -178,7 +178,9 @@ ENV SOURCEBOT_LOG_LEVEL=info
 # ENV SOURCEBOT_TELEMETRY_DISABLED=1
 
 # Configure dependencies
-RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq openssl util-linux unzip && \
+# Note: expat is pinned to >=2.8.1-r0 to address CVE-2026-45186 (libexpat
+# denial of service via crafted XML input).
+RUN apk add --no-cache git ca-certificates bind-tools tini jansson wget supervisor uuidgen curl perl jq openssl util-linux unzip "expat>=2.8.1-r0" && \
     apk upgrade --no-cache
 
 # Remove npm (unused — we use Yarn). The Node.js base image bundles npm
