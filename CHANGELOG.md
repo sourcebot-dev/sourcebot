@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added per-step token cost tracking and estimated tool call token usage to Ask Sourcebot chat history. [#1353](https://github.com/sourcebot-dev/sourcebot/pull/1353)
 
+### Fixed
+- Pinned `expat` to `^2.8.1-r0` in the Docker image to address CVE-2026-45186. [#1355](https://github.com/sourcebot-dev/sourcebot/pull/1355)
+
 ## [5.0.4] - 2026-06-18
 
 ### Changed
