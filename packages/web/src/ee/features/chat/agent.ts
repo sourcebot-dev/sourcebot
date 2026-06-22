@@ -9,6 +9,7 @@ import { createLogger, env } from "@sourcebot/shared";
 import {
     convertToModelMessages,
     createUIMessageStream, JSONValue, LanguageModel, ModelMessage, StopCondition, streamText, StreamTextResult,
+    SystemModelMessage,
     UIMessageStreamOnFinishCallback,
     UIMessageStreamOptions,
     UIMessageStreamWriter,
@@ -26,6 +27,7 @@ import { createTools } from "./tools";
 import { getConnectedMcpClients } from "@/ee/features/chat/mcp/mcpClientFactory";
 import { getMcpTools, McpToolsResult } from "@/ee/features/chat/mcp/mcpToolSets";
 import { buildMcpToolRegistry, McpToolRegistryEntry, searchMcpTools } from "@/ee/features/chat/mcp/mcpToolRegistry";
+import { PromptCacheStrategy, mergeProviderOptions, detectPromptCacheBreak, detectUnexpectedCacheMiss } from "./promptCaching";
 import { hasEntitlement } from '@/lib/entitlements';
 
 const dedent = _dedent.withOptions({ alignValues: true });
@@ -52,6 +54,7 @@ interface CreateMessageStreamResponseProps {
     disabledMcpServerIds?: string[];
     model: AISDKLanguageModelV3;
     modelName: string;
+    promptCacheStrategy: PromptCacheStrategy;
     onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;
     onError: (error: unknown) => string;
     modelProviderOptions?: Record<string, Record<string, JSONValue>>;
@@ -70,6 +73,7 @@ export const createMessageStream = async ({
     disabledMcpServerIds,
     model,
     modelName,
+    promptCacheStrategy,
     modelProviderOptions,
     modelTemperature,
     onFinish,
@@ -152,6 +156,7 @@ export const createMessageStream = async ({
 
             const researchStream = await createAgentStream({
                 model,
+                promptCacheStrategy,
                 providerOptions: modelProviderOptions,
                 temperature: modelTemperature,
                 inputMessages: messageHistory,
@@ -245,6 +250,20 @@ export const createMessageStream = async ({
                 stepTokenUsage[0].tools.unshift(...toolUsageByToolCallId.values());
             }
 
+            // Observability only (default off): warn when a continuation step
+            // reports zero cache reads while the provider supports breakpoints —
+            // a likely byte-stability regression in the cached prefix.
+            if (env.SOURCEBOT_CHAT_PROMPT_CACHE_BREAK_DETECTION_ENABLED === 'true') {
+                steps.forEach((step, stepIndex) => {
+                    detectUnexpectedCacheMiss({
+                        chatId,
+                        stepIndex,
+                        cacheReadTokens: step.usage.inputTokenDetails?.cacheReadTokens,
+                        supportsBreakpoints: promptCacheStrategy.supportsBreakpoints,
+                    });
+                });
+            }
+
             writer.write({
                 type: 'message-metadata',
                 messageMetadata: {
@@ -278,6 +297,7 @@ export const createMessageStream = async ({
 
 interface AgentOptions {
     model: LanguageModel;
+    promptCacheStrategy: PromptCacheStrategy;
     providerOptions?: ProviderOptions;
     temperature?: number;
     selectedRepos: string[];
@@ -296,6 +316,7 @@ interface AgentOptions {
 
 const createAgentStream = async ({
     model,
+    promptCacheStrategy,
     providerOptions,
     temperature,
     inputMessages,
@@ -311,6 +332,10 @@ const createAgentStream = async ({
     userId,
     orgId,
 }: AgentOptions) => {
+    // Normalize repo order so the dynamic system block's <selected_repositories>
+    // list is byte-stable across requests of the same chat, used for prompt caching.
+    const sortedRepos = [...selectedRepos].sort((a, b) => a.localeCompare(b));
+
     // For every file source, resolve the source code so that we can include it in the system prompt.
     const fileSources = inputSources.filter((source) => source.type === 'file');
     const resolvedFileSources = (
@@ -366,6 +391,22 @@ const createAgentStream = async ({
     const mcpRegistry = buildMcpToolRegistry(mcpToolSetsObj.tools);
     const hasMcpTools = mcpRegistry.length > 0;
 
+    // Phased-rollout lever for the static front checkpoint (markers 1 & 2). When
+    // disabled, only the moving tail marker is emitted and behavior collapses to
+    // the prior single-breakpoint scheme.
+    const useStaticPrefix = env.SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_PREFIX_ENABLED === 'true';
+    const staticTtl = env.SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_TTL;
+
+    // Marker 1 (MCP only): cache the byte-stable built-in tools + activation tool
+    // block on the `tool_request_activation` definition (the last always-active
+    // tool, serialized before the dynamic MCP tools). This survives the cache
+    // bust that mid-run `activeTools` growth causes for markers 2 & 3. When no
+    // MCP tools are present, marker 2 already covers the built-in tools, so this
+    // is skipped.
+    const activationToolMarker = (hasMcpTools && useStaticPrefix)
+        ? promptCacheStrategy.cacheControl({ ttl: staticTtl })
+        : undefined;
+
     const toolRequestActivation = tool({
         description: dedent`
         Activate an MCP tool by name so it becomes callable on your next step.
@@ -382,6 +423,7 @@ const createAgentStream = async ({
         inputSchema: z.object({
             tool_to_activate_name: z.string().describe('Exact tool name from the registry, e.g. "mcp_linear__save_comment"'),
         }),
+        providerOptions: activationToolMarker,
         execute: async ({ tool_to_activate_name }) => {
             const results = searchMcpTools(tool_to_activate_name, mcpRegistry);
             return {
@@ -390,56 +432,83 @@ const createAgentStream = async ({
         },
     });
 
-    const systemPrompt = createPrompt({
-        repos: selectedRepos,
+    const { staticPrompt, dynamicPrompt } = createPrompt({
+        repos: sortedRepos,
         files: resolvedFileSources,
         mcpToolRegistry: mcpRegistry,
     });
 
-    const builtinTools = createTools({ source: 'sourcebot-ask-agent', selectedRepos });
+    const builtinTools = createTools({ source: 'sourcebot-ask-agent', selectedRepos: sortedRepos });
     const builtinToolNames = Object.keys(builtinTools);
     const allTools: Record<string, Tool> = {
         ...builtinTools,
         ...(hasMcpTools ? { tool_request_activation: toolRequestActivation, ...mcpToolSetsObj.tools } : {}),
     };
 
-    // Anthropic prompt caching: mark the end of the prompt's static prefix —
-    // tool definitions, the system prompt (including any resolved file sources),
-    // and the conversation history — with an ephemeral (5m) cache breakpoint on
-    // the last input message. Anthropic caches everything up to and including
-    // this point, so the large prefix is written once (~1.25x) and read back at
-    // ~0.1x on every subsequent agent step and follow-up turn instead of being
-    // reprocessed in full. The `anthropic` provider-options namespace is ignored
-    // by non-Anthropic providers, so this is safe to apply unconditionally.
+    // Anthropic prompt caching uses up to three nested breakpoints over one
+    // cumulative prefix (render order: tools -> system -> messages):
+    //
+    //   Marker 1 (MCP only): the `tool_request_activation` tool definition (set
+    //     above) caches the byte-stable built-in + activation tool block.
+    //   Marker 2: the static system block below caches tools + the static system
+    //     instructions. This block is byte-identical across every chat and user,
+    //     so it is a divergence-proof checkpoint a brand-new chat can read from
+    //     instead of re-writing the large static prefix.
+    //   Marker 3: the last input message (below) caches tools + static + dynamic
+    //     system + the full conversation history — one conversation's growing
+    //     delta, re-warmed cheaply on every step and follow-up.
+    //
+    // The `anthropic` provider-options namespace is ignored by non-Anthropic
+    // providers, and a no-op strategy emits no markers at all, so this is safe
+    // for every provider. When the static prefix falls below the model's minimum
+    // cacheable size the marker is a harmless no-op.
     //
     // Caveat: when MCP tools are lazily activated mid-run via prepareStep, the
-    // tools section (which precedes everything else in the prefix) grows and
-    // invalidates the cache for that step; the cache re-warms on subsequent
-    // steps once the active tool set is stable.
-    const isPromptCachingEnabled = env.SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED === 'true';
-    const messagesWithCachedPrefix: ModelMessage[] = inputMessages.map((message, index) => {
-        if (!isPromptCachingEnabled || index !== inputMessages.length - 1) {
-            return message;
-        }
+    // tools section grows and invalidates markers 2 & 3 for that step; marker 1
+    // preserves the built-in/activation block and the cache re-warms on
+    // subsequent steps once the active tool set is stable.
+    const staticMarker = useStaticPrefix
+        ? promptCacheStrategy.cacheControl({ ttl: staticTtl })
+        : undefined;
+    const systemMessages: SystemModelMessage[] = [
+        { role: 'system', content: staticPrompt, providerOptions: staticMarker },
+    ];
+    if (dynamicPrompt) {
+        systemMessages.push({ role: 'system', content: dynamicPrompt });
+    }
 
-        return {
-            ...message,
-            providerOptions: {
-                ...message.providerOptions,
-                anthropic: {
-                    ...message.providerOptions?.anthropic,
-                    cacheControl: { type: 'ephemeral' },
-                },
-            },
-        };
-    });
+    // Marker 3: ephemeral (5m) breakpoint on the last input message. Merged onto
+    // any existing providerOptions so sibling namespaces (e.g. anthropic.thinking)
+    // are preserved. A no-op strategy returns undefined and leaves messages as-is.
+    const tailMarker = promptCacheStrategy.cacheControl();
+    const messagesWithCachedPrefix: ModelMessage[] = tailMarker
+        ? inputMessages.map((message, index) =>
+            index === inputMessages.length - 1
+                ? { ...message, providerOptions: mergeProviderOptions(message.providerOptions, tailMarker) }
+                : message)
+        : inputMessages;
+
+    // Observability only (default off): warn when the cache-relevant static
+    // prefix (static system prompt, built-in tool definitions, model, or TTL)
+    // changes between requests for the same chat in a way that busts the cache.
+    if (env.SOURCEBOT_CHAT_PROMPT_CACHE_BREAK_DETECTION_ENABLED === 'true') {
+        detectPromptCacheBreak({
+            chatId,
+            staticPrompt,
+            toolSignature: Object.entries(builtinTools)
+                .map(([name, builtinTool]) => `${name}:${builtinTool.description ?? ''}`)
+                .join('|'),
+            model: typeof model === 'string' ? model : model.modelId,
+            staticTtl,
+        });
+    }
 
     try {
         const stream = streamText({
             model,
             providerOptions,
             messages: messagesWithCachedPrefix,
-            system: systemPrompt,
+            system: systemMessages,
             tools: allTools,
             activeTools: [
                 ...builtinToolNames,
@@ -544,8 +613,13 @@ const createPrompt = ({
     }[],
     repos: string[],
     mcpToolRegistry: McpToolRegistryEntry[],
-}) => {
-    return dedent`
+}): { staticPrompt: string; dynamicPrompt: string } => {
+    // Static prefix: byte-identical across every chat and user, so Anthropic can
+    // reuse its cache entry across chats (the divergence-proof checkpoint). It
+    // interpolates only module-level constants. Keep it free of any
+    // per-conversation data — repos, files, and MCP tools live in the dynamic
+    // block below so their volatility never busts the shared static cache.
+    const staticPrompt = dedent`
     You are a powerful agentic AI code assistant built into Sourcebot, the world's best code-intelligence platform. Your job is to help developers understand and navigate their large codebases.
 
     <workflow>
@@ -566,39 +640,6 @@ const createPrompt = ({
     <research_phase_instructions>
     During the research phase, use the tools available to you to gather comprehensive context before answering. Always explain why you're using each tool. Depending on the user's question, you may need to use multiple tools. If the question is vague, ask the user for more information.
     </research_phase_instructions>
-
-    ${repos.length > 0 ? dedent`
-        <selected_repositories>
-        The user has explicitly selected the following repositories for analysis:
-        ${repos.map(repo => `- ${repo}`).join('\n')}
-
-        When calling tools that accept a \`repo\` parameter (e.g. \`read_file\`, \`list_commits\`, \`list_tree\`, \`get_diff\`, \`grep\`), use these repository names exactly as listed above, including the full host prefix (e.g. \`github.com/org/repo\`).
-
-        When using \`grep\` to search across ALL selected repositories (e.g. "which repos have X?"), omit the \`repo\` parameter entirely — the tool will automatically search across all selected repositories in a single call. Do NOT call \`grep\` once per repository when a single broad search would suffice.
-        </selected_repositories>
-    ` : ''}
-
-    ${(files && files.length > 0) ? dedent`
-        <files>
-        The user has mentioned the following files, which are automatically included for analysis.
-
-        ${files?.map(file => `<file path="${file.path}" repository="${file.repo}" language="${file.language}" revision="${file.revision}">
-            ${addLineNumbers(file.source)}
-            </file>`).join('\n\n')}
-        </files>
-    `: ''}
-
-    ${(mcpToolRegistry.length > 0) ? dedent`
-        <mcp_tools>
-        External MCP tools are available but must first be activated via \`tool_request_activation\`.
-
-        **CRITICAL**: The list below is the complete and authoritative inventory of all tools available to you:
-        ${mcpToolRegistry.map(e => `- ${e.name}: ${e.description}`).join('\n')}
-
-        **How to use tool_request_activation**: Pass the exact tool name from the list above as the \`tool_to_activate_name\` parameter. Do NOT pass natural language descriptions or sentences. If you need multiple tools, call \`tool_request_activation\` once per tool.
-        Example: to activate the comment tool, call \`tool_request_activation\` with tool_to_activate_name="mcp_linear__save_comment", NOT tool_to_activate_name="save a comment on an issue".
-        </mcp_tools>
-    ` : ''}
 
     <answer_instructions>
     When you have sufficient context, output your answer as a structured markdown response.
@@ -630,7 +671,53 @@ const createPrompt = ({
     Authentication in Sourcebot is built on NextAuth.js with a session-based approach using JWT tokens and Prisma as the database adapter ${fileReferenceToString({ repo: 'github.com/sourcebot-dev/sourcebot', path: 'auth.ts', range: { startLine: 135, endLine: 140 } })}. The system supports multiple authentication providers and implements organization-based authorization with role-defined permissions.
     \`\`\`
     </answer_instructions>
-    `
+    `;
+
+    // Dynamic block: per-conversation context (selected repos, mentioned files,
+    // MCP tool registry). Placed after the static checkpoint so changes here
+    // never invalidate the cross-chat static cache. Empty string when none apply.
+    const dynamicSections: string[] = [];
+
+    if (repos.length > 0) {
+        dynamicSections.push(dedent`
+        <selected_repositories>
+        The user has explicitly selected the following repositories for analysis:
+        ${repos.map(repo => `- ${repo}`).join('\n')}
+
+        When calling tools that accept a \`repo\` parameter (e.g. \`read_file\`, \`list_commits\`, \`list_tree\`, \`get_diff\`, \`grep\`), use these repository names exactly as listed above, including the full host prefix (e.g. \`github.com/org/repo\`).
+
+        When using \`grep\` to search across ALL selected repositories (e.g. "which repos have X?"), omit the \`repo\` parameter entirely — the tool will automatically search across all selected repositories in a single call. Do NOT call \`grep\` once per repository when a single broad search would suffice.
+        </selected_repositories>
+        `);
+    }
+
+    if (files && files.length > 0) {
+        dynamicSections.push(dedent`
+        <files>
+        The user has mentioned the following files, which are automatically included for analysis.
+
+        ${files.map(file => `<file path="${file.path}" repository="${file.repo}" language="${file.language}" revision="${file.revision}">
+            ${addLineNumbers(file.source)}
+            </file>`).join('\n\n')}
+        </files>
+        `);
+    }
+
+    if (mcpToolRegistry.length > 0) {
+        dynamicSections.push(dedent`
+        <mcp_tools>
+        External MCP tools are available but must first be activated via \`tool_request_activation\`.
+
+        **CRITICAL**: The list below is the complete and authoritative inventory of all tools available to you:
+        ${mcpToolRegistry.map(e => `- ${e.name}: ${e.description}`).join('\n')}
+
+        **How to use tool_request_activation**: Pass the exact tool name from the list above as the \`tool_to_activate_name\` parameter. Do NOT pass natural language descriptions or sentences. If you need multiple tools, call \`tool_request_activation\` once per tool.
+        Example: to activate the comment tool, call \`tool_request_activation\` with tool_to_activate_name="mcp_linear__save_comment", NOT tool_to_activate_name="save a comment on an issue".
+        </mcp_tools>
+        `);
+    }
+
+    return { staticPrompt, dynamicPrompt: dynamicSections.join('\n\n') };
 }
 
 // If the agent exceeds the step count, then we will stop.
