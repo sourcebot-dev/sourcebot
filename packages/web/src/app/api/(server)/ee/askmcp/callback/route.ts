@@ -153,6 +153,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
                 orgId: userServer.server.orgId,
                 userId: session.user.id,
             },
+            isActive: true,
         },
     });
 

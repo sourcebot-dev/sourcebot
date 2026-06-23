@@ -37,7 +37,8 @@ export default async function InvitePage(props: InvitePageProps) {
             orgId_userId: {
                 orgId: org.id,
                 userId: session.user.id
-            }
+            },
+            isActive: true,
         }
     });
 

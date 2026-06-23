@@ -50,7 +50,8 @@ export default async function Onboarding(props: OnboardingProps) {
                     orgId_userId: {
                         orgId: org.id,
                         userId: session.user.id
-                    }
+                    },
+                    isActive: true,
                 }
             });
 

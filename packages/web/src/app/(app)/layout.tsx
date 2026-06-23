@@ -61,12 +61,13 @@ export default async function Layout(props: LayoutProps) {
 
     // If the user is authenticated, we must check if they're a member of the org
     if (session) {
-        const membership = await __unsafePrisma.userToOrg.findUnique({
+        const activeMembership = await __unsafePrisma.userToOrg.findUnique({
             where: {
                 orgId_userId: {
                     orgId: org.id,
-                    userId: session.user.id
-                }
+                    userId: session.user.id,
+                },
+                isActive: true,
             },
             include: {
                 user: true
@@ -77,7 +78,7 @@ export default async function Layout(props: LayoutProps) {
         // 1. The org doesn't require member approval, but the org was at max capacity when the user registered. In this case, we show them
         // the join organization card to allow them to join the org if seat capacity is freed up. This card handles checking if the org has available seats.
         // 2. The org requires member approval, and they haven't been approved yet. In this case, we allow them to submit a request to join the org.
-        if (!membership) {
+        if (!activeMembership) {
             if (await isScimEnabled(org)) {
                 return <NotProvisionedCard />;
             }
@@ -100,7 +101,7 @@ export default async function Layout(props: LayoutProps) {
             }
         }
 
-        role = membership.role;
+        role = activeMembership.role;
     } else {
         // If the user isn't authenticated and anonymous access isn't enabled, we need to redirect them to the login page.
         if (!anonymousAccessEnabled) {

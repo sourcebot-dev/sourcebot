@@ -77,6 +77,7 @@ export const publicEeUserListItemSchema = z.object({
     name: z.string().nullable(),
     email: z.string(),
     role: z.enum(['OWNER', 'MEMBER']),
+    isActive: z.boolean(),
     createdAt: z.string().datetime(),
     lastActivityAt: z.string().datetime().nullable(),
 }).openapi('PublicEeUserListItem');

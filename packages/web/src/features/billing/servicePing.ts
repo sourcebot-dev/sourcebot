@@ -41,6 +41,7 @@ export const syncWithLighthouse = async (orgId: number) => {
         __unsafePrisma.userToOrg.count({
             where: {
                 orgId,
+                isActive: true,
             },
         }),
         __unsafePrisma.repo.count({

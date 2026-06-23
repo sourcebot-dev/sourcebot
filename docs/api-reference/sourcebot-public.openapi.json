@@ -1148,6 +1148,9 @@
               "MEMBER"
             ]
           },
+          "isActive": {
+            "type": "boolean"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -1163,6 +1166,7 @@
           "name",
           "email",
           "role",
+          "isActive",
           "createdAt",
           "lastActivityAt"
         ]

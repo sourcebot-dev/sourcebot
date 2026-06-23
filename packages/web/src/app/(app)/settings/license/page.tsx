@@ -49,7 +49,12 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
         : await prisma.license.findUnique({ where: { orgId: org.id } });
 
     const yearlyTermStatus = getYearlyTermStatus(license);
-    const currentUserCount = await prisma.userToOrg.count({ where: { orgId: org.id } });
+    const currentActiveUserCount = await prisma.userToOrg.count({
+        where: {
+            orgId: org.id,
+            isActive: true,
+        },
+    });
 
     const invoicesResult = license ? await getAllInvoices() : null;
     const invoices = invoicesResult && !isServiceError(invoicesResult) ? invoicesResult : [];
@@ -97,7 +102,7 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
                 && !isOnlineLicenseInactive
                 && yearlyTermStatus && (
                     <YearlyTermSeatsUsageCard
-                        currentUsers={currentUserCount}
+                        currentUsers={currentActiveUserCount}
                         status={yearlyTermStatus}
                     />
                 )}

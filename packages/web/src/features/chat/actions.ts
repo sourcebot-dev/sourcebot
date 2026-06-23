@@ -375,6 +375,7 @@ export const shareChatWithUsers = async ({ chatId, userIds }: { chatId: string, 
                 userId: {
                     in: userIds,
                 },
+                isActive: true,
             },
         });
 

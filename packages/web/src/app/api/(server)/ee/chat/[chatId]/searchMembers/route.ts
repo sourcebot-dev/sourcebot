@@ -111,6 +111,7 @@ export const GET = apiHandler(async (
                         { email: { contains: query, mode: 'insensitive' } },
                     ],
                 },
+                isActive: true,
             },
             include: {
                 user: true,

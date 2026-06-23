@@ -38,7 +38,8 @@ export default async function RedeemPage(props: RedeemPageProps) {
             orgId_userId: {
                 orgId: org.id,
                 userId: session.user.id
-            }
+            },
+            isActive: true,
         }
     });
 

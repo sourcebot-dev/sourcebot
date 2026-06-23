@@ -130,6 +130,7 @@ export const createCheckoutSession = async ({
             const memberCount = await prisma.userToOrg.count({
                 where: {
                     orgId: org.id,
+                    isActive: true,
                 },
             });
             const quantity = Math.max(memberCount, 1);
