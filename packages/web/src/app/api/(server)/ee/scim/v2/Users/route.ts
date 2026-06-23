@@ -1,5 +1,5 @@
 import { apiHandler } from '@/lib/apiHandler';
-import { addMember, setMemberActive } from '@/features/membership/membership.service';
+import { ensureActiveMember, setMemberActive } from '@/features/membership/membership.service';
 import { scimError, scimJson, toScimListResponse, toScimUser } from '@/ee/features/scim/mapper';
 import {
     coerceActive,
@@ -90,7 +90,7 @@ export const POST = apiHandler(async (request: NextRequest) =>
             }
             httpStatus = 200;
         } else {
-            const result = await addMember(org.id, user.id, {
+            const result = await ensureActiveMember(org.id, user.id, {
                 actor: scimActor,
                 role: OrgRole.MEMBER,
                 scimExternalId: payload.externalId,

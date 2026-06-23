@@ -2,7 +2,7 @@
 
 import { createAudit } from "@/ee/features/audit/audit";
 import InviteUserEmail from "@/emails/inviteUserEmail";
-import { addMember } from "@/features/membership/membership.service";
+import { ensureActiveMember } from "@/features/membership/membership.service";
 import { getDefaultMemberRole, orgHasAvailability } from "@/features/membership/utils";
 import { membershipManagedByIdpError } from "@/features/membership/errors";
 import { isScimEnabled } from "@/features/scim/utils";
@@ -49,7 +49,7 @@ export const createInvites = async (emails: string[]): Promise<{ success: boolea
                 });
             }
 
-            const hasAvailability = await orgHasAvailability(org.id);
+            const hasAvailability = await orgHasAvailability(org.id, prisma);
             if (!hasAvailability) {
                 await createAudit({
                     action: "user.invite_failed",
@@ -289,7 +289,7 @@ export const joinOrganization = async (inviteLinkId?: string) => sew(async () =>
         }
     }
 
-    const addUserToOrgRes = await addMember(org.id, user.id, {
+    const addUserToOrgRes = await ensureActiveMember(org.id, user.id, {
         actor: { id: user.id, type: "user" },
         role: await getDefaultMemberRole(),
     });
@@ -348,7 +348,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
         });
     };
 
-    const hasAvailability = await orgHasAvailability(invite.org.id);
+    const hasAvailability = await orgHasAvailability(invite.org.id, __unsafePrisma);
     if (!hasAvailability) {
         await failAuditCallback("Organization is at max capacity");
         return {
@@ -364,7 +364,7 @@ export const redeemInvite = async (inviteId: string): Promise<{ success: boolean
         return notFound();
     }
 
-    const addUserToOrgRes = await addMember(invite.orgId, user.id, {
+    const addUserToOrgRes = await ensureActiveMember(invite.orgId, user.id, {
         actor: { id: user.id, type: "user" },
         role: await getDefaultMemberRole(),
     });

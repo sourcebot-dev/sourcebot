@@ -7,7 +7,7 @@ import { createAudit } from "@/ee/features/audit/audit";
 import { isScimEnabled } from "@/features/scim/utils";
 import { getDefaultMemberRole } from "@/features/membership/utils";
 import { isServiceError } from "@/lib/utils";
-import { addMember } from "@/features/membership/membership.service";
+import { ensureActiveMember } from "@/features/membership/membership.service";
 import { logger } from "./logger";
 import { captureEvent } from "@/lib/posthog";
 
@@ -75,7 +75,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
     // user as a member with the OWNER role.
     const isFirstUser = defaultOrg.members.length === 0;
     if (isFirstUser) {
-        const result = await addMember(SINGLE_TENANT_ORG_ID, user.id, {
+        const result = await ensureActiveMember(SINGLE_TENANT_ORG_ID, user.id, {
             actor: { id: user.id, type: "user" },
             role: OrgRole.OWNER,
         });
@@ -104,7 +104,7 @@ export const onCreateUser = async ({ user }: { user: AuthJsUser }) => {
         !isMemberApprovalRequired(defaultOrg) &&
         !(await isScimEnabled(defaultOrg))
     ) {
-        const result = await addMember(SINGLE_TENANT_ORG_ID, user.id, {
+        const result = await ensureActiveMember(SINGLE_TENANT_ORG_ID, user.id, {
             actor: { id: user.id, type: "user" },
             role: await getDefaultMemberRole(),
         });

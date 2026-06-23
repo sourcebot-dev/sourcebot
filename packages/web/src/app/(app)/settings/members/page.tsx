@@ -23,7 +23,7 @@ type MembersSettingsPageProps = {
     }>
 }
 
-export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role, user }, props) => {
+export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role, user, prisma }, props) => {
     const searchParams = await props.searchParams;
 
     const {
@@ -47,7 +47,7 @@ export default authenticatedPage<MembersSettingsPageProps>(async ({ org, role, u
 
     const currentTab = tab || "members";
 
-    const hasAvailability = await orgHasAvailability(org.id);
+    const hasAvailability = await orgHasAvailability(org.id, prisma);
     const seatCap = getSeatCap();
     const scimEnabled = await isScimEnabled(org);
 

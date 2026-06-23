@@ -2,7 +2,7 @@
 
 import { createAudit } from "@/ee/features/audit/audit";
 import JoinRequestApprovedEmail from "@/emails/joinRequestApprovedEmail";
-import { addMember } from "@/features/membership/membership.service";
+import { ensureActiveMember } from "@/features/membership/membership.service";
 import { getDefaultMemberRole } from "@/features/membership/utils";
 import { membershipManagedByIdpError } from "@/features/membership/errors";
 import { isScimEnabled } from "@/features/scim/utils";
@@ -171,7 +171,7 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
                 return notFound();
             }
 
-            const addUserToOrgRes = await addMember(org.id, request.requestedById, {
+            const addUserToOrgRes = await ensureActiveMember(org.id, request.requestedById, {
                 actor: { id: request.requestedById, type: "user" },
                 role: await getDefaultMemberRole(),
             });

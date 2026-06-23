@@ -1,7 +1,6 @@
-import { __unsafePrisma } from "@/prisma";
 import { hasEntitlement } from "@/lib/entitlements";
 import { createLogger, getSeatCap } from "@sourcebot/shared";
-import { OrgRole } from "@sourcebot/db";
+import { OrgRole, Prisma } from "@sourcebot/db";
 
 const logger = createLogger("membership-utils");
 
@@ -19,12 +18,12 @@ export const getDefaultMemberRole = async (): Promise<OrgRole> =>
  * availability is determined by the `seats` parameter in the offline license
  * key, if available.
  */
-export const orgHasAvailability = async (orgId: number): Promise<boolean> => {
+export const orgHasAvailability = async (orgId: number, tx: Prisma.TransactionClient): Promise<boolean> => {
     const seatCap = getSeatCap();
 
     // SCIM-deactivated members don't consume a seat, so they free up capacity
     // for new provisions while their membership row is preserved.
-    const activeUserCount = await __unsafePrisma.userToOrg.count({
+    const activeUserCount = await tx.userToOrg.count({
         where: {
             orgId,
             isActive: true,

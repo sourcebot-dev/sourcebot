@@ -10,26 +10,22 @@ import { __unsafePrisma as prisma } from "@/prisma";
 import { OrgRole, Prisma, type UserToOrg } from "@sourcebot/db";
 import { lastOwnerDemoteError, lastOwnerError, seatLimitReached } from "./errors";
 
-export interface AddMemberOptions {
+export interface EnsureActiveMemberOptions {
     actor: AuditActor;
     role: OrgRole;
     scimExternalId?: string;
 }
 
 /**
- * Ensures a membership exists for the user in the org. Idempotent: if a
- * membership already exists (active or inactive) it is returned unchanged — this
- * does NOT reactivate a deactivated membership (that's `setMemberActive`'s job)
- * or change its role. On create, enforces the seat cap and clears any pending
+ * Ensures the user has an active membership. Active: returned unchanged.
+ * Inactive: reactivated (re-checks the seat cap). Otherwise: created.
+ * `role` only applies on create. Enforces the seat cap and clears pending
  * invites / account requests for the user.
- *
- * Note: a returned membership may be pre-existing and inactive, so a successful
- * result does not by itself imply the user is active.
  */
-export const addMember = async (
+export const ensureActiveMember = async (
     orgId: number,
     userId: string,
-    options: AddMemberOptions,
+    options: EnsureActiveMemberOptions,
 ): Promise<UserToOrg | ServiceError> => {
     const { actor, role, scimExternalId } = options;
     const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -40,15 +36,22 @@ export const addMember = async (
     const existing = await prisma.userToOrg.findUnique({
         where: { orgId_userId: { orgId, userId } },
     });
-    if (existing) {
+
+    if (existing && existing.isActive) {
         return existing;
     }
-
-    if (!(await orgHasAvailability(orgId))) {
-        return seatLimitReached();
+    if (existing && !existing.isActive) {
+        return setMemberActive(orgId, userId, true, {
+            actor,
+            scimExternalId
+        });
     }
 
     const membership = await prisma.$transaction(async (tx) => {
+        if (!(await orgHasAvailability(orgId, tx))) {
+            return seatLimitReached();
+        }
+
         const created = await tx.userToOrg.create({
             data: {
                 userId,
@@ -68,6 +71,10 @@ export const addMember = async (
 
         return created;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    if (isServiceError(membership)) {
+        return membership;
+    }
 
     await syncWithLighthouse(orgId).catch(() => { /* best effort */ });
     await createAudit({
@@ -208,32 +215,32 @@ export const setMemberActive = async (
     userId: string,
     active: boolean,
     options: SetMemberActiveOptions,
-): Promise<ServiceError | null> => {
+): Promise<ServiceError | UserToOrg> => {
     const { actor, scimExternalId } = options;
 
+    // Case: deactivating a member
     if (!active) {
         let didChange = false;
 
         const result = await prisma.$transaction(async (tx) => {
-            const target = await tx.userToOrg.findUnique({
+            let target = await tx.userToOrg.findUnique({
                 where: { orgId_userId: { orgId, userId } },
             });
             if (!target) {
                 return notFound("Member not found in this organization");
             }
             if (!target.isActive) {
-                return null;
+                return target;
             }
 
             await revokeAllUserAuthCredentials(tx, userId, orgId);
 
-            await tx.userToOrg.update({
+            target = await tx.userToOrg.update({
                 where: { orgId_userId: { orgId, userId } },
                 data: { isActive: false },
             });
             didChange = true;
-
-            return null;
+            return target;
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
         if (!isServiceError(result) && didChange) {
@@ -247,46 +254,56 @@ export const setMemberActive = async (
         }
 
         return result;
-    }
 
-    const target = await prisma.userToOrg.findUnique({
-        where: { orgId_userId: { orgId, userId } },
-    });
-    if (!target) {
-        return notFound("Member not found in this organization");
-    }
+        // Case: reactivating a member
+    } else {
+        let didChange = false;
 
-    if (target.isActive) {
-        if (scimExternalId && target.scimExternalId !== scimExternalId) {
-            await prisma.userToOrg.update({
+        const result = await prisma.$transaction(async (tx) => {
+            let target = await tx.userToOrg.findUnique({
                 where: { orgId_userId: { orgId, userId } },
-                data: { scimExternalId },
+            });
+            if (!target) {
+                return notFound("Member not found in this organization");
+            }
+
+            if (target.isActive) {
+                if (scimExternalId && target.scimExternalId !== scimExternalId) {
+                    target = await tx.userToOrg.update({
+                        where: { orgId_userId: { orgId, userId } },
+                        data: { scimExternalId },
+                    });
+                }
+                return target;
+            }
+
+            if (!(await orgHasAvailability(orgId, tx))) {
+                return seatLimitReached();
+            }
+
+            target = await tx.userToOrg.update({
+                where: { orgId_userId: { orgId, userId } },
+                data: {
+                    isActive: true,
+                    ...(scimExternalId ? { scimExternalId } : {}),
+                },
+            });
+            didChange = true;
+            return target;
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+        if (!isServiceError(result) && didChange) {
+            await syncWithLighthouse(orgId).catch(() => { /* best effort */ });
+            await createAudit({
+                action: "org.member_reactivated",
+                actor,
+                target: { id: userId, type: "user" },
+                orgId,
             });
         }
-        return null;
+
+        return result;
     }
-
-    if (!(await orgHasAvailability(orgId))) {
-        return seatLimitReached();
-    }
-
-    await prisma.userToOrg.update({
-        where: { orgId_userId: { orgId, userId } },
-        data: {
-            isActive: true,
-            ...(scimExternalId ? { scimExternalId } : {}),
-        },
-    });
-
-    await syncWithLighthouse(orgId).catch(() => { /* best effort */ });
-    await createAudit({
-        action: "org.member_reactivated",
-        actor,
-        target: { id: userId, type: "user" },
-        orgId,
-    });
-
-    return null;
 };
 
 const countActiveOwners = (tx: Prisma.TransactionClient, orgId: number): Promise<number> =>
