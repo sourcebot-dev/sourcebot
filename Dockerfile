@@ -26,6 +26,11 @@ WORKDIR /zoekt
 COPY vendor/zoekt/go.mod vendor/zoekt/go.sum ./
 RUN go mod download
 COPY vendor/zoekt ./
+# Force-upgrade golang.org/x/net to a patched version to address CVE-2026-42502
+# (HTML parsed and re-rendered via Render can produce an unexpected tree, enabling XSS).
+# This pulls the fixed version into the built zoekt binaries; remove once vendor/zoekt
+# pins >= v0.55.0.
+RUN go get golang.org/x/net@v0.55.0
 RUN CGO_ENABLED=0 GOOS=linux go build -o /cmd/ ./cmd/...
 # -------------------------
 

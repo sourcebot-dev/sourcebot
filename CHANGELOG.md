@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added per-step token cost tracking and estimated tool call token usage to Ask Sourcebot chat history. [#1353](https://github.com/sourcebot-dev/sourcebot/pull/1353)
 
+### Fixed
+- Upgraded `golang.org/x/net` to `^0.55.0` in the zoekt build to address CVE-2026-42502. [#1364](https://github.com/sourcebot-dev/sourcebot/pull/1364)
+
 ## [5.0.4] - 2026-06-18
 
 ### Changed
