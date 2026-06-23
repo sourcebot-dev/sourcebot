@@ -396,7 +396,7 @@ describe('createMessageStream prompt caching', () => {
         expect(system[1].content).toContain('<selected_repositories>');
     });
 
-    test('marks the tool_request_activation tool when MCP tools are present', async () => {
+    test('does not mark the tools block, so mid-run activeTools growth never busts it', async () => {
         const { buildMcpToolRegistry } = await import('@/ee/features/chat/mcp/mcpToolRegistry');
         vi.mocked(buildMcpToolRegistry).mockReturnValueOnce([
             { name: 'mcp_linear__save_issue', description: 'Save an issue', serverName: 'linear' },
@@ -406,7 +406,11 @@ describe('createMessageStream prompt caching', () => {
             promptCacheStrategy: anthropicStrategy,
         });
 
-        expect(tools.tool_request_activation?.providerOptions?.anthropic?.cacheControl).toEqual(EPHEMERAL);
+        // The static checkpoint sits on the system block (after the full tools
+        // section in render order), so no tool definition carries a breakpoint.
+        for (const tool of Object.values(tools)) {
+            expect(tool.providerOptions?.anthropic?.cacheControl).toBeUndefined();
+        }
     });
 
     test.each([

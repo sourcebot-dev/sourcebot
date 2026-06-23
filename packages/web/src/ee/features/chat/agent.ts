@@ -397,16 +397,6 @@ const createAgentStream = async ({
     const useStaticPrefix = env.SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_PREFIX_ENABLED === 'true';
     const staticTtl = env.SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_TTL;
 
-    // Marker 1 (MCP only): cache the byte-stable built-in tools + activation tool
-    // block on the `tool_request_activation` definition (the last always-active
-    // tool, serialized before the dynamic MCP tools). This survives the cache
-    // bust that mid-run `activeTools` growth causes for markers 2 & 3. When no
-    // MCP tools are present, marker 2 already covers the built-in tools, so this
-    // is skipped.
-    const activationToolMarker = (hasMcpTools && useStaticPrefix)
-        ? promptCacheStrategy.cacheControl({ ttl: staticTtl })
-        : undefined;
-
     const toolRequestActivation = tool({
         description: dedent`
         Activate an MCP tool by name so it becomes callable on your next step.
@@ -423,7 +413,6 @@ const createAgentStream = async ({
         inputSchema: z.object({
             tool_to_activate_name: z.string().describe('Exact tool name from the registry, e.g. "mcp_linear__save_comment"'),
         }),
-        providerOptions: activationToolMarker,
         execute: async ({ tool_to_activate_name }) => {
             const results = searchMcpTools(tool_to_activate_name, mcpRegistry);
             return {
@@ -445,20 +434,18 @@ const createAgentStream = async ({
         ...(hasMcpTools ? { tool_request_activation: toolRequestActivation, ...mcpToolSetsObj.tools } : {}),
     };
 
-    // Anthropic prompt caching uses up to three nested breakpoints over one
-    // cumulative prefix (render order: tools -> system -> messages):
+    // Anthropic prompt caching uses two nested breakpoints over one cumulative
+    // prefix (render order: tools -> system -> messages):
     //
-    //   Marker 1 (MCP only): the `tool_request_activation` tool definition (set
-    //     above) caches the byte-stable built-in + activation tool block.
-    //   Marker 2: the static system block below caches tools + the static system
-    //     instructions. This block is byte-identical across every chat and user,
-    //     so it is a divergence-proof checkpoint a brand-new chat can read from
-    //     instead of re-writing the large static prefix.
-    //   Marker 3: a moving breakpoint on the last message of each step (applied
-    //     in `prepareStep` below) caches tools + static + dynamic system + the
-    //     full conversation so far. Because it advances to the new tail every
-    //     step, the turn's growing delta (assistant tool calls and their outputs)
-    //     is cached incrementally instead of reprocessed on each later step.
+    //   Static checkpoint: the static system block below caches tools + the
+    //     static system instructions. This block is byte-identical across every
+    //     chat and user, so it is a divergence-proof checkpoint a brand-new chat
+    //     can read from instead of re-writing the large static prefix.
+    //   Moving tail: a breakpoint on the last message of each step (applied in
+    //     `prepareStep` below) caches tools + static + dynamic system + the full
+    //     conversation so far. Because it advances to the new tail every step,
+    //     the turn's growing delta (assistant tool calls and their outputs) is
+    //     cached incrementally instead of reprocessed on each later step.
     //
     // The `anthropic` provider-options namespace is ignored by non-Anthropic
     // providers, and a no-op strategy emits no markers at all, so this is safe
@@ -466,9 +453,8 @@ const createAgentStream = async ({
     // cacheable size the marker is a harmless no-op.
     //
     // Caveat: when MCP tools are lazily activated mid-run via prepareStep, the
-    // tools section grows and invalidates markers 2 & 3 for that step; marker 1
-    // preserves the built-in/activation block and the cache re-warms on
-    // subsequent steps once the active tool set is stable.
+    // tools section grows and invalidates both breakpoints for that step; the
+    // cache re-warms on subsequent steps once the active tool set is stable.
     const staticMarker = useStaticPrefix
         ? promptCacheStrategy.cacheControl({ ttl: staticTtl })
         : undefined;
@@ -479,7 +465,7 @@ const createAgentStream = async ({
         systemMessages.push({ role: 'system', content: dynamicPrompt });
     }
 
-    // Marker 3 (moving tail): an ephemeral (5m) breakpoint applied in
+    // Moving tail: an ephemeral (5m) breakpoint applied in
     // `prepareStep` to the last message of each step, so it advances with the
     // turn instead of staying pinned to the last input message. Merged onto any
     // existing providerOptions so sibling namespaces (e.g. anthropic.thinking)
