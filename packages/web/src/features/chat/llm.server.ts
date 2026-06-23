@@ -310,12 +310,15 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
     })();
 
     const posthog = await createPostHogClient();
-    const distinctId = await tryGetPostHogDistinctId();
+    const { distinctId } = await tryGetPostHogDistinctId();
 
     // Only enable posthog LLM analytics for the ask GH experiment.
     const model = env.EXPERIMENT_ASK_GH_ENABLED === 'true' ?
         withTracing(_model, posthog, {
-            posthogDistinctId: distinctId,
+            // @note: Key anonymous events to the install id so they
+            // collapse to a single identity instead of a brand-new one
+            // on every call.
+            posthogDistinctId: distinctId ?? env.SOURCEBOT_INSTALL_ID,
         }) :
         _model;
 

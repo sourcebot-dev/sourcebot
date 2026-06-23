@@ -14,6 +14,7 @@ const logger = createLogger('posthog');
  */
 export type PostHogCookie = {
     distinct_id: string;
+    $user_state?: 'anonymous' | 'identified';
 }
 
 const isPostHogCookie = (cookie: unknown): cookie is PostHogCookie => {
@@ -51,22 +52,33 @@ const getPostHogCookie = (cookieStore: Pick<RequestCookies, 'get'>): PostHogCook
 }
 
 /**
- * Attempts to retrieve the distinct id of the current user.
+ * Attempts to retrieve the distinct id of the current user, along with whether
+ * that id corresponds to an *identified* user (as opposed to an anonymous one).
  */
-export const tryGetPostHogDistinctId = async () => {
+export const tryGetPostHogDistinctId = async (): Promise<{
+    distinctId: string | undefined;
+    isIdentified: boolean;
+}> => {
     // First, attempt to retrieve the distinct id from the PostHog cookie
     // (set by the client-side PostHog SDK). This preserves identity
     // continuity between client-side and server-side events.
     const cookieStore = await cookies();
     const cookie = getPostHogCookie(cookieStore);
     if (cookie) {
-        return cookie.distinct_id;
+        return {
+            distinctId: cookie.distinct_id,
+            isIdentified: cookie.$user_state === 'identified',
+        };
     }
 
     // Fall back to the authenticated user's ID. This covers all auth
     // methods: session cookies, OAuth Bearer tokens, and API keys.
     const authResult = await getAuthenticatedUser();
-    return authResult?.user.id;
+    if (authResult?.user.id) {
+        return { distinctId: authResult.user.id, isIdentified: true };
+    }
+
+    return { distinctId: undefined, isIdentified: false };
 }
 
 export const createPostHogClient = async () => {
@@ -85,7 +97,7 @@ export async function captureEvent<E extends PosthogEvent>(event: E, properties:
             return;
         }
 
-        const distinctId = await tryGetPostHogDistinctId();
+        const { distinctId, isIdentified } = await tryGetPostHogDistinctId();
         const posthog = await createPostHogClient();
 
         const headersList = await headers();
@@ -98,8 +110,18 @@ export async function captureEvent<E extends PosthogEvent>(event: E, properties:
                 sourcebot_version: SOURCEBOT_VERSION,
                 install_id: env.SOURCEBOT_INSTALL_ID,
                 $host: host,
+                // Mirror the client's `identified_only` setting: only identified
+                // users get a person profile. Anonymous requests (logged-out
+                // visitors and unauthenticated API calls) are sent as personless
+                // events so we don't create a person profile per request and
+                // inflate person counts/billing.
+                // @see: https://posthog.com/handbook/engineering/person-processing#personless-mode-anonymous-events
+                ...(isIdentified ? {} : { $process_person_profile: false }),
             },
-            distinctId,
+            // @note: Key anonymous events to the install id so they
+            // collapse to a single identity instead of a brand-new one
+            // on every call.
+            distinctId: distinctId ?? env.SOURCEBOT_INSTALL_ID,
             groups: { company: env.SOURCEBOT_INSTALL_ID },
         });
     } catch (error) {
