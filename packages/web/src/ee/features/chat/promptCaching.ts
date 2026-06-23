@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { ProviderOptions } from "@ai-sdk/provider-utils";
 import { createLogger } from "@sourcebot/shared";
 import { LanguageModelProvider } from "@/features/chat/types";
@@ -105,19 +106,14 @@ interface CacheBreakSnapshot {
     requestCount: number;
 }
 
-// Keyed by chatId. In-memory, best-effort: survives within a server process and
-// is naturally bounded by the number of concurrent chats. Mirrors the in-memory
-// caching pattern used elsewhere (e.g. `anthropicThinkingConfigCache`).
+// Keyed by chatId, in-memory, observability-only. Entries are never removed on chat
+// end, so the map is bounded by a FIFO cap (oldest insertion evicted first, below);
+// otherwise it grows with the cumulative count of distinct chats, not the concurrent count.
+const MAX_CACHE_BREAK_SNAPSHOTS = 10_000;
 const cacheBreakSnapshots = new Map<string, CacheBreakSnapshot>();
 
-// Lightweight, stable, non-cryptographic hash (djb2). Observability only.
-const hashString = (input: string): string => {
-    let hash = 5381;
-    for (let i = 0; i < input.length; i++) {
-        hash = ((hash << 5) + hash + input.charCodeAt(i)) | 0;
-    }
-    return (hash >>> 0).toString(36);
-};
+const hashString = (input: string): string =>
+    createHash('sha256').update(input).digest('hex').slice(0, 16);
 
 /**
  * Records the cache-relevant prefix signature for a chat and logs a warning when
@@ -148,6 +144,14 @@ export const detectPromptCacheBreak = ({
         const prev = cacheBreakSnapshots.get(chatId);
         const requestCount = (prev?.requestCount ?? 0) + 1;
         cacheBreakSnapshots.set(chatId, { signature, requestCount });
+
+        // FIFO eviction: once the map overflows, drop the oldest-inserted entry.
+        if (cacheBreakSnapshots.size > MAX_CACHE_BREAK_SNAPSHOTS) {
+            const oldestKey = cacheBreakSnapshots.keys().next().value;
+            if (oldestKey !== undefined) {
+                cacheBreakSnapshots.delete(oldestKey);
+            }
+        }
 
         if (prev && prev.signature !== signature) {
             logger.warn(

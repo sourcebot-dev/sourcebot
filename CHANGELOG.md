@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- [EE] Improved Ask Sourcebot prompt caching by splitting static and dynamic prompt sections and advancing cache breakpoints after every agent step instead of only after each message. [#<id>](https://github.com/sourcebot-dev/sourcebot/pull/<id>)
+
 ### Added
 - Added per-step token cost tracking and estimated tool call token usage to Ask Sourcebot chat history. [#1353](https://github.com/sourcebot-dev/sourcebot/pull/1353)
 
