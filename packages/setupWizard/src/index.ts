@@ -110,6 +110,83 @@ function parseTopLevelVolumes(composeYaml: string): string[] {
     return names;
 }
 
+// Parses every `container_name:` entry from a docker-compose.yml. These are the
+// fixed names Docker assigns the containers, and a pre-existing container with the
+// same name (e.g. from an older `docker run --name sourcebot ...`) makes
+// `docker compose up` fail with "The container name ... is already in use".
+function parseComposeContainerNames(composeYaml: string): string[] {
+    const names: string[] = [];
+    for (const rawLine of composeYaml.split('\n')) {
+        const line = rawLine.replace(/\r$/, '');
+        const m = line.match(/^\s+container_name:\s*(.+?)\s*$/);
+        if (m) {
+            names.push(m[1].replace(/^["']|["']$/g, '').trim());
+        }
+    }
+    return names;
+}
+
+// A pre-existing container that would collide with a declared `container_name`.
+type ConflictingContainer = { name: string; id: string; project: string };
+
+// Finds existing containers (running or stopped) whose name matches one of the given
+// names. Returns the container id and its compose project label (empty if it isn't
+// compose-managed) so callers can ignore containers belonging to the current project.
+async function findConflictingContainers(names: string[]): Promise<ConflictingContainer[]> {
+    if (names.length === 0) {
+        return [];
+    }
+    return new Promise<ConflictingContainer[]>((resolve) => {
+        const child = spawn(
+            'docker',
+            ['ps', '-a', '--no-trunc', '--format', '{{.Names}}\t{{.ID}}\t{{.Label "com.docker.compose.project"}}'],
+            { stdio: ['ignore', 'pipe', 'ignore'] },
+        );
+        let out = '';
+        child.stdout?.on('data', (chunk: Buffer) => {
+            out += chunk.toString();
+        });
+        child.on('exit', (code) => {
+            if (code !== 0) {
+                resolve([]);
+                return;
+            }
+            const wanted = new Set(names);
+            const conflicts: ConflictingContainer[] = [];
+            for (const line of out.split('\n')) {
+                const [name, id, project] = line.split('\t');
+                if (name && id && wanted.has(name)) {
+                    conflicts.push({ name, id, project: (project ?? '').trim() });
+                }
+            }
+            resolve(conflicts);
+        });
+        child.on('error', () => resolve([]));
+    });
+}
+
+// Force-removes the given containers (by id or name). Returns true only if all
+// removed cleanly.
+async function removeDockerContainers(ids: string[]): Promise<boolean> {
+    if (ids.length === 0) {
+        return true;
+    }
+    return new Promise<boolean>((resolve) => {
+        const child = spawn('docker', ['rm', '-f', ...ids], { stdio: ['ignore', 'ignore', 'pipe'] });
+        let err = '';
+        child.stderr?.on('data', (chunk: Buffer) => {
+            err += chunk.toString();
+        });
+        child.on('exit', (code) => {
+            if (code !== 0 && err.trim()) {
+                console.error(chalk.red('✗ ') + err.trim());
+            }
+            resolve(code === 0);
+        });
+        child.on('error', () => resolve(false));
+    });
+}
+
 // A published port from a compose `ports:` entry, with the host interface Docker
 // would bind to. Container-only, range, and env-interpolated specs are skipped.
 type PublishedPort = { host: string; port: number };
@@ -741,6 +818,39 @@ async function main() {
                     rs.succeed('Removed containers');
                 } else {
                     rs.fail('Failed to remove containers');
+                }
+            }
+        }
+    }
+
+    // A container created outside this compose project but sharing a declared
+    // `container_name` (e.g. a leftover `docker run --name sourcebot ...` from an older
+    // install) makes `docker compose up` fail with "The container name ... is already in
+    // use". The compose cleanup above only removes our own project's containers, so check
+    // for foreign name collisions here and offer to remove them.
+    if (downloadedCompose && !leftDeploymentRunning) {
+        const project = dockerComposeProjectName();
+        const containerNames = parseComposeContainerNames(readFileSync('docker-compose.yml', 'utf-8'));
+        const conflicts = (await findConflictingContainers(containerNames))
+            .filter((c) => c.project !== project);
+
+        if (conflicts.length > 0) {
+            console.log();
+            console.log(chalk.yellow('⚠ ') + 'The following existing container names conflict with Sourcebot and will prevent it from starting:');
+            for (const c of conflicts) {
+                console.log('  ' + chalk.dim('- ') + c.name);
+            }
+            const remove = await confirm({
+                message: `Remove ${conflicts.length === 1 ? 'this container' : 'these containers'} so Sourcebot can start?`,
+                default: true,
+            });
+            if (remove) {
+                const cs = ora('Removing containers...').start();
+                const ok = await removeDockerContainers(conflicts.map((c) => c.id));
+                if (ok) {
+                    cs.succeed(`Removed ${conflicts.length} container${conflicts.length === 1 ? '' : 's'}`);
+                } else {
+                    cs.fail('Failed to remove one or more containers');
                 }
             }
         }
