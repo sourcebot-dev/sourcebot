@@ -35,6 +35,7 @@ export const agentSkillInputSchema = z.object({
         .max(20, "Skills can have at most 20 named arguments.")
         .refine(hasUniqueArgumentNames, "Argument names must be unique.")
         .default([]),
+    autoInvocationEnabled: z.boolean().default(false),
 });
 
 export const updateAgentSkillInputSchema = agentSkillInputSchema.extend({
@@ -50,6 +51,7 @@ export const agentSkillListItemSchema = z.object({
     instructions: z.string(),
     argumentNames: z.array(z.string()),
     enabled: z.boolean(),
+    autoInvocationEnabled: z.boolean(),
     createdAt: z.string(),
     updatedAt: z.string(),
 });
@@ -214,7 +216,7 @@ export const parseAgentSkillMarkdown = (
 };
 
 export const toAgentSkillListItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "instructions" | "argumentNames" | "enabled" | "createdAt" | "updatedAt">,
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "instructions" | "argumentNames" | "enabled" | "autoInvocationEnabled" | "createdAt" | "updatedAt">,
 ): AgentSkillListItem => ({
     id: skill.id,
     scope: skill.visibility,
@@ -224,12 +226,13 @@ export const toAgentSkillListItem = (
     instructions: skill.instructions,
     argumentNames: skill.argumentNames,
     enabled: skill.enabled,
+    autoInvocationEnabled: skill.autoInvocationEnabled,
     createdAt: skill.createdAt.toISOString(),
     updatedAt: skill.updatedAt.toISOString(),
 });
 
 const toOrgAgentSkillBaseItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "argumentNames" | "enabled" | "featured" | "autoEnrolled" | "createdAt" | "updatedAt">,
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "argumentNames" | "enabled" | "autoInvocationEnabled" | "featured" | "autoEnrolled" | "createdAt" | "updatedAt">,
 ): OrgAgentSkillBaseItem => ({
     id: skill.id,
     scope: skill.visibility,
@@ -238,6 +241,7 @@ const toOrgAgentSkillBaseItem = (
     description: skill.description,
     argumentNames: skill.argumentNames,
     enabled: skill.enabled,
+    autoInvocationEnabled: skill.autoInvocationEnabled,
     createdAt: skill.createdAt.toISOString(),
     updatedAt: skill.updatedAt.toISOString(),
     featured: skill.featured,
@@ -245,11 +249,11 @@ const toOrgAgentSkillBaseItem = (
 });
 
 export const toOrgAgentSkillManagementItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "argumentNames" | "enabled" | "featured" | "autoEnrolled" | "createdAt" | "updatedAt">,
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "argumentNames" | "enabled" | "autoInvocationEnabled" | "featured" | "autoEnrolled" | "createdAt" | "updatedAt">,
 ): OrgAgentSkillManagementItem => toOrgAgentSkillBaseItem(skill);
 
 export const toOrgAgentSkillCatalogItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "argumentNames" | "enabled" | "featured" | "autoEnrolled" | "createdById" | "createdAt" | "updatedAt"> & {
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "argumentNames" | "enabled" | "autoInvocationEnabled" | "featured" | "autoEnrolled" | "createdById" | "createdAt" | "updatedAt"> & {
         adoptions: { id: string; removedAt: Date | null }[];
     },
     userId: string,

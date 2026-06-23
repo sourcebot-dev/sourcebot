@@ -76,6 +76,7 @@ const orgCatalogSkillSelect = (userId: string, orgId: number) => ({
     description: true,
     argumentNames: true,
     enabled: true,
+    autoInvocationEnabled: true,
     featured: true,
     autoEnrolled: true,
     createdById: true,
@@ -101,6 +102,7 @@ const orgManagementSkillSelect = {
     description: true,
     argumentNames: true,
     enabled: true,
+    autoInvocationEnabled: true,
     featured: true,
     autoEnrolled: true,
     createdAt: true,
@@ -170,7 +172,12 @@ const orgSkillCreateDataForUser = ({
 }: {
     orgId: number;
     userId: string;
-    skill: AgentSkillInput;
+    // Accepts either a full skill input (direct org creation) or a partial copy
+    // (publishing a personal skill). Auto-invocation defaults off when not
+    // explicitly provided, so publishing never opts a skill in implicitly.
+    skill: Pick<AgentSkillInput, "slug" | "name" | "description" | "instructions" | "argumentNames"> & {
+        autoInvocationEnabled?: boolean;
+    };
 }) => ({
     ...orgAgentSkillScope(orgId),
     slug: skill.slug,
@@ -178,6 +185,7 @@ const orgSkillCreateDataForUser = ({
     description: skill.description,
     instructions: skill.instructions,
     argumentNames: skill.argumentNames,
+    autoInvocationEnabled: skill.autoInvocationEnabled ?? false,
     createdById: userId,
     updatedById: userId,
     orgId,
@@ -429,6 +437,7 @@ export const createPersonalAgentSkill = async (
                         description: parsed.data.description,
                         instructions: parsed.data.instructions,
                         argumentNames: parsed.data.argumentNames,
+                        autoInvocationEnabled: parsed.data.autoInvocationEnabled,
                         createdById: user.id,
                         updatedById: user.id,
                         orgId: null,
@@ -483,6 +492,7 @@ export const updatePersonalAgentSkill = async (
                         description: parsed.data.description,
                         instructions: parsed.data.instructions,
                         argumentNames: parsed.data.argumentNames,
+                        autoInvocationEnabled: parsed.data.autoInvocationEnabled,
                         updatedById: user.id,
                     },
                 });
@@ -830,6 +840,7 @@ export const updateOrgAgentSkill = async (
                         description: parsed.data.description,
                         instructions: parsed.data.instructions,
                         argumentNames: parsed.data.argumentNames,
+                        autoInvocationEnabled: parsed.data.autoInvocationEnabled,
                         updatedById: user.id,
                     },
                 });

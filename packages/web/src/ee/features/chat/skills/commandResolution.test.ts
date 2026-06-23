@@ -1,4 +1,9 @@
 import { describe, expect, test, vi } from "vitest";
+
+// commandResolution imports captureEvent from @/lib/posthog (a server-only
+// module). Mock it so the suite can import the module under test in vitest.
+vi.mock("@/lib/posthog", () => ({ captureEvent: vi.fn() }));
+
 import { ASK_COMMAND_SOURCE_ORG_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL } from "@/features/chat/commands/types";
 import type { FileSource, SBChatMessage } from "@/features/chat/types";
 import { getFileSourcesFromText, getUserMessageModelText, materializeCommandMessageText, materializeCommandMessageTexts } from "./commandResolution";

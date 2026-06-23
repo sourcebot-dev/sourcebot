@@ -785,6 +785,13 @@ model AgentSkill {
   enabled      Boolean  @default(true)
   featured     Boolean  @default(false)
   autoEnrolled Boolean  @default(false)
+
+  // When true, the Ask agent may auto-invoke this skill via the `load_skill`
+  // tool (model-driven invocation). Off by default: authors opt a skill in.
+  // This gates AUTO-invocation only; manual slash-command invocation works
+  // regardless of this flag.
+  autoInvocationEnabled Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

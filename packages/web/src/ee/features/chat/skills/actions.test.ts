@@ -84,6 +84,7 @@ const validCreateInput = {
     description: "Review risky changes.",
     instructions: "Review $0.",
     argumentNames: ["topic"],
+    autoInvocationEnabled: false,
 };
 
 describe("listAgentSkillCommands", () => {
@@ -230,6 +231,7 @@ describe("createOrgAgentSkill", () => {
                 description: "Review risky changes.",
                 instructions: "Review $0.",
                 argumentNames: ["topic"],
+                autoInvocationEnabled: false,
                 createdById: "member-1",
                 updatedById: "member-1",
                 orgId: 1,
@@ -309,6 +311,7 @@ describe("publishPersonalAgentSkillToOrg", () => {
                 description: "Review risky changes.",
                 instructions: "Review $0.",
                 argumentNames: ["topic"],
+                autoInvocationEnabled: false,
                 createdById: "member-1",
                 updatedById: "member-1",
                 orgId: 1,
@@ -668,6 +671,7 @@ const validUpdateInput = {
     description: "Review risky changes.",
     instructions: "Review $0.",
     argumentNames: [],
+    autoInvocationEnabled: false,
 };
 
 describe("updateOrgAgentSkill", () => {
@@ -771,6 +775,7 @@ describe("updateOrgAgentSkill", () => {
                 description: "Review risky changes.",
                 instructions: "Review $0.",
                 argumentNames: [],
+                autoInvocationEnabled: false,
                 updatedById: "author-1",
             },
         });
