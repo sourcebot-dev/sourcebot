@@ -163,10 +163,20 @@ const createFakeStreamResult = () => ({
     }),
 });
 
+type FakePrepareStep = (opts: {
+    steps: Array<{ toolResults: Array<{ toolName: string; output: unknown }> }>;
+    stepNumber: number;
+    model: unknown;
+    messages: ModelMessage[];
+}) =>
+    | { messages?: ModelMessage[]; activeTools?: string[] }
+    | Promise<{ messages?: ModelMessage[]; activeTools?: string[] }>;
+
 interface StreamTextArgs {
     messages: ModelMessage[];
     system: Array<{ role: 'system'; content: string; providerOptions?: ProviderOptions }>;
     tools: Record<string, { providerOptions?: ProviderOptions }>;
+    prepareStep?: FakePrepareStep;
 }
 
 const runCreateMessageStream = async (
@@ -297,7 +307,7 @@ describe('createMessageStream approval continuation', () => {
 const EPHEMERAL = { type: 'ephemeral' };
 
 describe('createMessageStream prompt caching', () => {
-    test('marks the static system block and the last message for the Anthropic family', async () => {
+    test('marks the static system block for the Anthropic family', async () => {
         const { system, messages } = await runCreateMessageStream([createUserMessage()], {
             promptCacheStrategy: anthropicStrategy,
         });
@@ -306,8 +316,71 @@ describe('createMessageStream prompt caching', () => {
         expect(system).toHaveLength(1);
         expect(system[0].providerOptions?.anthropic?.cacheControl).toEqual(EPHEMERAL);
 
-        const lastMessage = messages.at(-1);
-        expect(lastMessage?.providerOptions?.anthropic?.cacheControl).toEqual(EPHEMERAL);
+        // The tail marker is applied per-step in prepareStep, not on the messages
+        // handed to streamText — those stay unmarked.
+        for (const message of messages) {
+            expect(message.providerOptions).toBeUndefined();
+        }
+    });
+
+    test('moves the tail marker onto the last message of each step via prepareStep', async () => {
+        const { prepareStep } = await runCreateMessageStream([createUserMessage()], {
+            promptCacheStrategy: anthropicStrategy,
+        });
+        expect(prepareStep).toBeTypeOf('function');
+
+        // Step 0: a single input message → marker lands on it.
+        const step0 = await prepareStep!({
+            steps: [],
+            stepNumber: 0,
+            model: {},
+            messages: [{ role: 'user', content: 'q' }],
+        });
+        expect(step0.messages?.at(-1)?.providerOptions?.anthropic?.cacheControl).toEqual(EPHEMERAL);
+
+        // Continuation step: the marker rides the NEW last message, and only it —
+        // earlier messages (including the prior tail) carry no marker.
+        const stepN = await prepareStep!({
+            steps: [],
+            stepNumber: 1,
+            model: {},
+            messages: [
+                { role: 'user', content: 'q' },
+                { role: 'assistant', content: 'searching' },
+                { role: 'assistant', content: 'tool output' },
+            ],
+        });
+        const out = stepN.messages!;
+        expect(out[0].providerOptions?.anthropic?.cacheControl).toBeUndefined();
+        expect(out[1].providerOptions?.anthropic?.cacheControl).toBeUndefined();
+        expect(out.at(-1)?.providerOptions?.anthropic?.cacheControl).toEqual(EPHEMERAL);
+    });
+
+    test('prepareStep adds no tail marker for non-Anthropic providers', async () => {
+        // Force MCP so prepareStep exists even without a tail marker.
+        const { buildMcpToolRegistry } = await import('@/ee/features/chat/mcp/mcpToolRegistry');
+        vi.mocked(buildMcpToolRegistry).mockReturnValueOnce([
+            { name: 'mcp_linear__save_issue', description: 'Save an issue', serverName: 'linear' },
+        ]);
+
+        const { prepareStep } = await runCreateMessageStream([createUserMessage()], {
+            promptCacheStrategy: noopStrategy,
+        });
+        expect(prepareStep).toBeTypeOf('function');
+
+        const result = await prepareStep!({
+            steps: [],
+            stepNumber: 1,
+            model: {},
+            messages: [
+                { role: 'user', content: 'q' },
+                { role: 'assistant', content: 'a' },
+            ],
+        });
+
+        // activeTools still managed (MCP), but no message override / marker.
+        expect(result.messages).toBeUndefined();
+        expect(result.activeTools).toContain('tool_request_activation');
     });
 
     test('leaves the dynamic system block uncached', async () => {

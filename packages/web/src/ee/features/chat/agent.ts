@@ -454,9 +454,11 @@ const createAgentStream = async ({
     //     instructions. This block is byte-identical across every chat and user,
     //     so it is a divergence-proof checkpoint a brand-new chat can read from
     //     instead of re-writing the large static prefix.
-    //   Marker 3: the last input message (below) caches tools + static + dynamic
-    //     system + the full conversation history — one conversation's growing
-    //     delta, re-warmed cheaply on every step and follow-up.
+    //   Marker 3: a moving breakpoint on the last message of each step (applied
+    //     in `prepareStep` below) caches tools + static + dynamic system + the
+    //     full conversation so far. Because it advances to the new tail every
+    //     step, the turn's growing delta (assistant tool calls and their outputs)
+    //     is cached incrementally instead of reprocessed on each later step.
     //
     // The `anthropic` provider-options namespace is ignored by non-Anthropic
     // providers, and a no-op strategy emits no markers at all, so this is safe
@@ -477,16 +479,12 @@ const createAgentStream = async ({
         systemMessages.push({ role: 'system', content: dynamicPrompt });
     }
 
-    // Marker 3: ephemeral (5m) breakpoint on the last input message. Merged onto
-    // any existing providerOptions so sibling namespaces (e.g. anthropic.thinking)
-    // are preserved. A no-op strategy returns undefined and leaves messages as-is.
+    // Marker 3 (moving tail): an ephemeral (5m) breakpoint applied in
+    // `prepareStep` to the last message of each step, so it advances with the
+    // turn instead of staying pinned to the last input message. Merged onto any
+    // existing providerOptions so sibling namespaces (e.g. anthropic.thinking)
+    // are preserved. A no-op strategy leaves it undefined and messages untouched.
     const tailMarker = promptCacheStrategy.cacheControl();
-    const messagesWithCachedPrefix: ModelMessage[] = tailMarker
-        ? inputMessages.map((message, index) =>
-            index === inputMessages.length - 1
-                ? { ...message, providerOptions: mergeProviderOptions(message.providerOptions, tailMarker) }
-                : message)
-        : inputMessages;
 
     // Observability only (default off): warn when the cache-relevant static
     // prefix (static system prompt, built-in tool definitions, model, or TTL)
@@ -507,21 +505,39 @@ const createAgentStream = async ({
         const stream = streamText({
             model,
             providerOptions,
-            messages: messagesWithCachedPrefix,
+            messages: inputMessages,
             system: systemMessages,
             tools: allTools,
             activeTools: [
                 ...builtinToolNames,
                 ...(hasMcpTools ? ['tool_request_activation'] : []),
             ],
-            prepareStep: hasMcpTools ? ({ steps }) => {
+            // `prepareStep` runs before every step (including the first). The SDK
+            // rebuilds the step's messages each time as the original input plus
+            // its own accumulated response messages — neither carries our marker
+            // — and a returned `messages` override applies only to that step, so
+            // re-applying the moving tail marker to the new last message each step
+            // can't accumulate stale markers. When MCP tools are present we also
+            // expand `activeTools` with whatever has been activated so far.
+            prepareStep: (tailMarker || hasMcpTools) ? ({ steps, messages }) => {
+                const stepMessages = (tailMarker && messages.length > 0)
+                    ? messages.map((message, index) =>
+                        index === messages.length - 1
+                            ? { ...message, providerOptions: mergeProviderOptions(message.providerOptions, tailMarker) }
+                            : message)
+                    : undefined;
+
+                if (!hasMcpTools) {
+                    return stepMessages ? { messages: stepMessages } : {};
+                }
+
                 const activated = new Set<string>();
                 for (const step of steps) {
-                    for (const result of step.toolResults) {
-                        if (!result || result.toolName !== 'tool_request_activation') {
+                    for (const toolResult of step.toolResults) {
+                        if (!toolResult || toolResult.toolName !== 'tool_request_activation') {
                             continue;
                         }
-                        const output = result.output as { results?: Array<{ name: string }> };
+                        const output = toolResult.output as { results?: Array<{ name: string }> };
                         for (const { name } of output?.results ?? []) {
                             if (name in mcpToolSetsObj.tools) {
                                 activated.add(name);
@@ -529,7 +545,9 @@ const createAgentStream = async ({
                         }
                     }
                 }
+
                 return {
+                    ...(stepMessages ? { messages: stepMessages } : {}),
                     activeTools: [
                         ...builtinToolNames,
                         'tool_request_activation',
