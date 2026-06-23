@@ -114,7 +114,11 @@ export const parseQuerySyntaxIntoIR = async ({
                 });
 
                 if (!context) {
-                    throw new Error(`Search context "${contextName}" not found`);
+                    throw new ServiceErrorException({
+                        statusCode: StatusCodes.NOT_FOUND,
+                        errorCode: ErrorCode.SEARCH_CONTEXT_NOT_FOUND,
+                        message: `Search context "${contextName}" not found`,
+                    });
                 }
 
                 return context.repos.map((repo) => repo.name);
