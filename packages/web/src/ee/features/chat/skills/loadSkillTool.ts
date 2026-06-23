@@ -1,0 +1,112 @@
+import type { PrismaClient } from "@sourcebot/db";
+import { tool, type Tool } from "ai";
+import { z } from "zod";
+import _dedent from "dedent";
+import { substituteArguments } from "@/features/chat/commands/argumentSubstitution";
+import { captureEvent } from "@/lib/posthog";
+import type { AskMcpAnalyticsSource } from "@/lib/posthogEvents";
+import { resolveAutoInvocableSkill } from "./registry";
+
+const dedent = _dedent.withOptions({ alignValues: true });
+
+// Stable name of the auto-invocation tool. Referenced by the `<agent_skills>`
+// system-prompt block so the model knows what to call.
+export const LOAD_SKILL_TOOL_NAME = "load_skill";
+
+interface LoadSkillToolAnalyticsContext {
+    chatId?: string;
+    traceId?: string;
+    source?: AskMcpAnalyticsSource;
+}
+
+interface CreateLoadSkillToolOptions {
+    prisma: PrismaClient;
+    userId: string;
+    orgId?: number;
+    analyticsContext?: LoadSkillToolAnalyticsContext;
+}
+
+/**
+ * Single-phase skill loader, modelled on Claude Code's `Skill` tool. The model
+ * discovers skills from the `<agent_skills>` catalog in the system prompt, then
+ * calls this tool with the skill's id to load its (auth-checked,
+ * argument-substituted) instructions as the tool result. Unlike MCP tools, a
+ * skill is an instruction blob rather than a callable tool with its own schema,
+ * so it does not need to be promoted into `activeTools` — one call returns the
+ * instructions directly. This keeps the tool set static across steps, so the
+ * prompt cache is never invalidated by skill loading.
+ */
+export const createLoadSkillTool = ({
+    prisma,
+    userId,
+    orgId,
+    analyticsContext,
+}: CreateLoadSkillToolOptions): Tool =>
+    tool({
+        description: dedent`
+        Load the instructions for one of the skills listed in the <agent_skills> section of the system prompt, then follow them.
+        Call this when the user's request matches a skill's description. Pass the skill's exact id from the catalog.
+        If the skill takes arguments (shown as its argument hint), pass them via the \`arguments\` field as a single
+        space-separated string, quoting any value that contains spaces — exactly as a user would type them after a slash command.
+        After the tool returns, treat the returned instructions as authoritative guidance for completing the task.
+
+        Examples:
+          CORRECT: load_skill({ skill_id: "ckz9q...", arguments: "github.com/acme/api auth" })
+          CORRECT: load_skill({ skill_id: "ckz9q..." })   // skill takes no arguments
+          INCORRECT: load_skill({ skill_id: "audit billing issues" })   // not an id from the catalog
+        `,
+        inputSchema: z.object({
+            skill_id: z.string().describe('Exact skill id from the <agent_skills> catalog, e.g. "ckz9q1a2b0000xyz".'),
+            arguments: z.string().optional().describe('Optional space-separated argument string matching the skill\'s argument hint. Omit when the skill takes no arguments.'),
+        }),
+        execute: async ({ skill_id, arguments: rawArguments }) => {
+            const startTime = Date.now();
+            const skill = await resolveAutoInvocableSkill({ prisma, userId, orgId, skillId: skill_id });
+
+            if (!skill) {
+                // Fail closed without leaking whether the id exists: the model
+                // simply learns this skill is not available to auto-invoke.
+                void captureEvent('ask_skill_invoked', {
+                    chatId: analyticsContext?.chatId,
+                    traceId: analyticsContext?.traceId,
+                    source: analyticsContext?.source ?? 'sourcebot-ask-agent',
+                    activationMethod: 'auto',
+                    skillId: skill_id,
+                    success: false,
+                    durationMs: Date.now() - startTime,
+                });
+
+                return {
+                    error: 'That skill is not available. Use only the skills listed in the <agent_skills> section, referencing their exact id.',
+                };
+            }
+
+            const instructions = substituteArguments(
+                skill.instructions,
+                rawArguments ?? '',
+                skill.argumentNames,
+            );
+
+            void captureEvent('ask_skill_invoked', {
+                chatId: analyticsContext?.chatId,
+                traceId: analyticsContext?.traceId,
+                source: analyticsContext?.source ?? 'sourcebot-ask-agent',
+                activationMethod: 'auto',
+                skillId: skill.id,
+                slug: skill.slug,
+                name: skill.name,
+                sourceLabel: skill.sourceLabel,
+                success: true,
+                durationMs: Date.now() - startTime,
+            });
+
+            return {
+                skill: {
+                    id: skill.id,
+                    slug: skill.slug,
+                    name: skill.name,
+                },
+                instructions,
+            };
+        },
+    });

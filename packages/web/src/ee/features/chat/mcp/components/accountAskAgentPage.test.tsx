@@ -88,6 +88,7 @@ describe('AccountAskAgentPage', () => {
             description: 'Release steps',
             argumentNames: [],
             enabled: true,
+            autoInvocationEnabled: false,
             featured: false,
             autoEnrolled: true,
             isAdopted: false,
@@ -107,6 +108,7 @@ describe('AccountAskAgentPage', () => {
             instructions: 'Do release steps',
             argumentNames: [],
             enabled: true,
+            autoInvocationEnabled: false,
             createdAt: orgSkill.createdAt,
             updatedAt: orgSkill.updatedAt,
         });

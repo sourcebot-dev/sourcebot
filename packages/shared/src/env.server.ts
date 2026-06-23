@@ -321,6 +321,10 @@ const options = {
          * continuation step). Does not affect request behavior.
          */
         SOURCEBOT_CHAT_PROMPT_CACHE_BREAK_DETECTION_ENABLED: booleanSchema.default('false'),
+        // Global ops kill-switch for model-driven skill auto-invocation. Even
+        // when enabled, a skill only participates if its author opted it in via
+        // the per-skill `autoInvocationEnabled` flag.
+        SOURCEBOT_CHAT_SKILL_AUTO_INVOCATION_ENABLED: booleanSchema.default('true'),
         SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS: numberSchema.int().positive().max(maxTimerDelayMs).default(60000),
 
         /**

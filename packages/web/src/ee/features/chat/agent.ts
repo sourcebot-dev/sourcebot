@@ -32,6 +32,8 @@ import { buildMcpToolRegistry, McpToolRegistryEntry, searchMcpTools } from "@/ee
 import { PromptCacheStrategy, mergeProviderOptions, detectPromptCacheBreak, detectUnexpectedCacheMiss } from "./promptCaching";
 import { hasEntitlement } from '@/lib/entitlements';
 import { getUserMessageModelText } from "./skills/commandResolution";
+import { buildSkillRegistry, type SkillRegistryEntry } from "./skills/registry";
+import { createLoadSkillTool, LOAD_SKILL_TOOL_NAME } from "./skills/loadSkillTool";
 
 const dedent = _dedent.withOptions({ alignValues: true });
 
@@ -174,6 +176,11 @@ const buildUserModelMessage = ({
 
     return { role: 'user', content: baseText };
 };
+
+// Collapse whitespace so a multi-line skill description renders as a single
+// catalog line and cannot break out of the `<agent_skills>` block structure.
+const sanitizeSkillCatalogText = (value: string): string =>
+    value.replace(/\s+/g, ' ').trim();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMessageStreamWriter<SBChatMessage>, options: UIMessageStreamOptions<SBChatMessage> = {}) => {
@@ -592,10 +599,40 @@ const createAgentStream = async ({
         },
     });
 
+    // Build the auto-invocation skill catalog once, from the requester's static
+    // (userId, orgId) context. Gated like MCP tools: anonymous/programmatic
+    // callers (no userId/orgId) and non-entitled deployments get no catalog and
+    // no load_skill tool. The global env flag is an ops kill-switch on top of
+    // the per-skill `autoInvocationEnabled` opt-in.
+    let skillRegistry: SkillRegistryEntry[] = [];
+    if (
+        env.SOURCEBOT_CHAT_SKILL_AUTO_INVOCATION_ENABLED === 'true' &&
+        userId !== undefined &&
+        orgId !== undefined &&
+        await hasEntitlement('ask')
+    ) {
+        try {
+            skillRegistry = await buildSkillRegistry({ prisma, userId, orgId });
+        } catch (error) {
+            logger.error('Failed to build skill registry for auto-invocation:', error);
+        }
+    }
+    const hasSkills = skillRegistry.length > 0;
+
+    const loadSkillTool = (hasSkills && userId !== undefined)
+        ? createLoadSkillTool({
+            prisma,
+            userId,
+            orgId,
+            analyticsContext: { chatId, traceId, source: 'sourcebot-ask-agent' },
+        })
+        : undefined;
+
     const { staticPrompt, dynamicPrompt } = createPrompt({
         repos: sortedRepos,
         files: resolvedFileSources,
         mcpToolRegistry: mcpRegistry,
+        skillRegistry,
     });
 
     const builtinTools = createTools({ source: 'sourcebot-ask-agent', selectedRepos: sortedRepos });
@@ -603,6 +640,7 @@ const createAgentStream = async ({
     const allTools: Record<string, Tool> = {
         ...builtinTools,
         ...(hasMcpTools ? { tool_request_activation: toolRequestActivation, ...mcpToolSetsObj.tools } : {}),
+        ...(loadSkillTool ? { [LOAD_SKILL_TOOL_NAME]: loadSkillTool } : {}),
     };
 
     // Anthropic prompt caching uses two nested breakpoints over one cumulative
@@ -662,6 +700,7 @@ const createAgentStream = async ({
             activeTools: [
                 ...builtinToolNames,
                 ...(hasMcpTools ? ['tool_request_activation'] : []),
+                ...(hasSkills ? [LOAD_SKILL_TOOL_NAME] : []),
             ],
             // `prepareStep` runs before every step (including the first). The SDK
             // rebuilds the step's messages each time as the original input plus
@@ -678,6 +717,7 @@ const createAgentStream = async ({
                 if (!hasMcpTools) {
                     return stepMessages ? { messages: stepMessages } : {};
                 }
+
 
                 const activated = new Set<string>();
                 for (const step of steps) {
@@ -699,6 +739,7 @@ const createAgentStream = async ({
                     activeTools: [
                         ...builtinToolNames,
                         'tool_request_activation',
+                        ...(hasSkills ? [LOAD_SKILL_TOOL_NAME] : []),
                         ...Array.from(activated),
                     ],
                 };
@@ -769,6 +810,7 @@ const createPrompt = ({
     files,
     repos,
     mcpToolRegistry,
+    skillRegistry,
 }: {
     files?: {
         path: string;
@@ -779,6 +821,7 @@ const createPrompt = ({
     }[],
     repos: string[],
     mcpToolRegistry: McpToolRegistryEntry[],
+    skillRegistry: SkillRegistryEntry[],
 }): { staticPrompt: string; dynamicPrompt: string } => {
     // Static prefix: byte-identical across every chat and user.
     // It interpolates only module-level constants. Keep it free of any
@@ -894,6 +937,21 @@ const createPrompt = ({
         **How to use tool_request_activation**: Pass the exact tool name from the list above as the \`tool_to_activate_name\` parameter. Do NOT pass natural language descriptions or sentences. If you need multiple tools, call \`tool_request_activation\` once per tool.
         Example: to activate the comment tool, call \`tool_request_activation\` with tool_to_activate_name="mcp_linear__save_comment", NOT tool_to_activate_name="save a comment on an issue".
         </mcp_tools>
+        `);
+    }
+
+    if (skillRegistry.length > 0) {
+        dynamicSections.push(dedent`
+        <agent_skills>
+        Skills are reusable, expert-authored workflows for specific tasks. When the user's request matches a skill's description below, you SHOULD load that skill with the \`${LOAD_SKILL_TOOL_NAME}\` tool and then follow the instructions it returns. Prefer applying a relevant skill over improvising your own approach.
+
+        Each entry is \`<name> (id: <id>) [args: <hint>]: <description>\`. To use a skill, call \`${LOAD_SKILL_TOOL_NAME}\` with the skill's exact \`id\`. If the skill shows an argument hint, pass the values via the \`arguments\` field as a single space-separated string (quote values containing spaces), exactly as a user would type after a slash command.
+
+        Available skills:
+        ${skillRegistry.map(e => `- ${e.name} (id: ${e.id})${e.argumentHint ? ` [args: ${e.argumentHint}]` : ''}: ${sanitizeSkillCatalogText(e.description)}`).join('\n')}
+
+        Do NOT load a skill whose instructions are already present in this conversation (for example, one the user already invoked manually with a slash command).
+        </agent_skills>
         `);
     }
 

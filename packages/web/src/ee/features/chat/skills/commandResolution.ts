@@ -1,4 +1,5 @@
 import { substituteArguments } from "@/features/chat/commands/argumentSubstitution";
+import { captureEvent } from "@/lib/posthog";
 import { ASK_COMMAND_SOURCE_ORG_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL, commandInvocationDataSchema, type CommandInvocationData } from "@/features/chat/commands/types";
 import { FILE_REFERENCE_REGEX } from "@/features/chat/constants";
 import type { FileSource, SBChatMessage, SBChatMessagePart } from "@/features/chat/types";
@@ -271,6 +272,21 @@ export const materializeCommandMessageTexts = async ({
             ? substituteArguments(skill.instructions, command.rawArguments, skill.argumentNames)
             : fallbackText;
         materializedMessages[index] = withExpandedCommandText(message, commandPart, command, expandedText);
+
+        // Symmetric observability with auto-invocation (load_skill). Only fires
+        // for newly-materialized commands — already-expanded ones are filtered
+        // out above — so it counts each manual invocation exactly once.
+        if (skill) {
+            void captureEvent('ask_skill_invoked', {
+                source: 'sourcebot-ask-agent',
+                activationMethod: 'manual',
+                skillId: command.commandId,
+                slug: command.slug,
+                name: command.name,
+                sourceLabel: command.sourceLabel,
+                success: true,
+            });
+        }
     }
 
     return materializedMessages.map(withFileSourcesFromExistingMaterializedCommand);

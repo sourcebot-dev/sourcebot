@@ -39,6 +39,7 @@ const emptySkillForm: AgentSkillInput = {
     description: "",
     instructions: "",
     argumentNames: [],
+    autoInvocationEnabled: false,
 };
 
 type SaveMode = "editWorkspace" | "editPersonal" | "createWorkspace" | "createPersonal";
@@ -93,6 +94,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
             description: skill.description,
             instructions: skill.instructions,
             argumentNames: skill.argumentNames,
+            autoInvocationEnabled: skill.autoInvocationEnabled,
         }
         : emptySkillForm;
     const [form, setForm] = useState<AgentSkillInput>(initialForm);
@@ -116,6 +118,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         form.description !== initialForm.description ||
         form.instructions !== initialForm.instructions ||
         form.argumentNames.join("\0") !== initialForm.argumentNames.join("\0") ||
+        form.autoInvocationEnabled !== initialForm.autoInvocationEnabled ||
         (!isEditing && publishToWorkspace);
 
     // Intercept in-app navigation (the Cancel button, the Back link, settings
@@ -169,6 +172,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                 description: parsed.description ?? current.description,
                 instructions: parsed.instructions,
                 argumentNames: importedArgumentNames,
+                autoInvocationEnabled: current.autoInvocationEnabled,
             }));
             setArgumentNamesText(importedArgumentNames.join(" "));
             setInstructionsEditorKey((key) => key + 1);
@@ -418,6 +422,24 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                     onChange={(event) => handleArgumentNamesChange(event.target.value)}
                                     placeholder="symbol area"
                                     className="font-mono"
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2">
+                                <Label
+                                    htmlFor="agent-skill-auto-invocation"
+                                    className="flex min-w-0 flex-col gap-0.5 text-sm font-medium"
+                                >
+                                    <span className="truncate">Let the assistant auto-invoke this skill</span>
+                                    <span className="text-xs font-normal text-muted-foreground">
+                                        When on, Ask can apply this skill on its own based on its description.
+                                    </span>
+                                </Label>
+                                <Switch
+                                    id="agent-skill-auto-invocation"
+                                    checked={form.autoInvocationEnabled}
+                                    disabled={isSaving}
+                                    onCheckedChange={(checked) => setForm((current) => ({ ...current, autoInvocationEnabled: checked }))}
                                 />
                             </div>
 
