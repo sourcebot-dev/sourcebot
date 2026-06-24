@@ -295,6 +295,8 @@ const options = {
 
         OPENROUTER_API_KEY: z.string().optional(),
 
+        REQUESTY_API_KEY: z.string().optional(),
+
         XAI_API_KEY: z.string().optional(),
 
         MISTRAL_API_KEY: z.string().optional(),

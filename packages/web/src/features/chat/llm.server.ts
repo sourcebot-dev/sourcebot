@@ -291,6 +291,22 @@ export const getAISDKLanguageModelAndOptions = async (config: LanguageModel): Pr
                     model: openrouter(modelId),
                 };
             }
+            case 'requesty': {
+                const requesty = createOpenAICompatible({
+                    baseURL: config.baseUrl ?? 'https://router.requesty.ai/v1',
+                    name: config.displayName ?? 'requesty',
+                    apiKey: config.token
+                        ? await getTokenFromConfig(config.token)
+                        : env.REQUESTY_API_KEY,
+                    headers: config.headers
+                        ? await extractLanguageModelKeyValuePairs(config.headers)
+                        : undefined,
+                });
+
+                return {
+                    model: requesty.chatModel(modelId),
+                };
+            }
             case 'xai': {
                 const xai = createXai({
                     baseURL: config.baseUrl,

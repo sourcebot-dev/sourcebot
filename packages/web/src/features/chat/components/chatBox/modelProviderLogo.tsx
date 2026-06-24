@@ -78,6 +78,11 @@ export const ModelProviderLogo = ({
                     Icon: Box,
                     className: 'text-muted-foreground'
                 };
+            case 'requesty':
+                return {
+                    Icon: Box,
+                    className: 'text-muted-foreground'
+                };
         }
     }, [provider]);
 

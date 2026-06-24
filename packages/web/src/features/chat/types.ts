@@ -199,6 +199,7 @@ export const languageModelProviders = [
     "openai",
     "openai-compatible",
     "openrouter",
+    "requesty",
     "xai",
 ] as const satisfies readonly LanguageModelProvider[];
 

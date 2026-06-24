@@ -3143,6 +3143,116 @@
             ],
             "additionalProperties": false
           },
+          "RequestyLanguageModel": {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "const": "requesty",
+                "description": "Requesty Configuration"
+              },
+              "model": {
+                "type": "string",
+                "description": "The name of the language model in `provider/model` format.",
+                "examples": [
+                  "openai/gpt-4o-mini"
+                ]
+              },
+              "displayName": {
+                "type": "string",
+                "description": "Optional display name."
+              },
+              "token": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `REQUESTY_API_KEY` environment variable."
+              },
+              "baseUrl": {
+                "type": "string",
+                "format": "url",
+                "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+                "description": "Optional base URL. Defaults to `https://router.requesty.ai/v1`."
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "googleCloudSecret": {
+                                "type": "string",
+                                "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                              }
+                            },
+                            "required": [
+                              "googleCloudSecret"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "provider",
+              "model"
+            ],
+            "additionalProperties": false
+          },
           "XaiLanguageModel": {
             "type": "object",
             "properties": {
@@ -4653,6 +4763,116 @@
                 "format": "url",
                 "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
                 "description": "Optional base URL."
+              },
+              "temperature": {
+                "type": "number",
+                "description": "Optional temperature setting to use with the model."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers to use with the model.",
+                "patternProperties": {
+                  "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "env": {
+                                "type": "string",
+                                "description": "The name of the environment variable that contains the token."
+                              }
+                            },
+                            "required": [
+                              "env"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "googleCloudSecret": {
+                                "type": "string",
+                                "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                              }
+                            },
+                            "required": [
+                              "googleCloudSecret"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "provider",
+              "model"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "const": "requesty",
+                "description": "Requesty Configuration"
+              },
+              "model": {
+                "type": "string",
+                "description": "The name of the language model in `provider/model` format.",
+                "examples": [
+                  "openai/gpt-4o-mini"
+                ]
+              },
+              "displayName": {
+                "type": "string",
+                "description": "Optional display name."
+              },
+              "token": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "env": {
+                        "type": "string",
+                        "description": "The name of the environment variable that contains the token."
+                      }
+                    },
+                    "required": [
+                      "env"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "googleCloudSecret": {
+                        "type": "string",
+                        "description": "The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets"
+                      }
+                    },
+                    "required": [
+                      "googleCloudSecret"
+                    ],
+                    "additionalProperties": false
+                  }
+                ],
+                "description": "Optional API key to use with the model. Defaults to the `REQUESTY_API_KEY` environment variable."
+              },
+              "baseUrl": {
+                "type": "string",
+                "format": "url",
+                "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+                "description": "Optional base URL. Defaults to `https://router.requesty.ai/v1`."
               },
               "temperature": {
                 "type": "number",

@@ -342,6 +342,27 @@ The OpenAI compatible provider allows you to use any model that is compatible wi
 }
 ```
 
+### Requesty
+
+[Requesty](https://requesty.ai) is an OpenAI-compatible LLM gateway. Models are referenced in `provider/model` format (e.g. `openai/gpt-4o-mini`). See the [Requesty docs](https://docs.requesty.ai).
+
+```json wrap icon="code" Example config with Requesty provider
+{
+    "$schema": "https://raw.githubusercontent.com/sourcebot-dev/sourcebot/main/schemas/v3/index.json",
+    "models": [
+        {
+            "provider": "requesty",
+            "model": "openai/gpt-4o-mini",
+            "displayName": "OPTIONAL_DISPLAY_NAME",
+            "token": {
+                "env": "REQUESTY_API_KEY"
+            },
+            "baseUrl": "OPTIONAL_BASE_URL"
+        }
+    ] 
+}
+```
+
 ### xAI
 
 [Vercel AI SDK xAI Docs](https://ai-sdk.dev/providers/ai-sdk-providers/xai)

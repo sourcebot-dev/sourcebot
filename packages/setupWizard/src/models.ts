@@ -20,6 +20,7 @@ export const PROVIDER_ENV_KEYS: Record<string, string> = {
     'mistral': 'MISTRAL_API_KEY',
     'xai': 'XAI_API_KEY',
     'openrouter': 'OPENROUTER_API_KEY',
+    'requesty': 'REQUESTY_API_KEY',
     'openai-compatible': 'OPENAI_COMPATIBLE_API_KEY',
     'azure': 'AZURE_OPENAI_API_KEY',
 };
@@ -172,7 +173,8 @@ async function collectModelConfig(
         case 'deepseek':
         case 'mistral':
         case 'xai':
-        case 'openrouter': {
+        case 'openrouter':
+        case 'requesty': {
             const envKey = await ensureApiKey(provider, env);
             return { provider, model, token: { env: envKey } } satisfies LanguageModel;
         }
@@ -337,6 +339,7 @@ export async function collectModels(): Promise<{ models: LanguageModel[]; env: E
                 { value: 'deepseek', name: 'DeepSeek' },
                 { value: 'mistral', name: 'Mistral' },
                 { value: 'openrouter', name: 'OpenRouter' },
+                { value: 'requesty', name: 'Requesty' },
                 { value: 'xai', name: 'xAI', description: 'Grok' },
             ],
         });

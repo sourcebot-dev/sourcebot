@@ -585,6 +585,48 @@
             ],
             "additionalProperties": false
         },
+        "RequestyLanguageModel": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "const": "requesty",
+                    "description": "Requesty Configuration"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "The name of the language model in `provider/model` format.",
+                    "examples": [
+                        "openai/gpt-4o-mini"
+                    ]
+                },
+                "displayName": {
+                    "type": "string",
+                    "description": "Optional display name."
+                },
+                "token": {
+                    "$ref": "./shared.json#/definitions/Token",
+                    "description": "Optional API key to use with the model. Defaults to the `REQUESTY_API_KEY` environment variable."
+                },
+                "baseUrl": {
+                    "type": "string",
+                    "format": "url",
+                    "pattern": "^https?:\\/\\/[^\\s/$.?#].[^\\s]*$",
+                    "description": "Optional base URL. Defaults to `https://router.requesty.ai/v1`."
+                },
+                "temperature": {
+                    "type": "number",
+                    "description": "Optional temperature setting to use with the model."
+                },
+                "headers": {
+                    "$ref": "./shared.json#/definitions/LanguageModelHeaders"
+                }
+            },
+            "required": [
+                "provider",
+                "model"
+            ],
+            "additionalProperties": false
+        },
         "XaiLanguageModel": {
             "type": "object",
             "properties": {
@@ -662,6 +704,9 @@
         },
         {
             "$ref": "#/definitions/OpenRouterLanguageModel"
+        },
+        {
+            "$ref": "#/definitions/RequestyLanguageModel"
         },
         {
             "$ref": "#/definitions/XaiLanguageModel"

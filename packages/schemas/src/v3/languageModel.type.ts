@@ -12,6 +12,7 @@ export type LanguageModel =
   | OpenAILanguageModel
   | OpenAICompatibleLanguageModel
   | OpenRouterLanguageModel
+  | RequestyLanguageModel
   | XaiLanguageModel;
 
 export interface AmazonBedrockLanguageModel {
@@ -598,6 +599,45 @@ export interface OpenRouterLanguageModel {
       };
   /**
    * Optional base URL.
+   */
+  baseUrl?: string;
+  /**
+   * Optional temperature setting to use with the model.
+   */
+  temperature?: number;
+  headers?: LanguageModelHeaders;
+}
+export interface RequestyLanguageModel {
+  /**
+   * Requesty Configuration
+   */
+  provider: "requesty";
+  /**
+   * The name of the language model in `provider/model` format.
+   */
+  model: string;
+  /**
+   * Optional display name.
+   */
+  displayName?: string;
+  /**
+   * Optional API key to use with the model. Defaults to the `REQUESTY_API_KEY` environment variable.
+   */
+  token?:
+    | {
+        /**
+         * The name of the environment variable that contains the token.
+         */
+        env: string;
+      }
+    | {
+        /**
+         * The resource name of a Google Cloud secret. Must be in the format `projects/<project-id>/secrets/<secret-name>/versions/<version-id>`. See https://cloud.google.com/secret-manager/docs/creating-and-accessing-secrets
+         */
+        googleCloudSecret: string;
+      };
+  /**
+   * Optional base URL. Defaults to `https://router.requesty.ai/v1`.
    */
   baseUrl?: string;
   /**
