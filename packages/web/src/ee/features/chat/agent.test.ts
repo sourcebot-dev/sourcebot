@@ -27,10 +27,6 @@ vi.mock('@sourcebot/shared', () => ({
         SOURCEBOT_CHAT_MAX_STEP_COUNT: 8,
         SOURCEBOT_CHAT_MODEL_TEMPERATURE: 0,
         SOURCEBOT_TELEMETRY_PII_COLLECTION_ENABLED: 'false',
-        // Enable the static front checkpoint so marker placement is exercised;
-        // whether markers are actually emitted is then controlled by the
-        // PromptCacheStrategy passed into each call.
-        SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_PREFIX_ENABLED: 'true',
         SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_TTL: '5m',
         SOURCEBOT_CHAT_PROMPT_CACHE_BREAK_DETECTION_ENABLED: 'false',
     },

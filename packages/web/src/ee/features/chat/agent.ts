@@ -391,10 +391,6 @@ const createAgentStream = async ({
     const mcpRegistry = buildMcpToolRegistry(mcpToolSetsObj.tools);
     const hasMcpTools = mcpRegistry.length > 0;
 
-    // Phased-rollout lever for the static checkpoint. When disabled, only the
-    // moving tail marker is emitted and behavior collapses to the prior
-    // single-breakpoint scheme.
-    const useStaticPrefix = env.SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_PREFIX_ENABLED === 'true';
     const staticTtl = env.SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_TTL;
 
     const toolRequestActivation = tool({
@@ -455,9 +451,7 @@ const createAgentStream = async ({
     // Caveat: when MCP tools are lazily activated mid-run via prepareStep, the
     // tools section grows and invalidates both breakpoints for that step; the
     // cache re-warms on subsequent steps once the active tool set is stable.
-    const staticMarker = useStaticPrefix
-        ? promptCacheStrategy.cacheControl({ ttl: staticTtl })
-        : undefined;
+    const staticMarker = promptCacheStrategy.cacheControl({ ttl: staticTtl });
     const systemMessages: SystemModelMessage[] = [
         { role: 'system', content: staticPrompt, providerOptions: staticMarker },
     ];

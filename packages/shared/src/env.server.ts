@@ -311,15 +311,13 @@ const options = {
 
         SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(100),
         SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED: booleanSchema.default('true'),
-        // Phased-rollout lever for the static checkpoint. Set to 'false' to fall
-        // back to the single moving tail marker. Only takes effect when prompt
-        // caching is enabled.
-        SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_PREFIX_ENABLED: booleanSchema.default('true'),
-        // TTL for the static block. The moving tail marker always uses the 5m default.
+        /** TTL for the static block. The moving tail marker always uses the 5m default. */
         SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_TTL: z.enum(['5m', '1h']).default('5m'),
-        // Observability: when enabled, logs a warning on unexpected prompt-cache
-        // breaks (static-prefix signature changes, or zero cache reads on a
-        // continuation step). Does not affect request behavior.
+        /**
+         * Observability: when enabled, logs a warning on unexpected prompt-cache
+         * breaks (static-prefix signature changes, or zero cache reads on a
+         * continuation step). Does not affect request behavior.
+         */
         SOURCEBOT_CHAT_PROMPT_CACHE_BREAK_DETECTION_ENABLED: booleanSchema.default('false'),
         SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS: numberSchema.int().positive().max(maxTimerDelayMs).default(60000),
 
