@@ -15,8 +15,7 @@ export type CacheTtl = '5m' | '1h';
 export interface PromptCacheStrategy {
     /**
      * Whether the resolved provider supports explicit cache breakpoints. When
-     * false, every `cacheControl()` call is a no-op and the request is left
-     * untouched (non-Anthropic providers, or caching disabled).
+     * false, every `cacheControl()` call is a no-op.
      */
     readonly supportsBreakpoints: boolean;
     /**
@@ -36,7 +35,7 @@ const NOOP_STRATEGY: PromptCacheStrategy = {
 // namespace and honors ephemeral `cacheControl` breakpoints. `google-vertex-anthropic`
 // reuses the same namespace; if a given SDK version ignores it the marker is a
 // harmless no-op. Bedrock uses a different shape (`cachePoint`) and is intentionally
-// not covered here — adding it later is a single new branch.
+// not covered here - adding it later is a single new branch.
 const ANTHROPIC_FAMILY_PROVIDERS: ReadonlySet<LanguageModelProvider> = new Set<LanguageModelProvider>([
     'anthropic',
     'google-vertex-anthropic',
@@ -54,8 +53,6 @@ const anthropicCacheControl = ({ ttl }: { ttl?: CacheTtl } = {}): ProviderOption
 
 /**
  * Resolves how (and whether) to emit prompt-cache breakpoints for a provider.
- * Non-Anthropic providers, or a disabled master flag, yield a no-op strategy so
- * their requests are never perturbed.
  */
 export const getPromptCacheStrategy = (
     provider: LanguageModelProvider,
@@ -98,8 +95,6 @@ export const mergeProviderOptions = (
     return merged;
 };
 
-// --- Cache-break detection (observability only; never throws) ---------------
-
 interface CacheBreakSnapshot {
     signature: string;
     requestCount: number;
@@ -107,7 +102,6 @@ interface CacheBreakSnapshot {
 
 // Keyed by chatId, in-memory, observability-only. Entries are never removed on chat
 // end, so the map is bounded by a FIFO cap (oldest insertion evicted first, below);
-// otherwise it grows with the cumulative count of distinct chats, not the concurrent count.
 const MAX_CACHE_BREAK_SNAPSHOTS = 10_000;
 const cacheBreakSnapshots = new Map<string, CacheBreakSnapshot>();
 

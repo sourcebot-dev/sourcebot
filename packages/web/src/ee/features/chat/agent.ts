@@ -471,9 +471,6 @@ const createAgentStream = async ({
     // undefined and the messages untouched.
     const tailMarker = promptCacheStrategy.cacheControl();
 
-    // Observability only (default off): warn when the cache-relevant static
-    // prefix (static system prompt, built-in tool definitions, model, or TTL)
-    // changes between requests for the same chat in a way that busts the cache.
     if (env.SOURCEBOT_CHAT_PROMPT_CACHE_BREAK_DETECTION_ENABLED === 'true') {
         detectPromptCacheBreak({
             chatId,
@@ -499,11 +496,8 @@ const createAgentStream = async ({
             ],
             // `prepareStep` runs before every step (including the first). The SDK
             // rebuilds the step's messages each time as the original input plus
-            // its own accumulated response messages — neither carries our marker
-            // — and a returned `messages` override applies only to that step, so
-            // re-applying the moving tail marker to the new last message each step
-            // can't accumulate stale markers. When MCP tools are present we also
-            // expand `activeTools` with whatever has been activated so far.
+            // its own accumulated response messages. Re-applying the moving tail marker
+            // to the new last message each step is safe and does not accumulate.
             prepareStep: (tailMarker || hasMcpTools) ? ({ steps, messages }) => {
                 const stepMessages = (tailMarker && messages.length > 0)
                     ? messages.map((message, index) =>
@@ -617,9 +611,8 @@ const createPrompt = ({
     repos: string[],
     mcpToolRegistry: McpToolRegistryEntry[],
 }): { staticPrompt: string; dynamicPrompt: string } => {
-    // Static prefix: byte-identical across every chat and user, so Anthropic can
-    // reuse its cache entry across chats (the divergence-proof checkpoint). It
-    // interpolates only module-level constants. Keep it free of any
+    // Static prefix: byte-identical across every chat and user.
+    // It interpolates only module-level constants. Keep it free of any
     // per-conversation data — repos, files, and MCP tools live in the dynamic
     // block below so their volatility never busts the shared static cache.
     const staticPrompt = dedent`
@@ -677,8 +670,7 @@ const createPrompt = ({
     `;
 
     // Dynamic block: per-conversation context (selected repos, mentioned files,
-    // MCP tool registry). Placed after the static checkpoint so changes here
-    // never invalidate the cross-chat static cache. Empty string when none apply.
+    // MCP tool registry).
     const dynamicSections: string[] = [];
 
     if (repos.length > 0) {
