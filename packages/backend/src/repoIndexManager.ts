@@ -19,6 +19,7 @@ const LOG_TAG = 'repo-index-manager';
 const logger = createLogger(LOG_TAG);
 const createJobLogger = (jobId: string) => createLogger(`${LOG_TAG}:job:${jobId}`);
 const QUEUE_NAME = 'repo-index-queue';
+const STALE_REPO_UPDATE_BATCH_SIZE = 500;
 
 type JobPayload = {
     type: 'INDEX' | 'CLEANUP';
@@ -98,8 +99,9 @@ export class RepoIndexManager {
 
     public async startScheduler() {
         logger.debug('Starting scheduler');
-        // Cleanup any orphaned disk resources on startup
+        // Reconcile DB and disk state on startup before scheduling new work.
         await this.cleanupOrphanedDiskResources();
+        await this.scheduleMissingShardReindexJobs();
         this.interval = setIntervalAsync(async () => {
             await this.scheduleIndexJobs();
             await this.scheduleCleanupJobs();
@@ -745,6 +747,82 @@ export class RepoIndexManager {
                 }
             }
         }
+    }
+
+    private async scheduleMissingShardReindexJobs() {
+        const timeoutDate = new Date(Date.now() - this.settings.repoIndexTimeoutMs);
+        const repoIdsWithShards = new Set<number>();
+
+        if (existsSync(INDEX_CACHE_DIR)) {
+            const entries = await readdir(INDEX_CACHE_DIR);
+            for (const entry of entries) {
+                if (!entry.endsWith('.zoekt') || entry.includes('.tmp')) {
+                    continue;
+                }
+
+                const repoId = getRepoIdFromShardFileName(entry);
+                if (repoId !== undefined) {
+                    repoIdsWithShards.add(repoId);
+                }
+            }
+        }
+
+        const indexedRepos = await this.db.repo.findMany({
+            where: {
+                indexedAt: { not: null },
+                indexedCommitHash: { not: null },
+                NOT: {
+                    jobs: {
+                        some: {
+                            AND: [
+                                {
+                                    type: RepoIndexingJobType.INDEX,
+                                },
+                                {
+                                    status: {
+                                        in: [
+                                            RepoIndexingJobStatus.PENDING,
+                                            RepoIndexingJobStatus.IN_PROGRESS,
+                                        ]
+                                    },
+                                },
+                                {
+                                    OR: [
+                                        { createdAt: { gt: timeoutDate } },
+                                        { updatedAt: { gt: timeoutDate } },
+                                    ],
+                                },
+                            ],
+                        }
+                    }
+                }
+            },
+        });
+
+        const reposMissingShards = indexedRepos.filter(repo => !repoIdsWithShards.has(repo.id));
+        if (reposMissingShards.length === 0) {
+            return;
+        }
+
+        logger.warn(`Found ${reposMissingShards.length} indexed repo(s) with missing zoekt shard files. Marking stale and scheduling reindex jobs.`);
+
+        for (let i = 0; i < reposMissingShards.length; i += STALE_REPO_UPDATE_BATCH_SIZE) {
+            const batch = reposMissingShards.slice(i, i + STALE_REPO_UPDATE_BATCH_SIZE);
+            await this.db.repo.updateMany({
+                where: {
+                    id: {
+                        in: batch.map(repo => repo.id),
+                    },
+                },
+                data: {
+                    indexedAt: null,
+                    indexedCommitHash: null,
+                    latestIndexingJobStatus: RepoIndexingJobStatus.PENDING,
+                },
+            });
+        }
+
+        await this.createJobs(reposMissingShards, RepoIndexingJobType.INDEX);
     }
 
     public async dispose() {

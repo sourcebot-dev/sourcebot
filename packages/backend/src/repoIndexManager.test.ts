@@ -26,6 +26,10 @@ vi.mock('@sourcebot/shared', () => ({
         path: `/test-data/repos/${repo.id}`,
         isReadOnly: false,
     })),
+    getRepoIdFromPath: vi.fn((repoPath: string) => {
+        const repoId = Number(repoPath.split('/').at(-1));
+        return Number.isNaN(repoId) ? undefined : repoId;
+    }),
     repoMetadataSchema: {
         parse: vi.fn((metadata: unknown) => metadata ?? {}),
     },
@@ -36,6 +40,7 @@ vi.mock('@sourcebot/shared', () => ({
 
 vi.mock('./constants.js', () => ({
     WORKER_STOP_GRACEFUL_TIMEOUT_MS: 5000,
+    REPOS_CACHE_DIR: 'test-data/repos',
     INDEX_CACHE_DIR: 'test-data/index',
 }));
 
@@ -56,6 +61,7 @@ vi.mock('./git.js', () => ({
 
 vi.mock('./zoekt.js', () => ({
     indexGitRepository: vi.fn().mockResolvedValue({ stdout: '', stderr: '' }),
+    cleanupTempShards: vi.fn(),
 }));
 
 vi.mock('./posthog.js', () => ({
@@ -64,6 +70,10 @@ vi.mock('./posthog.js', () => ({
 
 vi.mock('./utils.js', () => ({
     getAuthCredentialsForRepo: vi.fn().mockResolvedValue(null),
+    getRepoIdFromShardFileName: vi.fn((fileName: string) => {
+        const match = fileName.match(/^(\d+)_(\d+)_/);
+        return match ? Number(match[2]) : undefined;
+    }),
     getShardPrefix: vi.fn((orgId: number, repoId: number) => `${orgId}_${repoId}`),
     measure: vi.fn(async (cb: () => Promise<unknown>) => {
         const data = await cb();
@@ -148,6 +158,7 @@ const createMockPrisma = () => {
         repo: {
             findMany: vi.fn().mockResolvedValue([]),
             update: vi.fn(),
+            updateMany: vi.fn(),
             delete: vi.fn(),
         },
         repoIndexingJob: {
@@ -693,6 +704,119 @@ describe('RepoIndexManager', () => {
 
             // Verify moveToDelayed was called to retry later
             expect(mockJob.moveToDelayed).toHaveBeenCalled();
+        });
+    });
+
+    describe('Startup Reconciliation', () => {
+        test('marks indexed repos with missing shard files stale and queues reindex jobs', async () => {
+            const staleRepo = createMockRepo({
+                id: 42,
+                orgId: 7,
+                name: 'missing-shards',
+                indexedAt: new Date('2026-01-01T00:00:00Z'),
+                indexedCommitHash: 'missing123',
+            });
+            const healthyRepo = createMockRepo({
+                id: 43,
+                orgId: 7,
+                name: 'has-shards',
+                indexedAt: new Date('2026-01-01T00:00:00Z'),
+                indexedCommitHash: 'healthy123',
+            });
+
+            (existsSync as Mock).mockReturnValue(true);
+            (readdir as Mock).mockImplementation(async (dir: string) => {
+                if (dir === 'test-data/repos') {
+                    return [];
+                }
+                if (dir === 'test-data/index') {
+                    return [
+                        '7_43_main.zoekt',
+                        '7_42_main.zoekt.tmp',
+                    ];
+                }
+                return [];
+            });
+            (mockPrisma.repo.findMany as Mock)
+                .mockResolvedValueOnce([{ id: 42 }, { id: 43 }])
+                .mockResolvedValueOnce([staleRepo, healthyRepo]);
+            (mockPrisma.repo.updateMany as Mock).mockResolvedValue({ count: 1 });
+            (mockPrisma.repoIndexingJob.createManyAndReturn as Mock).mockResolvedValue([
+                {
+                    id: 'reindex-job-42',
+                    repo: staleRepo,
+                },
+            ]);
+
+            manager = new RepoIndexManager(mockPrisma, mockSettings, mockRedis, mockPromClient as any);
+
+            await manager.startScheduler();
+
+            expect(mockPrisma.repo.findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
+                where: expect.objectContaining({
+                    NOT: {
+                        jobs: {
+                            some: {
+                                AND: expect.arrayContaining([
+                                    {
+                                        type: RepoIndexingJobType.INDEX,
+                                    },
+                                    {
+                                        status: {
+                                            in: [
+                                                RepoIndexingJobStatus.PENDING,
+                                                RepoIndexingJobStatus.IN_PROGRESS,
+                                            ],
+                                        },
+                                    },
+                                    {
+                                        OR: [
+                                            { createdAt: { gt: expect.any(Date) } },
+                                            { updatedAt: { gt: expect.any(Date) } },
+                                        ],
+                                    },
+                                ]),
+                            },
+                        },
+                    },
+                }),
+            }));
+
+            expect(mockPrisma.repo.updateMany).toHaveBeenCalledWith({
+                where: {
+                    id: {
+                        in: [42],
+                    },
+                },
+                data: {
+                    indexedAt: null,
+                    indexedCommitHash: null,
+                    latestIndexingJobStatus: RepoIndexingJobStatus.PENDING,
+                },
+            });
+
+            expect(mockPrisma.repoIndexingJob.createManyAndReturn).toHaveBeenCalledWith({
+                data: [
+                    {
+                        type: RepoIndexingJobType.INDEX,
+                        repoId: 42,
+                    },
+                ],
+                include: {
+                    repo: true,
+                },
+            });
+
+            expect(mockQueueAdd).toHaveBeenCalledWith(
+                'repo-index-job',
+                {
+                    jobId: 'reindex-job-42',
+                    type: RepoIndexingJobType.INDEX,
+                    repoName: staleRepo.name,
+                    repoId: staleRepo.id,
+                },
+                { jobId: 'reindex-job-42' }
+            );
         });
     });
 
