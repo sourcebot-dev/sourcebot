@@ -59,4 +59,23 @@ describe("createLoadSkillTool", () => {
             success: false,
         }));
     });
+
+    test("fails closed without leaking the error when the lookup throws", async () => {
+        const findFirst = vi.fn().mockRejectedValue(new Error("connection pool exhausted"));
+        const prisma = { agentSkill: { findFirst } } as never;
+
+        const tool = createLoadSkillTool({ prisma, userId: "user-1", orgId: 7 });
+        const result = await execute(tool, { skill_id: "p1", arguments: "french" });
+
+        // The transient throw must take the fail-closed path, not propagate.
+        expect(result).toHaveProperty("error");
+        expect(result).not.toHaveProperty("instructions");
+        // The raw error text must never reach the model.
+        expect(JSON.stringify(result)).not.toContain("connection pool exhausted");
+        expect(captureEvent).toHaveBeenCalledWith("ask_skill_invoked", expect.objectContaining({
+            activationMethod: "auto",
+            skillId: "p1",
+            success: false,
+        }));
+    });
 });
