@@ -91,33 +91,57 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     // should be visible to the user. By "steps", we mean parts that originated
     // from the same LLM invocation. By "visibile", we mean parts that have some
     // visual representation in the UI (e.g., text, reasoning, tool calls, etc.).
-    const uiVisibleThinkingSteps = useMemo(() => {
-        const steps = groupMessageIntoSteps(assistantMessage?.parts ?? []);
+    //
+    // Each step is tagged with its stepIndex — the invocation's position in
+    // the turn, which indexes into `metadata.stepTokenUsage`. Indices are
+    // assigned by counting 'step-start' markers (one per invocation) BEFORE
+    // any filtering, so dropping empty or answer-only steps below cannot
+    // shift the indices of the steps that remain.
+    const { uiVisibleThinkingSteps, answerStepIndex } = useMemo(() => {
+        const groupedParts = groupMessageIntoSteps(assistantMessage?.parts ?? []);
 
-        // Filter out the answerPart and empty steps
-        return steps
-            .map(
-                (step) => step
-                    // First, filter out any parts that are not text
-                    .filter((part) => {
-                        if (part.type === 'text') {
-                            return !part.text.includes(ANSWER_TAG);
-                        }
+        // Parts written before the first step-start (e.g. data parts) don't
+        // belong to any step; they get stepIndex -1 and never survive the
+        // visibility filters below.
+        let stepIndex = -1;
+        let answerStepIndex: number | undefined = undefined;
 
-                        return true;
-                    })
-                    .filter((part) => {
-                        // Only include text, reasoning, and tool parts
-                        return (
-                            part.type === 'text' ||
-                            part.type === 'reasoning' ||
-                            part.type.startsWith('tool-') ||
-                            part.type === 'dynamic-tool'
-                        )
-                    })
-            )
+        const steps = groupedParts
+            .map((stepParts) => {
+                if (stepParts[0]?.type === 'step-start') {
+                    stepIndex++;
+                }
+
+                if (stepParts.some((part) => part.type === 'text' && part.text.includes(ANSWER_TAG))) {
+                    answerStepIndex = stepIndex;
+                }
+
+                return {
+                    stepIndex,
+                    parts: stepParts
+                        // First, filter out the answer text
+                        .filter((part) => {
+                            if (part.type === 'text') {
+                                return !part.text.includes(ANSWER_TAG);
+                            }
+
+                            return true;
+                        })
+                        .filter((part) => {
+                            // Only include text, reasoning, and tool parts
+                            return (
+                                part.type === 'text' ||
+                                part.type === 'reasoning' ||
+                                part.type.startsWith('tool-') ||
+                                part.type === 'dynamic-tool'
+                            )
+                        }),
+                };
+            })
             // Then, filter out any steps that are empty
-            .filter(step => step.length > 0);
+            .filter((step) => step.parts.length > 0);
+
+        return { uiVisibleThinkingSteps: steps, answerStepIndex };
     }, [assistantMessage?.parts]);
 
     // "thinking" is when the agent is generating output that is not the answer.
@@ -379,6 +403,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                             isNetworkActive={isNetworkActive}
                             isAwaitingToolApproval={isAwaitingToolApproval}
                             thinkingSteps={uiVisibleThinkingSteps}
+                            answerStepIndex={answerStepIndex}
                             metadata={assistantMessage?.metadata}
                         />
 
