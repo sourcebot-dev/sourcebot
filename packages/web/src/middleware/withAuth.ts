@@ -1,6 +1,6 @@
 import { __unsafePrisma, userScopedPrismaClientExtension } from "@/prisma";
 import { hashSecret, OAUTH_ACCESS_TOKEN_PREFIX, API_KEY_PREFIX, LEGACY_API_KEY_PREFIX, env } from "@sourcebot/shared";
-import { ApiKey, Org, OrgRole, PrismaClient, UserWithAccounts } from "@sourcebot/db";
+import { ApiKey, Org, OrgRole, PrismaClient, UserToOrg, UserWithAccounts } from "@sourcebot/db";
 import { headers } from "next/headers";
 import { auth } from "../auth";
 import { notAuthenticated, notFound, ServiceError } from "../lib/serviceError";
@@ -108,6 +108,10 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         updateUserLastActiveAt(user);
     }
 
+    if (membership) {
+        updateMembershipLastActiveAt(membership);
+    }
+
     if (user && role) {
         return { user, org, role, prisma };
     }
@@ -130,6 +134,29 @@ const updateUserLastActiveAt = (user: UserWithAccounts) => {
             data: { lastActiveAt: new Date(now) },
         })
         .catch(() => { /* updaing the lastActiveAt is best effort. */ });
+};
+
+const updateMembershipLastActiveAt = (membership: UserToOrg) => {
+    const now = Date.now();
+    if (
+        membership.lastActiveAt &&
+        (now - membership.lastActiveAt.getTime()) < LAST_ACTIVE_AT_THRESHOLD_MS
+    ) {
+        return;
+    }
+
+    // Fired without a await to avoid blocking.
+    void __unsafePrisma.userToOrg
+        .update({
+            where: {
+                orgId_userId: {
+                    orgId: membership.orgId,
+                    userId: membership.userId,
+                },
+            },
+            data: { lastActiveAt: new Date(now) },
+        })
+        .catch(() => { /* updating the lastActiveAt is best effort. */ });
 };
 
 type AuthSource = 'session' | 'oauth' | 'api_key';

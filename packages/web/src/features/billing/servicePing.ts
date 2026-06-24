@@ -32,39 +32,44 @@ export const syncWithLighthouse = async (orgId: number) => {
     const mauCutoff = new Date(now - 30 * DAY_MS);
 
     const [
-        userCount,
-        repoCount,
+        billedUserCount,
         dauCount,
         wauCount,
         mauCount,
+        repoCount,
     ] = await Promise.all([
+        // A member is billed only if their membership is active (not suspended)
+        // AND they have been active in this org at least once. A member who was
+        // provisioned (e.g. via SCIM or an invite) but never signed in here has
+        // a null `lastActiveAt` and does not consume a seat.
         __unsafePrisma.userToOrg.count({
             where: {
                 orgId,
                 isActive: true,
+                lastActiveAt: { not: null },
+            },
+        }),
+        __unsafePrisma.userToOrg.count({
+            where: {
+                orgId,
+                lastActiveAt: { gte: dauCutoff },
+            },
+        }),
+        __unsafePrisma.userToOrg.count({
+            where: {
+                orgId,
+                lastActiveAt: { gte: wauCutoff },
+            },
+        }),
+        __unsafePrisma.userToOrg.count({
+            where: {
+                orgId,
+                lastActiveAt: { gte: mauCutoff },
             },
         }),
         __unsafePrisma.repo.count({
             where: {
                 orgId,
-            },
-        }),
-        __unsafePrisma.user.count({
-            where: {
-                orgs: { some: { orgId } },
-                lastActiveAt: { gte: dauCutoff },
-            },
-        }),
-        __unsafePrisma.user.count({
-            where: {
-                orgs: { some: { orgId } },
-                lastActiveAt: { gte: wauCutoff },
-            },
-        }),
-        __unsafePrisma.user.count({
-            where: {
-                orgs: { some: { orgId } },
-                lastActiveAt: { gte: mauCutoff },
             },
         }),
     ]);
@@ -79,7 +84,7 @@ export const syncWithLighthouse = async (orgId: number) => {
         installId: env.SOURCEBOT_INSTALL_ID,
         version: SOURCEBOT_VERSION,
         hostname: env.AUTH_URL,
-        userCount,
+        userCount: billedUserCount,
         repoCount,
         dauCount,
         wauCount,

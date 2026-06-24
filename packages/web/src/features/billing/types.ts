@@ -4,6 +4,11 @@ export const servicePingRequestSchema = z.object({
     installId: z.string(),
     version: z.string(),
     hostname: z.string(),
+    /**
+     * The number of billed users: active (non-suspended) members who have been
+     * active in the org at least once. Provisioned members who have never
+     * signed in do not count towards this.
+     */
     userCount: z.number().int().nonnegative(),
     repoCount: z.number().int().nonnegative(),
     dauCount: z.number().int().nonnegative(),

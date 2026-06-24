@@ -409,6 +409,13 @@ model UserToOrg {
   /// SCIM. Null for members that joined through invites or self-serve sign-up.
   scimExternalId String?
 
+  /// Last time the user performed an authenticated action *in this org*. Unlike
+  /// `User.lastActiveAt` (which is global to the instance), this is scoped to
+  /// the membership, so it distinguishes a member who has been active in this
+  /// org from one who was provisioned but never signed in here. Null means the
+  /// member has never been active in this org.
+  lastActiveAt DateTime?
+
   @@id([orgId, userId])
   @@index([orgId, scimExternalId])
 }

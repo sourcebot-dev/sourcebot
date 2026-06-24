@@ -86,9 +86,11 @@ beforeEach(() => {
     mocks.headers.mockResolvedValue(new Headers());
     mocks.hasEntitlement.mockReturnValue(false);
     mocks.isAnonymousAccessAvailable.mockReturnValue(false);
-    // getAuthContext fires `prisma.user.update().catch(...)` to bump lastActiveAt;
-    // without a default, the reset mock returns undefined and the .catch chain throws.
+    // getAuthContext fires `prisma.user.update().catch(...)` and
+    // `prisma.userToOrg.update().catch(...)` to bump lastActiveAt; without a
+    // default, the reset mock returns undefined and the .catch chain throws.
     prisma.user.update.mockResolvedValue(MOCK_USER_WITH_ACCOUNTS);
+    prisma.userToOrg.update.mockResolvedValue({});
     // Reset env flags between tests
     Object.keys(mocks.env).forEach(key => delete mocks.env[key]);
 });
@@ -321,6 +323,7 @@ describe('getAuthContext', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.MEMBER,
         });
 
@@ -353,6 +356,7 @@ describe('getAuthContext', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.OWNER,
         });
 
@@ -424,6 +428,7 @@ describe('getAuthContext', () => {
             orgId: MOCK_ORG.id,
             isActive: false,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.OWNER,
         });
 
@@ -454,6 +459,7 @@ describe('getAuthContext', () => {
             orgId: MOCK_ORG.id,
             isActive: false,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.MEMBER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -486,6 +492,7 @@ describe('getAuthContext', () => {
                 orgId: MOCK_ORG.id,
                 isActive: true,
                 scimExternalId: null,
+            lastActiveAt: null,
                 role: OrgRole.MEMBER,
             });
             prisma.apiKey.findUnique.mockResolvedValue({ ...MOCK_API_KEY, hash: 'apikey', createdById: userId });
@@ -510,6 +517,7 @@ describe('getAuthContext', () => {
                 orgId: MOCK_ORG.id,
                 isActive: true,
                 scimExternalId: null,
+            lastActiveAt: null,
                 role: OrgRole.OWNER,
             });
             prisma.apiKey.findUnique.mockResolvedValue({ ...MOCK_API_KEY, hash: 'apikey', createdById: userId });
@@ -535,6 +543,7 @@ describe('getAuthContext', () => {
                 orgId: MOCK_ORG.id,
                 isActive: true,
                 scimExternalId: null,
+            lastActiveAt: null,
                 role: OrgRole.MEMBER,
             });
             setMockSession(createMockSession({ user: { id: userId } }));
@@ -570,6 +579,7 @@ describe('withAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.MEMBER,
         });
         vi.mocked(userScopedPrismaClientExtension).mockResolvedValue(extension as never);
@@ -601,6 +611,7 @@ describe('withAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.MEMBER,
         });
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
@@ -633,6 +644,7 @@ describe('withAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.OWNER,
         });
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
@@ -665,6 +677,7 @@ describe('withAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.MEMBER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -702,6 +715,7 @@ describe('withAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.OWNER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -739,6 +753,7 @@ describe('withAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.MEMBER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -776,6 +791,7 @@ describe('withAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.OWNER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -813,6 +829,7 @@ describe('withAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.MEMBER,
         });
         setMockSession(null);
@@ -856,6 +873,7 @@ describe('withAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: false,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.OWNER,
         });
         setMockSession(createMockSession({ user: { id: userId } }));
@@ -881,6 +899,7 @@ describe('withAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: false,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.MEMBER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -913,6 +932,7 @@ describe('withOptionalAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.MEMBER,
         });
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
@@ -945,6 +965,7 @@ describe('withOptionalAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.OWNER,
         });
         setMockSession(createMockSession({ user: { id: 'test-user-id' } }));
@@ -977,6 +998,7 @@ describe('withOptionalAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.MEMBER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -1014,6 +1036,7 @@ describe('withOptionalAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.OWNER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -1051,6 +1074,7 @@ describe('withOptionalAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.MEMBER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -1088,6 +1112,7 @@ describe('withOptionalAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.OWNER,
         });
         prisma.apiKey.findUnique.mockResolvedValue({
@@ -1125,6 +1150,7 @@ describe('withOptionalAuth', () => {
             orgId: MOCK_ORG.id,
             isActive: true,
             scimExternalId: null,
+            lastActiveAt: null,
             role: OrgRole.MEMBER,
         });
         setMockSession(null);
