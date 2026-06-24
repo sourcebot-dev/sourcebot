@@ -3,9 +3,8 @@ import { ProviderOptions } from "@ai-sdk/provider-utils";
 import { createLogger } from "@sourcebot/shared";
 import { LanguageModelProvider } from "@/features/chat/types";
 
-// @note: Prompt-cache plumbing for the Ask agent. Ask Sourcebot is an
-// enterprise feature, so this lives under `ee/`. It is the single place that
-// knows about provider-specific cache-control shapes — the agent loop stays
+// @note: Prompt-cache plumbing for the Ask agent — the single place that knows
+// about provider-specific cache-control shapes. The agent loop stays
 // provider-agnostic by asking the strategy for a `providerOptions` blob at each
 // breakpoint and merging whatever it gets back (possibly `undefined`).
 
@@ -145,7 +144,6 @@ export const detectPromptCacheBreak = ({
         const requestCount = (prev?.requestCount ?? 0) + 1;
         cacheBreakSnapshots.set(chatId, { signature, requestCount });
 
-        // FIFO eviction: once the map overflows, drop the oldest-inserted entry.
         if (cacheBreakSnapshots.size > MAX_CACHE_BREAK_SNAPSHOTS) {
             const oldestKey = cacheBreakSnapshots.keys().next().value;
             if (oldestKey !== undefined) {

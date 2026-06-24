@@ -89,9 +89,8 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
 
-            // Resolve provider-aware prompt caching. The strategy is a no-op for
-            // non-Anthropic providers or when caching is disabled, so threading it
-            // through never perturbs other providers' requests.
+            // No-op for non-Anthropic providers / when caching is disabled, so
+            // it never perturbs other providers' requests.
             const promptCacheStrategy = getPromptCacheStrategy(
                 languageModelConfig.provider,
                 env.SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED === 'true',

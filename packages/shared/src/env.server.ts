@@ -311,13 +311,11 @@ const options = {
 
         SOURCEBOT_CHAT_MAX_STEP_COUNT: numberSchema.default(100),
         SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED: booleanSchema.default('true'),
-        // Phased-rollout lever for the static front cache breakpoint (and the
-        // MCP activation-resilience breakpoint). Set to 'false' to fall back to
-        // the single moving tail marker. Only takes effect when prompt caching
-        // is enabled. See packages/web/src/ee/features/chat/promptCaching.ts.
+        // Phased-rollout lever for the static checkpoint. Set to 'false' to fall
+        // back to the single moving tail marker. Only takes effect when prompt
+        // caching is enabled.
         SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_PREFIX_ENABLED: booleanSchema.default('true'),
-        // TTL for the static front block (and MCP activation-resilience block).
-        // The moving tail marker always uses the 5m default.
+        // TTL for the static block. The moving tail marker always uses the 5m default.
         SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_TTL: z.enum(['5m', '1h']).default('5m'),
         // Observability: when enabled, logs a warning on unexpected prompt-cache
         // breaks (static-prefix signature changes, or zero cache reads on a

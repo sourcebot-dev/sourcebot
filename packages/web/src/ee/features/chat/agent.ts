@@ -332,8 +332,8 @@ const createAgentStream = async ({
     userId,
     orgId,
 }: AgentOptions) => {
-    // Normalize repo order so the dynamic system block's <selected_repositories>
-    // list is byte-stable across requests of the same chat, used for prompt caching.
+    // Sort repos so the dynamic <selected_repositories> block is byte-stable
+    // across a chat's requests (prompt caching).
     const sortedRepos = [...selectedRepos].sort((a, b) => a.localeCompare(b));
 
     // For every file source, resolve the source code so that we can include it in the system prompt.
@@ -391,9 +391,9 @@ const createAgentStream = async ({
     const mcpRegistry = buildMcpToolRegistry(mcpToolSetsObj.tools);
     const hasMcpTools = mcpRegistry.length > 0;
 
-    // Phased-rollout lever for the static front checkpoint (markers 1 & 2). When
-    // disabled, only the moving tail marker is emitted and behavior collapses to
-    // the prior single-breakpoint scheme.
+    // Phased-rollout lever for the static checkpoint. When disabled, only the
+    // moving tail marker is emitted and behavior collapses to the prior
+    // single-breakpoint scheme.
     const useStaticPrefix = env.SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_PREFIX_ENABLED === 'true';
     const staticTtl = env.SOURCEBOT_CHAT_PROMPT_CACHE_STATIC_TTL;
 
@@ -465,11 +465,10 @@ const createAgentStream = async ({
         systemMessages.push({ role: 'system', content: dynamicPrompt });
     }
 
-    // Moving tail: an ephemeral (5m) breakpoint applied in
-    // `prepareStep` to the last message of each step, so it advances with the
-    // turn instead of staying pinned to the last input message. Merged onto any
-    // existing providerOptions so sibling namespaces (e.g. anthropic.thinking)
-    // are preserved. A no-op strategy leaves it undefined and messages untouched.
+    // The moving-tail marker (see above), resolved once here. `prepareStep`
+    // merges it onto the last message's existing providerOptions so sibling
+    // namespaces (e.g. anthropic.thinking) survive; a no-op strategy leaves it
+    // undefined and the messages untouched.
     const tailMarker = promptCacheStrategy.cacheControl();
 
     // Observability only (default off): warn when the cache-relevant static
