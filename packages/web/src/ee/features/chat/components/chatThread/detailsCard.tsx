@@ -27,6 +27,7 @@ import { ReadFileToolComponent } from './tools/readFileToolComponent';
 import { ToolOutputGuard } from './tools/toolOutputGuard';
 import { McpToolComponent } from './tools/mcpToolComponent';
 import { ToolSearchToolComponent } from './tools/toolSearchToolComponent';
+import { LoadSkillToolComponent } from './tools/loadSkillToolComponent';
 
 
 // A UI-visible step: the parts of one LLM invocation, tagged with the
@@ -529,6 +530,14 @@ export const StepPartRenderer = ({ part, toolTokenUsageMap }: { part: SBChatMess
                 return <span className="text-sm text-muted-foreground animate-pulse">Activating tool...</span>;
             }
             return <ToolSearchToolComponent query={part.input.tool_to_activate_name} results={part.output.results ?? []} estimatedOutputTokens={estimatedOutputTokens} />;
+        case 'tool-load_skill':
+            if (part.state === 'output-error') {
+                return <span className="text-sm text-destructive">Loading skill failed: {part.errorText}</span>;
+            }
+            if (part.state !== 'output-available') {
+                return <span className="text-sm text-muted-foreground animate-pulse">Loading skill...</span>;
+            }
+            return <LoadSkillToolComponent input={part.input} output={part.output} />;
         case 'dynamic-tool':
             if (part.toolName.startsWith('mcp_')) {
                 return <McpToolComponent part={part} estimatedOutputTokens={estimatedOutputTokens} />;

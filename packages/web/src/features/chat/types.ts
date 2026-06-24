@@ -102,6 +102,15 @@ export type SBChatMessageToolTypes = {
         input: { tool_to_activate_name: string };
         output: { results: Array<{ name: string; description: string }> };
     };
+    // load_skill is constructed in the EE agent (createLoadSkillTool), not in
+    // createTools, so its UI part shape is declared here by hand — mirror of the
+    // execute() return in ee/features/chat/skills/loadSkillTool.ts.
+    load_skill: {
+        input: { skill_id: string; arguments?: string };
+        output:
+            | { skill: { id: string; slug: string; name: string }; instructions: string }
+            | { error: string };
+    };
 };
 
 // A user-provided file attachment. The `text` variant carries the file's

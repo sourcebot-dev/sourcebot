@@ -1,15 +1,14 @@
 'use server';
 
 import { checkAskEntitlement } from "@/features/chat/utils.server";
-import { getArgumentHint } from "@/features/chat/commands/argumentSubstitution";
-import { ASK_COMMAND_SOURCE_ORG_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL, type AskCommandDefinition } from "@/features/chat/commands/types";
+import { type AskCommandDefinition } from "@/features/chat/commands/types";
 import { ErrorCode } from "@/lib/errorCodes";
 import { isUniqueConstraintError } from "@/lib/prismaErrors";
 import { requestBodySchemaValidationError, ServiceError } from "@/lib/serviceError";
 import { sew } from "@/middleware/sew";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
-import { OrgRole, Prisma, orgAgentSkillAuthScope, orgAgentSkillScope, orgAgentSkillVisibleToUserWhere, personalAgentSkillAuthScope, personalAgentSkillScope, type Org, type PrismaClient, type UserWithAccounts } from "@sourcebot/db";
+import { OrgRole, Prisma, orgAgentSkillAuthScope, orgAgentSkillScope, orgAgentSkillVisibleToUserWhere, personalAgentSkillAuthScope, personalAgentSkillScope, type Org, type PrismaClient } from "@sourcebot/db";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 import {
@@ -25,9 +24,10 @@ import {
     type OrgAgentSkillManagementItem,
     type UpdateAgentSkillInput,
 } from "./types";
-
-const PERSONAL_SKILL_SOURCE_LABEL = "Personal";
-const ORG_SKILL_SOURCE_LABEL = "Workspace";
+import {
+    listOrgAgentSkillCommandsForContext,
+    listPersonalAgentSkillCommandsForContext,
+} from "./commandCatalog";
 
 const skillAlreadyExists = (slug: string): ServiceError => ({
     statusCode: StatusCodes.CONFLICT,
@@ -45,27 +45,6 @@ const insufficientSkillPermissions = (): ServiceError => ({
     statusCode: StatusCodes.FORBIDDEN,
     errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
     message: "You do not have sufficient permissions to manage this skill.",
-});
-
-const toAskCommandDefinition = (
-    skill: {
-        id: string;
-        slug: string;
-        name: string;
-        description: string;
-        instructions: string;
-        argumentNames: string[];
-    },
-    sourceId: string,
-    sourceLabel: string,
-): AskCommandDefinition => ({
-    id: skill.id,
-    sourceId,
-    sourceLabel,
-    slug: skill.slug,
-    name: skill.name,
-    description: skill.description,
-    argumentHint: getArgumentHint(skill.instructions, skill.argumentNames),
 });
 
 const orgCatalogSkillSelect = (userId: string, orgId: number) => ({
@@ -108,12 +87,6 @@ const orgManagementSkillSelect = {
     createdAt: true,
     updatedAt: true,
 } satisfies Prisma.AgentSkillSelect;
-
-type AgentSkillCommandContext = {
-    org: Org;
-    user: UserWithAccounts;
-    prisma: PrismaClient;
-};
 
 type AgentSkillWriteClient = Pick<PrismaClient, "agentSkill" | "agentSkillAdoption">;
 type ManageableOrgSkill = {
@@ -272,58 +245,6 @@ const orgSkillFlagInputSchema = z.object({
 
 type OrgSkillFlagInput = z.infer<typeof orgSkillFlagInputSchema>;
 
-const listPersonalAgentSkillCommandsForContext = async ({
-    prisma,
-    user,
-}: Pick<AgentSkillCommandContext, "prisma" | "user">): Promise<AskCommandDefinition[]> => {
-    const skills = await prisma.agentSkill.findMany({
-        where: {
-            ...personalAgentSkillAuthScope(user.id),
-            enabled: true,
-        },
-        orderBy: agentSkillOrderBy,
-        select: {
-            id: true,
-            slug: true,
-            name: true,
-            description: true,
-            instructions: true,
-            argumentNames: true,
-        },
-    });
-
-    return skills.map((skill) => toAskCommandDefinition(
-        skill,
-        ASK_COMMAND_SOURCE_PERSONAL_SKILL,
-        PERSONAL_SKILL_SOURCE_LABEL,
-    ));
-};
-
-const listOrgAgentSkillCommandsForContext = async ({
-    org,
-    prisma,
-    user,
-}: AgentSkillCommandContext): Promise<AskCommandDefinition[]> => {
-    const skills = await prisma.agentSkill.findMany({
-        where: orgAgentSkillVisibleToUserWhere(user.id, org.id),
-        orderBy: agentSkillOrderBy,
-        select: {
-            id: true,
-            slug: true,
-            name: true,
-            description: true,
-            instructions: true,
-            argumentNames: true,
-        },
-    });
-
-    return skills.map((skill) => toAskCommandDefinition(
-        skill,
-        ASK_COMMAND_SOURCE_ORG_SKILL,
-        ORG_SKILL_SOURCE_LABEL,
-    ));
-};
-
 export const listPersonalAgentSkills = async (): Promise<AgentSkillListItem[] | ServiceError> => sew(() =>
     withAuth(async ({ user, prisma }) => {
         const askError = await checkAskEntitlement();
@@ -348,7 +269,7 @@ export const listPersonalAgentSkillCommands = async (): Promise<AskCommandDefini
             return askError;
         }
 
-        return listPersonalAgentSkillCommandsForContext({ user, prisma });
+        return listPersonalAgentSkillCommandsForContext({ prisma, userId: user.id });
     }));
 
 export const getPersonalAgentSkill = async (
@@ -746,7 +667,7 @@ export const listOrgAgentSkillCommands = async (): Promise<AskCommandDefinition[
             return askError;
         }
 
-        return listOrgAgentSkillCommandsForContext({ org, user, prisma });
+        return listOrgAgentSkillCommandsForContext({ prisma, userId: user.id, orgId: org.id });
     }));
 
 export const listAgentSkillCommands = async (): Promise<AskCommandDefinition[] | ServiceError> => sew(() =>
@@ -757,8 +678,8 @@ export const listAgentSkillCommands = async (): Promise<AskCommandDefinition[] |
         }
 
         const [personalCommands, orgCommands] = await Promise.all([
-            listPersonalAgentSkillCommandsForContext({ user, prisma }),
-            listOrgAgentSkillCommandsForContext({ org, user, prisma }),
+            listPersonalAgentSkillCommandsForContext({ prisma, userId: user.id }),
+            listOrgAgentSkillCommandsForContext({ prisma, userId: user.id, orgId: org.id }),
         ]);
 
         return [
