@@ -106,7 +106,7 @@ export type SBChatMessageToolTypes = {
     // createTools, so its UI part shape is declared here by hand — mirror of the
     // execute() return in ee/features/chat/skills/loadSkillTool.ts.
     load_skill: {
-        input: { skill_id: string; arguments?: string };
+        input: { skill_id: string };
         output:
             | { skill: { id: string; slug: string; name: string }; instructions: string }
             | { error: string };
@@ -157,8 +157,8 @@ export type SBChatMessageDataParts = {
     "mcp-failed-server": { serverName: string },
     // A user-provided file attachment included with the message.
     "attachment": AttachmentData,
-    // The `command` data type preserves the slash command identity and raw arguments
-    // so the server can resolve and expand the command template securely.
+    // The `command` data type preserves the slash command identity so the server
+    // can resolve and expand the command's instructions securely.
     "command": CommandInvocationData,
 }
 

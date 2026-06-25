@@ -1,6 +1,6 @@
 import { AccountAskAgentPage } from "@/ee/features/chat/mcp/components/accountAskAgentPage";
 import { AccountAskAgentEntitlementMessage } from "./accountAskAgentEntitlementMessage";
-import { listOrgAgentSkillCatalog, listPersonalAgentSkills } from "@/ee/features/chat/skills/actions";
+import { listSharedAgentSkillCatalog, listPersonalAgentSkills } from "@/ee/features/chat/skills/actions";
 import { hasEntitlement } from "@/lib/entitlements";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
@@ -26,7 +26,7 @@ export default authenticatedPage<PageProps>(async ({ role }, { searchParams }) =
     const { status, server, message } = await searchParams;
     const [personalSkills, orgSkills] = await Promise.all([
         listPersonalAgentSkills(),
-        listOrgAgentSkillCatalog(),
+        listSharedAgentSkillCatalog(),
     ]);
     if (isServiceError(personalSkills)) {
         throw new ServiceErrorException(personalSkills);

@@ -1,5 +1,4 @@
 import type { AgentSkill, AgentSkillVisibility, Prisma } from "@sourcebot/db";
-import { isValidArgumentName, parseArgumentNames } from "@/features/chat/commands/argumentSubstitution";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 
@@ -19,23 +18,11 @@ const agentSkillSlugSchema = z.string()
         .max(64, "Command must be 64 characters or fewer.")
         .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Command can only contain lowercase letters, numbers, and hyphens."));
 
-const agentSkillArgumentNameSchema = z.string()
-    .trim()
-    .min(1, "Argument name cannot be empty.")
-    .refine(isValidArgumentName, "Argument names must be identifiers and cannot be numeric or reserved.");
-
-const hasUniqueArgumentNames = (names: string[]) => new Set(names).size === names.length;
-
 export const agentSkillInputSchema = z.object({
     name: z.string().trim().min(1, "Name is required.").max(80, "Name must be 80 characters or fewer."),
     slug: agentSkillSlugSchema,
     description: z.string().trim().max(500, "Description must be 500 characters or fewer."),
     instructions: z.string().trim().min(1, "Instructions are required.").max(20000, "Instructions must be 20,000 characters or fewer."),
-    argumentNames: z.array(agentSkillArgumentNameSchema)
-        .max(20, "Skills can have at most 20 named arguments.")
-        .refine(hasUniqueArgumentNames, "Argument names must be unique.")
-        .default([]),
-    autoInvocationEnabled: z.boolean().default(false),
 });
 
 export const updateAgentSkillInputSchema = agentSkillInputSchema.extend({
@@ -49,35 +36,33 @@ export const agentSkillListItemSchema = z.object({
     name: z.string(),
     description: z.string(),
     instructions: z.string(),
-    argumentNames: z.array(z.string()),
     enabled: z.boolean(),
-    autoInvocationEnabled: z.boolean(),
     createdAt: z.string(),
     updatedAt: z.string(),
 });
 
-export const orgAgentSkillBaseItemSchema = agentSkillListItemSchema.omit({
+export const sharedAgentSkillBaseItemSchema = agentSkillListItemSchema.omit({
     instructions: true,
 }).extend({
     featured: z.boolean(),
     autoEnrolled: z.boolean(),
 });
 
-export const orgAgentSkillCatalogItemSchema = orgAgentSkillBaseItemSchema.extend({
+export const sharedAgentSkillCatalogItemSchema = sharedAgentSkillBaseItemSchema.extend({
     isAdopted: z.boolean(),
     isRemoved: z.boolean(),
     isVisibleToUser: z.boolean(),
     isCreatedByUser: z.boolean(),
 });
 
-export const orgAgentSkillManagementItemSchema = orgAgentSkillBaseItemSchema;
+export const sharedAgentSkillManagementItemSchema = sharedAgentSkillBaseItemSchema;
 
 export type AgentSkillInput = z.infer<typeof agentSkillInputSchema>;
 export type UpdateAgentSkillInput = z.infer<typeof updateAgentSkillInputSchema>;
 export type AgentSkillListItem = z.infer<typeof agentSkillListItemSchema>;
-export type OrgAgentSkillBaseItem = z.infer<typeof orgAgentSkillBaseItemSchema>;
-export type OrgAgentSkillCatalogItem = z.infer<typeof orgAgentSkillCatalogItemSchema>;
-export type OrgAgentSkillManagementItem = z.infer<typeof orgAgentSkillManagementItemSchema>;
+export type SharedAgentSkillBaseItem = z.infer<typeof sharedAgentSkillBaseItemSchema>;
+export type SharedAgentSkillCatalogItem = z.infer<typeof sharedAgentSkillCatalogItemSchema>;
+export type SharedAgentSkillManagementItem = z.infer<typeof sharedAgentSkillManagementItemSchema>;
 
 export const agentSkillOrderBy = [
     { updatedAt: "desc" },
@@ -90,7 +75,7 @@ export const sortAgentSkillListItems = (skills: AgentSkillListItem[]) =>
         return updatedDiff !== 0 ? updatedDiff : a.name.localeCompare(b.name);
     });
 
-export const sortOrgAgentSkillCatalogItems = <T extends Pick<OrgAgentSkillBaseItem, "featured" | "updatedAt" | "name">>(skills: T[]) =>
+export const sortSharedAgentSkillCatalogItems = <T extends Pick<SharedAgentSkillBaseItem, "featured" | "updatedAt" | "name">>(skills: T[]) =>
     [...skills].sort((a, b) => {
         if (a.featured !== b.featured) {
             return a.featured ? -1 : 1;
@@ -104,7 +89,6 @@ export interface ParsedAgentSkillMarkdown {
     name?: string;
     slug?: string;
     description?: string;
-    argumentNames?: string[];
     instructions: string;
     hasFrontmatter: boolean;
     frontmatterError?: string;
@@ -112,33 +96,6 @@ export interface ParsedAgentSkillMarkdown {
 
 const getOptionalString = (value: unknown) =>
     typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
-
-const getOptionalArgumentNames = (value: unknown) => {
-    if (typeof value === "string" && value.trim().length > 0) {
-        const names = parseArgumentNames(value);
-        if (!hasUniqueArgumentNames(names)) {
-            throw new Error("Argument names must be unique.");
-        }
-        return names.length > 0 ? names : undefined;
-    }
-
-    if (Array.isArray(value)) {
-        const names: string[] = [];
-        for (const item of value) {
-            const name = typeof item === "string" ? item.trim() : String(item);
-            if (typeof item !== "string" || !isValidArgumentName(name)) {
-                throw new Error(`Invalid argument name: ${name}`);
-            }
-            names.push(name);
-        }
-        if (!hasUniqueArgumentNames(names)) {
-            throw new Error("Argument names must be unique.");
-        }
-        return names.length > 0 ? names : undefined;
-    }
-
-    return undefined;
-};
 
 const fileNameToSkillName = (fileName?: string) => {
     if (!fileName) {
@@ -195,28 +152,17 @@ export const parseAgentSkillMarkdown = (
             ? normalizeAgentSkillSlug(name)
             : fallbackSlug;
 
-    let argumentNames: string[] | undefined;
-    let frontmatterError: string | undefined;
-    try {
-        argumentNames = getOptionalArgumentNames(parsed?.arguments);
-    } catch (error) {
-        const message = error instanceof Error ? error.message : "Could not parse arguments.";
-        frontmatterError = `Invalid arguments front matter: ${message}`;
-    }
-
     return {
         name,
         slug: slug || undefined,
         description: getOptionalString(parsed?.description),
-        argumentNames,
         instructions: body,
         hasFrontmatter: true,
-        frontmatterError,
     };
 };
 
 export const toAgentSkillListItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "instructions" | "argumentNames" | "enabled" | "autoInvocationEnabled" | "createdAt" | "updatedAt">,
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "instructions" | "enabled" | "createdAt" | "updatedAt">,
 ): AgentSkillListItem => ({
     id: skill.id,
     scope: skill.visibility,
@@ -224,44 +170,40 @@ export const toAgentSkillListItem = (
     name: skill.name,
     description: skill.description,
     instructions: skill.instructions,
-    argumentNames: skill.argumentNames,
     enabled: skill.enabled,
-    autoInvocationEnabled: skill.autoInvocationEnabled,
     createdAt: skill.createdAt.toISOString(),
     updatedAt: skill.updatedAt.toISOString(),
 });
 
-const toOrgAgentSkillBaseItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "argumentNames" | "enabled" | "autoInvocationEnabled" | "featured" | "autoEnrolled" | "createdAt" | "updatedAt">,
-): OrgAgentSkillBaseItem => ({
+const toSharedAgentSkillBaseItem = (
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "enabled" | "featured" | "autoEnrolled" | "createdAt" | "updatedAt">,
+): SharedAgentSkillBaseItem => ({
     id: skill.id,
     scope: skill.visibility,
     slug: skill.slug,
     name: skill.name,
     description: skill.description,
-    argumentNames: skill.argumentNames,
     enabled: skill.enabled,
-    autoInvocationEnabled: skill.autoInvocationEnabled,
     createdAt: skill.createdAt.toISOString(),
     updatedAt: skill.updatedAt.toISOString(),
     featured: skill.featured,
     autoEnrolled: skill.autoEnrolled,
 });
 
-export const toOrgAgentSkillManagementItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "argumentNames" | "enabled" | "autoInvocationEnabled" | "featured" | "autoEnrolled" | "createdAt" | "updatedAt">,
-): OrgAgentSkillManagementItem => toOrgAgentSkillBaseItem(skill);
+export const toSharedAgentSkillManagementItem = (
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "enabled" | "featured" | "autoEnrolled" | "createdAt" | "updatedAt">,
+): SharedAgentSkillManagementItem => toSharedAgentSkillBaseItem(skill);
 
-export const toOrgAgentSkillCatalogItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "argumentNames" | "enabled" | "autoInvocationEnabled" | "featured" | "autoEnrolled" | "createdById" | "createdAt" | "updatedAt"> & {
+export const toSharedAgentSkillCatalogItem = (
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "enabled" | "featured" | "autoEnrolled" | "createdById" | "createdAt" | "updatedAt"> & {
         adoptions: { id: string; removedAt: Date | null }[];
     },
     userId: string,
-): OrgAgentSkillCatalogItem => {
+): SharedAgentSkillCatalogItem => {
     const isAdopted = skill.adoptions.some((adoption) => adoption.removedAt === null);
     const isRemoved = skill.adoptions.some((adoption) => adoption.removedAt !== null);
     return {
-        ...toOrgAgentSkillBaseItem(skill),
+        ...toSharedAgentSkillBaseItem(skill),
         isAdopted,
         isRemoved,
         isVisibleToUser: (skill.autoEnrolled || isAdopted) && !isRemoved,

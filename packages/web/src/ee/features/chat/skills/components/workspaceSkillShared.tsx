@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-export const FEATURED_SKILL_TOOLTIP = "Shown first in workspace skill lists.";
+export const FEATURED_SKILL_TOOLTIP = "Shown first in shared skill lists.";
 export const AUTO_ENROLLED_SKILL_TOOLTIP = "Added to members' Ask commands by default.";
 
 export function SkillCommandBadge({ slug }: { slug: string }) {
@@ -53,7 +53,7 @@ export function SkillStatusBadge({
 }
 
 export function WorkspaceSkillsEmptyState({
-    description = "Workspace skills created by members will appear here.",
+    description = "Shared skills created by members will appear here.",
 }: {
     description?: string;
 }) {
@@ -64,7 +64,7 @@ export function WorkspaceSkillsEmptyState({
                     <Building2Icon className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <p className="text-sm font-medium text-foreground mb-1">
-                    No workspace skills yet
+                    No shared skills yet
                 </p>
                 <p className="text-sm text-muted-foreground max-w-sm">
                     {description}
@@ -117,7 +117,7 @@ export function DeleteWorkspaceSkillDialog({
         <AlertDialog open={skill !== null} onOpenChange={onOpenChange}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Workspace Skill</AlertDialogTitle>
+                    <AlertDialogTitle>Delete Shared Skill</AlertDialogTitle>
                     <AlertDialogDescription>
                         Are you sure you want to delete <span className="font-semibold text-foreground">{skill?.name}</span>? This removes the <span className="font-mono text-foreground">/{skill?.slug}</span> command for everyone in this workspace.
                     </AlertDialogDescription>

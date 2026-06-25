@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { getOrgAgentSkill } from "@/ee/features/chat/skills/actions";
-import { OrgSkillEditorPage } from "@/ee/features/chat/skills/components/personalSkillEditorPage";
+import { getSharedAgentSkill } from "@/ee/features/chat/skills/actions";
+import { SharedSkillEditorPage } from "@/ee/features/chat/skills/components/personalSkillEditorPage";
 import { hasEntitlement } from "@/lib/entitlements";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceErrorException } from "@/lib/serviceError";
@@ -20,7 +20,7 @@ export default authenticatedPage<PageProps>(async (_context, { params }) => {
     }
 
     const { skillId } = await params;
-    const skill = await getOrgAgentSkill(skillId);
+    const skill = await getSharedAgentSkill(skillId);
     if (isServiceError(skill)) {
         if (
             skill.errorCode === ErrorCode.AGENT_SKILL_NOT_FOUND ||
@@ -31,5 +31,5 @@ export default authenticatedPage<PageProps>(async (_context, { params }) => {
         throw new ServiceErrorException(skill);
     }
 
-    return <OrgSkillEditorPage skill={skill} />;
+    return <SharedSkillEditorPage skill={skill} />;
 });

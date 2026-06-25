@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import type { OrgAgentSkillManagementItem } from '@/ee/features/chat/skills/types';
+import type { SharedAgentSkillManagementItem } from '@/ee/features/chat/skills/types';
 
 vi.mock('next/navigation', () => ({
     useRouter: () => ({
@@ -24,8 +24,8 @@ vi.mock('@/ee/features/chat/mcp/actions', () => ({
 }));
 
 vi.mock('@/ee/features/chat/skills/actions', () => ({
-    deleteOrgAgentSkill: vi.fn(),
-    setOrgSkillFlag: vi.fn(),
+    deleteSharedAgentSkill: vi.fn(),
+    setSharedSkillFlag: vi.fn(),
 }));
 
 const clientApi = await import('@/app/api/(client)/client');
@@ -41,7 +41,7 @@ function renderWorkspaceAskAgentPage({
     orgSkills,
     isAskAgentAvailable = true,
 }: {
-    orgSkills: OrgAgentSkillManagementItem[];
+    orgSkills: SharedAgentSkillManagementItem[];
     isAskAgentAvailable?: boolean;
 }) {
     vi.mocked(clientApi.getMcpConfiguration).mockResolvedValue({
@@ -72,16 +72,14 @@ function renderWorkspaceAskAgentPage({
 }
 
 describe('WorkspaceAskAgentPage', () => {
-    test('hides workspace skills when Ask is unavailable', async () => {
-        const orgSkill: OrgAgentSkillManagementItem = {
+    test('hides shared skills when Ask is unavailable', async () => {
+        const sharedSkill: SharedAgentSkillManagementItem = {
             id: 'skill-1',
-            scope: 'ORG' as OrgAgentSkillManagementItem['scope'],
+            scope: 'SHARED',
             slug: 'review',
             name: 'Review',
             description: 'Review risky changes.',
-            argumentNames: [],
             enabled: true,
-            autoInvocationEnabled: false,
             featured: false,
             autoEnrolled: false,
             createdAt: '2026-06-18T00:00:00.000Z',
@@ -89,34 +87,32 @@ describe('WorkspaceAskAgentPage', () => {
         };
 
         renderWorkspaceAskAgentPage({
-            orgSkills: [orgSkill],
+            orgSkills: [sharedSkill],
             isAskAgentAvailable: false,
         });
 
         await screen.findByText('Ask Sourcebot connectors are unavailable');
 
         expect(screen.queryByText('Review')).toBeNull();
-        expect(screen.queryByText('Manage workspace slash-command behavior for Ask Sourcebot.')).toBeNull();
+        expect(screen.queryByText('Manage shared skills available to everyone in your workspace.')).toBeNull();
     });
 
-    test('disables workspace skill delete while a flag update is pending', async () => {
-        const orgSkill: OrgAgentSkillManagementItem = {
+    test('disables shared skill delete while a flag update is pending', async () => {
+        const sharedSkill: SharedAgentSkillManagementItem = {
             id: 'skill-1',
-            scope: 'ORG' as OrgAgentSkillManagementItem['scope'],
+            scope: 'SHARED',
             slug: 'review',
             name: 'Review',
             description: 'Review risky changes.',
-            argumentNames: [],
             enabled: true,
-            autoInvocationEnabled: false,
             featured: false,
             autoEnrolled: false,
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
         };
-        vi.mocked(skillActions.setOrgSkillFlag).mockReturnValue(new Promise(() => undefined));
+        vi.mocked(skillActions.setSharedSkillFlag).mockReturnValue(new Promise(() => undefined));
 
-        renderWorkspaceAskAgentPage({ orgSkills: [orgSkill] });
+        renderWorkspaceAskAgentPage({ orgSkills: [sharedSkill] });
 
         await screen.findByText('Review');
 
@@ -130,40 +126,36 @@ describe('WorkspaceAskAgentPage', () => {
         });
     });
 
-    test("allows deleting a different workspace skill while another skill's flag update is pending", async () => {
-        const skillA: OrgAgentSkillManagementItem = {
+    test("allows deleting a different shared skill while another skill's flag update is pending", async () => {
+        const skillA: SharedAgentSkillManagementItem = {
             id: 'skill-a',
-            scope: 'ORG' as OrgAgentSkillManagementItem['scope'],
+            scope: 'SHARED',
             slug: 'review-a',
             name: 'Review A',
             description: 'Review risky changes.',
-            argumentNames: [],
             enabled: true,
-            autoInvocationEnabled: false,
             featured: false,
             autoEnrolled: false,
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
         };
-        const skillB: OrgAgentSkillManagementItem = {
+        const skillB: SharedAgentSkillManagementItem = {
             id: 'skill-b',
-            scope: 'ORG' as OrgAgentSkillManagementItem['scope'],
+            scope: 'SHARED',
             slug: 'review-b',
             name: 'Review B',
             description: 'Review risky changes.',
-            argumentNames: [],
             enabled: true,
-            autoInvocationEnabled: false,
             featured: false,
             autoEnrolled: false,
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
         };
-        let resolveUpdate!: (value: OrgAgentSkillManagementItem) => void;
-        const pendingUpdate = new Promise<OrgAgentSkillManagementItem>((resolve) => {
+        let resolveUpdate!: (value: SharedAgentSkillManagementItem) => void;
+        const pendingUpdate = new Promise<SharedAgentSkillManagementItem>((resolve) => {
             resolveUpdate = resolve;
         });
-        vi.mocked(skillActions.setOrgSkillFlag).mockReturnValue(pendingUpdate);
+        vi.mocked(skillActions.setSharedSkillFlag).mockReturnValue(pendingUpdate);
 
         renderWorkspaceAskAgentPage({ orgSkills: [skillA, skillB] });
 
@@ -179,7 +171,7 @@ describe('WorkspaceAskAgentPage', () => {
 
         fireEvent.click(skillBDeleteButton);
 
-        const dialog = await screen.findByRole('alertdialog', { name: 'Delete Workspace Skill' });
+        const dialog = await screen.findByRole('alertdialog', { name: 'Delete Shared Skill' });
         expect(within(dialog).getByText('Review B')).not.toBeNull();
 
         await act(async () => {
@@ -188,44 +180,40 @@ describe('WorkspaceAskAgentPage', () => {
         });
     });
 
-    test('keeps each workspace skill delete disabled until its own flag update finishes', async () => {
-        const skillA: OrgAgentSkillManagementItem = {
+    test('keeps each shared skill delete disabled until its own flag update finishes', async () => {
+        const skillA: SharedAgentSkillManagementItem = {
             id: 'skill-a',
-            scope: 'ORG' as OrgAgentSkillManagementItem['scope'],
+            scope: 'SHARED',
             slug: 'review-a',
             name: 'Review A',
             description: 'Review risky changes.',
-            argumentNames: [],
             enabled: true,
-            autoInvocationEnabled: false,
             featured: false,
             autoEnrolled: false,
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
         };
-        const skillB: OrgAgentSkillManagementItem = {
+        const skillB: SharedAgentSkillManagementItem = {
             id: 'skill-b',
-            scope: 'ORG' as OrgAgentSkillManagementItem['scope'],
+            scope: 'SHARED',
             slug: 'review-b',
             name: 'Review B',
             description: 'Review risky changes.',
-            argumentNames: [],
             enabled: true,
-            autoInvocationEnabled: false,
             featured: false,
             autoEnrolled: false,
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
         };
-        let resolveA!: (value: OrgAgentSkillManagementItem) => void;
-        let resolveB!: (value: OrgAgentSkillManagementItem) => void;
-        const updateA = new Promise<OrgAgentSkillManagementItem>((resolve) => {
+        let resolveA!: (value: SharedAgentSkillManagementItem) => void;
+        let resolveB!: (value: SharedAgentSkillManagementItem) => void;
+        const updateA = new Promise<SharedAgentSkillManagementItem>((resolve) => {
             resolveA = resolve;
         });
-        const updateB = new Promise<OrgAgentSkillManagementItem>((resolve) => {
+        const updateB = new Promise<SharedAgentSkillManagementItem>((resolve) => {
             resolveB = resolve;
         });
-        vi.mocked(skillActions.setOrgSkillFlag).mockImplementation(({ skillId }) =>
+        vi.mocked(skillActions.setSharedSkillFlag).mockImplementation(({ skillId }) =>
             skillId === 'skill-a' ? updateA : updateB,
         );
 

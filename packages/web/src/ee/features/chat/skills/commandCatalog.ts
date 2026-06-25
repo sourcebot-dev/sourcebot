@@ -1,13 +1,12 @@
 import {
-    orgAgentSkillVisibleToUserWhere,
+    sharedAgentSkillVisibleToUserWhere,
     personalAgentSkillAuthScope,
     type Prisma,
     type PrismaClient,
 } from "@sourcebot/db";
-import { getArgumentHint } from "@/features/chat/commands/argumentSubstitution";
 import {
-    ASK_COMMAND_SOURCE_ORG_SKILL,
     ASK_COMMAND_SOURCE_PERSONAL_SKILL,
+    ASK_COMMAND_SOURCE_SHARED_SKILL,
     type AskCommandDefinition,
 } from "@/features/chat/commands/types";
 import { agentSkillOrderBy } from "./types";
@@ -17,21 +16,19 @@ import { agentSkillOrderBy } from "./types";
 // auto-invocation catalog (buildSkillRegistry) so both surface a skill's source
 // identically.
 export const PERSONAL_SKILL_SOURCE_LABEL = "Personal";
-export const ORG_SKILL_SOURCE_LABEL = "Workspace";
+export const SHARED_SKILL_SOURCE_LABEL = "Shared";
 
 export const sourceLabelForSkillSourceId = (sourceId: string): string =>
-    sourceId === ASK_COMMAND_SOURCE_ORG_SKILL ? ORG_SKILL_SOURCE_LABEL : PERSONAL_SKILL_SOURCE_LABEL;
+    sourceId === ASK_COMMAND_SOURCE_SHARED_SKILL ? SHARED_SKILL_SOURCE_LABEL : PERSONAL_SKILL_SOURCE_LABEL;
 
-// The minimal columns needed to build an AskCommandDefinition. `instructions`
-// is selected only to derive the argument hint; it is never surfaced in the
-// catalog itself (which the model sees) — instructions are loaded on demand.
+// The minimal columns needed to build an AskCommandDefinition. Instructions are
+// loaded on demand (manual: at materialization; auto: at load_skill), never in
+// the catalog the model sees.
 const agentSkillCommandSelect = {
     id: true,
     slug: true,
     name: true,
     description: true,
-    instructions: true,
-    argumentNames: true,
 } satisfies Prisma.AgentSkillSelect;
 
 type AgentSkillCommandRow = {
@@ -39,8 +36,6 @@ type AgentSkillCommandRow = {
     slug: string;
     name: string;
     description: string;
-    instructions: string;
-    argumentNames: string[];
 };
 
 export const toAskCommandDefinition = (
@@ -54,30 +49,26 @@ export const toAskCommandDefinition = (
     slug: skill.slug,
     name: skill.name,
     description: skill.description,
-    argumentHint: getArgumentHint(skill.instructions, skill.argumentNames),
 });
 
 /**
- * Lists the requester's personal skills as slash-command definitions, applying
- * the shared personal auth scope. `autoInvocableOnly` additionally restricts to
- * skills opted in to model auto-invocation — the single difference between the
- * manual and auto catalogs. Both paths share this query, select, ordering, and
- * mapping so they can never drift.
+ * Lists the requester's personal skills (scoped to the current org) as
+ * slash-command definitions. The manual and auto catalogs share this query,
+ * select, ordering, and mapping so they can never drift.
  */
 export const listPersonalAgentSkillCommandsForContext = async ({
     prisma,
     userId,
-    autoInvocableOnly = false,
+    orgId,
 }: {
     prisma: PrismaClient;
     userId: string;
-    autoInvocableOnly?: boolean;
+    orgId: number;
 }): Promise<AskCommandDefinition[]> => {
     const skills = await prisma.agentSkill.findMany({
         where: {
-            ...personalAgentSkillAuthScope(userId),
+            ...personalAgentSkillAuthScope(userId, orgId),
             enabled: true,
-            ...(autoInvocableOnly ? { autoInvocationEnabled: true } : {}),
         },
         orderBy: agentSkillOrderBy,
         select: agentSkillCommandSelect,
@@ -91,26 +82,22 @@ export const listPersonalAgentSkillCommandsForContext = async ({
 };
 
 /**
- * Lists the org skills visible to the requester as slash-command definitions,
- * applying the shared org-visibility clause (enabled + adopted/auto-enrolled +
- * not-removed). `autoInvocableOnly` additionally restricts to skills opted in to
- * model auto-invocation. See {@link listPersonalAgentSkillCommandsForContext}.
+ * Lists the shared skills visible to the requester as slash-command definitions,
+ * applying the shared-visibility clause (enabled + adopted/auto-enrolled +
+ * not-removed). See {@link listPersonalAgentSkillCommandsForContext}.
  */
-export const listOrgAgentSkillCommandsForContext = async ({
+export const listSharedAgentSkillCommandsForContext = async ({
     prisma,
     userId,
     orgId,
-    autoInvocableOnly = false,
 }: {
     prisma: PrismaClient;
     userId: string;
     orgId: number;
-    autoInvocableOnly?: boolean;
 }): Promise<AskCommandDefinition[]> => {
     const skills = await prisma.agentSkill.findMany({
         where: {
-            ...orgAgentSkillVisibleToUserWhere(userId, orgId),
-            ...(autoInvocableOnly ? { autoInvocationEnabled: true } : {}),
+            ...sharedAgentSkillVisibleToUserWhere(userId, orgId),
         },
         orderBy: agentSkillOrderBy,
         select: agentSkillCommandSelect,
@@ -118,7 +105,7 @@ export const listOrgAgentSkillCommandsForContext = async ({
 
     return skills.map((skill) => toAskCommandDefinition(
         skill,
-        ASK_COMMAND_SOURCE_ORG_SKILL,
-        ORG_SKILL_SOURCE_LABEL,
+        ASK_COMMAND_SOURCE_SHARED_SKILL,
+        SHARED_SKILL_SOURCE_LABEL,
     ));
 };

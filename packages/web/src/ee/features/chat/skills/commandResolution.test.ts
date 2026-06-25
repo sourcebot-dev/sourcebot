@@ -1,15 +1,17 @@
 import { describe, expect, test, vi } from "vitest";
 
-// commandResolution imports captureEvent from @/lib/posthog (a server-only
-// module). Mock it so the suite can import the module under test in vitest.
+// commandResolution is guarded with `import 'server-only'` and imports
+// captureEvent from @/lib/posthog (a server-only module). Stub both so the
+// suite can import the module under test in vitest's node environment.
+vi.mock("server-only", () => ({ default: vi.fn() }));
 vi.mock("@/lib/posthog", () => ({ captureEvent: vi.fn() }));
 
-import { ASK_COMMAND_SOURCE_ORG_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL } from "@/features/chat/commands/types";
+import { ASK_COMMAND_SOURCE_SHARED_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL } from "@/features/chat/commands/types";
 import type { FileSource, SBChatMessage } from "@/features/chat/types";
 import { getFileSourcesFromText, getUserMessageModelText, materializeCommandMessageText, materializeCommandMessageTexts } from "./commandResolution";
 
 const createCommandMessage = (
-    rawArguments: string,
+    visibleText: string,
     expandedText?: string,
     overrides: Partial<{
         id: string;
@@ -23,7 +25,7 @@ const createCommandMessage = (
     parts: [
         {
             type: "text",
-            text: `/translate ${rawArguments}`,
+            text: `/translate ${visibleText}`,
         },
         {
             type: "data-command",
@@ -33,7 +35,6 @@ const createCommandMessage = (
                 sourceId: overrides.sourceId ?? ASK_COMMAND_SOURCE_PERSONAL_SKILL,
                 slug: "translate",
                 name: "Translate",
-                rawArguments,
                 ...(expandedText !== undefined ? { expandedText } : {}),
             },
         },
@@ -63,8 +64,8 @@ describe("getFileSourcesFromText", () => {
 describe("getUserMessageModelText", () => {
     test("uses persisted expanded text for the model", () => {
         expect(getUserMessageModelText(
-            createCommandMessage("hello French", 'Translate the word "hello" into French.'),
-        )).toBe('Translate the word "hello" into French.');
+            createCommandMessage("hello French", "Translate the most recent message into French."),
+        )).toBe("Translate the most recent message into French.");
     });
 
     test("falls back to visible text when no expanded text is materialized", () => {
@@ -78,8 +79,7 @@ describe("materializeCommandMessageText", () => {
             agentSkill: {
                 findMany: vi.fn().mockResolvedValue([{
                     id: "skill-1",
-                    instructions: 'Translate the word "$0" into $1.',
-                    argumentNames: [],
+                    instructions: "Translate the most recent message into French.",
                 }]),
             },
         };
@@ -88,6 +88,7 @@ describe("materializeCommandMessageText", () => {
             message: createCommandMessage("hello French"),
             prisma: prisma as never,
             userId: "user-1",
+            orgId: 7,
         });
 
         expect(message.parts).toContainEqual({
@@ -98,8 +99,7 @@ describe("materializeCommandMessageText", () => {
                 sourceId: ASK_COMMAND_SOURCE_PERSONAL_SKILL,
                 slug: "translate",
                 name: "Translate",
-                rawArguments: "hello French",
-                expandedText: 'Translate the word "hello" into French.',
+                expandedText: "Translate the most recent message into French.",
             },
         });
         expect(prisma.agentSkill.findMany).toHaveBeenCalledWith({
@@ -107,36 +107,15 @@ describe("materializeCommandMessageText", () => {
                 id: { in: ["skill-1"] },
                 visibility: "PERSONAL",
                 scopeId: "user-1",
+                orgId: 7,
                 createdById: "user-1",
-                orgId: null,
                 enabled: true,
             },
             select: {
                 id: true,
                 instructions: true,
-                argumentNames: true,
             },
         });
-    });
-
-    test("materializes named arguments", async () => {
-        const prisma = {
-            agentSkill: {
-                findMany: vi.fn().mockResolvedValue([{
-                    id: "skill-1",
-                    instructions: "Generate a beginner-friendly $language tutorial about $topic.",
-                    argumentNames: ["language", "topic"],
-                }]),
-            },
-        };
-
-        const message = await materializeCommandMessageText({
-            message: createCommandMessage("Python decorators"),
-            prisma: prisma as never,
-            userId: "user-1",
-        });
-
-        expect(getUserMessageModelText(message)).toBe("Generate a beginner-friendly Python tutorial about decorators.");
     });
 
     test("adds file sources from materialized skill instructions", async () => {
@@ -144,8 +123,7 @@ describe("materializeCommandMessageText", () => {
             agentSkill: {
                 findMany: vi.fn().mockResolvedValue([{
                     id: "skill-1",
-                    instructions: "Review @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts} for $0.",
-                    argumentNames: [],
+                    instructions: "Review @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts}.",
                 }]),
             },
         };
@@ -154,6 +132,7 @@ describe("materializeCommandMessageText", () => {
             message: createCommandMessage("session"),
             prisma: prisma as never,
             userId: "user-1",
+            orgId: 7,
         });
 
         expect(message.parts).toContainEqual({
@@ -166,7 +145,7 @@ describe("materializeCommandMessageText", () => {
                 revision: "HEAD",
             },
         });
-        expect(getUserMessageModelText(message)).toBe("Review @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts} for session.");
+        expect(getUserMessageModelText(message)).toBe("Review @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts}.");
     });
 
     test("does not duplicate file sources already present on the message", async () => {
@@ -182,7 +161,6 @@ describe("materializeCommandMessageText", () => {
                 findMany: vi.fn().mockResolvedValue([{
                     id: "skill-1",
                     instructions: "Review @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts}.",
-                    argumentNames: [],
                 }]),
             },
         };
@@ -191,6 +169,7 @@ describe("materializeCommandMessageText", () => {
             message: createCommandMessage("", undefined, { sources: [existingSource] }),
             prisma: prisma as never,
             userId: "user-1",
+            orgId: 7,
         });
 
         expect(message.parts.filter((part) => part.type === "data-source")).toEqual([
@@ -213,6 +192,7 @@ describe("materializeCommandMessageText", () => {
             message: originalMessage,
             prisma: prisma as never,
             userId: "user-1",
+            orgId: 7,
         });
 
         expect(message).toBe(originalMessage);
@@ -233,6 +213,7 @@ describe("materializeCommandMessageText", () => {
             ),
             prisma: prisma as never,
             userId: "user-1",
+            orgId: 7,
         });
 
         expect(prisma.agentSkill.findMany).not.toHaveBeenCalled();
@@ -259,26 +240,26 @@ describe("materializeCommandMessageText", () => {
             message: createCommandMessage("hello French"),
             prisma: prisma as never,
             userId: "user-1",
+            orgId: 7,
         });
 
         expect(getUserMessageModelText(message)).toBe("/translate hello French");
     });
 
-    test("materializes adopted org skills within the active org", async () => {
+    test("materializes adopted shared skills within the active org", async () => {
         const prisma = {
             agentSkill: {
                 findMany: vi.fn().mockResolvedValue([{
-                    id: "org-skill-1",
-                    instructions: "Explain $0 using the team style guide.",
-                    argumentNames: [],
+                    id: "shared-skill-1",
+                    instructions: "Explain the most recent message using the team style guide.",
                 }]),
             },
         };
 
         const message = await materializeCommandMessageText({
             message: createCommandMessage("decorators", undefined, {
-                commandId: "org-skill-1",
-                sourceId: ASK_COMMAND_SOURCE_ORG_SKILL,
+                commandId: "shared-skill-1",
+                sourceId: ASK_COMMAND_SOURCE_SHARED_SKILL,
             }),
             prisma: prisma as never,
             userId: "user-1",
@@ -287,8 +268,8 @@ describe("materializeCommandMessageText", () => {
 
         expect(prisma.agentSkill.findMany).toHaveBeenCalledWith({
             where: {
-                id: { in: ["org-skill-1"] },
-                visibility: "ORG",
+                id: { in: ["shared-skill-1"] },
+                visibility: "SHARED",
                 scopeId: "7",
                 orgId: 7,
                 enabled: true,
@@ -325,13 +306,12 @@ describe("materializeCommandMessageText", () => {
             select: {
                 id: true,
                 instructions: true,
-                argumentNames: true,
             },
         });
-        expect(getUserMessageModelText(message)).toBe("Explain decorators using the team style guide.");
+        expect(getUserMessageModelText(message)).toBe("Explain the most recent message using the team style guide.");
     });
 
-    test("does not materialize an org skill that is neither adopted nor auto-enrolled", async () => {
+    test("does not materialize a shared skill that is neither adopted nor auto-enrolled", async () => {
         const prisma = {
             agentSkill: {
                 findMany: vi.fn().mockResolvedValue([]),
@@ -340,8 +320,8 @@ describe("materializeCommandMessageText", () => {
 
         const message = await materializeCommandMessageText({
             message: createCommandMessage("decorators", undefined, {
-                commandId: "org-skill-1",
-                sourceId: ASK_COMMAND_SOURCE_ORG_SKILL,
+                commandId: "shared-skill-1",
+                sourceId: ASK_COMMAND_SOURCE_SHARED_SKILL,
             }),
             prisma: prisma as never,
             userId: "user-1",
@@ -362,6 +342,7 @@ describe("materializeCommandMessageText", () => {
             message: createCommandMessage("hello French"),
             prisma: prisma as never,
             userId: undefined,
+            orgId: 7,
         });
 
         expect(prisma.agentSkill.findMany).not.toHaveBeenCalled();
@@ -376,13 +357,11 @@ describe("materializeCommandMessageTexts", () => {
                 findMany: vi.fn().mockResolvedValue([
                     {
                         id: "skill-1",
-                        instructions: 'Translate "$0" into $1.',
-                        argumentNames: [],
+                        instructions: "Translate the most recent message into French.",
                     },
                     {
                         id: "skill-2",
-                        instructions: "Generate a $language tutorial about $topic.",
-                        argumentNames: ["language", "topic"],
+                        instructions: "Generate a Python tutorial about decorators.",
                     },
                 ]),
             },
@@ -395,6 +374,7 @@ describe("materializeCommandMessageTexts", () => {
             ],
             prisma: prisma as never,
             userId: "user-1",
+            orgId: 7,
         });
 
         expect(prisma.agentSkill.findMany).toHaveBeenCalledTimes(1);
@@ -403,38 +383,35 @@ describe("materializeCommandMessageTexts", () => {
                 id: { in: ["skill-1", "skill-2"] },
                 visibility: "PERSONAL",
                 scopeId: "user-1",
+                orgId: 7,
                 createdById: "user-1",
-                orgId: null,
                 enabled: true,
             },
             select: {
                 id: true,
                 instructions: true,
-                argumentNames: true,
             },
         });
         expect(messages.map(getUserMessageModelText)).toEqual([
-            'Translate "hello" into French.',
+            "Translate the most recent message into French.",
             "Generate a Python tutorial about decorators.",
         ]);
     });
 
-    test("resolves personal and org skills that share a command id without collision", async () => {
+    test("resolves personal and shared skills that share a command id without collision", async () => {
         const prisma = {
             agentSkill: {
                 findMany: vi.fn().mockImplementation(async ({ where }) => {
                     if (where.visibility === "PERSONAL") {
                         return [{
                             id: "skill-1",
-                            instructions: "Personal translation of $0.",
-                            argumentNames: [],
+                            instructions: "Personal translation skill.",
                         }];
                     }
 
                     return [{
                         id: "skill-1",
-                        instructions: "Workspace translation of $0.",
-                        argumentNames: [],
+                        instructions: "Shared translation skill.",
                     }];
                 }),
             },
@@ -450,7 +427,7 @@ describe("materializeCommandMessageTexts", () => {
                 createCommandMessage("hello", undefined, {
                     id: "message-2",
                     commandId: "skill-1",
-                    sourceId: ASK_COMMAND_SOURCE_ORG_SKILL,
+                    sourceId: ASK_COMMAND_SOURCE_SHARED_SKILL,
                 }),
             ],
             prisma: prisma as never,
@@ -460,8 +437,8 @@ describe("materializeCommandMessageTexts", () => {
 
         expect(prisma.agentSkill.findMany).toHaveBeenCalledTimes(2);
         expect(messages.map(getUserMessageModelText)).toEqual([
-            "Personal translation of hello.",
-            "Workspace translation of hello.",
+            "Personal translation skill.",
+            "Shared translation skill.",
         ]);
     });
 });

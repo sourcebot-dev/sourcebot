@@ -25,7 +25,7 @@ import { ConnectorToolTrigger } from "@/ee/features/chat/mcp/components/connecto
 import { useConnectMcp } from "@/ee/features/chat/mcp/hooks/useConnectMcp";
 import { useMcpToolMetadata } from "@/ee/features/chat/mcp/hooks/useMcpToolMetadata";
 import { disconnectMcpServer } from "@/ee/features/chat/mcp/actions";
-import { adoptOrgSkill, deletePersonalAgentSkill, makeOrgAgentSkillPersonal, publishPersonalAgentSkillToOrg, unadoptOrgSkill } from "@/ee/features/chat/skills/actions";
+import { adoptSharedSkill, deletePersonalAgentSkill, makeSharedAgentSkillPersonal, publishPersonalAgentSkillToShared, unadoptSharedSkill } from "@/ee/features/chat/skills/actions";
 import { deleteWorkspaceSkill } from "@/ee/features/chat/skills/components/workspaceSkillMutations";
 import {
     AUTO_ENROLLED_SKILL_TOOLTIP,
@@ -35,7 +35,7 @@ import {
     SkillStatusBadge,
     WorkspaceSkillsEmptyState,
 } from "@/ee/features/chat/skills/components/workspaceSkillShared";
-import { sortAgentSkillListItems, sortOrgAgentSkillCatalogItems, type AgentSkillListItem, type OrgAgentSkillCatalogItem } from "@/ee/features/chat/skills/types";
+import { sortAgentSkillListItems, sortSharedAgentSkillCatalogItems, type AgentSkillListItem, type SharedAgentSkillCatalogItem } from "@/ee/features/chat/skills/types";
 import { invalidateMcpConfigurationQueries, mcpQueryKeys } from "@/ee/features/chat/mcp/queryKeys";
 import { pluralize } from "@/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
@@ -58,12 +58,12 @@ interface AccountAskAgentPageProps {
     callbackMessage?: string;
     canManageConnectors: boolean;
     initialPersonalSkills: AgentSkillListItem[];
-    initialOrgSkills: OrgAgentSkillCatalogItem[];
+    initialOrgSkills: SharedAgentSkillCatalogItem[];
 }
 
 const newSkillHref = "/settings/accountAskAgent/skills/new";
 const editSkillHref = (skill: AgentSkillListItem) => `/settings/accountAskAgent/skills/${skill.id}`;
-const editOrgSkillHref = (skill: OrgAgentSkillCatalogItem) => `/settings/accountAskAgent/workspaceSkills/${skill.id}`;
+const editOrgSkillHref = (skill: SharedAgentSkillCatalogItem) => `/settings/accountAskAgent/workspaceSkills/${skill.id}`;
 
 function PersonalSkillCard({
     skill,
@@ -115,7 +115,7 @@ function PersonalSkillCard({
                             ) : (
                                 <Building2Icon className="h-4 w-4 mr-2" />
                             )}
-                            {isPublishing ? "Publishing..." : "Publish to workspace"}
+                            {isPublishing ? "Publishing..." : "Publish to shared"}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
@@ -140,13 +140,13 @@ function OrgSkillCatalogCard({
     onMakePersonal,
     onDelete,
 }: {
-    skill: OrgAgentSkillCatalogItem;
+    skill: SharedAgentSkillCatalogItem;
     adoptionPending: boolean;
     isMakingPersonal: boolean;
     isDeleting: boolean;
-    onAdoptionChange: (skill: OrgAgentSkillCatalogItem, adopt: boolean) => void;
-    onMakePersonal: (skill: OrgAgentSkillCatalogItem) => void;
-    onDelete: (skill: OrgAgentSkillCatalogItem) => void;
+    onAdoptionChange: (skill: SharedAgentSkillCatalogItem, adopt: boolean) => void;
+    onMakePersonal: (skill: SharedAgentSkillCatalogItem) => void;
+    onDelete: (skill: SharedAgentSkillCatalogItem) => void;
 }) {
     const canMakePersonal = skill.isCreatedByUser || skill.isVisibleToUser;
 
@@ -433,15 +433,15 @@ export function AccountAskAgentPage({
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState<FilterTab>("all");
     const [personalSkills, setPersonalSkills] = useState(() => sortAgentSkillListItems(initialPersonalSkills));
-    const [orgSkills, setOrgSkills] = useState(() => sortOrgAgentSkillCatalogItems(initialOrgSkills));
+    const [orgSkills, setOrgSkills] = useState(() => sortSharedAgentSkillCatalogItems(initialOrgSkills));
     const [deletingSkillId, setDeletingSkillId] = useState<string | null>(null);
     const [deletingOrgSkillId, setDeletingOrgSkillId] = useState<string | null>(null);
     const [publishingSkillId, setPublishingSkillId] = useState<string | null>(null);
     const [makingPersonalSkillId, setMakingPersonalSkillId] = useState<string | null>(null);
     const [adoptionPendingSkillId, setAdoptionPendingSkillId] = useState<string | null>(null);
     const [confirmDeleteSkill, setConfirmDeleteSkill] = useState<AgentSkillListItem | null>(null);
-    const [confirmDeleteOrgSkill, setConfirmDeleteOrgSkill] = useState<OrgAgentSkillCatalogItem | null>(null);
-    const [confirmMakePersonalOrgSkill, setConfirmMakePersonalOrgSkill] = useState<OrgAgentSkillCatalogItem | null>(null);
+    const [confirmDeleteOrgSkill, setConfirmDeleteOrgSkill] = useState<SharedAgentSkillCatalogItem | null>(null);
+    const [confirmMakePersonalOrgSkill, setConfirmMakePersonalOrgSkill] = useState<SharedAgentSkillCatalogItem | null>(null);
     const [disconnectingServerId, setDisconnectingServerId] = useState<string | null>(null);
     const [confirmDisconnectServer, setConfirmDisconnectServer] = useState<{ id: string; name: string } | null>(null);
     const { connect: reconnectMcp } = useConnectMcp();
@@ -557,18 +557,18 @@ export function AccountAskAgentPage({
     const handlePublishSkill = async (skill: AgentSkillListItem) => {
         setPublishingSkillId(skill.id);
         try {
-            const result = await publishPersonalAgentSkillToOrg(skill.id);
+            const result = await publishPersonalAgentSkillToShared(skill.id);
             if (isServiceError(result)) {
                 toast({ title: "Error", description: result.message, variant: "destructive" });
                 return;
             }
 
-            setOrgSkills((current) => sortOrgAgentSkillCatalogItems([
+            setOrgSkills((current) => sortSharedAgentSkillCatalogItems([
                 result,
                 ...current.filter((item) => item.id !== result.id),
             ]));
             setPersonalSkills((current) => current.filter((item) => item.id !== skill.id));
-            toast({ description: "Skill moved to workspace." });
+            toast({ description: "Skill shared with your workspace." });
         } catch {
             toast({ title: "Error", description: "Failed to publish skill.", variant: "destructive" });
         } finally {
@@ -576,18 +576,18 @@ export function AccountAskAgentPage({
         }
     };
 
-    const handleOrgSkillAdoptionChange = async (skill: OrgAgentSkillCatalogItem, adopt: boolean) => {
+    const handleOrgSkillAdoptionChange = async (skill: SharedAgentSkillCatalogItem, adopt: boolean) => {
         setAdoptionPendingSkillId(skill.id);
         try {
             const result = adopt
-                ? await adoptOrgSkill(skill.id)
-                : await unadoptOrgSkill(skill.id);
+                ? await adoptSharedSkill(skill.id)
+                : await unadoptSharedSkill(skill.id);
             if (isServiceError(result)) {
                 toast({ title: "Error", description: result.message, variant: "destructive" });
                 return;
             }
 
-            setOrgSkills((current) => sortOrgAgentSkillCatalogItems(current.map((item) =>
+            setOrgSkills((current) => sortSharedAgentSkillCatalogItems(current.map((item) =>
                 item.id === skill.id
                     ? {
                         ...item,
@@ -605,10 +605,10 @@ export function AccountAskAgentPage({
         }
     };
 
-    const handleMakeOrgSkillPersonal = async (skill: OrgAgentSkillCatalogItem) => {
+    const handleMakeOrgSkillPersonal = async (skill: SharedAgentSkillCatalogItem) => {
         setMakingPersonalSkillId(skill.id);
         try {
-            const result = await makeOrgAgentSkillPersonal(skill.id);
+            const result = await makeSharedAgentSkillPersonal(skill.id);
             if (isServiceError(result)) {
                 toast({ title: "Error", description: result.message, variant: "destructive" });
                 return;
@@ -621,7 +621,7 @@ export function AccountAskAgentPage({
             if (skill.isCreatedByUser) {
                 setOrgSkills((current) => current.filter((item) => item.id !== skill.id));
             } else {
-                setOrgSkills((current) => sortOrgAgentSkillCatalogItems(current.map((item) =>
+                setOrgSkills((current) => sortSharedAgentSkillCatalogItems(current.map((item) =>
                     item.id === skill.id
                         ? {
                             ...item,
@@ -641,7 +641,7 @@ export function AccountAskAgentPage({
         }
     };
 
-    const handleDeleteOrgSkill = async (skill: OrgAgentSkillCatalogItem) => {
+    const handleDeleteOrgSkill = async (skill: SharedAgentSkillCatalogItem) => {
         setDeletingOrgSkillId(skill.id);
         try {
             const error = await deleteWorkspaceSkill({
@@ -654,9 +654,9 @@ export function AccountAskAgentPage({
             }
 
             setConfirmDeleteOrgSkill(null);
-            toast({ description: "Workspace skill deleted." });
+            toast({ description: "Shared skill deleted." });
         } catch {
-            toast({ title: "Error", description: "Failed to delete workspace skill.", variant: "destructive" });
+            toast({ title: "Error", description: "Failed to delete shared skill.", variant: "destructive" });
         } finally {
             setDeletingOrgSkillId(null);
         }
@@ -712,14 +712,14 @@ export function AccountAskAgentPage({
             <div className="space-y-2 pt-3">
                 <div className="flex items-center justify-between">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Workspace
+                        Shared
                     </p>
                     <p className="text-xs text-muted-foreground">
                         {orgSkills.length} {pluralize(orgSkills.length, "skill")}
                     </p>
                 </div>
                 {orgSkills.length === 0 ? (
-                    <WorkspaceSkillsEmptyState description="Publish a personal skill to share it with this workspace." />
+                    <WorkspaceSkillsEmptyState description="Publish a personal skill to share it with everyone in your workspace." />
                 ) : (
                     orgSkills.map((skill) => (
                         <OrgSkillCatalogCard
@@ -805,9 +805,9 @@ export function AccountAskAgentPage({
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Make Workspace Skill Personal</AlertDialogTitle>
+                        <AlertDialogTitle>Make Shared Skill Personal</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Make <span className="font-semibold text-foreground">{confirmMakePersonalOrgSkill?.name}</span> personal? This removes the <span className="font-mono text-foreground">/{confirmMakePersonalOrgSkill?.slug}</span> command from the workspace for everyone and keeps a personal copy for you.
+                            Make <span className="font-semibold text-foreground">{confirmMakePersonalOrgSkill?.name}</span> personal? This removes the <span className="font-mono text-foreground">/{confirmMakePersonalOrgSkill?.slug}</span> command from the shared catalog for everyone and keeps a personal copy for you.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

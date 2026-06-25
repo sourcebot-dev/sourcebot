@@ -113,7 +113,7 @@ const RefineSuggestionListItem = ({ refine }: { refine: RefineSuggestion }) => {
 const CommandSuggestionListItem = ({ command }: { command: AskCommandSuggestion }) => {
     return (
         <SuggestionListItem
-            description={command.argumentHint ? `${command.argumentHint} - ${command.description}` : command.description}
+            description={command.description}
             icon={<BookOpenIcon className="w-4 h-4 flex-shrink-0 mt-1" />}
             title={`/${command.slug}`}
             titleDetail={command.name}

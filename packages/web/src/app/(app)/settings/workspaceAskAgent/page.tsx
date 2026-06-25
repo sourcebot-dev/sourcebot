@@ -4,7 +4,7 @@ import { OrgRole } from "@sourcebot/db";
 import { getMcpOAuthCallbackUrl } from "@/ee/features/chat/mcp/utils.server";
 import { WorkspaceAskAgentPage } from "./workspaceAskAgentPage";
 import { WorkspaceAskAgentEntitlementMessage } from "./workspaceAskAgentEntitlementMessage";
-import { listOrgAgentSkillManagement } from "@/ee/features/chat/skills/actions";
+import { listSharedAgentSkillManagement } from "@/ee/features/chat/skills/actions";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 
@@ -35,7 +35,7 @@ export default authenticatedPage<PageProps>(async ({ org, prisma }, { searchPara
     }
 
     const { status, server, message } = await searchParams;
-    const orgSkills = hasAskEntitlement ? await listOrgAgentSkillManagement() : [];
+    const orgSkills = hasAskEntitlement ? await listSharedAgentSkillManagement() : [];
     if (isServiceError(orgSkills)) {
         throw new ServiceErrorException(orgSkills);
     }

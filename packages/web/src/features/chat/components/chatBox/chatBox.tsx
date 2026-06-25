@@ -3,8 +3,6 @@
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getArgumentHintTokenStates } from "@/features/chat/commands/argumentSubstitution";
-import { createCommandInvocationData } from "@/features/chat/commands/utils";
 import { AttachmentData, CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
 import { createPastedTextAttachment, getSubmittedTextBytes, PendingAttachment, PendingImageAttachment, readFilesAsAttachments, shouldAutoConvertPaste, toAttachmentData, uploadImageAttachment } from "@/features/chat/attachmentUtils";
@@ -528,7 +526,6 @@ const ChatBoxComponent = ({
                     slug: suggestion.slug,
                     name: suggestion.name,
                     sourceLabel: suggestion.sourceLabel,
-                    argumentHint: suggestion.argumentHint,
                 }, range);
                 insertText(editor, ' ');
                 break;
@@ -852,14 +849,6 @@ const MentionComponent = ({
 }
 
 const CommandMentionTooltip = ({ data }: { data: CommandMentionData }) => {
-    const editor = useSlate();
-    const rawArguments = data.argumentHint
-        ? createCommandInvocationData(slateContentToString(editor.children), [data])?.rawArguments ?? ""
-        : "";
-    const tokenStates = data.argumentHint
-        ? getArgumentHintTokenStates(data.argumentHint, rawArguments)
-        : [];
-
     return (
         <span className="flex flex-col gap-1 text-xs">
             <span className="flex items-center gap-1.5">
@@ -868,20 +857,6 @@ const CommandMentionTooltip = ({ data }: { data: CommandMentionData }) => {
                     <SourceLabelBadge>{data.sourceLabel}</SourceLabelBadge>
                 )}
             </span>
-            {tokenStates.length > 0 && (
-                <span className="flex flex-wrap gap-1 font-mono">
-                    {tokenStates.map(({ token, isFilled }, index) => (
-                        <span
-                            key={`${token}-${index}`}
-                            className={cn(
-                                isFilled ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
-                            )}
-                        >
-                            {token}
-                        </span>
-                    ))}
-                </span>
-            )}
         </span>
     );
 };

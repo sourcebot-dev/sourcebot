@@ -22,17 +22,17 @@ vi.mock("@sourcebot/shared", () => ({
 }));
 
 const {
-    adoptOrgSkill,
-    createOrgAgentSkill,
-    deleteOrgAgentSkill,
-    getOrgAgentSkill,
+    adoptSharedSkill,
+    createSharedAgentSkill,
+    deleteSharedAgentSkill,
+    getSharedAgentSkill,
     listAgentSkillCommands,
-    listOrgAgentSkillManagement,
-    makeOrgAgentSkillPersonal,
-    publishPersonalAgentSkillToOrg,
-    setOrgSkillFlag,
-    unadoptOrgSkill,
-    updateOrgAgentSkill,
+    listSharedAgentSkillManagement,
+    makeSharedAgentSkillPersonal,
+    publishPersonalAgentSkillToShared,
+    setSharedSkillFlag,
+    unadoptSharedSkill,
+    updateSharedAgentSkill,
 } = await import("./actions");
 
 function createPrismaMock() {
@@ -82,13 +82,11 @@ const validCreateInput = {
     slug: "review",
     name: "Review",
     description: "Review risky changes.",
-    instructions: "Review $0.",
-    argumentNames: ["topic"],
-    autoInvocationEnabled: false,
+    instructions: "Review the change.",
 };
 
 describe("listAgentSkillCommands", () => {
-    test("checks entitlement once while loading personal and org commands", async () => {
+    test("checks entitlement once while loading personal and shared commands", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findMany
             .mockResolvedValueOnce([{
@@ -96,16 +94,12 @@ describe("listAgentSkillCommands", () => {
                 slug: "review",
                 name: "Review",
                 description: "Personal review.",
-                instructions: "Review $0.",
-                argumentNames: [],
             }])
             .mockResolvedValueOnce([{
-                id: "org-skill",
+                id: "shared-skill",
                 slug: "review",
                 name: "Review",
-                description: "Workspace review.",
-                instructions: "Review $0 with workspace rules.",
-                argumentNames: [],
+                description: "Shared review.",
             }]);
 
         const result = await listAgentSkillCommands();
@@ -116,8 +110,8 @@ describe("listAgentSkillCommands", () => {
             where: {
                 visibility: "PERSONAL",
                 scopeId: "member-1",
+                orgId: 1,
                 createdById: "member-1",
-                orgId: null,
                 enabled: true,
             },
             orderBy: [
@@ -129,13 +123,11 @@ describe("listAgentSkillCommands", () => {
                 slug: true,
                 name: true,
                 description: true,
-                instructions: true,
-                argumentNames: true,
             },
         });
         expect(prisma.agentSkill.findMany).toHaveBeenNthCalledWith(2, {
             where: {
-                visibility: "ORG",
+                visibility: "SHARED",
                 scopeId: "1",
                 orgId: 1,
                 enabled: true,
@@ -178,8 +170,6 @@ describe("listAgentSkillCommands", () => {
                 slug: true,
                 name: true,
                 description: true,
-                instructions: true,
-                argumentNames: true,
             },
         });
         expect(result).toMatchObject([
@@ -190,51 +180,48 @@ describe("listAgentSkillCommands", () => {
                 slug: "review",
             },
             {
-                id: "org-skill",
-                sourceId: "org-skill",
-                sourceLabel: "Workspace",
+                id: "shared-skill",
+                sourceId: "shared-skill",
+                sourceLabel: "Shared",
                 slug: "review",
             },
         ]);
     });
 });
 
-describe("createOrgAgentSkill", () => {
-    test("creates and adopts an org skill for the creator", async () => {
+describe("createSharedAgentSkill", () => {
+    test("creates and adopts a shared skill for the creator", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.create.mockResolvedValue({
-            id: "org-skill",
-            visibility: "ORG",
+            id: "shared-skill",
+            visibility: "SHARED",
             slug: "review",
             name: "Review",
             description: "Review risky changes.",
-            instructions: "Review $0.",
-            argumentNames: ["topic"],
+            instructions: "Review the change.",
             enabled: true,
             createdAt: new Date("2026-01-01T00:00:00.000Z"),
             updatedAt: new Date("2026-01-02T00:00:00.000Z"),
         });
 
-        const result = await createOrgAgentSkill(validCreateInput);
+        const result = await createSharedAgentSkill(validCreateInput);
 
         expect(result).toMatchObject({
-            id: "org-skill",
+            id: "shared-skill",
             slug: "review",
         });
         expect(prisma.$transaction).toHaveBeenCalledTimes(1);
         expect(prisma.agentSkill.create).toHaveBeenCalledWith({
             data: {
-                visibility: "ORG",
+                visibility: "SHARED",
                 scopeId: "1",
+                orgId: 1,
                 slug: "review",
                 name: "Review",
                 description: "Review risky changes.",
-                instructions: "Review $0.",
-                argumentNames: ["topic"],
-                autoInvocationEnabled: false,
+                instructions: "Review the change.",
                 createdById: "member-1",
                 updatedById: "member-1",
-                orgId: 1,
                 adoptions: {
                     create: {
                         orgId: 1,
@@ -248,24 +235,22 @@ describe("createOrgAgentSkill", () => {
     });
 });
 
-describe("publishPersonalAgentSkillToOrg", () => {
-    test("moves a personal skill into the org and adopts it for the publisher", async () => {
+describe("publishPersonalAgentSkillToShared", () => {
+    test("moves a personal skill into the shared catalog and adopts it for the publisher", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findFirst
             .mockResolvedValueOnce({
                 slug: "review",
                 name: "Review",
                 description: "Review risky changes.",
-                instructions: "Review $0.",
-                argumentNames: ["topic"],
+                instructions: "Review the change.",
             })
             .mockResolvedValueOnce({
-                id: "org-skill",
-                visibility: "ORG",
+                id: "shared-skill",
+                visibility: "SHARED",
                 slug: "review",
                 name: "Review",
                 description: "Review risky changes.",
-                argumentNames: ["topic"],
                 enabled: true,
                 featured: false,
                 autoEnrolled: false,
@@ -275,13 +260,13 @@ describe("publishPersonalAgentSkillToOrg", () => {
                 adoptions: [{ id: "adoption-1", removedAt: null }],
             });
         prisma.agentSkill.create.mockResolvedValue({
-            id: "org-skill",
+            id: "shared-skill",
         });
 
-        const result = await publishPersonalAgentSkillToOrg("personal-skill");
+        const result = await publishPersonalAgentSkillToShared("personal-skill");
 
         expect(result).toMatchObject({
-            id: "org-skill",
+            id: "shared-skill",
             slug: "review",
             isAdopted: true,
             isCreatedByUser: true,
@@ -291,30 +276,27 @@ describe("publishPersonalAgentSkillToOrg", () => {
                 id: "personal-skill",
                 visibility: "PERSONAL",
                 scopeId: "member-1",
+                orgId: 1,
                 createdById: "member-1",
-                orgId: null,
             },
             select: {
                 slug: true,
                 name: true,
                 description: true,
                 instructions: true,
-                argumentNames: true,
             },
         });
         expect(prisma.agentSkill.create).toHaveBeenCalledWith({
             data: {
-                visibility: "ORG",
+                visibility: "SHARED",
                 scopeId: "1",
+                orgId: 1,
                 slug: "review",
                 name: "Review",
                 description: "Review risky changes.",
-                instructions: "Review $0.",
-                argumentNames: ["topic"],
-                autoInvocationEnabled: false,
+                instructions: "Review the change.",
                 createdById: "member-1",
                 updatedById: "member-1",
-                orgId: 1,
                 adoptions: {
                     create: {
                         orgId: 1,
@@ -335,8 +317,8 @@ describe("publishPersonalAgentSkillToOrg", () => {
         });
         expect(prisma.agentSkill.findFirst).toHaveBeenNthCalledWith(2, {
             where: {
-                id: "org-skill",
-                visibility: "ORG",
+                id: "shared-skill",
+                visibility: "SHARED",
                 scopeId: "1",
                 orgId: 1,
             },
@@ -345,17 +327,16 @@ describe("publishPersonalAgentSkillToOrg", () => {
     });
 });
 
-describe("makeOrgAgentSkillPersonal", () => {
-    test("moves the workspace skill to personal when the user authored it", async () => {
+describe("makeSharedAgentSkillPersonal", () => {
+    test("moves the shared skill to personal when the user authored it", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findFirst
             .mockResolvedValueOnce({
-                id: "org-skill",
+                id: "shared-skill",
                 slug: "review",
                 name: "Review",
                 description: "Review risky changes.",
-                instructions: "Review $0.",
-                argumentNames: ["topic"],
+                instructions: "Review the change.",
                 createdById: "member-1",
                 autoEnrolled: false,
             });
@@ -365,14 +346,13 @@ describe("makeOrgAgentSkillPersonal", () => {
             slug: "review",
             name: "Review",
             description: "Review risky changes.",
-            instructions: "Review $0.",
-            argumentNames: ["topic"],
+            instructions: "Review the change.",
             enabled: true,
             createdAt: new Date("2026-01-01T00:00:00.000Z"),
             updatedAt: new Date("2026-01-02T00:00:00.000Z"),
         });
 
-        const result = await makeOrgAgentSkillPersonal("org-skill");
+        const result = await makeSharedAgentSkillPersonal("shared-skill");
 
         expect(result).toMatchObject({
             id: "personal-skill",
@@ -383,39 +363,37 @@ describe("makeOrgAgentSkillPersonal", () => {
             data: {
                 visibility: "PERSONAL",
                 scopeId: "member-1",
+                orgId: 1,
                 slug: "review",
                 name: "Review",
                 description: "Review risky changes.",
-                instructions: "Review $0.",
-                argumentNames: ["topic"],
+                instructions: "Review the change.",
                 createdById: "member-1",
                 updatedById: "member-1",
-                orgId: null,
             },
         });
         expect(prisma.agentSkill.delete).toHaveBeenCalledWith({
             where: {
-                id: "org-skill",
+                id: "shared-skill",
             },
         });
         expect(prisma.agentSkill.findFirst).toHaveBeenCalledTimes(1);
     });
 
-    test("copies another user's auto-enrolled workspace skill and opts out of the workspace command", async () => {
+    test("copies another user's auto-enrolled shared skill and opts out of the shared command", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findFirst
             .mockResolvedValueOnce({
-                id: "org-skill",
+                id: "shared-skill",
                 slug: "review",
                 name: "Review",
                 description: "Review risky changes.",
-                instructions: "Review $0.",
-                argumentNames: ["topic"],
+                instructions: "Review the change.",
                 createdById: "author-1",
                 autoEnrolled: true,
             })
             .mockResolvedValueOnce({
-                id: "org-skill",
+                id: "shared-skill",
             });
         prisma.agentSkill.create.mockResolvedValue({
             id: "personal-skill",
@@ -423,14 +401,13 @@ describe("makeOrgAgentSkillPersonal", () => {
             slug: "review",
             name: "Review",
             description: "Review risky changes.",
-            instructions: "Review $0.",
-            argumentNames: ["topic"],
+            instructions: "Review the change.",
             enabled: true,
             createdAt: new Date("2026-01-01T00:00:00.000Z"),
             updatedAt: new Date("2026-01-02T00:00:00.000Z"),
         });
 
-        const result = await makeOrgAgentSkillPersonal("org-skill");
+        const result = await makeSharedAgentSkillPersonal("shared-skill");
 
         expect(result).toMatchObject({
             id: "personal-skill",
@@ -442,13 +419,13 @@ describe("makeOrgAgentSkillPersonal", () => {
                 orgId_userId_agentSkillId: {
                     orgId: 1,
                     userId: "member-1",
-                    agentSkillId: "org-skill",
+                    agentSkillId: "shared-skill",
                 },
             },
             create: {
                 orgId: 1,
                 userId: "member-1",
-                agentSkillId: "org-skill",
+                agentSkillId: "shared-skill",
                 removedAt: expect.any(Date),
             },
             update: {
@@ -458,22 +435,21 @@ describe("makeOrgAgentSkillPersonal", () => {
         expect(prisma.agentSkill.findFirst).toHaveBeenCalledTimes(2);
     });
 
-    test("returns forbidden before copying another user's unavailable workspace skill", async () => {
+    test("returns forbidden before copying another user's unavailable shared skill", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findFirst
             .mockResolvedValueOnce({
-                id: "org-skill",
+                id: "shared-skill",
                 slug: "review",
                 name: "Review",
                 description: "Review risky changes.",
-                instructions: "Review $0.",
-                argumentNames: ["topic"],
+                instructions: "Review the change.",
                 createdById: "author-1",
                 autoEnrolled: false,
             })
             .mockResolvedValueOnce(null);
 
-        const result = await makeOrgAgentSkillPersonal("org-skill");
+        const result = await makeSharedAgentSkillPersonal("shared-skill");
 
         expect(result).toEqual({
             statusCode: StatusCodes.FORBIDDEN,
@@ -482,8 +458,8 @@ describe("makeOrgAgentSkillPersonal", () => {
         });
         expect(prisma.agentSkill.findFirst).toHaveBeenNthCalledWith(1, {
             where: {
-                id: "org-skill",
-                visibility: "ORG",
+                id: "shared-skill",
+                visibility: "SHARED",
                 scopeId: "1",
                 orgId: 1,
                 enabled: true,
@@ -494,15 +470,14 @@ describe("makeOrgAgentSkillPersonal", () => {
                 name: true,
                 description: true,
                 instructions: true,
-                argumentNames: true,
                 createdById: true,
                 autoEnrolled: true,
             },
         });
         expect(prisma.agentSkill.findFirst).toHaveBeenNthCalledWith(2, {
             where: {
-                id: "org-skill",
-                visibility: "ORG",
+                id: "shared-skill",
+                visibility: "SHARED",
                 scopeId: "1",
                 orgId: 1,
                 enabled: true,
@@ -547,12 +522,12 @@ describe("makeOrgAgentSkillPersonal", () => {
     });
 });
 
-describe("getOrgAgentSkill", () => {
-    test("returns skillNotFound when the org skill is disabled or missing", async () => {
+describe("getSharedAgentSkill", () => {
+    test("returns skillNotFound when the shared skill is disabled or missing", async () => {
         const prisma = setAuthContext({ role: OrgRole.OWNER });
         prisma.agentSkill.findFirst.mockResolvedValue(null);
 
-        const result = await getOrgAgentSkill("skill-1");
+        const result = await getSharedAgentSkill("skill-1");
 
         expect(result).toEqual({
             statusCode: StatusCodes.NOT_FOUND,
@@ -562,7 +537,7 @@ describe("getOrgAgentSkill", () => {
         expect(prisma.agentSkill.findFirst).toHaveBeenCalledWith({
             where: {
                 id: "skill-1",
-                visibility: "ORG",
+                visibility: "SHARED",
                 scopeId: "1",
                 orgId: 1,
                 enabled: true,
@@ -575,12 +550,12 @@ describe("getOrgAgentSkill", () => {
     });
 });
 
-describe("deleteOrgAgentSkill", () => {
-    test("returns skillNotFound when the org skill is disabled or missing", async () => {
+describe("deleteSharedAgentSkill", () => {
+    test("returns skillNotFound when the shared skill is disabled or missing", async () => {
         const prisma = setAuthContext({ role: OrgRole.OWNER });
         prisma.agentSkill.findFirst.mockResolvedValue(null);
 
-        const result = await deleteOrgAgentSkill("skill-1");
+        const result = await deleteSharedAgentSkill("skill-1");
 
         expect(result).toEqual({
             statusCode: StatusCodes.NOT_FOUND,
@@ -590,7 +565,7 @@ describe("deleteOrgAgentSkill", () => {
         expect(prisma.agentSkill.findFirst).toHaveBeenCalledWith({
             where: {
                 id: "skill-1",
-                visibility: "ORG",
+                visibility: "SHARED",
                 scopeId: "1",
                 orgId: 1,
                 enabled: true,
@@ -603,14 +578,14 @@ describe("deleteOrgAgentSkill", () => {
         expect(prisma.agentSkill.delete).not.toHaveBeenCalled();
     });
 
-    test("returns forbidden when a member deletes another author's org skill", async () => {
+    test("returns forbidden when a member deletes another author's shared skill", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findFirst.mockResolvedValue({
             id: "skill-1",
             createdById: "author-1",
         });
 
-        const result = await deleteOrgAgentSkill("skill-1");
+        const result = await deleteSharedAgentSkill("skill-1");
 
         expect(result).toEqual({
             statusCode: StatusCodes.FORBIDDEN,
@@ -620,7 +595,7 @@ describe("deleteOrgAgentSkill", () => {
         expect(prisma.agentSkill.findFirst).toHaveBeenCalledWith({
             where: {
                 id: "skill-1",
-                visibility: "ORG",
+                visibility: "SHARED",
                 scopeId: "1",
                 orgId: 1,
                 enabled: true,
@@ -633,14 +608,14 @@ describe("deleteOrgAgentSkill", () => {
         expect(prisma.agentSkill.delete).not.toHaveBeenCalled();
     });
 
-    test("deletes the org skill when the author requests it", async () => {
+    test("deletes the shared skill when the author requests it", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER, userId: "author-1" });
         prisma.agentSkill.findFirst.mockResolvedValue({
             id: "skill-1",
             createdById: "author-1",
         });
 
-        const result = await deleteOrgAgentSkill("skill-1");
+        const result = await deleteSharedAgentSkill("skill-1");
 
         expect(result).toEqual({ success: true });
         expect(prisma.agentSkill.delete).toHaveBeenCalledWith({
@@ -648,14 +623,14 @@ describe("deleteOrgAgentSkill", () => {
         });
     });
 
-    test("deletes another author's org skill when an owner requests it", async () => {
+    test("deletes another author's shared skill when an owner requests it", async () => {
         const prisma = setAuthContext({ role: OrgRole.OWNER });
         prisma.agentSkill.findFirst.mockResolvedValue({
             id: "skill-1",
             createdById: "author-1",
         });
 
-        const result = await deleteOrgAgentSkill("skill-1");
+        const result = await deleteSharedAgentSkill("skill-1");
 
         expect(result).toEqual({ success: true });
         expect(prisma.agentSkill.delete).toHaveBeenCalledWith({
@@ -669,20 +644,18 @@ const validUpdateInput = {
     name: "Review",
     slug: "review",
     description: "Review risky changes.",
-    instructions: "Review $0.",
-    argumentNames: [],
-    autoInvocationEnabled: false,
+    instructions: "Review the change.",
 };
 
-describe("updateOrgAgentSkill", () => {
-    test("returns forbidden when a member updates another author's org skill", async () => {
+describe("updateSharedAgentSkill", () => {
+    test("returns forbidden when a member updates another author's shared skill", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findFirst.mockResolvedValue({
             id: "skill-1",
             createdById: "author-1",
         });
 
-        const result = await updateOrgAgentSkill(validUpdateInput);
+        const result = await updateSharedAgentSkill(validUpdateInput);
 
         expect(result).toEqual({
             statusCode: StatusCodes.FORBIDDEN,
@@ -692,7 +665,7 @@ describe("updateOrgAgentSkill", () => {
         expect(prisma.agentSkill.findFirst).toHaveBeenCalledWith({
             where: {
                 id: "skill-1",
-                visibility: "ORG",
+                visibility: "SHARED",
                 scopeId: "1",
                 orgId: 1,
                 enabled: true,
@@ -705,11 +678,11 @@ describe("updateOrgAgentSkill", () => {
         expect(prisma.agentSkill.update).not.toHaveBeenCalled();
     });
 
-    test("returns skillNotFound when the org skill is disabled or missing", async () => {
+    test("returns skillNotFound when the shared skill is disabled or missing", async () => {
         const prisma = setAuthContext({ role: OrgRole.OWNER });
         prisma.agentSkill.findFirst.mockResolvedValue(null);
 
-        const result = await updateOrgAgentSkill(validUpdateInput);
+        const result = await updateSharedAgentSkill(validUpdateInput);
 
         expect(result).toEqual({
             statusCode: StatusCodes.NOT_FOUND,
@@ -719,7 +692,7 @@ describe("updateOrgAgentSkill", () => {
         expect(prisma.agentSkill.findFirst).toHaveBeenCalledWith({
             where: {
                 id: "skill-1",
-                visibility: "ORG",
+                visibility: "SHARED",
                 scopeId: "1",
                 orgId: 1,
                 enabled: true,
@@ -732,7 +705,7 @@ describe("updateOrgAgentSkill", () => {
         expect(prisma.agentSkill.update).not.toHaveBeenCalled();
     });
 
-    test("updates the org skill when the author requests it", async () => {
+    test("updates the shared skill when the author requests it", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER, userId: "author-1" });
         prisma.agentSkill.findFirst.mockResolvedValue({
             id: "skill-1",
@@ -740,24 +713,23 @@ describe("updateOrgAgentSkill", () => {
         });
         prisma.agentSkill.update.mockResolvedValue({
             id: "skill-1",
-            visibility: "ORG",
+            visibility: "SHARED",
             slug: "review",
             name: "Review",
             description: "Review risky changes.",
-            instructions: "Review $0.",
-            argumentNames: [],
+            instructions: "Review the change.",
             enabled: true,
             createdAt: new Date("2026-01-01T00:00:00.000Z"),
             updatedAt: new Date("2026-01-02T00:00:00.000Z"),
         });
 
-        const result = await updateOrgAgentSkill(validUpdateInput);
+        const result = await updateSharedAgentSkill(validUpdateInput);
 
         expect(result).toMatchObject({ id: "skill-1", slug: "review" });
         expect(prisma.agentSkill.findFirst).toHaveBeenCalledWith({
             where: {
                 id: "skill-1",
-                visibility: "ORG",
+                visibility: "SHARED",
                 scopeId: "1",
                 orgId: 1,
                 enabled: true,
@@ -773,21 +745,19 @@ describe("updateOrgAgentSkill", () => {
                 slug: "review",
                 name: "Review",
                 description: "Review risky changes.",
-                instructions: "Review $0.",
-                argumentNames: [],
-                autoInvocationEnabled: false,
+                instructions: "Review the change.",
                 updatedById: "author-1",
             },
         });
     });
 });
 
-describe("adoptOrgSkill", () => {
+describe("adoptSharedSkill", () => {
     test("returns skillNotFound when the skill is disabled or missing, and never records adoption", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findFirst.mockResolvedValue(null);
 
-        const result = await adoptOrgSkill("skill-1");
+        const result = await adoptSharedSkill("skill-1");
 
         expect(result).toEqual({
             statusCode: StatusCodes.NOT_FOUND,
@@ -798,7 +768,7 @@ describe("adoptOrgSkill", () => {
         expect(prisma.agentSkill.findFirst).toHaveBeenCalledWith({
             where: {
                 id: "skill-1",
-                visibility: "ORG",
+                visibility: "SHARED",
                 scopeId: "1",
                 orgId: 1,
                 enabled: true,
@@ -814,7 +784,7 @@ describe("adoptOrgSkill", () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findFirst.mockResolvedValue({ id: "skill-1" });
 
-        const result = await adoptOrgSkill("skill-1");
+        const result = await adoptSharedSkill("skill-1");
 
         expect(result).toEqual({ success: true });
         expect(prisma.agentSkillAdoption.upsert).toHaveBeenCalledWith({
@@ -838,19 +808,19 @@ describe("adoptOrgSkill", () => {
     });
 });
 
-describe("unadoptOrgSkill", () => {
+describe("unadoptSharedSkill", () => {
     test("removes the adoption against a disabled skill, since its lookup omits the enabled filter", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findFirst.mockResolvedValue({ id: "skill-1", autoEnrolled: false });
 
-        const result = await unadoptOrgSkill("skill-1");
+        const result = await unadoptSharedSkill("skill-1");
 
         expect(result).toEqual({ success: true });
         // Unlike adopt, the unadopt lookup does NOT filter on `enabled`.
         expect(prisma.agentSkill.findFirst).toHaveBeenCalledWith({
             where: {
                 id: "skill-1",
-                visibility: "ORG",
+                visibility: "SHARED",
                 scopeId: "1",
                 orgId: 1,
             },
@@ -872,7 +842,7 @@ describe("unadoptOrgSkill", () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
         prisma.agentSkill.findFirst.mockResolvedValue({ id: "skill-1", autoEnrolled: true });
 
-        const result = await unadoptOrgSkill("skill-1");
+        const result = await unadoptSharedSkill("skill-1");
 
         expect(result).toEqual({ success: true });
         expect(prisma.agentSkillAdoption.upsert).toHaveBeenCalledWith({
@@ -897,16 +867,15 @@ describe("unadoptOrgSkill", () => {
     });
 });
 
-describe("listOrgAgentSkillManagement", () => {
+describe("listSharedAgentSkillManagement", () => {
     test("returns owner-management skills without requester adoption state", async () => {
         const prisma = setAuthContext({ role: OrgRole.OWNER });
         prisma.agentSkill.findMany.mockResolvedValue([{
             id: "skill-1",
-            visibility: "ORG",
+            visibility: "SHARED",
             slug: "review",
             name: "Review",
             description: "Review risky changes.",
-            argumentNames: [],
             enabled: true,
             featured: true,
             autoEnrolled: false,
@@ -914,11 +883,11 @@ describe("listOrgAgentSkillManagement", () => {
             updatedAt: new Date("2026-01-02T00:00:00.000Z"),
         }]);
 
-        const result = await listOrgAgentSkillManagement();
+        const result = await listSharedAgentSkillManagement();
 
         expect(prisma.agentSkill.findMany).toHaveBeenCalledWith({
             where: {
-                visibility: "ORG",
+                visibility: "SHARED",
                 scopeId: "1",
                 orgId: 1,
                 enabled: true,
@@ -940,11 +909,10 @@ describe("listOrgAgentSkillManagement", () => {
 
         expect(result).toEqual([{
             id: "skill-1",
-            scope: "ORG",
+            scope: "SHARED",
             slug: "review",
             name: "Review",
             description: "Review risky changes.",
-            argumentNames: [],
             enabled: true,
             featured: true,
             autoEnrolled: false,
@@ -957,19 +925,18 @@ describe("listOrgAgentSkillManagement", () => {
     });
 });
 
-describe("setOrgSkillFlag", () => {
-    test("updates a single org skill flag through the shared owner-gated path", async () => {
+describe("setSharedSkillFlag", () => {
+    test("updates a single shared skill flag through the shared owner-gated path", async () => {
         const prisma = setAuthContext({ role: OrgRole.OWNER });
         prisma.agentSkill.findFirst.mockResolvedValue({
             id: "skill-1",
         });
         prisma.agentSkill.update.mockResolvedValue({
             id: "skill-1",
-            visibility: "ORG",
+            visibility: "SHARED",
             slug: "review",
             name: "Review",
             description: "Review risky changes.",
-            argumentNames: [],
             enabled: true,
             featured: true,
             autoEnrolled: false,
@@ -977,7 +944,7 @@ describe("setOrgSkillFlag", () => {
             updatedAt: new Date("2026-01-02T00:00:00.000Z"),
         });
 
-        const result = await setOrgSkillFlag({
+        const result = await setSharedSkillFlag({
             skillId: "skill-1",
             data: { featured: true },
         });
@@ -985,7 +952,7 @@ describe("setOrgSkillFlag", () => {
         expect(prisma.agentSkill.findFirst).toHaveBeenCalledWith({
             where: {
                 id: "skill-1",
-                visibility: "ORG",
+                visibility: "SHARED",
                 scopeId: "1",
                 orgId: 1,
             },
@@ -1014,7 +981,7 @@ describe("setOrgSkillFlag", () => {
     test("rejects a non-owner through the owner gate without touching the skill", async () => {
         const prisma = setAuthContext({ role: OrgRole.MEMBER });
 
-        const result = await setOrgSkillFlag({
+        const result = await setSharedSkillFlag({
             skillId: "skill-1",
             data: { featured: true },
         });
@@ -1032,7 +999,7 @@ describe("setOrgSkillFlag", () => {
     test("rejects multi-flag updates", async () => {
         setAuthContext({ role: OrgRole.OWNER });
 
-        const result = await setOrgSkillFlag({
+        const result = await setSharedSkillFlag({
             skillId: "skill-1",
             data: {
                 featured: true,
