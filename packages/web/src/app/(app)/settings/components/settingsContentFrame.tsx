@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 // (e.g. the full-bleed skill editor). Everything else stays in the constrained,
 // centered column shared by the rest of settings.
 const FULL_BLEED_ROUTE_PATTERNS = [
+    /^\/settings\/skills(\/|$)/,
     /^\/settings\/accountAskAgent\/skills(\/|$)/,
     /^\/settings\/accountAskAgent\/workspaceSkills(\/|$)/,
 ];

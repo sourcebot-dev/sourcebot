@@ -53,12 +53,18 @@ const sharedCatalogSkillSelect = (userId: string, orgId: number) => ({
     slug: true,
     name: true,
     description: true,
+    instructions: true,
     enabled: true,
     featured: true,
     autoEnrolled: true,
     createdById: true,
     createdAt: true,
     updatedAt: true,
+    createdBy: {
+        select: {
+            email: true,
+        },
+    },
     adoptions: {
         where: {
             userId,
