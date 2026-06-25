@@ -748,7 +748,7 @@ model ChatAccess {
 
 enum AgentSkillVisibility {
   PERSONAL
-  ORG
+  SHARED
 }
 
 model AgentSkill {
@@ -757,8 +757,9 @@ model AgentSkill {
   // Namespace identity for slash-command uniqueness and lookup.
   // This is not a foreign key and should not be used as an authorization check by itself.
   //
-  // PERSONAL: scopeId is the user id, orgId is null, and the skill follows the user across orgs.
-  // ORG:      scopeId is String(orgId), orgId is set, and access is scoped to that org.
+  // Every skill belongs to an org (orgId is always set).
+  // PERSONAL: scopeId is the user id; the skill is private to that user within the org.
+  // SHARED:   scopeId is String(orgId); the skill is visible to the whole org (opt-in via adoptions).
   //
   // Future sharing/grants should treat this as the skill's home namespace, not as the ACL.
   visibility AgentSkillVisibility
@@ -768,7 +769,6 @@ model AgentSkill {
   name         String
   description  String
   instructions String
-  argumentNames String[] @default([])
 
   // The user who authored the skill. This is audit metadata, separate from
   // the namespace that owns the slash-command slug.
@@ -778,32 +778,26 @@ model AgentSkill {
   updatedBy   User?   @relation("AgentSkillUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   updatedById String?
 
-  // Set only for org-scoped skills. Personal skills are user-global and keep this null.
-  org   Org? @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  orgId Int?
+  // The owning org. Both PERSONAL and SHARED skills are scoped to an org, so a
+  // user's personal skills change when they switch orgs.
+  org   Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId Int
 
   enabled      Boolean  @default(true)
   featured     Boolean  @default(false)
   autoEnrolled Boolean  @default(false)
-
-  // When true, the Ask agent may auto-invoke this skill via the `load_skill`
-  // tool (model-driven invocation). Off by default: authors opt a skill in.
-  // This gates AUTO-invocation only; manual slash-command invocation works
-  // regardless of this flag.
-  autoInvocationEnabled Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   adoptions AgentSkillAdoption[]
 
-  @@unique([visibility, scopeId, slug])
+  @@unique([orgId, visibility, scopeId, slug])
   @@index([createdById])
   @@index([updatedById])
   @@index([orgId])
-  @@index([visibility, scopeId])
-  @@index([orgId, visibility, scopeId, enabled, featured(sort: Desc), updatedAt(sort: Desc), name], map: "AgentSkill_org_catalog_idx")
-  @@index([orgId, visibility, scopeId, enabled, autoEnrolled, updatedAt(sort: Desc), name], map: "AgentSkill_org_commands_idx")
+  @@index([orgId, visibility, scopeId])
+  @@index([orgId, visibility, scopeId, enabled, featured(sort: Desc), updatedAt(sort: Desc), name], map: "AgentSkill_shared_catalog_idx")
 }
 
 model AgentSkillAdoption {

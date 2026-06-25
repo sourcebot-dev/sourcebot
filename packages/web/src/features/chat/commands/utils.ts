@@ -74,6 +74,5 @@ export const createCommandInvocationData = (
         slug: command.slug,
         name: command.name,
         ...(command.sourceLabel ? { sourceLabel: command.sourceLabel } : {}),
-        rawArguments: text.slice(commandIndex + command.slug.length + 1).replace(/^\s+/, "").trimEnd(),
     };
 };

@@ -1,9 +1,11 @@
-import { substituteArguments } from "@/features/chat/commands/argumentSubstitution";
+import 'server-only';
+
 import { captureEvent } from "@/lib/posthog";
-import { ASK_COMMAND_SOURCE_ORG_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL, commandInvocationDataSchema, type CommandInvocationData } from "@/features/chat/commands/types";
+import { buildAskSkillInvokedEvent } from "./skillAnalytics";
+import { ASK_COMMAND_SOURCE_SHARED_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL, commandInvocationDataSchema, type CommandInvocationData } from "@/features/chat/commands/types";
 import { FILE_REFERENCE_REGEX } from "@/features/chat/constants";
 import type { FileSource, SBChatMessage, SBChatMessagePart } from "@/features/chat/types";
-import { orgAgentSkillVisibleToUserWhere, personalAgentSkillAuthScope, type PrismaClient } from "@sourcebot/db";
+import { sharedAgentSkillVisibleToUserWhere, personalAgentSkillAuthScope, type PrismaClient } from "@sourcebot/db";
 
 const getTextPartContent = (message: SBChatMessage) =>
     message.parts.find((part) => part.type === "text")?.text ?? "";
@@ -217,14 +219,16 @@ export const materializeCommandMessageTexts = async ({
         return messages.map(withFileSourcesFromExistingMaterializedCommand);
     }
 
-    const personalScope = userId ? personalAgentSkillAuthScope(userId) : undefined;
-    const orgVisibleWhere = userId !== undefined && orgId !== undefined
-        ? orgAgentSkillVisibleToUserWhere(userId, orgId)
+    const personalScope = userId !== undefined && orgId !== undefined
+        ? personalAgentSkillAuthScope(userId, orgId)
+        : undefined;
+    const sharedVisibleWhere = userId !== undefined && orgId !== undefined
+        ? sharedAgentSkillVisibleToUserWhere(userId, orgId)
         : undefined;
     const personalSkillCommandIds = getCommandIdsForSource(resolvableCommands, ASK_COMMAND_SOURCE_PERSONAL_SKILL);
-    const orgSkillCommandIds = getCommandIdsForSource(resolvableCommands, ASK_COMMAND_SOURCE_ORG_SKILL);
+    const sharedSkillCommandIds = getCommandIdsForSource(resolvableCommands, ASK_COMMAND_SOURCE_SHARED_SKILL);
 
-    const [personalSkills, orgSkills] = await Promise.all([
+    const [personalSkills, sharedSkills] = await Promise.all([
         personalScope && personalSkillCommandIds.length > 0
             ? prisma.agentSkill.findMany({
                 where: {
@@ -235,20 +239,18 @@ export const materializeCommandMessageTexts = async ({
                 select: {
                     id: true,
                     instructions: true,
-                    argumentNames: true,
                 },
             })
             : [],
-        orgVisibleWhere && orgSkillCommandIds.length > 0
+        sharedVisibleWhere && sharedSkillCommandIds.length > 0
             ? prisma.agentSkill.findMany({
                 where: {
-                    id: { in: orgSkillCommandIds },
-                    ...orgVisibleWhere,
+                    id: { in: sharedSkillCommandIds },
+                    ...sharedVisibleWhere,
                 },
                 select: {
                     id: true,
                     instructions: true,
-                    argumentNames: true,
                 },
             })
             : [],
@@ -259,8 +261,8 @@ export const materializeCommandMessageTexts = async ({
             commandLookupKey(ASK_COMMAND_SOURCE_PERSONAL_SKILL, skill.id),
             skill,
         ] as const),
-        ...orgSkills.map((skill) => [
-            commandLookupKey(ASK_COMMAND_SOURCE_ORG_SKILL, skill.id),
+        ...sharedSkills.map((skill) => [
+            commandLookupKey(ASK_COMMAND_SOURCE_SHARED_SKILL, skill.id),
             skill,
         ] as const),
     ]);
@@ -269,7 +271,7 @@ export const materializeCommandMessageTexts = async ({
     for (const { index, message, commandPart, command, fallbackText } of resolvableCommands) {
         const skill = skillById.get(commandLookupKey(command.sourceId, command.commandId));
         const expandedText = skill
-            ? substituteArguments(skill.instructions, command.rawArguments, skill.argumentNames)
+            ? skill.instructions
             : fallbackText;
         materializedMessages[index] = withExpandedCommandText(message, commandPart, command, expandedText);
 
@@ -277,15 +279,14 @@ export const materializeCommandMessageTexts = async ({
         // for newly-materialized commands — already-expanded ones are filtered
         // out above — so it counts each manual invocation exactly once.
         if (skill) {
-            void captureEvent('ask_skill_invoked', {
-                source: 'sourcebot-ask-agent',
+            void captureEvent('ask_skill_invoked', buildAskSkillInvokedEvent({
                 activationMethod: 'manual',
                 skillId: command.commandId,
+                success: true,
                 slug: command.slug,
                 name: command.name,
                 sourceLabel: command.sourceLabel,
-                success: true,
-            });
+            }));
         }
     }
 

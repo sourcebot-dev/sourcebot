@@ -1,16 +1,16 @@
 import { describe, expect, test, vi } from "vitest";
-import { ASK_COMMAND_SOURCE_ORG_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL } from "@/features/chat/commands/types";
-import { orgAgentSkillVisibleToUserWhere, personalAgentSkillAuthScope } from "@sourcebot/db";
+import { ASK_COMMAND_SOURCE_SHARED_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL } from "@/features/chat/commands/types";
+import { sharedAgentSkillVisibleToUserWhere, personalAgentSkillAuthScope } from "@sourcebot/db";
 import { buildSkillRegistry, resolveAutoInvocableSkill } from "./registry";
 
 describe("buildSkillRegistry", () => {
-    test("returns personal + org auto-invocable skills, auth-scoped and mapped", async () => {
+    test("returns personal + shared skills, auth-scoped and mapped", async () => {
         const findMany = vi.fn()
             .mockResolvedValueOnce([
-                { id: "p1", slug: "translate", name: "Translate", description: "Translate text", instructions: "Translate to $lang", argumentNames: ["lang"] },
+                { id: "p1", slug: "translate", name: "Translate", description: "Translate text" },
             ])
             .mockResolvedValueOnce([
-                { id: "o1", slug: "audit", name: "Audit", description: "Audit billing", instructions: "Audit", argumentNames: [] },
+                { id: "o1", slug: "audit", name: "Audit", description: "Audit billing" },
             ]);
         const prisma = { agentSkill: { findMany } } as never;
 
@@ -24,40 +24,27 @@ describe("buildSkillRegistry", () => {
                 slug: "translate",
                 name: "Translate",
                 description: "Translate text",
-                argumentHint: "<lang>",
             },
             {
                 id: "o1",
-                sourceId: ASK_COMMAND_SOURCE_ORG_SKILL,
-                sourceLabel: "Workspace",
+                sourceId: ASK_COMMAND_SOURCE_SHARED_SKILL,
+                sourceLabel: "Shared",
                 slug: "audit",
                 name: "Audit",
                 description: "Audit billing",
-                argumentHint: undefined,
             },
         ]);
 
-        // Personal query: reuses the same auth scope as the manual pipeline and
-        // additionally requires the auto-invocation opt-in.
+        // Personal query: reuses the same auth scope as the manual pipeline. No
+        // per-skill auto-invocation opt-in — every visible skill is model-invocable.
         expect(findMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
-            where: { ...personalAgentSkillAuthScope("user-1"), enabled: true, autoInvocationEnabled: true },
+            where: { ...personalAgentSkillAuthScope("user-1", 7), enabled: true },
+            select: { id: true, slug: true, name: true, description: true },
         }));
-        // Org query: org visibility clause + the opt-in.
+        // Shared query: shared-visibility clause only.
         expect(findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
-            where: { ...orgAgentSkillVisibleToUserWhere("user-1", 7), autoInvocationEnabled: true },
-        }));
-    });
-
-    test("queries only personal skills when orgId is undefined", async () => {
-        const findMany = vi.fn().mockResolvedValue([]);
-        const prisma = { agentSkill: { findMany } } as never;
-
-        const registry = await buildSkillRegistry({ prisma, userId: "user-1" });
-
-        expect(registry).toEqual([]);
-        expect(findMany).toHaveBeenCalledTimes(1);
-        expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
-            where: { ...personalAgentSkillAuthScope("user-1"), enabled: true, autoInvocationEnabled: true },
+            where: { ...sharedAgentSkillVisibleToUserWhere("user-1", 7) },
+            select: { id: true, slug: true, name: true, description: true },
         }));
     });
 });
@@ -66,11 +53,10 @@ describe("resolveAutoInvocableSkill", () => {
     test("resolves a skill by id within auth scope and derives its source", async () => {
         const findFirst = vi.fn().mockResolvedValue({
             id: "o1",
-            visibility: "ORG",
+            visibility: "SHARED",
             slug: "audit",
             name: "Audit",
-            instructions: "Audit $area",
-            argumentNames: ["area"],
+            instructions: "Audit the billing system",
         });
         const prisma = { agentSkill: { findFirst } } as never;
 
@@ -78,41 +64,67 @@ describe("resolveAutoInvocableSkill", () => {
 
         expect(result).toEqual({
             id: "o1",
-            sourceId: ASK_COMMAND_SOURCE_ORG_SKILL,
-            sourceLabel: "Workspace",
+            sourceId: ASK_COMMAND_SOURCE_SHARED_SKILL,
+            sourceLabel: "Shared",
             slug: "audit",
             name: "Audit",
-            instructions: "Audit $area",
-            argumentNames: ["area"],
+            instructions: "Audit the billing system",
         });
-        expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({
-            where: expect.objectContaining({
+        expect(findFirst).toHaveBeenCalledWith({
+            where: {
                 id: "o1",
                 enabled: true,
-                autoInvocationEnabled: true,
                 OR: [
-                    personalAgentSkillAuthScope("user-1"),
-                    orgAgentSkillVisibleToUserWhere("user-1", 7),
+                    personalAgentSkillAuthScope("user-1", 7),
+                    sharedAgentSkillVisibleToUserWhere("user-1", 7),
                 ],
-            }),
-        }));
+            },
+            select: {
+                id: true,
+                visibility: true,
+                slug: true,
+                name: true,
+                instructions: true,
+            },
+        });
     });
 
-    test("fails closed (returns null) when no visible / opted-in skill matches", async () => {
+    test("derives the personal source for a personal-visibility skill", async () => {
+        const findFirst = vi.fn().mockResolvedValue({
+            id: "p1",
+            visibility: "PERSONAL",
+            slug: "translate",
+            name: "Translate",
+            instructions: "Translate the text",
+        });
+        const prisma = { agentSkill: { findFirst } } as never;
+
+        const result = await resolveAutoInvocableSkill({ prisma, userId: "user-1", orgId: 7, skillId: "p1" });
+
+        expect(result).toEqual({
+            id: "p1",
+            sourceId: ASK_COMMAND_SOURCE_PERSONAL_SKILL,
+            sourceLabel: "Personal",
+            slug: "translate",
+            name: "Translate",
+            instructions: "Translate the text",
+        });
+    });
+
+    test("does not filter on autoInvocationEnabled (forced auto-invocation parity)", async () => {
+        const findFirst = vi.fn().mockResolvedValue(null);
+        const prisma = { agentSkill: { findFirst } } as never;
+
+        await resolveAutoInvocableSkill({ prisma, userId: "user-1", orgId: 7, skillId: "o1" });
+
+        const where = findFirst.mock.calls[0][0].where;
+        expect(where).not.toHaveProperty("autoInvocationEnabled");
+    });
+
+    test("fails closed (returns null) when no visible skill matches", async () => {
         const findFirst = vi.fn().mockResolvedValue(null);
         const prisma = { agentSkill: { findFirst } } as never;
 
         expect(await resolveAutoInvocableSkill({ prisma, userId: "u", orgId: 1, skillId: "x" })).toBeNull();
-    });
-
-    test("scopes to personal-only when orgId is undefined", async () => {
-        const findFirst = vi.fn().mockResolvedValue(null);
-        const prisma = { agentSkill: { findFirst } } as never;
-
-        await resolveAutoInvocableSkill({ prisma, userId: "u", skillId: "x" });
-
-        expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({
-            where: expect.objectContaining({ OR: [personalAgentSkillAuthScope("u")] }),
-        }));
     });
 });

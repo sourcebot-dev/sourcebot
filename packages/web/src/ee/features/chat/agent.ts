@@ -602,14 +602,13 @@ const createAgentStream = async ({
         },
     });
 
-    // Build the auto-invocation skill catalog once, from the requester's static
-    // (userId, orgId) context. Gated like MCP tools: anonymous/programmatic
-    // callers (no userId/orgId) and non-entitled deployments get no catalog and
-    // no load_skill tool. The global env flag is an ops kill-switch on top of
-    // the per-skill `autoInvocationEnabled` opt-in.
+    // Build the skill catalog once, from the requester's static (userId, orgId)
+    // context. Gated like MCP tools: anonymous/programmatic callers (no
+    // userId/orgId) and non-entitled deployments get no catalog and no
+    // load_skill tool. Every skill in the requester's available set is
+    // model-invocable — there is no per-skill opt-in.
     let skillRegistry: AskCommandDefinition[] = [];
     if (
-        env.SOURCEBOT_CHAT_SKILL_AUTO_INVOCATION_ENABLED === 'true' &&
         userId !== undefined &&
         orgId !== undefined &&
         await hasEntitlement('ask')
@@ -622,7 +621,7 @@ const createAgentStream = async ({
     }
     const hasSkills = skillRegistry.length > 0;
 
-    const loadSkillTool = (hasSkills && userId !== undefined)
+    const loadSkillTool = (hasSkills && userId !== undefined && orgId !== undefined)
         ? createLoadSkillTool({
             prisma,
             userId,
@@ -954,10 +953,10 @@ const createPrompt = ({
         <agent_skills>
         Skills are reusable, expert-authored workflows for specific tasks. When the user's request matches a skill's description below, you SHOULD load that skill with the \`${LOAD_SKILL_TOOL_NAME}\` tool and then follow the instructions it returns. Prefer applying a relevant skill over improvising your own approach.
 
-        Each entry is \`<name> (id: <id>) [args: <hint>]: <description>\`. To use a skill, call \`${LOAD_SKILL_TOOL_NAME}\` with the skill's exact \`id\`. If the skill shows an argument hint, pass the values via the \`arguments\` field as a single space-separated string (quote values containing spaces), exactly as a user would type after a slash command.
+        Each entry is \`<name> (id: <id>): <description>\`. To use a skill, call \`${LOAD_SKILL_TOOL_NAME}\` with the skill's exact \`id\`.
 
         Available skills:
-        ${skillRegistry.map(e => `- ${sanitizeSkillCatalogText(e.name)} (id: ${e.id})${e.argumentHint ? ` [args: ${sanitizeSkillCatalogText(e.argumentHint)}]` : ''}: ${sanitizeSkillCatalogText(e.description)}`).join('\n')}
+        ${skillRegistry.map(e => `- ${sanitizeSkillCatalogText(e.name)} (id: ${e.id}): ${sanitizeSkillCatalogText(e.description)}`).join('\n')}
 
         Do NOT load a skill whose instructions are already present in this conversation (for example, one the user already invoked manually with a slash command).
         </agent_skills>

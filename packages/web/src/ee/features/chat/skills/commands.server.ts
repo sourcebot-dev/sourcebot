@@ -1,6 +1,6 @@
 import type { AskCommandDefinition } from "@/features/chat/commands/types";
 import { isServiceError } from "@/lib/utils";
-import { listAgentSkillCommands, listOrgAgentSkillCommands, listPersonalAgentSkillCommands } from "./actions";
+import { listAgentSkillCommands, listSharedAgentSkillCommands, listPersonalAgentSkillCommands } from "./actions";
 
 export const listPersonalAgentSkillCommandsOrEmpty = async (): Promise<AskCommandDefinition[]> => {
     const commands = await listPersonalAgentSkillCommands();
@@ -12,10 +12,10 @@ export const listPersonalAgentSkillCommandsOrEmpty = async (): Promise<AskComman
     return commands;
 }
 
-export const listOrgSkillCommandsOrEmpty = async (): Promise<AskCommandDefinition[]> => {
-    const commands = await listOrgAgentSkillCommands();
+export const listSharedSkillCommandsOrEmpty = async (): Promise<AskCommandDefinition[]> => {
+    const commands = await listSharedAgentSkillCommands();
     if (isServiceError(commands)) {
-        console.error('Failed to load org agent skill commands:', commands);
+        console.error('Failed to load shared agent skill commands:', commands);
         return [];
     }
 

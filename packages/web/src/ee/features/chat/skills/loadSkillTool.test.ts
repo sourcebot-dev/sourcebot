@@ -6,6 +6,14 @@ vi.mock("@/lib/posthog", () => ({
     captureEvent: (...args: unknown[]) => captureEvent(...args),
 }));
 
+// loadSkillTool imports `createLogger` from @sourcebot/shared, whose real module
+// reads server-side env vars at import time and trips the t3-env client guard
+// under vitest's jsdom environment. Stub it so the module under test can load.
+vi.mock("@sourcebot/shared", () => ({
+    createLogger: () => ({ error: vi.fn(), info: vi.fn(), warn: vi.fn(), debug: vi.fn() }),
+    env: { NODE_ENV: "test" },
+}));
+
 import { createLoadSkillTool } from "./loadSkillTool";
 
 // The AI SDK passes (input, options) to execute; the tool ignores options.
@@ -18,23 +26,22 @@ describe("createLoadSkillTool", () => {
         captureEvent.mockClear();
     });
 
-    test("loads instructions with argument substitution and reports success", async () => {
+    test("loads the skill's raw instructions and reports success", async () => {
         const findFirst = vi.fn().mockResolvedValue({
             id: "p1",
             visibility: "PERSONAL",
             slug: "translate",
             name: "Translate",
-            instructions: "Translate the file to $0.",
-            argumentNames: [],
+            instructions: "Translate the file to the requested language.",
         });
         const prisma = { agentSkill: { findFirst } } as never;
 
         const tool = createLoadSkillTool({ prisma, userId: "user-1", orgId: 7 });
-        const result = await execute(tool, { skill_id: "p1", arguments: "french" });
+        const result = await execute(tool, { skill_id: "p1" });
 
         expect(result).toEqual({
             skill: { id: "p1", slug: "translate", name: "Translate" },
-            instructions: "Translate the file to french.",
+            instructions: "Translate the file to the requested language.",
         });
         expect(captureEvent).toHaveBeenCalledWith("ask_skill_invoked", expect.objectContaining({
             activationMethod: "auto",
@@ -65,7 +72,7 @@ describe("createLoadSkillTool", () => {
         const prisma = { agentSkill: { findFirst } } as never;
 
         const tool = createLoadSkillTool({ prisma, userId: "user-1", orgId: 7 });
-        const result = await execute(tool, { skill_id: "p1", arguments: "french" });
+        const result = await execute(tool, { skill_id: "p1" });
 
         // The transient throw must take the fail-closed path, not propagate.
         expect(result).toHaveProperty("error");

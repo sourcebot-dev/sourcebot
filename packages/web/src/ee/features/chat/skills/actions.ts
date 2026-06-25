@@ -8,24 +8,24 @@ import { requestBodySchemaValidationError, ServiceError } from "@/lib/serviceErr
 import { sew } from "@/middleware/sew";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
-import { OrgRole, Prisma, orgAgentSkillAuthScope, orgAgentSkillScope, orgAgentSkillVisibleToUserWhere, personalAgentSkillAuthScope, personalAgentSkillScope, type Org, type PrismaClient } from "@sourcebot/db";
+import { OrgRole, Prisma, sharedAgentSkillAuthScope, sharedAgentSkillScope, sharedAgentSkillVisibleToUserWhere, personalAgentSkillAuthScope, personalAgentSkillScope, type PrismaClient } from "@sourcebot/db";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 import {
     agentSkillInputSchema,
     agentSkillOrderBy,
-    toOrgAgentSkillCatalogItem,
-    toOrgAgentSkillManagementItem,
+    toSharedAgentSkillCatalogItem,
+    toSharedAgentSkillManagementItem,
     toAgentSkillListItem,
     updateAgentSkillInputSchema,
     type AgentSkillInput,
     type AgentSkillListItem,
-    type OrgAgentSkillCatalogItem,
-    type OrgAgentSkillManagementItem,
+    type SharedAgentSkillCatalogItem,
+    type SharedAgentSkillManagementItem,
     type UpdateAgentSkillInput,
 } from "./types";
 import {
-    listOrgAgentSkillCommandsForContext,
+    listSharedAgentSkillCommandsForContext,
     listPersonalAgentSkillCommandsForContext,
 } from "./commandCatalog";
 
@@ -47,15 +47,13 @@ const insufficientSkillPermissions = (): ServiceError => ({
     message: "You do not have sufficient permissions to manage this skill.",
 });
 
-const orgCatalogSkillSelect = (userId: string, orgId: number) => ({
+const sharedCatalogSkillSelect = (userId: string, orgId: number) => ({
     id: true,
     visibility: true,
     slug: true,
     name: true,
     description: true,
-    argumentNames: true,
     enabled: true,
-    autoInvocationEnabled: true,
     featured: true,
     autoEnrolled: true,
     createdById: true,
@@ -73,15 +71,13 @@ const orgCatalogSkillSelect = (userId: string, orgId: number) => ({
     },
 });
 
-const orgManagementSkillSelect = {
+const sharedManagementSkillSelect = {
     id: true,
     visibility: true,
     slug: true,
     name: true,
     description: true,
-    argumentNames: true,
     enabled: true,
-    autoInvocationEnabled: true,
     featured: true,
     autoEnrolled: true,
     createdAt: true,
@@ -89,18 +85,18 @@ const orgManagementSkillSelect = {
 } satisfies Prisma.AgentSkillSelect;
 
 type AgentSkillWriteClient = Pick<PrismaClient, "agentSkill" | "agentSkillAdoption">;
-type ManageableOrgSkill = {
+type ManageableSharedSkill = {
     id: string;
     createdById: string;
 };
 
-const canManageOrgSkill = (
+const canManageSharedSkill = (
     skill: { createdById: string },
     userId: string,
     role: OrgRole,
 ) => skill.createdById === userId || role === OrgRole.OWNER;
 
-const requireManageableOrgSkill = async ({
+const requireManageableSharedSkill = async ({
     prisma,
     orgId,
     userId,
@@ -114,11 +110,11 @@ const requireManageableOrgSkill = async ({
     role: OrgRole;
     skillId: string;
     requireEnabled?: boolean;
-}): Promise<ManageableOrgSkill | ServiceError> => {
+}): Promise<ManageableSharedSkill | ServiceError> => {
     const skill = await prisma.agentSkill.findFirst({
         where: {
             id: skillId,
-            ...orgAgentSkillAuthScope(orgId),
+            ...sharedAgentSkillAuthScope(orgId),
             ...(requireEnabled ? { enabled: true } : {}),
         },
         select: {
@@ -131,37 +127,31 @@ const requireManageableOrgSkill = async ({
         return skillNotFound();
     }
 
-    if (!canManageOrgSkill(skill, userId, role)) {
+    if (!canManageSharedSkill(skill, userId, role)) {
         return insufficientSkillPermissions();
     }
 
     return skill;
 };
 
-const orgSkillCreateDataForUser = ({
+const sharedSkillCreateDataForUser = ({
     orgId,
     userId,
     skill,
 }: {
     orgId: number;
     userId: string;
-    // Accepts either a full skill input (direct org creation) or a partial copy
-    // (publishing a personal skill). Auto-invocation defaults off when not
-    // explicitly provided, so publishing never opts a skill in implicitly.
-    skill: Pick<AgentSkillInput, "slug" | "name" | "description" | "instructions" | "argumentNames"> & {
-        autoInvocationEnabled?: boolean;
-    };
+    // Accepts either a full skill input (direct shared creation) or a partial
+    // copy (publishing a personal skill).
+    skill: Pick<AgentSkillInput, "slug" | "name" | "description" | "instructions">;
 }) => ({
-    ...orgAgentSkillScope(orgId),
+    ...sharedAgentSkillScope(orgId),
     slug: skill.slug,
     name: skill.name,
     description: skill.description,
     instructions: skill.instructions,
-    argumentNames: skill.argumentNames,
-    autoInvocationEnabled: skill.autoInvocationEnabled ?? false,
     createdById: userId,
     updatedById: userId,
-    orgId,
     adoptions: {
         create: {
             orgId,
@@ -171,7 +161,7 @@ const orgSkillCreateDataForUser = ({
     },
 });
 
-const createOrgSkillForUser = async ({
+const createSharedSkillForUser = async ({
     prisma,
     orgId,
     userId,
@@ -183,13 +173,13 @@ const createOrgSkillForUser = async ({
     skill: AgentSkillInput;
 }) => {
     const createdSkill = await prisma.agentSkill.create({
-        data: orgSkillCreateDataForUser({ orgId, userId, skill }),
+        data: sharedSkillCreateDataForUser({ orgId, userId, skill }),
     });
 
     return createdSkill;
 };
 
-const removeOrgSkillForUser = async ({
+const removeSharedSkillForUser = async ({
     prisma,
     orgId,
     userId,
@@ -232,21 +222,21 @@ const removeOrgSkillForUser = async ({
     });
 };
 
-const orgSkillFlagInputSchema = z.object({
+const sharedSkillFlagInputSchema = z.object({
     skillId: z.string().trim().min(1),
     data: z.object({
         featured: z.boolean().optional(),
         autoEnrolled: z.boolean().optional(),
     }).strict().refine(
         (data) => Object.keys(data).length === 1,
-        "Exactly one org skill flag must be provided.",
+        "Exactly one shared skill flag must be provided.",
     ),
 });
 
-type OrgSkillFlagInput = z.infer<typeof orgSkillFlagInputSchema>;
+type SharedSkillFlagInput = z.infer<typeof sharedSkillFlagInputSchema>;
 
 export const listPersonalAgentSkills = async (): Promise<AgentSkillListItem[] | ServiceError> => sew(() =>
-    withAuth(async ({ user, prisma }) => {
+    withAuth(async ({ org, user, prisma }) => {
         const askError = await checkAskEntitlement();
         if (askError) {
             return askError;
@@ -254,7 +244,7 @@ export const listPersonalAgentSkills = async (): Promise<AgentSkillListItem[] | 
 
         const skills = await prisma.agentSkill.findMany({
             where: {
-                ...personalAgentSkillAuthScope(user.id),
+                ...personalAgentSkillAuthScope(user.id, org.id),
             },
             orderBy: agentSkillOrderBy,
         });
@@ -263,19 +253,19 @@ export const listPersonalAgentSkills = async (): Promise<AgentSkillListItem[] | 
     }));
 
 export const listPersonalAgentSkillCommands = async (): Promise<AskCommandDefinition[] | ServiceError> => sew(() =>
-    withAuth(async ({ user, prisma }) => {
+    withAuth(async ({ org, user, prisma }) => {
         const askError = await checkAskEntitlement();
         if (askError) {
             return askError;
         }
 
-        return listPersonalAgentSkillCommandsForContext({ prisma, userId: user.id });
+        return listPersonalAgentSkillCommandsForContext({ prisma, userId: user.id, orgId: org.id });
     }));
 
 export const getPersonalAgentSkill = async (
     skillId: string,
 ): Promise<AgentSkillListItem | ServiceError> => sew(() =>
-    withAuth(async ({ user, prisma }) => {
+    withAuth(async ({ org, user, prisma }) => {
         const askError = await checkAskEntitlement();
         if (askError) {
             return askError;
@@ -284,7 +274,7 @@ export const getPersonalAgentSkill = async (
         const skill = await prisma.agentSkill.findFirst({
             where: {
                 id: skillId,
-                ...personalAgentSkillAuthScope(user.id),
+                ...personalAgentSkillAuthScope(user.id, org.id),
             },
         });
 
@@ -295,7 +285,7 @@ export const getPersonalAgentSkill = async (
         return toAgentSkillListItem(skill);
     }));
 
-export const getOrgAgentSkill = async (
+export const getSharedAgentSkill = async (
     skillId: string,
 ): Promise<AgentSkillListItem | ServiceError> => sew(() =>
     withAuth(async ({ org, user, role, prisma }) => {
@@ -304,7 +294,7 @@ export const getOrgAgentSkill = async (
             return askError;
         }
 
-        const manageableSkill = await requireManageableOrgSkill({
+        const manageableSkill = await requireManageableSharedSkill({
             prisma,
             orgId: org.id,
             userId: user.id,
@@ -320,7 +310,7 @@ export const getOrgAgentSkill = async (
         const skill = await prisma.agentSkill.findFirst({
             where: {
                 id: manageableSkill.id,
-                ...orgAgentSkillAuthScope(org.id),
+                ...sharedAgentSkillAuthScope(org.id),
                 enabled: true,
             },
         });
@@ -341,13 +331,13 @@ export const createPersonalAgentSkill = async (
     }
 
     return sew(() =>
-        withAuth(async ({ user, prisma }) => {
+        withAuth(async ({ org, user, prisma }) => {
             const askError = await checkAskEntitlement();
             if (askError) {
                 return askError;
             }
 
-            const scope = personalAgentSkillScope(user.id);
+            const scope = personalAgentSkillScope(user.id, org.id);
 
             try {
                 const skill = await prisma.agentSkill.create({
@@ -357,11 +347,8 @@ export const createPersonalAgentSkill = async (
                         name: parsed.data.name,
                         description: parsed.data.description,
                         instructions: parsed.data.instructions,
-                        argumentNames: parsed.data.argumentNames,
-                        autoInvocationEnabled: parsed.data.autoInvocationEnabled,
                         createdById: user.id,
                         updatedById: user.id,
-                        orgId: null,
                     },
                 });
 
@@ -385,13 +372,13 @@ export const updatePersonalAgentSkill = async (
     }
 
     return sew(() =>
-        withAuth(async ({ user, prisma }) => {
+        withAuth(async ({ org, user, prisma }) => {
             const askError = await checkAskEntitlement();
             if (askError) {
                 return askError;
             }
 
-            const scope = personalAgentSkillAuthScope(user.id);
+            const scope = personalAgentSkillAuthScope(user.id, org.id);
             const existingSkill = await prisma.agentSkill.findFirst({
                 where: {
                     id: parsed.data.id,
@@ -412,8 +399,6 @@ export const updatePersonalAgentSkill = async (
                         name: parsed.data.name,
                         description: parsed.data.description,
                         instructions: parsed.data.instructions,
-                        argumentNames: parsed.data.argumentNames,
-                        autoInvocationEnabled: parsed.data.autoInvocationEnabled,
                         updatedById: user.id,
                     },
                 });
@@ -432,7 +417,7 @@ export const updatePersonalAgentSkill = async (
 export const deletePersonalAgentSkill = async (
     skillId: string,
 ): Promise<{ success: true } | ServiceError> => sew(() =>
-    withAuth(async ({ user, prisma }) => {
+    withAuth(async ({ org, user, prisma }) => {
         const askError = await checkAskEntitlement();
         if (askError) {
             return askError;
@@ -441,7 +426,7 @@ export const deletePersonalAgentSkill = async (
         const result = await prisma.agentSkill.deleteMany({
             where: {
                 id: skillId,
-                ...personalAgentSkillAuthScope(user.id),
+                ...personalAgentSkillAuthScope(user.id, org.id),
             },
         });
 
@@ -452,9 +437,9 @@ export const deletePersonalAgentSkill = async (
         return { success: true };
     }));
 
-export const publishPersonalAgentSkillToOrg = async (
+export const publishPersonalAgentSkillToShared = async (
     skillId: string,
-): Promise<OrgAgentSkillCatalogItem | ServiceError> => sew(() =>
+): Promise<SharedAgentSkillCatalogItem | ServiceError> => sew(() =>
     withAuth(async ({ org, user, prisma }) => {
         const askError = await checkAskEntitlement();
         if (askError) {
@@ -464,14 +449,13 @@ export const publishPersonalAgentSkillToOrg = async (
         const personalSkill = await prisma.agentSkill.findFirst({
             where: {
                 id: skillId,
-                ...personalAgentSkillAuthScope(user.id),
+                ...personalAgentSkillAuthScope(user.id, org.id),
             },
             select: {
                 slug: true,
                 name: true,
                 description: true,
                 instructions: true,
-                argumentNames: true,
             },
         });
 
@@ -480,9 +464,9 @@ export const publishPersonalAgentSkillToOrg = async (
         }
 
         try {
-            const orgSkill = await prisma.$transaction(async (tx) => {
+            const sharedSkill = await prisma.$transaction(async (tx) => {
                 const createdSkill = await tx.agentSkill.create({
-                    data: orgSkillCreateDataForUser({
+                    data: sharedSkillCreateDataForUser({
                         orgId: org.id,
                         userId: user.id,
                         skill: personalSkill,
@@ -501,19 +485,19 @@ export const publishPersonalAgentSkillToOrg = async (
                 const selectedSkill = await tx.agentSkill.findFirst({
                     where: {
                         id: createdSkill.id,
-                        ...orgAgentSkillAuthScope(org.id),
+                        ...sharedAgentSkillAuthScope(org.id),
                     },
-                    select: orgCatalogSkillSelect(user.id, org.id),
+                    select: sharedCatalogSkillSelect(user.id, org.id),
                 });
 
                 if (!selectedSkill) {
-                    throw new Error("Created org skill was not found.");
+                    throw new Error("Created shared skill was not found.");
                 }
 
                 return selectedSkill;
             });
 
-            return toOrgAgentSkillCatalogItem(orgSkill, user.id);
+            return toSharedAgentSkillCatalogItem(sharedSkill, user.id);
         } catch (error) {
             if (isUniqueConstraintError(error)) {
                 return skillAlreadyExists(personalSkill.slug);
@@ -523,7 +507,7 @@ export const publishPersonalAgentSkillToOrg = async (
         }
     }));
 
-export const makeOrgAgentSkillPersonal = async (
+export const makeSharedAgentSkillPersonal = async (
     skillId: string,
 ): Promise<AgentSkillListItem | ServiceError> => sew(() =>
     withAuth(async ({ org, user, role, prisma }) => {
@@ -532,10 +516,10 @@ export const makeOrgAgentSkillPersonal = async (
             return askError;
         }
 
-        const orgSkill = await prisma.agentSkill.findFirst({
+        const sharedSkill = await prisma.agentSkill.findFirst({
             where: {
                 id: skillId,
-                ...orgAgentSkillAuthScope(org.id),
+                ...sharedAgentSkillAuthScope(org.id),
                 enabled: true,
             },
             select: {
@@ -544,21 +528,20 @@ export const makeOrgAgentSkillPersonal = async (
                 name: true,
                 description: true,
                 instructions: true,
-                argumentNames: true,
                 createdById: true,
                 autoEnrolled: true,
             },
         });
 
-        if (!orgSkill) {
+        if (!sharedSkill) {
             return skillNotFound();
         }
 
-        if (!canManageOrgSkill(orgSkill, user.id, role)) {
+        if (!canManageSharedSkill(sharedSkill, user.id, role)) {
             const visibleSkill = await prisma.agentSkill.findFirst({
                 where: {
                     id: skillId,
-                    ...orgAgentSkillVisibleToUserWhere(user.id, org.id),
+                    ...sharedAgentSkillVisibleToUserWhere(user.id, org.id),
                 },
                 select: {
                     id: true,
@@ -574,30 +557,28 @@ export const makeOrgAgentSkillPersonal = async (
             const personalSkill = await prisma.$transaction(async (tx) => {
                 const createdSkill = await tx.agentSkill.create({
                     data: {
-                        ...personalAgentSkillScope(user.id),
-                        slug: orgSkill.slug,
-                        name: orgSkill.name,
-                        description: orgSkill.description,
-                        instructions: orgSkill.instructions,
-                        argumentNames: orgSkill.argumentNames,
+                        ...personalAgentSkillScope(user.id, org.id),
+                        slug: sharedSkill.slug,
+                        name: sharedSkill.name,
+                        description: sharedSkill.description,
+                        instructions: sharedSkill.instructions,
                         createdById: user.id,
                         updatedById: user.id,
-                        orgId: null,
                     },
                 });
 
-                if (orgSkill.createdById === user.id) {
+                if (sharedSkill.createdById === user.id) {
                     await tx.agentSkill.delete({
                         where: {
-                            id: orgSkill.id,
+                            id: sharedSkill.id,
                         },
                     });
                 } else {
-                    await removeOrgSkillForUser({
+                    await removeSharedSkillForUser({
                         prisma: tx,
                         orgId: org.id,
                         userId: user.id,
-                        skill: orgSkill,
+                        skill: sharedSkill,
                     });
                 }
 
@@ -607,14 +588,14 @@ export const makeOrgAgentSkillPersonal = async (
             return toAgentSkillListItem(personalSkill);
         } catch (error) {
             if (isUniqueConstraintError(error)) {
-                return skillAlreadyExists(orgSkill.slug);
+                return skillAlreadyExists(sharedSkill.slug);
             }
 
             throw error;
         }
     }));
 
-export const listOrgAgentSkillCatalog = async (): Promise<OrgAgentSkillCatalogItem[] | ServiceError> => sew(() =>
+export const listSharedAgentSkillCatalog = async (): Promise<SharedAgentSkillCatalogItem[] | ServiceError> => sew(() =>
     withAuth(async ({ org, user, prisma }) => {
         const askError = await checkAskEntitlement();
         if (askError) {
@@ -623,20 +604,20 @@ export const listOrgAgentSkillCatalog = async (): Promise<OrgAgentSkillCatalogIt
 
         const skills = await prisma.agentSkill.findMany({
             where: {
-                ...orgAgentSkillAuthScope(org.id),
+                ...sharedAgentSkillAuthScope(org.id),
                 enabled: true,
             },
             orderBy: [
                 { featured: "desc" as const },
                 ...agentSkillOrderBy,
             ],
-            select: orgCatalogSkillSelect(user.id, org.id),
+            select: sharedCatalogSkillSelect(user.id, org.id),
         });
 
-        return skills.map((skill) => toOrgAgentSkillCatalogItem(skill, user.id));
+        return skills.map((skill) => toSharedAgentSkillCatalogItem(skill, user.id));
     }));
 
-export const listOrgAgentSkillManagement = async (): Promise<OrgAgentSkillManagementItem[] | ServiceError> => sew(() =>
+export const listSharedAgentSkillManagement = async (): Promise<SharedAgentSkillManagementItem[] | ServiceError> => sew(() =>
     withAuth(async ({ org, role, prisma }) => {
         const askError = await checkAskEntitlement();
         if (askError) {
@@ -646,28 +627,28 @@ export const listOrgAgentSkillManagement = async (): Promise<OrgAgentSkillManage
         return withMinimumOrgRole(role, OrgRole.OWNER, async () => {
             const skills = await prisma.agentSkill.findMany({
                 where: {
-                    ...orgAgentSkillAuthScope(org.id),
+                    ...sharedAgentSkillAuthScope(org.id),
                     enabled: true,
                 },
                 orderBy: [
                     { featured: "desc" as const },
                     ...agentSkillOrderBy,
                 ],
-                select: orgManagementSkillSelect,
+                select: sharedManagementSkillSelect,
             });
 
-            return skills.map(toOrgAgentSkillManagementItem);
+            return skills.map(toSharedAgentSkillManagementItem);
         });
     }));
 
-export const listOrgAgentSkillCommands = async (): Promise<AskCommandDefinition[] | ServiceError> => sew(() =>
+export const listSharedAgentSkillCommands = async (): Promise<AskCommandDefinition[] | ServiceError> => sew(() =>
     withAuth(async ({ org, user, prisma }) => {
         const askError = await checkAskEntitlement();
         if (askError) {
             return askError;
         }
 
-        return listOrgAgentSkillCommandsForContext({ prisma, userId: user.id, orgId: org.id });
+        return listSharedAgentSkillCommandsForContext({ prisma, userId: user.id, orgId: org.id });
     }));
 
 export const listAgentSkillCommands = async (): Promise<AskCommandDefinition[] | ServiceError> => sew(() =>
@@ -677,18 +658,18 @@ export const listAgentSkillCommands = async (): Promise<AskCommandDefinition[] |
             return askError;
         }
 
-        const [personalCommands, orgCommands] = await Promise.all([
-            listPersonalAgentSkillCommandsForContext({ prisma, userId: user.id }),
-            listOrgAgentSkillCommandsForContext({ prisma, userId: user.id, orgId: org.id }),
+        const [personalCommands, sharedCommands] = await Promise.all([
+            listPersonalAgentSkillCommandsForContext({ prisma, userId: user.id, orgId: org.id }),
+            listSharedAgentSkillCommandsForContext({ prisma, userId: user.id, orgId: org.id }),
         ]);
 
         return [
             ...personalCommands,
-            ...orgCommands,
+            ...sharedCommands,
         ];
     }));
 
-export const createOrgAgentSkill = async (
+export const createSharedAgentSkill = async (
     input: AgentSkillInput,
 ): Promise<AgentSkillListItem | ServiceError> => {
     const parsed = agentSkillInputSchema.safeParse(input);
@@ -705,7 +686,7 @@ export const createOrgAgentSkill = async (
 
             try {
                 const skill = await prisma.$transaction(async (tx) => {
-                    return createOrgSkillForUser({
+                    return createSharedSkillForUser({
                         prisma: tx,
                         orgId: org.id,
                         userId: user.id,
@@ -724,7 +705,7 @@ export const createOrgAgentSkill = async (
         }));
 };
 
-export const updateOrgAgentSkill = async (
+export const updateSharedAgentSkill = async (
     input: UpdateAgentSkillInput,
 ): Promise<AgentSkillListItem | ServiceError> => {
     const parsed = updateAgentSkillInputSchema.safeParse(input);
@@ -739,7 +720,7 @@ export const updateOrgAgentSkill = async (
                 return askError;
             }
 
-            const existingSkill = await requireManageableOrgSkill({
+            const existingSkill = await requireManageableSharedSkill({
                 prisma,
                 orgId: org.id,
                 userId: user.id,
@@ -760,8 +741,6 @@ export const updateOrgAgentSkill = async (
                         name: parsed.data.name,
                         description: parsed.data.description,
                         instructions: parsed.data.instructions,
-                        argumentNames: parsed.data.argumentNames,
-                        autoInvocationEnabled: parsed.data.autoInvocationEnabled,
                         updatedById: user.id,
                     },
                 });
@@ -777,7 +756,7 @@ export const updateOrgAgentSkill = async (
         }));
 };
 
-export const deleteOrgAgentSkill = async (
+export const deleteSharedAgentSkill = async (
     skillId: string,
 ): Promise<{ success: true } | ServiceError> => sew(() =>
     withAuth(async ({ org, user, role, prisma }) => {
@@ -786,7 +765,7 @@ export const deleteOrgAgentSkill = async (
             return askError;
         }
 
-        const existingSkill = await requireManageableOrgSkill({
+        const existingSkill = await requireManageableSharedSkill({
             prisma,
             orgId: org.id,
             userId: user.id,
@@ -806,10 +785,10 @@ export const deleteOrgAgentSkill = async (
         return { success: true };
     }));
 
-export const setOrgSkillFlag = async (
-    input: OrgSkillFlagInput,
-): Promise<OrgAgentSkillManagementItem | ServiceError> => {
-    const parsed = orgSkillFlagInputSchema.safeParse(input);
+export const setSharedSkillFlag = async (
+    input: SharedSkillFlagInput,
+): Promise<SharedAgentSkillManagementItem | ServiceError> => {
+    const parsed = sharedSkillFlagInputSchema.safeParse(input);
     if (!parsed.success) {
         return requestBodySchemaValidationError(parsed.error);
     }
@@ -827,7 +806,7 @@ export const setOrgSkillFlag = async (
                 const existingSkill = await prisma.agentSkill.findFirst({
                     where: {
                         id: skillId,
-                        ...orgAgentSkillAuthScope(org.id),
+                        ...sharedAgentSkillAuthScope(org.id),
                     },
                     select: {
                         id: true,
@@ -844,15 +823,15 @@ export const setOrgSkillFlag = async (
                         ...data,
                         updatedById: user.id,
                     },
-                    select: orgManagementSkillSelect,
+                    select: sharedManagementSkillSelect,
                 });
 
-                return toOrgAgentSkillManagementItem(skill);
+                return toSharedAgentSkillManagementItem(skill);
             });
         }));
 };
 
-export const adoptOrgSkill = async (
+export const adoptSharedSkill = async (
     skillId: string,
 ): Promise<{ success: true } | ServiceError> => sew(() =>
     withAuth(async ({ org, user, prisma }) => {
@@ -864,7 +843,7 @@ export const adoptOrgSkill = async (
         const skill = await prisma.agentSkill.findFirst({
             where: {
                 id: skillId,
-                ...orgAgentSkillAuthScope(org.id),
+                ...sharedAgentSkillAuthScope(org.id),
                 enabled: true,
             },
             select: {
@@ -898,7 +877,7 @@ export const adoptOrgSkill = async (
         return { success: true };
     }));
 
-export const unadoptOrgSkill = async (
+export const unadoptSharedSkill = async (
     skillId: string,
 ): Promise<{ success: true } | ServiceError> => sew(() =>
     withAuth(async ({ org, user, prisma }) => {
@@ -910,7 +889,7 @@ export const unadoptOrgSkill = async (
         const skill = await prisma.agentSkill.findFirst({
             where: {
                 id: skillId,
-                ...orgAgentSkillAuthScope(org.id),
+                ...sharedAgentSkillAuthScope(org.id),
             },
             select: {
                 id: true,
@@ -922,7 +901,7 @@ export const unadoptOrgSkill = async (
             return skillNotFound();
         }
 
-        await removeOrgSkillForUser({
+        await removeSharedSkillForUser({
             prisma,
             orgId: org.id,
             userId: user.id,

@@ -50,7 +50,7 @@ import {
     SkillStatusBadge,
     WorkspaceSkillsEmptyState,
 } from "@/ee/features/chat/skills/components/workspaceSkillShared";
-import { sortOrgAgentSkillCatalogItems, type OrgAgentSkillManagementItem } from "@/ee/features/chat/skills/types";
+import { sortSharedAgentSkillCatalogItems, type SharedAgentSkillManagementItem } from "@/ee/features/chat/skills/types";
 import type { McpConfigurationServer, ServerToolsEntry } from "@/ee/features/chat/mcp/types";
 
 function clearCallbackParams() {
@@ -70,7 +70,7 @@ interface WorkspaceAskAgentPageProps {
     callbackServer?: string;
     callbackMessage?: string;
     oauthRedirectUrl: string;
-    initialOrgSkills: OrgAgentSkillManagementItem[];
+    initialOrgSkills: SharedAgentSkillManagementItem[];
 }
 
 type WorkspaceConnectorStatus = {
@@ -367,11 +367,11 @@ function WorkspaceOrgSkillCard({
     onFlagChange,
     onDelete,
 }: {
-    skill: OrgAgentSkillManagementItem;
+    skill: SharedAgentSkillManagementItem;
     flagPending: OrgSkillFlagKey | null;
     isDeleting: boolean;
-    onFlagChange: (skill: OrgAgentSkillManagementItem, flag: OrgSkillFlagKey, checked: boolean) => void;
-    onDelete: (skill: OrgAgentSkillManagementItem) => void;
+    onFlagChange: (skill: SharedAgentSkillManagementItem, flag: OrgSkillFlagKey, checked: boolean) => void;
+    onDelete: (skill: SharedAgentSkillManagementItem) => void;
 }) {
     const isActionPending = isDeleting || flagPending !== null;
 
@@ -446,10 +446,10 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
     const queryClient = useQueryClient();
     const router = useRouter();
     const didHandleCallbackRef = useRef(false);
-    const [orgSkills, setOrgSkills] = useState(() => sortOrgAgentSkillCatalogItems(initialOrgSkills));
+    const [orgSkills, setOrgSkills] = useState(() => sortSharedAgentSkillCatalogItems(initialOrgSkills));
     const [flagPendingSkills, setFlagPendingSkills] = useState<Record<string, OrgSkillFlagKey>>({});
     const [deletingSkillId, setDeletingSkillId] = useState<string | null>(null);
-    const [skillToDelete, setSkillToDelete] = useState<OrgAgentSkillManagementItem | null>(null);
+    const [skillToDelete, setSkillToDelete] = useState<SharedAgentSkillManagementItem | null>(null);
 
     useEffect(() => {
         if (didHandleCallbackRef.current) {
@@ -827,7 +827,7 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
     };
 
     const handleOrgSkillFlagChange = async (
-        skill: OrgAgentSkillManagementItem,
+        skill: SharedAgentSkillManagementItem,
         flag: OrgSkillFlagKey,
         checked: boolean,
     ) => {
@@ -851,9 +851,9 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                 return;
             }
 
-            toast({ description: "Workspace skill updated." });
+            toast({ description: "Shared skill updated." });
         } catch {
-            toast({ title: "Error", description: "Failed to update workspace skill.", variant: "destructive" });
+            toast({ title: "Error", description: "Failed to update shared skill.", variant: "destructive" });
         } finally {
             setFlagPendingSkills((current) => {
                 const next = { ...current };
@@ -880,9 +880,9 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
             }
 
             setSkillToDelete(null);
-            toast({ description: "Workspace skill deleted." });
+            toast({ description: "Shared skill deleted." });
         } catch {
-            toast({ title: "Error", description: "Failed to delete workspace skill.", variant: "destructive" });
+            toast({ title: "Error", description: "Failed to delete shared skill.", variant: "destructive" });
         } finally {
             setDeletingSkillId(null);
         }
@@ -929,9 +929,9 @@ export function WorkspaceAskAgentPage({ callbackStatus, callbackServer, callback
                     <div className="space-y-3">
                         <div className="flex items-center justify-between gap-3">
                             <div>
-                                <h4 className="text-sm font-semibold text-foreground">Skills</h4>
+                                <h4 className="text-sm font-semibold text-foreground">Shared skills</h4>
                                 <p className="text-sm text-muted-foreground">
-                                    Manage workspace slash-command behavior for Ask Sourcebot.
+                                    Manage shared skills available to everyone in your workspace.
                                 </p>
                             </div>
                             <p className="shrink-0 text-xs text-muted-foreground">

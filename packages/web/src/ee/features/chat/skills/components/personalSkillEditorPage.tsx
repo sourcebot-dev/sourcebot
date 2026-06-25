@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { createOrgAgentSkill, createPersonalAgentSkill, updateOrgAgentSkill, updatePersonalAgentSkill } from "@/ee/features/chat/skills/actions";
+import { createSharedAgentSkill, createPersonalAgentSkill, updateSharedAgentSkill, updatePersonalAgentSkill } from "@/ee/features/chat/skills/actions";
 import { SkillInstructionsEditor } from "@/ee/features/chat/skills/components/skillInstructionsEditor";
 import { normalizeAgentSkillSlug, parseAgentSkillMarkdown, type AgentSkillInput, type AgentSkillListItem } from "@/ee/features/chat/skills/types";
 import { useUnsavedChangesGuard } from "@/ee/features/chat/useUnsavedChangesGuard";
@@ -22,9 +22,7 @@ import { isServiceError } from "@/lib/utils";
 
 const INSTRUCTIONS_MAX_LENGTH = 20000;
 const DETAILS_COLLAPSED_STORAGE_KEY = "sb.skillEditor.detailsCollapsed";
-const INSTRUCTIONS_PLACEHOLDER = `Find where $symbol is defined and used in $area.
-
-<!-- Argument alternatives: use $0/$1 or $ARGUMENTS[0]/$ARGUMENTS[1] for positional args, or $ARGUMENTS for the full input. -->
+const INSTRUCTIONS_PLACEHOLDER = `Find where a symbol is defined and used across the codebase.
 
 Search for exact matches, related types, tests, and call sites. Prioritize the files most likely to explain the behavior.
 
@@ -38,27 +36,25 @@ const emptySkillForm: AgentSkillInput = {
     slug: "",
     description: "",
     instructions: "",
-    argumentNames: [],
-    autoInvocationEnabled: false,
 };
 
-type SaveMode = "editWorkspace" | "editPersonal" | "createWorkspace" | "createPersonal";
+type SaveMode = "editShared" | "editPersonal" | "createShared" | "createPersonal";
 
 const saveModeConfig = {
-    editWorkspace: {
+    editShared: {
         icon: PencilIcon,
         buttonLabel: "Save skill",
-        successToast: "Workspace skill updated.",
+        successToast: "Shared skill updated.",
     },
     editPersonal: {
         icon: PencilIcon,
         buttonLabel: "Save skill",
         successToast: "Skill updated.",
     },
-    createWorkspace: {
+    createShared: {
         icon: Building2Icon,
-        buttonLabel: "Create workspace skill",
-        successToast: "Workspace skill created.",
+        buttonLabel: "Create shared skill",
+        successToast: "Shared skill created.",
     },
     createPersonal: {
         icon: PlusIcon,
@@ -79,7 +75,7 @@ export function PersonalSkillEditorPage(props: PersonalSkillEditorPageProps) {
     return <SkillEditor {...props} />;
 }
 
-export function OrgSkillEditorPage(props: { skill: AgentSkillListItem }) {
+export function SharedSkillEditorPage(props: { skill: AgentSkillListItem }) {
     return <SkillEditor {...props} />;
 }
 
@@ -93,22 +89,19 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
             slug: skill.slug,
             description: skill.description,
             instructions: skill.instructions,
-            argumentNames: skill.argumentNames,
-            autoInvocationEnabled: skill.autoInvocationEnabled,
         }
         : emptySkillForm;
     const [form, setForm] = useState<AgentSkillInput>(initialForm);
-    const [argumentNamesText, setArgumentNamesText] = useState(initialForm.argumentNames.join(" "));
     const [isSlugTouched, setIsSlugTouched] = useState(skill !== null);
     const [isSaving, setIsSaving] = useState(false);
     const [isDetailsCollapsed, setIsDetailsCollapsed] = useState(false);
     const [instructionsEditorKey, setInstructionsEditorKey] = useState(0);
-    const [publishToWorkspace, setPublishToWorkspace] = useState(false);
+    const [publishToShared, setPublishToShared] = useState(false);
     const isEditing = skill !== null;
-    const isEditingWorkspaceSkill = skill?.scope === "ORG";
+    const isEditingSharedSkill = skill?.scope === "SHARED";
     const saveMode: SaveMode = isEditing
-        ? isEditingWorkspaceSkill ? "editWorkspace" : "editPersonal"
-        : publishToWorkspace ? "createWorkspace" : "createPersonal";
+        ? isEditingSharedSkill ? "editShared" : "editPersonal"
+        : publishToShared ? "createShared" : "createPersonal";
     const saveConfig = saveModeConfig[saveMode];
     const SaveIcon = saveConfig.icon;
 
@@ -117,9 +110,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         form.slug !== initialForm.slug ||
         form.description !== initialForm.description ||
         form.instructions !== initialForm.instructions ||
-        form.argumentNames.join("\0") !== initialForm.argumentNames.join("\0") ||
-        form.autoInvocationEnabled !== initialForm.autoInvocationEnabled ||
-        (!isEditing && publishToWorkspace);
+        (!isEditing && publishToShared);
 
     // Intercept in-app navigation (the Cancel button, the Back link, settings
     // sidebar links, and the browser back button) while there are unsaved
@@ -165,16 +156,12 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         try {
             const text = await file.text();
             const parsed = parseAgentSkillMarkdown(text, file.name);
-            const importedArgumentNames = parsed.argumentNames ?? [];
             setForm((current) => ({
                 name: parsed.name ?? current.name,
                 slug: parsed.slug ?? current.slug,
                 description: parsed.description ?? current.description,
                 instructions: parsed.instructions,
-                argumentNames: importedArgumentNames,
-                autoInvocationEnabled: current.autoInvocationEnabled,
             }));
-            setArgumentNamesText(importedArgumentNames.join(" "));
             setInstructionsEditorKey((key) => key + 1);
 
             if (parsed.slug || parsed.name) {
@@ -198,9 +185,9 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
         setIsSaving(true);
         try {
             const result = await ({
-                editWorkspace: () => updateOrgAgentSkill({ id: skill!.id, ...form }),
+                editShared: () => updateSharedAgentSkill({ id: skill!.id, ...form }),
                 editPersonal: () => updatePersonalAgentSkill({ id: skill!.id, ...form }),
-                createWorkspace: () => createOrgAgentSkill(form),
+                createShared: () => createSharedAgentSkill(form),
                 createPersonal: () => createPersonalAgentSkill(form),
             } satisfies Record<SaveMode, () => ReturnType<typeof createPersonalAgentSkill>>)[saveMode]();
 
@@ -229,14 +216,6 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
 
     const triggerMarkdownImport = () => {
         markdownFileInputRef.current?.click();
-    };
-
-    const handleArgumentNamesChange = (value: string) => {
-        setArgumentNamesText(value);
-        setForm((current) => ({
-            ...current,
-            argumentNames: value.trim().length === 0 ? [] : value.trim().split(/\s+/),
-        }));
     };
 
     return (
@@ -411,52 +390,20 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="agent-skill-arguments">
-                                    Arguments
-                                    <span className="ml-1 font-normal text-muted-foreground">(optional)</span>
-                                </Label>
-                                <Input
-                                    id="agent-skill-arguments"
-                                    value={argumentNamesText}
-                                    onChange={(event) => handleArgumentNamesChange(event.target.value)}
-                                    placeholder="symbol area"
-                                    className="font-mono"
-                                />
-                            </div>
-
-                            <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2">
-                                <Label
-                                    htmlFor="agent-skill-auto-invocation"
-                                    className="flex min-w-0 flex-col gap-0.5 text-sm font-medium"
-                                >
-                                    <span className="truncate">Let the assistant auto-invoke this skill</span>
-                                    <span className="text-xs font-normal text-muted-foreground">
-                                        When on, Ask can apply this skill on its own based on its description.
-                                    </span>
-                                </Label>
-                                <Switch
-                                    id="agent-skill-auto-invocation"
-                                    checked={form.autoInvocationEnabled}
-                                    disabled={isSaving}
-                                    onCheckedChange={(checked) => setForm((current) => ({ ...current, autoInvocationEnabled: checked }))}
-                                />
-                            </div>
-
                             {!isEditing && (
                                 <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2">
                                     <Label
-                                        htmlFor="agent-skill-publish-to-workspace"
+                                        htmlFor="agent-skill-publish-to-shared"
                                         className="flex min-w-0 items-center gap-2 text-sm font-medium"
                                     >
                                         <Building2Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                        <span className="truncate">Create as workspace skill</span>
+                                        <span className="truncate">Create as shared skill</span>
                                     </Label>
                                     <Switch
-                                        id="agent-skill-publish-to-workspace"
-                                        checked={publishToWorkspace}
+                                        id="agent-skill-publish-to-shared"
+                                        checked={publishToShared}
                                         disabled={isSaving}
-                                        onCheckedChange={setPublishToWorkspace}
+                                        onCheckedChange={setPublishToShared}
                                     />
                                 </div>
                             )}
@@ -474,7 +421,7 @@ function SkillEditor({ skill }: PersonalSkillEditorPageProps) {
                                 Import markdown
                             </Button>
                             <p className="text-xs text-muted-foreground">
-                                Front matter can fill name, command, arguments, and description on import.
+                                Front matter can fill name, command, and description on import.
                             </p>
                         </div>
                     </aside>

@@ -1,7 +1,7 @@
 import { isServiceError } from "@/lib/utils";
 import type { ServiceError } from "@/lib/serviceError";
-import { deleteOrgAgentSkill, setOrgSkillFlag } from "@/ee/features/chat/skills/actions";
-import { sortOrgAgentSkillCatalogItems, type OrgAgentSkillManagementItem } from "@/ee/features/chat/skills/types";
+import { deleteSharedAgentSkill, setSharedSkillFlag } from "@/ee/features/chat/skills/actions";
+import { sortSharedAgentSkillCatalogItems, type SharedAgentSkillManagementItem } from "@/ee/features/chat/skills/types";
 
 export type OrgSkillFlagKey = "featured" | "autoEnrolled";
 
@@ -12,7 +12,7 @@ export async function deleteWorkspaceSkill<T extends { id: string }>({
     skillId: string;
     updateOrgSkills: (updater: (skills: T[]) => T[]) => void;
 }): Promise<ServiceError | null> {
-    const result = await deleteOrgAgentSkill(skillId);
+    const result = await deleteSharedAgentSkill(skillId);
     if (isServiceError(result)) {
         return result;
     }
@@ -30,9 +30,9 @@ export async function updateWorkspaceSkillFlag({
     skillId: string;
     flag: OrgSkillFlagKey;
     checked: boolean;
-    updateOrgSkills: (updater: (skills: OrgAgentSkillManagementItem[]) => OrgAgentSkillManagementItem[]) => void;
+    updateOrgSkills: (updater: (skills: SharedAgentSkillManagementItem[]) => SharedAgentSkillManagementItem[]) => void;
 }): Promise<ServiceError | null> {
-    const result = await setOrgSkillFlag({
+    const result = await setSharedSkillFlag({
         skillId,
         data: flag === "featured"
             ? { featured: checked }
@@ -42,7 +42,7 @@ export async function updateWorkspaceSkillFlag({
         return result;
     }
 
-    updateOrgSkills((current) => sortOrgAgentSkillCatalogItems(current.map((item) =>
+    updateOrgSkills((current) => sortSharedAgentSkillCatalogItems(current.map((item) =>
         item.id === result.id ? result : item,
     )));
     return null;

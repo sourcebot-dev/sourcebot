@@ -817,7 +817,6 @@ describe('createUIMessage', () => {
                     sourceId: 'personal-skill',
                     slug: 'review-pr',
                     name: 'Review PR',
-                    rawArguments: 'src/auth/session.ts',
                 },
             },
         ]);
@@ -845,7 +844,6 @@ describe('createUIMessage', () => {
                     sourceId: 'personal-skill',
                     slug: 'review-pr',
                     name: 'Review PR',
-                    rawArguments: 'src/auth/session.ts',
                 },
             },
         ]);

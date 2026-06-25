@@ -125,7 +125,7 @@ describe('DetailsCard', () => {
             type: 'tool-load_skill',
             toolCallId: 'tool-call-1',
             state: 'output-available',
-            input: { skill_id: 'skill-1', arguments: 'auth' },
+            input: { skill_id: 'skill-1' },
             output: {
                 skill: { id: 'skill-1', slug: 'review-pr', name: 'Review PR' },
                 instructions: 'Look for correctness issues first.',
@@ -142,7 +142,7 @@ describe('DetailsCard', () => {
                     isTurnInProgress={false}
                     isNetworkActive={false}
                     isAwaitingToolApproval={false}
-                    thinkingSteps={[[loadedSkillPart]]}
+                    thinkingSteps={[{ stepIndex: 0, parts: [loadedSkillPart] }]}
                 />
             </TooltipProvider>
         );
@@ -174,7 +174,7 @@ describe('DetailsCard', () => {
                     isTurnInProgress={false}
                     isNetworkActive={false}
                     isAwaitingToolApproval={false}
-                    thinkingSteps={[[unavailableSkillPart]]}
+                    thinkingSteps={[{ stepIndex: 0, parts: [unavailableSkillPart] }]}
                 />
             </TooltipProvider>
         );

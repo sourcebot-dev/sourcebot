@@ -29,7 +29,6 @@ export const LoadSkillToolComponent = ({ input, output }: LoadSkillToolComponent
     }
 
     const { skill, instructions } = output;
-    const args = input.arguments?.trim();
 
     return (
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -39,9 +38,6 @@ export const LoadSkillToolComponent = ({ input, output }: LoadSkillToolComponent
                     <Sparkles className="w-3 h-3 flex-shrink-0" />
                     <span className="flex-shrink-0">Loaded skill: <span className="text-foreground font-medium">{skill.name}</span></span>
                     <span className="font-mono text-xs text-muted-foreground/70 flex-shrink-0">/{skill.slug}</span>
-                    {args && args.length > 0 && (
-                        <span className="font-mono text-xs text-muted-foreground/70 truncate">{args}</span>
-                    )}
                     <span className="flex-1" />
                 </div>
             </CollapsibleTrigger>

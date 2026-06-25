@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import type { AgentSkillListItem, OrgAgentSkillCatalogItem } from '@/ee/features/chat/skills/types';
+import type { AgentSkillListItem, SharedAgentSkillCatalogItem } from '@/ee/features/chat/skills/types';
 
 vi.mock('@/app/api/(client)/client', () => ({
     getMcpServersWithStatus: vi.fn(),
@@ -12,13 +12,14 @@ vi.mock('@/ee/features/chat/mcp/actions', () => ({
     disconnectMcpServer: vi.fn(),
 }));
 vi.mock('@/ee/features/chat/skills/actions', () => ({
-    adoptOrgSkill: vi.fn(),
-    deleteOrgAgentSkill: vi.fn(),
+    adoptSharedSkill: vi.fn(),
     deletePersonalAgentSkill: vi.fn(),
-    makeOrgAgentSkillPersonal: vi.fn(),
-    publishPersonalAgentSkillToOrg: vi.fn(),
-    setOrgSkillFlag: vi.fn(),
-    unadoptOrgSkill: vi.fn(),
+    makeSharedAgentSkillPersonal: vi.fn(),
+    publishPersonalAgentSkillToShared: vi.fn(),
+    unadoptSharedSkill: vi.fn(),
+}));
+vi.mock('@/ee/features/chat/skills/components/workspaceSkillMutations', () => ({
+    deleteWorkspaceSkill: vi.fn(),
 }));
 
 const clientApi = await import('@/app/api/(client)/client');
@@ -35,7 +36,7 @@ function renderAccountAskAgentPage({
     orgSkills = [],
 }: {
     personalSkills?: AgentSkillListItem[];
-    orgSkills?: OrgAgentSkillCatalogItem[];
+    orgSkills?: SharedAgentSkillCatalogItem[];
 }) {
     vi.mocked(clientApi.getMcpServersWithStatus).mockResolvedValue([]);
 
@@ -79,16 +80,14 @@ describe('AccountAskAgentEmptyState', () => {
 });
 
 describe('AccountAskAgentPage', () => {
-    test('confirms before making an authored workspace skill personal', async () => {
-        const orgSkill: OrgAgentSkillCatalogItem = {
+    test('confirms before making an authored shared skill personal', async () => {
+        const orgSkill: SharedAgentSkillCatalogItem = {
             id: 'org-skill',
-            scope: 'ORG' as OrgAgentSkillCatalogItem['scope'],
+            scope: 'SHARED' as SharedAgentSkillCatalogItem['scope'],
             slug: 'deploy-checklist',
             name: 'Deploy Checklist',
             description: 'Release steps',
-            argumentNames: [],
             enabled: true,
-            autoInvocationEnabled: false,
             featured: false,
             autoEnrolled: true,
             isAdopted: false,
@@ -99,16 +98,14 @@ describe('AccountAskAgentPage', () => {
             updatedAt: '2026-06-18T00:00:00.000Z',
         };
 
-        vi.mocked(skillActions.makeOrgAgentSkillPersonal).mockResolvedValue({
+        vi.mocked(skillActions.makeSharedAgentSkillPersonal).mockResolvedValue({
             id: 'personal-skill',
             scope: 'PERSONAL',
             slug: orgSkill.slug,
             name: orgSkill.name,
             description: orgSkill.description,
             instructions: 'Do release steps',
-            argumentNames: [],
             enabled: true,
-            autoInvocationEnabled: false,
             createdAt: orgSkill.createdAt,
             updatedAt: orgSkill.updatedAt,
         });
@@ -120,14 +117,14 @@ describe('AccountAskAgentPage', () => {
         fireEvent.keyDown(actionsButton, { key: 'Enter' });
         fireEvent.click(await screen.findByRole('menuitem', { name: /Make personal/ }));
 
-        expect(skillActions.makeOrgAgentSkillPersonal).not.toHaveBeenCalled();
+        expect(skillActions.makeSharedAgentSkillPersonal).not.toHaveBeenCalled();
         const dialog = await screen.findByRole('alertdialog');
-        expect(within(dialog).getByText('Make Workspace Skill Personal')).toBeTruthy();
+        expect(within(dialog).getByText('Make Shared Skill Personal')).toBeTruthy();
         expect(within(dialog).getByText(/removes the/)).toBeTruthy();
         expect(within(dialog).getByText('/deploy-checklist')).toBeTruthy();
 
         fireEvent.click(screen.getByRole('button', { name: 'Make personal' }));
 
-        expect(skillActions.makeOrgAgentSkillPersonal).toHaveBeenCalledWith('org-skill');
+        expect(skillActions.makeSharedAgentSkillPersonal).toHaveBeenCalledWith('org-skill');
     });
 });

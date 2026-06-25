@@ -3,9 +3,9 @@ import { createLogger } from "@sourcebot/shared";
 import { tool, type Tool } from "ai";
 import { z } from "zod";
 import _dedent from "dedent";
-import { substituteArguments } from "@/features/chat/commands/argumentSubstitution";
 import { captureEvent } from "@/lib/posthog";
 import type { AskMcpAnalyticsSource } from "@/lib/posthogEvents";
+import { buildAskSkillInvokedEvent } from "./skillAnalytics";
 import { resolveAutoInvocableSkill } from "./registry";
 
 const dedent = _dedent.withOptions({ alignValues: true });
@@ -25,15 +25,15 @@ interface LoadSkillToolAnalyticsContext {
 interface CreateLoadSkillToolOptions {
     prisma: PrismaClient;
     userId: string;
-    orgId?: number;
+    orgId: number;
     analyticsContext?: LoadSkillToolAnalyticsContext;
 }
 
 /**
  * Single-phase skill loader, modelled on Claude Code's `Skill` tool. The model
  * discovers skills from the `<agent_skills>` catalog in the system prompt, then
- * calls this tool with the skill's id to load its (auth-checked,
- * argument-substituted) instructions as the tool result. Unlike MCP tools, a
+ * calls this tool with the skill's id to load its (auth-checked) instructions as
+ * the tool result. Unlike MCP tools, a
  * skill is an instruction blob rather than a callable tool with its own schema,
  * so it does not need to be promoted into `activeTools` — one call returns the
  * instructions directly. This keeps the tool set static across steps, so the
@@ -49,35 +49,31 @@ export const createLoadSkillTool = ({
         description: dedent`
         Load the instructions for one of the skills listed in the <agent_skills> section of the system prompt, then follow them.
         Call this when the user's request matches a skill's description. Pass the skill's exact id from the catalog.
-        If the skill takes arguments (shown as its argument hint), pass them via the \`arguments\` field as a single
-        space-separated string, quoting any value that contains spaces — exactly as a user would type them after a slash command.
         After the tool returns, treat the returned instructions as authoritative guidance for completing the task.
 
         Examples:
-          CORRECT: load_skill({ skill_id: "ckz9q...", arguments: "github.com/acme/api auth" })
-          CORRECT: load_skill({ skill_id: "ckz9q..." })   // skill takes no arguments
+          CORRECT: load_skill({ skill_id: "ckz9q..." })
           INCORRECT: load_skill({ skill_id: "audit billing issues" })   // not an id from the catalog
         `,
         inputSchema: z.object({
             skill_id: z.string().describe('Exact skill id from the <agent_skills> catalog, e.g. "ckz9q1a2b0000xyz".'),
-            arguments: z.string().optional().describe('Optional space-separated argument string matching the skill\'s argument hint. Omit when the skill takes no arguments.'),
         }),
-        execute: async ({ skill_id, arguments: rawArguments }) => {
+        execute: async ({ skill_id }) => {
             const startTime = Date.now();
 
             // Both failure paths — an unknown/unauthorized id and a transient
             // lookup error — must fail closed identically: emit a success:false
             // event and return a generic message that never reveals why it failed.
             const captureFailure = () => {
-                void captureEvent('ask_skill_invoked', {
-                    chatId: analyticsContext?.chatId,
-                    traceId: analyticsContext?.traceId,
-                    source: analyticsContext?.source ?? 'sourcebot-ask-agent',
+                void captureEvent('ask_skill_invoked', buildAskSkillInvokedEvent({
                     activationMethod: 'auto',
                     skillId: skill_id,
                     success: false,
+                    source: analyticsContext?.source,
+                    chatId: analyticsContext?.chatId,
+                    traceId: analyticsContext?.traceId,
                     durationMs: Date.now() - startTime,
-                });
+                }));
             };
 
             try {
@@ -92,24 +88,20 @@ export const createLoadSkillTool = ({
                     };
                 }
 
-                const instructions = substituteArguments(
-                    skill.instructions,
-                    rawArguments ?? '',
-                    skill.argumentNames,
-                );
+                const instructions = skill.instructions;
 
-                void captureEvent('ask_skill_invoked', {
-                    chatId: analyticsContext?.chatId,
-                    traceId: analyticsContext?.traceId,
-                    source: analyticsContext?.source ?? 'sourcebot-ask-agent',
+                void captureEvent('ask_skill_invoked', buildAskSkillInvokedEvent({
                     activationMethod: 'auto',
                     skillId: skill.id,
+                    success: true,
                     slug: skill.slug,
                     name: skill.name,
                     sourceLabel: skill.sourceLabel,
-                    success: true,
+                    source: analyticsContext?.source,
+                    chatId: analyticsContext?.chatId,
+                    traceId: analyticsContext?.traceId,
                     durationMs: Date.now() - startTime,
-                });
+                }));
 
                 return {
                     skill: {
