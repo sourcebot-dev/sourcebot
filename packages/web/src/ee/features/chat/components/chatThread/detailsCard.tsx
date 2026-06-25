@@ -9,7 +9,7 @@ import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { cn, getShortenedNumberDisplayString } from '@/lib/utils';
 import isEqual from "fast-deep-equal/react";
 import { useStickToBottom } from 'use-stick-to-bottom';
-import { Brain, ChevronDown, ChevronRight, Clock, InfoIcon, Loader2, ScanSearchIcon, ShieldQuestion, Wrench, Zap } from 'lucide-react';
+import { Brain, ChevronDown, ChevronRight, Clock, Gauge, InfoIcon, Loader2, ScanSearchIcon, ShieldQuestion, Wrench, Zap } from 'lucide-react';
 import { memo, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { usePrevious } from '@uidotdev/usehooks';
 import { SBChatMessageMetadata, SBChatMessagePart, StepTokenUsageEntry } from '@/features/chat/types';
@@ -85,6 +85,20 @@ const DetailsCardComponent = ({
     const cachedInputPercent = inputTokens > 0
         ? Math.round((cacheReadTokens / inputTokens) * 100)
         : 0;
+
+    // Context-window usage gauge. "In use" is the input the model saw on its
+    // most recent step — i.e. the full accumulated prompt occupying the window
+    // right now — not the cumulative totalInputTokens (a billing sum). The
+    // gauge is shown only when the model's window is known (resolved from the
+    // models.dev catalog); unknown windows degrade to the raw token count.
+    const stepTokenUsage = metadata?.stepTokenUsage;
+    const currentContextTokens = stepTokenUsage && stepTokenUsage.length > 0
+        ? stepTokenUsage[stepTokenUsage.length - 1].inputTokens
+        : undefined;
+    const contextWindow = metadata?.contextWindow;
+    const contextUsagePercent = currentContextTokens !== undefined && contextWindow !== undefined && contextWindow > 0
+        ? Math.min(100, Math.round((currentContextTokens / contextWindow) * 100))
+        : undefined;
 
     const handleExpandedChanged = useCallback((next: boolean) => {
         captureEvent('wa_chat_details_card_toggled', { chatId, isExpanded: next });
@@ -192,6 +206,33 @@ const DetailsCardComponent = ({
                                                     </Tooltip>
                                                 )}
                                             </div>
+                                        )}
+                                        {contextUsagePercent !== undefined && currentContextTokens !== undefined && contextWindow !== undefined && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="flex items-center gap-1.5 text-xs cursor-help">
+                                                        <Gauge className="w-3 h-3 flex-shrink-0" />
+                                                        <div className="h-1.5 w-12 rounded-full bg-muted overflow-hidden">
+                                                            <div
+                                                                className={cn("h-full rounded-full", {
+                                                                    "bg-destructive": contextUsagePercent >= 90,
+                                                                    "bg-yellow-500": contextUsagePercent >= 75 && contextUsagePercent < 90,
+                                                                    "bg-foreground": contextUsagePercent < 75,
+                                                                })}
+                                                                style={{ width: `${contextUsagePercent}%` }}
+                                                            />
+                                                        </div>
+                                                        <span>
+                                                            {getShortenedNumberDisplayString(currentContextTokens, 0)} / {getShortenedNumberDisplayString(contextWindow, 0)} ({contextUsagePercent}%)
+                                                        </span>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom">
+                                                    <div className="max-w-xs text-xs">
+                                                        The most recent step&apos;s prompt used {currentContextTokens.toLocaleString()} of the model&apos;s {contextWindow.toLocaleString()}-token context window ({contextUsagePercent}%).
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
                                         )}
                                         {metadata?.totalResponseTimeMs && (
                                             <div className="flex items-center text-xs">

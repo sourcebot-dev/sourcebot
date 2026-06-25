@@ -54,6 +54,8 @@ interface CreateMessageStreamResponseProps {
     disabledMcpServerIds?: string[];
     model: AISDKLanguageModelV3;
     modelName: string;
+    // Total context window of the model in tokens, or undefined when unknown.
+    contextWindow?: number;
     promptCacheStrategy: PromptCacheStrategy;
     onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;
     onError: (error: unknown) => string;
@@ -73,6 +75,7 @@ export const createMessageStream = async ({
     disabledMcpServerIds,
     model,
     modelName,
+    contextWindow,
     promptCacheStrategy,
     modelProviderOptions,
     modelTemperature,
@@ -279,6 +282,7 @@ export const createMessageStream = async ({
                     // phases so earlier phases' steps are preserved in order.
                     stepTokenUsage: [...(priorMetadata?.stepTokenUsage ?? []), ...stepTokenUsage],
                     modelName,
+                    contextWindow,
                     traceId,
                 }
             });
