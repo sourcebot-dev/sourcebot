@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { ensureActiveMember, removeMember, setMemberRole, setMembershipSuspended } from './membership.service';
+import { activatePendingMembership, ensureActiveMember, removeMember, setMemberRole, setMembershipSuspended } from './membership.service';
 import { prisma, MOCK_USER_WITH_ACCOUNTS } from '@/__mocks__/prisma';
 import { OrgRole, type UserToOrg } from '@sourcebot/db';
 import { ErrorCode } from '@/lib/errorCodes';
@@ -19,6 +19,8 @@ vi.mock('@/prisma', async () => {
 vi.mock('server-only', () => ({ default: vi.fn() }));
 vi.mock('@/features/membership/utils', () => ({
     orgHasAvailability: mocks.orgHasAvailability,
+    activeMembershipWhere: () => ({ suspendedAt: null, lastActiveAt: { not: null } }),
+    pendingMembershipWhere: () => ({ suspendedAt: null, lastActiveAt: null }),
     unsuspendedMembershipWhere: () => ({ suspendedAt: null }),
 }));
 vi.mock('@/features/billing/servicePing', () => ({ syncWithLighthouse: mocks.syncWithLighthouse }));
@@ -49,6 +51,57 @@ beforeEach(() => {
     // Run $transaction callbacks against the same deep mock as the tx client.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (prisma.$transaction as any).mockImplementation(async (cb: any) => cb(prisma));
+});
+
+describe('activatePendingMembership', () => {
+    test('activates a pending unsuspended membership with a guarded update and syncs Lighthouse', async () => {
+        prisma.userToOrg.updateMany.mockResolvedValue({ count: 1 });
+
+        const result = await activatePendingMembership(makeMembership());
+
+        expect(result).toBeNull();
+        expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
+        expect(mocks.orgHasAvailability).toHaveBeenCalledWith(ORG_ID, prisma);
+        expect(prisma.userToOrg.updateMany).toHaveBeenCalledWith({
+            where: {
+                orgId: ORG_ID,
+                userId: USER_ID,
+                suspendedAt: null,
+                lastActiveAt: null,
+            },
+            data: { lastActiveAt: expect.any(Date) },
+        });
+        expect(mocks.syncWithLighthouse).toHaveBeenCalledWith(ORG_ID);
+    });
+
+    test('returns a seat-limit error when active seats are at the cap', async () => {
+        mocks.orgHasAvailability.mockResolvedValue(false);
+
+        const result = await activatePendingMembership(makeMembership());
+
+        expect(isServiceError(result)).toBe(true);
+        expect((result as ServiceError).errorCode).toBe(ErrorCode.ORG_SEAT_COUNT_REACHED);
+        expect(prisma.userToOrg.updateMany).not.toHaveBeenCalled();
+        expect(mocks.syncWithLighthouse).not.toHaveBeenCalled();
+    });
+
+    test('does not activate non-pending memberships', async () => {
+        expect(await activatePendingMembership(makeMembership({ lastActiveAt: new Date() }))).toBeNull();
+        expect(await activatePendingMembership(makeMembership({ suspendedAt: SUSPENDED_AT }))).toBeNull();
+
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+        expect(prisma.userToOrg.updateMany).not.toHaveBeenCalled();
+        expect(mocks.syncWithLighthouse).not.toHaveBeenCalled();
+    });
+
+    test('does not sync Lighthouse when the guarded update does not activate the row', async () => {
+        prisma.userToOrg.updateMany.mockResolvedValue({ count: 0 });
+
+        const result = await activatePendingMembership(makeMembership());
+
+        expect(result).toBeNull();
+        expect(mocks.syncWithLighthouse).not.toHaveBeenCalled();
+    });
 });
 
 describe('ensureActiveMember', () => {

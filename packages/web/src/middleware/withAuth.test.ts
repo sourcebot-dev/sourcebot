@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => {
         hasEntitlement: vi.fn((_entitlement: string) => false),
         isAnonymousAccessAvailable: vi.fn(() => false),
         syncWithLighthouse: vi.fn(async (_orgId: number) => undefined),
+        getSeatCap: vi.fn(() => undefined as number | undefined),
         env: {} as Record<string, string>,
     }
 });
@@ -53,6 +54,7 @@ vi.mock('@sourcebot/shared', () => ({
     API_KEY_PREFIX: 'sbk_',
     LEGACY_API_KEY_PREFIX: 'sourcebot-',
     env: mocks.env,
+    getSeatCap: mocks.getSeatCap,
     createLogger: vi.fn(() => ({
         info: vi.fn(),
         warn: vi.fn(),
@@ -98,6 +100,9 @@ beforeEach(() => {
     // default, the reset mock returns undefined and the .catch chain throws.
     prisma.user.update.mockResolvedValue(MOCK_USER_WITH_ACCOUNTS);
     prisma.userToOrg.updateMany.mockResolvedValue({ count: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (prisma.$transaction as any).mockImplementation(async (cb: any) => cb(prisma));
+    mocks.getSeatCap.mockReturnValue(undefined);
     // Reset env flags between tests
     Object.keys(mocks.env).forEach(key => delete mocks.env[key]);
 });
@@ -370,7 +375,6 @@ describe('getAuthContext', () => {
 
         setMockSession(createMockSession({ user: { id: userId } }));
         await getAuthContext();
-        await Promise.resolve();
 
         expect(prisma.userToOrg.updateMany).toHaveBeenCalledWith({
             where: {
@@ -382,6 +386,83 @@ describe('getAuthContext', () => {
             data: { lastActiveAt: expect.any(Date) },
         });
         expect(mocks.syncWithLighthouse).toHaveBeenCalledWith(MOCK_ORG.id);
+    });
+
+    test('should activate a pending member when the org has an available seat', async () => {
+        const userId = 'test-user-id';
+        mocks.getSeatCap.mockReturnValue(2);
+        prisma.userToOrg.count.mockResolvedValue(1);
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.org.findUnique.mockResolvedValue({
+            ...MOCK_ORG,
+        });
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId,
+            orgId: MOCK_ORG.id,
+            suspendedAt: null,
+            scimExternalId: null,
+            lastActiveAt: null,
+            role: OrgRole.MEMBER,
+        });
+        prisma.userToOrg.updateMany.mockResolvedValue({ count: 1 });
+
+        setMockSession(createMockSession({ user: { id: userId } }));
+        const cb = vi.fn();
+        const result = await withAuth(cb);
+
+        expect(result).toBeUndefined();
+        expect(cb).toHaveBeenCalledWith(expect.objectContaining({
+            user: expect.objectContaining({ id: userId }),
+            org: MOCK_ORG,
+            role: OrgRole.MEMBER,
+        }));
+        expect(prisma.userToOrg.count).toHaveBeenCalledWith({
+            where: {
+                orgId: MOCK_ORG.id,
+                suspendedAt: null,
+                lastActiveAt: { not: null },
+            },
+        });
+        expect(mocks.syncWithLighthouse).toHaveBeenCalledWith(MOCK_ORG.id);
+    });
+
+    test('should return a seat-limit service error when a pending member logs in at capacity', async () => {
+        const userId = 'test-user-id';
+        mocks.getSeatCap.mockReturnValue(1);
+        prisma.userToOrg.count.mockResolvedValue(1);
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.org.findUnique.mockResolvedValue({
+            ...MOCK_ORG,
+        });
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId,
+            orgId: MOCK_ORG.id,
+            suspendedAt: null,
+            scimExternalId: null,
+            lastActiveAt: null,
+            role: OrgRole.MEMBER,
+        });
+
+        setMockSession(createMockSession({ user: { id: userId } }));
+        const cb = vi.fn();
+        const result = await withAuth(cb);
+
+        expect(cb).not.toHaveBeenCalled();
+        expect(result).toStrictEqual({
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.ORG_SEAT_COUNT_REACHED,
+            message: 'Organization is at max capacity',
+        });
+        expect(prisma.userToOrg.updateMany).not.toHaveBeenCalled();
+        expect(mocks.syncWithLighthouse).not.toHaveBeenCalled();
     });
 
     test('should not sync with Lighthouse when another request already marked the member active', async () => {
@@ -409,6 +490,40 @@ describe('getAuthContext', () => {
         await Promise.resolve();
 
         expect(mocks.syncWithLighthouse).not.toHaveBeenCalled();
+    });
+
+    test('should not block an already-active member when the org is at capacity', async () => {
+        const userId = 'test-user-id';
+        mocks.getSeatCap.mockReturnValue(1);
+        prisma.userToOrg.count.mockResolvedValue(1);
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.org.findUnique.mockResolvedValue({
+            ...MOCK_ORG,
+        });
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId,
+            orgId: MOCK_ORG.id,
+            suspendedAt: null,
+            scimExternalId: null,
+            lastActiveAt: new Date('2026-01-01T00:00:00.000Z'),
+            role: OrgRole.MEMBER,
+        });
+
+        setMockSession(createMockSession({ user: { id: userId } }));
+        const cb = vi.fn();
+        const result = await withAuth(cb);
+
+        expect(result).toBeUndefined();
+        expect(cb).toHaveBeenCalledWith(expect.objectContaining({
+            user: expect.objectContaining({ id: userId }),
+            org: MOCK_ORG,
+            role: OrgRole.MEMBER,
+        }));
+        expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 
     test('should return a auth context object if a valid session is present and the user is a member of the organization with OWNER role', async () => {
@@ -512,6 +627,7 @@ describe('getAuthContext', () => {
             org: MOCK_ORG,
             prisma: undefined,
         });
+        expect(prisma.userToOrg.updateMany).not.toHaveBeenCalled();
     });
 
     test('should not grant a role to a suspended member authenticating via API key (API-key auth bypasses the JWT sessionVersion logout, so this gate is what denies them)', async () => {

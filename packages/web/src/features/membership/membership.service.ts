@@ -3,7 +3,7 @@ import 'server-only';
 import { createAudit } from "@/ee/features/audit/audit";
 import { type AuditActor } from "@/ee/features/audit/types";
 import { syncWithLighthouse } from "@/features/billing/servicePing";
-import { activeMembershipWhere, orgHasAvailability } from "@/features/membership/utils";
+import { activeMembershipWhere, orgHasAvailability, pendingMembershipWhere } from "@/features/membership/utils";
 import { notFound, type ServiceError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { __unsafePrisma as prisma } from "@/prisma";
@@ -15,6 +15,47 @@ export interface EnsureActiveMemberOptions {
     role: OrgRole;
     scimExternalId?: string;
 }
+
+/**
+ * Moves an unsuspended pending membership into the active seat set. This is the
+ * auth-path admission gate for provisioned users: SCIM/group sync can create
+ * pending memberships above the offline seat cap, but the first actual login
+ * must reserve a seat before the user gets access.
+ */
+export const activatePendingMembership = async (
+    membership: UserToOrg,
+): Promise<ServiceError | null> => {
+    if (membership.suspendedAt != null || membership.lastActiveAt != null) {
+        return null;
+    }
+
+    const activated = await prisma.$transaction(async (tx) => {
+        if (!(await orgHasAvailability(membership.orgId, tx))) {
+            return seatLimitReached();
+        }
+
+        const result = await tx.userToOrg.updateMany({
+            where: {
+                orgId: membership.orgId,
+                userId: membership.userId,
+                ...pendingMembershipWhere(),
+            },
+            data: { lastActiveAt: new Date() },
+        });
+
+        return result.count === 1;
+    });
+
+    if (isServiceError(activated)) {
+        return activated;
+    }
+
+    if (activated) {
+        await syncWithLighthouse(membership.orgId).catch(() => { /* best effort */ });
+    }
+
+    return null;
+};
 
 /**
  * Ensures the user has an unsuspended membership. Unsuspended: returned
@@ -69,7 +110,7 @@ export const ensureActiveMember = async (
         });
 
         return created;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    });
 
     if (isServiceError(membership)) {
         return membership;
@@ -124,7 +165,7 @@ export const removeMember = async (
         });
 
         return null;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    });
 
     if (!isServiceError(result)) {
         await syncWithLighthouse(orgId).catch(() => { /* best effort */ });
@@ -185,7 +226,7 @@ export const setMemberRole = async (
         didChange = true;
 
         return null;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    });
 
     if (!isServiceError(result) && didChange) {
         await createAudit({
@@ -239,7 +280,7 @@ export const setMembershipSuspended = async (
             });
             didChange = true;
             return target;
-        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+        });
 
         if (!isServiceError(result) && didChange) {
             await syncWithLighthouse(orgId).catch(() => { /* best effort */ });
@@ -287,7 +328,7 @@ export const setMembershipSuspended = async (
             });
             didChange = true;
             return target;
-        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+        });
 
         if (!isServiceError(result) && didChange) {
             await syncWithLighthouse(orgId).catch(() => { /* best effort */ });

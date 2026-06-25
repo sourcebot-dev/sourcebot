@@ -9,8 +9,7 @@ import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "../lib/errorCodes";
 import { isServiceError } from "../lib/utils";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
-import { syncWithLighthouse } from "@/features/billing/servicePing";
-import { pendingMembershipWhere } from "@/features/membership/utils";
+import { activatePendingMembership } from "@/features/membership/membership.service";
 
 const LAST_ACTIVE_AT_THRESHOLD_MS = 5 * 60 * 1000;
 
@@ -110,6 +109,19 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         updateUserLastActiveAt(user);
     }
 
+    // If the user is currently in a "pending"
+    // state, then we need to activate them.
+    if (
+        membership &&
+        membership.suspendedAt == null &&
+        membership.lastActiveAt == null
+    ) {
+        const result = await activatePendingMembership(membership);
+        if (isServiceError(result)) {
+            return result;
+        }
+    }
+
     if (membership) {
         updateMembershipLastActiveAt(membership);
     }
@@ -139,6 +151,10 @@ const updateUserLastActiveAt = (user: UserWithAccounts) => {
 };
 
 const updateMembershipLastActiveAt = (membership: UserToOrg) => {
+    if (membership.suspendedAt != null) {
+        return;
+    }
+
     const now = Date.now();
     if (
         membership.lastActiveAt &&
@@ -147,27 +163,15 @@ const updateMembershipLastActiveAt = (membership: UserToOrg) => {
         return;
     }
 
-    const wasPending = membership.suspendedAt == null && membership.lastActiveAt == null;
-
-    // Fired without a await to avoid blocking. This normally just refreshes the
-    // membership's activity timestamp, but the first successful write also moves
-    // a provisioned member from "pending" to "active" for billing/reporting. The
-    // null `lastActiveAt` predicate in that first-write case acts as a
-    // concurrency guard, so only the request that wins the transition syncs
-    // Lighthouse.
+    // Fired without a await to avoid blocking; this is only a freshness refresh
+    // for already-active memberships, not seat admission.
     void __unsafePrisma.userToOrg
         .updateMany({
             where: {
                 orgId: membership.orgId,
                 userId: membership.userId,
-                ...(wasPending ? pendingMembershipWhere() : {}),
             },
             data: { lastActiveAt: new Date(now) },
-        })
-        .then(({ count }) => {
-            if (wasPending && count === 1) {
-                void syncWithLighthouse(membership.orgId).catch(() => { /* best effort. */ });
-            }
         })
         .catch(() => { /* updating the lastActiveAt is best effort. */ });
 };
