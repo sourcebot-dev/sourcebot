@@ -6,14 +6,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { CSSProperties, forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import scrollIntoView from 'scroll-into-view-if-needed';
-import { Reference, referenceSchema, SBChatMessage, Source } from "@/features/chat/types";
+import { FileSource, Reference, referenceSchema, SBChatMessage, Source } from "@/features/chat/types";
 import { useExtractReferences } from '../../useExtractReferences';
-import { getAnswerPartFromAssistantMessage, getLastStepParts, groupMessageIntoSteps, isSBChatToolPart, repairReferences, tryResolveFileReference } from '@/features/chat/utils';
+import { createFileReference, getAnswerPartFromAssistantMessage, getLastStepParts, groupMessageIntoSteps, isSBChatToolPart, repairReferences, tryResolveFileReference } from '@/features/chat/utils';
 import { AnswerCard } from './answerCard';
 import { DetailsCard } from './detailsCard';
 import { ApprovalRequestedToolPart, ToolApprovalBanner } from './toolApprovalBanner';
 import { MarkdownRenderer, REFERENCE_PAYLOAD_ATTRIBUTE } from './markdownRenderer';
-import { ReferencedSourcesListView } from './referencedSourcesListView';
+import { PanelItem, ReferencedSourcesListView } from './referencedSourcesListView';
+import { useExtractDiagrams } from '../../useExtractDiagrams';
+import { DiagramPanelContext } from '../../diagramPanelContext';
+import { getDiagramId } from '../../diagramUtils';
 import isEqual from "fast-deep-equal/react";
 import { ANSWER_TAG } from '@/features/chat/constants';
 
@@ -326,6 +329,22 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
 
     const references = useExtractReferences(answerPart);
 
+    const diagrams = useExtractDiagrams(answerPart);
+    const [selectedDiagramId, setSelectedDiagramId] = useState<string | undefined>(undefined);
+
+    // Reveal a diagram in the right panel: the panel list expands it and scrolls
+    // it into view when `selectedDiagramId` changes.
+    const revealDiagramInPanel = useCallback((diagramId: string) => {
+        setSelectedDiagramId(undefined);
+        requestAnimationFrame(() => setSelectedDiagramId(diagramId));
+    }, []);
+
+    const jumpToInlineDiagram = useCallback((diagramId: string) => {
+        document.getElementById(`diagram-${diagramId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, []);
+
+    const diagramPanelContextValue = useMemo(() => ({ revealInPanel: revealDiagramInPanel }), [revealDiagramInPanel]);
+
     // Extract the file sources that are referenced by the answer part.
     const referencedFileSources = useMemo(() => {
         const fileSources = sources.filter((source) => source.type === 'file');
@@ -344,8 +363,83 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
             );
     }, [references, sources]);
 
+    // Interleave file sources and diagrams by their order of appearance in the
+    // answer, via a single combined scan over the answer text.
+    const orderedPanelItems = useMemo<PanelItem[]>(() => {
+        const text = answerPart?.text ?? '';
+        const items: PanelItem[] = [];
+        const seenSources = new Set<string>();
+        const seenDiagrams = new Set<string>();
+        const diagramById = new Map(diagrams.map((diagram) => [diagram.id, diagram]));
+        const diagramIndexById = new Map(diagrams.map((diagram, i) => [diagram.id, i]));
+        const sourceKey = (source: FileSource) => `${source.repo}::${source.path}::${source.revision}`;
+
+        const combined = /```mermaid\s*\n([\s\S]*?)```|@file:\{([^:}]+)::([^:}]+)(?::(\d+)(?:-(\d+))?)?\}/g;
+        let match: RegExpExecArray | null;
+        while ((match = combined.exec(text)) !== null) {
+            if (match[1] !== undefined) {
+                const code = match[1].trim();
+                if (!code) {
+                    continue;
+                }
+                const id = getDiagramId(code);
+                const diagram = diagramById.get(id);
+                if (!diagram || seenDiagrams.has(id)) {
+                    continue;
+                }
+                seenDiagrams.add(id);
+                items.push({ kind: 'diagram', diagram, diagramIndex: diagramIndexById.get(id) ?? 0 });
+            } else if (match[2] !== undefined && match[3] !== undefined) {
+                const reference = createFileReference({ repo: match[2], path: match[3], startLine: match[4], endLine: match[5] });
+                const source = tryResolveFileReference(reference, referencedFileSources);
+                if (!source) {
+                    continue;
+                }
+                const key = sourceKey(source);
+                if (seenSources.has(key)) {
+                    continue;
+                }
+                seenSources.add(key);
+                items.push({ kind: 'source', source });
+            }
+        }
+
+        // Safety net: append anything resolved but not matched in the scan.
+        for (const source of referencedFileSources) {
+            const key = sourceKey(source);
+            if (!seenSources.has(key)) {
+                seenSources.add(key);
+                items.push({ kind: 'source', source });
+            }
+        }
+        for (const diagram of diagrams) {
+            if (!seenDiagrams.has(diagram.id)) {
+                seenDiagrams.add(diagram.id);
+                items.push({ kind: 'diagram', diagram, diagramIndex: diagramIndexById.get(diagram.id) ?? 0 });
+            }
+        }
+
+        return items;
+    }, [answerPart, referencedFileSources, diagrams]);
+
+    const sourcesView = (
+        <ReferencedSourcesListView
+            index={index}
+            references={references}
+            sources={referencedFileSources}
+            hoveredReference={hoveredReference}
+            selectedReference={selectedReference}
+            onSelectedReferenceChanged={setSelectedReference}
+            onHoveredReferenceChanged={setHoveredReference}
+            style={rightPanelStyle}
+            orderedItems={orderedPanelItems}
+            selectedDiagramId={selectedDiagramId}
+            onJumpToInlineDiagram={jumpToInlineDiagram}
+        />
+    );
 
     return (
+        <DiagramPanelContext.Provider value={diagramPanelContextValue}>
         <div
             className="flex flex-col md:flex-row relative min-h-[calc(100vh-250px-var(--banner-height,0px))]"
             ref={ref}
@@ -440,17 +534,8 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                     <div
                         className="sticky top-0"
                     >
-                        {referencedFileSources.length > 0 ? (
-                            <ReferencedSourcesListView
-                                index={index}
-                                references={references}
-                                sources={referencedFileSources}
-                                hoveredReference={hoveredReference}
-                                selectedReference={selectedReference}
-                                onSelectedReferenceChanged={setSelectedReference}
-                                onHoveredReferenceChanged={setHoveredReference}
-                                style={rightPanelStyle}
-                            />
+                        {(referencedFileSources.length > 0 || diagrams.length > 0) ? (
+                            sourcesView
                         ) : isNetworkActive ? (
                             <div className="space-y-4">
                                 {Array.from({ length: 3 }).map((_, index) => (
@@ -466,6 +551,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                 </ResizablePanel>
             </ResizablePanelGroup>
         </div>
+        </DiagramPanelContext.Provider>
     )
 });
 

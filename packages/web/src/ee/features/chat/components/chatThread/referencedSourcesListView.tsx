@@ -7,7 +7,15 @@ import scrollIntoView from 'scroll-into-view-if-needed';
 import { FileReference, FileSource, Reference } from "@/features/chat/types";
 import { tryResolveFileReference } from '@/features/chat/utils';
 import { ReferencedFileSourceListItemContainer } from "./referencedFileSourceListItemContainer";
+import { DiagramPanelListItem } from "./diagramPanelListItem";
+import { ExtractedDiagram } from "@/ee/features/chat/useExtractDiagrams";
 import isEqual from 'fast-deep-equal/react';
+
+// An ordered entry in the right panel: either a referenced file source or a
+// diagram, interleaved by their order of appearance in the answer.
+export type PanelItem =
+    | { kind: 'source'; source: FileSource }
+    | { kind: 'diagram'; diagram: ExtractedDiagram; diagramIndex: number };
 
 interface ReferencedSourcesListViewProps {
     references: FileReference[];
@@ -18,6 +26,9 @@ interface ReferencedSourcesListViewProps {
     selectedReference?: Reference;
     onSelectedReferenceChanged: (reference?: Reference) => void;
     style: React.CSSProperties;
+    orderedItems?: PanelItem[];
+    selectedDiagramId?: string;
+    onJumpToInlineDiagram?: (diagramId: string) => void;
 }
 
 const ReferencedSourcesListViewComponent = ({
@@ -29,10 +40,40 @@ const ReferencedSourcesListViewComponent = ({
     style,
     onHoveredReferenceChanged,
     onSelectedReferenceChanged,
+    orderedItems = [],
+    selectedDiagramId,
+    onJumpToInlineDiagram,
 }: ReferencedSourcesListViewProps) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const editorRefsMap = useRef<Map<string, ReactCodeMirrorRef>>(new Map());
     const [collapsedFileIds, setCollapsedFileIds] = useState<string[]>([]);
+    // Diagrams render pre-collapsed; expand by id (or via reveal-from-answer).
+    const [expandedDiagramIds, setExpandedDiagramIds] = useState<string[]>([]);
+    // Transient highlight applied when a diagram is revealed from the answer
+    // (cleared after a moment so the panel item isn't permanently outlined).
+    const [highlightedDiagramId, setHighlightedDiagramId] = useState<string | undefined>(undefined);
+
+    // When a diagram is revealed from the answer, expand it, scroll it into
+    // view, and briefly highlight it.
+    useEffect(() => {
+        if (!selectedDiagramId) {
+            return;
+        }
+        setExpandedDiagramIds((prev) => (prev.includes(selectedDiagramId) ? prev : [...prev, selectedDiagramId]));
+        const element = document.getElementById(`diagram-panel-${selectedDiagramId}`);
+        if (element) {
+            scrollIntoView(element, { scrollMode: 'if-needed', block: 'center', behavior: 'smooth' });
+        }
+        setHighlightedDiagramId(selectedDiagramId);
+        const timeout = window.setTimeout(() => setHighlightedDiagramId(undefined), 2000);
+        return () => window.clearTimeout(timeout);
+    }, [selectedDiagramId]);
+
+    const onToggleDiagram = useCallback((diagramId: string) => {
+        setExpandedDiagramIds((prev) => (
+            prev.includes(diagramId) ? prev.filter((id) => id !== diagramId) : [...prev, diagramId]
+        ));
+    }, []);
 
     const getFileId = useCallback((fileSource: FileSource) => {
         // @note: we include the index to ensure that the file id is unique
@@ -174,10 +215,10 @@ const ReferencedSourcesListViewComponent = ({
         }
     }, []);
 
-    if (sources.length === 0) {
+    if (orderedItems.length === 0) {
         return (
             <div className="p-4 text-center text-muted-foreground text-sm">
-                No file references found
+                No references found
             </div>
         );
     }
@@ -187,8 +228,24 @@ const ReferencedSourcesListViewComponent = ({
             ref={scrollAreaRef}
             style={style}
         >
-            <div className="space-y-4 pr-2">
-                {sources.map((fileSource) => {
+            {/* px-2 leaves room for the diagram reveal ring so it isn't clipped on the edges */}
+            <div className="space-y-4 px-2">
+                {orderedItems.map((item) => {
+                    if (item.kind === 'diagram') {
+                        return (
+                            <DiagramPanelListItem
+                                key={`diagram-${item.diagram.id}`}
+                                diagram={item.diagram}
+                                index={item.diagramIndex}
+                                isExpanded={expandedDiagramIds.includes(item.diagram.id)}
+                                isHighlighted={highlightedDiagramId === item.diagram.id}
+                                onToggle={() => onToggleDiagram(item.diagram.id)}
+                                onJumpToInline={() => onJumpToInlineDiagram?.(item.diagram.id)}
+                            />
+                        );
+                    }
+
+                    const fileSource = item.source;
                     const fileId = getFileId(fileSource);
                     const referencesInFile = referencesGroupedByFile.get(fileId) || [];
                     const hoveredReferenceInFile = referencesInFile.some(r => r.id === hoveredReference?.id) ? hoveredReference : undefined;

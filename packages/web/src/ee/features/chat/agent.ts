@@ -655,6 +655,11 @@ const createPrompt = ({
     - If you cannot provide a code reference for something you're discussing, do not mention that specific code element
     - Always prefer to use \`${FILE_REFERENCE_PREFIX}\` over \`\`\`code\`\`\` blocks.
 
+    **Diagrams:**
+    - Proactively include a diagram when a visual communicates the answer better than prose, e.g. architecture overviews, control/data flow, sequences of interactions, state machines, or entity relationships. Use your judgement, do not force a diagram for simple answers.
+    - Render diagrams as a \`\`\`mermaid fenced code block. This is an explicit exception to the rule above: it is OK to use a \`\`\`mermaid block even though you otherwise prefer \`${FILE_REFERENCE_PREFIX}\` over code blocks. Continue to use \`${FILE_REFERENCE_PREFIX}\` for code references in your prose.
+    - Mermaid syntax rules: do NOT put spaces or special characters in node IDs (use camelCase or underscores), wrap node and edge labels that contain special characters (parentheses, commas, colons) in double quotes, avoid reserved keywords (\`end\`, \`graph\`, \`subgraph\`) as node IDs, and do NOT use \`click\` events or custom colors/styling (the theme is applied automatically).
+
     **Example answer structure:**
     \`\`\`markdown
     ${ANSWER_TAG}

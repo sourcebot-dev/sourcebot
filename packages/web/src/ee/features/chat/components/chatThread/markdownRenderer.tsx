@@ -18,6 +18,7 @@ import type { PluggableList, Plugin } from "unified";
 import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
 import { LinearIssueCard } from './linearIssueCard';
+import { MermaidDiagram } from './mermaidDiagram';
 import { FILE_REFERENCE_REGEX } from '@/features/chat/constants';
 import { createFileReference } from '@/features/chat/utils';
 import isEqual from "fast-deep-equal/react";
@@ -129,9 +130,14 @@ interface MarkdownRendererProps {
      * instead of being parsed as HTML. File references (@file:{...}) are unaffected.
      */
     escapeHtml?: boolean;
+    /**
+     * When true, fenced ```mermaid blocks are rendered as diagrams instead of
+     * code. Enabled only on the answer body (see answerCard.tsx).
+     */
+    enableDiagrams?: boolean;
 }
 
-const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, className, escapeHtml = false }, ref) => {
+const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, className, escapeHtml = false, enableDiagrams = false }, ref) => {
     const router = useRouter();
 
     const remarkPlugins = useMemo((): PluggableList => {
@@ -204,6 +210,12 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
             const match = /language-(\w+)/.exec(className || '');
             const language = match ? match[1] : undefined;
 
+            if (enableDiagrams && language === 'mermaid') {
+                return (
+                    <MermaidDiagram code={text} />
+                )
+            }
+
             return (
                 <CodeBlock
                     code={text}
@@ -252,7 +264,7 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
             </span>
         )
 
-    }, [router]);
+    }, [router, enableDiagrams]);
 
     return (
         <div
