@@ -15,6 +15,7 @@ import { getAllInvoices } from "@/ee/features/lighthouse/actions";
 import { syncWithLighthouse } from "@/features/billing/servicePing";
 import { isServiceError } from "@/lib/utils";
 import { getYearlyTermStatus } from "./types";
+import { activeMembershipWhere } from "@/features/membership/utils";
 
 type LicensePageProps = {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -52,7 +53,7 @@ export default authenticatedPage<LicensePageProps>(async ({ prisma, org }, props
     const currentActiveUserCount = await prisma.userToOrg.count({
         where: {
             orgId: org.id,
-            isActive: true,
+            ...activeMembershipWhere(),
         },
     });
 

@@ -8,6 +8,7 @@ import { hasEntitlement } from "@/lib/entitlements";
 import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { activeMembershipWhere } from "@/features/membership/utils";
 
 const searchMembersQueryParamsSchema = z.object({
     query: z.string().default(''),
@@ -102,6 +103,7 @@ export const GET = apiHandler(async (
         const members = await prisma.userToOrg.findMany({
             where: {
                 orgId: org.id,
+                ...activeMembershipWhere(),
                 userId: {
                     notIn: Array.from(excludeUserIds),
                 },
@@ -111,7 +113,6 @@ export const GET = apiHandler(async (
                         { email: { contains: query, mode: 'insensitive' } },
                     ],
                 },
-                isActive: true,
             },
             include: {
                 user: true,

@@ -9,6 +9,8 @@ import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "../lib/errorCodes";
 import { isServiceError } from "../lib/utils";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
+import { syncWithLighthouse } from "@/features/billing/servicePing";
+import { pendingMembershipWhere } from "@/features/membership/utils";
 
 const LAST_ACTIVE_AT_THRESHOLD_MS = 5 * 60 * 1000;
 
@@ -85,10 +87,10 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
         },
     }) : null;
 
-    // A SCIM-deactivated membership is treated as if the user is not a member:
-    // they get no role and are denied by `withAuth`. This is also the only gate
-    // for API-key auth, which bypasses the JWT `sessionVersion` logout check.
-    const role = membership?.isActive ? membership.role : undefined;
+    // A suspended membership is treated as if the user is not a member: they get
+    // no role and are denied by `withAuth`. This is also the only gate for
+    // API-key auth, which bypasses the JWT `sessionVersion` logout check.
+    const role = membership && membership.suspendedAt == null ? membership.role : undefined;
 
     if (
         env.DISABLE_API_KEY_USAGE_FOR_NON_OWNER_USERS === 'true' &&
@@ -145,16 +147,27 @@ const updateMembershipLastActiveAt = (membership: UserToOrg) => {
         return;
     }
 
-    // Fired without a await to avoid blocking.
+    const wasPending = membership.suspendedAt == null && membership.lastActiveAt == null;
+
+    // Fired without a await to avoid blocking. This normally just refreshes the
+    // membership's activity timestamp, but the first successful write also moves
+    // a provisioned member from "pending" to "active" for billing/reporting. The
+    // null `lastActiveAt` predicate in that first-write case acts as a
+    // concurrency guard, so only the request that wins the transition syncs
+    // Lighthouse.
     void __unsafePrisma.userToOrg
-        .update({
+        .updateMany({
             where: {
-                orgId_userId: {
-                    orgId: membership.orgId,
-                    userId: membership.userId,
-                },
+                orgId: membership.orgId,
+                userId: membership.userId,
+                ...(wasPending ? pendingMembershipWhere() : {}),
             },
             data: { lastActiveAt: new Date(now) },
+        })
+        .then(({ count }) => {
+            if (wasPending && count === 1) {
+                void syncWithLighthouse(membership.orgId).catch(() => { /* best effort. */ });
+            }
         })
         .catch(() => { /* updating the lastActiveAt is best effort. */ });
 };
@@ -293,5 +306,3 @@ export const getVerifiedApiObject = async (apiKeyString: string): Promise<ApiKey
 
     return apiKey;
 }
-
-

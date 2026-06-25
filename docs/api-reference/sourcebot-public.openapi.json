@@ -1148,8 +1148,10 @@
               "MEMBER"
             ]
           },
-          "isActive": {
-            "type": "boolean"
+          "suspendedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
           },
           "createdAt": {
             "type": "string",
@@ -1166,7 +1168,7 @@
           "name",
           "email",
           "role",
-          "isActive",
+          "suspendedAt",
           "createdAt",
           "lastActivityAt"
         ]

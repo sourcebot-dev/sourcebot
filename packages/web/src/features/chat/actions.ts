@@ -9,6 +9,7 @@ import { withAuth, withOptionalAuth } from "@/middleware/withAuth";
 import { ChatVisibility, Prisma } from "@sourcebot/db";
 import { SBChatMessage } from "./types";
 import { checkAskEntitlement, isChatSharedWithUser, isOwnerOfChat } from "./utils.server";
+import { activeMembershipWhere } from "../membership/utils";
 
 export const createChat = async ({ source }: { source?: string } = {}) => sew(() =>
     withOptionalAuth(async ({ org, user, prisma }) => {
@@ -372,10 +373,10 @@ export const shareChatWithUsers = async ({ chatId, userIds }: { chatId: string, 
         const memberships = await prisma.userToOrg.findMany({
             where: {
                 orgId: org.id,
+                ...activeMembershipWhere(),
                 userId: {
                     in: userIds,
                 },
-                isActive: true,
             },
         });
 

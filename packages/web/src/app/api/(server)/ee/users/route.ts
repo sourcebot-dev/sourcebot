@@ -56,7 +56,7 @@ export const GET = apiHandler(async () => {
                             name: membership.user.name,
                             email: membership.user.email,
                             role: membership.role,
-                            isActive: membership.isActive,
+                            suspendedAt: membership.suspendedAt,
                             createdAt: membership.user.createdAt,
                             lastActivityAt: lastActivity?.timestamp ?? null,
                         };
@@ -91,4 +91,3 @@ export const GET = apiHandler(async () => {
 
     return Response.json(result);
 });
-

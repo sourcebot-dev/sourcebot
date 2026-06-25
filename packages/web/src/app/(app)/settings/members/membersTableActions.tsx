@@ -153,8 +153,9 @@ export const MembersTableActions = ({
     const [pendingAction, setPendingAction] = useState<MemberAction | null>(null);
     const [confirmingAction, setConfirmingAction] = useState<MemberAction | null>(null);
     const isCurrentUser = row.kind === "member" && row.id === currentUserId;
+    const isSuspended = row.kind === "member" && row.suspendedAt != null;
     const isLastActiveOwner = row.kind === "member"
-        && row.isActive
+        && !isSuspended
         && row.role === OrgRole.OWNER
         && activeOwnerCount <= 1;
     const scimDisabledTitle = scimEnabled ? "SCIM provisioning is enabled" : undefined;
@@ -309,7 +310,7 @@ export const MembersTableActions = ({
                                     Demote to member
                                 </DropdownMenuItem>
                             )}
-                            {row.isActive ? (
+                            {!isSuspended ? (
                                 isCurrentUser ? (
                                     <DropdownMenuItem
                                         className="cursor-pointer text-destructive"

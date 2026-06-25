@@ -1,5 +1,5 @@
 import { apiHandler } from '@/lib/apiHandler';
-import { removeMember, setMemberActive } from '@/features/membership/membership.service';
+import { removeMember, setMembershipSuspended } from '@/features/membership/membership.service';
 import { scimError, scimJson, toScimUser, type ScimMembership } from '@/ee/features/scim/mapper';
 import {
     coerceActive,
@@ -24,7 +24,7 @@ const applyActive = async (orgId: number, userId: string, current: boolean, next
     if (next === undefined || next === current) {
         return null;
     }
-    const result = await setMemberActive(orgId, userId, next, {
+    const result = await setMembershipSuspended(orgId, userId, !next, {
         actor: { id: 'scim', type: 'scim_token' },
     });
     if (isServiceError(result)) {
@@ -66,7 +66,7 @@ export const PUT = apiHandler(async (request: NextRequest, { params }: { params:
             data: { name, email },
         });
 
-        const activeError = await applyActive(org.id, id, membership.isActive, coerceActive(payload.active));
+        const activeError = await applyActive(org.id, id, membership.suspendedAt == null, coerceActive(payload.active));
         if (activeError) {
             return activeError;
         }
@@ -105,7 +105,7 @@ export const PATCH = apiHandler(async (request: NextRequest, { params }: { param
             });
         }
 
-        const activeError = await applyActive(org.id, id, membership.isActive, changes.active);
+        const activeError = await applyActive(org.id, id, membership.suspendedAt == null, changes.active);
         if (activeError) {
             return activeError;
         }

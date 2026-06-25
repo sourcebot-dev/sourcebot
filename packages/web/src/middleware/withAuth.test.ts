@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => {
         headers: vi.fn(async (): Promise<Headers> => new Headers()),
         hasEntitlement: vi.fn((_entitlement: string) => false),
         isAnonymousAccessAvailable: vi.fn(() => false),
+        syncWithLighthouse: vi.fn(async (_orgId: number) => undefined),
         env: {} as Record<string, string>,
     }
 });
@@ -37,6 +38,10 @@ vi.mock('@/prisma', async () => {
 
 vi.mock('server-only', () => ({
     default: vi.fn(),
+}));
+
+vi.mock('@/features/billing/servicePing', () => ({
+    syncWithLighthouse: mocks.syncWithLighthouse,
 }));
 
 vi.mock('@sourcebot/shared', () => ({
@@ -65,6 +70,8 @@ const setMockHeaders = (headers: Headers) => {
     mocks.headers.mockResolvedValue(headers);
 };
 
+const SUSPENDED_AT = new Date('2026-01-01T00:00:00.000Z');
+
 // Helper to create mock session objects
 const createMockSession = (overrides: Partial<Session> = {}): Session => ({
     user: {
@@ -87,18 +94,10 @@ beforeEach(() => {
     mocks.hasEntitlement.mockReturnValue(false);
     mocks.isAnonymousAccessAvailable.mockReturnValue(false);
     // getAuthContext fires `prisma.user.update().catch(...)` and
-    // `prisma.userToOrg.update().catch(...)` to bump lastActiveAt; without a
+    // `prisma.userToOrg.updateMany().catch(...)` to bump lastActiveAt; without a
     // default, the reset mock returns undefined and the .catch chain throws.
     prisma.user.update.mockResolvedValue(MOCK_USER_WITH_ACCOUNTS);
-    prisma.userToOrg.update.mockResolvedValue({
-        orgId: MOCK_ORG.id,
-        userId: 'test-user-id',
-        joinedAt: new Date(),
-        role: OrgRole.MEMBER,
-        isActive: true,
-        scimExternalId: null,
-        lastActiveAt: new Date(),
-    });
+    prisma.userToOrg.updateMany.mockResolvedValue({ count: 0 });
     // Reset env flags between tests
     Object.keys(mocks.env).forEach(key => delete mocks.env[key]);
 });
@@ -329,7 +328,7 @@ describe('getAuthContext', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.MEMBER,
@@ -349,6 +348,69 @@ describe('getAuthContext', () => {
         });
     });
 
+    test('should sync with Lighthouse when a pending member becomes active for the first time', async () => {
+        const userId = 'test-user-id';
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.org.findUnique.mockResolvedValue({
+            ...MOCK_ORG,
+        });
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId,
+            orgId: MOCK_ORG.id,
+            suspendedAt: null,
+            scimExternalId: null,
+            lastActiveAt: null,
+            role: OrgRole.MEMBER,
+        });
+        prisma.userToOrg.updateMany.mockResolvedValue({ count: 1 });
+
+        setMockSession(createMockSession({ user: { id: userId } }));
+        await getAuthContext();
+        await Promise.resolve();
+
+        expect(prisma.userToOrg.updateMany).toHaveBeenCalledWith({
+            where: {
+                orgId: MOCK_ORG.id,
+                userId,
+                suspendedAt: null,
+                lastActiveAt: null,
+            },
+            data: { lastActiveAt: expect.any(Date) },
+        });
+        expect(mocks.syncWithLighthouse).toHaveBeenCalledWith(MOCK_ORG.id);
+    });
+
+    test('should not sync with Lighthouse when another request already marked the member active', async () => {
+        const userId = 'test-user-id';
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.org.findUnique.mockResolvedValue({
+            ...MOCK_ORG,
+        });
+        prisma.userToOrg.findUnique.mockResolvedValue({
+            joinedAt: new Date(),
+            userId,
+            orgId: MOCK_ORG.id,
+            suspendedAt: null,
+            scimExternalId: null,
+            lastActiveAt: null,
+            role: OrgRole.MEMBER,
+        });
+        prisma.userToOrg.updateMany.mockResolvedValue({ count: 0 });
+
+        setMockSession(createMockSession({ user: { id: userId } }));
+        await getAuthContext();
+        await Promise.resolve();
+
+        expect(mocks.syncWithLighthouse).not.toHaveBeenCalled();
+    });
+
     test('should return a auth context object if a valid session is present and the user is a member of the organization with OWNER role', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
@@ -362,7 +424,7 @@ describe('getAuthContext', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.OWNER,
@@ -421,7 +483,7 @@ describe('getAuthContext', () => {
         });
     });
 
-    test('should not grant a role when the membership is SCIM-deactivated (isActive: false), even though the membership row exists', async () => {
+    test('should not grant a role when the membership is suspended, even though the membership row exists', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
             ...MOCK_USER_WITH_ACCOUNTS,
@@ -434,7 +496,7 @@ describe('getAuthContext', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: false,
+            suspendedAt: SUSPENDED_AT,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.OWNER,
@@ -452,7 +514,7 @@ describe('getAuthContext', () => {
         });
     });
 
-    test('should not grant a role to a SCIM-deactivated member authenticating via API key (API-key auth bypasses the JWT sessionVersion logout, so this gate is what denies them)', async () => {
+    test('should not grant a role to a suspended member authenticating via API key (API-key auth bypasses the JWT sessionVersion logout, so this gate is what denies them)', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
             ...MOCK_USER_WITH_ACCOUNTS,
@@ -465,7 +527,7 @@ describe('getAuthContext', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: false,
+            suspendedAt: SUSPENDED_AT,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.MEMBER,
@@ -498,9 +560,9 @@ describe('getAuthContext', () => {
                 joinedAt: new Date(),
                 userId,
                 orgId: MOCK_ORG.id,
-                isActive: true,
+                suspendedAt: null,
                 scimExternalId: null,
-            lastActiveAt: null,
+                lastActiveAt: null,
                 role: OrgRole.MEMBER,
             });
             prisma.apiKey.findUnique.mockResolvedValue({ ...MOCK_API_KEY, hash: 'apikey', createdById: userId });
@@ -523,9 +585,9 @@ describe('getAuthContext', () => {
                 joinedAt: new Date(),
                 userId,
                 orgId: MOCK_ORG.id,
-                isActive: true,
+                suspendedAt: null,
                 scimExternalId: null,
-            lastActiveAt: null,
+                lastActiveAt: null,
                 role: OrgRole.OWNER,
             });
             prisma.apiKey.findUnique.mockResolvedValue({ ...MOCK_API_KEY, hash: 'apikey', createdById: userId });
@@ -549,9 +611,9 @@ describe('getAuthContext', () => {
                 joinedAt: new Date(),
                 userId,
                 orgId: MOCK_ORG.id,
-                isActive: true,
+                suspendedAt: null,
                 scimExternalId: null,
-            lastActiveAt: null,
+                lastActiveAt: null,
                 role: OrgRole.MEMBER,
             });
             setMockSession(createMockSession({ user: { id: userId } }));
@@ -585,7 +647,7 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.MEMBER,
@@ -617,7 +679,7 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.MEMBER,
@@ -650,7 +712,7 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.OWNER,
@@ -683,7 +745,7 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.MEMBER,
@@ -721,7 +783,7 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.OWNER,
@@ -759,7 +821,7 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.MEMBER,
@@ -797,7 +859,7 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.OWNER,
@@ -835,7 +897,7 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.MEMBER,
@@ -866,7 +928,7 @@ describe('withAuth', () => {
         expect(result).toStrictEqual(notAuthenticated());
     });
 
-    test('should return a service error when the membership is SCIM-deactivated (isActive: false), even with a valid session', async () => {
+    test('should return a service error when the membership is suspended, even with a valid session', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
             ...MOCK_USER_WITH_ACCOUNTS,
@@ -879,7 +941,7 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: false,
+            suspendedAt: SUSPENDED_AT,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.OWNER,
@@ -892,7 +954,7 @@ describe('withAuth', () => {
         expect(result).toStrictEqual(notAuthenticated());
     });
 
-    test('should deny a SCIM-deactivated member authenticating via API key', async () => {
+    test('should deny a suspended member authenticating via API key', async () => {
         const userId = 'test-user-id';
         prisma.user.findUnique.mockResolvedValue({
             ...MOCK_USER_WITH_ACCOUNTS,
@@ -905,7 +967,7 @@ describe('withAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: false,
+            suspendedAt: SUSPENDED_AT,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.MEMBER,
@@ -938,7 +1000,7 @@ describe('withOptionalAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.MEMBER,
@@ -971,7 +1033,7 @@ describe('withOptionalAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.OWNER,
@@ -1004,7 +1066,7 @@ describe('withOptionalAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.MEMBER,
@@ -1042,7 +1104,7 @@ describe('withOptionalAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.OWNER,
@@ -1080,7 +1142,7 @@ describe('withOptionalAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.MEMBER,
@@ -1118,7 +1180,7 @@ describe('withOptionalAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.OWNER,
@@ -1156,7 +1218,7 @@ describe('withOptionalAuth', () => {
             joinedAt: new Date(),
             userId: userId,
             orgId: MOCK_ORG.id,
-            isActive: true,
+            suspendedAt: null,
             scimExternalId: null,
             lastActiveAt: null,
             role: OrgRole.MEMBER,

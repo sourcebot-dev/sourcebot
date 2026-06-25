@@ -14,6 +14,36 @@ export const getDefaultMemberRole = async (): Promise<OrgRole> =>
     (await hasEntitlement("org-management")) ? OrgRole.MEMBER : OrgRole.OWNER;
 
 /**
+ * Matches suspended memberships.
+ */
+export const suspendedMembershipWhere = (): Prisma.UserToOrgWhereInput => ({
+    suspendedAt: { not: null },
+});
+
+/**
+ * Matches unsuspended memberships, regardless of activity.
+ */
+export const unsuspendedMembershipWhere = (): Prisma.UserToOrgWhereInput => ({
+    suspendedAt: null,
+});
+
+/**
+ * Matches pending memberships: unsuspended and never seen.
+ */
+export const pendingMembershipWhere = (): Prisma.UserToOrgWhereInput => ({
+    ...unsuspendedMembershipWhere(),
+    lastActiveAt: null,
+});
+
+/**
+ * Matches active memberships: unsuspended and seen at least once.
+ */
+export const activeMembershipWhere = (): Prisma.UserToOrgWhereInput => ({
+    ...unsuspendedMembershipWhere(),
+    lastActiveAt: { not: null },
+});
+
+/**
  * Checks to see if the given organization has seat availability. Seat
  * availability is determined by the `seats` parameter in the offline license
  * key, if available.
@@ -21,12 +51,11 @@ export const getDefaultMemberRole = async (): Promise<OrgRole> =>
 export const orgHasAvailability = async (orgId: number, tx: Prisma.TransactionClient): Promise<boolean> => {
     const seatCap = getSeatCap();
 
-    // SCIM-deactivated members don't consume a seat, so they free up capacity
-    // for new provisions while their membership row is preserved.
+    // Pending and suspended members are preserved but don't consume seats.
     const activeUserCount = await tx.userToOrg.count({
         where: {
             orgId,
-            isActive: true,
+            ...activeMembershipWhere(),
         },
     });
 

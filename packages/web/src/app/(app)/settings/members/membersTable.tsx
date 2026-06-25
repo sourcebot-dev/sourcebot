@@ -45,7 +45,7 @@ export type Member = {
     avatarUrl?: string;
     role: OrgRole;
     joinedAt: Date;
-    isActive: boolean;
+    suspendedAt?: Date | null;
     scimManaged: boolean;
     lastActiveAt?: Date | null;
 };
@@ -199,12 +199,12 @@ const ColumnWidths = () => (
 /**
  * Derives a member's section. Mirrors the `billedUserCount` query so the table
  * and the bill stay in lockstep:
- *  - suspended: membership is deactivated (`isActive === false`)
- *  - pending:   active but never signed in to this org (`lastActiveAt == null`)
+ *  - suspended: membership is suspended (`suspendedAt != null`)
+ *  - pending:   unsuspended but never signed in to this org (`lastActiveAt == null`)
  *  - active:    active and has signed in at least once
  */
 const getMemberSection = (member: Member): MemberRow["section"] => {
-    if (!member.isActive) {
+    if (member.suspendedAt != null) {
         return "suspended";
     }
     if (member.lastActiveAt == null) {
@@ -349,7 +349,7 @@ export const MembersTable = ({
     }, [data, filter, searchQuery]);
 
     const activeOwnerCount = useMemo(() => {
-        return members.filter((member) => member.isActive && member.role === OrgRole.OWNER).length;
+        return members.filter((member) => member.suspendedAt == null && member.role === OrgRole.OWNER).length;
     }, [members]);
 
     const columns = useMemo(() => getColumns({

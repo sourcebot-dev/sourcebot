@@ -16,7 +16,7 @@ const scimUserLocation = (userId: string): string =>
 /**
  * Maps a Sourcebot membership + user into a SCIM 2.0 User resource. The SCIM
  * `id` is the stable `User.id`; `userName` and the primary email are the
- * user's email; `active` reflects the membership's `isActive` flag.
+ * user's email; `active` reflects whether the membership is unsuspended.
  */
 export const toScimUser = (membership: ScimMembership) => {
     const { user } = membership;
@@ -34,7 +34,7 @@ export const toScimUser = (membership: ScimMembership) => {
             familyName: familyName || undefined,
         } : undefined,
         emails: user.email ? [{ value: user.email, primary: true }] : [],
-        active: membership.isActive,
+        active: membership.suspendedAt == null,
         meta: {
             resourceType: "User",
             created: membership.joinedAt.toISOString(),

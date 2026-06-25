@@ -400,10 +400,9 @@ model UserToOrg {
 
   role OrgRole @default(MEMBER)
 
-  /// SCIM soft-deactivation flag. When false, the membership is suspended by
-  /// the IdP: the user is treated as a non-member for auth purposes (see
-  /// `getAuthContext`) but the row is preserved so the IdP can reactivate it.
-  isActive Boolean @default(true)
+  /// When set, the membership is suspended and the user is treated as a
+  /// non-member for auth purposes (see `getAuthContext`).
+  suspendedAt DateTime?
 
   /// The IdP-supplied `externalId` for this membership when provisioned via
   /// SCIM. Null for members that joined through invites or self-serve sign-up.

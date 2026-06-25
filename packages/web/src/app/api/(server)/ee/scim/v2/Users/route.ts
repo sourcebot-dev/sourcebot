@@ -1,5 +1,5 @@
 import { apiHandler } from '@/lib/apiHandler';
-import { ensureActiveMember, setMemberActive } from '@/features/membership/membership.service';
+import { ensureActiveMember, setMembershipSuspended } from '@/features/membership/membership.service';
 import { scimError, scimJson, toScimListResponse, toScimUser } from '@/ee/features/scim/mapper';
 import {
     coerceActive,
@@ -73,14 +73,14 @@ export const POST = apiHandler(async (request: NextRequest) =>
             where: { orgId_userId: { orgId: org.id, userId: user.id } },
         });
 
-        // Map the membership state to the SCIM response: an active member is a
-        // conflict, a deactivated member is reactivated (role preserved), and a
-        // brand-new member is created.
+        // Map the membership state to the SCIM response: an unsuspended member
+        // is a conflict, a suspended member is reactivated (role preserved), and
+        // a brand-new member is created.
         let httpStatus: number;
-        if (existing?.isActive) {
+        if (existing && existing.suspendedAt == null) {
             return scimError(409, 'User is already a member of this organization', 'uniqueness');
         } else if (existing) {
-            const result = await setMemberActive(org.id, user.id, true, {
+            const result = await setMembershipSuspended(org.id, user.id, false, {
                 actor: scimActor,
                 scimExternalId: payload.externalId,
             });
@@ -105,7 +105,7 @@ export const POST = apiHandler(async (request: NextRequest) =>
         // IdPs normally provision active and suspend later via PATCH; honor a rare
         // explicit `active: false` on provisioning.
         if (!desiredActive) {
-            const deactivated = await setMemberActive(org.id, user.id, false, { actor: scimActor });
+            const deactivated = await setMembershipSuspended(org.id, user.id, true, { actor: scimActor });
             if (isServiceError(deactivated)) {
                 return scimError(deactivated.statusCode, deactivated.message);
             }

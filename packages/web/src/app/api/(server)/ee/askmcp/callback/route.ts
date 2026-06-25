@@ -16,6 +16,7 @@ import { getMcpOAuthReturnToFromState } from '@/ee/features/chat/mcp/mcpOAuthRet
 import { captureEvent } from '@/lib/posthog';
 import { getMcpAuthMode, getMcpConnectorEntryPoint, getMcpConnectorFailureReason } from '@/ee/features/chat/mcp/analytics';
 import { getEnabledMcpOAuthScopeNames } from '@/ee/features/chat/mcp/oauthScopeUtils';
+import { unsuspendedMembershipWhere } from '@/features/membership/utils';
 
 const logger = createLogger('mcp-oauth-callback');
 const reconnectMessage = 'This connector authorization could not be completed. Please reconnect the connector.';
@@ -153,7 +154,7 @@ export const GET = apiHandler(async (request: NextRequest) => {
                 orgId: userServer.server.orgId,
                 userId: session.user.id,
             },
-            isActive: true,
+            ...unsuspendedMembershipWhere(),
         },
     });
 

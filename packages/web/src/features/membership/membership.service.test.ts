@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { ensureActiveMember, removeMember, setMemberRole, setMemberActive } from './membership.service';
+import { ensureActiveMember, removeMember, setMemberRole, setMembershipSuspended } from './membership.service';
 import { prisma, MOCK_USER_WITH_ACCOUNTS } from '@/__mocks__/prisma';
 import { OrgRole, type UserToOrg } from '@sourcebot/db';
 import { ErrorCode } from '@/lib/errorCodes';
@@ -17,21 +17,26 @@ vi.mock('@/prisma', async () => {
     return { ...actual };
 });
 vi.mock('server-only', () => ({ default: vi.fn() }));
-vi.mock('@/features/membership/utils', () => ({ orgHasAvailability: mocks.orgHasAvailability }));
+vi.mock('@/features/membership/utils', () => ({
+    orgHasAvailability: mocks.orgHasAvailability,
+    unsuspendedMembershipWhere: () => ({ suspendedAt: null }),
+}));
 vi.mock('@/features/billing/servicePing', () => ({ syncWithLighthouse: mocks.syncWithLighthouse }));
 vi.mock('@/ee/features/audit/audit', () => ({ createAudit: mocks.createAudit }));
 
 const ORG_ID = 1;
 const USER_ID = 'user-1';
 const ACTOR = { id: 'scim', type: 'scim_token' } as const;
+const SUSPENDED_AT = new Date('2026-01-01T00:00:00.000Z');
 
 const makeMembership = (overrides: Partial<UserToOrg> = {}): UserToOrg => ({
     orgId: ORG_ID,
     userId: USER_ID,
     role: OrgRole.MEMBER,
     joinedAt: new Date(),
-    isActive: true,
+    suspendedAt: null,
     scimExternalId: null,
+    lastActiveAt: null,
     ...overrides,
 });
 
@@ -59,7 +64,7 @@ describe('ensureActiveMember', () => {
         expect(result).toEqual(created);
         expect(prisma.userToOrg.create).toHaveBeenCalledWith(
             expect.objectContaining({
-                data: expect.objectContaining({ userId: USER_ID, orgId: ORG_ID, role: OrgRole.MEMBER, isActive: true }),
+                data: expect.objectContaining({ userId: USER_ID, orgId: ORG_ID, role: OrgRole.MEMBER }),
             }),
         );
         expect(mocks.syncWithLighthouse).toHaveBeenCalledWith(ORG_ID);
@@ -89,8 +94,8 @@ describe('ensureActiveMember', () => {
         expect(prisma.invite.deleteMany).toHaveBeenCalledWith({ where: { recipientEmail: mockUser.email, orgId: ORG_ID } });
     });
 
-    test('is an idempotent no-op when an ACTIVE membership already exists', async () => {
-        const existing = makeMembership({ isActive: true });
+    test('is an idempotent no-op when an unsuspended membership already exists', async () => {
+        const existing = makeMembership({ suspendedAt: null });
         prisma.user.findUnique.mockResolvedValue(mockUser);
         prisma.userToOrg.findUnique.mockResolvedValue(existing);
 
@@ -101,9 +106,9 @@ describe('ensureActiveMember', () => {
         expect(mocks.createAudit).not.toHaveBeenCalled();
     });
 
-    test('reactivates an INACTIVE membership (delegates to setMemberActive)', async () => {
-        const existing = makeMembership({ isActive: false });
-        const reactivated = makeMembership({ isActive: true });
+    test('reactivates a suspended membership', async () => {
+        const existing = makeMembership({ suspendedAt: SUSPENDED_AT });
+        const reactivated = makeMembership({ suspendedAt: null });
         prisma.user.findUnique.mockResolvedValue(mockUser);
         prisma.userToOrg.findUnique.mockResolvedValue(existing);
         prisma.userToOrg.update.mockResolvedValue(reactivated);
@@ -115,7 +120,7 @@ describe('ensureActiveMember', () => {
         expect(result).toEqual(reactivated);
         expect(prisma.userToOrg.create).not.toHaveBeenCalled();
         expect(prisma.userToOrg.update).toHaveBeenCalledWith(
-            expect.objectContaining({ data: expect.objectContaining({ isActive: true }) }),
+            expect.objectContaining({ data: expect.objectContaining({ suspendedAt: null }) }),
         );
         expect(mocks.createAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'org.member_reactivated' }));
     });
@@ -166,7 +171,7 @@ describe('removeMember', () => {
     });
 
     test('blocks removing the last active owner', async () => {
-        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, isActive: true }));
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null }));
         prisma.userToOrg.count.mockResolvedValue(1);
 
         const result = await removeMember(ORG_ID, USER_ID, { actor: ACTOR });
@@ -177,7 +182,7 @@ describe('removeMember', () => {
     });
 
     test('allows removing an owner when others remain', async () => {
-        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, isActive: true }));
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null }));
         prisma.userToOrg.count.mockResolvedValue(2);
 
         const result = await removeMember(ORG_ID, USER_ID, { actor: ACTOR });
@@ -210,7 +215,7 @@ describe('setMemberRole', () => {
     });
 
     test('demotes an owner to member when other owners remain', async () => {
-        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, isActive: true }));
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null }));
         prisma.userToOrg.count.mockResolvedValue(2);
 
         const result = await setMemberRole(ORG_ID, USER_ID, OrgRole.MEMBER, { actor: ACTOR });
@@ -220,7 +225,7 @@ describe('setMemberRole', () => {
     });
 
     test('blocks demoting the last active owner', async () => {
-        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, isActive: true }));
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null }));
         prisma.userToOrg.count.mockResolvedValue(1);
 
         const result = await setMemberRole(ORG_ID, USER_ID, OrgRole.MEMBER, { actor: ACTOR });
@@ -250,30 +255,30 @@ describe('setMemberRole', () => {
     });
 });
 
-describe('setMemberActive', () => {
-    describe('deactivate', () => {
-        test('deactivates an active member and revokes access', async () => {
-            const deactivated = makeMembership({ isActive: false });
-            prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ isActive: true }));
-            prisma.userToOrg.update.mockResolvedValue(deactivated);
+describe('setMembershipSuspended', () => {
+    describe('suspend', () => {
+        test('suspends an active member and revokes access', async () => {
+            const suspended = makeMembership({ suspendedAt: SUSPENDED_AT });
+            prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ suspendedAt: null }));
+            prisma.userToOrg.update.mockResolvedValue(suspended);
 
-            const result = await setMemberActive(ORG_ID, USER_ID, false, { actor: ACTOR });
+            const result = await setMembershipSuspended(ORG_ID, USER_ID, true, { actor: ACTOR });
 
-            expect(result).toEqual(deactivated);
+            expect(result).toEqual(suspended);
             expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: USER_ID }, data: { sessionVersion: { increment: 1 } } });
             expect(prisma.apiKey.deleteMany).toHaveBeenCalledWith({ where: { createdById: USER_ID, orgId: ORG_ID } });
             expect(prisma.oAuthToken.deleteMany).toHaveBeenCalled();
             expect(prisma.userToOrg.update).toHaveBeenCalledWith(
-                expect.objectContaining({ data: { isActive: false } }),
+                expect.objectContaining({ data: { suspendedAt: expect.any(Date) } }),
             );
             expect(mocks.createAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'org.member_deactivated' }));
         });
 
-        test('is a no-op when already inactive', async () => {
-            const existing = makeMembership({ isActive: false });
+        test('is a no-op when already suspended', async () => {
+            const existing = makeMembership({ suspendedAt: SUSPENDED_AT });
             prisma.userToOrg.findUnique.mockResolvedValue(existing);
 
-            const result = await setMemberActive(ORG_ID, USER_ID, false, { actor: ACTOR });
+            const result = await setMembershipSuspended(ORG_ID, USER_ID, true, { actor: ACTOR });
 
             expect(result).toEqual(existing);
             expect(prisma.userToOrg.update).not.toHaveBeenCalled();
@@ -284,7 +289,7 @@ describe('setMemberActive', () => {
         test('errors when the membership does not exist', async () => {
             prisma.userToOrg.findUnique.mockResolvedValue(null);
 
-            const result = await setMemberActive(ORG_ID, USER_ID, false, { actor: ACTOR });
+            const result = await setMembershipSuspended(ORG_ID, USER_ID, true, { actor: ACTOR });
 
             expect(isServiceError(result)).toBe(true);
             expect(prisma.userToOrg.update).not.toHaveBeenCalled();
@@ -292,26 +297,26 @@ describe('setMemberActive', () => {
     });
 
     describe('reactivate', () => {
-        test('reactivates an inactive member when a seat is available', async () => {
-            const reactivated = makeMembership({ isActive: true, scimExternalId: 'ext-1' });
-            prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ isActive: false }));
+        test('reactivates a suspended member when a seat is available', async () => {
+            const reactivated = makeMembership({ suspendedAt: null, scimExternalId: 'ext-1' });
+            prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ suspendedAt: SUSPENDED_AT }));
             prisma.userToOrg.update.mockResolvedValue(reactivated);
             mocks.orgHasAvailability.mockResolvedValue(true);
 
-            const result = await setMemberActive(ORG_ID, USER_ID, true, { actor: ACTOR, scimExternalId: 'ext-1' });
+            const result = await setMembershipSuspended(ORG_ID, USER_ID, false, { actor: ACTOR, scimExternalId: 'ext-1' });
 
             expect(result).toEqual(reactivated);
             expect(prisma.userToOrg.update).toHaveBeenCalledWith(
-                expect.objectContaining({ data: expect.objectContaining({ isActive: true, scimExternalId: 'ext-1' }) }),
+                expect.objectContaining({ data: expect.objectContaining({ suspendedAt: null, scimExternalId: 'ext-1' }) }),
             );
             expect(mocks.createAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'org.member_reactivated' }));
         });
 
         test('errors when the org is at seat capacity', async () => {
-            prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ isActive: false }));
+            prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ suspendedAt: SUSPENDED_AT }));
             mocks.orgHasAvailability.mockResolvedValue(false);
 
-            const result = await setMemberActive(ORG_ID, USER_ID, true, { actor: ACTOR });
+            const result = await setMembershipSuspended(ORG_ID, USER_ID, false, { actor: ACTOR });
 
             expect(isServiceError(result)).toBe(true);
             expect((result as ServiceError).errorCode).toBe(ErrorCode.ORG_SEAT_COUNT_REACHED);
@@ -319,10 +324,10 @@ describe('setMemberActive', () => {
         });
 
         test('is a no-op when already active (no audit, no seat check)', async () => {
-            const existing = makeMembership({ isActive: true, scimExternalId: 'ext-1' });
+            const existing = makeMembership({ suspendedAt: null, scimExternalId: 'ext-1' });
             prisma.userToOrg.findUnique.mockResolvedValue(existing);
 
-            const result = await setMemberActive(ORG_ID, USER_ID, true, { actor: ACTOR, scimExternalId: 'ext-1' });
+            const result = await setMembershipSuspended(ORG_ID, USER_ID, false, { actor: ACTOR, scimExternalId: 'ext-1' });
 
             expect(result).toEqual(existing);
             expect(prisma.userToOrg.update).not.toHaveBeenCalled();
@@ -331,11 +336,11 @@ describe('setMemberActive', () => {
         });
 
         test('refreshes externalId when already active and it changed', async () => {
-            const refreshed = makeMembership({ isActive: true, scimExternalId: 'new' });
-            prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ isActive: true, scimExternalId: 'old' }));
+            const refreshed = makeMembership({ suspendedAt: null, scimExternalId: 'new' });
+            prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ suspendedAt: null, scimExternalId: 'old' }));
             prisma.userToOrg.update.mockResolvedValue(refreshed);
 
-            const result = await setMemberActive(ORG_ID, USER_ID, true, { actor: ACTOR, scimExternalId: 'new' });
+            const result = await setMembershipSuspended(ORG_ID, USER_ID, false, { actor: ACTOR, scimExternalId: 'new' });
 
             expect(result).toEqual(refreshed);
             expect(prisma.userToOrg.update).toHaveBeenCalledWith(

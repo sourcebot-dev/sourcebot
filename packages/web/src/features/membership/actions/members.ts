@@ -1,7 +1,7 @@
 'use server';
 
 import { membershipManagedByIdpError } from "@/features/membership/errors";
-import { removeMember, setMemberActive } from "@/features/membership/membership.service";
+import { removeMember, setMembershipSuspended } from "@/features/membership/membership.service";
 import { isScimEnabled } from "@/features/scim/utils";
 import { ServiceError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
@@ -36,7 +36,7 @@ export const suspendMember = async (memberId: string): Promise<{ success: boolea
                 return membershipManagedByIdpError();
             }
 
-            const result = await setMemberActive(org.id, memberId, false, {
+            const result = await setMembershipSuspended(org.id, memberId, true, {
                 actor: { id: user.id, type: "user" },
             });
 
@@ -55,7 +55,7 @@ export const reactivateMember = async (memberId: string): Promise<{ success: boo
                 return membershipManagedByIdpError();
             }
 
-            const result = await setMemberActive(org.id, memberId, true, {
+            const result = await setMembershipSuspended(org.id, memberId, false, {
                 actor: { id: user.id, type: "user" },
             });
 
@@ -107,7 +107,7 @@ export const getOrgMembers = async () => sew(() =>
                 avatarUrl: member.user.image ?? undefined,
                 role: member.role,
                 joinedAt: member.joinedAt,
-                isActive: member.isActive,
+                suspendedAt: member.suspendedAt,
                 scimManaged: !!member.scimExternalId,
                 lastActiveAt: member.lastActiveAt,
             }));

@@ -2,7 +2,7 @@
 ALTER TABLE "Org" ADD COLUMN     "isScimEnabled" BOOLEAN NOT NULL DEFAULT false;
 
 -- AlterTable
-ALTER TABLE "UserToOrg" ADD COLUMN     "isActive" BOOLEAN NOT NULL DEFAULT true,
+ALTER TABLE "UserToOrg" ADD COLUMN     "suspendedAt" TIMESTAMP(3),
 ADD COLUMN     "scimExternalId" TEXT;
 
 -- CreateTable

@@ -3,7 +3,7 @@ import 'server-only';
 import { createAudit } from "@/ee/features/audit/audit";
 import { type AuditActor } from "@/ee/features/audit/types";
 import { syncWithLighthouse } from "@/features/billing/servicePing";
-import { orgHasAvailability } from "@/features/membership/utils";
+import { activeMembershipWhere, orgHasAvailability } from "@/features/membership/utils";
 import { notFound, type ServiceError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { __unsafePrisma as prisma } from "@/prisma";
@@ -17,8 +17,8 @@ export interface EnsureActiveMemberOptions {
 }
 
 /**
- * Ensures the user has an active membership. Active: returned unchanged.
- * Inactive: reactivated (re-checks the seat cap). Otherwise: created.
+ * Ensures the user has an unsuspended membership. Unsuspended: returned
+ * unchanged. Suspended: reactivated (re-checks the seat cap). Otherwise: created.
  * `role` only applies on create. Enforces the seat cap and clears pending
  * invites / account requests for the user.
  */
@@ -37,13 +37,13 @@ export const ensureActiveMember = async (
         where: { orgId_userId: { orgId, userId } },
     });
 
-    if (existing && existing.isActive) {
+    if (existing && existing.suspendedAt == null) {
         return existing;
     }
-    if (existing && !existing.isActive) {
-        return setMemberActive(orgId, userId, true, {
+    if (existing && existing.suspendedAt != null) {
+        return setMembershipSuspended(orgId, userId, false, {
             actor,
-            scimExternalId
+            scimExternalId,
         });
     }
 
@@ -57,7 +57,6 @@ export const ensureActiveMember = async (
                 userId,
                 orgId,
                 role,
-                isActive: true,
                 ...(scimExternalId ? { scimExternalId } : {}),
             },
         });
@@ -70,7 +69,7 @@ export const ensureActiveMember = async (
         });
 
         return created;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
     if (isServiceError(membership)) {
         return membership;
@@ -112,7 +111,7 @@ export const removeMember = async (
             return notFound("Member not found in this organization");
         }
 
-        if (target.role === OrgRole.OWNER && target.isActive) {
+        if (target.role === OrgRole.OWNER && target.suspendedAt == null) {
             if ((await countActiveOwners(tx, orgId)) <= 1) {
                 return lastOwnerError(reason);
             }
@@ -125,7 +124,7 @@ export const removeMember = async (
         });
 
         return null;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
     if (!isServiceError(result)) {
         await syncWithLighthouse(orgId).catch(() => { /* best effort */ });
@@ -173,7 +172,7 @@ export const setMemberRole = async (
         }
 
         const isDemotionFromOwner = target.role === OrgRole.OWNER && role !== OrgRole.OWNER;
-        if (isDemotionFromOwner && target.isActive) {
+        if (isDemotionFromOwner && target.suspendedAt == null) {
             if ((await countActiveOwners(tx, orgId)) <= 1) {
                 return lastOwnerDemoteError();
             }
@@ -186,7 +185,7 @@ export const setMemberRole = async (
         didChange = true;
 
         return null;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
     if (!isServiceError(result) && didChange) {
         await createAudit({
@@ -200,26 +199,25 @@ export const setMemberRole = async (
     return result;
 };
 
-export interface SetMemberActiveOptions {
+export interface SetMembershipSuspendedOptions {
     actor: AuditActor;
     scimExternalId?: string;
 }
 
 /**
- * Suspends (`active: false`) or restores (`active: true`) a membership without
- * deleting it. Deactivation bumps `sessionVersion` + revokes tokens; reactivation
- * re-checks the seat cap. A no-op when already in the requested state.
+ * Suspends or restores a membership without deleting it. Suspension bumps
+ * `sessionVersion` + revokes tokens; reactivation re-checks the seat cap. A
+ * no-op when already in the requested state.
  */
-export const setMemberActive = async (
+export const setMembershipSuspended = async (
     orgId: number,
     userId: string,
-    active: boolean,
-    options: SetMemberActiveOptions,
+    suspended: boolean,
+    options: SetMembershipSuspendedOptions,
 ): Promise<ServiceError | UserToOrg> => {
     const { actor, scimExternalId } = options;
 
-    // Case: deactivating a member
-    if (!active) {
+    if (suspended) {
         let didChange = false;
 
         const result = await prisma.$transaction(async (tx) => {
@@ -229,7 +227,7 @@ export const setMemberActive = async (
             if (!target) {
                 return notFound("Member not found in this organization");
             }
-            if (!target.isActive) {
+            if (target.suspendedAt != null) {
                 return target;
             }
 
@@ -237,11 +235,11 @@ export const setMemberActive = async (
 
             target = await tx.userToOrg.update({
                 where: { orgId_userId: { orgId, userId } },
-                data: { isActive: false },
+                data: { suspendedAt: new Date() },
             });
             didChange = true;
             return target;
-        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
         if (!isServiceError(result) && didChange) {
             await syncWithLighthouse(orgId).catch(() => { /* best effort */ });
@@ -255,7 +253,6 @@ export const setMemberActive = async (
 
         return result;
 
-        // Case: reactivating a member
     } else {
         let didChange = false;
 
@@ -267,7 +264,7 @@ export const setMemberActive = async (
                 return notFound("Member not found in this organization");
             }
 
-            if (target.isActive) {
+            if (target.suspendedAt == null) {
                 if (scimExternalId && target.scimExternalId !== scimExternalId) {
                     target = await tx.userToOrg.update({
                         where: { orgId_userId: { orgId, userId } },
@@ -284,13 +281,13 @@ export const setMemberActive = async (
             target = await tx.userToOrg.update({
                 where: { orgId_userId: { orgId, userId } },
                 data: {
-                    isActive: true,
+                    suspendedAt: null,
                     ...(scimExternalId ? { scimExternalId } : {}),
                 },
             });
             didChange = true;
             return target;
-        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 
         if (!isServiceError(result) && didChange) {
             await syncWithLighthouse(orgId).catch(() => { /* best effort */ });
@@ -308,7 +305,11 @@ export const setMemberActive = async (
 
 const countActiveOwners = (tx: Prisma.TransactionClient, orgId: number): Promise<number> =>
     tx.userToOrg.count({
-        where: { orgId, role: OrgRole.OWNER, isActive: true },
+        where: {
+            orgId,
+            ...activeMembershipWhere(),
+            role: OrgRole.OWNER,
+        },
     });
 
 const revokeAllUserAuthCredentials = async (

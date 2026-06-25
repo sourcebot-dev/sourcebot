@@ -23,6 +23,7 @@ import { GitHubStarToast } from "./components/githubStarToast";
 import { getLinkedAccounts } from "@/ee/features/sso/actions";
 import { BannerSlot } from "./components/banners/bannerSlot";
 import { BannerHeightObserver } from "./components/banners/bannerHeightObserver";
+import { unsuspendedMembershipWhere } from "@/features/membership/utils";
 import { getPermissionSyncStatus } from "../api/(server)/ee/permissionSyncStatus/api";
 import { OrgRole } from "@sourcebot/db";
 import { ServiceErrorException } from "@/lib/serviceError";
@@ -67,7 +68,7 @@ export default async function Layout(props: LayoutProps) {
                     orgId: org.id,
                     userId: session.user.id,
                 },
-                isActive: true,
+                ...unsuspendedMembershipWhere(),
             },
             include: {
                 user: true
