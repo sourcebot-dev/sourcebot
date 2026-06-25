@@ -91,13 +91,14 @@ describe("sortAgentSkillListItems", () => {
 });
 
 describe("toSharedAgentSkillCatalogItem", () => {
-    test("does not expose instructions or author identity", () => {
+    test("includes instructions and creator email for the detail view", () => {
         const item = toSharedAgentSkillCatalogItem({
             id: "skill-1",
             visibility: "SHARED",
             slug: "review",
             name: "Review",
             description: "Review risky changes.",
+            instructions: "Review the diff carefully.",
             enabled: true,
             featured: false,
             autoEnrolled: true,
@@ -105,6 +106,7 @@ describe("toSharedAgentSkillCatalogItem", () => {
             createdAt: new Date("2026-01-01T00:00:00.000Z"),
             updatedAt: new Date("2026-01-02T00:00:00.000Z"),
             adoptions: [{ id: "adoption-1", removedAt: null }],
+            createdBy: { email: "author@example.com" },
         }, "user-1");
 
         expect(item).toEqual({
@@ -113,6 +115,8 @@ describe("toSharedAgentSkillCatalogItem", () => {
             slug: "review",
             name: "Review",
             description: "Review risky changes.",
+            instructions: "Review the diff carefully.",
+            createdByEmail: "author@example.com",
             enabled: true,
             featured: false,
             autoEnrolled: true,
@@ -123,9 +127,30 @@ describe("toSharedAgentSkillCatalogItem", () => {
             createdAt: "2026-01-01T00:00:00.000Z",
             updatedAt: "2026-01-02T00:00:00.000Z",
         });
-        expect(item).not.toHaveProperty("instructions");
         expect(item).not.toHaveProperty("author");
         expect(item).not.toHaveProperty("createdById");
+    });
+
+    test("falls back to a null email when the creator has none", () => {
+        const item = toSharedAgentSkillCatalogItem({
+            id: "skill-2",
+            visibility: "SHARED",
+            slug: "deploy",
+            name: "Deploy",
+            description: "",
+            instructions: "Ship it.",
+            enabled: true,
+            featured: false,
+            autoEnrolled: false,
+            createdById: "user-2",
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+            adoptions: [],
+            createdBy: null,
+        }, "user-1");
+
+        expect(item.createdByEmail).toBeNull();
+        expect(item.isCreatedByUser).toBe(false);
     });
 });
 

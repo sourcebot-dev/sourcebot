@@ -49,6 +49,13 @@ export const sharedAgentSkillBaseItemSchema = agentSkillListItemSchema.omit({
 });
 
 export const sharedAgentSkillCatalogItemSchema = sharedAgentSkillBaseItemSchema.extend({
+    // Surfaced so the standalone Skills page can render a read-only preview and
+    // populate the inline editor without an extra per-selection fetch. Shared
+    // skills are org-wide visible, so exposing instructions here is not a leak.
+    instructions: z.string(),
+    // Audit metadata for the detail pane's "Added by" field. Null when the
+    // creating user has no email on record.
+    createdByEmail: z.string().nullable(),
     isAdopted: z.boolean(),
     isRemoved: z.boolean(),
     isVisibleToUser: z.boolean(),
@@ -195,8 +202,9 @@ export const toSharedAgentSkillManagementItem = (
 ): SharedAgentSkillManagementItem => toSharedAgentSkillBaseItem(skill);
 
 export const toSharedAgentSkillCatalogItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "enabled" | "featured" | "autoEnrolled" | "createdById" | "createdAt" | "updatedAt"> & {
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "instructions" | "enabled" | "featured" | "autoEnrolled" | "createdById" | "createdAt" | "updatedAt"> & {
         adoptions: { id: string; removedAt: Date | null }[];
+        createdBy: { email: string | null } | null;
     },
     userId: string,
 ): SharedAgentSkillCatalogItem => {
@@ -204,6 +212,8 @@ export const toSharedAgentSkillCatalogItem = (
     const isRemoved = skill.adoptions.some((adoption) => adoption.removedAt !== null);
     return {
         ...toSharedAgentSkillBaseItem(skill),
+        instructions: skill.instructions,
+        createdByEmail: skill.createdBy?.email ?? null,
         isAdopted,
         isRemoved,
         isVisibleToUser: (skill.autoEnrolled || isAdopted) && !isRemoved,
