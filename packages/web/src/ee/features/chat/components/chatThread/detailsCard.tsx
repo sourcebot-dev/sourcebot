@@ -9,7 +9,7 @@ import useCaptureEvent from '@/hooks/useCaptureEvent';
 import { cn, getShortenedNumberDisplayString } from '@/lib/utils';
 import isEqual from "fast-deep-equal/react";
 import { useStickToBottom } from 'use-stick-to-bottom';
-import { Brain, ChevronDown, ChevronRight, Clock, Gauge, InfoIcon, Loader2, ScanSearchIcon, ShieldQuestion, Wrench, Zap } from 'lucide-react';
+import { Brain, ChevronDown, ChevronRight, Clock, InfoIcon, Loader2, ScanSearchIcon, ShieldQuestion, Wrench, Zap } from 'lucide-react';
 import { memo, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { usePrevious } from '@uidotdev/usehooks';
 import { SBChatMessageMetadata, SBChatMessagePart, StepTokenUsageEntry } from '@/features/chat/types';
@@ -210,21 +210,12 @@ const DetailsCardComponent = ({
                                         {contextUsagePercent !== undefined && currentContextTokens !== undefined && contextWindow !== undefined && (
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
-                                                    <div className="flex items-center gap-1.5 text-xs cursor-help">
-                                                        <Gauge className="w-3 h-3 flex-shrink-0" />
-                                                        <div className="h-1.5 w-12 rounded-full bg-muted overflow-hidden">
-                                                            <div
-                                                                className={cn("h-full rounded-full", {
-                                                                    "bg-destructive": contextUsagePercent >= 90,
-                                                                    "bg-yellow-500": contextUsagePercent >= 75 && contextUsagePercent < 90,
-                                                                    "bg-foreground": contextUsagePercent < 75,
-                                                                })}
-                                                                style={{ width: `${contextUsagePercent}%` }}
-                                                            />
-                                                        </div>
-                                                        <span>
-                                                            {getShortenedNumberDisplayString(currentContextTokens, 0)} / {getShortenedNumberDisplayString(contextWindow, 0)} ({contextUsagePercent}%)
-                                                        </span>
+                                                    <div className="cursor-help">
+                                                        <ContextWindowGauge
+                                                            used={currentContextTokens}
+                                                            total={contextWindow}
+                                                            percent={contextUsagePercent}
+                                                        />
                                                     </div>
                                                 </TooltipTrigger>
                                                 <TooltipContent side="bottom">
@@ -404,6 +395,74 @@ const StepTokenUsage = ({ usage, label = 'step' }: { usage: StepTokenUsageEntry,
                     </div>
                 </TooltipContent>
             </Tooltip>
+        </div>
+    );
+}
+
+
+// Usage thresholds for the context-window gauge. Below `YELLOW` the window has
+// plenty of headroom (green); past `RED` it's nearly full (red).
+const CONTEXT_USAGE_YELLOW_PERCENT = 70;
+const CONTEXT_USAGE_RED_PERCENT = 90;
+
+const getContextUsageColorClass = (percent: number): string => {
+    if (percent >= CONTEXT_USAGE_RED_PERCENT) {
+        return "text-red-500";
+    }
+    if (percent >= CONTEXT_USAGE_YELLOW_PERCENT) {
+        return "text-yellow-500";
+    }
+    return "text-green-500";
+};
+
+// A circular ring showing how much of the model's context window the most
+// recent step occupies, with the percentage inside the ring and the
+// "<used> / <total>" token counts beside it. The progress arc and percentage
+// share a single usage-based color (green/yellow/red) over a neutral track.
+const ContextWindowGauge = ({ used, total, percent }: { used: number, total: number, percent: number }) => {
+    const size = 34;
+    const strokeWidth = 4;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const dashOffset = circumference * (1 - Math.min(100, percent) / 100);
+    const colorClass = getContextUsageColorClass(percent);
+
+    return (
+        <div className="flex items-center gap-2">
+            <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+                <svg width={size} height={size} className="-rotate-90">
+                    {/* Neutral track. */}
+                    <circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={radius}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={strokeWidth}
+                        className="text-muted-foreground/25"
+                    />
+                    {/* Progress arc. */}
+                    <circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={radius}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={strokeWidth}
+                        strokeLinecap="round"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={dashOffset}
+                        className={cn("transition-all duration-300", colorClass)}
+                    />
+                </svg>
+                <span className={cn("absolute inset-0 flex items-center justify-center text-[9px] font-semibold", colorClass)}>
+                    {percent}%
+                </span>
+            </div>
+            <span className="text-sm whitespace-nowrap">
+                <span className="font-semibold text-foreground">{getShortenedNumberDisplayString(used, 0).toUpperCase()}</span>
+                <span className="text-muted-foreground"> / {getShortenedNumberDisplayString(total, 0).toUpperCase()}</span>
+            </span>
         </div>
     );
 }
