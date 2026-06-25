@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added per-step token cost tracking and estimated tool call token usage to Ask Sourcebot chat history. [#1353](https://github.com/sourcebot-dev/sourcebot/pull/1353)
+- [EE] Added mermaid diagram rendering to Ask Sourcebot answers, with pan/zoom, copy/export, in-thread deep links, and an interleaved right-panel view. [#1369](https://github.com/sourcebot-dev/sourcebot/pull/1369)
 
 ### Fixed
 - Send anonymous server-side PostHog events as personless so unauthenticated requests don't inflate person counts. [#1367](https://github.com/sourcebot-dev/sourcebot/pull/1367)
