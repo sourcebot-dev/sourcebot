@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- [EE] Improved Ask Sourcebot prompt caching by splitting static and dynamic prompt sections and advancing cache breakpoints after every agent step instead of only after each message. [#1366](https://github.com/sourcebot-dev/sourcebot/pull/1366)
+
+### Added
+- Added per-step token cost tracking and estimated tool call token usage to Ask Sourcebot chat history. [#1353](https://github.com/sourcebot-dev/sourcebot/pull/1353)
+
+### Fixed
+- Send anonymous server-side PostHog events as personless so unauthenticated requests don't inflate person counts. [#1367](https://github.com/sourcebot-dev/sourcebot/pull/1367)
+
+## [5.0.4] - 2026-06-18
+
+### Changed
+- Decoupled offline-license anonymous access from the seat cap. [#1349](https://github.com/sourcebot-dev/sourcebot/pull/1349)
+
+### Added
+- Recorded service ping history locally and added a "Download usage report" button to the offline license settings page, so offline deployments can export their usage and send it to us. [#1348](https://github.com/sourcebot-dev/sourcebot/pull/1348)
+
 ### Fixed
 - Upgraded `@grpc/grpc-js` to `^1.14.4`. [#1315](https://github.com/sourcebot-dev/sourcebot/pull/1315)
 - Upgraded `vite` to `^8.0.16`. [#1313](https://github.com/sourcebot-dev/sourcebot/pull/1313)

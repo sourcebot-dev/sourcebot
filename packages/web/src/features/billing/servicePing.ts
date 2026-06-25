@@ -2,7 +2,13 @@ import { existsSync } from "fs";
 import { SINGLE_TENANT_ORG_ID } from "@/lib/constants";
 import { isServiceError } from "@/lib/utils";
 import { __unsafePrisma } from "@/prisma";
-import { createLogger, decryptActivationCode, env, SOURCEBOT_VERSION } from "@sourcebot/shared";
+import {
+    createLogger,
+    decryptActivationCode,
+    env,
+    SOURCEBOT_VERSION,
+    isValidOfflineLicenseActive
+} from "@sourcebot/shared";
 import { client } from "./client";
 import { ServicePingRequest } from "./types";
 import { ServiceErrorException } from "@/lib/serviceError";
@@ -82,6 +88,13 @@ export const syncWithLighthouse = async (orgId: number) => {
         isLanguageModelConfigured,
         ...(activationCode && { activationCode }),
     };
+
+    await recordServicePingInDB(orgId, payload);
+
+    if (isValidOfflineLicenseActive()) {
+        logger.debug('Skipping service ping: active offline license detected.');
+        return;
+    }
 
     const response = await client.ping(payload);
     if (isServiceError(response)) {
@@ -171,4 +184,22 @@ const inferDeploymentType = (): string => {
         return 'docker';
     }
     return 'other';
+};
+
+const recordServicePingInDB = async (orgId: number, payload: ServicePingRequest) => {
+    // Strip the activation code before persisting.
+    const { activationCode: _activationCode, ...sanitizedPayload } = payload;
+
+    try {
+        await __unsafePrisma.servicePingEvent.create({
+            data: {
+                orgId,
+                payload: sanitizedPayload,
+            },
+        });
+    } catch (error) {
+        // Recording the ping is best-effort: a failure here must not prevent
+        // the actual ping from being sent to Lighthouse.
+        logger.error(`Failed to record service ping in database:\n ${error}`);
+    }
 };

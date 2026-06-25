@@ -12,6 +12,8 @@ const offlineLicensePrefix = "sourcebot_ee_";
 const offlineLicensePayloadSchema = z.object({
     id: z.string(),
     seats: z.number().optional(),
+    // Whether anonymous (unauthenticated) access is permitted.
+    anonymousAccess: z.boolean().optional(),
     // ISO 8601 date string
     expiryDate: z.string().datetime(),
     sig: z.string(),
@@ -50,7 +52,13 @@ const decodeOfflineLicenseKeyPayload = (payload: string): getValidOfflineLicense
         const payloadJson = JSON.parse(decodedPayload);
         const licenseData = offlineLicensePayloadSchema.parse(payloadJson);
 
+        // Keys are listed alphabetically to match the canonical JSON the
+        // signer produces (Python `json.dumps(..., sort_keys=True)`).
+        // `JSON.stringify` drops `undefined` values, so omitted optional
+        // fields (e.g. a legacy key without `anonymousAccess`) verify exactly
+        // as they were originally signed.
         const dataToVerify = JSON.stringify({
+            anonymousAccess: licenseData.anonymousAccess,
             expiryDate: licenseData.expiryDate,
             id: licenseData.id,
             seats: licenseData.seats
@@ -120,17 +128,25 @@ const getValidOnlineLicense = (_license: License | null): License | null => {
     return null;
 }
 
+export const isValidOfflineLicenseActive = (): boolean => {
+    return getValidOfflineLicense() !== null;
+}
+
+export const isValidOnlineLicenseActive = (_license: License | null): boolean => {
+    return getValidOnlineLicense(_license) !== null;
+}
+
 export const isValidLicenseActive = (_license: License | null): boolean => {
     return (
-        getValidOfflineLicense() !== null ||
-        getValidOnlineLicense(_license) !== null
+        isValidOfflineLicenseActive() ||
+        isValidOnlineLicenseActive(_license)
     );
 }
 
 export const isAnonymousAccessAvailable = (_license: License | null): boolean => {
     const offlineKey = getValidOfflineLicense();
     if (offlineKey) {
-        return offlineKey.seats === undefined;
+        return offlineKey.anonymousAccess === true;
     }
 
     const onlineLicense = getValidOnlineLicense(_license);
@@ -163,6 +179,7 @@ export const hasEntitlement = (entitlement: Entitlement, _license: License | nul
 export type OfflineLicenseMetadata = {
     id: string;
     seats?: number;
+    anonymousAccess?: boolean;
     expiryDate: string;
 }
 
@@ -178,6 +195,7 @@ export const getOfflineLicenseMetadata = (): OfflineLicenseMetadata | null => {
     return {
         id: license.id,
         seats: license.seats,
+        anonymousAccess: license.anonymousAccess,
         expiryDate: license.expiryDate,
     };
 }

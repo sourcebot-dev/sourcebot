@@ -40,11 +40,12 @@ const encodeOfflineKey = (payload: object): string => {
 const futureDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString();
 const pastDate = new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString();
 
-const validOfflineKey = (overrides: { seats?: number; expiryDate?: string } = {}) =>
+const validOfflineKey = (overrides: { seats?: number; anonymousAccess?: boolean; expiryDate?: string } = {}) =>
     encodeOfflineKey({
         id: 'test-customer',
         expiryDate: overrides.expiryDate ?? futureDate,
         ...(overrides.seats !== undefined ? { seats: overrides.seats } : {}),
+        ...(overrides.anonymousAccess !== undefined ? { anonymousAccess: overrides.anonymousAccess } : {}),
         sig: 'fake-sig',
     });
 
@@ -112,23 +113,35 @@ describe('isAnonymousAccessAvailable', () => {
     });
 
     describe('with an offline license key', () => {
-        test('returns false when offline key has a seat count', () => {
+        test('returns false when offline key does not grant anonymous access', () => {
             mocks.env.SOURCEBOT_EE_LICENSE_KEY = validOfflineKey({ seats: 100 });
             expect(isAnonymousAccessAvailable(null)).toBe(false);
         });
 
-        test('returns true when offline key has no seat count (unlimited)', () => {
+        test('returns false when offline key is uncapped but does not grant anonymous access', () => {
+            // Uncapped (no seats) no longer implies anonymous access — it must
+            // be granted explicitly via the `anonymousAccess` flag.
             mocks.env.SOURCEBOT_EE_LICENSE_KEY = validOfflineKey();
+            expect(isAnonymousAccessAvailable(null)).toBe(false);
+        });
+
+        test('returns true when offline key explicitly grants anonymous access', () => {
+            mocks.env.SOURCEBOT_EE_LICENSE_KEY = validOfflineKey({ anonymousAccess: true });
             expect(isAnonymousAccessAvailable(null)).toBe(true);
         });
 
-        test('unlimited offline key beats an active online license', () => {
-            mocks.env.SOURCEBOT_EE_LICENSE_KEY = validOfflineKey();
+        test('anonymous access is independent of the seat cap', () => {
+            mocks.env.SOURCEBOT_EE_LICENSE_KEY = validOfflineKey({ seats: 100, anonymousAccess: true });
+            expect(isAnonymousAccessAvailable(null)).toBe(true);
+        });
+
+        test('anonymous-access offline key beats an active online license', () => {
+            mocks.env.SOURCEBOT_EE_LICENSE_KEY = validOfflineKey({ anonymousAccess: true });
             expect(isAnonymousAccessAvailable(makeLicense({ status: 'active' }))).toBe(true);
         });
 
         test('falls through to online license check when offline key is expired', () => {
-            mocks.env.SOURCEBOT_EE_LICENSE_KEY = validOfflineKey({ seats: 100, expiryDate: pastDate });
+            mocks.env.SOURCEBOT_EE_LICENSE_KEY = validOfflineKey({ anonymousAccess: true, expiryDate: pastDate });
             expect(isAnonymousAccessAvailable(null)).toBe(true);
             expect(isAnonymousAccessAvailable(makeLicense({ status: 'active' }))).toBe(false);
         });
@@ -144,7 +157,7 @@ describe('isAnonymousAccessAvailable', () => {
         });
 
         test('falls through when offline key signature is invalid', () => {
-            mocks.env.SOURCEBOT_EE_LICENSE_KEY = validOfflineKey({ seats: 100 });
+            mocks.env.SOURCEBOT_EE_LICENSE_KEY = validOfflineKey({ anonymousAccess: true });
             mocks.verifySignature.mockReturnValue(false);
             expect(isAnonymousAccessAvailable(null)).toBe(true);
         });
