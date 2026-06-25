@@ -90,7 +90,15 @@ beforeEach(() => {
     // `prisma.userToOrg.update().catch(...)` to bump lastActiveAt; without a
     // default, the reset mock returns undefined and the .catch chain throws.
     prisma.user.update.mockResolvedValue(MOCK_USER_WITH_ACCOUNTS);
-    prisma.userToOrg.update.mockResolvedValue({});
+    prisma.userToOrg.update.mockResolvedValue({
+        orgId: MOCK_ORG.id,
+        userId: 'test-user-id',
+        joinedAt: new Date(),
+        role: OrgRole.MEMBER,
+        isActive: true,
+        scimExternalId: null,
+        lastActiveAt: new Date(),
+    });
     // Reset env flags between tests
     Object.keys(mocks.env).forEach(key => delete mocks.env[key]);
 });
