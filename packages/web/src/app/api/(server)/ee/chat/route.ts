@@ -1,6 +1,7 @@
 import { sew } from "@/middleware/sew";
 import { getAskMcpAvailabilityAnalytics, getAskMcpTurnCompletedAnalytics } from "@/ee/features/chat/askMcpAnalytics.server";
 import { createMessageStream } from "@/ee/features/chat/agent";
+import { getPromptCacheStrategy } from "@/ee/features/chat/promptCaching";
 import { additionalChatRequestParamsSchema } from "@/features/chat/types";
 import { getLanguageModelKey } from "@/features/chat/utils";
 import { checkAskEntitlement, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
@@ -88,6 +89,13 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
 
+            // No-op for non-Anthropic providers / when caching is disabled, so
+            // it never perturbs other providers' requests.
+            const promptCacheStrategy = getPromptCacheStrategy(
+                languageModelConfig.provider,
+                env.SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED === 'true',
+            );
+
             const expandedRepos = (await Promise.all(selectedSearchScopes.map(async (scope) => {
                 if (scope.type === 'repo') return [scope.value];
                 if (scope.type === 'reposet') {
@@ -131,6 +139,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 disabledMcpServerIds,
                 model,
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
+                promptCacheStrategy,
                 modelProviderOptions: providerOptions,
                 modelTemperature: temperature,
                 userId: user?.id,
