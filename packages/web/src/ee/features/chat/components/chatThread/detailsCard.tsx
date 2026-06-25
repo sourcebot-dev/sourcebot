@@ -411,7 +411,8 @@ const getContextUsageColorClass = (percent: number): string => {
     if (percent >= CONTEXT_USAGE_YELLOW_PERCENT) {
         return "text-yellow-500";
     }
-    return "text-green-500";
+    // Desaturated sage green rather than the neon green-500.
+    return "text-[#6cb38f]";
 };
 
 // A compact context-window indicator: a small ring whose arc tracks usage,
@@ -419,8 +420,8 @@ const getContextUsageColorClass = (percent: number): string => {
 // ("<percent>% of <total>"). The ring and percentage share a single
 // usage-based color (green/yellow/red) over a neutral track.
 const ContextWindowGauge = ({ total, percent }: { total: number, percent: number }) => {
-    const size = 18;
-    const strokeWidth = 2.5;
+    const size = 14;
+    const strokeWidth = 2;
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
     const dashOffset = circumference * (1 - Math.min(100, percent) / 100);
@@ -429,7 +430,9 @@ const ContextWindowGauge = ({ total, percent }: { total: number, percent: number
     return (
         <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
             <svg width={size} height={size} className="-rotate-90 flex-shrink-0">
-                {/* Neutral track. */}
+                {/* Neutral gray track. (Theme tokens here are defined without an
+                    alpha channel, so an /opacity modifier on them is silently
+                    ignored — use a solid palette gray instead.) */}
                 <circle
                     cx={size / 2}
                     cy={size / 2}
@@ -437,7 +440,7 @@ const ContextWindowGauge = ({ total, percent }: { total: number, percent: number
                     fill="none"
                     stroke="currentColor"
                     strokeWidth={strokeWidth}
-                    className="text-muted-foreground/25"
+                    className="text-zinc-500"
                 />
                 {/* Progress arc. */}
                 <circle
