@@ -49,8 +49,7 @@ const ReferencedSourcesListViewComponent = ({
     const [collapsedFileIds, setCollapsedFileIds] = useState<string[]>([]);
     // Diagrams render pre-collapsed; expand by id (or via reveal-from-answer).
     const [expandedDiagramIds, setExpandedDiagramIds] = useState<string[]>([]);
-    // Transient highlight applied when a diagram is revealed from the answer
-    // (cleared after a moment so the panel item isn't permanently outlined).
+    // Transient highlight applied when a diagram is revealed from the answer.
     const [highlightedDiagramId, setHighlightedDiagramId] = useState<string | undefined>(undefined);
 
     // When a diagram is revealed from the answer, expand it, scroll it into

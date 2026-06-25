@@ -94,7 +94,7 @@ const getSvgBaseSize = (svgEl: Element): { width: number; height: number } => {
  * Rasterize a mermaid SVG to a high-resolution PNG. We bake explicit pixel
  * dimensions (scaled up from the SVG's viewBox) into the SVG before drawing so
  * the browser rasterizes the vector at full resolution instead of upscaling a
- * small default bitmap (which produced blurry exports).
+ * small default bitmap.
  */
 const svgToPngBlob = (svg: string, background: string): Promise<Blob | null> => {
     return new Promise((resolve) => {
@@ -393,7 +393,7 @@ export const MermaidDiagram = ({
     // the panel sizes to the diagram's full height and lets the right pane scroll.
     const viewportSizeClass = variant === 'panel' ? '' : 'max-h-[480px]';
 
-    // On-hover controls overlaid on the diagram (no separate header bar).
+    // On-hover controls overlaid on the diagram.
     const actions = (
         <>
             {variant === 'inline' && diagramPanel && (
@@ -479,7 +479,7 @@ export const MermaidDiagram = ({
                 // Invalid / mid-stream source: show it as code until it renders cleanly.
                 <CodeBlock code={code} language="mermaid" />
             ) : (
-                // Initial render pending: a neutral placeholder avoids a code-to-diagram pop-in.
+                // Initial render in flight: show a neutral placeholder rather than the source.
                 <div className={cn('flex items-center justify-center bg-background text-muted-foreground', viewportSizeClass, 'min-h-[120px]')}>
                     <Loader2 className="h-4 w-4 animate-spin" />
                 </div>
