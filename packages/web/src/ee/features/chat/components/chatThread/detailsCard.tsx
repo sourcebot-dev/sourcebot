@@ -212,7 +212,6 @@ const DetailsCardComponent = ({
                                                 <TooltipTrigger asChild>
                                                     <div className="cursor-help">
                                                         <ContextWindowGauge
-                                                            used={currentContextTokens}
                                                             total={contextWindow}
                                                             percent={contextUsagePercent}
                                                         />
@@ -415,54 +414,47 @@ const getContextUsageColorClass = (percent: number): string => {
     return "text-green-500";
 };
 
-// A circular ring showing how much of the model's context window the most
-// recent step occupies, with the percentage inside the ring and the
-// "<used> / <total>" token counts beside it. The progress arc and percentage
-// share a single usage-based color (green/yellow/red) over a neutral track.
-const ContextWindowGauge = ({ used, total, percent }: { used: number, total: number, percent: number }) => {
-    const size = 34;
-    const strokeWidth = 4;
+// A compact context-window indicator: a small ring whose arc tracks usage,
+// followed by the usage percentage and the model's total window size
+// ("<percent>% of <total>"). The ring and percentage share a single
+// usage-based color (green/yellow/red) over a neutral track.
+const ContextWindowGauge = ({ total, percent }: { total: number, percent: number }) => {
+    const size = 18;
+    const strokeWidth = 2.5;
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
     const dashOffset = circumference * (1 - Math.min(100, percent) / 100);
     const colorClass = getContextUsageColorClass(percent);
 
     return (
-        <div className="flex items-center gap-2">
-            <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
-                <svg width={size} height={size} className="-rotate-90">
-                    {/* Neutral track. */}
-                    <circle
-                        cx={size / 2}
-                        cy={size / 2}
-                        r={radius}
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={strokeWidth}
-                        className="text-muted-foreground/25"
-                    />
-                    {/* Progress arc. */}
-                    <circle
-                        cx={size / 2}
-                        cy={size / 2}
-                        r={radius}
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={strokeWidth}
-                        strokeLinecap="round"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={dashOffset}
-                        className={cn("transition-all duration-300", colorClass)}
-                    />
-                </svg>
-                <span className={cn("absolute inset-0 flex items-center justify-center text-[9px] font-semibold", colorClass)}>
-                    {percent}%
-                </span>
-            </div>
-            <span className="text-sm whitespace-nowrap">
-                <span className="font-semibold text-foreground">{getShortenedNumberDisplayString(used, 0).toUpperCase()}</span>
-                <span className="text-muted-foreground"> / {getShortenedNumberDisplayString(total, 0).toUpperCase()}</span>
-            </span>
+        <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
+            <svg width={size} height={size} className="-rotate-90 flex-shrink-0">
+                {/* Neutral track. */}
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={strokeWidth}
+                    className="text-muted-foreground/25"
+                />
+                {/* Progress arc. */}
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={dashOffset}
+                    className={cn("transition-all duration-300", colorClass)}
+                />
+            </svg>
+            <span className={cn("font-semibold", colorClass)}>{percent}%</span>
+            <span className="text-muted-foreground">of {getShortenedNumberDisplayString(total, 0).toUpperCase()}</span>
         </div>
     );
 }
