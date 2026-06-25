@@ -24,6 +24,22 @@ vi.mock('@/ee/features/chat/skills/components/skillInstructionsEditor', () => ({
 vi.mock('@/ee/features/chat/useUnsavedChangesGuard', () => ({
     useUnsavedChangesGuard: () => ({ active: false, resolve: vi.fn(), bypass: vi.fn() }),
 }));
+// The reading view renders instructions through the chat MarkdownRenderer, which
+// pulls in react-markdown, the Lezer highlighter, and a router context; swap in a
+// lightweight placeholder that still honors the forwarded ref.
+vi.mock('@/ee/features/chat/components/chatThread/markdownRenderer', async () => {
+    const { forwardRef, createElement } = await import('react');
+    return {
+        MarkdownRenderer: forwardRef<HTMLDivElement, { content: string }>(({ content }, ref) =>
+            createElement('div', { ref, 'data-testid': 'markdown-preview' }, content),
+        ),
+    };
+});
+// The table-of-contents hook relies on IntersectionObserver/MutationObserver,
+// which jsdom does not implement.
+vi.mock('@/ee/features/chat/useTOCItems', () => ({
+    useExtractTOCItems: () => ({ tocItems: [], activeId: '' }),
+}));
 
 const skillActions = await import('@/ee/features/chat/skills/actions');
 const { SkillsPage } = await import('./skillsPage');
