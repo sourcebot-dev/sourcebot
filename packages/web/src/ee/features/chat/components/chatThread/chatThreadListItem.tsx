@@ -8,12 +8,14 @@ import { CSSProperties, forwardRef, memo, useCallback, useEffect, useMemo, useRe
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { Reference, referenceSchema, SBChatMessage, Source } from "@/features/chat/types";
 import { useExtractReferences } from '../../useExtractReferences';
-import { getAnswerPartFromAssistantMessage, getLastStepParts, getUserMessageText, groupMessageIntoSteps, isSBChatToolPart, repairReferences, tryResolveFileReference } from '@/features/chat/utils';
+import { getAnswerPartFromAssistantMessage, getLastStepParts, getUserMessageText, groupMessageIntoSteps, isSBChatToolPart, repairReferences } from '@/features/chat/utils';
 import { AnswerCard } from './answerCard';
 import { DetailsCard } from './detailsCard';
 import { ApprovalRequestedToolPart, ToolApprovalBanner } from './toolApprovalBanner';
 import { MarkdownRenderer, REFERENCE_PAYLOAD_ATTRIBUTE } from './markdownRenderer';
 import { ReferencedSourcesListView } from './referencedSourcesListView';
+import { useExtractPanelItems } from '../../useExtractPanelItems';
+import { PanelContext, PanelContextValue, PanelSelection } from '../../panelContext';
 import isEqual from "fast-deep-equal/react";
 import { ANSWER_TAG } from '@/features/chat/constants';
 
@@ -42,8 +44,22 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     const [leftPanelHeight, setLeftPanelHeight] = useState<number | null>(null);
     const answerRef = useRef<HTMLDivElement>(null);
 
-    const [hoveredReference, setHoveredReference] = useState<Reference | undefined>(undefined);
-    const [selectedReference, setSelectedReference] = useState<Reference | undefined>(undefined);
+    // Unified panel selection/hover: a single selection model shared by inline
+    // file-reference citations and diagrams (see panelContext.ts). Only one
+    // thing is selected/hovered at a time.
+    const [selected, setSelected] = useState<PanelSelection | undefined>(undefined);
+    const [hovered, setHovered] = useState<PanelSelection | undefined>(undefined);
+
+    const selectedReference = useMemo(() => (selected?.kind === 'reference' ? selected.reference : undefined), [selected]);
+    const hoveredReference = useMemo(() => (hovered?.kind === 'reference' ? hovered.reference : undefined), [hovered]);
+
+    const setSelectedReference = useCallback((reference?: Reference) => {
+        setSelected(reference ? { kind: 'reference', reference } : undefined);
+    }, []);
+    const setHoveredReference = useCallback((reference?: Reference) => {
+        setHovered(reference ? { kind: 'reference', reference } : undefined);
+    }, []);
+
     const [isDetailsPanelExpanded, _setIsDetailsPanelExpanded] = useState(isNetworkActive);
     const hasAutoCollapsed = useRef(false);
     const userHasManuallyExpanded = useRef(false);
@@ -325,27 +341,59 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     }, [hoveredReference]);
 
     const references = useExtractReferences(answerPart);
+    const { diagrams, referencedFileSources, orderedItems } = useExtractPanelItems(answerPart, references, sources);
 
-    // Extract the file sources that are referenced by the answer part.
-    const referencedFileSources = useMemo(() => {
-        const fileSources = sources.filter((source) => source.type === 'file');
+    // Maps a diagram id to its position in order of appearance (matches the
+    // index the right panel assigns), used for the "Diagram N" label fallback.
+    const diagramIndexById = useMemo(() => {
+        return new Map(diagrams.map((diagram, i) => [diagram.id, i]));
+    }, [diagrams]);
 
-        return references
-            .filter((reference) => reference.type === 'file')
-            .map((reference) => tryResolveFileReference(reference, fileSources))
-            .filter((file) => file !== undefined)
-            // de-duplicate files
-            .filter((file, index, self) =>
-                index === self.findIndex((t) =>
-                    t?.path === file?.path
-                    && t?.repo === file?.repo
-                    && t?.revision === file?.revision
-                )
-            );
-    }, [references, sources]);
+    // Reveal a diagram in the right panel: the panel list expands it and scrolls
+    // it into view when the selection changes. Clearing first lets the same
+    // diagram be re-revealed (re-clicking a chip re-scrolls).
+    const revealDiagram = useCallback((diagramId: string) => {
+        setSelected(undefined);
+        requestAnimationFrame(() => setSelected({ kind: 'diagram', diagramId }));
+    }, []);
 
+    const setHoveredDiagram = useCallback((diagramId?: string) => {
+        setHovered(diagramId ? { kind: 'diagram', diagramId } : undefined);
+    }, []);
+
+    const jumpToInlineDiagram = useCallback((diagramId: string) => {
+        document.getElementById(`diagram-${diagramId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, []);
+
+    const getDiagramIndex = useCallback((diagramId: string) => {
+        return diagramIndexById.get(diagramId) ?? -1;
+    }, [diagramIndexById]);
+
+    const panelContextValue = useMemo<PanelContextValue>(() => ({
+        chatId,
+        isStreaming: isNetworkActive,
+        setSelectedReference,
+        setHoveredReference,
+        revealDiagram,
+        setHoveredDiagram,
+        getDiagramIndex,
+        jumpToInlineDiagram,
+    }), [chatId, isNetworkActive, setSelectedReference, setHoveredReference, revealDiagram, setHoveredDiagram, getDiagramIndex, jumpToInlineDiagram]);
+
+    const sourcesView = (
+        <ReferencedSourcesListView
+            index={index}
+            references={references}
+            sources={referencedFileSources}
+            style={rightPanelStyle}
+            orderedItems={orderedItems}
+            selected={selected}
+            hovered={hovered}
+        />
+    );
 
     return (
+        <PanelContext.Provider value={panelContextValue}>
         <div
             className="flex flex-col md:flex-row relative min-h-[calc(100vh-250px-var(--banner-height,0px))]"
             ref={ref}
@@ -440,17 +488,8 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                     <div
                         className="sticky top-0"
                     >
-                        {referencedFileSources.length > 0 ? (
-                            <ReferencedSourcesListView
-                                index={index}
-                                references={references}
-                                sources={referencedFileSources}
-                                hoveredReference={hoveredReference}
-                                selectedReference={selectedReference}
-                                onSelectedReferenceChanged={setSelectedReference}
-                                onHoveredReferenceChanged={setHoveredReference}
-                                style={rightPanelStyle}
-                            />
+                        {(referencedFileSources.length > 0 || diagrams.length > 0) ? (
+                            sourcesView
                         ) : isNetworkActive ? (
                             <div className="space-y-4">
                                 {Array.from({ length: 3 }).map((_, index) => (
@@ -466,6 +505,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                 </ResizablePanel>
             </ResizablePanelGroup>
         </div>
+        </PanelContext.Provider>
     )
 });
 
