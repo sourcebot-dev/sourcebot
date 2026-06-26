@@ -44,7 +44,6 @@ import {
 import {
     AutoEnrolledSkillBadge,
     DeleteWorkspaceSkillDialog,
-    FeaturedSkillBadge,
     OrgSkillFlagToggle,
     SkillCommandBadge,
     WorkspaceSkillsEmptyState,
@@ -381,7 +380,6 @@ function WorkspaceOrgSkillCard({
                     <div className="flex flex-wrap items-center gap-2">
                         <p className="truncate text-sm font-medium text-foreground">{skill.name}</p>
                         <SkillCommandBadge slug={skill.slug} />
-                        {skill.featured && <FeaturedSkillBadge />}
                         {skill.autoEnrolled && <AutoEnrolledSkillBadge />}
                     </div>
                     {skill.description && (
@@ -391,12 +389,6 @@ function WorkspaceOrgSkillCard({
                     )}
                 </div>
                 <div className="flex shrink-0 items-center gap-3 rounded-md border bg-muted/30 px-2 py-1 sm:justify-end">
-                    <OrgSkillFlagToggle
-                        label="Featured"
-                        checked={skill.featured}
-                        disabled={flagPending !== null}
-                        onCheckedChange={(checked) => onFlagChange(skill, "featured", checked)}
-                    />
                     <OrgSkillFlagToggle
                         label="Auto"
                         checked={skill.autoEnrolled}

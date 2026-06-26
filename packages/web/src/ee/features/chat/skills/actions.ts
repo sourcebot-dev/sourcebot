@@ -55,7 +55,6 @@ const sharedCatalogSkillSelect = (userId: string, orgId: number) => ({
     description: true,
     instructions: true,
     enabled: true,
-    featured: true,
     autoEnrolled: true,
     createdById: true,
     createdAt: true,
@@ -84,7 +83,6 @@ const sharedManagementSkillSelect = {
     name: true,
     description: true,
     enabled: true,
-    featured: true,
     autoEnrolled: true,
     createdAt: true,
     updatedAt: true,
@@ -231,7 +229,6 @@ const removeSharedSkillForUser = async ({
 const sharedSkillFlagInputSchema = z.object({
     skillId: z.string().trim().min(1),
     data: z.object({
-        featured: z.boolean().optional(),
         autoEnrolled: z.boolean().optional(),
     }).strict().refine(
         (data) => Object.keys(data).length === 1,
@@ -613,10 +610,7 @@ export const listSharedAgentSkillCatalog = async (): Promise<SharedAgentSkillCat
                 ...sharedAgentSkillAuthScope(org.id),
                 enabled: true,
             },
-            orderBy: [
-                { featured: "desc" as const },
-                ...agentSkillOrderBy,
-            ],
+            orderBy: agentSkillOrderBy,
             select: sharedCatalogSkillSelect(user.id, org.id),
         });
 
@@ -636,10 +630,7 @@ export const listSharedAgentSkillManagement = async (): Promise<SharedAgentSkill
                     ...sharedAgentSkillAuthScope(org.id),
                     enabled: true,
                 },
-                orderBy: [
-                    { featured: "desc" as const },
-                    ...agentSkillOrderBy,
-                ],
+                orderBy: agentSkillOrderBy,
                 select: sharedManagementSkillSelect,
             });
 

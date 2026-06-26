@@ -784,7 +784,6 @@ model AgentSkill {
   orgId Int
 
   enabled      Boolean  @default(true)
-  featured     Boolean  @default(false)
   autoEnrolled Boolean  @default(false)
 
   createdAt DateTime @default(now())
@@ -797,7 +796,7 @@ model AgentSkill {
   @@index([updatedById])
   @@index([orgId])
   @@index([orgId, visibility, scopeId])
-  @@index([orgId, visibility, scopeId, enabled, featured(sort: Desc), updatedAt(sort: Desc), name], map: "AgentSkill_shared_catalog_idx")
+  @@index([orgId, visibility, scopeId, enabled, updatedAt(sort: Desc), name], map: "AgentSkill_shared_catalog_idx")
 }
 
 model AgentSkillAdoption {
