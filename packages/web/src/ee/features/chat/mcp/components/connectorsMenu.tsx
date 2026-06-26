@@ -20,7 +20,7 @@ import { ErrorCode } from "@/lib/errorCodes";
 import type { ServiceError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangleIcon, CableIcon, Loader2Icon, PlusCircleIcon, PlusIcon, RefreshCwIcon, SettingsIcon } from "lucide-react";
+import { AlertTriangleIcon, CableIcon, Loader2Icon, PlusCircleIcon, PlusIcon, RefreshCwIcon, SettingsIcon, SparklesIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -346,6 +346,15 @@ export const ConnectorsMenu = ({
                         )}
                     </DropdownMenuSubContent>
                 </DropdownMenuSub>
+                {isAuthenticated && (
+                    <DropdownMenuItem
+                        className="gap-2"
+                        onSelect={() => router.push(`/settings/skills`)}
+                    >
+                        <SparklesIcon className="w-4 h-4 text-muted-foreground" />
+                        Skills
+                    </DropdownMenuItem>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );

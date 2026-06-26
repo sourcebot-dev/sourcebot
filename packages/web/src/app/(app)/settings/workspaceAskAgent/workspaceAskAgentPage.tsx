@@ -32,7 +32,7 @@ import { buildMcpOAuthScopeEntries, getMcpRequestedOAuthScopes, normalizeMcpRequ
 import { pluralize } from "@/features/chat/mcp/utils";
 import { cn, isServiceError } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangleIcon, Building2Icon, CableIcon, CopyIcon, InfoIcon, KeyRoundIcon, Loader2, MoreHorizontalIcon, PlusIcon, SparklesIcon, StarIcon, Trash2Icon, WrenchIcon } from "lucide-react";
+import { AlertTriangleIcon, Building2Icon, CableIcon, CopyIcon, InfoIcon, KeyRoundIcon, Loader2, MoreHorizontalIcon, PlusIcon, Trash2Icon, WrenchIcon } from "lucide-react";
 import { PrefabConnectorPopover } from "@/ee/features/chat/mcp/components/prefabConnectorPopover";
 import Markdown from "react-markdown";
 import { getStaticOAuthDescription, type PrefabMcpServer } from "@/ee/features/chat/mcp/prefabMcpServers";
@@ -42,12 +42,11 @@ import {
     type OrgSkillFlagKey,
 } from "@/ee/features/chat/skills/components/workspaceSkillMutations";
 import {
-    AUTO_ENROLLED_SKILL_TOOLTIP,
+    AutoEnrolledSkillBadge,
     DeleteWorkspaceSkillDialog,
-    FEATURED_SKILL_TOOLTIP,
+    FeaturedSkillBadge,
     OrgSkillFlagToggle,
     SkillCommandBadge,
-    SkillStatusBadge,
     WorkspaceSkillsEmptyState,
 } from "@/ee/features/chat/skills/components/workspaceSkillShared";
 import { sortSharedAgentSkillCatalogItems, type SharedAgentSkillManagementItem } from "@/ee/features/chat/skills/types";
@@ -385,22 +384,8 @@ function WorkspaceOrgSkillCard({
                     <div className="flex flex-wrap items-center gap-2">
                         <p className="truncate text-sm font-medium text-foreground">{skill.name}</p>
                         <SkillCommandBadge slug={skill.slug} />
-                        {skill.featured && (
-                            <SkillStatusBadge
-                                icon={<StarIcon className="h-3 w-3" />}
-                                tooltip={FEATURED_SKILL_TOOLTIP}
-                            >
-                                Featured
-                            </SkillStatusBadge>
-                        )}
-                        {skill.autoEnrolled && (
-                            <SkillStatusBadge
-                                icon={<SparklesIcon className="h-3 w-3" />}
-                                tooltip={AUTO_ENROLLED_SKILL_TOOLTIP}
-                            >
-                                Auto
-                            </SkillStatusBadge>
-                        )}
+                        {skill.featured && <FeaturedSkillBadge />}
+                        {skill.autoEnrolled && <AutoEnrolledSkillBadge />}
                     </div>
                     {skill.description && (
                         <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">

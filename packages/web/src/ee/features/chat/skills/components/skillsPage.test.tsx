@@ -148,4 +148,40 @@ describe('SkillsPage', () => {
 
         expect(skillActions.publishPersonalAgentSkillToShared).toHaveBeenCalledWith('personal-skill');
     });
+
+    test("enables another member's shared skill from the list toggle, with no shared toggle or kebab", () => {
+        vi.mocked(skillActions.adoptSharedSkill).mockResolvedValue({ success: true });
+
+        const othersSkill: SharedAgentSkillCatalogItem = {
+            ...sharedSkill,
+            id: 'others-skill',
+            isCreatedByUser: false,
+            autoEnrolled: false,
+            isAdopted: false,
+            isRemoved: false,
+            isVisibleToUser: false,
+        };
+
+        renderSkillsPage({ sharedSkills: [othersSkill] });
+
+        expect(screen.queryByRole('switch', { name: 'Shared' })).toBeNull();
+        expect(screen.queryByRole('button', { name: /Actions for/ })).toBeNull();
+
+        fireEvent.click(screen.getByRole('switch', { name: 'Enable Deploy Checklist' }));
+
+        expect(skillActions.adoptSharedSkill).toHaveBeenCalledWith('others-skill');
+    });
+
+    test("shows the list toggle as on for shared skills the member has enabled", () => {
+        const enabledSkill: SharedAgentSkillCatalogItem = {
+            ...sharedSkill,
+            id: 'enabled-skill',
+            isCreatedByUser: false,
+            isVisibleToUser: true,
+        };
+
+        renderSkillsPage({ sharedSkills: [enabledSkill] });
+
+        expect(screen.getByRole('switch', { name: 'Enable Deploy Checklist', checked: true })).toBeTruthy();
+    });
 });
