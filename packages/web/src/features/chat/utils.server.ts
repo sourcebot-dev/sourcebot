@@ -7,6 +7,7 @@ import { env, loadConfig } from '@sourcebot/shared';
 import fs from 'fs';
 import path from 'path';
 import { LanguageModelInfo, SBChatMessage } from './types';
+import { resolveModelInputModalities } from './modelCapabilities';
 import { hasEntitlement } from '@/lib/entitlements';
 import { ServiceError } from '@/lib/serviceError';
 import { ErrorCode } from '@/lib/errorCodes';
@@ -131,5 +132,6 @@ export const getConfiguredLanguageModelsInfo = async () => {
         provider: model.provider,
         model: model.model,
         displayName: model.displayName,
+        inputModalities: resolveModelInputModalities(model),
     }));
 };

@@ -173,6 +173,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -311,6 +322,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -446,6 +468,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -553,6 +586,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -674,6 +718,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -797,6 +852,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -936,6 +1002,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -1043,6 +1120,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -1176,6 +1264,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -1340,6 +1439,17 @@ const schema = {
         "temperature": {
           "type": "number",
           "description": "Optional temperature setting to use with the model."
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -1448,6 +1558,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -1559,6 +1680,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -1739,6 +1871,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -1877,6 +2020,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -2012,6 +2166,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -2119,6 +2284,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -2240,6 +2416,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -2363,6 +2550,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -2502,6 +2700,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -2609,6 +2818,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -2742,6 +2962,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -2906,6 +3137,17 @@ const schema = {
         "temperature": {
           "type": "number",
           "description": "Optional temperature setting to use with the model."
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -3014,6 +3256,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [
@@ -3125,6 +3378,17 @@ const schema = {
             }
           },
           "additionalProperties": false
+        },
+        "inputModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "pdf"
+            ]
+          },
+          "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
         }
       },
       "required": [

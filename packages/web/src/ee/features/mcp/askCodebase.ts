@@ -4,6 +4,7 @@ import { generateChatNameFromMessage } from "@/ee/features/chat/llm.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
+import { resolveModelInputModalities } from "@/features/chat/modelCapabilities";
 import { ErrorCode } from "@/lib/errorCodes";
 import { ServiceError, ServiceErrorException } from "@/lib/serviceError";
 import { withOptionalAuth } from "@/middleware/withAuth";
@@ -243,6 +244,7 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                     provider: languageModelConfig.provider,
                     model: languageModelConfig.model,
                     displayName: languageModelConfig.displayName,
+                    inputModalities: resolveModelInputModalities(languageModelConfig),
                 },
             } satisfies AskCodebaseResult;
         })
