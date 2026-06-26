@@ -150,7 +150,7 @@ const svgToPngBlob = (svg: string, background: string): Promise<Blob | null> => 
 };
 
 const ZOOM_MIN = 0.25;
-const ZOOM_MAX = 4;
+const ZOOM_MAX = 8;
 const ZOOM_STEP = 0.25;
 
 /**
@@ -161,8 +161,55 @@ const ZOOM_STEP = 0.25;
 const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, forceControlsVisible }: { svg: string; className?: string; controlsClassName?: string; actions?: ReactNode; fill?: boolean; forceControlsVisible?: boolean }) => {
     const [zoom, setZoom] = useState(1);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
+    // The scale treated as the "0%" baseline for the zoom readout. In
+    // fullscreen this is the fit scale (so the awkward absolute fit percentage
+    // reads as a clean 0%); inline it stays 1 (1:1).
+    const [baseScale, setBaseScale] = useState(1);
     const draggingRef = useRef(false);
     const startRef = useRef({ x: 0, y: 0 });
+    const surfaceRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const zoomRef = useRef(1);
+    useEffect(() => {
+        zoomRef.current = zoom;
+    }, [zoom]);
+    const offsetRef = useRef(offset);
+    useEffect(() => {
+        offsetRef.current = offset;
+    }, [offset]);
+
+    // Scale the diagram to fill the available surface (with a small margin),
+    // so a small diagram doesn't open tiny in fullscreen and a large one is
+    // brought fully into view. Used for the fullscreen (`fill`) viewport.
+    const fitToSurface = useCallback(() => {
+        const surface = surfaceRef.current;
+        const svgEl = contentRef.current?.querySelector('svg');
+        if (!surface || !svgEl) {
+            return false;
+        }
+
+        const availWidth = surface.clientWidth;
+        const availHeight = surface.clientHeight;
+        // Measure the SVG as currently rendered, then divide out the active
+        // zoom to recover its unscaled (1:1) size. Mermaid sizes the SVG via an
+        // inline max-width that is typically far smaller than its viewBox, so
+        // the rendered size — not the viewBox — is what we must fit against.
+        const rect = svgEl.getBoundingClientRect();
+        const currentZoom = zoomRef.current || 1;
+        const baseWidth = rect.width / currentZoom;
+        const baseHeight = rect.height / currentZoom;
+        if (!availWidth || !availHeight || !baseWidth || !baseHeight) {
+            return false;
+        }
+
+        const next = Math.min(availWidth / baseWidth, availHeight / baseHeight) * 0.95;
+        const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next));
+        setZoom(clamped);
+        // Anchor the zoom readout's 0% to the fitted scale.
+        setBaseScale(clamped);
+        setOffset({ x: 0, y: 0 });
+        return true;
+    }, []);
 
     const onPointerDown = useCallback((e: React.PointerEvent) => {
         draggingRef.current = true;
@@ -187,13 +234,91 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, for
     }, []);
 
     const reset = useCallback(() => {
+        // In fullscreen, "reset" returns to the fitted view rather than 1:1.
+        if (fill && fitToSurface()) {
+            return;
+        }
         setZoom(1);
         setOffset({ x: 0, y: 0 });
-    }, []);
+    }, [fill, fitToSurface]);
+
+    // Auto fit-to-surface once the fullscreen viewport has a measurable size
+    // and the SVG is in the DOM. We fit a single time (the user can pan/zoom
+    // freely afterwards, and "reset" re-fits on demand).
+    useEffect(() => {
+        if (!fill) {
+            return;
+        }
+        let fitted = false;
+        const tryFit = () => {
+            if (!fitted && fitToSurface()) {
+                fitted = true;
+                observer.disconnect();
+            }
+        };
+        const observer = new ResizeObserver(tryFit);
+        if (surfaceRef.current) {
+            observer.observe(surfaceRef.current);
+        }
+        const handle = requestAnimationFrame(tryFit);
+        return () => {
+            observer.disconnect();
+            cancelAnimationFrame(handle);
+        };
+    }, [fill, svg, fitToSurface]);
+
+    // Fullscreen: scroll/trackpad wheel zooms toward the cursor. A non-passive
+    // native listener is required so we can preventDefault the page/scroll-area
+    // from scrolling underneath.
+    useEffect(() => {
+        if (!fill) {
+            return;
+        }
+        const surface = surfaceRef.current;
+        if (!surface) {
+            return;
+        }
+
+        const handleWheel = (e: WheelEvent) => {
+            e.preventDefault();
+            const rect = surface.getBoundingClientRect();
+            // Cursor position relative to the surface center (the transform origin).
+            const pointerX = e.clientX - (rect.left + rect.width / 2);
+            const pointerY = e.clientY - (rect.top + rect.height / 2);
+
+            const prevZoom = zoomRef.current;
+            const nextZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, prevZoom * Math.exp(-e.deltaY * 0.0015)));
+            if (nextZoom === prevZoom) {
+                return;
+            }
+
+            // Keep the content point under the cursor stationary while zooming.
+            const ratio = nextZoom / prevZoom;
+            const prevOffset = offsetRef.current;
+            setZoom(nextZoom);
+            setOffset({
+                x: pointerX - ratio * (pointerX - prevOffset.x),
+                y: pointerY - ratio * (pointerY - prevOffset.y),
+            });
+        };
+
+        surface.addEventListener('wheel', handleWheel, { passive: false });
+        return () => surface.removeEventListener('wheel', handleWheel);
+    }, [fill]);
+
+    // In fullscreen, zoom in clean 10%-of-fit increments so the relative
+    // readout stays round; inline keeps the absolute 0.25 step.
+    const zoomStep = fill ? Math.max(0.01, baseScale * 0.1) : ZOOM_STEP;
+    const zoomOut = () => setZoom((z) => Math.max(ZOOM_MIN, z - zoomStep));
+    const zoomIn = () => setZoom((z) => Math.min(ZOOM_MAX, z + zoomStep));
+    // The readout is relative to the baseline scale, so the fitted fullscreen
+    // view reads 100% (matching the inline 1:1 baseline, whose baseScale is 1).
+    const zoomLabel = `${Math.round((zoom / baseScale) * 100)}%`;
 
     return (
         <div className={cn('group relative overflow-hidden bg-background', className)}>
             <div
+                ref={surfaceRef}
                 className={cn(
                     'flex cursor-grab select-none items-center justify-center touch-none active:cursor-grabbing',
                     // `fill` (fullscreen) fills a definite-height container; otherwise the
@@ -206,6 +331,7 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, for
                 onPointerLeave={onPointerUp}
             >
                 <div
+                    ref={contentRef}
                     className="pointer-events-none [&_svg]:h-auto [&_svg]:max-w-full"
                     style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})` }}
                     dangerouslySetInnerHTML={{ __html: svg }}
@@ -219,17 +345,17 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, for
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 text-muted-foreground"
-                    onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
+                    onClick={zoomOut}
                     aria-label="Zoom out"
                 >
                     <ZoomOut className="h-3 w-3" />
                 </Button>
-                <span className="w-9 text-center text-xs tabular-nums text-muted-foreground">{Math.round(zoom * 100)}%</span>
+                <span className="w-11 text-center text-xs tabular-nums text-muted-foreground">{zoomLabel}</span>
                 <Button
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 text-muted-foreground"
-                    onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
+                    onClick={zoomIn}
                     aria-label="Zoom in"
                 >
                     <ZoomIn className="h-3 w-3" />

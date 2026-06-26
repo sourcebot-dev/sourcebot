@@ -18,7 +18,7 @@ import type { PluggableList, Plugin } from "unified";
 import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
 import { LinearIssueCard } from './linearIssueCard';
-import { MermaidDiagram } from './mermaidDiagram';
+import { DiagramReferenceChip } from './diagramReferenceChip';
 import { FILE_REFERENCE_REGEX } from '@/features/chat/constants';
 import { createFileReference } from '@/features/chat/utils';
 import isEqual from "fast-deep-equal/react";
@@ -211,8 +211,10 @@ const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererPro
             const language = match ? match[1] : undefined;
 
             if (enableDiagrams && language === 'mermaid') {
+                // The full diagram is rendered in the right panel; inline we
+                // render a compact reference that scrolls to / focuses it.
                 return (
-                    <MermaidDiagram code={text} />
+                    <DiagramReferenceChip code={text} />
                 )
             }
 

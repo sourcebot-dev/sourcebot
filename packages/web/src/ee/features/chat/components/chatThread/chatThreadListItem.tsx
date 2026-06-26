@@ -331,6 +331,13 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
 
     const diagrams = useExtractDiagrams(answerPart);
     const [selectedDiagramId, setSelectedDiagramId] = useState<string | undefined>(undefined);
+    const [hoveredDiagramId, setHoveredDiagramId] = useState<string | undefined>(undefined);
+
+    // Maps a diagram id to its position in order of appearance (matches the
+    // index the right panel assigns), used for the "Diagram N" label fallback.
+    const diagramIndexById = useMemo(() => {
+        return new Map(diagrams.map((diagram, i) => [diagram.id, i]));
+    }, [diagrams]);
 
     // Reveal a diagram in the right panel: the panel list expands it and scrolls
     // it into view when `selectedDiagramId` changes.
@@ -343,7 +350,16 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
         document.getElementById(`diagram-${diagramId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, []);
 
-    const diagramPanelContextValue = useMemo(() => ({ revealInPanel: revealDiagramInPanel }), [revealDiagramInPanel]);
+    const getDiagramIndex = useCallback((diagramId: string) => {
+        return diagramIndexById.get(diagramId) ?? -1;
+    }, [diagramIndexById]);
+
+    const diagramPanelContextValue = useMemo(() => ({
+        revealInPanel: revealDiagramInPanel,
+        getDiagramIndex,
+        onHoverDiagram: setHoveredDiagramId,
+        isStreaming: isNetworkActive,
+    }), [revealDiagramInPanel, getDiagramIndex, isNetworkActive]);
 
     // Extract the file sources that are referenced by the answer part.
     const referencedFileSources = useMemo(() => {
@@ -434,6 +450,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
             style={rightPanelStyle}
             orderedItems={orderedPanelItems}
             selectedDiagramId={selectedDiagramId}
+            hoveredDiagramId={hoveredDiagramId}
             onJumpToInlineDiagram={jumpToInlineDiagram}
         />
     );

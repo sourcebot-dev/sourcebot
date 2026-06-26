@@ -145,6 +145,14 @@ const config = {
                     to: {
                         height: '0'
                     }
+                },
+                'shiny-text': {
+                    '0%, 90%, 100%': {
+                        'background-position': 'calc(-100% - var(--shiny-width)) 0'
+                    },
+                    '30%, 60%': {
+                        'background-position': 'calc(100% + var(--shiny-width)) 0'
+                    }
                 }
             },
             animation: {
@@ -152,7 +160,8 @@ const config = {
                 'accordion-up': 'accordion-up 0.2s ease-out',
                 'spin-slow': 'spin 1.5s linear infinite',
                 'bounce-slow': 'bounce 1.5s linear infinite',
-                'ping-slow': 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite'
+                'ping-slow': 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
+                'shiny-text': 'shiny-text 3s infinite'
             }
         }
     },

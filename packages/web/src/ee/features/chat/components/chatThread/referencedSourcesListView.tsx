@@ -28,6 +28,7 @@ interface ReferencedSourcesListViewProps {
     style: React.CSSProperties;
     orderedItems?: PanelItem[];
     selectedDiagramId?: string;
+    hoveredDiagramId?: string;
     onJumpToInlineDiagram?: (diagramId: string) => void;
 }
 
@@ -42,23 +43,25 @@ const ReferencedSourcesListViewComponent = ({
     onSelectedReferenceChanged,
     orderedItems = [],
     selectedDiagramId,
+    hoveredDiagramId,
     onJumpToInlineDiagram,
 }: ReferencedSourcesListViewProps) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const editorRefsMap = useRef<Map<string, ReactCodeMirrorRef>>(new Map());
     const [collapsedFileIds, setCollapsedFileIds] = useState<string[]>([]);
-    // Diagrams render pre-collapsed; expand by id (or via reveal-from-answer).
-    const [expandedDiagramIds, setExpandedDiagramIds] = useState<string[]>([]);
+    // Diagrams render expanded by default (the panel is the canonical view);
+    // track the ids the user has explicitly collapsed, mirroring collapsedFileIds.
+    const [collapsedDiagramIds, setCollapsedDiagramIds] = useState<string[]>([]);
     // Transient highlight applied when a diagram is revealed from the answer.
     const [highlightedDiagramId, setHighlightedDiagramId] = useState<string | undefined>(undefined);
 
-    // When a diagram is revealed from the answer, expand it, scroll it into
-    // view, and briefly highlight it.
+    // When a diagram is revealed from the answer, ensure it is expanded, scroll
+    // it into view, and briefly highlight it.
     useEffect(() => {
         if (!selectedDiagramId) {
             return;
         }
-        setExpandedDiagramIds((prev) => (prev.includes(selectedDiagramId) ? prev : [...prev, selectedDiagramId]));
+        setCollapsedDiagramIds((prev) => prev.filter((id) => id !== selectedDiagramId));
         const element = document.getElementById(`diagram-panel-${selectedDiagramId}`);
         if (element) {
             scrollIntoView(element, { scrollMode: 'if-needed', block: 'center', behavior: 'smooth' });
@@ -69,7 +72,7 @@ const ReferencedSourcesListViewComponent = ({
     }, [selectedDiagramId]);
 
     const onToggleDiagram = useCallback((diagramId: string) => {
-        setExpandedDiagramIds((prev) => (
+        setCollapsedDiagramIds((prev) => (
             prev.includes(diagramId) ? prev.filter((id) => id !== diagramId) : [...prev, diagramId]
         ));
     }, []);
@@ -227,8 +230,8 @@ const ReferencedSourcesListViewComponent = ({
             ref={scrollAreaRef}
             style={style}
         >
-            {/* px-2 leaves room for the diagram reveal ring so it isn't clipped on the edges */}
-            <div className="space-y-4 px-2">
+            {/* px-2 / py-1 leave room for the diagram reveal/hover ring so it isn't clipped on the edges (notably the top edge for a first-item diagram) */}
+            <div className="space-y-4 px-2 py-1">
                 {orderedItems.map((item) => {
                     if (item.kind === 'diagram') {
                         return (
@@ -236,8 +239,9 @@ const ReferencedSourcesListViewComponent = ({
                                 key={`diagram-${item.diagram.id}`}
                                 diagram={item.diagram}
                                 index={item.diagramIndex}
-                                isExpanded={expandedDiagramIds.includes(item.diagram.id)}
+                                isExpanded={!collapsedDiagramIds.includes(item.diagram.id)}
                                 isHighlighted={highlightedDiagramId === item.diagram.id}
+                                isHovered={hoveredDiagramId === item.diagram.id}
                                 onToggle={() => onToggleDiagram(item.diagram.id)}
                                 onJumpToInline={() => onJumpToInlineDiagram?.(item.diagram.id)}
                             />
