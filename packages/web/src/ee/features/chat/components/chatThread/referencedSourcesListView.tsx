@@ -230,7 +230,6 @@ const ReferencedSourcesListViewComponent = ({
             ref={scrollAreaRef}
             style={style}
         >
-            {/* px-2 / py-1 leave room for the diagram reveal/hover ring so it isn't clipped on the edges (notably the top edge for a first-item diagram) */}
             <div className="space-y-4 px-2 py-1">
                 {orderedItems.map((item) => {
                     if (item.kind === 'diagram') {
