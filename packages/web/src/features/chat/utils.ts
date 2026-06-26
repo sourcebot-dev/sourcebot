@@ -422,9 +422,11 @@ export const getAnswerPartFromAssistantMessage = (message: SBChatMessage, isTurn
 }
 
 /**
- * Generates a unique key given a LanguageModelInfo object.
+ * Generates a unique key for a language model. Accepts any object carrying the
+ * identifying fields, so both the full `LanguageModel` config and the
+ * client-safe `LanguageModelInfo` can be keyed with it.
  */
-export const getLanguageModelKey = (model: LanguageModelInfo) => {
+export const getLanguageModelKey = (model: Pick<LanguageModelInfo, 'provider' | 'model' | 'displayName'>) => {
     return `${model.provider}-${model.model}-${model.displayName}`;
 }
 
