@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ExtractedDiagram } from "@/ee/features/chat/useExtractDiagrams";
+import { ExtractedDiagram } from "@/ee/features/chat/useExtractPanelItems";
 import { ChevronDown, ChevronRight, CornerUpLeft, Workflow } from "lucide-react";
 import { MermaidDiagram } from "./mermaidDiagram";
 import { getDiagramTitle } from "@/ee/features/chat/diagramUtils";

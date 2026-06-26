@@ -21,7 +21,7 @@ import { TransformWrapper, TransformComponent, type ReactZoomPanPinchRef } from 
 import { CodeBlock } from './codeBlock';
 import { sanitizeMermaidCode } from './mermaidSanitize';
 import { getDiagramAnchorId, getDiagramId, getDiagramType } from '@/ee/features/chat/diagramUtils';
-import { useDiagramPanel } from '@/ee/features/chat/diagramPanelContext';
+import { usePanelContext } from '@/ee/features/chat/panelContext';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 
 // Lazily-loaded mermaid module. Kept at module scope so the (heavy) library is
@@ -396,9 +396,9 @@ export const MermaidDiagram = ({
     const { toast } = useToast();
     const captureEvent = useCaptureEvent();
 
-    const diagramPanel = useDiagramPanel();
-    const chatId = diagramPanel?.chatId;
-    const isStreaming = diagramPanel?.isStreaming ?? false;
+    const panel = usePanelContext();
+    const chatId = panel?.chatId;
+    const isStreaming = panel?.isStreaming ?? false;
     const diagramId = useMemo(() => getDiagramId(code), [code]);
     const diagramType = useMemo(() => getDiagramType(code), [code]);
 

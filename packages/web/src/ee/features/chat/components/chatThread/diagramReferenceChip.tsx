@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Workflow } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { getDiagramAnchorId, getDiagramId, getDiagramTitle } from '@/ee/features/chat/diagramUtils';
-import { useDiagramPanel } from '@/ee/features/chat/diagramPanelContext';
+import { usePanelContext } from '@/ee/features/chat/panelContext';
 import { TextShimmer } from '@/components/ui/textShimmer';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 
@@ -20,19 +20,19 @@ interface DiagramReferenceChipProps {
  * untouched, so copying the answer still yields a valid mermaid code block.
  */
 export const DiagramReferenceChip = ({ code }: DiagramReferenceChipProps) => {
-    const diagramPanel = useDiagramPanel();
+    const panel = usePanelContext();
     const captureEvent = useCaptureEvent();
     const containerRef = useRef<HTMLButtonElement>(null);
 
     const diagramId = useMemo(() => getDiagramId(code), [code]);
     const anchorId = useMemo(() => getDiagramAnchorId(code), [code]);
 
-    const index = diagramPanel?.getDiagramIndex(diagramId) ?? -1;
+    const index = panel?.getDiagramIndex(diagramId) ?? -1;
 
     // While streaming, a chip whose source has not yet resolved to a (closed)
     // panel diagram is the one currently being written: show a shimmer so the
     // turn doesn't look stalled.
-    const isGenerating = (diagramPanel?.isStreaming ?? false) && index < 0;
+    const isGenerating = (panel?.isStreaming ?? false) && index < 0;
 
     const label = useMemo(() => {
         if (isGenerating) {
@@ -46,11 +46,11 @@ export const DiagramReferenceChip = ({ code }: DiagramReferenceChipProps) => {
     }, [code, index, isGenerating]);
 
     const reveal = useCallback(() => {
-        if (diagramPanel?.chatId) {
-            captureEvent('wa_chat_diagram_reference_clicked', { chatId: diagramPanel.chatId, diagramId });
+        if (panel?.chatId) {
+            captureEvent('wa_chat_diagram_reference_clicked', { chatId: panel.chatId, diagramId });
         }
-        diagramPanel?.revealInPanel(diagramId);
-    }, [diagramPanel, diagramId, captureEvent]);
+        panel?.revealDiagram(diagramId);
+    }, [panel, diagramId, captureEvent]);
 
     // Shared in-thread deep links target the inline anchor (`#diagram-<id>`).
     // When the hash matches, scroll the chip into view and reveal the full
@@ -61,13 +61,13 @@ export const DiagramReferenceChip = ({ code }: DiagramReferenceChipProps) => {
                 return;
             }
             containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            diagramPanel?.revealInPanel(diagramId);
+            panel?.revealDiagram(diagramId);
         };
 
         checkHash();
         window.addEventListener('hashchange', checkHash);
         return () => window.removeEventListener('hashchange', checkHash);
-    }, [anchorId, diagramId, diagramPanel]);
+    }, [anchorId, diagramId, panel]);
 
     return (
         <button
@@ -79,8 +79,8 @@ export const DiagramReferenceChip = ({ code }: DiagramReferenceChipProps) => {
                 'text-sm text-foreground transition-colors scroll-mt-16 cursor-pointer hover:bg-muted',
             )}
             onClick={reveal}
-            onMouseEnter={() => diagramPanel?.onHoverDiagram(diagramId)}
-            onMouseLeave={() => diagramPanel?.onHoverDiagram(undefined)}
+            onMouseEnter={() => panel?.setHoveredDiagram(diagramId)}
+            onMouseLeave={() => panel?.setHoveredDiagram(undefined)}
             title={isGenerating ? undefined : 'Click to view diagram'}
         >
             <Workflow className="h-4 w-4 shrink-0 text-muted-foreground" />

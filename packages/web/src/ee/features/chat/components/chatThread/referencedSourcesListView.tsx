@@ -4,48 +4,46 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import scrollIntoView from 'scroll-into-view-if-needed';
-import { FileReference, FileSource, Reference } from "@/features/chat/types";
+import { FileReference, FileSource } from "@/features/chat/types";
 import { tryResolveFileReference } from '@/features/chat/utils';
 import { ReferencedFileSourceListItemContainer } from "./referencedFileSourceListItemContainer";
 import { DiagramPanelListItem } from "./diagramPanelListItem";
-import { ExtractedDiagram } from "@/ee/features/chat/useExtractDiagrams";
+import { PanelItem } from "@/ee/features/chat/useExtractPanelItems";
+import { PanelSelection, usePanelContext } from "@/ee/features/chat/panelContext";
 import isEqual from 'fast-deep-equal/react';
-
-// An ordered entry in the right panel: either a referenced file source or a
-// diagram, interleaved by their order of appearance in the answer.
-export type PanelItem =
-    | { kind: 'source'; source: FileSource }
-    | { kind: 'diagram'; diagram: ExtractedDiagram; diagramIndex: number };
 
 interface ReferencedSourcesListViewProps {
     references: FileReference[];
     sources: FileSource[];
     index: number;
-    hoveredReference?: Reference;
-    onHoveredReferenceChanged: (reference?: Reference) => void;
-    selectedReference?: Reference;
-    onSelectedReferenceChanged: (reference?: Reference) => void;
     style: React.CSSProperties;
     orderedItems?: PanelItem[];
-    selectedDiagramId?: string;
-    hoveredDiagramId?: string;
-    onJumpToInlineDiagram?: (diagramId: string) => void;
+    selected?: PanelSelection;
+    hovered?: PanelSelection;
 }
 
 const ReferencedSourcesListViewComponent = ({
     references,
     sources,
     index,
-    hoveredReference,
-    selectedReference,
     style,
-    onHoveredReferenceChanged,
-    onSelectedReferenceChanged,
     orderedItems = [],
-    selectedDiagramId,
-    hoveredDiagramId,
-    onJumpToInlineDiagram,
+    selected,
+    hovered,
 }: ReferencedSourcesListViewProps) => {
+    const panel = usePanelContext();
+    const noop = useCallback(() => {}, []);
+    // Reference selection/hover is driven through the unified panel context; the
+    // file source items still call these the same way (e.g. from the CodeMirror
+    // reference-highlight extension).
+    const onSelectedReferenceChanged = panel?.setSelectedReference ?? noop;
+    const onHoveredReferenceChanged = panel?.setHoveredReference ?? noop;
+
+    const selectedReference = selected?.kind === 'reference' ? selected.reference : undefined;
+    const hoveredReference = hovered?.kind === 'reference' ? hovered.reference : undefined;
+    const selectedDiagramId = selected?.kind === 'diagram' ? selected.diagramId : undefined;
+    const hoveredDiagramId = hovered?.kind === 'diagram' ? hovered.diagramId : undefined;
+
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const editorRefsMap = useRef<Map<string, ReactCodeMirrorRef>>(new Map());
     const [collapsedFileIds, setCollapsedFileIds] = useState<string[]>([]);
@@ -242,7 +240,7 @@ const ReferencedSourcesListViewComponent = ({
                                 isHighlighted={highlightedDiagramId === item.diagram.id}
                                 isHovered={hoveredDiagramId === item.diagram.id}
                                 onToggle={() => onToggleDiagram(item.diagram.id)}
-                                onJumpToInline={() => onJumpToInlineDiagram?.(item.diagram.id)}
+                                onJumpToInline={() => panel?.jumpToInlineDiagram(item.diagram.id)}
                             />
                         );
                     }
