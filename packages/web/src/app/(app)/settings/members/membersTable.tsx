@@ -78,6 +78,11 @@ export type MemberFilter = "all" | "owners" | "members" | Section;
 
 const SECTIONS: { id: Section; label: string; description: string }[] = [
     {
+        id: "requests",
+        label: "Requests",
+        description: "People who requested access to the organization.",
+    },
+    {
         id: "active",
         label: "Active",
         description: "Users who have access to the organization. Active users count toward billing.",
@@ -96,11 +101,6 @@ const SECTIONS: { id: Section; label: string; description: string }[] = [
         id: "invited",
         label: "Invited",
         description: "People with pending invitations to the organization.",
-    },
-    {
-        id: "requests",
-        label: "Requests",
-        description: "People who requested access to the organization.",
     },
 ];
 
@@ -531,6 +531,9 @@ export const MembersTable = ({
                                         </Tooltip>
                                         •
                                         <span>{section.rows.length}</span>
+                                        {section.id === "requests" && (
+                                            <NotificationDot />
+                                        )}
                                     </div>
                                 </TableCell>
                             </TableRow>
