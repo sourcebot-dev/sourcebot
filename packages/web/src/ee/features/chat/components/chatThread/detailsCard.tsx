@@ -88,9 +88,7 @@ const DetailsCardComponent = ({
 
     // Context-window usage gauge. "In use" is the input the model saw on its
     // most recent step — i.e. the full accumulated prompt occupying the window
-    // right now — not the cumulative totalInputTokens (a billing sum). The
-    // gauge is shown only when the model's window is known (resolved from the
-    // models.dev catalog); unknown windows degrade to the raw token count.
+    // right now — not the cumulative totalInputTokens.
     const stepTokenUsage = metadata?.stepTokenUsage;
     const currentContextTokens = stepTokenUsage && stepTokenUsage.length > 0
         ? stepTokenUsage[stepTokenUsage.length - 1].inputTokens
@@ -415,10 +413,6 @@ const getContextUsageColorClass = (percent: number): string => {
     return "text-[#6cb38f]";
 };
 
-// A compact context-window indicator: a small ring whose arc tracks usage,
-// followed by the usage percentage and the model's total window size
-// ("<percent>% of <total>"). The ring and percentage share a single
-// usage-based color (green/yellow/red) over a neutral track.
 const ContextWindowGauge = ({ total, percent }: { total: number, percent: number }) => {
     const size = 14;
     const strokeWidth = 2;

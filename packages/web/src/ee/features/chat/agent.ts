@@ -54,7 +54,6 @@ interface CreateMessageStreamResponseProps {
     disabledMcpServerIds?: string[];
     model: AISDKLanguageModelV3;
     modelName: string;
-    // Total context window of the model in tokens, or undefined when unknown.
     contextWindow?: number;
     promptCacheStrategy: PromptCacheStrategy;
     onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;

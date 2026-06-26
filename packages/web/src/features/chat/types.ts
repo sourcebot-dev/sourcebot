@@ -59,10 +59,6 @@ export const sbChatMessageMetadataSchema = z.object({
     totalCacheReadTokens: z.number().optional(),
     totalCacheWriteTokens: z.number().optional(),
     totalResponseTimeMs: z.number().optional(),
-    // Total context window of the model used for this turn, in tokens, resolved
-    // from the models.dev catalog. Undefined when the window is unknown (e.g.
-    // openai-compatible / self-hosted ids, uncatalogued models). Baked into the
-    // message so the gauge denominator stays stable across catalog changes.
     contextWindow: z.number().optional(),
     feedback: z.array(z.object({
         type: z.enum(['like', 'dislike']),

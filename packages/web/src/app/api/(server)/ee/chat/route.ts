@@ -92,7 +92,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             // Total context window for the selected model, used as the
             // denominator for the UI's context-usage gauge. Undefined when
-            // unknown (e.g. openai-compatible / self-hosted models).
+            // unknown (e.g. self-hosted models).
             const contextWindow = await resolveContextWindow(languageModelConfig);
 
             // No-op for non-Anthropic providers / when caching is disabled, so
