@@ -234,21 +234,18 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, for
     }, []);
 
     const reset = useCallback(() => {
-        // In fullscreen, "reset" returns to the fitted view rather than 1:1.
-        if (fill && fitToSurface()) {
+        // "Reset" returns to the fitted view rather than 1:1.
+        if (fitToSurface()) {
             return;
         }
         setZoom(1);
         setOffset({ x: 0, y: 0 });
-    }, [fill, fitToSurface]);
+    }, [fitToSurface]);
 
-    // Auto fit-to-surface once the fullscreen viewport has a measurable size
-    // and the SVG is in the DOM. We fit a single time (the user can pan/zoom
-    // freely afterwards, and "reset" re-fits on demand).
+    // Auto fit-to-surface once the viewport has a measurable size and the SVG
+    // is in the DOM (applies to both the panel and fullscreen). We fit a single
+    // time (the user can pan/zoom freely afterwards, and "reset" re-fits).
     useEffect(() => {
-        if (!fill) {
-            return;
-        }
         let fitted = false;
         const tryFit = () => {
             if (!fitted && fitToSurface()) {
@@ -265,7 +262,7 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, for
             observer.disconnect();
             cancelAnimationFrame(handle);
         };
-    }, [fill, svg, fitToSurface]);
+    }, [svg, fitToSurface]);
 
     // Fullscreen: scroll/trackpad wheel zooms toward the cursor. A non-passive
     // native listener is required so we can preventDefault the page/scroll-area
@@ -306,9 +303,9 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, for
         return () => surface.removeEventListener('wheel', handleWheel);
     }, [fill]);
 
-    // In fullscreen, zoom in clean 10%-of-fit increments so the relative
-    // readout stays round; inline keeps the absolute 0.25 step.
-    const zoomStep = fill ? Math.max(0.01, baseScale * 0.1) : ZOOM_STEP;
+    // When fitted (panel or fullscreen), step in clean 10%-of-fit increments so
+    // the relative readout stays round; otherwise use the absolute 0.25 step.
+    const zoomStep = baseScale !== 1 ? Math.max(0.01, baseScale * 0.1) : ZOOM_STEP;
     const zoomOut = () => setZoom((z) => Math.max(ZOOM_MIN, z - zoomStep));
     const zoomIn = () => setZoom((z) => Math.min(ZOOM_MAX, z + zoomStep));
     // The readout is relative to the baseline scale, so the fitted fullscreen
@@ -321,9 +318,10 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, for
                 ref={surfaceRef}
                 className={cn(
                     'flex cursor-grab select-none items-center justify-center touch-none active:cursor-grabbing',
-                    // `fill` (fullscreen) fills a definite-height container; otherwise the
-                    // surface is content-driven so the box matches the diagram's height.
-                    fill ? 'absolute inset-0' : 'w-full min-h-[120px]',
+                    // Both variants fit into a definite-height box: fullscreen fills
+                    // the dialog; the panel uses a fixed height so the diagram is
+                    // contain-fit into real estate instead of squished to a sliver.
+                    fill ? 'absolute inset-0' : 'w-full h-[360px]',
                 )}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
