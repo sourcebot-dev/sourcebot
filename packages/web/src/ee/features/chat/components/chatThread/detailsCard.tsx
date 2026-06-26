@@ -397,10 +397,8 @@ const StepTokenUsage = ({ usage, label = 'step' }: { usage: StepTokenUsageEntry,
 }
 
 
-// Usage thresholds for the context-window gauge. Below `YELLOW` the window has
-// plenty of headroom (green); past `RED` it's nearly full (red).
-const CONTEXT_USAGE_YELLOW_PERCENT = 70;
-const CONTEXT_USAGE_RED_PERCENT = 90;
+const CONTEXT_USAGE_YELLOW_PERCENT = 50;
+const CONTEXT_USAGE_RED_PERCENT = 80;
 
 const getContextUsageColorClass = (percent: number): string => {
     if (percent >= CONTEXT_USAGE_RED_PERCENT) {
@@ -409,7 +407,6 @@ const getContextUsageColorClass = (percent: number): string => {
     if (percent >= CONTEXT_USAGE_YELLOW_PERCENT) {
         return "text-yellow-500";
     }
-    // Desaturated sage green rather than the neon green-500.
     return "text-[#6cb38f]";
 };
 
@@ -424,9 +421,7 @@ const ContextWindowGauge = ({ total, percent }: { total: number, percent: number
     return (
         <div className="flex items-center gap-1.5 text-xs whitespace-nowrap">
             <svg width={size} height={size} className="-rotate-90 flex-shrink-0">
-                {/* Neutral gray track. (Theme tokens here are defined without an
-                    alpha channel, so an /opacity modifier on them is silently
-                    ignored — use a solid palette gray instead.) */}
+                {/* Neutral gray track. */}
                 <circle
                     cx={size / 2}
                     cy={size / 2}

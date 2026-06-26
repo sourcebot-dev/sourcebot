@@ -76,8 +76,8 @@ const loadCatalog = async (): Promise<ModelsDevCatalog | null> => {
  * Pure lookup of a model's context window in a models.dev catalog. Separated
  * from the network fetch so it can be unit-tested directly.
  *
- * Returns the total context window (input + output share it) in tokens, or
- * `undefined` when the model isn't catalogued or has no usable window.
+ * Returns the total context window in tokens, or `undefined` when the model 
+ * isn't catalogued or has no usable window.
  */
 export const lookupContextWindow = (
     catalog: ModelsDevCatalog | null,
@@ -94,13 +94,6 @@ export const lookupContextWindow = (
     return typeof context === 'number' && context > 0 ? context : undefined;
 };
 
-/**
- * Resolves the context window (in tokens) for a configured language model from
- * the models.dev catalog. Returns `undefined` when unknown — e.g. arbitrary
- * openai-compatible / self-hosted ids, provider/model ids that don't match the
- * catalog's keys (bedrock ARNs, vertex `@`-suffixed ids, azure deployments), or
- * when models.dev is unreachable. Never throws into the request path.
- */
 export const resolveContextWindow = async (
     config: Pick<LanguageModel, 'provider' | 'model'>,
 ): Promise<number | undefined> => {
