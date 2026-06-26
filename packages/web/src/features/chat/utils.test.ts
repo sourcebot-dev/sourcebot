@@ -1,5 +1,5 @@
 import { expect, test, describe, vi } from 'vitest'
-import { createUIMessage, fileReferenceToString, getAnswerPartFromAssistantMessage, getLastStepParts, getTurnProgressState, groupMessageIntoSteps, repairReferences } from './utils'
+import { createUIMessage, fileReferenceToString, getAnswerPartFromAssistantMessage, getLastStepParts, getTurnProgressState, getUserMessageText, groupMessageIntoSteps, repairReferences } from './utils'
 import { FILE_REFERENCE_REGEX, ANSWER_TAG } from './constants';
 import { SBChatMessage, SBChatMessagePart } from './types';
 
@@ -535,6 +535,75 @@ test('getAnswerPartFromAssistantMessage returns undefined when turn is in progre
     const result = getAnswerPartFromAssistantMessage(message, true);
 
     expect(result).toBeUndefined();
+});
+
+describe('getUserMessageText', () => {
+    test('returns the text when the text part is first', () => {
+        const message: SBChatMessage = {
+            role: 'user',
+            parts: [
+                {
+                    type: 'text',
+                    text: 'Hello, world!',
+                },
+            ],
+        } as SBChatMessage;
+
+        expect(getUserMessageText(message)).toBe('Hello, world!');
+    });
+
+    test('returns the text when a non-text part precedes the text part', () => {
+        const message: SBChatMessage = {
+            role: 'user',
+            parts: [
+                {
+                    type: 'data-source',
+                    data: {
+                        type: 'file',
+                        path: 'auth.ts',
+                        repo: 'github.com/sourcebot-dev/sourcebot',
+                        name: 'auth.ts',
+                        revision: 'main',
+                    },
+                },
+                {
+                    type: 'text',
+                    text: 'Explain this file',
+                },
+            ],
+        } as SBChatMessage;
+
+        expect(getUserMessageText(message)).toBe('Explain this file');
+    });
+
+    test('returns an empty string when there is no text part', () => {
+        const message: SBChatMessage = {
+            role: 'user',
+            parts: [
+                {
+                    type: 'data-source',
+                    data: {
+                        type: 'file',
+                        path: 'auth.ts',
+                        repo: 'github.com/sourcebot-dev/sourcebot',
+                        name: 'auth.ts',
+                        revision: 'main',
+                    },
+                },
+            ],
+        } as SBChatMessage;
+
+        expect(getUserMessageText(message)).toBe('');
+    });
+
+    test('returns an empty string when there are no parts', () => {
+        const message: SBChatMessage = {
+            role: 'user',
+            parts: [],
+        } as unknown as SBChatMessage;
+
+        expect(getUserMessageText(message)).toBe('');
+    });
 });
 
 test('repairReferences fixes missing colon after @file', () => {
