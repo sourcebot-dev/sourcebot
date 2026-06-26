@@ -1,19 +1,17 @@
 'use client';
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
     BookOpenIcon,
     Building2Icon,
     CheckIcon,
+    ListIcon,
     Loader2Icon,
     MoreHorizontalIcon,
     PencilIcon,
     PlusIcon,
     SearchIcon,
-    SparklesIcon,
-    StarIcon,
     Trash2Icon,
-    Unplug,
 } from "lucide-react";
 import { useToast } from "@/components/hooks/use-toast";
 import {
@@ -26,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -45,11 +44,10 @@ import { MarkdownRenderer } from "@/ee/features/chat/components/chatThread/markd
 import { TableOfContents } from "@/ee/features/chat/components/chatThread/tableOfContents";
 import { useExtractTOCItems } from "@/ee/features/chat/useTOCItems";
 import {
-    AUTO_ENROLLED_SKILL_TOOLTIP,
+    AutoEnrolledSkillBadge,
     DeleteWorkspaceSkillDialog,
-    FEATURED_SKILL_TOOLTIP,
+    FeaturedSkillBadge,
     SkillCommandBadge,
-    SkillStatusBadge,
 } from "@/ee/features/chat/skills/components/workspaceSkillShared";
 import {
     normalizeAgentSkillSlug,
@@ -159,28 +157,49 @@ interface SkillListRowProps {
     slug: string;
     isActive: boolean;
     badge?: React.ReactNode;
+    enabled?: boolean;
+    togglePending?: boolean;
+    onToggleEnabled?: (checked: boolean) => void;
     onSelect: () => void;
 }
 
-function SkillListRow({ name, slug, isActive, badge, onSelect }: SkillListRowProps) {
+function SkillListRow({ name, slug, isActive, badge, enabled, togglePending, onToggleEnabled, onSelect }: SkillListRowProps) {
     return (
-        <button
-            type="button"
-            onClick={onSelect}
+        <div
             className={cn(
-                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
+                "flex items-center rounded-lg transition-colors",
                 isActive ? "bg-muted" : "hover:bg-muted/50",
             )}
         >
-            <SkillAvatar name={name} size="sm" />
-            <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-foreground">{name}</p>
-                    {badge}
+            <button
+                type="button"
+                onClick={onSelect}
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-3 py-2.5 text-left"
+            >
+                <SkillAvatar name={name} size="sm" />
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-medium text-foreground">{name}</p>
+                        {badge}
+                    </div>
+                    <p className="truncate font-mono text-xs text-muted-foreground">/{slug}</p>
                 </div>
-                <p className="truncate font-mono text-xs text-muted-foreground">/{slug}</p>
-            </div>
-        </button>
+            </button>
+            {onToggleEnabled && (
+                <Switch
+                    checked={!!enabled}
+                    disabled={togglePending}
+                    onCheckedChange={onToggleEnabled}
+                    aria-label={`Enable ${name}`}
+                    className={cn(
+                        "mr-3 shrink-0",
+                        "data-[state=unchecked]:bg-muted-foreground/40 data-[state=unchecked]:border-muted-foreground/70",
+                        "data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600",
+                        "[&>span]:bg-foreground",
+                    )}
+                />
+            )}
+        </div>
     );
 }
 
@@ -457,18 +476,18 @@ export function SkillsPage({
         }
     };
 
-    const handleAdoptionChange = async (skill: DetailSkill, adopt: boolean) => {
-        setAdoptionPendingId(skill.id);
+    const handleAdoptionChange = async (skillId: string, adopt: boolean) => {
+        setAdoptionPendingId(skillId);
         try {
             const result = adopt
-                ? await adoptSharedSkill(skill.id)
-                : await unadoptSharedSkill(skill.id);
+                ? await adoptSharedSkill(skillId)
+                : await unadoptSharedSkill(skillId);
             if (isServiceError(result)) {
                 toast({ title: "Error", description: result.message, variant: "destructive" });
                 return;
             }
             setSharedSkills((current) => sortSharedAgentSkillCatalogItems(current.map((item) =>
-                item.id === skill.id
+                item.id === skillId
                     ? {
                         ...item,
                         isAdopted: adopt,
@@ -603,15 +622,14 @@ export function SkillsPage({
                                     slug={skill.slug}
                                     isActive={selectedId === skill.id && !isCreatingNew}
                                     onSelect={() => handleSelectSkill(skill.id)}
+                                    enabled={skill.isVisibleToUser}
+                                    togglePending={adoptionPendingId === skill.id}
+                                    onToggleEnabled={(checked) => void handleAdoptionChange(skill.id, checked)}
                                     badge={
                                         skill.featured ? (
-                                            <SkillStatusBadge icon={<StarIcon className="h-3 w-3" />} tooltip={FEATURED_SKILL_TOOLTIP}>
-                                                Featured
-                                            </SkillStatusBadge>
+                                            <FeaturedSkillBadge />
                                         ) : skill.autoEnrolled ? (
-                                            <SkillStatusBadge icon={<SparklesIcon className="h-3 w-3" />} tooltip={AUTO_ENROLLED_SKILL_TOOLTIP}>
-                                                Auto
-                                            </SkillStatusBadge>
+                                            <AutoEnrolledSkillBadge />
                                         ) : undefined
                                     }
                                 />
@@ -627,6 +645,7 @@ export function SkillsPage({
                             mode="create"
                             form={form}
                             isSaving={isSaving}
+                            isDirty={isDirty}
                             onNameChange={handleNameChange}
                             onSlugChange={(slug) => { setIsSlugTouched(true); setForm((current) => ({ ...current, slug })); }}
                             onSlugBlur={() => setForm((current) => ({ ...current, slug: normalizeAgentSkillSlug(current.slug) }))}
@@ -643,6 +662,7 @@ export function SkillsPage({
                             mode="edit"
                             form={form}
                             isSaving={isSaving}
+                            isDirty={isDirty}
                             onNameChange={handleNameChange}
                             onSlugChange={(slug) => { setIsSlugTouched(true); setForm((current) => ({ ...current, slug })); }}
                             onSlugBlur={() => setForm((current) => ({ ...current, slug: normalizeAgentSkillSlug(current.slug) }))}
@@ -656,10 +676,8 @@ export function SkillsPage({
                         <SkillDetailView
                             skill={selectedSkill}
                             scopePending={scopePendingId === selectedSkill.id}
-                            adoptionPending={adoptionPendingId === selectedSkill.id}
                             onSharedToggle={(shared) => handleSharedToggle(selectedSkill, shared)}
                             onEdit={handleStartEdit}
-                            onAdoptionChange={(adopt) => { void handleAdoptionChange(selectedSkill, adopt); }}
                             onMakePersonal={() => setConfirmMakePersonal(selectedSkill)}
                             onDelete={() => {
                                 if (selectedSkill.scope === "SHARED") {
@@ -855,10 +873,8 @@ function SkillsEmptyState({ onCreate }: { onCreate: () => void }) {
 interface SkillDetailViewProps {
     skill: DetailSkill;
     scopePending: boolean;
-    adoptionPending: boolean;
     onSharedToggle: (shared: boolean) => void;
     onEdit: () => void;
-    onAdoptionChange: (adopt: boolean) => void;
     onMakePersonal: () => void;
     onDelete: () => void;
 }
@@ -866,26 +882,25 @@ interface SkillDetailViewProps {
 function SkillDetailView({
     skill,
     scopePending,
-    adoptionPending,
     onSharedToggle,
     onEdit,
-    onAdoptionChange,
     onMakePersonal,
     onDelete,
 }: SkillDetailViewProps) {
     const isShared = skill.scope === "SHARED";
-    const sharedToggleDisabled = scopePending || (isShared && !skill.canManage);
-    const canEdit = skill.canManage;
+    const canManage = skill.canManage;
+    const sharedToggleDisabled = scopePending || (isShared && !canManage);
 
     // Track the rendered-markdown element via state (not a plain ref) so the TOC
     // hook re-runs once it mounts. The detail view is static after selection, so a
     // ref's `.current` would still read null on the render the hook depends on.
     const [instructionsEl, setInstructionsEl] = useState<HTMLDivElement | null>(null);
     const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
+    const [outlineOpen, setOutlineOpen] = useState(false);
     const { tocItems, activeId } = useExtractTOCItems({ target: instructionsEl, root: scrollEl });
 
     return (
-        <div className="flex h-full min-h-0 flex-col">
+        <div className="@container flex h-full min-h-0 flex-col">
             {/* Header */}
             <div className="flex shrink-0 items-center justify-between gap-6 border-b px-6 pb-5 pt-6">
                 <div className="flex min-w-0 max-w-5xl items-center gap-3">
@@ -900,55 +915,38 @@ function SkillDetailView({
                         )}
                     </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-3">
-                    <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                        <span>Shared</span>
-                        {scopePending ? (
-                            <Loader2Icon className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <Switch
-                                checked={isShared}
-                                disabled={sharedToggleDisabled}
-                                onCheckedChange={(checked) => onSharedToggle(checked)}
-                                aria-label="Shared"
-                            />
-                        )}
-                    </label>
-                    {canEdit && (
+                {canManage && (
+                    <div className="flex shrink-0 items-center gap-3">
+                        <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                            <span>Shared</span>
+                            {scopePending ? (
+                                <Loader2Icon className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Switch
+                                    checked={isShared}
+                                    disabled={sharedToggleDisabled}
+                                    onCheckedChange={(checked) => onSharedToggle(checked)}
+                                    aria-label="Shared"
+                                />
+                            )}
+                        </label>
                         <Button variant="outline" size="sm" onClick={onEdit}>
                             <PencilIcon className="mr-2 h-4 w-4" />
                             Edit
                         </Button>
-                    )}
-                    <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Actions for ${skill.name}`}>
-                                <MoreHorizontalIcon className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            {isShared && (
-                                <DropdownMenuItem
-                                    disabled={adoptionPending}
-                                    onClick={() => onAdoptionChange(!skill.isVisibleToUser)}
-                                >
-                                    {adoptionPending ? (
-                                        <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : skill.isVisibleToUser ? (
-                                        <Unplug className="mr-2 h-4 w-4" />
-                                    ) : (
-                                        <PlusIcon className="mr-2 h-4 w-4" />
-                                    )}
-                                    {skill.isVisibleToUser ? "Remove from my commands" : "Add to my commands"}
-                                </DropdownMenuItem>
-                            )}
-                            {isShared && skill.canManage && (
-                                <DropdownMenuItem onClick={onMakePersonal}>
-                                    <BookOpenIcon className="mr-2 h-4 w-4" />
-                                    Make personal
-                                </DropdownMenuItem>
-                            )}
-                            {skill.canManage && (
+                        <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Actions for ${skill.name}`}>
+                                    <MoreHorizontalIcon className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                {isShared && (
+                                    <DropdownMenuItem onClick={onMakePersonal}>
+                                        <BookOpenIcon className="mr-2 h-4 w-4" />
+                                        Make personal
+                                    </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
                                     onClick={onDelete}
@@ -956,21 +954,21 @@ function SkillDetailView({
                                     <Trash2Icon className="mr-2 h-4 w-4" />
                                     Delete
                                 </DropdownMenuItem>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                )}
             </div>
 
-            {/* Narrow-screen metadata; wide screens show these in the right sidebar instead. */}
-            <div className="grid shrink-0 grid-cols-1 gap-4 border-b px-6 py-4 sm:grid-cols-3 lg:hidden">
-                <SkillDetailMetaFields skill={skill} />
+            {/* Metadata folds to chips until the pane is wide enough for the right rail. */}
+            <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-6 py-3 @6xl:hidden">
+                <SkillMetaChips skill={skill} />
             </div>
 
-            {/* Body: contents rail · instructions · metadata sidebar */}
+            {/* Body: outline rail · reading column · metadata rail */}
             <div className="flex min-h-0 flex-1 gap-6 px-6 py-4">
                 {tocItems.length > 0 && (
-                    <div className="hidden w-48 shrink-0 overflow-y-auto lg:block">
+                    <div className="hidden w-48 shrink-0 overflow-y-auto @3xl:block">
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             On this page
                         </p>
@@ -978,29 +976,61 @@ function SkillDetailView({
                     </div>
                 )}
                 <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="mb-3 flex items-center gap-2">
-                        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">markdown</span>
-                        <span className="text-xs text-muted-foreground">
-                            {skill.instructions.length.toLocaleString()} / {INSTRUCTIONS_MAX_LENGTH.toLocaleString()}
-                        </span>
-                    </div>
-                    <div ref={setScrollEl} className="min-h-0 flex-1 overflow-y-auto rounded-md bg-muted/20 px-4 py-3">
-                        <MarkdownRenderer
-                            key={`view-${skill.id}`}
-                            ref={setInstructionsEl}
-                            content={skill.instructions}
-                            escapeHtml
-                            className="prose-sm prose-headings:scroll-mt-3 max-w-none"
-                        />
+                    <div className="mx-auto flex min-h-0 w-full max-w-[85ch] flex-1 flex-col">
+                        <div className="mb-3 flex items-center gap-2">
+                            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">markdown</span>
+                            <span className="text-xs text-muted-foreground">
+                                {skill.instructions.length.toLocaleString()} / {INSTRUCTIONS_MAX_LENGTH.toLocaleString()}
+                            </span>
+                            {tocItems.length > 0 && (
+                                <Popover open={outlineOpen} onOpenChange={setOutlineOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" size="sm" className="ml-auto h-7 gap-1.5 @3xl:hidden">
+                                            <ListIcon className="h-3.5 w-3.5" />
+                                            On this page
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent align="end" className="max-h-80 w-64 overflow-y-auto p-2">
+                                        <div onClick={() => setOutlineOpen(false)}>
+                                            <TableOfContents tocItems={tocItems} activeId={activeId} />
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            )}
+                        </div>
+                        <div ref={setScrollEl} className="min-h-0 flex-1 overflow-y-auto rounded-md bg-muted/20 px-4 py-3">
+                            <MarkdownRenderer
+                                key={`view-${skill.id}`}
+                                ref={setInstructionsEl}
+                                content={skill.instructions}
+                                escapeHtml
+                                className="prose-sm prose-headings:scroll-mt-3 max-w-none"
+                            />
+                        </div>
                     </div>
                 </div>
-                <div className="hidden w-72 shrink-0 lg:block">
+                <div className="hidden w-72 shrink-0 @6xl:block">
                     <div className="space-y-4 rounded-lg border bg-card p-4">
                         <SkillDetailMetaFields skill={skill} />
                     </div>
                 </div>
             </div>
         </div>
+    );
+}
+
+function SkillMetaChips({ skill }: { skill: DetailSkill }) {
+    const isShared = skill.scope === "SHARED";
+    const chipClass = "inline-flex items-center gap-1.5 rounded-md border bg-muted/40 px-2 py-1 text-xs text-muted-foreground";
+    return (
+        <>
+            <span className={chipClass}>
+                {isShared ? <Building2Icon className="h-3.5 w-3.5" /> : <BookOpenIcon className="h-3.5 w-3.5" />}
+                {isShared ? "Shared · workspace" : "Personal · only you"}
+            </span>
+            <span className={chipClass}>{skill.addedByEmail || "Unknown"}</span>
+            <span className={chipClass}>Updated {formatUpdatedAt(skill.updatedAt)}</span>
+        </>
     );
 }
 
@@ -1039,6 +1069,7 @@ interface SkillEditFormProps {
     mode: "create" | "edit";
     form: AgentSkillInput;
     isSaving: boolean;
+    isDirty: boolean;
     onNameChange: (name: string) => void;
     onSlugChange: (slug: string) => void;
     onSlugBlur: () => void;
@@ -1053,6 +1084,7 @@ function SkillEditForm({
     mode,
     form,
     isSaving,
+    isDirty,
     onNameChange,
     onSlugChange,
     onSlugBlur,
@@ -1063,18 +1095,36 @@ function SkillEditForm({
     editorKey,
 }: SkillEditFormProps) {
     const [instructionsView, setInstructionsView] = useState<InstructionsView>("write");
+    const formRef = useRef<HTMLFormElement>(null);
+
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+                event.preventDefault();
+                formRef.current?.requestSubmit();
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, []);
 
     return (
-        <form onSubmit={onSubmit} className="flex h-full min-h-0 flex-col">
+        <form ref={formRef} onSubmit={onSubmit} className="flex h-full min-h-0 flex-col">
             {/* Header */}
-            <div className="flex shrink-0 items-center justify-between gap-4 px-6 pb-5 pt-6">
+            <div className="flex shrink-0 items-center justify-between gap-4 border-b px-6 pb-5 pt-6">
                 <div className="flex min-w-0 items-center gap-3">
                     <SkillAvatar name={form.name || "?"} />
                     <h3 className="truncate text-xl font-semibold tracking-tight text-foreground">
                         {mode === "create" ? "New skill" : "Edit skill"}
                     </h3>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-3">
+                    {isDirty && !isSaving && (
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                            Unsaved changes
+                        </span>
+                    )}
                     <Button type="button" variant="outline" size="sm" disabled={isSaving} onClick={onCancel}>
                         Cancel
                     </Button>
@@ -1085,12 +1135,15 @@ function SkillEditForm({
                             <CheckIcon className="mr-2 h-4 w-4" />
                         )}
                         {isSaving ? "Saving..." : mode === "create" ? "Create skill" : "Save skill"}
+                        {!isSaving && (
+                            <kbd className="ml-2 font-sans text-xs font-normal text-primary-foreground/60">⌘S</kbd>
+                        )}
                     </Button>
                 </div>
             </div>
 
             {/* Fields */}
-            <div className="grid shrink-0 grid-cols-1 gap-4 border-t px-6 py-4 sm:grid-cols-2">
+            <div className="mx-auto grid w-full max-w-5xl shrink-0 grid-cols-1 gap-4 px-6 pt-6 sm:grid-cols-[3fr_2fr]">
                 <div className="space-y-2">
                     <Label htmlFor="skill-name">Name</Label>
                     <Input
@@ -1135,8 +1188,8 @@ function SkillEditForm({
             </div>
 
             {/* Instructions */}
-            <div className="flex min-h-0 flex-1 flex-col border-t px-6 py-4">
-                <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex w-full min-h-0 flex-1 flex-col pb-6 pt-6">
+                <div className="mx-auto mb-3 flex w-full max-w-5xl items-center justify-between gap-2 px-6">
                     <div className="flex items-center gap-3">
                         <Label htmlFor="skill-instructions" className="text-sm font-semibold">Instructions</Label>
                         <ToggleGroup
@@ -1164,9 +1217,12 @@ function SkillEditForm({
                         markdown · {form.instructions.length.toLocaleString()} / {INSTRUCTIONS_MAX_LENGTH.toLocaleString()}
                     </span>
                 </div>
-                <div className="flex min-h-0 flex-1 gap-4">
+                <div className={cn(
+                    "mx-auto flex w-full min-h-0 flex-1 gap-4 px-6",
+                    instructionsView === "split" ? "max-w-none" : "max-w-5xl",
+                )}>
                     <div className={cn("h-full min-h-0 flex-1", instructionsView === "preview" && "hidden")}>
-                        <div className={cn("relative h-full", instructionsView === "write" && "mx-auto max-w-[85ch]")}>
+                        <div className="relative h-full">
                             <SkillInstructionsEditor
                                 key={editorKey}
                                 id="skill-instructions"
@@ -1178,12 +1234,7 @@ function SkillEditForm({
                         </div>
                     </div>
                     {instructionsView !== "write" && (
-                        <div
-                            className={cn(
-                                "min-h-0 overflow-y-auto rounded-md bg-muted/20 px-4 py-3",
-                                instructionsView === "split" ? "flex-1" : "mx-auto w-full max-w-[85ch]",
-                            )}
-                        >
+                        <div className="min-h-0 flex-1 overflow-y-auto rounded-md bg-muted/20 px-4 py-3">
                             {form.instructions.trim() ? (
                                 <MarkdownRenderer
                                     content={form.instructions}

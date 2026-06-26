@@ -9,6 +9,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 export const FEATURED_SKILL_TOOLTIP = "Shown first in shared skill lists.";
 export const AUTO_ENROLLED_SKILL_TOOLTIP = "Added to members' Ask commands by default.";
@@ -21,21 +22,23 @@ export function SkillCommandBadge({ slug }: { slug: string }) {
     );
 }
 
-export function SkillStatusBadge({
+function SkillStatusBadge({
     children,
-    icon,
     tooltip,
+    className,
 }: {
     children: ReactNode;
-    icon?: ReactNode;
     tooltip?: string;
+    className?: string;
 }) {
     const badge = (
         <span
-            className="inline-flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+            className={cn(
+                "inline-flex items-center rounded border px-1.5 py-0.5 text-[11px] font-medium",
+                className ?? "border-border bg-background text-muted-foreground",
+            )}
             tabIndex={tooltip ? 0 : undefined}
         >
-            {icon}
             {children}
         </span>
     );
@@ -49,6 +52,28 @@ export function SkillStatusBadge({
             <TooltipTrigger asChild>{badge}</TooltipTrigger>
             <TooltipContent>{tooltip}</TooltipContent>
         </Tooltip>
+    );
+}
+
+export function FeaturedSkillBadge() {
+    return (
+        <SkillStatusBadge
+            tooltip={FEATURED_SKILL_TOOLTIP}
+            className="border-amber-500/40 bg-amber-500/15 text-amber-700 dark:border-amber-500/50 dark:bg-amber-950/60 dark:text-amber-400"
+        >
+            Featured
+        </SkillStatusBadge>
+    );
+}
+
+export function AutoEnrolledSkillBadge() {
+    return (
+        <SkillStatusBadge
+            tooltip={AUTO_ENROLLED_SKILL_TOOLTIP}
+            className="border-sky-500/40 bg-sky-500/15 text-sky-700 dark:border-sky-500/50 dark:bg-sky-950/60 dark:text-sky-400"
+        >
+            Auto
+        </SkillStatusBadge>
     );
 }
 
