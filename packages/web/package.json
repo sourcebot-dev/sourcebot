@@ -160,6 +160,7 @@
     "mermaid": "^11.16.0",
     "micromatch": "^4.0.8",
     "minidenticons": "^4.2.1",
+    "motion": "^12.42.0",
     "next": "^16.2.6",
     "next-auth": "^5.0.0-beta.30",
     "next-navigation-guard": "^0.2.0",

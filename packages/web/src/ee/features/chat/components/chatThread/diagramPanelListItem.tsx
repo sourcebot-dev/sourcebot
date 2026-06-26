@@ -32,20 +32,23 @@ export const DiagramPanelListItem = ({
         <div
             id={`diagram-panel-${diagram.id}`}
             className={cn(
-                'rounded-md scroll-mt-4 transition-shadow',
+                'relative rounded-md overflow-clip scroll-mt-4 transition-shadow',
                 isHighlighted ? 'ring-2 ring-primary' : isHovered && 'ring-1 ring-primary/50',
             )}
         >
-            <div className="flex items-center gap-2 border rounded-md px-2 py-1.5 bg-muted/30">
+            <div className={cn(
+                'sticky top-0 z-10 flex flex-row items-center bg-accent py-1 px-3 gap-1.5 border-l border-r border-t',
+                { 'border-b': !isExpanded },
+            )}>
                 <button
-                    className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                    className="flex flex-1 min-w-0 flex-row items-center gap-1.5 text-left"
                     onClick={onToggle}
                     aria-expanded={isExpanded}
                 >
                     {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <ChevronDown className="h-3 w-3 shrink-0 cursor-pointer" />
                     ) : (
-                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <ChevronRight className="h-3 w-3 shrink-0 cursor-pointer" />
                     )}
                     <Workflow className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <span className="text-sm truncate">{label}</span>
@@ -64,7 +67,7 @@ export const DiagramPanelListItem = ({
             {isExpanded && (
                 <MermaidDiagram
                     code={diagram.code}
-                    className="mt-2 mb-0"
+                    className="my-0 rounded-t-none border-t-0"
                 />
             )}
         </div>

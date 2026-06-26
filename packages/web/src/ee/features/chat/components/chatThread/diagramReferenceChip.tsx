@@ -5,7 +5,7 @@ import { Workflow } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { getDiagramAnchorId, getDiagramId, getDiagramTitle } from '@/ee/features/chat/diagramUtils';
 import { useDiagramPanel } from '@/ee/features/chat/diagramPanelContext';
-import { AnimatedShinyText } from '@/components/ui/animatedShinyText';
+import { TextShimmer } from '@/components/ui/textShimmer';
 import useCaptureEvent from '@/hooks/useCaptureEvent';
 
 interface DiagramReferenceChipProps {
@@ -85,7 +85,7 @@ export const DiagramReferenceChip = ({ code }: DiagramReferenceChipProps) => {
         >
             <Workflow className="h-4 w-4 shrink-0 text-muted-foreground" />
             {isGenerating ? (
-                <AnimatedShinyText className="truncate">{label}</AnimatedShinyText>
+                <TextShimmer as="span" className="truncate text-sm">{label}</TextShimmer>
             ) : (
                 <span className="truncate">{label}</span>
             )}
