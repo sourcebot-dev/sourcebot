@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
 import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, SearchScope, Source } from '@/features/chat/types';
-import { createUIMessage, getAllMentionElements, getTurnProgressState, resetEditor, slateContentToString } from '@/features/chat/utils';
+import { createUIMessage, getAllMentionElements, getTurnProgressState, getUserMessageText, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
 import { ArrowDownIcon, CopyIcon } from 'lucide-react';
@@ -204,16 +204,16 @@ export const ChatThread = ({
             } satisfies AdditionalChatRequestParams,
         });
 
+        const userMessageText = getUserMessageText(message);
         if (
             messages.length === 0 &&
-            message.parts.length > 0 &&
-            message.parts[0].type === 'text'
+            userMessageText.length > 0
         ) {
             generateAndUpdateChatNameFromMessage(
                 {
                     chatId,
                     languageModelId: selectedLanguageModel.model,
-                    message: message.parts[0].text,
+                    message: userMessageText,
                 },
             ).then((response) => {
                 if (isServiceError(response)) {

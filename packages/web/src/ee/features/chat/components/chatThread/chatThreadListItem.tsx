@@ -8,7 +8,7 @@ import { CSSProperties, forwardRef, memo, useCallback, useEffect, useMemo, useRe
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { Reference, referenceSchema, SBChatMessage, Source } from "@/features/chat/types";
 import { useExtractReferences } from '../../useExtractReferences';
-import { getAnswerPartFromAssistantMessage, getLastStepParts, groupMessageIntoSteps, isSBChatToolPart, repairReferences } from '@/features/chat/utils';
+import { getAnswerPartFromAssistantMessage, getLastStepParts, getUserMessageText, groupMessageIntoSteps, isSBChatToolPart, repairReferences } from '@/features/chat/utils';
 import { AnswerCard } from './answerCard';
 import { DetailsCard } from './detailsCard';
 import { ApprovalRequestedToolPart, ToolApprovalBanner } from './toolApprovalBanner';
@@ -65,7 +65,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     const userHasManuallyExpanded = useRef(false);
 
     const userQuestion = useMemo(() => {
-        return userMessage.parts.length > 0 && userMessage.parts[0].type === 'text' ? userMessage.parts[0].text : '';
+        return getUserMessageText(userMessage);
     }, [userMessage]);
 
     // Take the assistant message and repair any references that are not properly formatted.

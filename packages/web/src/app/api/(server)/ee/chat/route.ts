@@ -6,6 +6,7 @@ import { additionalChatRequestParamsSchema } from "@/features/chat/types";
 import { getLanguageModelKey } from "@/features/chat/utils";
 import { checkAskEntitlement, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
+import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { apiHandler } from "@/lib/apiHandler";
 import { ErrorCode } from "@/lib/errorCodes";
 import { captureEvent } from "@/lib/posthog";
@@ -89,6 +90,11 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
 
+            // Total context window for the selected model, used as the
+            // denominator for the UI's context-usage gauge. Undefined when
+            // unknown (e.g. self-hosted models).
+            const contextWindow = await resolveContextWindow(languageModelConfig);
+
             // No-op for non-Anthropic providers / when caching is disabled, so
             // it never perturbs other providers' requests.
             const promptCacheStrategy = getPromptCacheStrategy(
@@ -139,6 +145,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 disabledMcpServerIds,
                 model,
                 modelName: languageModelConfig.displayName ?? languageModelConfig.model,
+                contextWindow,
                 promptCacheStrategy,
                 modelProviderOptions: providerOptions,
                 modelTemperature: temperature,
