@@ -23,7 +23,7 @@ export const githubPrParser = async (octokit: Octokit, pullRequest: GitHubPullRe
         },
     });
 
-    parsedDiff = parse(diff.data as string);
+    parsedDiff = parse(diff.data as unknown as string);
 } catch (error) {
     logger.error("Error fetching diff: ", error);
     throw error;
