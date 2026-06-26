@@ -89,11 +89,11 @@ export interface AmazonBedrockLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed).
    */
   inputModalities?: ("text" | "image" | "audio" | "video")[];
   /**
-   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   * Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`.
    */
   supportedDocumentTypes?: "pdf"[];
 }
@@ -177,11 +177,11 @@ export interface AnthropicLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed).
    */
   inputModalities?: ("text" | "image" | "audio" | "video")[];
   /**
-   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   * Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`.
    */
   supportedDocumentTypes?: "pdf"[];
 }
@@ -240,11 +240,11 @@ export interface AzureLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed).
    */
   inputModalities?: ("text" | "image" | "audio" | "video")[];
   /**
-   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   * Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`.
    */
   supportedDocumentTypes?: "pdf"[];
 }
@@ -287,11 +287,11 @@ export interface DeepSeekLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed).
    */
   inputModalities?: ("text" | "image" | "audio" | "video")[];
   /**
-   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   * Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`.
    */
   supportedDocumentTypes?: "pdf"[];
 }
@@ -342,11 +342,11 @@ export interface GoogleGenerativeAILanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed).
    */
   inputModalities?: ("text" | "image" | "audio" | "video")[];
   /**
-   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   * Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`.
    */
   supportedDocumentTypes?: "pdf"[];
 }
@@ -397,11 +397,11 @@ export interface GoogleVertexAnthropicLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed).
    */
   inputModalities?: ("text" | "image" | "audio" | "video")[];
   /**
-   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   * Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`.
    */
   supportedDocumentTypes?: "pdf"[];
 }
@@ -460,11 +460,11 @@ export interface GoogleVertexLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed).
    */
   inputModalities?: ("text" | "image" | "audio" | "video")[];
   /**
-   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   * Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`.
    */
   supportedDocumentTypes?: "pdf"[];
 }
@@ -507,11 +507,11 @@ export interface MistralLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed).
    */
   inputModalities?: ("text" | "image" | "audio" | "video")[];
   /**
-   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   * Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`.
    */
   supportedDocumentTypes?: "pdf"[];
 }
@@ -562,11 +562,11 @@ export interface OpenAILanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed).
    */
   inputModalities?: ("text" | "image" | "audio" | "video")[];
   /**
-   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   * Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`.
    */
   supportedDocumentTypes?: "pdf"[];
 }
@@ -614,11 +614,11 @@ export interface OpenAICompatibleLanguageModel {
    */
   temperature?: number;
   /**
-   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed).
    */
   inputModalities?: ("text" | "image" | "audio" | "video")[];
   /**
-   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   * Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`.
    */
   supportedDocumentTypes?: "pdf"[];
 }
@@ -686,11 +686,11 @@ export interface OpenRouterLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed).
    */
   inputModalities?: ("text" | "image" | "audio" | "video")[];
   /**
-   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   * Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`.
    */
   supportedDocumentTypes?: "pdf"[];
 }
@@ -733,11 +733,11 @@ export interface XaiLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed).
    */
   inputModalities?: ("text" | "image" | "audio" | "video")[];
   /**
-   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   * Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`.
    */
   supportedDocumentTypes?: "pdf"[];
 }

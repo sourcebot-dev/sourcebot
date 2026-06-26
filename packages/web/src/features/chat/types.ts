@@ -215,8 +215,8 @@ export const languageModelInfoSchema = z.object({
     provider: z.enum(languageModelProviders).describe("The model provider (e.g., 'anthropic', 'openai')"),
     model: z.string().describe("The model ID"),
     displayName: z.string().optional().describe("Optional display name for the model"),
-    inputModalities: z.array(z.enum(['text', 'image', 'audio', 'video'])).default(['text']).describe("The input modalities the model can accept. Defaults to text-only."),
-    supportedDocumentTypes: z.array(z.enum(['pdf'])).default([]).describe("The document/file container formats the model can ingest natively. Defaults to none."),
+    inputModalities: z.array(z.enum(['text', 'image', 'audio', 'video'])).default(['text']).describe("The input modalities the model can accept (images, audio, video, text). Single-medium attachments are gated by these. Defaults to text-only."),
+    supportedDocumentTypes: z.array(z.enum(['pdf'])).default([]).describe("Rich compound document formats (e.g. PDF) the model can ingest natively, distinct from single-medium attachments gated by inputModalities. Defaults to none."),
 });
 
 /**
