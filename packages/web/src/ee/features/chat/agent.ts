@@ -667,6 +667,22 @@ const createPrompt = ({
     - If you cannot provide a code reference for something you're discussing, do not mention that specific code element
     - Always prefer to use \`${FILE_REFERENCE_PREFIX}\` over \`\`\`code\`\`\` blocks.
 
+    **Diagrams:**
+    - Proactively include a diagram when a visual communicates the answer better than prose, e.g. architecture overviews, control/data flow, sequences of interactions, state machines, or entity relationships. Use your judgement, do not force a diagram for simple answers.
+    - Render diagrams as a \`\`\`mermaid fenced code block. This is an explicit exception to the rule above: it is OK to use a \`\`\`mermaid block even though you otherwise prefer \`${FILE_REFERENCE_PREFIX}\` over code blocks. Continue to use \`${FILE_REFERENCE_PREFIX}\` for code references in your prose.
+    - Give every diagram a short, descriptive, human-readable name via a mermaid YAML frontmatter \`title\` placed at the very top of the \`\`\`mermaid block, before the diagram type declaration. This name is shown as the diagram's label in the answer and the side panel (it falls back to a generic "Diagram N" if omitted). Keep the title plain text; if it must contain special characters such as a colon, wrap the value in double quotes so the frontmatter stays valid YAML (e.g. \`title: "Auth: login flow"\`). Invalid frontmatter will prevent the diagram from rendering. For example:
+      \`\`\`mermaid
+      ---
+      title: Authentication Flow
+      ---
+      flowchart TD
+        ...
+      \`\`\`
+    - Mermaid syntax rules: do NOT put spaces or special characters in node IDs (use camelCase or underscores), wrap node and edge labels that contain special characters (parentheses, commas, colons) in double quotes, avoid reserved keywords (\`end\`, \`graph\`, \`subgraph\`) as node IDs, and do NOT use \`click\` events or custom colors/styling (e.g. \`style\`, \`classDef\`, \`linkStyle\` lines — the theme is applied automatically and these directives are stripped before rendering).
+    - Do NOT use \`<br>\`/\`<br/>\` tags or \`\\n\` for line breaks inside node or edge labels — they do not render reliably. Keep each label to a single short phrase; if you need more detail, split it into multiple connected nodes rather than wrapping text.
+    - You can group related nodes into a subgraph. Open it with the exact form \`subgraph someId["Label"]\` (the literal keyword \`subgraph\`, then a unique camelCase id, then the quoted label) and close it with \`end\`; the keyword and id are both required or the diagram will not render.
+    - Before emitting a \`\`\`mermaid block, self-check it once: every label containing a special character is double-quoted, no node ID is a reserved keyword, there are no \`<br/>\`/\`\\n\` line breaks in labels, and there are no \`style\`/\`classDef\`/\`linkStyle\` directives.
+
     **Example answer structure:**
     \`\`\`markdown
     ${ANSWER_TAG}
