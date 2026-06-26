@@ -252,7 +252,6 @@ describe("publishPersonalAgentSkillToShared", () => {
                 name: "Review",
                 description: "Review risky changes.",
                 enabled: true,
-                featured: false,
                 autoEnrolled: false,
                 createdById: "member-1",
                 createdAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -877,7 +876,6 @@ describe("listSharedAgentSkillManagement", () => {
             name: "Review",
             description: "Review risky changes.",
             enabled: true,
-            featured: true,
             autoEnrolled: false,
             createdAt: new Date("2026-01-01T00:00:00.000Z"),
             updatedAt: new Date("2026-01-02T00:00:00.000Z"),
@@ -893,7 +891,6 @@ describe("listSharedAgentSkillManagement", () => {
                 enabled: true,
             },
             orderBy: [
-                { featured: "desc" },
                 { updatedAt: "desc" },
                 { name: "asc" },
             ],
@@ -914,7 +911,6 @@ describe("listSharedAgentSkillManagement", () => {
             name: "Review",
             description: "Review risky changes.",
             enabled: true,
-            featured: true,
             autoEnrolled: false,
             createdAt: "2026-01-01T00:00:00.000Z",
             updatedAt: "2026-01-02T00:00:00.000Z",
@@ -938,15 +934,14 @@ describe("setSharedSkillFlag", () => {
             name: "Review",
             description: "Review risky changes.",
             enabled: true,
-            featured: true,
-            autoEnrolled: false,
+            autoEnrolled: true,
             createdAt: new Date("2026-01-01T00:00:00.000Z"),
             updatedAt: new Date("2026-01-02T00:00:00.000Z"),
         });
 
         const result = await setSharedSkillFlag({
             skillId: "skill-1",
-            data: { featured: true },
+            data: { autoEnrolled: true },
         });
 
         expect(prisma.agentSkill.findFirst).toHaveBeenCalledWith({
@@ -963,15 +958,14 @@ describe("setSharedSkillFlag", () => {
         expect(prisma.agentSkill.update).toHaveBeenCalledWith({
             where: { id: "skill-1" },
             data: {
-                featured: true,
+                autoEnrolled: true,
                 updatedById: "member-1",
             },
             select: expect.any(Object),
         });
         expect(result).toMatchObject({
             id: "skill-1",
-            featured: true,
-            autoEnrolled: false,
+            autoEnrolled: true,
         });
         expect(result).not.toHaveProperty("isAdopted");
         expect(result).not.toHaveProperty("isVisibleToUser");
@@ -983,7 +977,7 @@ describe("setSharedSkillFlag", () => {
 
         const result = await setSharedSkillFlag({
             skillId: "skill-1",
-            data: { featured: true },
+            data: { autoEnrolled: true },
         });
 
         expect(result).toEqual({
@@ -996,15 +990,12 @@ describe("setSharedSkillFlag", () => {
         expect(prisma.agentSkill.update).not.toHaveBeenCalled();
     });
 
-    test("rejects multi-flag updates", async () => {
+    test("rejects updates with no flag", async () => {
         setAuthContext({ role: OrgRole.OWNER });
 
         const result = await setSharedSkillFlag({
             skillId: "skill-1",
-            data: {
-                featured: true,
-                autoEnrolled: true,
-            },
+            data: {},
         });
 
         expect(result).toMatchObject({

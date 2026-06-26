@@ -79,7 +79,6 @@ const sharedSkill: SharedAgentSkillCatalogItem = {
     instructions: 'Do release steps',
     createdByEmail: 'author@sourcebot.dev',
     enabled: true,
-    featured: false,
     autoEnrolled: true,
     isAdopted: false,
     isRemoved: false,

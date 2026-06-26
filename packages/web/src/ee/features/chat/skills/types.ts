@@ -44,7 +44,6 @@ export const agentSkillListItemSchema = z.object({
 export const sharedAgentSkillBaseItemSchema = agentSkillListItemSchema.omit({
     instructions: true,
 }).extend({
-    featured: z.boolean(),
     autoEnrolled: z.boolean(),
 });
 
@@ -82,12 +81,8 @@ export const sortAgentSkillListItems = (skills: AgentSkillListItem[]) =>
         return updatedDiff !== 0 ? updatedDiff : a.name.localeCompare(b.name);
     });
 
-export const sortSharedAgentSkillCatalogItems = <T extends Pick<SharedAgentSkillBaseItem, "featured" | "updatedAt" | "name">>(skills: T[]) =>
+export const sortSharedAgentSkillCatalogItems = <T extends Pick<SharedAgentSkillBaseItem, "updatedAt" | "name">>(skills: T[]) =>
     [...skills].sort((a, b) => {
-        if (a.featured !== b.featured) {
-            return a.featured ? -1 : 1;
-        }
-
         const updatedDiff = new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
         return updatedDiff !== 0 ? updatedDiff : a.name.localeCompare(b.name);
     });
@@ -183,7 +178,7 @@ export const toAgentSkillListItem = (
 });
 
 const toSharedAgentSkillBaseItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "enabled" | "featured" | "autoEnrolled" | "createdAt" | "updatedAt">,
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "enabled" | "autoEnrolled" | "createdAt" | "updatedAt">,
 ): SharedAgentSkillBaseItem => ({
     id: skill.id,
     scope: skill.visibility,
@@ -193,16 +188,15 @@ const toSharedAgentSkillBaseItem = (
     enabled: skill.enabled,
     createdAt: skill.createdAt.toISOString(),
     updatedAt: skill.updatedAt.toISOString(),
-    featured: skill.featured,
     autoEnrolled: skill.autoEnrolled,
 });
 
 export const toSharedAgentSkillManagementItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "enabled" | "featured" | "autoEnrolled" | "createdAt" | "updatedAt">,
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "enabled" | "autoEnrolled" | "createdAt" | "updatedAt">,
 ): SharedAgentSkillManagementItem => toSharedAgentSkillBaseItem(skill);
 
 export const toSharedAgentSkillCatalogItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "instructions" | "enabled" | "featured" | "autoEnrolled" | "createdById" | "createdAt" | "updatedAt"> & {
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "instructions" | "enabled" | "autoEnrolled" | "createdById" | "createdAt" | "updatedAt"> & {
         adoptions: { id: string; removedAt: Date | null }[];
         createdBy: { email: string | null } | null;
     },

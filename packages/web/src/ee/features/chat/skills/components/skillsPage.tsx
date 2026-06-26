@@ -46,7 +46,6 @@ import { useExtractTOCItems } from "@/ee/features/chat/useTOCItems";
 import {
     AutoEnrolledSkillBadge,
     DeleteWorkspaceSkillDialog,
-    FeaturedSkillBadge,
     SkillCommandBadge,
 } from "@/ee/features/chat/skills/components/workspaceSkillShared";
 import {
@@ -83,7 +82,6 @@ interface DetailSkill {
     instructions: string;
     updatedAt: string;
     addedByEmail: string | null;
-    featured: boolean;
     autoEnrolled: boolean;
     isVisibleToUser: boolean;
     isCreatedByUser: boolean;
@@ -100,7 +98,6 @@ function toDetailFromPersonal(skill: AgentSkillListItem, currentUserEmail: strin
         instructions: skill.instructions,
         updatedAt: skill.updatedAt,
         addedByEmail: currentUserEmail,
-        featured: false,
         autoEnrolled: false,
         isVisibleToUser: true,
         isCreatedByUser: true,
@@ -118,7 +115,6 @@ function toDetailFromShared(skill: SharedAgentSkillCatalogItem, isOwner: boolean
         instructions: skill.instructions,
         updatedAt: skill.updatedAt,
         addedByEmail: skill.createdByEmail,
-        featured: skill.featured,
         autoEnrolled: skill.autoEnrolled,
         isVisibleToUser: skill.isVisibleToUser,
         isCreatedByUser: skill.isCreatedByUser,
@@ -626,9 +622,7 @@ export function SkillsPage({
                                     togglePending={adoptionPendingId === skill.id}
                                     onToggleEnabled={(checked) => void handleAdoptionChange(skill.id, checked)}
                                     badge={
-                                        skill.featured ? (
-                                            <FeaturedSkillBadge />
-                                        ) : skill.autoEnrolled ? (
+                                        skill.autoEnrolled ? (
                                             <AutoEnrolledSkillBadge />
                                         ) : undefined
                                     }

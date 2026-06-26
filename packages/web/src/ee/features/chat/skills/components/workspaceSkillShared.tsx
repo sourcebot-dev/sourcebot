@@ -11,7 +11,6 @@ import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-export const FEATURED_SKILL_TOOLTIP = "Shown first in shared skill lists.";
 export const AUTO_ENROLLED_SKILL_TOOLTIP = "Added to members' Ask commands by default.";
 
 export function SkillCommandBadge({ slug }: { slug: string }) {
@@ -52,17 +51,6 @@ function SkillStatusBadge({
             <TooltipTrigger asChild>{badge}</TooltipTrigger>
             <TooltipContent>{tooltip}</TooltipContent>
         </Tooltip>
-    );
-}
-
-export function FeaturedSkillBadge() {
-    return (
-        <SkillStatusBadge
-            tooltip={FEATURED_SKILL_TOOLTIP}
-            className="border-amber-500/40 bg-amber-500/15 text-amber-700 dark:border-amber-500/50 dark:bg-amber-950/60 dark:text-amber-400"
-        >
-            Featured
-        </SkillStatusBadge>
     );
 }
 

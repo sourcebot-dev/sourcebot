@@ -80,7 +80,6 @@ describe('WorkspaceAskAgentPage', () => {
             name: 'Review',
             description: 'Review risky changes.',
             enabled: true,
-            featured: false,
             autoEnrolled: false,
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
@@ -105,7 +104,6 @@ describe('WorkspaceAskAgentPage', () => {
             name: 'Review',
             description: 'Review risky changes.',
             enabled: true,
-            featured: false,
             autoEnrolled: false,
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
@@ -119,7 +117,7 @@ describe('WorkspaceAskAgentPage', () => {
         const deleteButton = screen.getByRole('button', { name: 'Delete Review' });
         expect(deleteButton.hasAttribute('disabled')).toBe(false);
 
-        fireEvent.click(screen.getByRole('switch', { name: 'Featured' }));
+        fireEvent.click(screen.getByRole('switch', { name: 'Auto' }));
 
         await waitFor(() => {
             expect(deleteButton.hasAttribute('disabled')).toBe(true);
@@ -134,7 +132,6 @@ describe('WorkspaceAskAgentPage', () => {
             name: 'Review A',
             description: 'Review risky changes.',
             enabled: true,
-            featured: false,
             autoEnrolled: false,
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
@@ -146,7 +143,6 @@ describe('WorkspaceAskAgentPage', () => {
             name: 'Review B',
             description: 'Review risky changes.',
             enabled: true,
-            featured: false,
             autoEnrolled: false,
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
@@ -161,7 +157,7 @@ describe('WorkspaceAskAgentPage', () => {
 
         await screen.findByText('Review A');
 
-        fireEvent.click(screen.getAllByRole('switch', { name: 'Featured' })[0]);
+        fireEvent.click(screen.getAllByRole('switch', { name: 'Auto' })[0]);
         await waitFor(() => {
             expect(screen.getByRole('button', { name: 'Delete Review A' }).hasAttribute('disabled')).toBe(true);
         });
@@ -175,7 +171,7 @@ describe('WorkspaceAskAgentPage', () => {
         expect(within(dialog).getByText('Review B')).not.toBeNull();
 
         await act(async () => {
-            resolveUpdate({ ...skillA, featured: true });
+            resolveUpdate({ ...skillA, autoEnrolled: true });
             await pendingUpdate;
         });
     });
@@ -188,7 +184,6 @@ describe('WorkspaceAskAgentPage', () => {
             name: 'Review A',
             description: 'Review risky changes.',
             enabled: true,
-            featured: false,
             autoEnrolled: false,
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
@@ -200,7 +195,6 @@ describe('WorkspaceAskAgentPage', () => {
             name: 'Review B',
             description: 'Review risky changes.',
             enabled: true,
-            featured: false,
             autoEnrolled: false,
             createdAt: '2026-06-18T00:00:00.000Z',
             updatedAt: '2026-06-18T00:00:00.000Z',
@@ -220,20 +214,20 @@ describe('WorkspaceAskAgentPage', () => {
         renderWorkspaceAskAgentPage({ orgSkills: [skillA, skillB] });
 
         await screen.findByText('Review A');
-        const featuredSwitches = screen.getAllByRole('switch', { name: 'Featured' });
+        const autoSwitches = screen.getAllByRole('switch', { name: 'Auto' });
 
-        fireEvent.click(featuredSwitches[0]);
+        fireEvent.click(autoSwitches[0]);
         await waitFor(() => {
             expect(screen.getByRole('button', { name: 'Delete Review A' }).hasAttribute('disabled')).toBe(true);
         });
 
-        fireEvent.click(featuredSwitches[1]);
+        fireEvent.click(autoSwitches[1]);
         await waitFor(() => {
             expect(screen.getByRole('button', { name: 'Delete Review B' }).hasAttribute('disabled')).toBe(true);
         });
 
         await act(async () => {
-            resolveA({ ...skillA, featured: true });
+            resolveA({ ...skillA, autoEnrolled: true });
             await updateA;
         });
 
@@ -243,7 +237,7 @@ describe('WorkspaceAskAgentPage', () => {
         expect(screen.getByRole('button', { name: 'Delete Review B' }).hasAttribute('disabled')).toBe(true);
 
         await act(async () => {
-            resolveB({ ...skillB, featured: true });
+            resolveB({ ...skillB, autoEnrolled: true });
             await updateB;
         });
 

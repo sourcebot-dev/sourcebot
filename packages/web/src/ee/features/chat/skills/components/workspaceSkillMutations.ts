@@ -3,7 +3,7 @@ import type { ServiceError } from "@/lib/serviceError";
 import { deleteSharedAgentSkill, setSharedSkillFlag } from "@/ee/features/chat/skills/actions";
 import { sortSharedAgentSkillCatalogItems, type SharedAgentSkillManagementItem } from "@/ee/features/chat/skills/types";
 
-export type OrgSkillFlagKey = "featured" | "autoEnrolled";
+export type OrgSkillFlagKey = "autoEnrolled";
 
 export async function deleteWorkspaceSkill<T extends { id: string }>({
     skillId,
@@ -23,7 +23,6 @@ export async function deleteWorkspaceSkill<T extends { id: string }>({
 
 export async function updateWorkspaceSkillFlag({
     skillId,
-    flag,
     checked,
     updateOrgSkills,
 }: {
@@ -34,9 +33,7 @@ export async function updateWorkspaceSkillFlag({
 }): Promise<ServiceError | null> {
     const result = await setSharedSkillFlag({
         skillId,
-        data: flag === "featured"
-            ? { featured: checked }
-            : { autoEnrolled: checked },
+        data: { autoEnrolled: checked },
     });
     if (isServiceError(result)) {
         return result;
