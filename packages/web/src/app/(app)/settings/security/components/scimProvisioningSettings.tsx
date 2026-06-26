@@ -15,8 +15,9 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { isServiceError } from "@/lib/utils";
-import { Copy, Check, AlertTriangle, Loader2, KeyRound, Plus, Trash2 } from "lucide-react";
+import { Copy, Check, AlertTriangle, Loader2, KeyRound, Plus, Trash2, Info } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useToast } from "@/components/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -130,9 +131,25 @@ export function ScimProvisioningSettings({ baseUrl, tokens }: ScimProvisioningSe
 
             <div className="border border-border rounded-lg bg-card">
                 <div className="flex items-center justify-between px-4 py-3">
-                    <span className="text-sm text-muted-foreground">
-                        {tokens.length} SCIM token{tokens.length !== 1 ? "s" : ""}
-                    </span>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>
+                            {tokens.length} SCIM token{tokens.length !== 1 ? "s" : ""}
+                        </span>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    type="button"
+                                    className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    aria-label="SCIM token info"
+                                >
+                                    <Info className="h-3.5 w-3.5" />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                                A SCIM token is a Bearer auth token used by your identity provider to call Sourcebot&apos;s SCIM API.
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
 
                     <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                         <DialogTrigger asChild>
