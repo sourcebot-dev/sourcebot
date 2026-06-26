@@ -96,3 +96,67 @@ describe('resolveContextWindow', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('resolveContextWindow resilience', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+        vi.resetModules();
+    });
+
+    // Re-import the module so each scenario starts with fresh internal cache state.
+    const importFresh = async () => {
+        vi.resetModules();
+        return await import('./modelContextWindow.server');
+    };
+
+    test('negative-caches failures instead of refetching on every call', async () => {
+        const fetchMock = vi.fn(async () => ({
+            ok: false,
+            status: 503,
+            statusText: 'Service Unavailable',
+        }) as unknown as Response);
+        vi.stubGlobal('fetch', fetchMock);
+
+        const mod = await importFresh();
+
+        expect(await mod.resolveContextWindow(model('anthropic', 'claude-sonnet-4-5'))).toBeUndefined();
+        expect(await mod.resolveContextWindow(model('anthropic', 'claude-sonnet-4-5'))).toBeUndefined();
+        expect(await mod.resolveContextWindow(model('openai', 'gpt-4.1'))).toBeUndefined();
+
+        // Only the first attempt hit the network; the rest were short-circuited
+        // by the negative-cache window, so chat sends don't repeatedly block.
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    test('preserves the last-known-good catalog when a refresh fails', async () => {
+        let nowMs = 1_700_000_000_000;
+        vi.spyOn(Date, 'now').mockImplementation(() => nowMs);
+
+        let shouldFail = false;
+        const fetchMock = vi.fn(async () => (shouldFail
+            ? { ok: false, status: 503, statusText: 'Service Unavailable' }
+            : { ok: true, json: async () => catalog }) as unknown as Response);
+        vi.stubGlobal('fetch', fetchMock);
+
+        const mod = await importFresh();
+
+        // First load populates the cache.
+        expect(await mod.resolveContextWindow(model('anthropic', 'claude-sonnet-4-5'))).toBe(200000);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+
+        // Advance past the TTL and make every refresh fail.
+        nowMs += 7 * 60 * 60 * 1000;
+        shouldFail = true;
+
+        // Stale-while-revalidate: serves the cached value and refreshes in the
+        // background (which fails).
+        expect(await mod.resolveContextWindow(model('anthropic', 'claude-sonnet-4-5'))).toBe(200000);
+        // Let the background refresh settle.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+
+        // The failed refresh must not have discarded the good catalog.
+        expect(await mod.resolveContextWindow(model('anthropic', 'claude-sonnet-4-5'))).toBe(200000);
+    });
+});

@@ -13,6 +13,9 @@ const FETCH_TIMEOUT_MS = 8000;
 // Re-fetch the (~2.4 MB) catalog at most once per this interval per server
 // process. New models trickle in daily; a stale window for a few hours is fine.
 const CATALOG_TTL_MS = 6 * 60 * 60 * 1000;
+// After a failed fetch, don't reattempt for this long. Without it, an outage in
+// models.dev would make every chat send pay the fetch timeout on the request path.
+const NEGATIVE_CACHE_MS = 60 * 1000;
 
 // Sourcebot provider id -> models.dev top-level catalog key. Only providers
 // whose Sourcebot id differs from the models.dev id need an entry; everything
@@ -37,8 +40,14 @@ type ModelsDevProvider = {
 
 export type ModelsDevCatalog = Record<string, ModelsDevProvider>;
 
-let catalogPromise: Promise<ModelsDevCatalog | null> | null = null;
+// Last successfully-fetched catalog. Served while fresh, and kept as a fallback
+// when a later refresh fails. `catalogFetchedAt` is when it was fetched (TTL),
+// `lastFailedAt` the most recent fetch failure (negative-cache backoff), and
+// `inFlightFetch` dedupes concurrent fetches.
+let cachedCatalog: ModelsDevCatalog | null = null;
 let catalogFetchedAt = 0;
+let lastFailedAt = 0;
+let inFlightFetch: Promise<ModelsDevCatalog | null> | null = null;
 
 const fetchCatalog = async (): Promise<ModelsDevCatalog | null> => {
     try {
@@ -58,18 +67,33 @@ const fetchCatalog = async (): Promise<ModelsDevCatalog | null> => {
 
 const loadCatalog = async (): Promise<ModelsDevCatalog | null> => {
     const now = Date.now();
-    if (!catalogPromise || now - catalogFetchedAt > CATALOG_TTL_MS) {
-        catalogFetchedAt = now;
-        catalogPromise = fetchCatalog().then((catalog) => {
-            // Don't memoize failures — let the next caller retry instead of
-            // being stuck with a null catalog until the TTL expires.
-            if (!catalog) {
-                catalogPromise = null;
+    const isFresh = cachedCatalog !== null && now - catalogFetchedAt <= CATALOG_TTL_MS;
+    const isBackingOff = now - lastFailedAt < NEGATIVE_CACHE_MS;
+
+    // Kick off a (deduped) refresh when the cache is stale/empty and we're not
+    // within the post-failure backoff window. On success it replaces the cache;
+    // on failure it only records the failure time, leaving the last-known-good
+    // catalog intact.
+    if (!isFresh && !isBackingOff && !inFlightFetch) {
+        inFlightFetch = fetchCatalog().then((catalog) => {
+            if (catalog) {
+                cachedCatalog = catalog;
+                catalogFetchedAt = Date.now();
+            } else {
+                lastFailedAt = Date.now();
             }
+            inFlightFetch = null;
             return catalog;
         });
     }
-    return catalogPromise;
+
+    // Once a catalog has loaded once, never block the request path on the
+    // network: serve the last-known-good value (even if stale) and let any
+    // refresh settle in the background. Only the very first load awaits.
+    if (cachedCatalog !== null) {
+        return cachedCatalog;
+    }
+    return inFlightFetch ?? null;
 };
 
 /**
