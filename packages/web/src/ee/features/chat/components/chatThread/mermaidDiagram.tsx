@@ -16,7 +16,8 @@ import {
 import { useThemeNormalized } from '@/hooks/useThemeNormalized';
 import { cn } from '@/lib/utils';
 import { CornerUpLeft, Copy, Download, Loader2, Maximize2, PanelRight, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
-import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { TransformWrapper, TransformComponent, type ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
 import { CodeBlock } from './codeBlock';
 import { getDiagramAnchorId, getDiagramId } from '@/ee/features/chat/diagramUtils';
 import { useDiagramPanel } from '@/ee/features/chat/diagramPanelContext';
@@ -161,190 +162,187 @@ const svgToPngBlob = (svg: string, background: string): Promise<Blob | null> => 
     });
 };
 
-const ZOOM_MIN = 0.25;
-const ZOOM_MAX = 8;
-const ZOOM_STEP = 0.25;
+// Breathing room so the fitted diagram doesn't touch the viewport edges.
+const FIT_MARGIN = 0.95;
+// Fixed height of inline (in-answer) diagrams.
+const INLINE_VIEWPORT_HEIGHT = 360;
+
+// Panel sizing (see `computeFit`): the viewport grows to the diagram instead of
+// a fixed box, clamped to the readable area.
+const PANEL_MIN_HEIGHT = 240;
+// Gap below a full-height diagram (avoids scroll jitter, keeps neighbours reachable).
+const PANEL_VIEWPORT_MARGIN = 24;
+// Fallback when no scroll-area ancestor can be measured.
+const PANEL_FALLBACK_MAX_HEIGHT = 720;
+// Cap on enlarging a wide diagram: at most this many column-widths wide.
+const PANEL_MAX_OVERFLOW_FACTOR = 2.5;
+
+// Zoom limits and the button step are relative to the fitted ("100%") scale, so
+// the usable range and ±25% readout steps are consistent across diagram sizes.
+const ZOOM_OUT_FACTOR = 0.25;
+const ZOOM_IN_FACTOR = 32;
+const ZOOM_STEP_FACTOR = 0.25;
+
+interface IntrinsicSize {
+    width: number;
+    height: number;
+}
+
+// Diagram aspect ratio, from the SVG's viewBox. The SVG is rendered responsively
+// (fills the width), so we only need the ratio for the fit math.
+const parseSvgSize = (svg: string): IntrinsicSize => {
+    const viewBoxMatch = svg.match(/viewBox\s*=\s*["']([^"']+)["']/);
+    if (viewBoxMatch) {
+        const parts = viewBoxMatch[1].split(/[\s,]+/).map(Number).filter((n) => !Number.isNaN(n));
+        if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+            return { width: parts[2], height: parts[3] };
+        }
+    }
+    return { width: 1024, height: 768 };
+};
+
+interface DiagramFit {
+    // Initial transform scale (the 100% baseline); 1 = "fills the available width".
+    fitScale: number;
+    // Panel viewport height in px; null for inline / fullscreen (fixed / filled).
+    panelHeight: number | null;
+}
+
+// Pure fit, as a transform scale where 1 = "fills the available width". Inline
+// and fullscreen contain-fit the whole diagram; the panel contain-fits unless
+// the diagram is wider than the column, in which case it's enlarged to use the
+// readable height and overflows horizontally (bounded so it can't explode).
+const computeFit = (
+    { width: iw, height: ih }: IntrinsicSize,
+    availWidth: number,
+    availHeight: number,
+    autoHeight: boolean,
+): DiagramFit => {
+    // How tall the diagram is when it fills the available width (i.e. at scale 1).
+    const widthFitHeight = availWidth * (ih / iw);
+    const heightFitScale = availHeight / widthFitHeight;
+
+    if (!autoHeight) {
+        // Contain-fit: never wider than the box, shrink to fit the height if tall.
+        const fitScale = Math.min(1, heightFitScale) * FIT_MARGIN;
+        return { fitScale, panelHeight: null };
+    }
+
+    const isWiderThanPanel = iw > availWidth;
+    const fitScale = (isWiderThanPanel
+        // Enlarge into the readable height and overflow horizontally (drag to
+        // pan); never below filling the column width, capped at N column-widths.
+        ? Math.min(Math.max(heightFitScale, 1), PANEL_MAX_OVERFLOW_FACTOR)
+        // Contain-fit: the whole diagram stays visible.
+        : Math.min(1, heightFitScale)) * FIT_MARGIN;
+
+    const panelHeight = Math.round(Math.min(availHeight, Math.max(PANEL_MIN_HEIGHT, widthFitHeight * fitScale)));
+    return { fitScale, panelHeight };
+};
 
 /**
- * Interactive diagram surface: renders the SVG with click-drag panning and
- * zoom controls that reveal on hover. Shared by the inline and fullscreen
- * views so both behave identically.
+ * Interactive diagram surface: the SVG with drag-to-pan + zoom (via
+ * react-zoom-pan-pinch) and hover controls. Shared by the inline, panel, and
+ * fullscreen views. The SVG fills the available width and the transform handles
+ * zoom/overflow; `computeFit` picks the initial scale (treated as 100%), and the
+ * zoom limits and button step are relative to it.
  */
-const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, forceControlsVisible }: { svg: string; className?: string; controlsClassName?: string; actions?: ReactNode; fill?: boolean; forceControlsVisible?: boolean }) => {
-    const [zoom, setZoom] = useState(1);
-    const [offset, setOffset] = useState({ x: 0, y: 0 });
-    // The scale treated as the baseline for the zoom readout, so the fitted
-    // view reads 100%. When fitted this is the fit scale; otherwise it stays 1.
-    const [baseScale, setBaseScale] = useState(1);
-    const draggingRef = useRef(false);
-    const startRef = useRef({ x: 0, y: 0 });
-    const surfaceRef = useRef<HTMLDivElement>(null);
-    const contentRef = useRef<HTMLDivElement>(null);
-    const zoomRef = useRef(1);
-    useEffect(() => {
-        zoomRef.current = zoom;
-    }, [zoom]);
-    const offsetRef = useRef(offset);
-    useEffect(() => {
-        offsetRef.current = offset;
-    }, [offset]);
+const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, autoHeight, forceControlsVisible }: { svg: string; className?: string; controlsClassName?: string; actions?: ReactNode; fill?: boolean; autoHeight?: boolean; forceControlsVisible?: boolean }) => {
+    const intrinsic = useMemo(() => parseSvgSize(svg), [svg]);
+    const rootRef = useRef<HTMLDivElement>(null);
+    const apiRef = useRef<ReactZoomPanPinchRef>(null);
+    // Fit (initial scale + panel height), measured from the container. Null until
+    // measured; we gate the transform wrapper on it so the first paint is fitted.
+    const [fit, setFit] = useState<DiagramFit | null>(null);
+    // Live transform scale, driven by the library, for the relative zoom readout.
+    const [scale, setScale] = useState(0);
 
-    // Scale the diagram to fill the available surface with a small margin, so a
-    // small diagram doesn't open tiny and a large one is brought fully into view.
-    const fitToSurface = useCallback(() => {
-        const surface = surfaceRef.current;
-        const svgEl = contentRef.current?.querySelector('svg');
-        if (!surface || !svgEl) {
-            return false;
-        }
-
-        const availWidth = surface.clientWidth;
-        const availHeight = surface.clientHeight;
-        // Measure the SVG as currently rendered, then divide out the active
-        // zoom to recover its unscaled (1:1) size. Mermaid sizes the SVG via an
-        // inline max-width that is typically far smaller than its viewBox, so
-        // the rendered size — not the viewBox — is what we must fit against.
-        const rect = svgEl.getBoundingClientRect();
-        const currentZoom = zoomRef.current || 1;
-        const baseWidth = rect.width / currentZoom;
-        const baseHeight = rect.height / currentZoom;
-        if (!availWidth || !availHeight || !baseWidth || !baseHeight) {
-            return false;
-        }
-
-        const next = Math.min(availWidth / baseWidth, availHeight / baseHeight) * 0.95;
-        const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next));
-        setZoom(clamped);
-        // Anchor the zoom readout's 0% to the fitted scale.
-        setBaseScale(clamped);
-        setOffset({ x: 0, y: 0 });
-        return true;
-    }, []);
-
-    const onPointerDown = useCallback((e: React.PointerEvent) => {
-        draggingRef.current = true;
-        startRef.current = { x: e.clientX - offset.x, y: e.clientY - offset.y };
-        e.currentTarget.setPointerCapture(e.pointerId);
-    }, [offset]);
-
-    const onPointerMove = useCallback((e: React.PointerEvent) => {
-        if (!draggingRef.current) {
-            return;
-        }
-        setOffset({ x: e.clientX - startRef.current.x, y: e.clientY - startRef.current.y });
-    }, []);
-
-    const onPointerUp = useCallback((e: React.PointerEvent) => {
-        draggingRef.current = false;
-        try {
-            e.currentTarget.releasePointerCapture(e.pointerId);
-        } catch {
-            // no-op: pointer may already be released
-        }
-    }, []);
-
-    const reset = useCallback(() => {
-        // "Reset" returns to the fitted view rather than 1:1.
-        if (fitToSurface()) {
-            return;
-        }
-        setZoom(1);
-        setOffset({ x: 0, y: 0 });
-    }, [fitToSurface]);
-
-    // Auto fit-to-surface once the viewport has a measurable size and the SVG
-    // is in the DOM (applies to both the panel and fullscreen). We fit a single
-    // time (the user can pan/zoom freely afterwards, and "reset" re-fits).
-    useEffect(() => {
-        let fitted = false;
-        const tryFit = () => {
-            if (!fitted && fitToSurface()) {
-                fitted = true;
-                observer.disconnect();
-            }
-        };
-        const observer = new ResizeObserver(tryFit);
-        if (surfaceRef.current) {
-            observer.observe(surfaceRef.current);
-        }
-        const handle = requestAnimationFrame(tryFit);
-        return () => {
-            observer.disconnect();
-            cancelAnimationFrame(handle);
-        };
-    }, [svg, fitToSurface]);
-
-    // Fullscreen: scroll/trackpad wheel zooms toward the cursor. A non-passive
-    // native listener is required so we can preventDefault the page/scroll-area
-    // from scrolling underneath.
-    useEffect(() => {
-        if (!fill) {
-            return;
-        }
-        const surface = surfaceRef.current;
-        if (!surface) {
+    // Measure the available area and (re)compute the fit. Runs before paint and
+    // on container / scroll-viewport resize.
+    useLayoutEffect(() => {
+        const root = rootRef.current;
+        if (!root) {
             return;
         }
 
-        const handleWheel = (e: WheelEvent) => {
-            e.preventDefault();
-            const rect = surface.getBoundingClientRect();
-            // Cursor position relative to the surface center (the transform origin).
-            const pointerX = e.clientX - (rect.left + rect.width / 2);
-            const pointerY = e.clientY - (rect.top + rect.height / 2);
-
-            const prevZoom = zoomRef.current;
-            const nextZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, prevZoom * Math.exp(-e.deltaY * 0.0015)));
-            if (nextZoom === prevZoom) {
+        const measure = () => {
+            const availWidth = root.clientWidth;
+            if (!availWidth) {
                 return;
             }
-
-            // Keep the content point under the cursor stationary while zooming.
-            const ratio = nextZoom / prevZoom;
-            const prevOffset = offsetRef.current;
-            setZoom(nextZoom);
-            setOffset({
-                x: pointerX - ratio * (pointerX - prevOffset.x),
-                y: pointerY - ratio * (pointerY - prevOffset.y),
-            });
+            let availHeight: number;
+            if (fill) {
+                availHeight = root.clientHeight;
+            } else if (autoHeight) {
+                const viewport = root.closest('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+                availHeight = viewport
+                    ? Math.max(PANEL_MIN_HEIGHT, viewport.clientHeight - PANEL_VIEWPORT_MARGIN)
+                    : PANEL_FALLBACK_MAX_HEIGHT;
+            } else {
+                availHeight = INLINE_VIEWPORT_HEIGHT;
+            }
+            if (!availHeight) {
+                return;
+            }
+            const next = computeFit(intrinsic, availWidth, availHeight, !!autoHeight);
+            setFit((prev) => (prev && prev.fitScale === next.fitScale && prev.panelHeight === next.panelHeight ? prev : next));
         };
 
-        surface.addEventListener('wheel', handleWheel, { passive: false });
-        return () => surface.removeEventListener('wheel', handleWheel);
-    }, [fill]);
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(root);
+        const viewport = autoHeight ? root.closest('[data-radix-scroll-area-viewport]') : null;
+        if (viewport) {
+            observer.observe(viewport);
+        }
+        return () => observer.disconnect();
+    }, [intrinsic, autoHeight, fill]);
 
-    // When fitted (panel or fullscreen), step in clean 10%-of-fit increments so
-    // the relative readout stays round; otherwise use the absolute 0.25 step.
-    const zoomStep = baseScale !== 1 ? Math.max(0.01, baseScale * 0.1) : ZOOM_STEP;
-    const zoomOut = () => setZoom((z) => Math.max(ZOOM_MIN, z - zoomStep));
-    const zoomIn = () => setZoom((z) => Math.min(ZOOM_MAX, z + zoomStep));
-    // The readout is relative to the baseline scale, so the fitted view reads
-    // 100% and an unfitted 1:1 view (baseScale 1) also reads 100%.
-    const zoomLabel = `${Math.round((zoom / baseScale) * 100)}%`;
+    const fitScale = fit?.fitScale ?? 1;
+    const zoomStep = fitScale * ZOOM_STEP_FACTOR;
+    const zoomLabel = `${Math.round(((scale || fitScale) / fitScale) * 100)}%`;
+
+    const rootStyle: CSSProperties | undefined = fill
+        ? undefined
+        : { height: autoHeight ? (fit?.panelHeight ?? INLINE_VIEWPORT_HEIGHT) : INLINE_VIEWPORT_HEIGHT };
 
     return (
-        <div className={cn('group relative overflow-hidden bg-background', className)}>
-            <div
-                ref={surfaceRef}
-                className={cn(
-                    'flex cursor-grab select-none items-center justify-center touch-none active:cursor-grabbing',
-                    // Both variants fit into a definite-height box: fullscreen fills
-                    // the dialog; the panel uses a fixed height so the diagram is
-                    // contain-fit into real estate instead of squished to a sliver.
-                    fill ? 'absolute inset-0' : 'w-full h-[360px]',
-                )}
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                onPointerLeave={onPointerUp}
-            >
-                <div
-                    ref={contentRef}
-                    className="pointer-events-none [&_svg]:h-auto [&_svg]:max-w-full"
-                    style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})` }}
-                    dangerouslySetInnerHTML={{ __html: svg }}
-                />
-            </div>
+        <div ref={rootRef} className={cn('group relative overflow-hidden bg-background', className)} style={rootStyle}>
+            {fit && (
+                <TransformWrapper
+                    // Remount on a new diagram so it re-inits at the fresh fit
+                    // scale + centered; resizes update min/max/height in place.
+                    key={svg}
+                    ref={apiRef}
+                    initialScale={fit.fitScale}
+                    minScale={fit.fitScale * ZOOM_OUT_FACTOR}
+                    maxScale={fit.fitScale * ZOOM_IN_FACTOR}
+                    centerOnInit
+                    // Additive button steps (scale + step) so the readout moves in
+                    // round ±25%-of-fit increments.
+                    smooth={false}
+                    limitToBounds
+                    // Wheel zoom only in fullscreen; inline/panel let the wheel
+                    // scroll the surrounding content instead of hijacking it.
+                    wheel={{ disabled: !fill }}
+                    doubleClick={{ disabled: true }}
+                    onInit={(ref) => setScale(ref.state.scale)}
+                    onTransform={(_ref, state) => setScale(state.scale)}
+                >
+                    <TransformComponent
+                        wrapperClass="!w-full !h-full cursor-grab active:cursor-grabbing"
+                        wrapperStyle={{ width: '100%', height: '100%' }}
+                        // Content fills the column width (never its intrinsic px
+                        // size); the transform handles all zoom/overflow.
+                        contentStyle={{ width: '100%' }}
+                    >
+                        <div
+                            className="w-full [&_svg]:!w-full [&_svg]:!h-auto [&_svg]:!max-w-none"
+                            dangerouslySetInnerHTML={{ __html: svg }}
+                        />
+                    </TransformComponent>
+                </TransformWrapper>
+            )}
 
             <div className={cn('absolute right-2 top-2 flex items-center gap-0.5 rounded-md border bg-background/90 p-0.5 shadow-sm transition-opacity', forceControlsVisible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100', controlsClassName)}>
                 {actions}
@@ -353,7 +351,7 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, for
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 text-muted-foreground"
-                    onClick={zoomOut}
+                    onClick={() => apiRef.current?.zoomOut(zoomStep)}
                     aria-label="Zoom out"
                 >
                     <ZoomOut className="h-3 w-3" />
@@ -363,7 +361,7 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, for
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 text-muted-foreground"
-                    onClick={zoomIn}
+                    onClick={() => apiRef.current?.zoomIn(zoomStep)}
                     aria-label="Zoom in"
                 >
                     <ZoomIn className="h-3 w-3" />
@@ -372,7 +370,7 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, for
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 text-muted-foreground"
-                    onClick={reset}
+                    onClick={() => apiRef.current?.resetTransform()}
                     aria-label="Reset view"
                 >
                     <RotateCcw className="h-3 w-3" />
@@ -531,9 +529,10 @@ export const MermaidDiagram = ({
         }
     }, [svg, pngBackground]);
 
-    // Inline is capped (the answer pane shouldn't be dominated by one diagram);
-    // the panel sizes to the diagram's full height and lets the right pane scroll.
-    const viewportSizeClass = variant === 'panel' ? '' : 'max-h-[480px]';
+    // Inline diagrams are capped (the answer shouldn't be dominated by one); the
+    // panel grows to the diagram height (up to the readable area) via `autoHeight`.
+    const isPanel = variant === 'panel';
+    const viewportSizeClass = isPanel ? '' : 'max-h-[480px]';
 
     // On-hover controls overlaid on the diagram.
     const actions = (
@@ -616,7 +615,7 @@ export const MermaidDiagram = ({
             )}
         >
             {diagramReady ? (
-                <DiagramViewport svg={svg} className={viewportSizeClass} actions={actions} forceControlsVisible={isAnyMenuOpen} />
+                <DiagramViewport svg={svg} className={viewportSizeClass} actions={actions} autoHeight={isPanel} forceControlsVisible={isAnyMenuOpen} />
             ) : renderError ? (
                 // Invalid / mid-stream source: show it as code until it renders cleanly.
                 <CodeBlock code={code} language="mermaid" />

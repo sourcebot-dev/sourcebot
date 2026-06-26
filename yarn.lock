@@ -9519,6 +9519,7 @@ __metadata:
     react-markdown: "npm:^10.1.0"
     react-resizable-panels: "npm:^2.1.1"
     react-scan: "npm:^0.5.3"
+    react-zoom-pan-pinch: "npm:^4.0.3"
     recharts: "npm:^2.15.3"
     rehype-raw: "npm:^7.0.0"
     rehype-sanitize: "npm:^6.0.0"
@@ -20696,6 +20697,16 @@ __metadata:
     react: ">=16.6.0"
     react-dom: ">=16.6.0"
   checksum: 10c0/2ba754ba748faefa15f87c96dfa700d5525054a0141de8c75763aae6734af0740e77e11261a1e8f4ffc08fd9ab78510122e05c21c2d79066c38bb6861a886c82
+  languageName: node
+  linkType: hard
+
+"react-zoom-pan-pinch@npm:^4.0.3":
+  version: 4.0.3
+  resolution: "react-zoom-pan-pinch@npm:4.0.3"
+  peerDependencies:
+    react: "*"
+    react-dom: "*"
+  checksum: 10c0/611bc498891550c5e59da5ee94996ff9c31eae533affa10f2fa0b0cb7b5333b51c1e7aa1bb918dcfff2a103c42de0b1963e1fdfe4fa87fcae36b046c37a822b1
   languageName: node
   linkType: hard
 
