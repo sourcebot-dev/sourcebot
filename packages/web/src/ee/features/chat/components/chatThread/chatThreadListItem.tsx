@@ -8,8 +8,9 @@ import { CSSProperties, forwardRef, memo, useCallback, useEffect, useMemo, useRe
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { Reference, referenceSchema, SBChatMessage, Source } from "@/features/chat/types";
 import { useExtractReferences } from '../../useExtractReferences';
-import { getAnswerPartFromAssistantMessage, getLastStepParts, getUserMessageText, groupMessageIntoSteps, isSBChatToolPart, repairReferences, tryResolveFileReference } from '@/features/chat/utils';
+import { getAnswerPartFromAssistantMessage, getLastStepParts, getUserMessageAttachments, getUserMessageText, groupMessageIntoSteps, isSBChatToolPart, repairReferences, tryResolveFileReference } from '@/features/chat/utils';
 import { AnswerCard } from './answerCard';
+import { MessageAttachments } from './messageAttachments';
 import { DetailsCard } from './detailsCard';
 import { ApprovalRequestedToolPart, ToolApprovalBanner } from './toolApprovalBanner';
 import { MarkdownRenderer, REFERENCE_PAYLOAD_ATTRIBUTE } from './markdownRenderer';
@@ -50,6 +51,10 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
 
     const userQuestion = useMemo(() => {
         return getUserMessageText(userMessage);
+    }, [userMessage]);
+
+    const userAttachments = useMemo(() => {
+        return getUserMessageAttachments(userMessage);
     }, [userMessage]);
 
     // Take the assistant message and repair any references that are not properly formatted.
@@ -370,27 +375,30 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                         ref={leftPanelRef}
                         className="py-4 h-full"
                     >
-                        <div className="flex flex-row gap-2 mb-4">
-                            {isTurnInProgress ? (
-                                <Loader2 className="w-4 h-4 animate-spin flex-shrink-0 mt-1.5" />
-                            ) : (
-                                <CheckCircle className="w-4 h-4 text-green-700 flex-shrink-0 mt-1.5" />
+                        <div className="mb-4">
+                            {userAttachments.length > 0 && (
+                                <MessageAttachments attachments={userAttachments} className="mb-1.5 ml-6" />
                             )}
-                            <MarkdownRenderer
-                                content={userQuestion.trim()}
-                                className="prose-p:m-0"
-                                escapeHtml={true}
-                            />
+
+                            <div className="flex flex-row gap-2">
+                                {isTurnInProgress ? (
+                                    <Loader2 className="w-4 h-4 animate-spin flex-shrink-0 mt-1.5" />
+                                ) : (
+                                    <CheckCircle className="w-4 h-4 text-green-700 flex-shrink-0 mt-1.5" />
+                                )}
+                                <MarkdownRenderer
+                                    content={userQuestion.trim()}
+                                    className="prose-p:m-0"
+                                    escapeHtml={true}
+                                />
+                            </div>
                         </div>
 
                         {isThinking && (
-                            <div className="space-y-4 mb-4">
-                                <Skeleton className="h-4 max-w-32" />
-                                <div className="space-y-2">
-                                    <Skeleton className="h-3 max-w-72" />
-                                    <Skeleton className="h-3 max-w-64" />
-                                    <Skeleton className="h-3 max-w-56" />
-                                </div>
+                            <div className="space-y-2 mb-4">
+                                <Skeleton className="h-3 w-full max-w-80" />
+                                <Skeleton className="h-3 w-full max-w-72" />
+                                <Skeleton className="h-3 w-full max-w-56" />
                             </div>
                         )}
 

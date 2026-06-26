@@ -2,8 +2,9 @@ import { BrowseHighlightRange, getBrowsePath } from "@/app/(app)/browse/hooks/ut
 import { CreateUIMessage, isToolUIPart, TextUIPart, UIMessagePart } from "ai";
 import type { ChatStatus, DynamicToolUIPart, ToolUIPart } from "ai";
 import { Descendant, Editor, Point, Range, Transforms } from "slate";
-import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
+import { ANSWER_TAG, ATTACHMENT_MAX_FILENAME_LENGTH, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
 import {
+    AttachmentData,
     CustomEditor,
     CustomText,
     FileReference,
@@ -187,7 +188,7 @@ export const addLineNumbers = (source: string, lineOffset = 1) => {
     return source.split('\n').map((line, index) => `${index + lineOffset}: ${line}`).join('\n');
 }
 
-export const createUIMessage = (text: string, mentions: MentionData[], selectedSearchScopes: SearchScope[], disabledMcpServerIds: string[] = []): CreateUIMessage<SBChatMessage> => {
+export const createUIMessage = (text: string, mentions: MentionData[], selectedSearchScopes: SearchScope[], disabledMcpServerIds: string[] = [], attachments: AttachmentData[] = []): CreateUIMessage<SBChatMessage> => {
     // Converts applicable mentions into sources.
     const sources: Source[] = mentions
         .map((mention) => {
@@ -217,6 +218,10 @@ export const createUIMessage = (text: string, mentions: MentionData[], selectedS
                 type: 'data-source',
                 data,
             })) as UIMessagePart<{ source: Source }, SBChatMessageToolTypes>[],
+            ...attachments.map((data) => ({
+                type: 'data-attachment',
+                data,
+            })) as UIMessagePart<{ attachment: AttachmentData }, SBChatMessageToolTypes>[],
         ],
         metadata: {
             selectedSearchScopes,
@@ -403,6 +408,40 @@ export const repairReferences = (text: string): string => {
 // `parts` so it works for both persisted and freshly created messages.
 export const getUserMessageText = (message: Pick<SBChatMessage, 'parts'>): string => {
     return message.parts.find((part) => part.type === 'text')?.text ?? '';
+}
+
+// Extracts the inline-text attachments a user included with a message.
+export const getUserMessageAttachments = (message: Pick<SBChatMessage, 'parts'>): AttachmentData[] => {
+    return message.parts
+        .filter((part) => part.type === 'data-attachment')
+        .map((part) => part.data);
+}
+
+// Formats a user message's attachments into a delimited block suitable for
+// inlining into that turn's content. Returns an empty string when there are no
+// (text) attachments. `maxBytesPerAttachment` defensively truncates each
+// attachment's text (defense-in-depth against an oversized client payload).
+export const formatAttachmentsForPrompt = (attachments: AttachmentData[], maxBytesPerAttachment?: number): string => {
+    const textAttachments = attachments.filter((attachment) => attachment.kind === 'text');
+    if (textAttachments.length === 0) {
+        return '';
+    }
+
+    const blocks = textAttachments.map((attachment) => {
+        const text = maxBytesPerAttachment !== undefined
+            ? attachment.text.slice(0, maxBytesPerAttachment)
+            : attachment.text;
+        // Defense-in-depth: keep the filename on a single line, escape quotes,
+        // and cap its length so a crafted client can't break the tag or bloat
+        // the prompt (the client also sanitizes via sanitizeFilename).
+        const filename = attachment.filename
+            .replace(/\s+/g, ' ')
+            .replace(/"/g, '&quot;')
+            .slice(0, ATTACHMENT_MAX_FILENAME_LENGTH);
+        return `<attachment filename="${filename}" media-type="${attachment.mediaType}">\n${text}\n</attachment>`;
+    });
+
+    return `<attachments>\n${blocks.join('\n')}\n</attachments>`;
 }
 
 // Attempts to find the part of the assistant's message

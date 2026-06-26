@@ -3,13 +3,16 @@
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
+import { AttachmentData, CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
+import { PendingAttachment, readFilesAsAttachments, toAttachmentData } from "@/features/chat/attachmentUtils";
+import { AttachmentButton } from "./attachmentButton";
+import { AttachmentTray } from "./attachmentTray";
 import { cn } from "@/lib/utils";
 import { useIsMac } from "@/hooks/useIsMac";
 import { computePosition, flip, offset, shift, VirtualElement } from "@floating-ui/react";
 import { ArrowUp, Loader2, StopCircleIcon } from "lucide-react";
-import { Fragment, KeyboardEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, Fragment, KeyboardEvent, memo, Ref, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Descendant, insertText } from "slate";
 import { Editable, ReactEditor, RenderElementProps, RenderLeafProps, useFocused, useSelected, useSlate } from "slate-react";
@@ -28,8 +31,12 @@ import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { UpsellDialog } from "@/features/billing/upsellDialog";
 
+export interface ChatBoxHandle {
+    addFiles: (files: File[]) => void;
+}
+
 interface ChatBoxProps {
-    onSubmit: (children: Descendant[], editor: CustomEditor) => void;
+    onSubmit: (children: Descendant[], editor: CustomEditor, attachments: AttachmentData[]) => void;
     onStop?: () => void;
     preferredSuggestionsBoxPlacement?: "top-start" | "bottom-start";
     className?: string;
@@ -56,7 +63,7 @@ const ChatBoxComponent = ({
     isAuthenticated,
     selectedSearchScopes,
     searchContexts,
-}: ChatBoxProps) => {
+}: ChatBoxProps, ref: Ref<ChatBoxHandle>) => {
     const suggestionsBoxRef = useRef<HTMLDivElement>(null);
     const [index, setIndex] = useState(0);
     const editor = useSlate();
@@ -85,7 +92,40 @@ const ChatBoxComponent = ({
     const isAskEnabled = useHasEntitlement('ask');
     const [isLoginDialogOpen, setIsLoginDialogOpen] = useState<boolean>(false);
     const [isUpsellDialogOpen, setIsUpsellDialogOpen] = useState<boolean>(false);
+    const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
     const pathname = usePathname();
+
+    const onAddFiles = useCallback(async (files: File[]) => {
+        if (files.length === 0) {
+            return;
+        }
+
+        const { attachments: added, errors } = await readFilesAsAttachments(files, attachments.length);
+        if (added.length > 0) {
+            setAttachments((prev) => [...prev, ...added]);
+        }
+        if (errors.length > 0) {
+            toast({
+                description: `⚠️ ${errors.join(' ')}`,
+                variant: "destructive",
+            });
+        }
+
+        // Return focus to the prompt input so the user can keep typing.
+        ReactEditor.focus(editor);
+    }, [attachments.length, toast, editor]);
+
+    const removeAttachment = useCallback((id: string) => {
+        setAttachments((prev) => prev.filter((attachment) => attachment.id !== id));
+    }, []);
+
+    // Allow an ancestor pane-level drop zone to forward dropped files into this
+    // chat box (which owns attachment state). See `ChatPaneDropzone`.
+    useImperativeHandle(ref, () => ({
+        addFiles: (files: File[]) => {
+            void onAddFiles(files);
+        },
+    }), [onAddFiles]);
 
     // Reset the index when the suggestion mode changes.
     useEffect(() => {
@@ -123,7 +163,7 @@ const ChatBoxComponent = ({
         isSubmitDisabled: false,
         isSubmitDisabledReason: undefined,
     } => {
-        if (slateContentToString(editor.children).trim().length === 0) {
+        if (slateContentToString(editor.children).trim().length === 0 && attachments.length === 0) {
             return {
                 isSubmitDisabled: true,
                 isSubmitDisabledReason: "empty",
@@ -157,7 +197,7 @@ const ChatBoxComponent = ({
             isSubmitDisabledReason: undefined,
         }
 
-    }, [editor.children, isRedirecting, isTurnInProgress, selectedLanguageModel])
+    }, [editor.children, isRedirecting, isTurnInProgress, selectedLanguageModel, attachments.length])
 
     const {
         requiresLogin,
@@ -202,7 +242,8 @@ const ChatBoxComponent = ({
             return;
         }
 
-        _onSubmit(editor.children, editor);
+        _onSubmit(editor.children, editor, attachments.map(toAttachmentData));
+        setAttachments([]);
     }, [
         isSubmitDisabled,
         requiresLogin,
@@ -212,7 +253,8 @@ const ChatBoxComponent = ({
         isSubmitDisabledReason,
         toast,
         pathname,
-        captureEvent
+        captureEvent,
+        attachments
     ]);
 
     useEffect(() => {
@@ -235,7 +277,8 @@ const ChatBoxComponent = ({
             }
 
             sessionStorage.removeItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
-            _onSubmit(children, editor);
+            // Attachments are not persisted across the login/upgrade redirect.
+            _onSubmit(children, editor, []);
         } catch (error) {
             console.error('Failed to restore pending chat submission:', error);
             sessionStorage.removeItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
@@ -364,6 +407,13 @@ const ChatBoxComponent = ({
             <div
                 className={cn("flex flex-col justify-between gap-0.5 w-full px-3 py-2", className)}
             >
+                {attachments.length > 0 && (
+                    <AttachmentTray
+                        attachments={attachments}
+                        onRemove={removeAttachment}
+                        className="mb-1.5"
+                    />
+                )}
                 <Editable
                     className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm max-h-64 overflow-y-auto"
                     placeholder="Ask a question about your code. @mention files or select search scopes to refine your query."
@@ -371,8 +421,19 @@ const ChatBoxComponent = ({
                     renderLeaf={renderLeaf}
                     onKeyDown={onKeyDown}
                     readOnly={isDisabled}
+                    onPaste={(event) => {
+                        const files = event.clipboardData?.files ? Array.from(event.clipboardData.files) : [];
+                        if (files.length > 0) {
+                            event.preventDefault();
+                            void onAddFiles(files);
+                        }
+                    }}
                 />
-                <div className="ml-auto z-10">
+                <div className="flex flex-row items-center justify-end gap-1 z-10">
+                    <AttachmentButton
+                        onAddFiles={onAddFiles}
+                        disabled={isDisabled || isRedirecting || isTurnInProgress}
+                    />
                     {isRedirecting ? (
                         <Button
                             variant="default"
@@ -455,7 +516,7 @@ const ChatBoxComponent = ({
     )
 }
 
-export const ChatBox = memo(ChatBoxComponent, isEqual);
+export const ChatBox = memo(forwardRef(ChatBoxComponent), isEqual);
 
 const DefaultElement = (props: RenderElementProps) => {
     return <p {...props.attributes}>{props.children}</p>

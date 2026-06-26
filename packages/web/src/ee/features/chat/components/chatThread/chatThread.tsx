@@ -4,7 +4,7 @@ import { useToast } from '@/components/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
-import { AdditionalChatRequestParams, CustomEditor, LanguageModelInfo, SBChatMessage, SearchScope, Source } from '@/features/chat/types';
+import { AdditionalChatRequestParams, AttachmentData, CustomEditor, LanguageModelInfo, SBChatMessage, SearchScope, Source } from '@/features/chat/types';
 import { createUIMessage, getAllMentionElements, getTurnProgressState, getUserMessageText, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
@@ -15,8 +15,9 @@ import { useStickToBottom } from 'use-stick-to-bottom';
 import { Descendant } from 'slate';
 import { useMessagePairs } from '../../useMessagePairs';
 import { useSelectedLanguageModel } from '@/features/chat/useSelectedLanguageModel';
-import { ChatBox } from '@/features/chat/components/chatBox';
+import { ChatBox, ChatBoxHandle } from '@/features/chat/components/chatBox';
 import { ChatBoxToolbar } from '@/features/chat/components/chatBox/chatBoxToolbar';
+import { ChatPaneDropzone } from '@/features/chat/components/chatBox/chatPaneDropzone';
 import { ChatThreadListItem } from './chatThreadListItem';
 import { ErrorBanner } from './errorBanner';
 import { McpFailedServersBanner } from './mcpFailedServersBanner';
@@ -72,6 +73,7 @@ export const ChatThread = ({
 }: ChatThreadProps) => {
     const [isErrorBannerVisible, setIsErrorBannerVisible] = useState(false);
     const hasSubmittedInputMessage = useRef(false);
+    const chatBoxRef = useRef<ChatBoxHandle>(null);
     const { scrollRef, contentRef, scrollToBottom, isAtBottom } = useStickToBottom({ initial: false });
     const { toast } = useToast();
     const router = useRouter();
@@ -347,11 +349,11 @@ export const ChatThread = ({
         }
     }, [error]);
 
-    const onSubmit = useCallback(async (children: Descendant[], editor: CustomEditor) => {
+    const onSubmit = useCallback(async (children: Descendant[], editor: CustomEditor, attachments: AttachmentData[]) => {
         const text = slateContentToString(children);
         const mentions = getAllMentionElements(children);
 
-        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes, disabledMcpServerIds);
+        const message = createUIMessage(text, mentions.map(({ data }) => data), selectedSearchScopes, disabledMcpServerIds, attachments);
         sendMessage(message);
 
         scrollToBottom();
@@ -381,6 +383,11 @@ export const ChatThread = ({
     return (
         <ToolApprovalProvider value={addToolApprovalResponse}>
         <McpServerIconContext.Provider value={mcpServerIconMap}>
+        <ChatPaneDropzone
+            className="flex flex-col flex-1 min-h-0 w-full"
+            onFilesDropped={(files) => chatBoxRef.current?.addFiles(files)}
+            disabled={!isOwner || languageModels.length === 0}
+        >
             {error && (
                 <ErrorBanner
                     error={error}
@@ -470,6 +477,7 @@ export const ChatThread = ({
                         <div className="border rounded-md w-full shadow-sm">
                             <CustomSlateEditor>
                                 <ChatBox
+                                    ref={chatBoxRef}
                                     onSubmit={onSubmit}
                                     className="min-h-[80px]"
                                     preferredSuggestionsBoxPlacement="top-start"
@@ -520,6 +528,7 @@ export const ChatThread = ({
                     </div>
                 )}
             </div>
+        </ChatPaneDropzone>
         </McpServerIconContext.Provider>
         </ToolApprovalProvider>
     );

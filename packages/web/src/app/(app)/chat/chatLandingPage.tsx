@@ -5,6 +5,7 @@ import { CustomSlateEditor } from "@/features/chat/customSlateEditor";
 import { ServiceErrorException } from "@/lib/serviceError";
 import { isServiceError, measure } from "@/lib/utils";
 import { LandingPageChatBox } from "./components/landingPageChatBox";
+import { ChatLandingDropzone } from "./components/chatLandingDropzone";
 import { RepositoryCarousel } from "../components/repositoryCarousel";
 import { Separator } from "@/components/ui/separator";
 import { DemoCards } from "./components/demoCards";
@@ -56,7 +57,7 @@ export async function ChatLandingPage() {
     })() : undefined;
 
     return (
-        <div className="flex flex-col items-center h-full overflow-hidden">
+        <ChatLandingDropzone disabled={languageModels.length === 0}>
                 <div className="flex flex-col items-center h-full overflow-y-auto pt-8 pb-8 md:pt-16 w-full px-5">
                     <div className="max-h-44 w-auto">
                         <SourcebotLogo
@@ -92,6 +93,6 @@ export async function ChatLandingPage() {
                         </>
                     )}
                 </div>
-        </div>
+        </ChatLandingDropzone>
     )
 }
