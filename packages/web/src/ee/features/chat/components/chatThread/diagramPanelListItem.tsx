@@ -64,9 +64,6 @@ export const DiagramPanelListItem = ({
             {isExpanded && (
                 <MermaidDiagram
                     code={diagram.code}
-                    variant="panel"
-                    domId={`diagram-panel-inner-${diagram.id}`}
-                    listenToDeepLink={false}
                     className="mt-2 mb-0"
                 />
             )}

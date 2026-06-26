@@ -15,13 +15,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useThemeNormalized } from '@/hooks/useThemeNormalized';
 import { cn } from '@/lib/utils';
-import { CornerUpLeft, Copy, Download, Loader2, Maximize2, PanelRight, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
+import { Copy, Download, Loader2, Maximize2, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { CSSProperties, ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { TransformWrapper, TransformComponent, type ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
 import { CodeBlock } from './codeBlock';
 import { sanitizeMermaidCode } from './mermaidSanitize';
-import { getDiagramAnchorId, getDiagramId } from '@/ee/features/chat/diagramUtils';
-import { useDiagramPanel } from '@/ee/features/chat/diagramPanelContext';
+import { getDiagramAnchorId } from '@/ee/features/chat/diagramUtils';
 
 // Lazily-loaded mermaid module. Kept at module scope so the (heavy) library is
 // imported at most once, and only when a diagram actually needs to render.
@@ -154,8 +153,6 @@ const svgToPngBlob = (svg: string, background: string): Promise<Blob | null> => 
 
 // Breathing room so the fitted diagram doesn't touch the viewport edges.
 const FIT_MARGIN = 0.95;
-// Fixed height of inline (in-answer) diagrams.
-const INLINE_VIEWPORT_HEIGHT = 360;
 
 // Panel sizing (see `computeFit`): the viewport grows to the diagram instead of
 // a fixed box, clamped to the readable area.
@@ -232,12 +229,16 @@ const computeFit = (
 
 /**
  * Interactive diagram surface: the SVG with drag-to-pan + zoom (via
- * react-zoom-pan-pinch) and hover controls. Shared by the inline, panel, and
+ * react-zoom-pan-pinch) and hover controls. Shared by the right-panel and
  * fullscreen views. The SVG fills the available width and the transform handles
  * zoom/overflow; `computeFit` picks the initial scale (treated as 100%), and the
  * zoom limits and button step are relative to it.
+ *
+ * `fill` is the fullscreen mode (contain-fit into the dialog); otherwise this is
+ * the panel diagram, whose height grows to the diagram (clamped to the readable
+ * area).
  */
-const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, autoHeight, forceControlsVisible }: { svg: string; className?: string; controlsClassName?: string; actions?: ReactNode; fill?: boolean; autoHeight?: boolean; forceControlsVisible?: boolean }) => {
+const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, forceControlsVisible }: { svg: string; className?: string; controlsClassName?: string; actions?: ReactNode; fill?: boolean; forceControlsVisible?: boolean }) => {
     const intrinsic = useMemo(() => parseSvgSize(svg), [svg]);
     const rootRef = useRef<HTMLDivElement>(null);
     const apiRef = useRef<ReactZoomPanPinchRef>(null);
@@ -263,30 +264,30 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, aut
             let availHeight: number;
             if (fill) {
                 availHeight = root.clientHeight;
-            } else if (autoHeight) {
+            } else {
                 const viewport = root.closest('[data-radix-scroll-area-viewport]') as HTMLElement | null;
                 availHeight = viewport
                     ? Math.max(PANEL_MIN_HEIGHT, viewport.clientHeight - PANEL_VIEWPORT_MARGIN)
                     : PANEL_FALLBACK_MAX_HEIGHT;
-            } else {
-                availHeight = INLINE_VIEWPORT_HEIGHT;
             }
             if (!availHeight) {
                 return;
             }
-            const next = computeFit(intrinsic, availWidth, availHeight, !!autoHeight);
+            // Fullscreen contain-fits the whole diagram; the panel grows its
+            // height to the diagram (auto-height).
+            const next = computeFit(intrinsic, availWidth, availHeight, !fill);
             setFit((prev) => (prev && prev.fitScale === next.fitScale && prev.panelHeight === next.panelHeight ? prev : next));
         };
 
         measure();
         const observer = new ResizeObserver(measure);
         observer.observe(root);
-        const viewport = autoHeight ? root.closest('[data-radix-scroll-area-viewport]') : null;
+        const viewport = fill ? null : root.closest('[data-radix-scroll-area-viewport]');
         if (viewport) {
             observer.observe(viewport);
         }
         return () => observer.disconnect();
-    }, [intrinsic, autoHeight, fill]);
+    }, [intrinsic, fill]);
 
     const fitScale = fit?.fitScale ?? 1;
     const zoomStep = fitScale * ZOOM_STEP_FACTOR;
@@ -294,7 +295,7 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, aut
 
     const rootStyle: CSSProperties | undefined = fill
         ? undefined
-        : { height: autoHeight ? (fit?.panelHeight ?? INLINE_VIEWPORT_HEIGHT) : INLINE_VIEWPORT_HEIGHT };
+        : { height: fit?.panelHeight ?? PANEL_MIN_HEIGHT };
 
     return (
         <div ref={rootRef} className={cn('group relative overflow-hidden bg-background', className)} style={rootStyle}>
@@ -372,26 +373,17 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, aut
 
 interface MermaidDiagramProps {
     code: string;
-    /** DOM id for the container. Defaults to the canonical inline anchor. */
-    domId?: string;
-    /** 'inline' (in the answer) offers a "view in panel" action; 'panel' is the right-pane mirror. */
-    variant?: 'inline' | 'panel';
-    /** Whether to scroll/highlight when the URL hash targets this diagram. */
-    listenToDeepLink?: boolean;
-    /** Optional jump-to-counterpart action (used by the panel to jump to the inline diagram). */
-    onJump?: () => void;
-    jumpLabel?: string;
     /** Optional override classes for the root container (e.g. to drop the default margin). */
     className?: string;
 }
 
+/**
+ * Renders a mermaid source block as an interactive diagram (pan/zoom, copy,
+ * export, fullscreen). Used in the right "evidence" panel; inline, the answer
+ * renders a {@link DiagramReferenceChip} that reveals this panel diagram.
+ */
 export const MermaidDiagram = ({
     code,
-    domId,
-    variant = 'inline',
-    listenToDeepLink = true,
-    onJump,
-    jumpLabel,
     className,
 }: MermaidDiagramProps) => {
     const { theme } = useThemeNormalized();
@@ -402,21 +394,16 @@ export const MermaidDiagram = ({
     const [svg, setSvg] = useState<string | null>(null);
     const [renderError, setRenderError] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [isHighlighted, setIsHighlighted] = useState(false);
     // Keep the hover controls visible while a dropdown is open (the open menu
     // lives in a portal, so moving to it would otherwise drop the hover state).
     const [isCopyMenuOpen, setIsCopyMenuOpen] = useState(false);
     const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
     const isAnyMenuOpen = isCopyMenuOpen || isExportMenuOpen;
 
-    // Stable anchor derived from the (persisted) source, used for in-thread
-    // deep links: a link to `#${canonicalAnchorId}` re-renders and scrolls to
-    // the inline diagram on load. `containerId` may differ (e.g. the panel
-    // mirror) to avoid duplicate DOM ids.
+    // Stable anchor used by "Copy link to diagram": the link targets the inline
+    // diagram reference (`#diagram-<hash>`) in the answer, which scrolls into
+    // view and reveals this panel diagram on load.
     const canonicalAnchorId = useMemo(() => getDiagramAnchorId(code), [code]);
-    const containerId = domId ?? canonicalAnchorId;
-    const diagramPanel = useDiagramPanel();
-    const containerRef = useRef<HTMLDivElement>(null);
 
     // Render (debounced) whenever the source or theme changes. A try/catch
     // drives the fallback: partial or invalid mermaid leaves `svg` null and
@@ -445,26 +432,6 @@ export const MermaidDiagram = ({
     }, [code, mermaidTheme]);
 
     const diagramReady = svg !== null && !renderError;
-
-    // Scroll to (and briefly highlight) this diagram when the URL hash targets
-    // its anchor. Re-runs once the diagram renders so we land on final layout.
-    useEffect(() => {
-        if (!listenToDeepLink) {
-            return;
-        }
-        const checkHash = () => {
-            if (typeof window === 'undefined' || window.location.hash !== `#${canonicalAnchorId}`) {
-                return;
-            }
-            containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setIsHighlighted(true);
-            window.setTimeout(() => setIsHighlighted(false), 2000);
-        };
-
-        checkHash();
-        window.addEventListener('hashchange', checkHash);
-        return () => window.removeEventListener('hashchange', checkHash);
-    }, [canonicalAnchorId, diagramReady, listenToDeepLink]);
 
     const onCopyLink = useCallback(async () => {
         try {
@@ -519,36 +486,9 @@ export const MermaidDiagram = ({
         }
     }, [svg, pngBackground]);
 
-    // Inline diagrams are capped (the answer shouldn't be dominated by one); the
-    // panel grows to the diagram height (up to the readable area) via `autoHeight`.
-    const isPanel = variant === 'panel';
-    const viewportSizeClass = isPanel ? '' : 'max-h-[480px]';
-
     // On-hover controls overlaid on the diagram.
     const actions = (
         <>
-            {variant === 'inline' && diagramPanel && (
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 text-muted-foreground"
-                    onClick={() => diagramPanel.revealInPanel(getDiagramId(code))}
-                    aria-label="View in side panel"
-                >
-                    <PanelRight className="h-3 w-3" />
-                </Button>
-            )}
-            {onJump && (
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 text-muted-foreground"
-                    onClick={onJump}
-                    aria-label={jumpLabel ?? 'Jump to diagram'}
-                >
-                    <CornerUpLeft className="h-3 w-3" />
-                </Button>
-            )}
             <DropdownMenu open={isCopyMenuOpen} onOpenChange={setIsCopyMenuOpen}>
                 <DropdownMenuTrigger asChild>
                     <Button
@@ -596,22 +536,19 @@ export const MermaidDiagram = ({
 
     return (
         <div
-            ref={containerRef}
-            id={containerId}
             className={cn(
-                'flex flex-col rounded-md border overflow-hidden not-prose my-4 scroll-mt-16 transition-shadow',
-                isHighlighted && 'ring-2 ring-primary',
+                'flex flex-col rounded-md border overflow-hidden not-prose my-4',
                 className,
             )}
         >
             {diagramReady ? (
-                <DiagramViewport svg={svg} className={viewportSizeClass} actions={actions} autoHeight={isPanel} forceControlsVisible={isAnyMenuOpen} />
+                <DiagramViewport svg={svg} actions={actions} forceControlsVisible={isAnyMenuOpen} />
             ) : renderError ? (
                 // Invalid / mid-stream source: show it as code until it renders cleanly.
                 <CodeBlock code={code} language="mermaid" />
             ) : (
                 // Initial render in flight: show a neutral placeholder rather than the source.
-                <div className={cn('flex items-center justify-center bg-background text-muted-foreground', viewportSizeClass, 'min-h-[120px]')}>
+                <div className="flex items-center justify-center bg-background text-muted-foreground min-h-[120px]">
                     <Loader2 className="h-4 w-4 animate-spin" />
                 </div>
             )}
