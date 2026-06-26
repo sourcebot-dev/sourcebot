@@ -19,6 +19,7 @@ import { CornerUpLeft, Copy, Download, Loader2, Maximize2, PanelRight, RotateCcw
 import { CSSProperties, ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { TransformWrapper, TransformComponent, type ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
 import { CodeBlock } from './codeBlock';
+import { sanitizeMermaidCode } from './mermaidSanitize';
 import { getDiagramAnchorId, getDiagramId } from '@/ee/features/chat/diagramUtils';
 import { useDiagramPanel } from '@/ee/features/chat/diagramPanelContext';
 
@@ -33,17 +34,6 @@ const loadMermaid = async () => {
 };
 
 let renderCounter = 0;
-
-// Strip model-emitted custom styling so it can't override the auto-applied
-// theme. Line-anchored on the keyword, so it leaves node IDs, labels, and
-// `class X { ... }` member definitions untouched.
-const STYLING_DIRECTIVE_RE = /^\s*(?:style|classDef|linkStyle)\s/;
-
-const sanitizeMermaidCode = (code: string): string =>
-    code
-        .split('\n')
-        .filter((line) => !STYLING_DIRECTIVE_RE.test(line))
-        .join('\n');
 
 const renderMermaidToSvg = async (rawCode: string, theme: 'dark' | 'default'): Promise<string> => {
     const code = sanitizeMermaidCode(rawCode);
