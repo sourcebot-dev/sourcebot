@@ -9,9 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - [EE] Improved Ask Sourcebot prompt caching by splitting static and dynamic prompt sections and advancing cache breakpoints after every agent step instead of only after each message. [#1366](https://github.com/sourcebot-dev/sourcebot/pull/1366)
+- Refactored Ask Sourcebot user message text extraction into a shared helper that robustly handles non-text message parts. [#1371](https://github.com/sourcebot-dev/sourcebot/pull/1371)
 
 ### Added
 - Added per-step token cost tracking and estimated tool call token usage to Ask Sourcebot chat history. [#1353](https://github.com/sourcebot-dev/sourcebot/pull/1353)
+- [EE] Added a context-window usage gauge to the Ask Sourcebot chat details, showing how much of the selected model's context window each turn occupies. Window sizes are resolved from the models.dev catalog. [#1370](https://github.com/sourcebot-dev/sourcebot/pull/1370)
 - Added optional `inputModalities` and `supportedDocumentTypes` configuration for language models, exposing model input-modality and document capabilities (defaults to text-only, no documents). [#1372](https://github.com/sourcebot-dev/sourcebot/pull/1372)
 
 ### Fixed

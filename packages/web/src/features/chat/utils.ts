@@ -397,6 +397,14 @@ export const repairReferences = (text: string): string => {
         .replace(/`(@file:\{[^`]+)`\}/g, '$1}');
 };
 
+// Extracts the user's text from a message by finding the first text part.
+// User messages may contain non-text parts (e.g., file attachments), so we
+// cannot assume the text is always at index 0. Accepts anything carrying
+// `parts` so it works for both persisted and freshly created messages.
+export const getUserMessageText = (message: Pick<SBChatMessage, 'parts'>): string => {
+    return message.parts.find((part) => part.type === 'text')?.text ?? '';
+}
+
 // Attempts to find the part of the assistant's message
 // that contains the answer.
 export const getAnswerPartFromAssistantMessage = (message: SBChatMessage, isTurnInProgress: boolean): TextUIPart | undefined => {

@@ -22,7 +22,7 @@ import { randomUUID } from "crypto";
 import _dedent from "dedent";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX } from "@/features/chat/constants";
 import { Source } from "@/features/chat/types";
-import { addLineNumbers, fileReferenceToString, getAnswerPartFromAssistantMessage, getTurnProgressState } from "@/features/chat/utils";
+import { addLineNumbers, fileReferenceToString, getAnswerPartFromAssistantMessage, getTurnProgressState, getUserMessageText } from "@/features/chat/utils";
 import { createTools } from "./tools";
 import { getConnectedMcpClients } from "@/ee/features/chat/mcp/mcpClientFactory";
 import { getMcpTools, McpToolsResult } from "@/ee/features/chat/mcp/mcpToolSets";
@@ -54,6 +54,7 @@ interface CreateMessageStreamResponseProps {
     disabledMcpServerIds?: string[];
     model: AISDKLanguageModelV3;
     modelName: string;
+    contextWindow?: number;
     promptCacheStrategy: PromptCacheStrategy;
     onFinish: UIMessageStreamOnFinishCallback<SBChatMessage>;
     onError: (error: unknown) => string;
@@ -73,6 +74,7 @@ export const createMessageStream = async ({
     disabledMcpServerIds,
     model,
     modelName,
+    contextWindow,
     promptCacheStrategy,
     modelProviderOptions,
     modelTemperature,
@@ -105,7 +107,7 @@ export const createMessageStream = async ({
             if (message.role === 'user') {
                 return {
                     role: 'user',
-                    content: message.parts[0].type === 'text' ? message.parts[0].text : '',
+                    content: getUserMessageText(message),
                 };
             }
 
@@ -279,6 +281,7 @@ export const createMessageStream = async ({
                     // phases so earlier phases' steps are preserved in order.
                     stepTokenUsage: [...(priorMetadata?.stepTokenUsage ?? []), ...stepTokenUsage],
                     modelName,
+                    contextWindow,
                     traceId,
                 }
             });
