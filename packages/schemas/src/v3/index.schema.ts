@@ -1866,10 +1866,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -2015,10 +2025,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -2161,10 +2181,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -2279,10 +2309,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -2411,10 +2451,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -2545,10 +2595,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -2695,10 +2755,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -2813,10 +2883,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -2957,10 +3037,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -3132,10 +3222,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -3251,10 +3351,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -3373,10 +3483,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -3564,10 +3684,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -3713,10 +3843,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -3859,10 +3999,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -3977,10 +4127,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -4109,10 +4269,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -4243,10 +4413,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -4393,10 +4573,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -4511,10 +4701,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -4655,10 +4855,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -4830,10 +5040,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -4949,10 +5169,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [
@@ -5071,10 +5301,20 @@ const schema = {
                   "enum": [
                     "text",
                     "image",
+                    "audio",
+                    "video"
+                  ]
+                },
+                "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+              },
+              "supportedDocumentTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
                     "pdf"
                   ]
                 },
-                "description": "Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed)."
+                "description": "Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed)."
               }
             },
             "required": [

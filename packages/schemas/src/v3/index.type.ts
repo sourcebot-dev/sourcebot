@@ -763,9 +763,13 @@ export interface AmazonBedrockLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
    */
-  inputModalities?: ("text" | "image" | "pdf")[];
+  inputModalities?: ("text" | "image" | "audio" | "video")[];
+  /**
+   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   */
+  supportedDocumentTypes?: "pdf"[];
 }
 /**
  * Optional headers to use with the model.
@@ -847,9 +851,13 @@ export interface AnthropicLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
    */
-  inputModalities?: ("text" | "image" | "pdf")[];
+  inputModalities?: ("text" | "image" | "audio" | "video")[];
+  /**
+   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   */
+  supportedDocumentTypes?: "pdf"[];
 }
 export interface AzureLanguageModel {
   /**
@@ -906,9 +914,13 @@ export interface AzureLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
    */
-  inputModalities?: ("text" | "image" | "pdf")[];
+  inputModalities?: ("text" | "image" | "audio" | "video")[];
+  /**
+   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   */
+  supportedDocumentTypes?: "pdf"[];
 }
 export interface DeepSeekLanguageModel {
   /**
@@ -949,9 +961,13 @@ export interface DeepSeekLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
    */
-  inputModalities?: ("text" | "image" | "pdf")[];
+  inputModalities?: ("text" | "image" | "audio" | "video")[];
+  /**
+   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   */
+  supportedDocumentTypes?: "pdf"[];
 }
 export interface GoogleGenerativeAILanguageModel {
   /**
@@ -1000,9 +1016,13 @@ export interface GoogleGenerativeAILanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
    */
-  inputModalities?: ("text" | "image" | "pdf")[];
+  inputModalities?: ("text" | "image" | "audio" | "video")[];
+  /**
+   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   */
+  supportedDocumentTypes?: "pdf"[];
 }
 export interface GoogleVertexAnthropicLanguageModel {
   /**
@@ -1051,9 +1071,13 @@ export interface GoogleVertexAnthropicLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
    */
-  inputModalities?: ("text" | "image" | "pdf")[];
+  inputModalities?: ("text" | "image" | "audio" | "video")[];
+  /**
+   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   */
+  supportedDocumentTypes?: "pdf"[];
 }
 export interface GoogleVertexLanguageModel {
   /**
@@ -1110,9 +1134,13 @@ export interface GoogleVertexLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
    */
-  inputModalities?: ("text" | "image" | "pdf")[];
+  inputModalities?: ("text" | "image" | "audio" | "video")[];
+  /**
+   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   */
+  supportedDocumentTypes?: "pdf"[];
 }
 export interface MistralLanguageModel {
   /**
@@ -1153,9 +1181,13 @@ export interface MistralLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
    */
-  inputModalities?: ("text" | "image" | "pdf")[];
+  inputModalities?: ("text" | "image" | "audio" | "video")[];
+  /**
+   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   */
+  supportedDocumentTypes?: "pdf"[];
 }
 export interface OpenAILanguageModel {
   /**
@@ -1204,9 +1236,13 @@ export interface OpenAILanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
    */
-  inputModalities?: ("text" | "image" | "pdf")[];
+  inputModalities?: ("text" | "image" | "audio" | "video")[];
+  /**
+   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   */
+  supportedDocumentTypes?: "pdf"[];
 }
 export interface OpenAICompatibleLanguageModel {
   /**
@@ -1252,9 +1288,13 @@ export interface OpenAICompatibleLanguageModel {
    */
   temperature?: number;
   /**
-   * Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
    */
-  inputModalities?: ("text" | "image" | "pdf")[];
+  inputModalities?: ("text" | "image" | "audio" | "video")[];
+  /**
+   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   */
+  supportedDocumentTypes?: "pdf"[];
 }
 /**
  * Optional query parameters to include in the request url.
@@ -1320,9 +1360,13 @@ export interface OpenRouterLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
    */
-  inputModalities?: ("text" | "image" | "pdf")[];
+  inputModalities?: ("text" | "image" | "audio" | "video")[];
+  /**
+   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   */
+  supportedDocumentTypes?: "pdf"[];
 }
 export interface XaiLanguageModel {
   /**
@@ -1363,9 +1407,13 @@ export interface XaiLanguageModel {
   temperature?: number;
   headers?: LanguageModelHeaders;
   /**
-   * Optional list of input modalities this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
+   * Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Used to gate non-text chat attachments. When omitted, the model is treated as text-only (fail-closed).
    */
-  inputModalities?: ("text" | "image" | "pdf")[];
+  inputModalities?: ("text" | "image" | "audio" | "video")[];
+  /**
+   * Optional list of document/file container formats (e.g. PDF) the model can ingest natively, distinct from raw input modalities. Used to gate document attachments. When omitted, no document types are supported (fail-closed).
+   */
+  supportedDocumentTypes?: "pdf"[];
 }
 export interface GitHubAppConfig {
   /**
