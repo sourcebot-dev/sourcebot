@@ -14,6 +14,7 @@ import {
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
 declare module "@tanstack/react-table" {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -21,12 +22,13 @@ declare module "@tanstack/react-table" {
         className?: string;
     }
 }
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, Info } from "lucide-react";
 import { OrgRole } from "@sourcebot/db";
 import { UserAvatar } from "@/components/userAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DisplayDate } from "@/app/(app)/components/DisplayDate";
 import { NotificationDot } from "@/app/(app)/components/notificationDot";
 import { cn } from "@/lib/utils";
@@ -74,15 +76,35 @@ type RequestRow = Request & { kind: "request"; section: "requests" };
 export type TableRowData = MemberRow | InviteRow | RequestRow;
 export type MemberFilter = "all" | "owners" | "members" | Section;
 
-const SECTIONS: { id: Section; label: string }[] = [
-    { id: "active", label: "Active" },
-    { id: "pending", label: "Pending" },
-    { id: "suspended", label: "Suspended" },
-    { id: "invited", label: "Invited" },
-    { id: "requests", label: "Requests" },
+const SECTIONS: { id: Section; label: string; description: string }[] = [
+    {
+        id: "active",
+        label: "Active",
+        description: "Users who have access to the organization. Active users count toward billing.",
+    },
+    {
+        id: "pending",
+        label: "Pending",
+        description: "Users who have access to the organization but have never signed in. Pending users do not count toward billing.",
+    },
+    {
+        id: "suspended",
+        label: "Suspended",
+        description: "Users who cannot access the organization. Suspended users do not count toward billing.",
+    },
+    {
+        id: "invited",
+        label: "Invited",
+        description: "People with pending invitations to the organization.",
+    },
+    {
+        id: "requests",
+        label: "Requests",
+        description: "People who requested access to the organization.",
+    },
 ];
 
-const COLUMN_WIDTHS = ["auto", "120px", "120px", "120px", "64px"];
+const COLUMN_WIDTHS = ["auto", "180px", "120px", "120px", "64px"];
 
 const collator = new Intl.Collator(undefined, {
     numeric: true,
@@ -100,7 +122,7 @@ const getStatusLabel = (row: TableRowData) => {
     if (row.kind === "member") {
         return row.role.toLowerCase();
     }
-    return row.kind === "invite" ? "invited" : "requested";
+    return "";
 };
 
 const getJoinedTime = (row: TableRowData) => {
@@ -222,6 +244,7 @@ const getColumns = (actionContext: Omit<MembersTableActionsProps, "row">): Colum
         cell: ({ row }) => {
             const r = row.original;
             const name = getDisplayName(r);
+            const hasName = r.kind !== "invite" && r.name != null;
             const imageUrl = r.kind === "member" ? r.avatarUrl : r.kind === "request" ? r.image : undefined;
             return (
                 <div className="flex items-center gap-3 min-w-0">
@@ -230,7 +253,9 @@ const getColumns = (actionContext: Omit<MembersTableActionsProps, "row">): Colum
                         <div className="flex items-center gap-2 min-w-0">
                             <span className="font-medium truncate">{name}</span>
                         </div>
-                        <div className="text-sm text-muted-foreground truncate">{r.email}</div>
+                        {hasName && (
+                            <div className="text-sm text-muted-foreground truncate">{r.email}</div>
+                        )}
                     </div>
                 </div>
             );
@@ -241,13 +266,26 @@ const getColumns = (actionContext: Omit<MembersTableActionsProps, "row">): Colum
         accessorFn: getStatusLabel,
         meta: { className: "whitespace-nowrap" },
         sortingFn: sortByStatus,
-        header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
+        header: ({ column }) => <SortableHeader column={column}>Role</SortableHeader>,
         cell: ({ row }) => {
             const r = row.original;
             if (r.kind === "member") {
-                return <span className="text-sm text-muted-foreground capitalize">{r.role.toLowerCase()}</span>;
+                const roleLabel = r.role.toLowerCase();
+                const stateLabel = r.section === "pending" || r.section === "suspended"
+                    ? ` (${r.section})`
+                    : "";
+
+                return (
+                    <Badge
+                        variant={r.role === OrgRole.OWNER ? "default" : "secondary"}
+                        className="capitalize rounded-sm"
+                    >
+                        {roleLabel}
+                        {stateLabel}
+                    </Badge>
+                );
             }
-            return <Badge variant="secondary">{r.kind === "invite" ? "Invited" : "Requested"}</Badge>;
+            return <span className="text-sm text-muted-foreground">-</span>;
         },
     },
     {
@@ -451,6 +489,23 @@ export const MembersTable = ({
                                 >
                                     <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                                         <span>{section.label}</span>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                    aria-label={`${section.label} section info`}
+                                                >
+                                                    <Info className="h-3.5 w-3.5" />
+                                                </button>
+                                            </TooltipTrigger>
+                                            <TooltipPrimitive.Portal>
+                                                <TooltipContent className="max-w-xs">
+                                                    {section.description}
+                                                </TooltipContent>
+                                            </TooltipPrimitive.Portal>
+                                        </Tooltip>
+                                        •
                                         <span>{section.rows.length}</span>
                                     </div>
                                 </TableCell>
