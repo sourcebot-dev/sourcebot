@@ -335,6 +335,35 @@ export type PosthogEventMap = {
         chatId: string,
         isExpanded: boolean,
     },
+    wa_chat_diagram_rendered: {
+        chatId: string,
+        diagramId: string,
+        outcome: 'success' | 'error',
+        /** Mermaid diagram type (e.g. 'flowchart', 'sequenceDiagram'), if detectable. */
+        diagramType?: string,
+    },
+    wa_chat_diagram_fullscreen_opened: {
+        chatId: string,
+        diagramId: string,
+    },
+    wa_chat_diagram_copied: {
+        chatId: string,
+        diagramId: string,
+        format: 'link' | 'source' | 'image',
+    },
+    wa_chat_diagram_exported: {
+        chatId: string,
+        diagramId: string,
+        format: 'svg' | 'png',
+    },
+    wa_chat_diagram_panned: {
+        chatId: string,
+        diagramId: string,
+    },
+    wa_chat_diagram_reference_clicked: {
+        chatId: string,
+        diagramId: string,
+    },
     wa_user_created: {
         userId: string,
     },

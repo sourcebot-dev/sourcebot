@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added per-step token cost tracking and estimated tool call token usage to Ask Sourcebot chat history. [#1353](https://github.com/sourcebot-dev/sourcebot/pull/1353)
+- [EE] Added mermaid diagram rendering to Ask Sourcebot answers, with pan/zoom, copy/export, in-thread deep links, and an interleaved right-panel view. [#1369](https://github.com/sourcebot-dev/sourcebot/pull/1369)
 - [EE] Added a context-window usage gauge to the Ask Sourcebot chat details, showing how much of the selected model's context window each turn occupies. Window sizes are resolved from the models.dev catalog. [#1370](https://github.com/sourcebot-dev/sourcebot/pull/1370)
 
 ### Fixed
