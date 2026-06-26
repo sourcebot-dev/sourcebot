@@ -1,18 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDebounce } from "@uidotdev/usehooks";
+import { OrgRole } from "@sourcebot/db";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MembersFilterSelect } from "./membersFilterSelect";
 import { InviteMembersDialog } from "./inviteMembersDialog";
 import {
     MembersTable,
+    getMemberSection,
     type Invite,
     type Member,
     type MemberFilter,
     type Request,
+    type TableRowData,
 } from "./membersTable";
 
 interface MembersTableViewProps {
@@ -38,6 +42,24 @@ const isMemberFilter = (value: string | null): value is MemberFilter => {
         || value === "requests";
 };
 
+const csvEscape = (value: string | number | null | undefined) => {
+    return `"${String(value ?? "").replaceAll('"', '""')}"`;
+};
+
+const downloadCsv = (filename: string, rows: string[][]) => {
+    const csv = rows
+        .map((row) => row.map(csvEscape).join(","))
+        .join("\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+};
+
 export const MembersTableView = ({
     members,
     invites,
@@ -56,6 +78,25 @@ export const MembersTableView = ({
     const [searchQuery, setSearchQuery] = useState(urlSearchQuery);
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
     const searchParamsString = searchParams.toString();
+    const rows = useMemo<TableRowData[]>(() => {
+        const memberRows: TableRowData[] = members.map((member) => ({
+            ...member,
+            kind: "member",
+            section: getMemberSection(member),
+        }));
+        const inviteRows: TableRowData[] = invites.map((invite) => ({
+            ...invite,
+            kind: "invite",
+            section: "invited",
+        }));
+        const requestRows: TableRowData[] = requests.map((request) => ({
+            ...request,
+            kind: "request",
+            section: "requests",
+        }));
+
+        return [...memberRows, ...inviteRows, ...requestRows];
+    }, [invites, members, requests]);
 
     useEffect(() => {
         setFilter(urlMemberFilter);
@@ -106,6 +147,26 @@ export const MembersTableView = ({
         updateUrlFilters("all", "");
     };
 
+    const handleExportCsv = () => {
+        const csvRows = [
+            ["Name", "Email", "Role", "Status", "Joined", "Last seen"],
+            ...rows.map((row) => [
+                row.kind === "invite" ? "" : row.name ?? "",
+                row.email,
+                row.kind === "member"
+                    ? row.role === OrgRole.OWNER ? "Owner" : "Member"
+                    : "-",
+                row.kind === "request" ? "Requested" : row.section[0].toUpperCase() + row.section.slice(1),
+                (row.kind === "member" ? row.joinedAt : row.createdAt).toISOString(),
+                row.kind !== "member"
+                    ? ""
+                    : row.lastActiveAt?.toISOString() ?? "Never",
+            ]),
+        ];
+
+        downloadCsv(`${new Date().toISOString().slice(0, 10)}-members.csv`, csvRows);
+    };
+
     return (
         <div className="flex min-h-0 flex-1 flex-col gap-3">
             <div className="flex items-center gap-2">
@@ -119,7 +180,17 @@ export const MembersTableView = ({
                     />
                 </div>
                 <MembersFilterSelect value={filter} onValueChange={handleFilterChange} />
-                <InviteMembersDialog className="ml-auto" />
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="ml-auto"
+                    onClick={handleExportCsv}
+                    disabled={rows.length === 0}
+                >
+                    Export CSV
+                </Button>
+                <InviteMembersDialog />
             </div>
             <MembersTable
                 members={members}

@@ -68,7 +68,7 @@ export type Request = {
 
 // --- Unified row model -----------------------------------------------------
 
-type Section = "active" | "pending" | "suspended" | "invited" | "requests";
+export type Section = "active" | "pending" | "suspended" | "invited" | "requests";
 
 type MemberRow = Member & { kind: "member"; section: Extract<Section, "active" | "pending" | "suspended"> };
 type InviteRow = Invite & { kind: "invite"; section: "invited" };
@@ -104,25 +104,32 @@ const SECTIONS: { id: Section; label: string; description: string }[] = [
     },
 ];
 
-const COLUMN_WIDTHS = ["auto", "180px", "120px", "120px", "64px"];
+const COLUMN_WIDTHS = ["auto", "180px", "120px", "120px", "120px", "64px"];
 
 const collator = new Intl.Collator(undefined, {
     numeric: true,
     sensitivity: "base",
 });
 
-const getDisplayName = (row: TableRowData) => {
+export const getDisplayName = (row: TableRowData) => {
     if (row.kind === "invite") {
         return row.email;
     }
     return row.name ?? row.email;
 };
 
-const getStatusLabel = (row: TableRowData) => {
+const getRoleLabel = (row: TableRowData) => {
     if (row.kind === "member") {
         return row.role.toLowerCase();
     }
     return "";
+};
+
+const getStatusLabel = (row: TableRowData) => {
+    if (row.kind === "member") {
+        return row.section;
+    }
+    return row.kind === "invite" ? "invited" : "requested";
 };
 
 const getJoinedTime = (row: TableRowData) => {
@@ -136,7 +143,7 @@ const getLastSeenTime = (row: TableRowData) => {
     return row.lastActiveAt.getTime();
 };
 
-const rowMatchesFilter = (row: TableRowData, filter: MemberFilter) => {
+export const rowMatchesFilter = (row: TableRowData, filter: MemberFilter) => {
     if (filter === "all") {
         return true;
     }
@@ -149,7 +156,7 @@ const rowMatchesFilter = (row: TableRowData, filter: MemberFilter) => {
     return row.section === filter;
 };
 
-const rowMatchesSearch = (row: TableRowData, searchQuery: string) => {
+export const rowMatchesSearch = (row: TableRowData, searchQuery: string) => {
     const query = searchQuery.trim().toLowerCase();
     if (query.length === 0) {
         return true;
@@ -168,6 +175,11 @@ const sortByName: SortingFn<TableRowData> = (rowA, rowB) => {
 
 const sortByStatus: SortingFn<TableRowData> = (rowA, rowB) => {
     return collator.compare(getStatusLabel(rowA.original), getStatusLabel(rowB.original))
+        || compareByName(rowA.original, rowB.original);
+};
+
+const sortByRole: SortingFn<TableRowData> = (rowA, rowB) => {
+    return collator.compare(getRoleLabel(rowA.original), getRoleLabel(rowB.original))
         || compareByName(rowA.original, rowB.original);
 };
 
@@ -225,7 +237,7 @@ const ColumnWidths = () => (
  *  - pending:   unsuspended but never signed in to this org (`lastActiveAt == null`)
  *  - active:    active and has signed in at least once
  */
-const getMemberSection = (member: Member): MemberRow["section"] => {
+export const getMemberSection = (member: Member): MemberRow["section"] => {
     if (member.suspendedAt != null) {
         return "suspended";
     }
@@ -262,10 +274,10 @@ const getColumns = (actionContext: Omit<MembersTableActionsProps, "row">): Colum
         },
     },
     {
-        id: "status",
-        accessorFn: getStatusLabel,
+        id: "role",
+        accessorFn: getRoleLabel,
         meta: { className: "whitespace-nowrap" },
-        sortingFn: sortByStatus,
+        sortingFn: sortByRole,
         header: ({ column }) => <SortableHeader column={column}>Role</SortableHeader>,
         cell: ({ row }) => {
             const r = row.original;
@@ -287,6 +299,18 @@ const getColumns = (actionContext: Omit<MembersTableActionsProps, "row">): Colum
             }
             return <span className="text-sm text-muted-foreground">-</span>;
         },
+    },
+    {
+        id: "status",
+        accessorFn: getStatusLabel,
+        meta: { className: "whitespace-nowrap" },
+        sortingFn: sortByStatus,
+        header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
+        cell: ({ row }) => (
+            <span className="text-sm text-muted-foreground capitalize">
+                {getStatusLabel(row.original)}
+            </span>
+        ),
     },
     {
         id: "joined",
