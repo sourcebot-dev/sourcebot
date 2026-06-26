@@ -16,9 +16,9 @@ import { MarkdownRenderer, REFERENCE_PAYLOAD_ATTRIBUTE } from './markdownRendere
 import { PanelItem, ReferencedSourcesListView } from './referencedSourcesListView';
 import { useExtractDiagrams } from '../../useExtractDiagrams';
 import { DiagramPanelContext } from '../../diagramPanelContext';
-import { getDiagramId } from '../../diagramUtils';
+import { getDiagramId, MERMAID_BLOCK_REGEX } from '../../diagramUtils';
 import isEqual from "fast-deep-equal/react";
-import { ANSWER_TAG } from '@/features/chat/constants';
+import { ANSWER_TAG, FILE_REFERENCE_REGEX } from '@/features/chat/constants';
 
 interface ChatThreadListItemProps {
     userMessage: SBChatMessage;
@@ -390,7 +390,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
         const diagramIndexById = new Map(diagrams.map((diagram, i) => [diagram.id, i]));
         const sourceKey = (source: FileSource) => `${source.repo}::${source.path}::${source.revision}`;
 
-        const combined = /```mermaid\s*\n([\s\S]*?)```|@file:\{([^:}]+)::([^:}]+)(?::(\d+)(?:-(\d+))?)?\}/g;
+        const combined = new RegExp(`${MERMAID_BLOCK_REGEX.source}|${FILE_REFERENCE_REGEX.source}`, 'g');
         let match: RegExpExecArray | null;
         while ((match = combined.exec(text)) !== null) {
             if (match[1] !== undefined) {

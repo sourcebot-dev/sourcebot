@@ -161,9 +161,8 @@ const ZOOM_STEP = 0.25;
 const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, forceControlsVisible }: { svg: string; className?: string; controlsClassName?: string; actions?: ReactNode; fill?: boolean; forceControlsVisible?: boolean }) => {
     const [zoom, setZoom] = useState(1);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
-    // The scale treated as the "0%" baseline for the zoom readout. In
-    // fullscreen this is the fit scale (so the awkward absolute fit percentage
-    // reads as a clean 0%); inline it stays 1 (1:1).
+    // The scale treated as the baseline for the zoom readout, so the fitted
+    // view reads 100%. When fitted this is the fit scale; otherwise it stays 1.
     const [baseScale, setBaseScale] = useState(1);
     const draggingRef = useRef(false);
     const startRef = useRef({ x: 0, y: 0 });
@@ -178,9 +177,8 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, for
         offsetRef.current = offset;
     }, [offset]);
 
-    // Scale the diagram to fill the available surface (with a small margin),
-    // so a small diagram doesn't open tiny in fullscreen and a large one is
-    // brought fully into view. Used for the fullscreen (`fill`) viewport.
+    // Scale the diagram to fill the available surface with a small margin, so a
+    // small diagram doesn't open tiny and a large one is brought fully into view.
     const fitToSurface = useCallback(() => {
         const surface = surfaceRef.current;
         const svgEl = contentRef.current?.querySelector('svg');
@@ -308,8 +306,8 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, for
     const zoomStep = baseScale !== 1 ? Math.max(0.01, baseScale * 0.1) : ZOOM_STEP;
     const zoomOut = () => setZoom((z) => Math.max(ZOOM_MIN, z - zoomStep));
     const zoomIn = () => setZoom((z) => Math.min(ZOOM_MAX, z + zoomStep));
-    // The readout is relative to the baseline scale, so the fitted fullscreen
-    // view reads 100% (matching the inline 1:1 baseline, whose baseScale is 1).
+    // The readout is relative to the baseline scale, so the fitted view reads
+    // 100% and an unfitted 1:1 view (baseScale 1) also reads 100%.
     const zoomLabel = `${Math.round((zoom / baseScale) * 100)}%`;
 
     return (
@@ -336,7 +334,7 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, for
                 />
             </div>
 
-            <div className={cn('absolute right-2 top-2 flex items-center gap-0.5 rounded-md border bg-background/90 p-0.5 shadow-sm transition-opacity', forceControlsVisible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100', controlsClassName)}>
+            <div className={cn('absolute right-2 top-2 flex items-center gap-0.5 rounded-md border bg-background/90 p-0.5 shadow-sm transition-opacity', forceControlsVisible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100', controlsClassName)}>
                 {actions}
                 {actions && <div className="mx-0.5 h-4 w-px bg-border" />}
                 <Button
@@ -468,16 +466,24 @@ export const MermaidDiagram = ({
         return () => window.removeEventListener('hashchange', checkHash);
     }, [canonicalAnchorId, diagramReady, listenToDeepLink]);
 
-    const onCopyLink = useCallback(() => {
-        const url = new URL(window.location.href);
-        url.hash = canonicalAnchorId;
-        navigator.clipboard.writeText(url.toString());
-        toast({ description: '✅ Copied link to diagram' });
+    const onCopyLink = useCallback(async () => {
+        try {
+            const url = new URL(window.location.href);
+            url.hash = canonicalAnchorId;
+            await navigator.clipboard.writeText(url.toString());
+            toast({ description: '✅ Copied link to diagram' });
+        } catch {
+            toast({ description: '❌ Failed to copy link', variant: 'destructive' });
+        }
     }, [canonicalAnchorId, toast]);
 
-    const onCopySource = useCallback(() => {
-        navigator.clipboard.writeText(code);
-        toast({ description: '✅ Copied diagram source' });
+    const onCopySource = useCallback(async () => {
+        try {
+            await navigator.clipboard.writeText(code);
+            toast({ description: '✅ Copied diagram source' });
+        } catch {
+            toast({ description: '❌ Failed to copy source', variant: 'destructive' });
+        }
     }, [code, toast]);
 
     const onCopyImage = useCallback(async () => {
