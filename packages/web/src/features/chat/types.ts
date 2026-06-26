@@ -59,6 +59,7 @@ export const sbChatMessageMetadataSchema = z.object({
     totalCacheReadTokens: z.number().optional(),
     totalCacheWriteTokens: z.number().optional(),
     totalResponseTimeMs: z.number().optional(),
+    contextWindow: z.number().optional(),
     feedback: z.array(z.object({
         type: z.enum(['like', 'dislike']),
         timestamp: z.string(), // ISO date string

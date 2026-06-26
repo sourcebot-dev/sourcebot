@@ -2,6 +2,7 @@ import { sew } from "@/middleware/sew";
 import { getConfiguredLanguageModels, updateChatMessages, checkAskEntitlement } from "@/features/chat/utils.server";
 import { generateChatNameFromMessage } from "@/ee/features/chat/llm.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
+import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { LanguageModelInfo, SBChatMessage, SearchScope } from "@/features/chat/types";
 import { convertLLMOutputToPortableMarkdown, getAnswerPartFromAssistantMessage, getLanguageModelKey } from "@/features/chat/utils";
 import { ErrorCode } from "@/lib/errorCodes";
@@ -15,6 +16,7 @@ import { InferUIMessageChunk, UIDataTypes, UIMessage, UITools } from "ai";
 import { captureEvent } from "@/lib/posthog";
 import { createAudit } from "@/ee/features/audit/audit";
 import { createMessageStream } from "@/ee/features/chat/agent";
+import { getPromptCacheStrategy } from "@/ee/features/chat/promptCaching";
 
 const logger = createLogger('ask-codebase-api');
 
@@ -83,6 +85,13 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
 
             const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
             const modelName = languageModelConfig.displayName ?? languageModelConfig.model;
+            const contextWindow = await resolveContextWindow(languageModelConfig);
+
+            // No-op for non-Anthropic providers / when caching is disabled.
+            const promptCacheStrategy = getPromptCacheStrategy(
+                languageModelConfig.provider,
+                env.SOURCEBOT_CHAT_PROMPT_CACHING_ENABLED === 'true',
+            );
 
             const chatVisibility = (requestedVisibility && user)
                 ? requestedVisibility
@@ -175,6 +184,8 @@ export const askCodebase = (params: AskCodebaseParams): Promise<AskCodebaseResul
                 prisma,
                 model,
                 modelName,
+                contextWindow,
+                promptCacheStrategy,
                 modelProviderOptions: providerOptions,
                 modelTemperature: temperature,
                 onFinish: async ({ messages }) => {

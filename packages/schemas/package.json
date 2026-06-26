@@ -5,7 +5,7 @@
     "scripts": {
         "build": "yarn generate && tsc",
         "generate": "tsx tools/generate.ts",
-        "watch": "nodemon --watch ../../schemas -e json -x 'yarn generate'",
+        "watch": "nodemon --watch ../../schemas -e json -x 'yarn build'",
         "postinstall": "yarn build"
     },
     "devDependencies": {
