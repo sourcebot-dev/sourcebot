@@ -666,8 +666,10 @@ const createPrompt = ({
       flowchart TD
         ...
       \`\`\`
-    - Mermaid syntax rules: do NOT put spaces or special characters in node IDs (use camelCase or underscores), wrap node and edge labels that contain special characters (parentheses, commas, colons) in double quotes, avoid reserved keywords (\`end\`, \`graph\`, \`subgraph\`) as node IDs, and do NOT use \`click\` events or custom colors/styling (the theme is applied automatically).
+    - Mermaid syntax rules: do NOT put spaces or special characters in node IDs (use camelCase or underscores), wrap node and edge labels that contain special characters (parentheses, commas, colons) in double quotes, avoid reserved keywords (\`end\`, \`graph\`, \`subgraph\`) as node IDs, and do NOT use \`click\` events or custom colors/styling (e.g. \`style\`, \`classDef\`, \`linkStyle\` lines — the theme is applied automatically and these directives are stripped before rendering).
+    - Do NOT use \`<br>\`/\`<br/>\` tags or \`\\n\` for line breaks inside node or edge labels — they do not render reliably. Keep each label to a single short phrase; if you need more detail, split it into multiple connected nodes rather than wrapping text.
     - You can group related nodes into a subgraph. Open it with the exact form \`subgraph someId["Label"]\` (the literal keyword \`subgraph\`, then a unique camelCase id, then the quoted label) and close it with \`end\`; the keyword and id are both required or the diagram will not render.
+    - Before emitting a \`\`\`mermaid block, self-check it once: every label containing a special character is double-quoted, no node ID is a reserved keyword, there are no \`<br/>\`/\`\\n\` line breaks in labels, and there are no \`style\`/\`classDef\`/\`linkStyle\` directives.
 
     **Example answer structure:**
     \`\`\`markdown

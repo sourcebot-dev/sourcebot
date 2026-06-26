@@ -33,7 +33,19 @@ const loadMermaid = async () => {
 
 let renderCounter = 0;
 
-const renderMermaidToSvg = async (code: string, theme: 'dark' | 'default'): Promise<string> => {
+// Strip model-emitted custom styling so it can't override the auto-applied
+// theme. Line-anchored on the keyword, so it leaves node IDs, labels, and
+// `class X { ... }` member definitions untouched.
+const STYLING_DIRECTIVE_RE = /^\s*(?:style|classDef|linkStyle)\s/;
+
+const sanitizeMermaidCode = (code: string): string =>
+    code
+        .split('\n')
+        .filter((line) => !STYLING_DIRECTIVE_RE.test(line))
+        .join('\n');
+
+const renderMermaidToSvg = async (rawCode: string, theme: 'dark' | 'default'): Promise<string> => {
+    const code = sanitizeMermaidCode(rawCode);
     const mermaid = await loadMermaid();
     mermaid.initialize({
         startOnLoad: false,
