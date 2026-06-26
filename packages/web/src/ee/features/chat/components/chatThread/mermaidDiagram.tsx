@@ -20,7 +20,9 @@ import { CSSProperties, ReactNode, useCallback, useEffect, useLayoutEffect, useM
 import { TransformWrapper, TransformComponent, type ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
 import { CodeBlock } from './codeBlock';
 import { sanitizeMermaidCode } from './mermaidSanitize';
-import { getDiagramAnchorId } from '@/ee/features/chat/diagramUtils';
+import { getDiagramAnchorId, getDiagramId, getDiagramType } from '@/ee/features/chat/diagramUtils';
+import { useDiagramPanel } from '@/ee/features/chat/diagramPanelContext';
+import useCaptureEvent from '@/hooks/useCaptureEvent';
 
 // Lazily-loaded mermaid module. Kept at module scope so the (heavy) library is
 // imported at most once, and only when a diagram actually needs to render.
@@ -238,7 +240,7 @@ const computeFit = (
  * the panel diagram, whose height grows to the diagram (clamped to the readable
  * area).
  */
-const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, forceControlsVisible }: { svg: string; className?: string; controlsClassName?: string; actions?: ReactNode; fill?: boolean; forceControlsVisible?: boolean }) => {
+const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, forceControlsVisible, onPan }: { svg: string; className?: string; controlsClassName?: string; actions?: ReactNode; fill?: boolean; forceControlsVisible?: boolean; onPan?: () => void }) => {
     const intrinsic = useMemo(() => parseSvgSize(svg), [svg]);
     const rootRef = useRef<HTMLDivElement>(null);
     const apiRef = useRef<ReactZoomPanPinchRef>(null);
@@ -319,6 +321,8 @@ const DiagramViewport = ({ svg, className, controlsClassName, actions, fill, for
                     doubleClick={{ disabled: true }}
                     onInit={(ref) => setScale(ref.state.scale)}
                     onTransform={(_ref, state) => setScale(state.scale)}
+                    // Fires on actual drag movement (not a bare click); parent dedupes.
+                    onPanning={onPan}
                 >
                     <TransformComponent
                         wrapperClass="!w-full !h-full cursor-grab active:cursor-grabbing"
@@ -390,6 +394,13 @@ export const MermaidDiagram = ({
     const mermaidTheme = theme === 'dark' ? 'dark' : 'default';
     const pngBackground = mermaidTheme === 'dark' ? '#1e1e1e' : '#ffffff';
     const { toast } = useToast();
+    const captureEvent = useCaptureEvent();
+
+    const diagramPanel = useDiagramPanel();
+    const chatId = diagramPanel?.chatId;
+    const isStreaming = diagramPanel?.isStreaming ?? false;
+    const diagramId = useMemo(() => getDiagramId(code), [code]);
+    const diagramType = useMemo(() => getDiagramType(code), [code]);
 
     const [svg, setSvg] = useState<string | null>(null);
     const [renderError, setRenderError] = useState(false);
@@ -433,7 +444,53 @@ export const MermaidDiagram = ({
 
     const diagramReady = svg !== null && !renderError;
 
+    // Gates the render-outcome event below to diagrams generated live this
+    // session, so it doesn't fire when a chat is revisited / viewed from history.
+    const observedStreamingRef = useRef(false);
+    useEffect(() => {
+        if (isStreaming) {
+            observedStreamingRef.current = true;
+        }
+    }, [isStreaming]);
+
+    // Report the final render outcome (success vs invalid) once per diagram,
+    // only after streaming settles (so transient mid-stream parse failures
+    // aren't counted). Keyed on `code` so a theme re-render doesn't re-fire.
+    const reportedRenderCodeRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (!chatId || isStreaming || !observedStreamingRef.current || reportedRenderCodeRef.current === code) {
+            return;
+        }
+        // Wait for the render to reach a terminal state.
+        if (svg === null && !renderError) {
+            return;
+        }
+        reportedRenderCodeRef.current = code;
+        captureEvent('wa_chat_diagram_rendered', {
+            chatId,
+            diagramId,
+            outcome: renderError ? 'error' : 'success',
+            diagramType,
+        });
+    }, [chatId, isStreaming, code, svg, renderError, diagramId, diagramType, captureEvent]);
+
+    // Click-and-drag pan on the inline diagram, reported once per diagram.
+    const hasReportedPanRef = useRef(false);
+    useEffect(() => {
+        hasReportedPanRef.current = false;
+    }, [code]);
+    const onPanInteraction = useCallback(() => {
+        if (hasReportedPanRef.current || !chatId) {
+            return;
+        }
+        hasReportedPanRef.current = true;
+        captureEvent('wa_chat_diagram_panned', { chatId, diagramId });
+    }, [chatId, diagramId, captureEvent]);
+
     const onCopyLink = useCallback(async () => {
+        if (chatId) {
+            captureEvent('wa_chat_diagram_copied', { chatId, diagramId, format: 'link' });
+        }
         try {
             const url = new URL(window.location.href);
             url.hash = canonicalAnchorId;
@@ -442,20 +499,26 @@ export const MermaidDiagram = ({
         } catch {
             toast({ description: '❌ Failed to copy link', variant: 'destructive' });
         }
-    }, [canonicalAnchorId, toast]);
+    }, [canonicalAnchorId, toast, chatId, diagramId, captureEvent]);
 
     const onCopySource = useCallback(async () => {
+        if (chatId) {
+            captureEvent('wa_chat_diagram_copied', { chatId, diagramId, format: 'source' });
+        }
         try {
             await navigator.clipboard.writeText(code);
             toast({ description: '✅ Copied diagram source' });
         } catch {
             toast({ description: '❌ Failed to copy source', variant: 'destructive' });
         }
-    }, [code, toast]);
+    }, [code, toast, chatId, diagramId, captureEvent]);
 
     const onCopyImage = useCallback(async () => {
         if (!svg) {
             return;
+        }
+        if (chatId) {
+            captureEvent('wa_chat_diagram_copied', { chatId, diagramId, format: 'image' });
         }
         try {
             const blob = await svgToPngBlob(svg, pngBackground);
@@ -467,24 +530,30 @@ export const MermaidDiagram = ({
         } catch {
             toast({ description: '❌ Failed to copy image', variant: 'destructive' });
         }
-    }, [svg, pngBackground, toast]);
+    }, [svg, pngBackground, toast, chatId, diagramId, captureEvent]);
 
     const onExportSvg = useCallback(() => {
         if (!svg) {
             return;
         }
+        if (chatId) {
+            captureEvent('wa_chat_diagram_exported', { chatId, diagramId, format: 'svg' });
+        }
         triggerDownload(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }), 'diagram.svg');
-    }, [svg]);
+    }, [svg, chatId, diagramId, captureEvent]);
 
     const onExportPng = useCallback(async () => {
         if (!svg) {
             return;
         }
+        if (chatId) {
+            captureEvent('wa_chat_diagram_exported', { chatId, diagramId, format: 'png' });
+        }
         const blob = await svgToPngBlob(svg, pngBackground);
         if (blob) {
             triggerDownload(blob, 'diagram.png');
         }
-    }, [svg, pngBackground]);
+    }, [svg, pngBackground, chatId, diagramId, captureEvent]);
 
     // On-hover controls overlaid on the diagram.
     const actions = (
@@ -526,7 +595,12 @@ export const MermaidDiagram = ({
                 variant="ghost"
                 size="sm"
                 className="h-6 w-6 text-muted-foreground"
-                onClick={() => setIsFullscreen(true)}
+                onClick={() => {
+                    if (chatId) {
+                        captureEvent('wa_chat_diagram_fullscreen_opened', { chatId, diagramId });
+                    }
+                    setIsFullscreen(true);
+                }}
                 aria-label="Open fullscreen"
             >
                 <Maximize2 className="h-3 w-3" />
@@ -542,7 +616,7 @@ export const MermaidDiagram = ({
             )}
         >
             {diagramReady ? (
-                <DiagramViewport svg={svg} actions={actions} forceControlsVisible={isAnyMenuOpen} />
+                <DiagramViewport svg={svg} actions={actions} forceControlsVisible={isAnyMenuOpen} onPan={onPanInteraction} />
             ) : renderError ? (
                 // Invalid / mid-stream source: show it as code until it renders cleanly.
                 <CodeBlock code={code} language="mermaid" />

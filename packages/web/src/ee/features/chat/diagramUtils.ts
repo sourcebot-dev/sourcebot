@@ -52,3 +52,26 @@ export const getDiagramTitle = (code: string): string | undefined => {
         ? `${title.slice(0, DIAGRAM_TITLE_MAX_LENGTH - 1).trimEnd()}…`
         : title;
 };
+
+// Best-effort detection of the mermaid diagram type (e.g. 'flowchart',
+// 'sequenceDiagram', 'gantt') for analytics. Returns the first keyword of the
+// first meaningful line, skipping frontmatter and `%%` comments/directives.
+export const getDiagramType = (code: string): string | undefined => {
+    let body = code.trim();
+
+    const frontmatterMatch = /^\s*---\s*\n[\s\S]*?\n---\s*\n?/.exec(body);
+    if (frontmatterMatch) {
+        body = body.slice(frontmatterMatch[0].length);
+    }
+
+    for (const rawLine of body.split('\n')) {
+        const line = rawLine.trim();
+        if (!line || line.startsWith('%%')) {
+            continue;
+        }
+        const keyword = line.split(/[\s({:;]/)[0];
+        return keyword || undefined;
+    }
+
+    return undefined;
+};

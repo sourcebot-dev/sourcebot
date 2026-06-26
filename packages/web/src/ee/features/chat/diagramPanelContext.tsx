@@ -3,6 +3,8 @@
 import { createContext, useContext } from "react";
 
 export interface DiagramPanelContextValue {
+    // Id of the chat these diagrams belong to, used for analytics.
+    chatId: string;
     // Reveal the right-panel mirror of the given diagram (expand it and scroll
     // it into view).
     revealInPanel: (diagramId: string) => void;

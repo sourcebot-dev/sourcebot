@@ -355,11 +355,12 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     }, [diagramIndexById]);
 
     const diagramPanelContextValue = useMemo(() => ({
+        chatId,
         revealInPanel: revealDiagramInPanel,
         getDiagramIndex,
         onHoverDiagram: setHoveredDiagramId,
         isStreaming: isNetworkActive,
-    }), [revealDiagramInPanel, getDiagramIndex, isNetworkActive]);
+    }), [chatId, revealDiagramInPanel, getDiagramIndex, isNetworkActive]);
 
     // Extract the file sources that are referenced by the answer part.
     const referencedFileSources = useMemo(() => {

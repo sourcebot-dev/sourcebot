@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { getDiagramAnchorId, getDiagramId, getDiagramTitle } from '@/ee/features/chat/diagramUtils';
 import { useDiagramPanel } from '@/ee/features/chat/diagramPanelContext';
 import { AnimatedShinyText } from '@/components/ui/animatedShinyText';
+import useCaptureEvent from '@/hooks/useCaptureEvent';
 
 interface DiagramReferenceChipProps {
     code: string;
@@ -20,6 +21,7 @@ interface DiagramReferenceChipProps {
  */
 export const DiagramReferenceChip = ({ code }: DiagramReferenceChipProps) => {
     const diagramPanel = useDiagramPanel();
+    const captureEvent = useCaptureEvent();
     const containerRef = useRef<HTMLButtonElement>(null);
 
     const diagramId = useMemo(() => getDiagramId(code), [code]);
@@ -44,8 +46,11 @@ export const DiagramReferenceChip = ({ code }: DiagramReferenceChipProps) => {
     }, [code, index, isGenerating]);
 
     const reveal = useCallback(() => {
+        if (diagramPanel?.chatId) {
+            captureEvent('wa_chat_diagram_reference_clicked', { chatId: diagramPanel.chatId, diagramId });
+        }
         diagramPanel?.revealInPanel(diagramId);
-    }, [diagramPanel, diagramId]);
+    }, [diagramPanel, diagramId, captureEvent]);
 
     // Shared in-thread deep links target the inline anchor (`#diagram-<id>`).
     // When the hash matches, scroll the chip into view and reveal the full
