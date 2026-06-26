@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Search } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useDebounce } from "@uidotdev/usehooks";
 import { Input } from "@/components/ui/input";
 import { MembersFilterSelect } from "./membersFilterSelect";
 import { InviteMembersDialog } from "./inviteMembersDialog";
@@ -22,6 +24,20 @@ interface MembersTableViewProps {
     scimEnabled: boolean;
 }
 
+const FILTER_QUERY_PARAM = "filter";
+const SEARCH_QUERY_PARAM = "search";
+
+const isMemberFilter = (value: string | null): value is MemberFilter => {
+    return value === "all"
+        || value === "owners"
+        || value === "members"
+        || value === "active"
+        || value === "pending"
+        || value === "suspended"
+        || value === "invited"
+        || value === "requests";
+};
+
 export const MembersTableView = ({
     members,
     invites,
@@ -30,12 +46,64 @@ export const MembersTableView = ({
     hasOrgManagement,
     scimEnabled,
 }: MembersTableViewProps) => {
-    const [filter, setFilter] = useState<MemberFilter>("all");
-    const [searchQuery, setSearchQuery] = useState("");
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const urlFilter = searchParams.get(FILTER_QUERY_PARAM);
+    const urlSearchQuery = searchParams.get(SEARCH_QUERY_PARAM) ?? "";
+    const urlMemberFilter = isMemberFilter(urlFilter) ? urlFilter : "all";
+    const [filter, setFilter] = useState<MemberFilter>(urlMemberFilter);
+    const [searchQuery, setSearchQuery] = useState(urlSearchQuery);
+    const debouncedSearchQuery = useDebounce(searchQuery, 300);
+    const searchParamsString = searchParams.toString();
+
+    useEffect(() => {
+        setFilter(urlMemberFilter);
+        setSearchQuery(urlSearchQuery);
+    }, [urlMemberFilter, urlSearchQuery]);
+
+    const updateUrlFilters = useCallback((nextFilter: MemberFilter, nextSearchQuery: string) => {
+        const nextParams = new URLSearchParams(searchParamsString);
+        const trimmedSearchQuery = nextSearchQuery.trim();
+
+        if (nextFilter === "all") {
+            nextParams.delete(FILTER_QUERY_PARAM);
+        } else {
+            nextParams.set(FILTER_QUERY_PARAM, nextFilter);
+        }
+
+        if (trimmedSearchQuery.length === 0) {
+            nextParams.delete(SEARCH_QUERY_PARAM);
+        } else {
+            nextParams.set(SEARCH_QUERY_PARAM, trimmedSearchQuery);
+        }
+
+        const nextQueryString = nextParams.toString();
+        const currentQueryString = searchParamsString;
+        if (nextQueryString === currentQueryString) {
+            return;
+        }
+
+        router.replace(`${pathname}${nextQueryString ? `?${nextQueryString}` : ""}`, { scroll: false });
+    }, [pathname, router, searchParamsString]);
+
+    useEffect(() => {
+        if (debouncedSearchQuery !== searchQuery) {
+            return;
+        }
+
+        updateUrlFilters(filter, debouncedSearchQuery);
+    }, [debouncedSearchQuery, filter, searchQuery, updateUrlFilters]);
+
+    const handleFilterChange = (nextFilter: MemberFilter) => {
+        setFilter(nextFilter);
+        updateUrlFilters(nextFilter, searchQuery);
+    };
 
     const clearFilters = () => {
         setFilter("all");
         setSearchQuery("");
+        updateUrlFilters("all", "");
     };
 
     return (
@@ -50,7 +118,7 @@ export const MembersTableView = ({
                         className="pl-9"
                     />
                 </div>
-                <MembersFilterSelect value={filter} onValueChange={setFilter} />
+                <MembersFilterSelect value={filter} onValueChange={handleFilterChange} />
                 <InviteMembersDialog className="ml-auto" />
             </div>
             <MembersTable
