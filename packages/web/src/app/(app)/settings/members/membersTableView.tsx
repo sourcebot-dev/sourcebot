@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { MembersFilterSelect } from "./membersFilterSelect";
+import { InviteMembersDialog } from "./inviteMembersDialog";
 import {
     MembersTable,
     type Invite,
@@ -50,6 +51,7 @@ export const MembersTableView = ({
                     />
                 </div>
                 <MembersFilterSelect value={filter} onValueChange={setFilter} />
+                <InviteMembersDialog className="ml-auto" />
             </div>
             <MembersTable
                 members={members}

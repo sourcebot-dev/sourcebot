@@ -154,6 +154,7 @@ export const MembersTableActions = ({
     const [confirmingAction, setConfirmingAction] = useState<MemberAction | null>(null);
     const isCurrentUser = row.kind === "member" && row.id === currentUserId;
     const isSuspended = row.kind === "member" && row.suspendedAt != null;
+    const isActiveMember = row.kind === "member" && row.suspendedAt == null && row.lastActiveAt != null;
     const isLastActiveOwner = row.kind === "member"
         && !isSuspended
         && row.role === OrgRole.OWNER
@@ -284,7 +285,7 @@ export const MembersTableActions = ({
                     )}
                     {row.kind === "member" && (
                         <>
-                            {row.role === OrgRole.MEMBER && (
+                            {isActiveMember && row.role === OrgRole.MEMBER && (
                                 <DropdownMenuItem
                                     className="cursor-pointer"
                                     disabled={!hasOrgManagement}
@@ -294,7 +295,7 @@ export const MembersTableActions = ({
                                     Promote to owner
                                 </DropdownMenuItem>
                             )}
-                            {row.role === OrgRole.OWNER && (
+                            {isActiveMember && row.role === OrgRole.OWNER && (
                                 <DropdownMenuItem
                                     className="cursor-pointer text-destructive"
                                     disabled={!hasOrgManagement || isLastActiveOwner}
