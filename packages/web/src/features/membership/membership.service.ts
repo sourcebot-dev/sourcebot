@@ -8,7 +8,7 @@ import { notFound, type ServiceError } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { __unsafePrisma as prisma } from "@/prisma";
 import { OrgRole, Prisma, type UserToOrg } from "@sourcebot/db";
-import { lastOwnerDemoteError, lastOwnerError, seatLimitReached } from "./errors";
+import { lastOwnerDemoteError, lastOwnerError, memberNotActiveError, seatLimitReached } from "./errors";
 
 export interface EnsureActiveMemberOptions {
     actor: AuditActor;
@@ -25,7 +25,7 @@ export interface EnsureActiveMemberOptions {
 export const activatePendingMembership = async (
     membership: UserToOrg,
 ): Promise<ServiceError | null> => {
-    if (membership.suspendedAt != null || membership.lastActiveAt != null) {
+    if (membership.suspendedAt !== null || membership.lastActiveAt !== null) {
         return null;
     }
 
@@ -78,10 +78,10 @@ export const ensureActiveMember = async (
         where: { orgId_userId: { orgId, userId } },
     });
 
-    if (existing && existing.suspendedAt == null) {
+    if (existing && existing.suspendedAt === null) {
         return existing;
     }
-    if (existing && existing.suspendedAt != null) {
+    if (existing && existing.suspendedAt !== null) {
         return setMembershipSuspended(orgId, userId, false, {
             actor,
             scimExternalId,
@@ -152,7 +152,7 @@ export const removeMember = async (
             return notFound("Member not found in this organization");
         }
 
-        if (target.role === OrgRole.OWNER && target.suspendedAt == null) {
+        if (target.role === OrgRole.OWNER && target.suspendedAt === null) {
             if ((await countActiveOwners(tx, orgId)) <= 1) {
                 return lastOwnerError(reason);
             }
@@ -212,8 +212,12 @@ export const setMemberRole = async (
             return null;
         }
 
+        if (target.suspendedAt !== null || target.lastActiveAt === null) {
+            return memberNotActiveError();
+        }
+
         const isDemotionFromOwner = target.role === OrgRole.OWNER && role !== OrgRole.OWNER;
-        if (isDemotionFromOwner && target.suspendedAt == null) {
+        if (isDemotionFromOwner && target.suspendedAt === null) {
             if ((await countActiveOwners(tx, orgId)) <= 1) {
                 return lastOwnerDemoteError();
             }
@@ -268,7 +272,7 @@ export const setMembershipSuspended = async (
             if (!target) {
                 return notFound("Member not found in this organization");
             }
-            if (target.suspendedAt != null) {
+            if (target.suspendedAt !== null) {
                 return target;
             }
 
@@ -305,7 +309,7 @@ export const setMembershipSuspended = async (
                 return notFound("Member not found in this organization");
             }
 
-            if (target.suspendedAt == null) {
+            if (target.suspendedAt === null) {
                 if (scimExternalId && target.scimExternalId !== scimExternalId) {
                     target = await tx.userToOrg.update({
                         where: { orgId_userId: { orgId, userId } },

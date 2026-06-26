@@ -349,7 +349,11 @@ export const MembersTable = ({
     }, [data, filter, searchQuery]);
 
     const activeOwnerCount = useMemo(() => {
-        return members.filter((member) => member.suspendedAt == null && member.role === OrgRole.OWNER).length;
+        return members.filter((member) =>
+            member.suspendedAt == null &&
+            member.lastActiveAt != null &&
+            member.role === OrgRole.OWNER
+        ).length;
     }, [members]);
 
     const columns = useMemo(() => getColumns({

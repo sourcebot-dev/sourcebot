@@ -23,6 +23,12 @@ export const lastOwnerDemoteError = (): ServiceError => ({
     message: "Cannot demote the last owner. Promote another member to owner first.",
 });
 
+export const memberNotActiveError = (): ServiceError => ({
+    statusCode: StatusCodes.BAD_REQUEST,
+    errorCode: ErrorCode.MEMBER_NOT_ACTIVE,
+    message: "Only active members can be promoted or demoted.",
+});
+
 // When SCIM is enabled the IdP is the source of truth for membership, so paths
 // that would grant membership outside it (invites, join requests) are disabled.
 export const membershipManagedByIdpError = (): ServiceError => ({

@@ -30,6 +30,7 @@ const ORG_ID = 1;
 const USER_ID = 'user-1';
 const ACTOR = { id: 'scim', type: 'scim_token' } as const;
 const SUSPENDED_AT = new Date('2026-01-01T00:00:00.000Z');
+const ACTIVE_AT = new Date('2026-01-02T00:00:00.000Z');
 
 const makeMembership = (overrides: Partial<UserToOrg> = {}): UserToOrg => ({
     orgId: ORG_ID,
@@ -256,7 +257,7 @@ describe('removeMember', () => {
 
 describe('setMemberRole', () => {
     test('promotes a member to owner and audits it', async () => {
-        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.MEMBER }));
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.MEMBER, lastActiveAt: ACTIVE_AT }));
 
         const result = await setMemberRole(ORG_ID, USER_ID, OrgRole.OWNER, { actor: ACTOR });
 
@@ -268,7 +269,7 @@ describe('setMemberRole', () => {
     });
 
     test('demotes an owner to member when other owners remain', async () => {
-        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null }));
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null, lastActiveAt: ACTIVE_AT }));
         prisma.userToOrg.count.mockResolvedValue(2);
 
         const result = await setMemberRole(ORG_ID, USER_ID, OrgRole.MEMBER, { actor: ACTOR });
@@ -278,13 +279,37 @@ describe('setMemberRole', () => {
     });
 
     test('blocks demoting the last active owner', async () => {
-        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null }));
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.OWNER, suspendedAt: null, lastActiveAt: ACTIVE_AT }));
         prisma.userToOrg.count.mockResolvedValue(1);
 
         const result = await setMemberRole(ORG_ID, USER_ID, OrgRole.MEMBER, { actor: ACTOR });
 
         expect(isServiceError(result)).toBe(true);
         expect((result as ServiceError).errorCode).toBe(ErrorCode.LAST_OWNER_CANNOT_BE_DEMOTED);
+        expect(prisma.userToOrg.update).not.toHaveBeenCalled();
+    });
+
+    test('blocks promoting a pending member', async () => {
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({ role: OrgRole.MEMBER, lastActiveAt: null }));
+
+        const result = await setMemberRole(ORG_ID, USER_ID, OrgRole.OWNER, { actor: ACTOR });
+
+        expect(isServiceError(result)).toBe(true);
+        expect((result as ServiceError).errorCode).toBe(ErrorCode.MEMBER_NOT_ACTIVE);
+        expect(prisma.userToOrg.update).not.toHaveBeenCalled();
+    });
+
+    test('blocks demoting a suspended owner', async () => {
+        prisma.userToOrg.findUnique.mockResolvedValue(makeMembership({
+            role: OrgRole.OWNER,
+            suspendedAt: SUSPENDED_AT,
+            lastActiveAt: ACTIVE_AT,
+        }));
+
+        const result = await setMemberRole(ORG_ID, USER_ID, OrgRole.MEMBER, { actor: ACTOR });
+
+        expect(isServiceError(result)).toBe(true);
+        expect((result as ServiceError).errorCode).toBe(ErrorCode.MEMBER_NOT_ACTIVE);
         expect(prisma.userToOrg.update).not.toHaveBeenCalled();
     });
 

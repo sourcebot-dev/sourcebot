@@ -9,7 +9,7 @@ import { SINGLE_TENANT_ORG_ID } from '@/lib/constants';
 import { __unsafePrisma } from '@/prisma';
 import { isScimEnabled } from '@/features/scim/utils';
 import { NotProvisionedCard } from '@/features/membership/components/notProvisionedCard';
-import { unsuspendedMembershipWhere } from '@/features/membership/utils';
+import { activeOrPendingMembershipWhere } from '@/features/membership/utils';
 
 interface RedeemPageProps {
     searchParams: Promise<{
@@ -40,7 +40,7 @@ export default async function RedeemPage(props: RedeemPageProps) {
                 orgId: org.id,
                 userId: session.user.id
             },
-            ...unsuspendedMembershipWhere(),
+            ...activeOrPendingMembershipWhere(),
         }
     });
 

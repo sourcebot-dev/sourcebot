@@ -8,7 +8,7 @@ import { AuthMethodSelector } from "@/app/components/authMethodSelector";
 import { JoinOrganizationCard } from "@/features/membership/components/joinOrganizationCard";
 import { NotProvisionedCard } from "@/features/membership/components/notProvisionedCard";
 import { isScimEnabled } from "@/features/scim/utils";
-import { unsuspendedMembershipWhere } from "@/features/membership/utils";
+import { activeOrPendingMembershipWhere } from "@/features/membership/utils";
 
 interface InvitePageProps {
     searchParams: Promise<{
@@ -39,7 +39,7 @@ export default async function InvitePage(props: InvitePageProps) {
                 orgId: org.id,
                 userId: session.user.id
             },
-            ...unsuspendedMembershipWhere(),
+            ...activeOrPendingMembershipWhere(),
         }
     });
 

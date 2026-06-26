@@ -23,7 +23,7 @@ export const suspendedMembershipWhere = (): Prisma.UserToOrgWhereInput => ({
 /**
  * Matches unsuspended memberships, regardless of activity.
  */
-export const unsuspendedMembershipWhere = (): Prisma.UserToOrgWhereInput => ({
+export const activeOrPendingMembershipWhere = (): Prisma.UserToOrgWhereInput => ({
     suspendedAt: null,
 });
 
@@ -31,7 +31,7 @@ export const unsuspendedMembershipWhere = (): Prisma.UserToOrgWhereInput => ({
  * Matches pending memberships: unsuspended and never seen.
  */
 export const pendingMembershipWhere = (): Prisma.UserToOrgWhereInput => ({
-    ...unsuspendedMembershipWhere(),
+    ...activeOrPendingMembershipWhere(),
     lastActiveAt: null,
 });
 
@@ -39,7 +39,7 @@ export const pendingMembershipWhere = (): Prisma.UserToOrgWhereInput => ({
  * Matches active memberships: unsuspended and seen at least once.
  */
 export const activeMembershipWhere = (): Prisma.UserToOrgWhereInput => ({
-    ...unsuspendedMembershipWhere(),
+    ...activeOrPendingMembershipWhere(),
     lastActiveAt: { not: null },
 });
 
