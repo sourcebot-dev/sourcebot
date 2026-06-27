@@ -7,7 +7,7 @@ import { env, loadConfig } from '@sourcebot/shared';
 import fs from 'fs';
 import path from 'path';
 import { LanguageModelInfo, SBChatMessage } from './types';
-import { resolveModelInputModalities, resolveModelSupportedDocumentTypes } from './modelCapabilities';
+import { resolveModelCapabilities } from './modelCapabilities.server';
 import { hasEntitlement } from '@/lib/entitlements';
 import { ServiceError } from '@/lib/serviceError';
 import { ErrorCode } from '@/lib/errorCodes';
@@ -128,11 +128,14 @@ export const getConfiguredLanguageModels = async (): Promise<LanguageModel[]> =>
  */
 export const getConfiguredLanguageModelsInfo = async () => {
     const models = await getConfiguredLanguageModels();
-    return models.map((model): LanguageModelInfo => ({
-        provider: model.provider,
-        model: model.model,
-        displayName: model.displayName,
-        inputModalities: resolveModelInputModalities(model),
-        supportedDocumentTypes: resolveModelSupportedDocumentTypes(model),
+    return Promise.all(models.map(async (model): Promise<LanguageModelInfo> => {
+        const { inputModalities, supportedDocumentTypes } = await resolveModelCapabilities(model);
+        return {
+            provider: model.provider,
+            model: model.model,
+            displayName: model.displayName,
+            inputModalities,
+            supportedDocumentTypes,
+        };
     }));
 };
