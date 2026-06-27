@@ -282,7 +282,7 @@ const ChatBoxComponent = ({
         if (requiresLogin) {
             sessionStorage.setItem(
                 PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY,
-                JSON.stringify({ pathname, children: editor.children }),
+                JSON.stringify({ pathname, children: editor.children, attachments: attachments.map(toAttachmentData) }),
             );
             captureEvent('wa_askgh_login_wall_prompted', {});
             setIsLoginDialogOpen(true);
@@ -292,7 +292,7 @@ const ChatBoxComponent = ({
         if (requiresUpgrade) {
             sessionStorage.setItem(
                 PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY,
-                JSON.stringify({ pathname, children: editor.children }),
+                JSON.stringify({ pathname, children: editor.children, attachments: attachments.map(toAttachmentData) }),
             );
             setIsUpsellDialogOpen(true);
             return;
@@ -328,14 +328,17 @@ const ChatBoxComponent = ({
         }
 
         try {
-            const { pathname: storedPathname, children } = JSON.parse(stored) as { pathname: string; children: Descendant[] };
+            const { pathname: storedPathname, children, attachments: storedAttachments = [] } = JSON.parse(stored) as {
+                pathname: string;
+                children: Descendant[];
+                attachments?: AttachmentData[];
+            };
             if (storedPathname !== pathname) {
                 return;
             }
 
             sessionStorage.removeItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
-            // Attachments are not persisted across the login/upgrade redirect.
-            _onSubmit(children, editor, []);
+            _onSubmit(children, editor, storedAttachments);
         } catch (error) {
             console.error('Failed to restore pending chat submission:', error);
             sessionStorage.removeItem(PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY);
