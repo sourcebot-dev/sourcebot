@@ -5,6 +5,7 @@ import {
     BookOpenIcon,
     Building2Icon,
     CheckIcon,
+    FolderGit2Icon,
     ListIcon,
     Loader2Icon,
     MoreHorizontalIcon,
@@ -41,6 +42,7 @@ import {
     updateSharedAgentSkill,
 } from "@/ee/features/chat/skills/actions";
 import { SkillInstructionsEditor } from "@/ee/features/chat/skills/components/skillInstructionsEditor";
+import { ImportFromRepoDialog } from "@/ee/features/chat/skills/components/importFromRepoDialog";
 import { MarkdownRenderer } from "@/ee/features/chat/components/chatThread/markdownRenderer";
 import { TableOfContents } from "@/ee/features/chat/components/chatThread/tableOfContents";
 import { useExtractTOCItems } from "@/ee/features/chat/useTOCItems";
@@ -56,6 +58,7 @@ import {
     sortSharedAgentSkillCatalogItems,
     type AgentSkillInput,
     type AgentSkillListItem,
+    type ParsedAgentSkillMarkdown,
     type SharedAgentSkillCatalogItem,
 } from "@/ee/features/chat/skills/types";
 import { useUnsavedChangesGuard } from "@/ee/features/chat/useUnsavedChangesGuard";
@@ -231,6 +234,7 @@ export function SkillsPage({
     // instructions editor with fresh content.
     const [createEditorNonce, setCreateEditorNonce] = useState(0);
     const markdownFileInputRef = useRef<HTMLInputElement>(null);
+    const [isRepoImportOpen, setIsRepoImportOpen] = useState(false);
 
     const [isSaving, setIsSaving] = useState(false);
     const [scopePendingId, setScopePendingId] = useState<string | null>(null);
@@ -314,13 +318,36 @@ export function SkillsPage({
         });
     };
 
+    // Drop into the create form pre-populated from a parsed markdown skill (a local
+    // file or a repository file): front matter fills name, command, and description,
+    // and the body becomes the instructions, so the user can review before saving.
+    const applyImportedSkillMarkdown = (parsed: ParsedAgentSkillMarkdown) => {
+        guardedTransition(() => {
+            setIsCreatingNew(true);
+            setIsEditing(false);
+            setSelectedId(null);
+            setForm({
+                name: parsed.name ?? "",
+                slug: parsed.slug ?? "",
+                description: parsed.description ?? "",
+                instructions: parsed.instructions,
+            });
+            setIsSlugTouched(Boolean(parsed.slug || parsed.name));
+            setCreateEditorNonce((nonce) => nonce + 1);
+            toast({
+                title: parsed.frontmatterError ? "Front matter issue" : undefined,
+                description: parsed.frontmatterError
+                    ? `Markdown skill imported. ${parsed.frontmatterError}`
+                    : "Markdown skill imported.",
+                variant: parsed.frontmatterError ? "destructive" : undefined,
+            });
+        });
+    };
+
     const triggerMarkdownImport = () => {
         markdownFileInputRef.current?.click();
     };
 
-    // Import a skill from a markdown file: front matter fills name, command, and
-    // description, the body becomes the instructions, and we drop into the create
-    // form pre-populated so the user can review before saving.
     const handleImportMarkdownFile = async (event: ChangeEvent<HTMLInputElement>) => {
         const input = event.currentTarget;
         const file = input.files?.[0];
@@ -343,27 +370,7 @@ export function SkillsPage({
             return;
         }
 
-        const parsed = parseAgentSkillMarkdown(text, file.name);
-        guardedTransition(() => {
-            setIsCreatingNew(true);
-            setIsEditing(false);
-            setSelectedId(null);
-            setForm({
-                name: parsed.name ?? "",
-                slug: parsed.slug ?? "",
-                description: parsed.description ?? "",
-                instructions: parsed.instructions,
-            });
-            setIsSlugTouched(Boolean(parsed.slug || parsed.name));
-            setCreateEditorNonce((nonce) => nonce + 1);
-            toast({
-                title: parsed.frontmatterError ? "Front matter issue" : undefined,
-                description: parsed.frontmatterError
-                    ? `Markdown skill imported. ${parsed.frontmatterError}`
-                    : "Markdown skill imported.",
-                variant: parsed.frontmatterError ? "destructive" : undefined,
-            });
-        });
+        applyImportedSkillMarkdown(parseAgentSkillMarkdown(text, file.name));
     };
 
     const handleStartEdit = () => {
@@ -651,7 +658,11 @@ export function SkillsPage({
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={triggerMarkdownImport}>
                                     <UploadIcon className="mr-2 h-4 w-4" />
-                                    Import from markdown
+                                    Import from file
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setIsRepoImportOpen(true)}>
+                                    <FolderGit2Icon className="mr-2 h-4 w-4" />
+                                    Import from repository
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -763,6 +774,13 @@ export function SkillsPage({
                     )}
                 </section>
             </div>
+
+            <ImportFromRepoDialog
+                open={isRepoImportOpen}
+                onOpenChange={setIsRepoImportOpen}
+                onImport={applyImportedSkillMarkdown}
+                onError={(message) => toast({ title: "Error", description: message, variant: "destructive" })}
+            />
 
             {/* Discard-edits confirmation for in-page transitions */}
             <AlertDialog
