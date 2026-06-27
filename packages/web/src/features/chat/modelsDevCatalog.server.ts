@@ -13,8 +13,10 @@ const FETCH_TIMEOUT_MS = 8000;
 // Re-fetch the (~2.4 MB) catalog at most once per this interval per server
 // process. New models trickle in daily; a stale window for a few hours is fine.
 const CATALOG_TTL_MS = 6 * 60 * 60 * 1000;
-// After a failed fetch, don't reattempt for this long. Without it, an outage in
-// models.dev would make every chat send pay the fetch timeout on the request path.
+// After a failed fetch, don't reattempt for this long. Since the request path
+// never blocks on the fetch (see loadCatalog), this throttles background
+// refresh attempts to once per interval during a models.dev outage instead of
+// kicking one off on (nearly) every request.
 const NEGATIVE_CACHE_MS = 60 * 1000;
 
 // Sourcebot provider id -> models.dev top-level catalog key. Only providers
@@ -75,9 +77,16 @@ const fetchCatalog = async (): Promise<ModelsDevCatalog | null> => {
 
 /**
  * Returns the cached models.dev catalog, refreshing it in the background when
- * stale. Only the very first load blocks on the network; thereafter the
- * last-known-good catalog is served immediately (even if stale) so the request
- * path never waits on models.dev.
+ * stale. The request path NEVER blocks on the network: the last-known-good
+ * catalog is returned immediately (even if stale), or null before the first
+ * successful fetch lands, and any refresh settles in the background.
+ *
+ * Consequences of never awaiting:
+ * - For the brief window after a cold start (before the first fetch resolves),
+ *   capability resolution falls back to text-only; it self-heals on the next
+ *   request once the background fetch populates the cache.
+ * - An unreachable catalog (e.g. an airgapped deployment) costs nothing on the
+ *   request path instead of repeatedly paying the fetch timeout.
  */
 export const loadCatalog = async (): Promise<ModelsDevCatalog | null> => {
     const now = Date.now();
@@ -87,7 +96,8 @@ export const loadCatalog = async (): Promise<ModelsDevCatalog | null> => {
     // Kick off a (deduped) refresh when the cache is stale/empty and we're not
     // within the post-failure backoff window. On success it replaces the cache;
     // on failure it only records the failure time, leaving the last-known-good
-    // catalog intact.
+    // catalog intact. The promise is intentionally not awaited here so the
+    // request path never waits on models.dev.
     if (!isFresh && !isBackingOff && !inFlightFetch) {
         inFlightFetch = fetchCatalog().then((catalog) => {
             if (catalog) {
@@ -101,11 +111,7 @@ export const loadCatalog = async (): Promise<ModelsDevCatalog | null> => {
         });
     }
 
-    // Once a catalog has loaded once, never block the request path on the
-    // network: serve the last-known-good value (even if stale) and let any
-    // refresh settle in the background. Only the very first load awaits.
-    if (cachedCatalog !== null) {
-        return cachedCatalog;
-    }
-    return inFlightFetch ?? null;
+    // Serve whatever we currently have cached (possibly null on a cold start)
+    // and let any in-flight refresh settle in the background.
+    return cachedCatalog;
 };

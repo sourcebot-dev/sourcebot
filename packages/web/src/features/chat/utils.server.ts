@@ -3,17 +3,20 @@ import 'server-only';
 import { getAnonymousId } from '@/lib/anonymousId';
 import { AttachmentStatus, Chat, ChatVisibility, Prisma, PrismaClient, User } from '@sourcebot/db';
 import { LanguageModel } from '@sourcebot/schemas/v3/languageModel.type';
-import { env, loadConfig } from '@sourcebot/shared';
+import { createLogger, env, loadConfig } from '@sourcebot/shared';
 import fs from 'fs';
 import path from 'path';
 import { BlobAttachment, LanguageModelInfo, SBChatMessage } from './types';
 import { getUserMessageAttachments } from './utils';
 import { getStorageBackend } from './attachments/storage';
 import { resolveModelCapabilities } from './modelCapabilities.server';
+import { loadCatalog } from './modelsDevCatalog.server';
 import { hasEntitlement } from '@/lib/entitlements';
 import { ServiceError } from '@/lib/serviceError';
 import { ErrorCode } from '@/lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
+
+const logger = createLogger('chat-utils');
 
 /**
  * Returns a FORBIDDEN ServiceError when the deployment lacks the `ask`
@@ -289,4 +292,25 @@ export const getConfiguredLanguageModelsInfo = async () => {
             supportedDocumentTypes,
         };
     }));
+};
+
+/**
+ * Eagerly warms the models.dev capability catalog at server startup so the first
+ * request after a cold start resolves real model capabilities instead of the
+ * text-only fallback. No-op when no language models are configured (avoids a
+ * gratuitous outbound call for deployments not using Ask). Best-effort and
+ * non-blocking: loadCatalog kicks off a background fetch and returns immediately,
+ * and any unexpected error is logged rather than surfaced.
+ */
+export const warmModelCapabilitiesCatalog = (): void => {
+    void (async () => {
+        const configuredModels = await getConfiguredLanguageModels();
+        if (configuredModels.length === 0) {
+            return;
+        }
+        logger.info(`Warming models.dev capability catalog for ${configuredModels.length} configured language model(s)`);
+        void loadCatalog();
+    })().catch((error) => {
+        logger.error(`Failed to warm models.dev capability catalog: ${error}`);
+    });
 };

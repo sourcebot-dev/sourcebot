@@ -25,6 +25,11 @@ export const ATTACHMENT_MAX_FILENAME_LENGTH = 200; // characters
 // (this mirrors its default).
 export const ATTACHMENT_MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB per image
 
+// A plain-text paste at or above either of these thresholds is automatically
+// converted into a text attachment instead of being inserted inline
+export const ATTACHMENT_PASTE_AUTO_CONVERT_MIN_CHARS = 1500;
+export const ATTACHMENT_PASTE_AUTO_CONVERT_MIN_LINES = 15;
+
 // Allowlist for inline-text attachments. Files are accepted if their MIME type
 // starts with `text/`, exactly matches an entry here, or their extension is in
 // ATTACHMENT_ALLOWED_TEXT_EXTENSIONS. Many code files report an empty MIME type
