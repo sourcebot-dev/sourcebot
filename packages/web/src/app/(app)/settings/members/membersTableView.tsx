@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDebounce } from "@uidotdev/usehooks";
@@ -78,6 +78,7 @@ export const MembersTableView = ({
     const [searchQuery, setSearchQuery] = useState(urlSearchQuery);
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
     const searchParamsString = searchParams.toString();
+    const pendingSearchParamsRef = useRef<Set<string>>(new Set());
     const rows = useMemo<TableRowData[]>(() => {
         const memberRows: TableRowData[] = members.map((member) => ({
             ...member,
@@ -100,8 +101,17 @@ export const MembersTableView = ({
 
     useEffect(() => {
         setFilter(urlMemberFilter);
+    }, [urlMemberFilter]);
+
+    useEffect(() => {
+        // Ignore URL echoes from our own debounced router.replace calls. Without
+        // this, a stale URL update can overwrite newer text the user is typing.
+        if (pendingSearchParamsRef.current.delete(urlSearchQuery)) {
+            return;
+        }
+
         setSearchQuery(urlSearchQuery);
-    }, [urlMemberFilter, urlSearchQuery]);
+    }, [urlSearchQuery]);
 
     const updateUrlFilters = useCallback((nextFilter: MemberFilter, nextSearchQuery: string) => {
         const nextParams = new URLSearchParams(searchParamsString);
@@ -125,6 +135,7 @@ export const MembersTableView = ({
             return;
         }
 
+        pendingSearchParamsRef.current.add(trimmedSearchQuery);
         router.replace(`${pathname}${nextQueryString ? `?${nextQueryString}` : ""}`, { scroll: false });
     }, [pathname, router, searchParamsString]);
 

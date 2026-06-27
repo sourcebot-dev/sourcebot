@@ -1,11 +1,12 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
     type Column,
     type ColumnDef,
     type OnChangeFn,
     type RowData,
+    type Row,
     type SortingFn,
     type SortingState,
     flexRender,
@@ -14,6 +15,7 @@ import {
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table";
+import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
 declare module "@tanstack/react-table" {
@@ -22,7 +24,7 @@ declare module "@tanstack/react-table" {
         className?: string;
     }
 }
-import { ArrowDown, ArrowUp, Info } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Info } from "lucide-react";
 import { OrgRole } from "@sourcebot/db";
 import { UserAvatar } from "@/components/userAvatar";
 import { Badge } from "@/components/ui/badge";
@@ -105,6 +107,8 @@ const SECTIONS: { id: Section; label: string; description: string }[] = [
 ];
 
 const COLUMN_WIDTHS = ["auto", "180px", "120px", "120px", "120px", "64px"];
+const ESTIMATED_MEMBER_ROW_HEIGHT_PX = 73;
+const ESTIMATED_SECTION_HEADER_HEIGHT_PX = 34;
 
 const collator = new Intl.Collator(undefined, {
     numeric: true,
@@ -229,6 +233,14 @@ const ColumnWidths = () => (
         ))}
     </colgroup>
 );
+
+type VisibleSection = (typeof SECTIONS)[number] & {
+    rows: Row<TableRowData>[];
+};
+
+type VirtualTableItem =
+    | { type: "section"; section: VisibleSection }
+    | { type: "row"; row: Row<TableRowData> };
 
 /**
  * Derives a member's section. Mirrors the `billedUserCount` query so the table
@@ -397,6 +409,7 @@ export const MembersTable = ({
             desc: false,
         },
     ]);
+    const [collapsedSections, setCollapsedSections] = useState<Set<Section>>(() => new Set());
 
     const data = useMemo<TableRowData[]>(() => {
         const memberRows: TableRowData[] = members.map((m) => ({
@@ -433,6 +446,18 @@ export const MembersTable = ({
         setSorting((previous) => functionalUpdate(updater, previous));
     };
 
+    const toggleSection = useCallback((section: Section) => {
+        setCollapsedSections((previous) => {
+            const next = new Set(previous);
+            if (next.has(section)) {
+                next.delete(section);
+            } else {
+                next.add(section);
+            }
+            return next;
+        });
+    }, []);
+
     useLayoutEffect(() => {
         if (scrollTopBeforeSortRef.current == null || !scrollContainerRef.current) {
             return;
@@ -462,10 +487,47 @@ export const MembersTable = ({
     });
 
     const rows = table.getRowModel().rows;
-    const visibleSections = SECTIONS.map((section) => ({
-        ...section,
-        rows: rows.filter((row) => row.original.section === section.id),
-    })).filter((section) => section.rows.length > 0);
+    const visibleSections = useMemo<VisibleSection[]>(() => {
+        return SECTIONS.map((section) => ({
+            ...section,
+            rows: rows.filter((row) => row.original.section === section.id),
+        })).filter((section) => section.rows.length > 0);
+    }, [rows]);
+    const virtualItems = useMemo<VirtualTableItem[]>(() => {
+        return visibleSections.flatMap((section) => [
+            { type: "section" as const, section },
+            ...(collapsedSections.has(section.id)
+                ? []
+                : section.rows.map((row) => ({ type: "row" as const, row }))),
+        ]);
+    }, [collapsedSections, visibleSections]);
+    const sectionIndexes = useMemo(() => {
+        return virtualItems.flatMap((item, index) => item.type === "section" ? [index] : []);
+    }, [virtualItems]);
+    const rangeExtractor = useCallback((range: Parameters<typeof defaultRangeExtractor>[0]) => {
+        return Array.from(new Set([
+            ...sectionIndexes,
+            ...defaultRangeExtractor(range),
+        ])).sort((a, b) => a - b);
+    }, [sectionIndexes]);
+    const rowVirtualizer = useVirtualizer({
+        count: virtualItems.length,
+        getScrollElement: () => scrollContainerRef.current,
+        estimateSize: (index) =>
+            virtualItems[index]?.type === "section"
+                ? ESTIMATED_SECTION_HEADER_HEIGHT_PX
+                : ESTIMATED_MEMBER_ROW_HEIGHT_PX,
+        getItemKey: (index) => {
+            const item = virtualItems[index];
+            if (!item) {
+                return index;
+            }
+            return item.type === "section" ? `section-${item.section.id}` : `${item.row.original.kind}-${item.row.original.id}`;
+        },
+        rangeExtractor,
+        overscan: 12,
+    });
+    const renderedVirtualItems = rowVirtualizer.getVirtualItems();
 
     return (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border">
@@ -505,53 +567,107 @@ export const MembersTable = ({
                             </TableRow>
                         </TableBody>
                     </table>
-                ) : visibleSections.map((section) => (
-                    <table key={section.id} className="w-full table-fixed caption-bottom text-sm">
+                ) : (
+                    <table className="w-full table-fixed caption-bottom text-sm">
                         <ColumnWidths />
                         <TableBody>
-                            <TableRow className="border-b-0 hover:bg-transparent">
-                                <TableCell
-                                    colSpan={columns.length}
-                                    className="sticky top-[47px] z-10 bg-muted py-1.5 shadow-[inset_0_-1px_0_0_var(--border)]"
-                                >
-                                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                                        <span>{section.label}</span>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <button
-                                                    type="button"
-                                                    className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                                    aria-label={`${section.label} section info`}
+                            {renderedVirtualItems.map((virtualItem, itemIndex) => {
+                                const item = virtualItems[virtualItem.index];
+                                if (!item) {
+                                    return null;
+                                }
+                                const previousEnd = itemIndex === 0 ? 0 : renderedVirtualItems[itemIndex - 1].end;
+                                const gap = virtualItem.start - previousEnd;
+                                const spacer = gap > 0 ? (
+                                    <TableRow key={`spacer-${virtualItem.key}`} className="border-b-0 hover:bg-transparent">
+                                        <TableCell colSpan={columns.length} className="p-0" style={{ height: gap }} />
+                                    </TableRow>
+                                ) : null;
+
+                                if (item.type === "section") {
+                                    const { section } = item;
+                                    const isCollapsed = collapsedSections.has(section.id);
+                                    const Icon = isCollapsed ? ChevronRight : ChevronDown;
+                                    return (
+                                        <Fragment key={virtualItem.key}>
+                                            {spacer}
+                                            <TableRow
+                                                data-index={virtualItem.index}
+                                                ref={rowVirtualizer.measureElement}
+                                                className="border-b-0 hover:bg-transparent"
+                                            >
+                                                <TableCell
+                                                    colSpan={columns.length}
+                                                    className="sticky top-[47px] z-10 bg-muted py-1.5 shadow-[inset_0_-1px_0_0_var(--border)]"
                                                 >
-                                                    <Info className="h-3.5 w-3.5" />
-                                                </button>
-                                            </TooltipTrigger>
-                                            <TooltipPrimitive.Portal>
-                                                <TooltipContent className="max-w-xs">
-                                                    {section.description}
-                                                </TooltipContent>
-                                            </TooltipPrimitive.Portal>
-                                        </Tooltip>
-                                        •
-                                        <span>{section.rows.length}</span>
-                                        {section.id === "requests" && (
-                                            <NotificationDot />
-                                        )}
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                            {section.rows.map((row) => (
-                                <TableRow key={row.id}>
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id} className={cell.column.columnDef.meta?.className}>
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                        </TableCell>
-                                    ))}
+                                                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex h-5 w-5 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                            aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${section.label} section`}
+                                                            aria-expanded={!isCollapsed}
+                                                            onClick={() => toggleSection(section.id)}
+                                                        >
+                                                            <Icon className="h-3.5 w-3.5" />
+                                                        </button>
+                                                        <span>{section.label}</span>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <button
+                                                                    type="button"
+                                                                    className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                                    aria-label={`${section.label} section info`}
+                                                                >
+                                                                    <Info className="h-3.5 w-3.5" />
+                                                                </button>
+                                                            </TooltipTrigger>
+                                                            <TooltipPrimitive.Portal>
+                                                                <TooltipContent className="max-w-xs">
+                                                                    {section.description}
+                                                                </TooltipContent>
+                                                            </TooltipPrimitive.Portal>
+                                                        </Tooltip>
+                                                        •
+                                                        <span>{section.rows.length}</span>
+                                                        {section.id === "requests" && (
+                                                            <NotificationDot />
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        </Fragment>
+                                    );
+                                }
+
+                                const { row } = item;
+                                return (
+                                    <Fragment key={virtualItem.key}>
+                                        {spacer}
+                                        <TableRow
+                                            data-index={virtualItem.index}
+                                            ref={rowVirtualizer.measureElement}
+                                        >
+                                            {row.getVisibleCells().map((cell) => (
+                                                <TableCell key={cell.id} className={cell.column.columnDef.meta?.className}>
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>
+                                    </Fragment>
+                                );
+                            })}
+                            {renderedVirtualItems.length > 0 && rowVirtualizer.getTotalSize() - renderedVirtualItems[renderedVirtualItems.length - 1].end > 0 && (
+                                <TableRow className="border-b-0 hover:bg-transparent">
+                                    <TableCell
+                                        colSpan={columns.length}
+                                        className="p-0"
+                                        style={{ height: rowVirtualizer.getTotalSize() - renderedVirtualItems[renderedVirtualItems.length - 1].end }}
+                                    />
                                 </TableRow>
-                            ))}
+                            )}
                         </TableBody>
                     </table>
-                ))}
+                )}
             </div>
         </div>
     );
