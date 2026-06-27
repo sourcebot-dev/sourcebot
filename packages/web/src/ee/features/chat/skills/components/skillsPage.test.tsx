@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import type { AgentSkillListItem, SharedAgentSkillCatalogItem } from '@/ee/features/chat/skills/types';
 
@@ -58,15 +59,18 @@ function renderSkillsPage({
     sharedSkills?: SharedAgentSkillCatalogItem[];
     isOwner?: boolean;
 }) {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     return render(
-        <TooltipProvider>
-            <SkillsPage
-                initialPersonalSkills={personalSkills}
-                initialSharedSkills={sharedSkills}
-                currentUserEmail="jack@sourcebot.dev"
-                isOwner={isOwner}
-            />
-        </TooltipProvider>,
+        <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+                <SkillsPage
+                    initialPersonalSkills={personalSkills}
+                    initialSharedSkills={sharedSkills}
+                    currentUserEmail="jack@sourcebot.dev"
+                    isOwner={isOwner}
+                />
+            </TooltipProvider>
+        </QueryClientProvider>,
     );
 }
 
