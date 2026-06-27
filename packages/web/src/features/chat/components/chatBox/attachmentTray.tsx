@@ -9,7 +9,9 @@ import { AttachmentViewerDialog } from "./attachmentViewerDialog";
 
 interface AttachmentTrayProps {
     attachments: PendingAttachment[];
-    onRemove: (id: string) => void;
+    // Omitted when the tray is read-only (e.g. while a submission is
+    // redirecting); the remove control is hidden in that case.
+    onRemove?: (id: string) => void;
     className?: string;
 }
 
@@ -39,14 +41,16 @@ export const AttachmentTray = ({ attachments, onRemove, className }: AttachmentT
                                 {attachment.filename}
                             </span>
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => onRemove(attachment.id)}
-                            className="text-muted-foreground hover:text-foreground"
-                            aria-label={`Remove ${attachment.filename}`}
-                        >
-                            <X className="w-3 h-3" />
-                        </button>
+                        {onRemove && (
+                            <button
+                                type="button"
+                                onClick={() => onRemove(attachment.id)}
+                                className="text-muted-foreground hover:text-foreground"
+                                aria-label={`Remove ${attachment.filename}`}
+                            >
+                                <X className="w-3 h-3" />
+                            </button>
+                        )}
                     </div>
                 ))}
             </div>

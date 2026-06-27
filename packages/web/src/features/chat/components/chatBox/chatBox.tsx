@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AttachmentData, CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
-import { createPastedTextAttachment, PendingAttachment, readFilesAsAttachments, shouldAutoConvertPaste, toAttachmentData } from "@/features/chat/attachmentUtils";
+import { createPastedTextAttachment, getSubmittedTextBytes, PendingAttachment, readFilesAsAttachments, shouldAutoConvertPaste, toAttachmentData } from "@/features/chat/attachmentUtils";
 import { AttachmentButton } from "./attachmentButton";
 import { AttachmentTray } from "./attachmentTray";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,7 @@ import { computePosition, flip, offset, shift, VirtualElement } from "@floating-
 import { ArrowUp, Loader2, StopCircleIcon } from "lucide-react";
 import { forwardRef, Fragment, KeyboardEvent, memo, Ref, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { Descendant, Editor, insertText, Transforms } from "slate";
+import { Descendant, insertText } from "slate";
 import { Editable, ReactEditor, RenderElementProps, RenderLeafProps, useFocused, useSelected, useSlate } from "slate-react";
 import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 import { SuggestionBox } from "./suggestionsBox";
@@ -26,7 +26,7 @@ import { SearchContextQuery } from "@/lib/types";
 import isEqual from "fast-deep-equal/react";
 import { LoginDialog } from "./loginDialog";
 import { usePathname } from "next/navigation";
-import { PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY } from "@/features/chat/constants";
+import { ATTACHMENT_MAX_TURN_TEXT_BYTES, PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY } from "@/features/chat/constants";
 import useCaptureEvent from "@/hooks/useCaptureEvent";
 import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
 import { UpsellDialog } from "@/features/billing/upsellDialog";
@@ -102,61 +102,60 @@ const ChatBoxComponent = ({
     // this so the large-paste auto-conversion is skipped for that one paste.
     const rawPasteRequestedRef = useRef<boolean>(false);
 
-    // Inserts text at the current selection, falling back to the end of the
-    // document if the editor has no selection (e.g. focus was lost after a
-    // toast action).
-    const insertTextInline = useCallback((text: string) => {
-        ReactEditor.focus(editor);
-        if (!editor.selection) {
-            Transforms.select(editor, Editor.end(editor, []));
+    // Warning shown when prompt text + `nextAttachments` would exceed the per-turn
+    // budget, so an over-budget add surfaces immediately instead of just disabling submit.
+    const getOverBudgetWarning = useCallback((nextAttachments: PendingAttachment[]): string | null => {
+        const totalBytes = getSubmittedTextBytes(slateContentToString(editor.children), nextAttachments);
+        if (totalBytes <= ATTACHMENT_MAX_TURN_TEXT_BYTES) {
+            return null;
         }
-        insertText(editor, text);
+        return `Attachments exceed the ${Math.round(ATTACHMENT_MAX_TURN_TEXT_BYTES / 1024)}KB per-message limit. Remove a file or shorten your message to send.`;
     }, [editor]);
 
     const onAddPastedText = useCallback((text: string) => {
-        const result = createPastedTextAttachment(text, attachments);
-        if (!result.ok) {
-            toast({
-                description: `⚠️ ${result.error}`,
-                variant: "destructive",
-            });
-            // Don't lose the user's paste: fall back to inserting it inline.
-            insertTextInline(text);
-            return;
-        }
-
-        const { attachment } = result;
+        const attachment = createPastedTextAttachment(text, attachments);
         setAttachments((prev) => [...prev, attachment]);
 
-        toast({
-            title: "Large paste added as an attachment",
-            duration: 5 * 1000,
-            className: "w-fit ml-auto",
-            description: `Use ${isMac ? "⌘+⇧+V" : "Ctrl+Shift+V"} to paste inline instead`,
-        });
+        const overBudgetWarning = getOverBudgetWarning([...attachments, attachment]);
+        if (overBudgetWarning) {
+            toast({
+                description: `⚠️ ${overBudgetWarning}`,
+                variant: "destructive",
+            });
+        } else {
+            toast({
+                title: "Large paste added as an attachment",
+                duration: 5 * 1000,
+                className: "w-fit ml-auto",
+                description: `Use ${isMac ? "⌘+⇧+V" : "Ctrl+Shift+V"} to paste inline instead`,
+            });
+        }
 
         ReactEditor.focus(editor);
-    }, [attachments, editor, toast, isMac, insertTextInline]);
+    }, [attachments, editor, toast, isMac, getOverBudgetWarning]);
 
     const onAddFiles = useCallback(async (files: File[]) => {
         if (files.length === 0) {
             return;
         }
 
-        const { attachments: added, errors } = await readFilesAsAttachments(files, attachments.length);
+        const { attachments: added, errors } = await readFilesAsAttachments(files);
         if (added.length > 0) {
             setAttachments((prev) => [...prev, ...added]);
         }
-        if (errors.length > 0) {
+
+        const overBudgetWarning = added.length > 0 ? getOverBudgetWarning([...attachments, ...added]) : null;
+        const messages = [...errors, ...(overBudgetWarning ? [overBudgetWarning] : [])];
+        if (messages.length > 0) {
             toast({
-                description: `⚠️ ${errors.join(' ')}`,
+                description: `⚠️ ${messages.join(' ')}`,
                 variant: "destructive",
             });
         }
 
         // Return focus to the prompt input so the user can keep typing.
         ReactEditor.focus(editor);
-    }, [attachments.length, toast, editor]);
+    }, [attachments, toast, editor, getOverBudgetWarning]);
 
     const removeAttachment = useCallback((id: string) => {
         setAttachments((prev) => prev.filter((attachment) => attachment.id !== id));
@@ -201,15 +200,24 @@ const ChatBoxComponent = ({
 
     const { isSubmitDisabled, isSubmitDisabledReason } = useMemo((): {
         isSubmitDisabled: true,
-        isSubmitDisabledReason: "empty" | "redirecting" | "generating" | "no-language-model-selected"
+        isSubmitDisabledReason: "empty" | "too-large" | "redirecting" | "generating" | "no-language-model-selected"
     } | {
         isSubmitDisabled: false,
         isSubmitDisabledReason: undefined,
     } => {
-        if (slateContentToString(editor.children).trim().length === 0 && attachments.length === 0) {
+        const text = slateContentToString(editor.children);
+        if (text.trim().length === 0 && attachments.length === 0) {
             return {
                 isSubmitDisabled: true,
                 isSubmitDisabledReason: "empty",
+            }
+        }
+
+        // Single per-turn bound on the submitted text (prompt + attachments).
+        if (getSubmittedTextBytes(text, attachments) > ATTACHMENT_MAX_TURN_TEXT_BYTES) {
+            return {
+                isSubmitDisabled: true,
+                isSubmitDisabledReason: "too-large",
             }
         }
 
@@ -240,7 +248,7 @@ const ChatBoxComponent = ({
             isSubmitDisabledReason: undefined,
         }
 
-    }, [editor.children, isRedirecting, isTurnInProgress, selectedLanguageModel, attachments.length])
+    }, [editor.children, isRedirecting, isTurnInProgress, selectedLanguageModel, attachments])
 
     const {
         requiresLogin,
@@ -259,6 +267,11 @@ const ChatBoxComponent = ({
             if (isSubmitDisabledReason === "no-language-model-selected") {
                 toast({
                     description: "⚠️ You must select a language model",
+                    variant: "destructive",
+                });
+            } else if (isSubmitDisabledReason === "too-large") {
+                toast({
+                    description: `⚠️ Message and attachments exceed the ${Math.round(ATTACHMENT_MAX_TURN_TEXT_BYTES / 1024)}KB per-message limit. Remove a file or shorten the text.`,
                     variant: "destructive",
                 });
             }
@@ -464,7 +477,7 @@ const ChatBoxComponent = ({
                 {(isRedirecting ? submittedAttachments : attachments).length > 0 && (
                     <AttachmentTray
                         attachments={isRedirecting ? submittedAttachments : attachments}
-                        onRemove={removeAttachment}
+                        onRemove={isRedirecting ? undefined : removeAttachment}
                         className="mb-1.5"
                     />
                 )}

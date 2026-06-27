@@ -3,22 +3,18 @@
 import {
     ATTACHMENT_ALLOWED_TEXT_EXTENSIONS,
     ATTACHMENT_ALLOWED_TEXT_MIME_TYPES,
-    ATTACHMENT_MAX_COUNT,
-    ATTACHMENT_MAX_FILENAME_LENGTH,
-    ATTACHMENT_MAX_TEXT_BYTES,
+    ATTACHMENT_MAX_TURN_TEXT_BYTES,
     ATTACHMENT_PASTE_AUTO_CONVERT_MIN_CHARS,
     ATTACHMENT_PASTE_AUTO_CONVERT_MIN_LINES,
 } from "./constants";
 import { AttachmentData, TextAttachment } from "./types";
 import { v4 as uuidv4 } from "uuid";
 
-// Normalizes an untrusted filename: keeps only the basename, drops control
-// characters (which could break the prompt's `<attachment filename="...">` tag
-// or the UI), collapses whitespace, and caps the length while preserving the
-// extension. Long/abusive names are truncated rather than rejected.
+// Normalizes an untrusted filename: basename only, strips control chars (which
+// could break the `<attachment filename="...">` tag or UI), collapses whitespace.
 export const sanitizeFilename = (name: string): string => {
     const basename = name.split(/[\\/]/).pop() ?? name;
-    const cleaned = Array.from(basename)
+    return Array.from(basename)
         .filter((char) => {
             const code = char.charCodeAt(0);
             return code >= 32 && code !== 127;
@@ -26,16 +22,6 @@ export const sanitizeFilename = (name: string): string => {
         .join('')
         .replace(/\s+/g, ' ')
         .trim() || 'attachment';
-
-    if (cleaned.length <= ATTACHMENT_MAX_FILENAME_LENGTH) {
-        return cleaned;
-    }
-
-    const dotIndex = cleaned.lastIndexOf('.');
-    const extension = dotIndex > 0 ? cleaned.slice(dotIndex) : '';
-    const stem = dotIndex > 0 ? cleaned.slice(0, dotIndex) : cleaned;
-    const keep = Math.max(1, ATTACHMENT_MAX_FILENAME_LENGTH - extension.length - 1);
-    return `${stem.slice(0, keep)}…${extension}`;
 }
 
 // A text attachment selected in the chat box but not yet submitted. The `id`
@@ -53,10 +39,8 @@ export const getAttachmentAcceptAttribute = (): string => {
     ].join(',');
 }
 
-// Builds the `accept` map for react-dropzone (and the native file picker) so
-// the OS dialog and drag overlay only surface supported text file types. The
-// extension list is attached to `text/plain` so code files that report an empty
-// or unusual MIME type are still selectable by extension.
+// Builds react-dropzone's `accept` map. Extensions are attached to `text/plain`
+// so code files that report an empty/unusual MIME type are still selectable.
 export const getAttachmentDropzoneAccept = (): Record<string, string[]> => {
     const accept: Record<string, string[]> = {
         'text/*': [],
@@ -66,6 +50,14 @@ export const getAttachmentDropzoneAccept = (): Record<string, string[]> => {
         accept[mimeType] = [];
     }
     return accept;
+}
+
+// Total UTF-8 byte size of a turn's submitted text (prompt + attachment bodies),
+// checked against ATTACHMENT_MAX_TURN_TEXT_BYTES at submit time.
+export const getSubmittedTextBytes = (text: string, attachments: PendingAttachment[]): number => {
+    const textBytes = new TextEncoder().encode(text).length;
+    const attachmentBytes = attachments.reduce((sum, attachment) => sum + attachment.sizeBytes, 0);
+    return textBytes + attachmentBytes;
 }
 
 export const toAttachmentData = (attachment: PendingAttachment): AttachmentData => {
@@ -115,9 +107,8 @@ const readAsText = (file: File): Promise<string> => {
     });
 }
 
-// Whether a plain-text paste is "large" enough to be automatically converted
-// into a text attachment rather than inserted inline. Gated on both length and
-// shape so a single long sentence isn't swept up, but a multi-line snippet is.
+// Whether a plain-text paste is large enough to auto-convert into an attachment
+// instead of being inserted inline. Gated on length or line count.
 export const shouldAutoConvertPaste = (text: string): boolean => {
     if (text.length >= ATTACHMENT_PASTE_AUTO_CONVERT_MIN_CHARS) {
         return true;
@@ -147,42 +138,19 @@ const getPastedAttachmentFilename = (existing: PendingAttachment[]): string => {
     return `pasted-${index}.txt`;
 }
 
-export type CreatePastedAttachmentResult =
-    | { ok: true; attachment: PendingAttachment }
-    | { ok: false; error: string };
-
-// Builds a pending text attachment from a pasted string, enforcing the same
-// per-message count and per-attachment size caps as file attachments. Returns
-// a human-readable error instead of throwing when a cap is exceeded.
+// Builds a pending text attachment from a pasted string. The per-turn text
+// budget is enforced once at submit time, not here, so this can't fail.
 export const createPastedTextAttachment = (
     text: string,
     existing: PendingAttachment[],
-): CreatePastedAttachmentResult => {
-    if (existing.length >= ATTACHMENT_MAX_COUNT) {
-        return {
-            ok: false,
-            error: `You can attach at most ${ATTACHMENT_MAX_COUNT} files per message.`,
-        };
-    }
-
-    const sizeBytes = new Blob([text]).size;
-    if (sizeBytes > ATTACHMENT_MAX_TEXT_BYTES) {
-        return {
-            ok: false,
-            error: `Pasted text exceeds the ${Math.round(ATTACHMENT_MAX_TEXT_BYTES / 1024)}KB limit.`,
-        };
-    }
-
+): PendingAttachment => {
     return {
-        ok: true,
-        attachment: {
-            id: uuidv4(),
-            kind: 'text',
-            filename: getPastedAttachmentFilename(existing),
-            mediaType: 'text/plain',
-            sizeBytes,
-            text,
-        },
+        id: uuidv4(),
+        kind: 'text',
+        filename: getPastedAttachmentFilename(existing),
+        mediaType: 'text/plain',
+        sizeBytes: new Blob([text]).size,
+        text,
     };
 }
 
@@ -191,30 +159,23 @@ export type ReadFilesResult = {
     errors: string[];
 };
 
-// Reads and validates a set of files into pending text attachments, enforcing
-// the per-message count, per-file size, and allowed-type caps. Rejected files
-// produce a human-readable error message instead of throwing.
+// Reads files into pending text attachments, rejecting non-text files and any
+// file larger than the per-turn budget (skipped before reading to avoid loading
+// a huge file into memory). The aggregate budget is enforced at submit time.
 export const readFilesAsAttachments = async (
     files: File[],
-    existingCount: number,
 ): Promise<ReadFilesResult> => {
     const attachments: PendingAttachment[] = [];
     const errors: string[] = [];
-    let count = existingCount;
 
     for (const file of files) {
-        if (count >= ATTACHMENT_MAX_COUNT) {
-            errors.push(`You can attach at most ${ATTACHMENT_MAX_COUNT} files per message.`);
-            break;
-        }
-
         if (!isAllowedTextFile(file)) {
             errors.push(`${file.name}: unsupported file type (text files only).`);
             continue;
         }
 
-        if (file.size > ATTACHMENT_MAX_TEXT_BYTES) {
-            errors.push(`${file.name}: exceeds the ${Math.round(ATTACHMENT_MAX_TEXT_BYTES / 1024)}KB limit.`);
+        if (file.size > ATTACHMENT_MAX_TURN_TEXT_BYTES) {
+            errors.push(`${file.name}: exceeds the ${Math.round(ATTACHMENT_MAX_TURN_TEXT_BYTES / 1024)}KB per-message limit.`);
             continue;
         }
 
@@ -228,7 +189,6 @@ export const readFilesAsAttachments = async (
                 sizeBytes: file.size,
                 text,
             });
-            count++;
         } catch {
             errors.push(`${file.name}: failed to read file.`);
         }
