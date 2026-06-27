@@ -62,7 +62,7 @@ const ReferencedSourcesListViewComponent = ({
         setCollapsedDiagramIds((prev) => prev.filter((id) => id !== selectedDiagramId));
         const element = document.getElementById(`diagram-panel-${selectedDiagramId}`);
         if (element) {
-            scrollIntoView(element, { scrollMode: 'if-needed', block: 'center', behavior: 'smooth' });
+            scrollIntoView(element, { scrollMode: 'if-needed', block: 'center', behavior: 'instant' });
         }
         setHighlightedDiagramId(selectedDiagramId);
         const timeout = window.setTimeout(() => setHighlightedDiagramId(undefined), 2000);

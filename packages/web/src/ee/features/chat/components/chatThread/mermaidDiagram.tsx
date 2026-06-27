@@ -163,8 +163,6 @@ const PANEL_MIN_HEIGHT = 240;
 const PANEL_VIEWPORT_MARGIN = 24;
 // Fallback when no scroll-area ancestor can be measured.
 const PANEL_FALLBACK_MAX_HEIGHT = 720;
-// Cap on enlarging a wide diagram: at most this many column-widths wide.
-const PANEL_MAX_OVERFLOW_FACTOR = 2.5;
 
 // Zoom limits and the button step are relative to the fitted ("100%") scale, so
 // the usable range and ±25% readout steps are consistent across diagram sizes.
@@ -197,10 +195,11 @@ interface DiagramFit {
     panelHeight: number | null;
 }
 
-// Pure fit, as a transform scale where 1 = "fills the available width". Inline
-// and fullscreen contain-fit the whole diagram; the panel contain-fits unless
-// the diagram is wider than the column, in which case it's enlarged to use the
-// readable height and overflows horizontally (bounded so it can't explode).
+// Pure fit, as a transform scale where 1 = "fills the available width". Both the
+// panel and fullscreen contain-fit the whole diagram, respecting width and
+// height, so it never overflows the container in either dimension (zoom/pan to
+// inspect details). The panel additionally grows its height to the fitted
+// diagram, clamped to the readable area.
 const computeFit = (
     { width: iw, height: ih }: IntrinsicSize,
     availWidth: number,
@@ -211,19 +210,12 @@ const computeFit = (
     const widthFitHeight = availWidth * (ih / iw);
     const heightFitScale = availHeight / widthFitHeight;
 
+    // Contain-fit: never wider than the box, shrink to fit the height if tall.
+    const fitScale = Math.min(1, heightFitScale) * FIT_MARGIN;
+
     if (!autoHeight) {
-        // Contain-fit: never wider than the box, shrink to fit the height if tall.
-        const fitScale = Math.min(1, heightFitScale) * FIT_MARGIN;
         return { fitScale, panelHeight: null };
     }
-
-    const isWiderThanPanel = iw > availWidth;
-    const fitScale = (isWiderThanPanel
-        // Enlarge into the readable height and overflow horizontally (drag to
-        // pan); never below filling the column width, capped at N column-widths.
-        ? Math.min(Math.max(heightFitScale, 1), PANEL_MAX_OVERFLOW_FACTOR)
-        // Contain-fit: the whole diagram stays visible.
-        : Math.min(1, heightFitScale)) * FIT_MARGIN;
 
     const panelHeight = Math.round(Math.min(availHeight, Math.max(PANEL_MIN_HEIGHT, widthFitHeight * fitScale)));
     return { fitScale, panelHeight };
