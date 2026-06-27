@@ -4,9 +4,8 @@ import {
     ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES,
     ATTACHMENT_ALLOWED_TEXT_EXTENSIONS,
     ATTACHMENT_ALLOWED_TEXT_MIME_TYPES,
-    ATTACHMENT_MAX_COUNT,
     ATTACHMENT_MAX_IMAGE_BYTES,
-    ATTACHMENT_MAX_TEXT_BYTES,
+    ATTACHMENT_MAX_TURN_TEXT_BYTES,
     ATTACHMENT_PASTE_AUTO_CONVERT_MIN_CHARS,
     ATTACHMENT_PASTE_AUTO_CONVERT_MIN_LINES,
 } from "./constants";
@@ -82,6 +81,18 @@ export const getAttachmentDropzoneAccept = (includeImages: boolean): Record<stri
     return accept;
 }
 
+// Total UTF-8 byte size of a turn's submitted text (prompt + text attachment
+// bodies), checked against ATTACHMENT_MAX_TURN_TEXT_BYTES at submit time. Image
+// attachments are excluded: their bytes are uploaded as blobs, not inlined into
+// the message text, so they don't count against the inline-text budget.
+export const getSubmittedTextBytes = (text: string, attachments: PendingAttachment[]): number => {
+    const textBytes = new TextEncoder().encode(text).length;
+    const attachmentBytes = attachments
+        .filter((attachment) => attachment.kind === 'text')
+        .reduce((sum, attachment) => sum + attachment.sizeBytes, 0);
+    return textBytes + attachmentBytes;
+}
+
 // Converts a pending attachment into the message `AttachmentData` part. Returns
 // `undefined` for an image whose upload has not completed (it must not be
 // referenced before the blob exists); callers filter these out.
@@ -150,9 +161,8 @@ const readAsText = (file: File): Promise<string> => {
     });
 }
 
-// Whether a plain-text paste is "large" enough to be automatically converted
-// into a text attachment rather than inserted inline. Gated on both length and
-// shape so a single long sentence isn't swept up, but a multi-line snippet is.
+// Whether a plain-text paste is large enough to auto-convert into an attachment
+// instead of being inserted inline. Gated on length or line count.
 export const shouldAutoConvertPaste = (text: string): boolean => {
     if (text.length >= ATTACHMENT_PASTE_AUTO_CONVERT_MIN_CHARS) {
         return true;
@@ -182,42 +192,19 @@ const getPastedAttachmentFilename = (existing: PendingAttachment[]): string => {
     return `pasted-${index}.txt`;
 }
 
-export type CreatePastedAttachmentResult =
-    | { ok: true; attachment: PendingAttachment }
-    | { ok: false; error: string };
-
-// Builds a pending text attachment from a pasted string, enforcing the same
-// per-message count and per-attachment size caps as file attachments. Returns
-// a human-readable error instead of throwing when a cap is exceeded.
+// Builds a pending text attachment from a pasted string. The per-turn text
+// budget is enforced once at submit time, not here, so this can't fail.
 export const createPastedTextAttachment = (
     text: string,
     existing: PendingAttachment[],
-): CreatePastedAttachmentResult => {
-    if (existing.length >= ATTACHMENT_MAX_COUNT) {
-        return {
-            ok: false,
-            error: `You can attach at most ${ATTACHMENT_MAX_COUNT} files per message.`,
-        };
-    }
-
-    const sizeBytes = new Blob([text]).size;
-    if (sizeBytes > ATTACHMENT_MAX_TEXT_BYTES) {
-        return {
-            ok: false,
-            error: `Pasted text exceeds the ${Math.round(ATTACHMENT_MAX_TEXT_BYTES / 1024)}KB limit.`,
-        };
-    }
-
+): PendingAttachment => {
     return {
-        ok: true,
-        attachment: {
-            id: uuidv4(),
-            kind: 'text',
-            filename: getPastedAttachmentFilename(existing),
-            mediaType: 'text/plain',
-            sizeBytes,
-            text,
-        },
+        id: uuidv4(),
+        kind: 'text',
+        filename: getPastedAttachmentFilename(existing),
+        mediaType: 'text/plain',
+        sizeBytes: new Blob([text]).size,
+        text,
     };
 }
 
@@ -227,29 +214,23 @@ export type ReadFilesResult = {
 };
 
 // Reads and validates a set of files into pending attachments, enforcing the
-// per-message count, per-file size, and allowed-type caps. Text files are read
-// inline; image files (only when `allowImages`) are turned into pending image
-// attachments with a local preview and an `uploading` status (the actual
-// upload is kicked off by the caller). Rejected files produce a human-readable
-// error message instead of throwing.
+// per-file size and allowed-type caps (the aggregate per-turn text budget is
+// enforced at submit time). Text files are read inline; image files (only when
+// `allowImages`) are turned into pending image attachments with a local preview
+// and an `uploading` status (the actual upload is kicked off by the caller).
+// Rejected files produce a human-readable error message instead of throwing.
 export const readFilesAsAttachments = async (
     files: File[],
-    existingCount: number,
     { allowImages }: { allowImages: boolean },
 ): Promise<ReadFilesResult> => {
     const attachments: PendingAttachment[] = [];
     const errors: string[] = [];
-    let count = existingCount;
 
     for (const file of files) {
-        if (count >= ATTACHMENT_MAX_COUNT) {
-            errors.push(`You can attach at most ${ATTACHMENT_MAX_COUNT} files per message.`);
-            break;
-        }
-
         if (isAllowedTextFile(file)) {
-            if (file.size > ATTACHMENT_MAX_TEXT_BYTES) {
-                errors.push(`${file.name}: exceeds the ${Math.round(ATTACHMENT_MAX_TEXT_BYTES / 1024)}KB limit.`);
+            // Skip before reading to avoid loading a huge file into memory.
+            if (file.size > ATTACHMENT_MAX_TURN_TEXT_BYTES) {
+                errors.push(`${file.name}: exceeds the ${Math.round(ATTACHMENT_MAX_TURN_TEXT_BYTES / 1024)}KB per-message limit.`);
                 continue;
             }
             try {
@@ -262,7 +243,6 @@ export const readFilesAsAttachments = async (
                     sizeBytes: file.size,
                     text,
                 });
-                count++;
             } catch {
                 errors.push(`${file.name}: failed to read file.`);
             }
@@ -288,7 +268,6 @@ export const readFilesAsAttachments = async (
                 file,
                 status: 'uploading',
             });
-            count++;
             continue;
         }
 

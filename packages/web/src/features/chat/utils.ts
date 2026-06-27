@@ -2,7 +2,7 @@ import { BrowseHighlightRange, getBrowsePath } from "@/app/(app)/browse/hooks/ut
 import { CreateUIMessage, isToolUIPart, TextUIPart, UIMessagePart } from "ai";
 import type { ChatStatus, DynamicToolUIPart, ToolUIPart } from "ai";
 import { Descendant, Editor, Point, Range, Transforms } from "slate";
-import { ANSWER_TAG, ATTACHMENT_MAX_FILENAME_LENGTH, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
+import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
 import {
     AttachmentData,
     CustomEditor,
@@ -417,27 +417,29 @@ export const getUserMessageAttachments = (message: Pick<SBChatMessage, 'parts'>)
         .map((part) => part.data);
 }
 
-// Formats a user message's attachments into a delimited block suitable for
-// inlining into that turn's content. Returns an empty string when there are no
-// (text) attachments. `maxBytesPerAttachment` defensively truncates each
-// attachment's text (defense-in-depth against an oversized client payload).
-export const formatAttachmentsForPrompt = (attachments: AttachmentData[], maxBytesPerAttachment?: number): string => {
+// Neutralizes `</attachment>`/`</attachments>` sequences in a body so it can't
+// close its own wrapper early. Unrelated markup (e.g. `</div>`) is left intact.
+const escapeAttachmentBody = (text: string): string => {
+    return text.replace(/<(\/attachments?>)/gi, '&lt;$1');
+}
+
+// Formats a user message's text attachments into a delimited block to inline
+// into the turn's content. Returns '' when there are none. Size is bounded at
+// submit, so nothing is truncated here.
+export const formatAttachmentsForPrompt = (attachments: AttachmentData[]): string => {
     const textAttachments = attachments.filter((attachment) => attachment.kind === 'text');
     if (textAttachments.length === 0) {
         return '';
     }
 
     const blocks = textAttachments.map((attachment) => {
-        const text = maxBytesPerAttachment !== undefined
-            ? attachment.text.slice(0, maxBytesPerAttachment)
-            : attachment.text;
-        // Defense-in-depth: keep the filename on a single line, escape quotes,
-        // and cap its length so a crafted client can't break the tag or bloat
-        // the prompt (the client also sanitizes via sanitizeFilename).
+        const text = escapeAttachmentBody(attachment.text);
+        // Keep the filename on a single line and escape quotes so the body
+        // can't break out of the tag (the client also sanitizes via
+        // sanitizeFilename).
         const filename = attachment.filename
             .replace(/\s+/g, ' ')
-            .replace(/"/g, '&quot;')
-            .slice(0, ATTACHMENT_MAX_FILENAME_LENGTH);
+            .replace(/"/g, '&quot;');
         return `<attachment filename="${filename}" media-type="${attachment.mediaType}">\n${text}\n</attachment>`;
     });
 

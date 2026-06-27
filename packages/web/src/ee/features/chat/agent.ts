@@ -24,7 +24,6 @@ import _dedent from "dedent";
 import { ANSWER_TAG, FILE_REFERENCE_PREFIX } from "@/features/chat/constants";
 import { Source } from "@/features/chat/types";
 import { addLineNumbers, fileReferenceToString, formatAttachmentsForPrompt, getAnswerPartFromAssistantMessage, getTurnProgressState, getUserMessageAttachments, getUserMessageText } from "@/features/chat/utils";
-import { ATTACHMENT_MAX_TEXT_BYTES } from "@/features/chat/constants";
 import { createTools } from "./tools";
 import { getConnectedMcpClients } from "@/ee/features/chat/mcp/mcpClientFactory";
 import { getMcpTools, McpToolsResult } from "@/ee/features/chat/mcp/mcpToolSets";
@@ -113,7 +112,6 @@ const buildUserModelMessage = ({
     const text = getUserMessageText(message);
     const attachmentsBlock = formatAttachmentsForPrompt(
         getUserMessageAttachments(message),
-        ATTACHMENT_MAX_TEXT_BYTES,
     );
     let baseText = attachmentsBlock ? `${text}\n\n${attachmentsBlock}` : text;
 

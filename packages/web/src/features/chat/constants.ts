@@ -13,12 +13,10 @@ export const PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY = 'pendingChatSubmissio
 export const DISABLED_MCP_SERVER_IDS_LOCAL_STORAGE_KEY = 'disabledMcpServerIds';
 export const MCP_OAUTH_DRAFT_SESSION_STORAGE_KEY = 'mcpOAuthDraft';
 
-// Text attachment limits. Text is inlined into the message (and, for new
-// threads, into the sessionStorage stash), so caps are kept conservative to
-// bound `messages` JSON growth and stay well under the sessionStorage limit.
-export const ATTACHMENT_MAX_TEXT_BYTES = 256 * 1024; // 256KB per file
-export const ATTACHMENT_MAX_COUNT = 5; // per message
-export const ATTACHMENT_MAX_FILENAME_LENGTH = 200; // characters
+// Single upper bound on the total attachment text submitted per turn (text is
+// inlined and re-emitted every turn). ~256KB ≈ 65-85K tokens: enough for a few
+// files or a large log while leaving room for retrieval, history, and output.
+export const ATTACHMENT_MAX_TURN_TEXT_BYTES = 256 * 1024; // 256KB per turn
 
 // Client-side image size cap, used for early rejection before upload. The
 // server enforces the authoritative cap via SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES
