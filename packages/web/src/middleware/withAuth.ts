@@ -113,8 +113,8 @@ export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceErr
     // state, then we need to activate them.
     if (
         membership &&
-        membership.suspendedAt == null &&
-        membership.lastActiveAt == null
+        membership.suspendedAt === null &&
+        membership.lastActiveAt === null
     ) {
         const result = await activatePendingMembership(membership);
         if (isServiceError(result)) {
