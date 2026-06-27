@@ -4,7 +4,7 @@ import { createMessageStream } from "@/ee/features/chat/agent";
 import { getPromptCacheStrategy } from "@/ee/features/chat/promptCaching";
 import { additionalChatRequestParamsSchema } from "@/features/chat/types";
 import { getLanguageModelKey, getUserMessageAttachments } from "@/features/chat/utils";
-import { resolveModelInputModalities } from "@/features/chat/modelCapabilities";
+import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
 import { checkAskEntitlement, commitMessageAttachments, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
@@ -108,7 +108,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
             // Authoritative, server-side resolution of image capability. The
             // agent's multimodal content builder and degrade logic rely on this
             // value, never the client.
-            const supportsImages = resolveModelInputModalities(languageModelConfig).includes('image');
+            const supportsImages = (await resolveModelCapabilities(languageModelConfig)).inputModalities.includes('image');
 
             // If the latest message carries image attachments the selected model
             // cannot accept, the agent will degrade (omit the bytes). Record it.
