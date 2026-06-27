@@ -265,6 +265,41 @@ export const GET = apiHandler(async (request: NextRequest) => {
 });
 ```
 
+## Membership States
+
+Organization membership state is derived from fields on `UserToOrg`:
+
+- **Active**: `suspendedAt` is `null` and `lastActiveAt` is not `null`. Active members can access the org and count as billable seats.
+- **Pending**: `suspendedAt` is `null` and `lastActiveAt` is `null`. Pending users can access the org, but are not billable yet.
+- **Suspended**: `suspendedAt` is not `null`. Suspended users cannot access the org and are not billable.
+
+When filtering memberships, use the helper predicates from `packages/web/src/features/membership/utils.ts` instead of writing these conditions inline. This keeps auth, billing, SCIM, and UI queries aligned as the state rules evolve.
+
+```ts
+import {
+    activeMembershipWhere,
+    activeOrPendingMembershipWhere,
+    pendingMembershipWhere,
+    suspendedMembershipWhere,
+} from "@/features/membership/utils";
+
+// Billable seat count.
+await prisma.userToOrg.count({
+    where: {
+        orgId,
+        ...activeMembershipWhere(),
+    },
+});
+
+// Users who should be able to access the org.
+await prisma.userToOrg.findMany({
+    where: {
+        orgId,
+        ...activeOrPendingMembershipWhere(),
+    },
+});
+```
+
 ## Next.js Router Navigation
 
 Do NOT call `router.refresh()` immediately after `router.push()`. In Next.js 16, the prefetch cache and navigation system was completely rewritten, and calling `router.refresh()` right after `router.push()` creates a race condition. The refresh invalidates the cache and can interrupt the in-flight navigation, leaving the page stuck or not loading.

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { MoreVertical } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2, MoreVertical } from "lucide-react";
 import { OrgRole } from "@sourcebot/db";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -152,6 +152,7 @@ export const MembersTableActions = ({
     const { toast } = useToast();
     const [pendingAction, setPendingAction] = useState<MemberAction | null>(null);
     const [confirmingAction, setConfirmingAction] = useState<MemberAction | null>(null);
+    const pendingActionResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isCurrentUser = row.kind === "member" && row.id === currentUserId;
     const isSuspended = row.kind === "member" && row.suspendedAt != null;
     const isActiveMember = row.kind === "member" && row.suspendedAt == null && row.lastActiveAt != null;
@@ -182,6 +183,25 @@ export const MembersTableActions = ({
         } catch {
             toast({ description: "Failed to copy invite link." });
         }
+    };
+
+    useEffect(() => {
+        return () => {
+            if (pendingActionResetTimeoutRef.current != null) {
+                clearTimeout(pendingActionResetTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const clearPendingActionAfterClose = (action: MemberAction) => {
+        if (pendingActionResetTimeoutRef.current != null) {
+            clearTimeout(pendingActionResetTimeoutRef.current);
+        }
+
+        pendingActionResetTimeoutRef.current = setTimeout(() => {
+            setPendingAction((currentAction) => currentAction === action ? null : currentAction);
+            pendingActionResetTimeoutRef.current = null;
+        }, 250);
     };
 
     const runConfirmedAction = async () => {
@@ -218,25 +238,28 @@ export const MembersTableActions = ({
             })();
         } catch {
             toast({ description: `Failed to ${getActionLabel(action).toLowerCase()}.` });
-            return;
-        } finally {
             setPendingAction(null);
+            return;
         }
 
         if (isServiceError(result)) {
             toast({
                 description: `Failed to ${getActionLabel(action).toLowerCase()}. Reason: ${result.message}`,
             });
+            setPendingAction(null);
             return;
         }
 
         toast({ description: `${getActionLabel(action)} successful.` });
         setConfirmingAction(null);
+        clearPendingActionAfterClose(action);
         router.refresh();
     };
 
-    const dialogCopy = confirmingAction == null ? null : getDialogCopy(confirmingAction, row);
-    const confirmButtonClassName = confirmingAction != null && isDestructiveAction(confirmingAction)
+    const dialogAction = confirmingAction ?? pendingAction;
+    const dialogCopy = dialogAction == null ? null : getDialogCopy(dialogAction, row);
+    const isConfirming = dialogAction != null && pendingAction === dialogAction;
+    const confirmButtonClassName = dialogAction != null && isDestructiveAction(dialogAction)
         ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
         : undefined;
 
@@ -360,7 +383,19 @@ export const MembersTableActions = ({
                     setConfirmingAction(null);
                 }
             }}>
-                <AlertDialogContent>
+                <AlertDialogContent
+                    onAnimationEnd={(event) => {
+                        if (event.currentTarget.dataset.state === "closed") {
+                            if (pendingActionResetTimeoutRef.current != null) {
+                                clearTimeout(pendingActionResetTimeoutRef.current);
+                                pendingActionResetTimeoutRef.current = null;
+                            }
+                            setPendingAction((currentAction) => (
+                                currentAction === dialogAction ? null : currentAction
+                            ));
+                        }
+                    }}
+                >
                     <AlertDialogHeader>
                         <AlertDialogTitle>{dialogCopy?.title}</AlertDialogTitle>
                         <AlertDialogDescription>{dialogCopy?.description}</AlertDialogDescription>
@@ -375,7 +410,8 @@ export const MembersTableActions = ({
                                 runConfirmedAction();
                             }}
                         >
-                            {confirmingAction == null ? "Confirm" : getActionLabel(confirmingAction)}
+                            {isConfirming && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            {dialogAction == null ? "Confirm" : getActionLabel(dialogAction)}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
