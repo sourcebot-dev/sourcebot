@@ -1,6 +1,7 @@
 'use client';
 
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { AttachmentViewerDialog } from "@/features/chat/components/chatBox/attachmentViewerDialog";
 import { AttachmentData } from "@/features/chat/types";
 import { cn } from "@/lib/utils";
@@ -34,21 +35,38 @@ export const MessageAttachments = ({ attachments, chatId, className }: MessageAt
             <div className={cn("flex flex-row flex-wrap gap-1.5", className)}>
                 {attachments.map((attachment, index) => {
                     if (attachment.kind === 'blob' && attachment.mediaType.startsWith('image/')) {
+                        const imageSrc = getAttachmentServingUrl(chatId, attachment.attachmentId);
                         return (
-                            <button
-                                key={attachment.attachmentId}
-                                type="button"
-                                onClick={() => setActiveAttachment(attachment)}
-                                className="h-16 w-16 rounded overflow-hidden border border-border bg-muted hover:opacity-90 transition-opacity"
-                                title={`View ${attachment.filename}`}
-                            >
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    src={getAttachmentServingUrl(chatId, attachment.attachmentId)}
-                                    alt={attachment.filename}
-                                    className="h-full w-full object-cover"
-                                />
-                            </button>
+                            <HoverCard key={attachment.attachmentId} openDelay={150} closeDelay={75}>
+                                <HoverCardTrigger asChild>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveAttachment(attachment)}
+                                        className="flex flex-row items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs hover:bg-accent transition-colors"
+                                        title={`View ${attachment.filename}`}
+                                    >
+                                        <span className="h-3.5 w-3.5 shrink-0 overflow-hidden rounded-[2px] border border-border bg-background">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={imageSrc}
+                                                alt={attachment.filename}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        </span>
+                                        <span className="font-mono max-w-[160px] truncate">
+                                            {attachment.filename}
+                                        </span>
+                                    </button>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-auto p-1" align="start" side="top">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={imageSrc}
+                                        alt={attachment.filename}
+                                        className="max-h-64 max-w-[16rem] w-auto rounded object-contain"
+                                    />
+                                </HoverCardContent>
+                            </HoverCard>
                         );
                     }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { AlertCircle, Loader2, X } from "lucide-react";
 import { useState } from "react";
@@ -25,42 +26,56 @@ export const AttachmentTray = ({ attachments, onRemove, className }: AttachmentT
             <div className={cn("flex flex-row flex-wrap gap-1.5", className)}>
                 {attachments.map((attachment) => (
                     attachment.kind === 'image' ? (
-                        <div
-                            key={attachment.id}
-                            className="relative group h-14 w-14 rounded overflow-hidden border border-border bg-muted"
-                            title={attachment.filename}
-                        >
-                            <button
-                                type="button"
-                                onClick={() => setActiveAttachment(attachment)}
-                                className="block h-full w-full"
-                            >
+                        <HoverCard key={attachment.id} openDelay={150} closeDelay={75}>
+                            <div className="flex flex-row items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs">
+                                <HoverCardTrigger asChild>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveAttachment(attachment)}
+                                        className="flex flex-row items-center gap-1 hover:text-foreground"
+                                        title={`View ${attachment.filename}`}
+                                    >
+                                        <span className="relative h-3.5 w-3.5 shrink-0 overflow-hidden rounded-[2px] border border-border bg-background">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={attachment.previewUrl}
+                                                alt={attachment.filename}
+                                                className="h-full w-full object-cover"
+                                            />
+                                            {attachment.status === 'uploading' && (
+                                                <span className="absolute inset-0 flex items-center justify-center bg-background/60">
+                                                    <Loader2 className="h-2.5 w-2.5 animate-spin text-foreground" />
+                                                </span>
+                                            )}
+                                            {attachment.status === 'error' && (
+                                                <span className="absolute inset-0 flex items-center justify-center bg-destructive/20">
+                                                    <AlertCircle className="h-2.5 w-2.5 text-destructive" />
+                                                </span>
+                                            )}
+                                        </span>
+                                        <span className="font-mono max-w-[160px] truncate">
+                                            {attachment.filename}
+                                        </span>
+                                    </button>
+                                </HoverCardTrigger>
+                                <button
+                                    type="button"
+                                    onClick={() => onRemove(attachment.id)}
+                                    className="text-muted-foreground hover:text-foreground"
+                                    aria-label={`Remove ${attachment.filename}`}
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </div>
+                            <HoverCardContent className="w-auto p-1" align="start" side="top">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                     src={attachment.previewUrl}
                                     alt={attachment.filename}
-                                    className="h-full w-full object-cover"
+                                    className="max-h-64 max-w-[16rem] w-auto rounded object-contain"
                                 />
-                            </button>
-                            {attachment.status === 'uploading' && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-background/60">
-                                    <Loader2 className="w-4 h-4 animate-spin text-foreground" />
-                                </div>
-                            )}
-                            {attachment.status === 'error' && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-destructive/20">
-                                    <AlertCircle className="w-4 h-4 text-destructive" />
-                                </div>
-                            )}
-                            <button
-                                type="button"
-                                onClick={() => onRemove(attachment.id)}
-                                className="absolute top-0.5 right-0.5 rounded-full bg-background/80 p-0.5 text-muted-foreground hover:text-foreground"
-                                aria-label={`Remove ${attachment.filename}`}
-                            >
-                                <X className="w-3 h-3" />
-                            </button>
-                        </div>
+                            </HoverCardContent>
+                        </HoverCard>
                     ) : (
                         <div
                             key={attachment.id}
