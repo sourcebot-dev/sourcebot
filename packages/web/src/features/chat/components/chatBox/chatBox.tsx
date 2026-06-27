@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AttachmentData, CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
-import { PendingAttachment, readFilesAsAttachments, toAttachmentData } from "@/features/chat/attachmentUtils";
+import { createPastedTextAttachment, PendingAttachment, readFilesAsAttachments, shouldAutoConvertPaste, toAttachmentData } from "@/features/chat/attachmentUtils";
 import { AttachmentButton } from "./attachmentButton";
 import { AttachmentTray } from "./attachmentTray";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,7 @@ import { computePosition, flip, offset, shift, VirtualElement } from "@floating-
 import { ArrowUp, Loader2, StopCircleIcon } from "lucide-react";
 import { forwardRef, Fragment, KeyboardEvent, memo, Ref, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { Descendant, insertText } from "slate";
+import { Descendant, Editor, insertText, Transforms } from "slate";
 import { Editable, ReactEditor, RenderElementProps, RenderLeafProps, useFocused, useSelected, useSlate } from "slate-react";
 import { useSelectedLanguageModel } from "../../useSelectedLanguageModel";
 import { SuggestionBox } from "./suggestionsBox";
@@ -22,6 +22,7 @@ import { Suggestion } from "./types";
 import { useSuggestionModeAndQuery } from "./useSuggestionModeAndQuery";
 import { useSuggestionsData } from "./useSuggestionsData";
 import { useToast } from "@/components/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { SearchContextQuery } from "@/lib/types";
 import isEqual from "fast-deep-equal/react";
 import { LoginDialog } from "./loginDialog";
@@ -89,11 +90,69 @@ const ChatBoxComponent = ({
     });
     const { selectedLanguageModel } = useSelectedLanguageModel();
     const { toast } = useToast();
+    const isMac = useIsMac();
     const isAskEnabled = useHasEntitlement('ask');
     const [isLoginDialogOpen, setIsLoginDialogOpen] = useState<boolean>(false);
     const [isUpsellDialogOpen, setIsUpsellDialogOpen] = useState<boolean>(false);
     const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
     const pathname = usePathname();
+
+    // Set when the user triggers a paste with the OS raw-paste chord
+    // (⌘⇧V / Ctrl+Shift+V). The subsequent `paste` event reads (and clears)
+    // this so the large-paste auto-conversion is skipped for that one paste.
+    const rawPasteRequestedRef = useRef<boolean>(false);
+
+    // Inserts text at the current selection, falling back to the end of the
+    // document if the editor has no selection (e.g. focus was lost after a
+    // toast action).
+    const insertTextInline = useCallback((text: string) => {
+        ReactEditor.focus(editor);
+        if (!editor.selection) {
+            Transforms.select(editor, Editor.end(editor, []));
+        }
+        insertText(editor, text);
+    }, [editor]);
+
+    const onAddPastedText = useCallback((text: string) => {
+        const result = createPastedTextAttachment(text, attachments);
+        if (!result.ok) {
+            toast({
+                description: `⚠️ ${result.error}`,
+                variant: "destructive",
+            });
+            // Don't lose the user's paste: fall back to inserting it inline.
+            insertTextInline(text);
+            return;
+        }
+
+        const { attachment } = result;
+        setAttachments((prev) => [...prev, attachment]);
+
+        toast({
+            title: "Added your paste as an attachment",
+            duration: 10 * 1000,
+            className: "w-fit ml-auto",
+            description: (
+                <div className="mt-2 flex flex-col gap-1.5">
+                    <ToastAction
+                        altText="Insert the pasted text inline instead"
+                        className="w-full justify-center"
+                        onClick={() => {
+                            setAttachments((prev) => prev.filter((item) => item.id !== attachment.id));
+                            insertTextInline(text);
+                        }}
+                    >
+                        Insert inline instead
+                    </ToastAction>
+                    <span className="text-xs text-muted-foreground">
+                        {`Tip: paste with ${isMac ? "⌘⇧V" : "Ctrl+Shift+V"} to insert inline`}
+                    </span>
+                </div>
+            ),
+        });
+
+        ReactEditor.focus(editor);
+    }, [attachments, editor, toast, isMac, insertTextInline]);
 
     const onAddFiles = useCallback(async (files: File[]) => {
         if (files.length === 0) {
@@ -317,6 +376,16 @@ const ChatBoxComponent = ({
     }, [editor, range]);
 
     const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+        // Detect the OS raw-paste chord so the upcoming `paste` event can skip
+        // the large-paste auto-conversion and insert inline instead.
+        if (
+            (event.key === 'v' || event.key === 'V') &&
+            event.shiftKey &&
+            (isMac ? event.metaKey : event.ctrlKey)
+        ) {
+            rawPasteRequestedRef.current = true;
+        }
+
         if (suggestionMode === "none") {
             switch (event.key) {
                 case 'Enter': {
@@ -363,7 +432,7 @@ const ChatBoxComponent = ({
                 }
             }
         }
-    }, [suggestionMode, suggestions, onSubmit, editor, index, onInsertSuggestion]);
+    }, [suggestionMode, suggestions, onSubmit, editor, index, onInsertSuggestion, isMac]);
 
     useEffect(() => {
         if (!range || !suggestionsBoxRef.current) {
@@ -422,11 +491,30 @@ const ChatBoxComponent = ({
                     onKeyDown={onKeyDown}
                     readOnly={isDisabled}
                     onPaste={(event) => {
-                        const files = event.clipboardData?.files ? Array.from(event.clipboardData.files) : [];
+                        const clipboardData = event.clipboardData;
+                        const files = clipboardData?.files ? Array.from(clipboardData.files) : [];
                         if (files.length > 0) {
                             event.preventDefault();
                             void onAddFiles(files);
+                            return;
                         }
+
+                        // A raw-paste chord (⌘⇧V / Ctrl+Shift+V) bypasses
+                        // auto-conversion for this one paste. Consume the flag
+                        // regardless so it never leaks into the next paste.
+                        const rawPasteRequested = rawPasteRequestedRef.current;
+                        rawPasteRequestedRef.current = false;
+                        if (rawPasteRequested) {
+                            return;
+                        }
+
+                        const text = clipboardData?.getData('text/plain') ?? '';
+                        if (!shouldAutoConvertPaste(text)) {
+                            return;
+                        }
+
+                        event.preventDefault();
+                        onAddPastedText(text);
                     }}
                 />
                 <div className="flex flex-row items-center justify-end gap-1 z-10">
