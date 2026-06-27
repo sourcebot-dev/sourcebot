@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { AttachmentData, CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
 import { createPastedTextAttachment, getSubmittedTextBytes, PendingAttachment, PendingImageAttachment, readFilesAsAttachments, shouldAutoConvertPaste, toAttachmentData, uploadImageAttachment } from "@/features/chat/attachmentUtils";
+import { setAttachmentPreviewUrl } from "@/features/chat/attachments/attachmentPreviewCache";
 import { AttachmentButton } from "./attachmentButton";
 import { AttachmentTray } from "./attachmentTray";
 import { cn } from "@/lib/utils";
@@ -370,16 +371,22 @@ const ChatBoxComponent = ({
         const attachmentData = attachments
             .map(toAttachmentData)
             .filter((attachment): attachment is AttachmentData => attachment !== undefined);
-        _onSubmit(editor.children, editor, attachmentData);
-        setSubmittedAttachments(attachments);
 
-        // Release the pre-send image preview object URLs now that the message
-        // has been handed off.
+        // Stash uploaded previews so the persisted message renders them
+        // instantly; release the rest (not part of the message).
         attachments.forEach((attachment) => {
-            if (attachment.kind === 'image') {
+            if (attachment.kind !== 'image') {
+                return;
+            }
+            if (attachment.status === 'uploaded' && attachment.attachmentId) {
+                setAttachmentPreviewUrl(attachment.attachmentId, attachment.previewUrl);
+            } else {
                 URL.revokeObjectURL(attachment.previewUrl);
             }
         });
+
+        _onSubmit(editor.children, editor, attachmentData);
+        setSubmittedAttachments(attachments);
         setAttachments([]);
     }, [
         isSubmitDisabled,

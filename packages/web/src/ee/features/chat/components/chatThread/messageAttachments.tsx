@@ -3,6 +3,7 @@
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { AttachmentViewerDialog } from "@/features/chat/components/chatBox/attachmentViewerDialog";
+import { getAttachmentPreviewUrl } from "@/features/chat/attachments/attachmentPreviewCache";
 import { AttachmentData } from "@/features/chat/types";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -18,6 +19,12 @@ const getAttachmentServingUrl = (chatId: string, attachmentId: string): string =
     return `/api/ee/chat/${chatId}/attachments/${attachmentId}`;
 }
 
+// Prefer the local preview stashed at submit time (instant, avoids the
+// pre-commit 404), falling back to the serving URL for reloaded messages.
+const getBlobImageSrc = (chatId: string, attachmentId: string): string => {
+    return getAttachmentPreviewUrl(attachmentId) ?? getAttachmentServingUrl(chatId, attachmentId);
+}
+
 export const MessageAttachments = ({ attachments, chatId, className }: MessageAttachmentsProps) => {
     const [activeAttachment, setActiveAttachment] = useState<AttachmentData | null>(null);
 
@@ -27,7 +34,7 @@ export const MessageAttachments = ({ attachments, chatId, className }: MessageAt
 
     const activeImageSrc =
         activeAttachment?.kind === 'blob' && activeAttachment.mediaType.startsWith('image/')
-            ? getAttachmentServingUrl(chatId, activeAttachment.attachmentId)
+            ? getBlobImageSrc(chatId, activeAttachment.attachmentId)
             : undefined;
 
     return (
@@ -35,7 +42,7 @@ export const MessageAttachments = ({ attachments, chatId, className }: MessageAt
             <div className={cn("flex flex-row flex-wrap gap-1.5", className)}>
                 {attachments.map((attachment, index) => {
                     if (attachment.kind === 'blob' && attachment.mediaType.startsWith('image/')) {
-                        const imageSrc = getAttachmentServingUrl(chatId, attachment.attachmentId);
+                        const imageSrc = getBlobImageSrc(chatId, attachment.attachmentId);
                         return (
                             <HoverCard key={attachment.attachmentId} openDelay={150} closeDelay={75}>
                                 <HoverCardTrigger asChild>
