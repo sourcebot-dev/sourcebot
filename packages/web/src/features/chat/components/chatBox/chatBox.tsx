@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AttachmentData, CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
-import { PendingAttachment, readFilesAsAttachments, toAttachmentData } from "@/features/chat/attachmentUtils";
+import { PendingAttachment, PendingImageAttachment, readFilesAsAttachments, toAttachmentData, uploadImageAttachment } from "@/features/chat/attachmentUtils";
 import { AttachmentButton } from "./attachmentButton";
 import { AttachmentTray } from "./attachmentTray";
 import { cn } from "@/lib/utils";
@@ -95,12 +95,51 @@ const ChatBoxComponent = ({
     const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
     const pathname = usePathname();
 
+    // Whether the selected model can accept image input (from #1372). Image
+    // attachments are gated on this; text attachments are always allowed.
+    const supportsImages = useMemo(
+        () => selectedLanguageModel?.inputModalities?.includes('image') ?? false,
+        [selectedLanguageModel],
+    );
+
+    // Uploads an image attachment's bytes and reflects the outcome back into the
+    // tray (status + server attachment id).
+    const uploadAndTrackImage = useCallback(async (item: PendingImageAttachment) => {
+        try {
+            const result = await uploadImageAttachment(item.file);
+            setAttachments((prev) => prev.map((attachment) =>
+                attachment.id === item.id && attachment.kind === 'image'
+                    ? {
+                        ...attachment,
+                        status: 'uploaded',
+                        attachmentId: result.attachmentId,
+                        mediaType: result.mediaType,
+                        sizeBytes: result.sizeBytes,
+                    }
+                    : attachment));
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'upload failed.';
+            setAttachments((prev) => prev.map((attachment) =>
+                attachment.id === item.id && attachment.kind === 'image'
+                    ? { ...attachment, status: 'error', error: message }
+                    : attachment));
+            toast({
+                description: `⚠️ ${item.filename}: ${message}`,
+                variant: "destructive",
+            });
+        }
+    }, [toast]);
+
     const onAddFiles = useCallback(async (files: File[]) => {
         if (files.length === 0) {
             return;
         }
 
-        const { attachments: added, errors } = await readFilesAsAttachments(files, attachments.length);
+        const { attachments: added, errors } = await readFilesAsAttachments(
+            files,
+            attachments.length,
+            { allowImages: supportsImages },
+        );
         if (added.length > 0) {
             setAttachments((prev) => [...prev, ...added]);
         }
@@ -111,12 +150,26 @@ const ChatBoxComponent = ({
             });
         }
 
+        // Upload image attachments immediately (upload-on-select); their refs
+        // are included at submit once the upload completes.
+        for (const item of added) {
+            if (item.kind === 'image') {
+                void uploadAndTrackImage(item);
+            }
+        }
+
         // Return focus to the prompt input so the user can keep typing.
         ReactEditor.focus(editor);
-    }, [attachments.length, toast, editor]);
+    }, [attachments.length, toast, editor, supportsImages, uploadAndTrackImage]);
 
     const removeAttachment = useCallback((id: string) => {
-        setAttachments((prev) => prev.filter((attachment) => attachment.id !== id));
+        setAttachments((prev) => {
+            const target = prev.find((attachment) => attachment.id === id);
+            if (target?.kind === 'image') {
+                URL.revokeObjectURL(target.previewUrl);
+            }
+            return prev.filter((attachment) => attachment.id !== id);
+        });
     }, []);
 
     // Allow an ancestor pane-level drop zone to forward dropped files into this
@@ -158,7 +211,7 @@ const ChatBoxComponent = ({
 
     const { isSubmitDisabled, isSubmitDisabledReason } = useMemo((): {
         isSubmitDisabled: true,
-        isSubmitDisabledReason: "empty" | "redirecting" | "generating" | "no-language-model-selected"
+        isSubmitDisabledReason: "empty" | "redirecting" | "generating" | "no-language-model-selected" | "uploading"
     } | {
         isSubmitDisabled: false,
         isSubmitDisabledReason: undefined,
@@ -167,6 +220,15 @@ const ChatBoxComponent = ({
             return {
                 isSubmitDisabled: true,
                 isSubmitDisabledReason: "empty",
+            }
+        }
+
+        // Block submission until in-flight image uploads finish so their refs
+        // are available when the message is built.
+        if (attachments.some((attachment) => attachment.kind === 'image' && attachment.status === 'uploading')) {
+            return {
+                isSubmitDisabled: true,
+                isSubmitDisabledReason: "uploading",
             }
         }
 
@@ -197,7 +259,7 @@ const ChatBoxComponent = ({
             isSubmitDisabledReason: undefined,
         }
 
-    }, [editor.children, isRedirecting, isTurnInProgress, selectedLanguageModel, attachments.length])
+    }, [editor.children, isRedirecting, isTurnInProgress, selectedLanguageModel, attachments])
 
     const {
         requiresLogin,
@@ -216,6 +278,13 @@ const ChatBoxComponent = ({
             if (isSubmitDisabledReason === "no-language-model-selected") {
                 toast({
                     description: "⚠️ You must select a language model",
+                    variant: "destructive",
+                });
+            }
+
+            if (isSubmitDisabledReason === "uploading") {
+                toast({
+                    description: "⚠️ Please wait for image uploads to finish",
                     variant: "destructive",
                 });
             }
@@ -242,7 +311,18 @@ const ChatBoxComponent = ({
             return;
         }
 
-        _onSubmit(editor.children, editor, attachments.map(toAttachmentData));
+        const attachmentData = attachments
+            .map(toAttachmentData)
+            .filter((attachment): attachment is AttachmentData => attachment !== undefined);
+        _onSubmit(editor.children, editor, attachmentData);
+
+        // Release the pre-send image preview object URLs now that the message
+        // has been handed off.
+        attachments.forEach((attachment) => {
+            if (attachment.kind === 'image') {
+                URL.revokeObjectURL(attachment.previewUrl);
+            }
+        });
         setAttachments([]);
     }, [
         isSubmitDisabled,
@@ -414,6 +494,11 @@ const ChatBoxComponent = ({
                         className="mb-1.5"
                     />
                 )}
+                {attachments.some((attachment) => attachment.kind === 'image') && !supportsImages && (
+                    <p className="mb-1.5 text-xs text-amber-600 dark:text-amber-500">
+                        Images won&apos;t be sent: the selected model doesn&apos;t support image input.
+                    </p>
+                )}
                 <Editable
                     className="w-full focus-visible:outline-none focus-visible:ring-0 bg-background text-base disabled:cursor-not-allowed disabled:opacity-50 md:text-sm max-h-64 overflow-y-auto"
                     placeholder="Ask a question about your code. @mention files or select search scopes to refine your query."
@@ -432,6 +517,7 @@ const ChatBoxComponent = ({
                 <div className="flex flex-row items-center justify-end gap-1 z-10">
                     <AttachmentButton
                         onAddFiles={onAddFiles}
+                        acceptImages={supportsImages}
                         disabled={isDisabled || isRedirecting || isTurnInProgress}
                     />
                     {isRedirecting ? (

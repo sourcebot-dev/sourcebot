@@ -1,4 +1,5 @@
-import { SBChatMessage, SBChatMessageMetadata, StepTokenUsageEntry, ToolTokenUsageEntry } from "@/features/chat/types";
+import { BlobAttachment, SBChatMessage, SBChatMessageMetadata, StepTokenUsageEntry, ToolTokenUsageEntry } from "@/features/chat/types";
+import { getStorageBackend } from "@/features/chat/attachments/storage";
 import { estimateModelToolOutputTokens } from "@/ee/features/chat/tokenEstimation";
 import { getFileSource } from '@/features/git';
 import { isServiceError } from "@/lib/utils";
@@ -35,6 +36,121 @@ const dedent = _dedent.withOptions({ alignValues: true });
 
 const logger = createLogger('chat-agent');
 
+// Resolved image bytes for a single user turn, keyed by attachment id, plus
+// the number of image attachments that turn requested (so the content builder
+// can note how many were dropped).
+type ResolvedTurnImages = {
+    byId: Map<string, { bytes: Buffer; mediaType: string }>;
+    requestedCount: number;
+};
+
+// Reads the image-attachment bytes for one user turn from the StorageBackend.
+// Fail-closed: returns no bytes (only a requested count) when the model cannot
+// accept images, so the builder can leave a degrade marker instead. Blobs are
+// loaded only when linked to this chat, mirroring the serving route's
+// chat-derived access.
+const resolveLatestTurnImages = async ({
+    message,
+    supportsImages,
+    prisma,
+    orgId,
+    chatId,
+}: {
+    message: SBChatMessage | undefined;
+    supportsImages: boolean;
+    prisma: PrismaClient;
+    orgId?: number;
+    chatId: string;
+}): Promise<ResolvedTurnImages> => {
+    const result: ResolvedTurnImages = { byId: new Map(), requestedCount: 0 };
+    if (!message) {
+        return result;
+    }
+
+    const imageBlobs = getUserMessageAttachments(message)
+        .filter((attachment): attachment is BlobAttachment =>
+            attachment.kind === 'blob' && attachment.mediaType.startsWith('image/'));
+    result.requestedCount = imageBlobs.length;
+
+    if (imageBlobs.length === 0 || !supportsImages || orgId === undefined) {
+        return result;
+    }
+
+    const ids = imageBlobs.map((blob) => blob.attachmentId);
+    const records = await prisma.attachment.findMany({
+        where: { id: { in: ids }, orgId, chats: { some: { chatId } } },
+    });
+
+    const storage = getStorageBackend();
+    await Promise.all(records.map(async (record) => {
+        try {
+            const bytes = await storage.get(record.storageKey);
+            result.byId.set(record.id, { bytes, mediaType: record.mediaType });
+        } catch (error) {
+            logger.error(`Failed to read attachment ${record.id} from storage:`, error);
+        }
+    }));
+
+    return result;
+};
+
+// Builds the `ModelMessage` for a user turn: the text part (with any
+// inline-text attachments folded in) plus, for the latest turn only, native
+// image content parts. When images are present but omitted (older turn, or a
+// text-only model), a short marker is appended so the model knows context was
+// dropped.
+const buildUserModelMessage = ({
+    message,
+    isLatestUserTurn,
+    supportsImages,
+    resolvedImages,
+}: {
+    message: SBChatMessage;
+    isLatestUserTurn: boolean;
+    supportsImages: boolean;
+    resolvedImages?: ResolvedTurnImages;
+}): ModelMessage => {
+    const text = getUserMessageText(message);
+    const attachmentsBlock = formatAttachmentsForPrompt(
+        getUserMessageAttachments(message),
+        ATTACHMENT_MAX_TEXT_BYTES,
+    );
+    let baseText = attachmentsBlock ? `${text}\n\n${attachmentsBlock}` : text;
+
+    const imageBlobs = getUserMessageAttachments(message)
+        .filter((attachment): attachment is BlobAttachment =>
+            attachment.kind === 'blob' && attachment.mediaType.startsWith('image/'));
+
+    if (isLatestUserTurn && resolvedImages && resolvedImages.byId.size > 0) {
+        const imageParts = imageBlobs
+            .map((blob) => resolvedImages.byId.get(blob.attachmentId))
+            .filter((resolved): resolved is { bytes: Buffer; mediaType: string } => resolved !== undefined)
+            .map((resolved) => ({ type: 'image' as const, image: resolved.bytes, mediaType: resolved.mediaType }));
+
+        const droppedCount = resolvedImages.requestedCount - imageParts.length;
+        if (droppedCount > 0) {
+            baseText += `\n\n[Note: ${droppedCount} image attachment(s) could not be loaded and were omitted.]`;
+        }
+
+        return {
+            role: 'user',
+            content: [{ type: 'text', text: baseText }, ...imageParts],
+        };
+    }
+
+    if (imageBlobs.length > 0) {
+        const reason = isLatestUserTurn && !supportsImages
+            ? 'the selected model does not support image input'
+            : 'image attachments are only sent on the turn they were added';
+        baseText += `\n\n[Note: ${imageBlobs.length} image attachment(s) omitted (${reason}).]`;
+    }
+
+    return {
+        role: 'user',
+        content: baseText,
+    };
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mergeStreamAsync = async (stream: StreamTextResult<any, any>, writer: UIMessageStreamWriter<SBChatMessage>, options: UIMessageStreamOptions<SBChatMessage> = {}) => {
     await new Promise<void>((resolve) => writer.merge(stream.toUIMessageStream({
@@ -64,6 +180,11 @@ interface CreateMessageStreamResponseProps {
     metadata?: Partial<SBChatMessageMetadata>;
     userId?: string;
     orgId?: number;
+    // Authoritative, server-resolved signal of whether the selected model can
+    // accept image input. Fail-closed (defaults to false): when false, image
+    // attachments are omitted from the model content and a marker is left in
+    // its place.
+    supportsImages?: boolean;
 }
 
 export const createMessageStream = async ({
@@ -83,6 +204,7 @@ export const createMessageStream = async ({
     onError,
     userId,
     orgId,
+    supportsImages = false,
 }: CreateMessageStreamResponseProps) => {
     // Defense-in-depth: Ask Sourcebot is a paid feature. Every caller is
     // expected to gate on the `ask` entitlement before reaching here (see
@@ -103,21 +225,28 @@ export const createMessageStream = async ({
     // We will use this as the context we carry between messages.
     // Server requests always receive persisted messages between client streams, so evaluate them in the ready state.
     const incomingTurnProgress = getTurnProgressState({ messages, status: 'ready' });
+
+    // Image attachment bytes are included only on the turn that introduced
+    // them (decision: do not re-send image bytes on later turns). Resolve the
+    // bytes for the latest user turn up-front, reading from the StorageBackend.
+    const lastUserIndex = messages.map((message) => message.role).lastIndexOf('user');
+    const resolvedLatestTurnImages = await resolveLatestTurnImages({
+        message: lastUserIndex >= 0 ? messages[lastUserIndex] : undefined,
+        supportsImages,
+        prisma,
+        orgId,
+        chatId,
+    });
+
     let messageHistory: ModelMessage[] =
-        messages.map((message, index): ModelMessage | undefined => {
+        (await Promise.all(messages.map(async (message, index): Promise<ModelMessage | undefined> => {
             if (message.role === 'user') {
-                // Fold any inline-text attachments into this turn's content (not
-                // the system prompt) so they stay bound to the turn they were
-                // attached to and are re-emitted per turn from the persisted parts.
-                const text = getUserMessageText(message);
-                const attachmentsBlock = formatAttachmentsForPrompt(
-                    getUserMessageAttachments(message),
-                    ATTACHMENT_MAX_TEXT_BYTES,
-                );
-                return {
-                    role: 'user',
-                    content: attachmentsBlock ? `${text}\n\n${attachmentsBlock}` : text,
-                };
+                return buildUserModelMessage({
+                    message,
+                    isLatestUserTurn: index === lastUserIndex,
+                    supportsImages,
+                    resolvedImages: index === lastUserIndex ? resolvedLatestTurnImages : undefined,
+                });
             }
 
             if (message.role === 'assistant') {
@@ -132,7 +261,9 @@ export const createMessageStream = async ({
                     }
                 }
             }
-        }).filter(message => message !== undefined);
+
+            return undefined;
+        }))).filter((message) => message !== undefined);
 
     // When the last assistant turn has approval responses (from the tool approval flow),
     // the turn is incomplete — it has no answer text, only a pending tool call that was

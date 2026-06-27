@@ -3,8 +3,9 @@ import { getAskMcpAvailabilityAnalytics, getAskMcpTurnCompletedAnalytics } from 
 import { createMessageStream } from "@/ee/features/chat/agent";
 import { getPromptCacheStrategy } from "@/ee/features/chat/promptCaching";
 import { additionalChatRequestParamsSchema } from "@/features/chat/types";
-import { getLanguageModelKey } from "@/features/chat/utils";
-import { checkAskEntitlement, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
+import { getLanguageModelKey, getUserMessageAttachments } from "@/features/chat/utils";
+import { resolveModelInputModalities } from "@/features/chat/modelCapabilities";
+import { checkAskEntitlement, commitMessageAttachments, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
 import { resolveContextWindow } from "@/features/chat/modelContextWindow.server";
 import { apiHandler } from "@/lib/apiHandler";
@@ -74,6 +75,20 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 } satisfies ServiceError;
             }
 
+            // Verify and commit any binary attachments referenced by the latest
+            // message (links them to this chat, flips PENDING -> COMMITTED).
+            // Rejects forged/unauthorized attachment ids before the agent runs.
+            const attachmentError = await commitMessageAttachments({
+                prisma,
+                chatId: id,
+                orgId: org.id,
+                userId: user?.id,
+                message: messages[messages.length - 1],
+            });
+            if (attachmentError) {
+                return attachmentError;
+            }
+
             // From the language model ID, attempt to find the
             // corresponding config in `config.json`.
             const languageModelConfig =
@@ -89,6 +104,29 @@ export const POST = apiHandler(async (req: NextRequest) => {
             }
 
             const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
+
+            // Authoritative, server-side resolution of image capability. The
+            // agent's multimodal content builder and degrade logic rely on this
+            // value, never the client.
+            const supportsImages = resolveModelInputModalities(languageModelConfig).includes('image');
+
+            // If the latest message carries image attachments the selected model
+            // cannot accept, the agent will degrade (omit the bytes). Record it.
+            const latestMessage = messages[messages.length - 1];
+            const latestImageAttachmentCount = latestMessage
+                ? getUserMessageAttachments(latestMessage).filter(
+                    (attachment) => attachment.kind === 'blob' && attachment.mediaType.startsWith('image/'),
+                ).length
+                : 0;
+            if (!supportsImages && latestImageAttachmentCount > 0) {
+                await captureEvent('chat_attachment_degraded', {
+                    chatId: id,
+                    source: req.headers.get('X-Sourcebot-Client-Source') ?? undefined,
+                    droppedImageCount: latestImageAttachmentCount,
+                    modelProvider: languageModelConfig.provider,
+                    model: languageModelConfig.model,
+                });
+            }
 
             // Total context window for the selected model, used as the
             // denominator for the UI's context-usage gauge. Undefined when
@@ -151,6 +189,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 modelTemperature: temperature,
                 userId: user?.id,
                 orgId: org.id,
+                supportsImages,
                 onFinish: async ({ messages }) => {
                     await updateChatMessages({ chatId: id, messages, prisma });
                     const askMcpTurnCompleted = getAskMcpTurnCompletedAnalytics({

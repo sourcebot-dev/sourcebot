@@ -1,60 +1,69 @@
 'use client';
 
 import {
+    ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES,
     ATTACHMENT_ALLOWED_TEXT_EXTENSIONS,
     ATTACHMENT_ALLOWED_TEXT_MIME_TYPES,
     ATTACHMENT_MAX_COUNT,
-    ATTACHMENT_MAX_FILENAME_LENGTH,
+    ATTACHMENT_MAX_IMAGE_BYTES,
     ATTACHMENT_MAX_TEXT_BYTES,
 } from "./constants";
-import { AttachmentData, TextAttachment } from "./types";
+import { AttachmentData } from "./types";
+import { sanitizeFilename } from "./attachments/filename";
 
-// Normalizes an untrusted filename: keeps only the basename, drops control
-// characters (which could break the prompt's `<attachment filename="...">` tag
-// or the UI), collapses whitespace, and caps the length while preserving the
-// extension. Long/abusive names are truncated rather than rejected.
-export const sanitizeFilename = (name: string): string => {
-    const basename = name.split(/[\\/]/).pop() ?? name;
-    const cleaned = Array.from(basename)
-        .filter((char) => {
-            const code = char.charCodeAt(0);
-            return code >= 32 && code !== 127;
-        })
-        .join('')
-        .replace(/\s+/g, ' ')
-        .trim() || 'attachment';
+export { sanitizeFilename };
 
-    if (cleaned.length <= ATTACHMENT_MAX_FILENAME_LENGTH) {
-        return cleaned;
-    }
+// A text attachment selected in the chat box but not yet submitted. The
+// extracted text travels inline in the message (no upload).
+export type PendingTextAttachment = {
+    kind: 'text';
+    id: string;
+    filename: string;
+    mediaType: string;
+    sizeBytes: number;
+    text: string;
+};
 
-    const dotIndex = cleaned.lastIndexOf('.');
-    const extension = dotIndex > 0 ? cleaned.slice(dotIndex) : '';
-    const stem = dotIndex > 0 ? cleaned.slice(0, dotIndex) : cleaned;
-    const keep = Math.max(1, ATTACHMENT_MAX_FILENAME_LENGTH - extension.length - 1);
-    return `${stem.slice(0, keep)}…${extension}`;
-}
+// An image attachment selected in the chat box. Unlike text, the bytes are
+// uploaded to blob storage on select; `status`/`attachmentId` track that
+// upload. `previewUrl` is a local object URL used for the pre-send thumbnail,
+// and `file` is retained so the upload can be (re)issued.
+export type PendingImageAttachment = {
+    kind: 'image';
+    id: string;
+    filename: string;
+    mediaType: string;
+    sizeBytes: number;
+    previewUrl: string;
+    file: File;
+    status: 'uploading' | 'uploaded' | 'error';
+    attachmentId?: string;
+    error?: string;
+};
 
-// A text attachment selected in the chat box but not yet submitted. The `id`
-// is a client-only key for list rendering and removal; it is stripped before
-// the attachment becomes part of a message.
-export type PendingAttachment = TextAttachment & { id: string };
+// An attachment selected in the chat box but not yet submitted. The `id` is a
+// client-only key for list rendering and removal; it is stripped before the
+// attachment becomes part of a message.
+export type PendingAttachment = PendingTextAttachment | PendingImageAttachment;
 
 // Builds the comma-separated `accept` attribute for a native `<input type=file>`
-// so the OS picker only surfaces supported text file types.
-export const getAttachmentAcceptAttribute = (): string => {
+// so the OS picker only surfaces supported file types. Image types are included
+// only when the selected model can accept image input.
+export const getAttachmentAcceptAttribute = (includeImages: boolean): string => {
     return [
         'text/*',
         ...ATTACHMENT_ALLOWED_TEXT_MIME_TYPES,
         ...ATTACHMENT_ALLOWED_TEXT_EXTENSIONS.map((extension) => `.${extension}`),
+        ...(includeImages ? ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES : []),
     ].join(',');
 }
 
 // Builds the `accept` map for react-dropzone (and the native file picker) so
-// the OS dialog and drag overlay only surface supported text file types. The
+// the OS dialog and drag overlay only surface supported file types. The
 // extension list is attached to `text/plain` so code files that report an empty
-// or unusual MIME type are still selectable by extension.
-export const getAttachmentDropzoneAccept = (): Record<string, string[]> => {
+// or unusual MIME type are still selectable by extension. Image types are
+// included only when the selected model can accept image input.
+export const getAttachmentDropzoneAccept = (includeImages: boolean): Record<string, string[]> => {
     const accept: Record<string, string[]> = {
         'text/*': [],
         'text/plain': ATTACHMENT_ALLOWED_TEXT_EXTENSIONS.map((extension) => `.${extension}`),
@@ -62,17 +71,39 @@ export const getAttachmentDropzoneAccept = (): Record<string, string[]> => {
     for (const mimeType of ATTACHMENT_ALLOWED_TEXT_MIME_TYPES) {
         accept[mimeType] = [];
     }
+    if (includeImages) {
+        for (const mimeType of ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES) {
+            accept[mimeType] = [];
+        }
+    }
     return accept;
 }
 
-export const toAttachmentData = (attachment: PendingAttachment): AttachmentData => {
-    return {
-        kind: attachment.kind,
-        filename: attachment.filename,
-        mediaType: attachment.mediaType,
-        sizeBytes: attachment.sizeBytes,
-        text: attachment.text,
-    };
+// Converts a pending attachment into the message `AttachmentData` part. Returns
+// `undefined` for an image whose upload has not completed (it must not be
+// referenced before the blob exists); callers filter these out.
+export const toAttachmentData = (attachment: PendingAttachment): AttachmentData | undefined => {
+    if (attachment.kind === 'text') {
+        return {
+            kind: 'text',
+            filename: attachment.filename,
+            mediaType: attachment.mediaType,
+            sizeBytes: attachment.sizeBytes,
+            text: attachment.text,
+        };
+    }
+
+    if (attachment.status === 'uploaded' && attachment.attachmentId) {
+        return {
+            kind: 'blob',
+            attachmentId: attachment.attachmentId,
+            filename: attachment.filename,
+            mediaType: attachment.mediaType,
+            sizeBytes: attachment.sizeBytes,
+        };
+    }
+
+    return undefined;
 }
 
 const getExtension = (filename: string): string => {
@@ -103,6 +134,10 @@ export const isAllowedTextFile = (file: File): boolean => {
     return false;
 }
 
+export const isAllowedImageFile = (file: File): boolean => {
+    return (ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES as readonly string[]).includes(file.type);
+}
+
 const readAsText = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -117,12 +152,16 @@ export type ReadFilesResult = {
     errors: string[];
 };
 
-// Reads and validates a set of files into pending text attachments, enforcing
-// the per-message count, per-file size, and allowed-type caps. Rejected files
-// produce a human-readable error message instead of throwing.
+// Reads and validates a set of files into pending attachments, enforcing the
+// per-message count, per-file size, and allowed-type caps. Text files are read
+// inline; image files (only when `allowImages`) are turned into pending image
+// attachments with a local preview and an `uploading` status (the actual
+// upload is kicked off by the caller). Rejected files produce a human-readable
+// error message instead of throwing.
 export const readFilesAsAttachments = async (
     files: File[],
     existingCount: number,
+    { allowImages }: { allowImages: boolean },
 ): Promise<ReadFilesResult> => {
     const attachments: PendingAttachment[] = [];
     const errors: string[] = [];
@@ -134,31 +173,81 @@ export const readFilesAsAttachments = async (
             break;
         }
 
-        if (!isAllowedTextFile(file)) {
-            errors.push(`${file.name}: unsupported file type (text files only).`);
+        if (isAllowedTextFile(file)) {
+            if (file.size > ATTACHMENT_MAX_TEXT_BYTES) {
+                errors.push(`${file.name}: exceeds the ${Math.round(ATTACHMENT_MAX_TEXT_BYTES / 1024)}KB limit.`);
+                continue;
+            }
+            try {
+                const text = await readAsText(file);
+                attachments.push({
+                    id: crypto.randomUUID(),
+                    kind: 'text',
+                    filename: sanitizeFilename(file.name),
+                    mediaType: file.type || 'text/plain',
+                    sizeBytes: file.size,
+                    text,
+                });
+                count++;
+            } catch {
+                errors.push(`${file.name}: failed to read file.`);
+            }
             continue;
         }
 
-        if (file.size > ATTACHMENT_MAX_TEXT_BYTES) {
-            errors.push(`${file.name}: exceeds the ${Math.round(ATTACHMENT_MAX_TEXT_BYTES / 1024)}KB limit.`);
-            continue;
-        }
-
-        try {
-            const text = await readAsText(file);
+        if (isAllowedImageFile(file)) {
+            if (!allowImages) {
+                errors.push(`${file.name}: the selected model does not support image input.`);
+                continue;
+            }
+            if (file.size > ATTACHMENT_MAX_IMAGE_BYTES) {
+                errors.push(`${file.name}: exceeds the ${Math.round(ATTACHMENT_MAX_IMAGE_BYTES / (1024 * 1024))}MB image limit.`);
+                continue;
+            }
             attachments.push({
                 id: crypto.randomUUID(),
-                kind: 'text',
+                kind: 'image',
                 filename: sanitizeFilename(file.name),
-                mediaType: file.type || 'text/plain',
+                mediaType: file.type,
                 sizeBytes: file.size,
-                text,
+                previewUrl: URL.createObjectURL(file),
+                file,
+                status: 'uploading',
             });
             count++;
-        } catch {
-            errors.push(`${file.name}: failed to read file.`);
+            continue;
         }
+
+        errors.push(`${file.name}: unsupported file type.`);
     }
 
     return { attachments, errors };
+}
+
+// Uploads an image attachment's bytes to blob storage, returning the committed
+// attachment metadata (including the server-assigned `attachmentId`). Throws
+// with a human-readable message on failure.
+export const uploadImageAttachment = async (file: File): Promise<{
+    attachmentId: string;
+    filename: string;
+    mediaType: string;
+    sizeBytes: number;
+}> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/ee/chat/attachments', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Sourcebot-Client-Source': 'sourcebot-web-client',
+        },
+    });
+
+    if (!response.ok) {
+        const body = await response.json().catch(() => undefined);
+        throw new Error(body?.message ?? 'Failed to upload image.');
+    }
+
+    return response.json();
 }

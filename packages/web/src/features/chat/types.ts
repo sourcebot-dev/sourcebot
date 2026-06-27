@@ -104,9 +104,10 @@ export type SBChatMessageToolTypes = {
 };
 
 // A user-provided file attachment. The `text` variant carries the file's
-// extracted text inline (used for text/code/structured files); binary
-// attachments (images, PDFs) will later add a `blob` variant that references
-// stored bytes by id instead of inlining them.
+// extracted text inline (used for text/code/structured files). The `blob`
+// variant references stored bytes by id (used for binary attachments like
+// images that cannot be inlined as text); the bytes live in the StorageBackend
+// and never travel in the `messages` JSON.
 export const textAttachmentSchema = z.object({
     kind: z.literal('text'),
     filename: z.string(),
@@ -116,8 +117,18 @@ export const textAttachmentSchema = z.object({
 });
 export type TextAttachment = z.infer<typeof textAttachmentSchema>;
 
+export const blobAttachmentSchema = z.object({
+    kind: z.literal('blob'),
+    attachmentId: z.string(),
+    filename: z.string(),
+    mediaType: z.string(),
+    sizeBytes: z.number(),
+});
+export type BlobAttachment = z.infer<typeof blobAttachmentSchema>;
+
 export const attachmentDataSchema = z.discriminatedUnion('kind', [
     textAttachmentSchema,
+    blobAttachmentSchema,
 ]);
 export type AttachmentData = z.infer<typeof attachmentDataSchema>;
 

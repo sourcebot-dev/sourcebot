@@ -321,6 +321,22 @@ const options = {
         SOURCEBOT_CHAT_PROMPT_CACHE_BREAK_DETECTION_ENABLED: booleanSchema.default('false'),
         SOURCEBOT_MCP_TOOL_CALL_TIMEOUT_MS: numberSchema.int().positive().max(maxTimerDelayMs).default(60000),
 
+        /**
+         * Maximum size (in bytes) of a single image attachment uploaded to the
+         * Ask chat. Enforced server-side at upload time. Distinct from the
+         * inline-text cap (which lives as a web-package constant).
+         * @default 10 MiB
+         */
+        SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES: numberSchema.int().positive().default(10 * 1024 * 1024),
+
+        /**
+         * How long (in hours) an uploaded-but-unlinked (PENDING) attachment
+         * blob is retained before the orphan sweep deletes it and its bytes.
+         * Covers "select a file then never send" abandonment.
+         * @default 24 hours
+         */
+        SOURCEBOT_CHAT_ATTACHMENT_ORPHAN_TTL_HOURS: numberSchema.int().positive().default(24),
+
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
         DEBUG_ENABLE_REACT_SCAN: booleanSchema.default('false'),
         DEBUG_ENABLE_REACT_GRAB: booleanSchema.default('false'),

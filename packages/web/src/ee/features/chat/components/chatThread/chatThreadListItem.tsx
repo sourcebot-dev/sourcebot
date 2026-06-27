@@ -425,7 +425,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                     >
                         <div className="mb-4">
                             {userAttachments.length > 0 && (
-                                <MessageAttachments attachments={userAttachments} className="mb-1.5 ml-6" />
+                                <MessageAttachments attachments={userAttachments} chatId={chatId} className="mb-1.5 ml-6" />
                             )}
 
                             <div className="flex flex-row gap-2">

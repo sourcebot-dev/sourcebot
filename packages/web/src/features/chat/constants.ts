@@ -20,6 +20,11 @@ export const ATTACHMENT_MAX_TEXT_BYTES = 256 * 1024; // 256KB per file
 export const ATTACHMENT_MAX_COUNT = 5; // per message
 export const ATTACHMENT_MAX_FILENAME_LENGTH = 200; // characters
 
+// Client-side image size cap, used for early rejection before upload. The
+// server enforces the authoritative cap via SOURCEBOT_CHAT_ATTACHMENT_MAX_IMAGE_BYTES
+// (this mirrors its default).
+export const ATTACHMENT_MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB per image
+
 // Allowlist for inline-text attachments. Files are accepted if their MIME type
 // starts with `text/`, exactly matches an entry here, or their extension is in
 // ATTACHMENT_ALLOWED_TEXT_EXTENSIONS. Many code files report an empty MIME type
@@ -32,6 +37,17 @@ export const ATTACHMENT_ALLOWED_TEXT_MIME_TYPES = [
     'application/csv',
     'application/toml',
 ];
+
+// Allowlist for binary image attachments. Validated server-side by magic
+// bytes (never by client MIME/extension). `image/svg+xml` is intentionally
+// excluded (XML/script surface). Used client-side only to build the file
+// picker's `accept` filter and to gate the image-attach affordance.
+export const ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES = [
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'image/gif',
+] as const;
 
 export const ATTACHMENT_ALLOWED_TEXT_EXTENSIONS = [
     'txt', 'md', 'markdown', 'log', 'csv', 'tsv', 'json', 'jsonl', 'yaml', 'yml',

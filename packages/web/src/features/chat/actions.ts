@@ -8,7 +8,7 @@ import { notFound } from "@/lib/serviceError";
 import { withAuth, withOptionalAuth } from "@/middleware/withAuth";
 import { ChatVisibility, Prisma } from "@sourcebot/db";
 import { SBChatMessage } from "./types";
-import { checkAskEntitlement, isChatSharedWithUser, isOwnerOfChat } from "./utils.server";
+import { checkAskEntitlement, deleteOrphanedAttachments, isChatSharedWithUser, isOwnerOfChat, resolveChatAccess } from "./utils.server";
 
 export const createChat = async ({ source }: { source?: string } = {}) => sew(() =>
     withOptionalAuth(async ({ org, user, prisma }) => {
@@ -75,11 +75,10 @@ export const getChatInfo = async ({ chatId }: { chatId: string }) => sew(() =>
             return notFound();
         }
 
-        const isOwner = await isOwnerOfChat(chat, user);
-        const isSharedWithUser = await isChatSharedWithUser({ prisma, chatId, userId: user?.id });
+        const { isOwner, isSharedWithUser, canView } = await resolveChatAccess({ prisma, chat, user });
 
         // Private chats can only be viewed by the owner or users it's been shared with
-        if (chat.visibility === ChatVisibility.PRIVATE && !isOwner && !isSharedWithUser) {
+        if (!canView) {
             return notFound();
         }
 
@@ -194,11 +193,23 @@ export const deleteChat = async ({ chatId }: { chatId: string }) => sew(() =>
             return notFound();
         }
 
+        // Capture the linked attachment ids before the delete cascades the
+        // link rows, so we can sweep any blobs left with zero links afterwards.
+        const linkedAttachments = await prisma.chatAttachment.findMany({
+            where: { chatId },
+            select: { attachmentId: true },
+        });
+
         await prisma.chat.delete({
             where: {
                 id: chatId,
                 orgId: org.id,
             },
+        });
+
+        await deleteOrphanedAttachments({
+            prisma,
+            attachmentIds: linkedAttachments.map((link) => link.attachmentId),
         });
 
         await createAudit({
@@ -291,6 +302,23 @@ export const duplicateChat = async ({ chatId, newName }: { chatId: string, newNa
                 visibility: isGuestUser ? ChatVisibility.PUBLIC : ChatVisibility.PRIVATE,
             },
         });
+
+        // Copy the attachment links (metadata-only; no byte copy). The
+        // duplicated messages reference the same blobs, and access stays
+        // chat-derived through the new chat's links.
+        const originalLinks = await prisma.chatAttachment.findMany({
+            where: { chatId: originalChat.id },
+            select: { attachmentId: true },
+        });
+        if (originalLinks.length > 0) {
+            await prisma.chatAttachment.createMany({
+                data: originalLinks.map((link) => ({
+                    chatId: newChat.id,
+                    attachmentId: link.attachmentId,
+                })),
+                skipDuplicates: true,
+            });
+        }
 
         return {
             id: newChat.id,
