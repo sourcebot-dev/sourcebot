@@ -173,27 +173,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -332,27 +311,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -488,27 +446,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -616,27 +553,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -758,27 +674,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -902,27 +797,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -1062,27 +936,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -1190,27 +1043,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -1344,27 +1176,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -1529,27 +1340,6 @@ const schema = {
         "temperature": {
           "type": "number",
           "description": "Optional temperature setting to use with the model."
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -1658,27 +1448,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -1790,27 +1559,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -1991,27 +1739,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -2150,27 +1877,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -2306,27 +2012,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -2434,27 +2119,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -2576,27 +2240,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -2720,27 +2363,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -2880,27 +2502,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -3008,27 +2609,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -3162,27 +2742,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -3347,27 +2906,6 @@ const schema = {
         "temperature": {
           "type": "number",
           "description": "Optional temperature setting to use with the model."
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -3476,27 +3014,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
@@ -3608,27 +3125,6 @@ const schema = {
             }
           },
           "additionalProperties": false
-        },
-        "inputModalities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "text",
-              "image",
-              "audio",
-              "video"
-            ]
-          },
-          "description": "Optional list of input modalities (perceptual channels the model ingests natively) this model can accept. Governs single-medium attachments by their content: images require `image`, audio requires `audio`, video requires `video`, and plain-text files (.txt, .md, source code) count as `text`. Rich container documents like PDF are gated separately via `supportedDocumentTypes`. When omitted, the model is treated as text-only (fail-closed)."
-        },
-        "supportedDocumentTypes": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "pdf"
-            ]
-          },
-          "description": "Optional list of rich document formats (e.g. PDF) the model can ingest natively. A document here means a compound container format that bundles text with embedded images and layout, which the provider parses server-side — NOT plain-text files (.txt, .md, which count as `text`) and NOT single-medium files (images/audio/video, which are governed by `inputModalities`). When omitted, no document formats are accepted (fail-closed); this does not restrict `text` or the modalities declared in `inputModalities`."
         }
       },
       "required": [
