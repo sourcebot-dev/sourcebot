@@ -209,10 +209,18 @@ type _AssertAllProviders = LanguageModelProvider extends typeof languageModelPro
 const _assertAllProviders: _AssertAllProviders = true;
 void _assertAllProviders;
 
+export const inputModalities = ['text', 'image', 'audio', 'video'] as const;
+export type InputModality = typeof inputModalities[number];
+
+export const documentTypes = ['pdf'] as const;
+export type DocumentType = typeof documentTypes[number];
+
 export const languageModelInfoSchema = z.object({
     provider: z.enum(languageModelProviders).describe("The model provider (e.g., 'anthropic', 'openai')"),
     model: z.string().describe("The model ID"),
     displayName: z.string().optional().describe("Optional display name for the model"),
+    inputModalities: z.array(z.enum(inputModalities)).default(['text']).describe("The input modalities the model can accept (images, audio, video, text). Single-medium attachments are gated by these. Defaults to text-only."),
+    supportedDocumentTypes: z.array(z.enum(documentTypes)).default([]).describe("Rich compound document formats (e.g. PDF) the model can ingest natively, distinct from single-medium attachments gated by inputModalities. Defaults to none."),
 });
 
 /**
@@ -222,6 +230,8 @@ export type LanguageModelInfo = {
     provider: LanguageModelProvider,
     model: LanguageModel['model'],
     displayName?: LanguageModel['displayName'],
+    inputModalities: InputModality[],
+    supportedDocumentTypes: DocumentType[],
 }
 
 // Additional request body data that we send along to the chat API.
