@@ -104,17 +104,28 @@ describe('resolveModelCapabilities', () => {
         vi.unstubAllGlobals();
     });
 
-    test('fetches the catalog once and resolves capabilities (incl. provider mapping)', async () => {
+    test('fetches the catalog once in the background and resolves capabilities (incl. provider mapping)', async () => {
         const fetchMock = vi.fn(async () => ({
             ok: true,
             json: async () => catalog,
         }) as unknown as Response);
         vi.stubGlobal('fetch', fetchMock);
 
+        // The request path never blocks on the fetch: the first lookup kicks off
+        // the background fetch and falls back to text-only while it's in flight.
         expect(await resolveModelCapabilities(model('anthropic', 'claude-sonnet-4-5'))).toEqual({
-            inputModalities: ['text', 'image'],
-            supportedDocumentTypes: ['pdf'],
+            inputModalities: ['text'],
+            supportedDocumentTypes: [],
         });
+
+        // Once the background fetch settles, lookups resolve from the cached catalog.
+        await vi.waitFor(async () => {
+            expect(await resolveModelCapabilities(model('anthropic', 'claude-sonnet-4-5'))).toEqual({
+                inputModalities: ['text', 'image'],
+                supportedDocumentTypes: ['pdf'],
+            });
+        });
+
         // Subsequent lookups reuse the cached catalog rather than refetching.
         expect(await resolveModelCapabilities(model('google-generative-ai', 'gemini-2.5-pro'))).toEqual({
             inputModalities: ['text', 'image', 'audio', 'video'],
