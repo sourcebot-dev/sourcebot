@@ -4,6 +4,7 @@ import { startChangelogPollingJob } from '@/features/changelog/pollChangelog';
 import { createLogger, env } from "@sourcebot/shared";
 import { hasEntitlement } from '@/lib/entitlements';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
+import { warmModelCapabilitiesCatalog } from '@/features/chat/utils.server';
 
 const logger = createLogger('web-initialize');
 
@@ -77,4 +78,5 @@ const init = async () => {
     await init();
     startServicePingCronJob();
     startChangelogPollingJob();
+    warmModelCapabilitiesCatalog();
 })();

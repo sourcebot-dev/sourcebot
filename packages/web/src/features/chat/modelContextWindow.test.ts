@@ -81,13 +81,19 @@ describe('resolveContextWindow', () => {
         vi.unstubAllGlobals();
     });
 
-    test('fetches the catalog once and resolves windows (incl. provider mapping)', async () => {
+    test('fetches the catalog once in the background and resolves windows (incl. provider mapping)', async () => {
         const fetchMock = vi.fn(async () => ({
             ok: true,
             json: async () => catalog,
         }) as unknown as Response);
         vi.stubGlobal('fetch', fetchMock);
 
+        // The request path never blocks on the fetch: the first lookup kicks off
+        // the background fetch and falls back to "unknown" while it's in flight.
+        expect(await resolveContextWindow(model('anthropic', 'claude-sonnet-4-5'))).toBeUndefined();
+
+        // Once the background fetch settles, lookups resolve from the cached catalog.
+        await new Promise((resolve) => setTimeout(resolve, 0));
         expect(await resolveContextWindow(model('anthropic', 'claude-sonnet-4-5'))).toBe(200000);
         // Subsequent lookups reuse the cached catalog rather than refetching.
         expect(await resolveContextWindow(model('google-generative-ai', 'gemini-2.5-pro'))).toBe(1048576);
@@ -141,7 +147,10 @@ describe('resolveContextWindow resilience', () => {
 
         const mod = await importFresh();
 
-        // First load populates the cache.
+        // First load kicks off the background fetch (returning the "unknown"
+        // fallback until it settles), which then populates the cache.
+        expect(await mod.resolveContextWindow(model('anthropic', 'claude-sonnet-4-5'))).toBeUndefined();
+        await new Promise((resolve) => setTimeout(resolve, 0));
         expect(await mod.resolveContextWindow(model('anthropic', 'claude-sonnet-4-5'))).toBe(200000);
         expect(fetchMock).toHaveBeenCalledTimes(1);
 
