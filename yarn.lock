@@ -9543,6 +9543,7 @@ __metadata:
     typescript-eslint: "npm:^8.56.1"
     use-stick-to-bottom: "npm:^1.1.3"
     usehooks-ts: "npm:^3.1.0"
+    uuid: "npm:^14.0.0"
     vite-tsconfig-paths: "npm:^5.1.3"
     vitest: "npm:^4.1.4"
     vitest-mock-extended: "npm:^4.0.0"

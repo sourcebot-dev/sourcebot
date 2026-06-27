@@ -10,6 +10,7 @@ import {
     ATTACHMENT_PASTE_AUTO_CONVERT_MIN_LINES,
 } from "./constants";
 import { AttachmentData, TextAttachment } from "./types";
+import { v4 as uuidv4 } from "uuid";
 
 // Normalizes an untrusted filename: keeps only the basename, drops control
 // characters (which could break the prompt's `<attachment filename="...">` tag
@@ -175,7 +176,7 @@ export const createPastedTextAttachment = (
     return {
         ok: true,
         attachment: {
-            id: crypto.randomUUID(),
+            id: uuidv4(),
             kind: 'text',
             filename: getPastedAttachmentFilename(existing),
             mediaType: 'text/plain',
@@ -220,7 +221,7 @@ export const readFilesAsAttachments = async (
         try {
             const text = await readAsText(file);
             attachments.push({
-                id: crypto.randomUUID(),
+                id: uuidv4(),
                 kind: 'text',
                 filename: sanitizeFilename(file.name),
                 mediaType: file.type || 'text/plain',
