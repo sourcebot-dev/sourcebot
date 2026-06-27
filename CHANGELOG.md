@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Send anonymous server-side PostHog events as personless so unauthenticated requests don't inflate person counts. [#1367](https://github.com/sourcebot-dev/sourcebot/pull/1367)
+- [EE] Fixed Ask Sourcebot mermaid diagrams overflowing their container by contain-fitting them to both width and height, and made revealing a diagram from the answer jump it into view instantly to avoid over/undershooting. [#1373](https://github.com/sourcebot-dev/sourcebot/pull/1373)
 
 ## [5.0.4] - 2026-06-18
 
