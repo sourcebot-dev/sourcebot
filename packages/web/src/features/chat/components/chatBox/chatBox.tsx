@@ -22,7 +22,6 @@ import { Suggestion } from "./types";
 import { useSuggestionModeAndQuery } from "./useSuggestionModeAndQuery";
 import { useSuggestionsData } from "./useSuggestionsData";
 import { useToast } from "@/components/hooks/use-toast";
-import { ToastAction } from "@/components/ui/toast";
 import { SearchContextQuery } from "@/lib/types";
 import isEqual from "fast-deep-equal/react";
 import { LoginDialog } from "./loginDialog";
@@ -129,26 +128,10 @@ const ChatBoxComponent = ({
         setAttachments((prev) => [...prev, attachment]);
 
         toast({
-            title: "Added your paste as an attachment",
-            duration: 10 * 1000,
+            title: "Large paste added as an attachment",
+            duration: 5 * 1000,
             className: "w-fit ml-auto",
-            description: (
-                <div className="mt-2 flex flex-col gap-1.5">
-                    <ToastAction
-                        altText="Insert the pasted text inline instead"
-                        className="w-full justify-center"
-                        onClick={() => {
-                            setAttachments((prev) => prev.filter((item) => item.id !== attachment.id));
-                            insertTextInline(text);
-                        }}
-                    >
-                        Insert inline instead
-                    </ToastAction>
-                    <span className="text-xs text-muted-foreground">
-                        {`Tip: paste with ${isMac ? "⌘⇧V" : "Ctrl+Shift+V"} to insert inline`}
-                    </span>
-                </div>
-            ),
+            description: `Use ${isMac ? "⌘+⇧+V" : "Ctrl+Shift+V"} to paste inline instead`,
         });
 
         ReactEditor.focus(editor);
