@@ -27,6 +27,7 @@ export const SearchModeSelector = ({
     className,
 }: SearchModeSelectorProps) => {
     const [focusedSearchMode, setFocusedSearchMode] = useState<SearchMode>(searchMode);
+    const [isOpen, setIsOpen] = useState(false);
     const router = useRouter();
 
     const onSearchModeChanged = useCallback((value: SearchMode) => {
@@ -56,6 +57,8 @@ export const SearchModeSelector = ({
         <div className={cn("flex flex-row items-center", className)}>
             <Select
                 value={searchMode}
+                open={isOpen}
+                onOpenChange={setIsOpen}
                 onValueChange={(value) => {
                     onSearchModeChanged(value as SearchMode);
                 }}
@@ -78,7 +81,7 @@ export const SearchModeSelector = ({
                 >
                     <Tooltip
                         delayDuration={100}
-                        open={focusedSearchMode === "precise"}
+                        open={isOpen && focusedSearchMode === "precise"}
                     >
                         <TooltipTrigger asChild>
                             <div
@@ -118,7 +121,7 @@ export const SearchModeSelector = ({
                             </div>
                         </TooltipTrigger>
                     </Tooltip>
-                    <Tooltip delayDuration={100} open={focusedSearchMode === "agentic"}>
+                    <Tooltip delayDuration={100} open={isOpen && focusedSearchMode === "agentic"}>
                         <TooltipTrigger asChild>
                             <div
                                 onMouseEnter={() => setFocusedSearchMode("agentic")}
