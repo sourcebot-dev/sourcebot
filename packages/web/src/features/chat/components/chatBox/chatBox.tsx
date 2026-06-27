@@ -94,6 +94,7 @@ const ChatBoxComponent = ({
     const [isLoginDialogOpen, setIsLoginDialogOpen] = useState<boolean>(false);
     const [isUpsellDialogOpen, setIsUpsellDialogOpen] = useState<boolean>(false);
     const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
+    const [submittedAttachments, setSubmittedAttachments] = useState<PendingAttachment[]>([]);
     const pathname = usePathname();
 
     // Set when the user triggers a paste with the OS raw-paste chord
@@ -285,6 +286,7 @@ const ChatBoxComponent = ({
         }
 
         _onSubmit(editor.children, editor, attachments.map(toAttachmentData));
+        setSubmittedAttachments(attachments);
         setAttachments([]);
     }, [
         isSubmitDisabled,
@@ -459,9 +461,9 @@ const ChatBoxComponent = ({
             <div
                 className={cn("flex flex-col justify-between gap-0.5 w-full px-3 py-2", className)}
             >
-                {attachments.length > 0 && (
+                {(isRedirecting ? submittedAttachments : attachments).length > 0 && (
                     <AttachmentTray
-                        attachments={attachments}
+                        attachments={isRedirecting ? submittedAttachments : attachments}
                         onRemove={removeAttachment}
                         className="mb-1.5"
                     />
