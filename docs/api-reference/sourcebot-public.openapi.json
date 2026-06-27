@@ -338,6 +338,10 @@
                     "type": "string"
                   }
                 },
+                "ref": {
+                  "type": "string",
+                  "description": "The git ref/commit SHA of the file."
+                },
                 "content": {
                   "type": "string"
                 }
@@ -828,6 +832,10 @@
                 },
                 "language": {
                   "type": "string"
+                },
+                "ref": {
+                  "type": "string",
+                  "description": "The git ref/commit SHA of the file."
                 },
                 "matches": {
                   "type": "array",

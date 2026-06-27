@@ -81,7 +81,7 @@ export const findSymbolReferencesDefinition: ToolDefinition<
             files: response.files.map((file) => ({
                 fileName: file.fileName,
                 repo: file.repository,
-                revision,
+                revision: file.ref ?? revision,
             })),
         };
 

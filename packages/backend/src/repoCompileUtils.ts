@@ -15,6 +15,7 @@ import { BitbucketConnectionConfig, GerritConnectionConfig, GiteaConnectionConfi
 import { ProjectVisibility } from "azure-devops-node-api/interfaces/CoreInterfaces.js";
 import path from 'path';
 import fs from 'fs/promises';
+import { fileURLToPath } from 'node:url';
 import { glob } from 'glob';
 import { getLocalDefaultBranch, getOriginUrl, isPathAValidGitRepoRoot, isUrlAValidGitRepo } from './git.js';
 import assert from 'assert';
@@ -106,7 +107,7 @@ export const createGitHubRepoRecord = ({
         .replace(/^https?:\/\//, '');
 
     const repoDisplayName = repo.full_name;
-    const repoName = path.join(repoNameRoot, repoDisplayName);
+    const repoName = path.posix.join(repoNameRoot, repoDisplayName);
     const cloneUrl = new URL(repo.clone_url!);
     const isPublic = repo.private === false;
 
@@ -184,7 +185,7 @@ export const compileGitlabConfig = async (
             project.visibility === 'public' ||
             project.visibility === 'internal';
         const repoDisplayName = project.path_with_namespace;
-        const repoName = path.join(repoNameRoot, repoDisplayName);
+        const repoName = path.posix.join(repoNameRoot, repoDisplayName);
         // project.avatar_url is not directly accessible with tokens; use the avatar API endpoint if available
         const avatarUrl = project.avatar_url
             ? new URL(`/api/v4/projects/${project.id}/avatar`, hostUrl).toString()
@@ -263,7 +264,7 @@ export const compileGiteaConfig = async (
         const cloneUrl = new URL(repo.clone_url!);
         cloneUrl.host = configUrl.host
         const repoDisplayName = repo.full_name!;
-        const repoName = path.join(repoNameRoot, repoDisplayName);
+        const repoName = path.posix.join(repoNameRoot, repoDisplayName);
         const isPublic = repo.internal === false && repo.private === false;
 
         logger.debug(`Found gitea repo ${repoDisplayName} with webUrl: ${repo.html_url}`);
@@ -326,9 +327,9 @@ export const compileGerritConfig = async (
         .replace(/^https?:\/\//, '');
 
     const repos = gerritRepos.map((project) => {
-        const cloneUrl = new URL(path.join(hostUrl, encodeURIComponent(project.name)));
+        const cloneUrl = new URL(path.posix.join(hostUrl, encodeURIComponent(project.name)));
         const repoDisplayName = project.name;
-        const repoName = path.join(repoNameRoot, repoDisplayName);
+        const repoName = path.posix.join(repoNameRoot, repoDisplayName);
 
         const webUrl = (() => {
             if (!project.web_links || project.web_links.length === 0) {
@@ -344,7 +345,7 @@ export const compileGerritConfig = async (
             // https://github.com/GerritCodeReview/plugins_gitiles/blob/5ee7f57/src/main/java/com/googlesource/gerrit/plugins/gitiles/GitilesWeblinks.java#L50
             if (webUrl.startsWith('/plugins/gitiles/')) {
                 logger.debug(`WebUrl is a gitiles path, joining with hostUrl: ${webUrl}`);
-                return new URL(path.join(hostUrl, webUrl)).toString();
+                return new URL(path.posix.join(hostUrl, webUrl)).toString();
             } else {
                 logger.debug(`WebUrl is not a gitiles path, returning as is: ${webUrl}`);
                 return webUrl;
@@ -499,7 +500,7 @@ export const compileBitbucketConfig = async (
             : (repo as BitbucketCloudRepository).is_private === false;
         const isArchived = isServer ? (repo as BitbucketServerRepository).archived === true : false;
         const isFork = isServer ? (repo as BitbucketServerRepository).origin !== undefined : (repo as BitbucketCloudRepository).parent !== undefined;
-        const repoName = path.join(repoNameRoot, displayName);
+        const repoName = path.posix.join(repoNameRoot, displayName);
         const cloneUrl = getCloneUrl(repo);
         const webUrl = getWebUrl(repo);
         const defaultBranch = isServer ? (repo as BitbucketServerRepository).defaultBranch : (repo as BitbucketCloudRepository).mainbranch?.name;
@@ -583,6 +584,16 @@ export const compileGenericGitHostConfig = async (
     }
 }
 
+/**
+ * Compiles a generic git host configuration backed by a local `file://` URL.
+ * Resolves the file URL to a native filesystem path using `fileURLToPath` (with a safe fallback),
+ * applies glob matching, validates each matched path as a git repository root, and produces
+ * repository records with POSIX-normalized names.
+ *
+ * @param config - The generic git host connection configuration with a `file://` URL.
+ * @param connectionId - The database ID of the connection record.
+ * @returns A CompileResult containing the resolved repository data and any warnings.
+ */
 export const compileGenericGitHostConfig_file = async (
     config: GenericGitHostConnectionConfig,
     connectionId: number,
@@ -590,8 +601,15 @@ export const compileGenericGitHostConfig_file = async (
     const configUrl = new URL(config.url);
     assert(configUrl.protocol === 'file:', 'config.url must be a file:// URL');
 
+    let folderPath: string;
+    try {
+        folderPath = fileURLToPath(configUrl).replace(/\\/g, '/');
+    } catch {
+        folderPath = configUrl.pathname;
+    }
+
     // Resolve the glob pattern to a list of repo-paths
-    const repoPaths = await glob(configUrl.pathname, {
+    const repoPaths = await glob(folderPath, {
         absolute: true,
     });
 
@@ -600,7 +618,7 @@ export const compileGenericGitHostConfig_file = async (
 
     // Warn if the glob pattern matched no paths at all
     if (repoPaths.length === 0) {
-        const warning = `No paths matched the pattern '${configUrl.pathname}'. Please verify the path exists and is accessible.`;
+        const warning = `No paths matched the pattern '${folderPath}'. Please verify the path exists and is accessible.`;
         logger.warn(warning);
         warnings.push(warning);
         return {
@@ -609,7 +627,7 @@ export const compileGenericGitHostConfig_file = async (
         };
     }
 
-    logger.debug(`Found ${repoPaths.length} path(s) matching pattern '${configUrl.pathname}'`);
+    logger.debug(`Found ${repoPaths.length} path(s) matching pattern '${folderPath}'`);
 
     await Promise.all(repoPaths.map((repoPath) => gitOperationLimit(async () => {
         const stat = await fs.stat(repoPath).catch(() => null);
@@ -651,7 +669,7 @@ export const compileGenericGitHostConfig_file = async (
         const hostWithPort = extractHostWithPort(origin) ?? remoteUrl.host;
         // Decode URL-encoded characters (e.g., %20 -> space) to ensure consistent repo names
         const decodedPathname = decodeURIComponent(remoteUrl.pathname);
-        const repoName = path.join(hostWithPort, decodedPathname.replace(/\.git$/, ''));
+        const repoName = path.posix.join(hostWithPort, decodedPathname.replace(/\.git$/, ''));
 
         const repo: RepoData = {
             external_codeHostType: 'genericGitHost',
@@ -723,7 +741,7 @@ export const compileGenericGitHostConfig_url = async (
 
     // @note: matches the naming here:
     // https://github.com/sourcebot-dev/zoekt/blob/main/gitindex/index.go#L293
-    const repoName = path.join(remoteUrl.host, remoteUrl.pathname.replace(/\.git$/, ''));
+    const repoName = path.posix.join(remoteUrl.host, remoteUrl.pathname.replace(/\.git$/, ''));
 
     const repo: RepoData = {
         external_codeHostType: 'genericGitHost',
@@ -787,7 +805,7 @@ export const compileAzureDevOpsConfig = async (
         }
 
         const repoDisplayName = `${repo.project.name}/${repo.name}`;
-        const repoName = path.join(repoNameRoot, repoDisplayName);
+        const repoName = path.posix.join(repoNameRoot, repoDisplayName);
         const isPublic = repo.project.visibility === ProjectVisibility.Public;
 
         if (!repo.remoteUrl) {

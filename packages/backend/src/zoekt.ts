@@ -8,6 +8,16 @@ import { getShardPrefix } from "./utils.js";
 
 const logger = createLogger('zoekt');
 
+/**
+ * Indexes a git repository using Zoekt (zoekt-git-index CLI).
+ * Standardizes index directory path and repository path parsing for Windows OS.
+ * 
+ * @param repo - The repository database record to index.
+ * @param settings - The global or custom configuration settings for the indexing limits.
+ * @param revisions - The git branch/revision references to index.
+ * @param signal - Optional AbortSignal to cancel the indexing process.
+ * @returns A promise that resolves to stdout/stderr of the zoekt process.
+ */
 export const indexGitRepository = async (repo: Repo, settings: Settings, revisions: string[], signal?: AbortSignal) => {
     const { path: repoPath } = getRepoPath(repo);
     const shardPrefix = getShardPrefix(repo.orgId, repo.id);
@@ -17,7 +27,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, revisio
     const command = [
         'zoekt-git-index',
         '-allow_missing_branches',
-        `-index ${INDEX_CACHE_DIR}`,
+        `-index "${INDEX_CACHE_DIR}"`,
         `-max_trigram_count ${settings.maxTrigramCount}`,
         `-file_limit ${settings.maxFileSize}`,
         `-branches "${revisions.join(',')}"`,
@@ -25,7 +35,7 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, revisio
         `-repo_id ${repo.id}`,
         `-shard_prefix_override ${shardPrefix}`,
         ...largeFileGlobPatterns.map((pattern) => `-large_file "${pattern}"`),
-        repoPath
+        `"${repoPath}"`
     ].join(' ');
 
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {

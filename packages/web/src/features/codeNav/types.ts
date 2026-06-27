@@ -27,6 +27,7 @@ export const findRelatedSymbolsResponseSchema = z.object({
         repositoryId: z.number(),
         webUrl: z.string(),
         language: z.string(),
+        ref: z.string().optional().describe('The git ref/commit SHA of the file.'),
         matches: z.array(z.object({
             lineContent: z.string(),
             range: rangeSchema,
