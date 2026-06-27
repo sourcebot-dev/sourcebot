@@ -183,4 +183,25 @@ describe('SkillsPage', () => {
 
         expect(screen.getByRole('switch', { name: 'Enable Deploy Checklist', checked: true })).toBeTruthy();
     });
+
+    test('imports a skill from a markdown file and pre-populates the create form', async () => {
+        const { container } = renderSkillsPage({});
+
+        const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+        expect(fileInput).toBeTruthy();
+
+        const content = '---\nname: Greet Me\ndescription: Greets warmly\n---\n\nSay hello to the user by name.';
+        const file = new File([content], 'greet-me.md', { type: 'text/markdown' });
+        // jsdom does not implement Blob/File.text(); provide it for the read.
+        Object.defineProperty(file, 'text', { value: async () => content });
+        fireEvent.change(fileInput, { target: { files: [file] } });
+
+        // Front matter fills name, command, and description; the body becomes the
+        // instructions, and we land in the create form ready to review.
+        expect(await screen.findByDisplayValue('Greet Me')).toBeTruthy();
+        expect(screen.getByDisplayValue('greet-me')).toBeTruthy();
+        expect(screen.getByDisplayValue('Greets warmly')).toBeTruthy();
+        expect(screen.getByText('New skill')).toBeTruthy();
+        expect(screen.getByRole('button', { name: /Create skill/ })).toBeTruthy();
+    });
 });

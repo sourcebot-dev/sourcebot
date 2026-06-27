@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import {
     BookOpenIcon,
     Building2Icon,
@@ -12,6 +12,7 @@ import {
     PlusIcon,
     SearchIcon,
     Trash2Icon,
+    UploadIcon,
 } from "lucide-react";
 import { useToast } from "@/components/hooks/use-toast";
 import {
@@ -50,6 +51,7 @@ import {
 } from "@/ee/features/chat/skills/components/workspaceSkillShared";
 import {
     normalizeAgentSkillSlug,
+    parseAgentSkillMarkdown,
     sortAgentSkillListItems,
     sortSharedAgentSkillCatalogItems,
     type AgentSkillInput,
@@ -225,6 +227,10 @@ export function SkillsPage({
     const [isEditing, setIsEditing] = useState(false);
     const [form, setForm] = useState<AgentSkillInput>(emptySkillForm);
     const [isSlugTouched, setIsSlugTouched] = useState(false);
+    // Bumped whenever we enter create mode or import, to remount the (uncontrolled)
+    // instructions editor with fresh content.
+    const [createEditorNonce, setCreateEditorNonce] = useState(0);
+    const markdownFileInputRef = useRef<HTMLInputElement>(null);
 
     const [isSaving, setIsSaving] = useState(false);
     const [scopePendingId, setScopePendingId] = useState<string | null>(null);
@@ -304,6 +310,59 @@ export function SkillsPage({
             setSelectedId(null);
             setForm(emptySkillForm);
             setIsSlugTouched(false);
+            setCreateEditorNonce((nonce) => nonce + 1);
+        });
+    };
+
+    const triggerMarkdownImport = () => {
+        markdownFileInputRef.current?.click();
+    };
+
+    // Import a skill from a markdown file: front matter fills name, command, and
+    // description, the body becomes the instructions, and we drop into the create
+    // form pre-populated so the user can review before saving.
+    const handleImportMarkdownFile = async (event: ChangeEvent<HTMLInputElement>) => {
+        const input = event.currentTarget;
+        const file = input.files?.[0];
+        input.value = "";
+
+        if (!file) {
+            return;
+        }
+
+        if (!/\.(md|markdown)$/i.test(file.name)) {
+            toast({ title: "Unsupported file", description: "Choose a markdown file ending in .md or .markdown.", variant: "destructive" });
+            return;
+        }
+
+        let text: string;
+        try {
+            text = await file.text();
+        } catch {
+            toast({ title: "Error", description: "Failed to import markdown file.", variant: "destructive" });
+            return;
+        }
+
+        const parsed = parseAgentSkillMarkdown(text, file.name);
+        guardedTransition(() => {
+            setIsCreatingNew(true);
+            setIsEditing(false);
+            setSelectedId(null);
+            setForm({
+                name: parsed.name ?? "",
+                slug: parsed.slug ?? "",
+                description: parsed.description ?? "",
+                instructions: parsed.instructions,
+            });
+            setIsSlugTouched(Boolean(parsed.slug || parsed.name));
+            setCreateEditorNonce((nonce) => nonce + 1);
+            toast({
+                title: parsed.frontmatterError ? "Front matter issue" : undefined,
+                description: parsed.frontmatterError
+                    ? `Markdown skill imported. ${parsed.frontmatterError}`
+                    : "Markdown skill imported.",
+                variant: parsed.frontmatterError ? "destructive" : undefined,
+            });
         });
     };
 
@@ -567,15 +626,35 @@ export function SkillsPage({
                 <aside className="flex w-[320px] shrink-0 flex-col border-r">
                     <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-5">
                         <h2 className="text-xl font-semibold tracking-tight text-foreground">Skills</h2>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={handleStartCreate}
-                            aria-label="Create skill"
-                        >
-                            <PlusIcon className="h-4 w-4" />
-                        </Button>
+                        <input
+                            ref={markdownFileInputRef}
+                            type="file"
+                            accept=".md,.markdown,text/markdown,text/plain"
+                            className="hidden"
+                            onChange={handleImportMarkdownFile}
+                        />
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    aria-label="Add skill"
+                                >
+                                    <PlusIcon className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={handleStartCreate}>
+                                    <PlusIcon className="mr-2 h-4 w-4" />
+                                    New skill
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={triggerMarkdownImport}>
+                                    <UploadIcon className="mr-2 h-4 w-4" />
+                                    Import from markdown
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                     <div className="shrink-0 px-5 pb-3">
                         <div className="relative">
@@ -647,7 +726,7 @@ export function SkillsPage({
                             onInstructionsChange={(instructions) => setForm((current) => ({ ...current, instructions }))}
                             onSubmit={handleSubmit}
                             onCancel={handleCancelEdit}
-                            editorKey="new"
+                            editorKey={`new-${createEditorNonce}`}
                         />
                     ) : selectedSkill === null ? (
                         <SkillsEmptyState onCreate={handleStartCreate} />
