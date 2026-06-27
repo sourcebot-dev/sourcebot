@@ -4,8 +4,7 @@ import { startChangelogPollingJob } from '@/features/changelog/pollChangelog';
 import { createLogger, env } from "@sourcebot/shared";
 import { hasEntitlement } from '@/lib/entitlements';
 import { SINGLE_TENANT_ORG_ID } from './lib/constants';
-import { getConfiguredLanguageModels } from '@/features/chat/utils.server';
-import { loadCatalog } from '@/features/chat/modelsDevCatalog.server';
+import { warmModelCapabilitiesCatalog } from '@/features/chat/utils.server';
 
 const logger = createLogger('web-initialize');
 
@@ -75,18 +74,9 @@ const init = async () => {
     }
 }
 
-const warmModelCapabilitiesCatalog = async () => {
-    const configuredModels = await getConfiguredLanguageModels();
-    if (configuredModels.length === 0) {
-        return;
-    }
-    logger.info(`Warming models.dev capability catalog for ${configuredModels.length} configured language model(s)`);
-    void loadCatalog();
-};
-
 (async () => {
     await init();
     startServicePingCronJob();
     startChangelogPollingJob();
-    await warmModelCapabilitiesCatalog();
+    warmModelCapabilitiesCatalog();
 })();
