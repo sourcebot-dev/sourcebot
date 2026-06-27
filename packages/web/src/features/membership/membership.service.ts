@@ -79,6 +79,14 @@ export const ensureActiveMember = async (
     });
 
     if (existing && existing.suspendedAt === null) {
+        // SCIM reprovisioning can refresh the IdP identifier even when the
+        // membership is already active, so persist a changed external ID.
+        if (scimExternalId && existing.scimExternalId !== scimExternalId) {
+            return setMembershipSuspended(orgId, userId, false, {
+                actor,
+                scimExternalId,
+            });
+        }
         return existing;
     }
     if (existing && existing.suspendedAt !== null) {
@@ -280,7 +288,13 @@ export const setMembershipSuspended = async (
 
             target = await tx.userToOrg.update({
                 where: { orgId_userId: { orgId, userId } },
-                data: { suspendedAt: new Date() },
+                data: {
+                    suspendedAt: new Date(),
+                    // @note: when a user is suspended, reset the lastActiveAt
+                    // s.t., if they are re-provisioned, they will be in the
+                    // "pending" state rather than "active".
+                    lastActiveAt: null,
+                },
             });
             didChange = true;
             return target;

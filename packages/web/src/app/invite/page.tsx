@@ -54,7 +54,7 @@ export default async function InvitePage(props: InvitePageProps) {
 
     // User is logged in but not a member, show join invitation
     return (
-        <JoinOrganizationCard />   
+        <JoinOrganizationCard inviteLinkId={inviteLinkId} />
     );
 }
 

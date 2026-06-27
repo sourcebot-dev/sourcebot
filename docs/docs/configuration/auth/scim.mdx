@@ -72,7 +72,7 @@ When a pending user signs in, Sourcebot moves them to **Active** and they count 
 
 When your identity provider deactivates a user by sending `active: false`, Sourcebot marks the user as **Suspended**. Suspended users cannot access the organization, and Sourcebot revokes their active sessions, API keys, and OAuth tokens.
 
-If your identity provider reactivates the user by sending `active: true`, Sourcebot restores their membership. Users who had already become active return to active access; users who had never signed in return to pending.
+If your identity provider reactivates the user by sending `active: true`, Sourcebot restores their membership as **Pending**. They become **Active** and billable again only after they sign in and access the organization.
 
 
 ## Roles
@@ -106,6 +106,6 @@ Additional attributes may be sent by your identity provider, but Sourcebot ignor
         Sourcebot supports SCIM 2.0.
     </Accordion>
     <Accordion title="When do SCIM-created users become billable seats?">
-        SCIM-created users become billable seats after they sign in and access the organization for the first time. Until then, they appear as pending and do not count toward billing. Suspended users also do not count toward billing.
+        SCIM-created or reactivated users become billable seats after they sign in and access the organization. Until then, they appear as pending and do not count toward billing. Suspended users also do not count toward billing.
     </Accordion>
 </AccordionGroup>

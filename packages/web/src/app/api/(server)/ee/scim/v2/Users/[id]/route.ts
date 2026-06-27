@@ -33,6 +33,17 @@ const applyActive = async (orgId: number, userId: string, current: boolean, next
     return null;
 };
 
+const ensureEmailAvailable = async (prisma: ScimAuthContext['prisma'], userId: string, email: string): Promise<Response | null> => {
+    const existing = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+    });
+    if (existing && existing.id !== userId) {
+        return scimError(409, 'User email is already in use', 'uniqueness');
+    }
+    return null;
+};
+
 // eslint-disable-next-line authz/require-auth-wrapper -- SCIM bearer auth via withScimAuth
 export const GET = apiHandler(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) =>
     withScimAuth(request, async ({ org, prisma }) => {
@@ -61,15 +72,20 @@ export const PUT = apiHandler(async (request: NextRequest, { params }: { params:
 
         const name = payload.name?.formatted ?? payload.displayName ?? undefined;
         const email = resolveEmail(payload);
-        await prisma.user.update({
-            where: { id },
-            data: { name, email },
-        });
+        const emailError = await ensureEmailAvailable(prisma, id, email);
+        if (emailError) {
+            return emailError;
+        }
 
         const activeError = await applyActive(org.id, id, membership.suspendedAt == null, coerceActive(payload.active));
         if (activeError) {
             return activeError;
         }
+
+        await prisma.user.update({
+            where: { id },
+            data: { name, email },
+        });
 
         const refreshed = await loadMembership(prisma, org.id, id);
         return scimJson(toScimUser(refreshed!), 200);
@@ -95,6 +111,18 @@ export const PATCH = apiHandler(async (request: NextRequest, { params }: { param
         // ignored rather than rejected, per the SCIM lenient-parsing convention.
         const changes = parseScimPatchOperations(parsed.data.Operations);
 
+        if (changes.email !== undefined) {
+            const emailError = await ensureEmailAvailable(prisma, id, changes.email);
+            if (emailError) {
+                return emailError;
+            }
+        }
+
+        const activeError = await applyActive(org.id, id, membership.suspendedAt == null, changes.active);
+        if (activeError) {
+            return activeError;
+        }
+
         if (changes.name !== undefined || changes.email !== undefined) {
             await prisma.user.update({
                 where: { id },
@@ -103,11 +131,6 @@ export const PATCH = apiHandler(async (request: NextRequest, { params }: { param
                     ...(changes.email !== undefined ? { email: changes.email } : {}),
                 },
             });
-        }
-
-        const activeError = await applyActive(org.id, id, membership.suspendedAt == null, changes.active);
-        if (activeError) {
-            return activeError;
         }
 
         const refreshed = await loadMembership(prisma, org.id, id);

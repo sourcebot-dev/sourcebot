@@ -23,7 +23,7 @@ CREATE UNIQUE INDEX "ScimToken_hash_key" ON "ScimToken"("hash");
 CREATE INDEX "ScimToken_orgId_idx" ON "ScimToken"("orgId");
 
 -- CreateIndex
-CREATE INDEX "UserToOrg_orgId_scimExternalId_idx" ON "UserToOrg"("orgId", "scimExternalId");
+CREATE UNIQUE INDEX "UserToOrg_orgId_scimExternalId_key" ON "UserToOrg"("orgId", "scimExternalId");
 
 -- AddForeignKey
 ALTER TABLE "ScimToken" ADD CONSTRAINT "ScimToken_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "Org"("id") ON DELETE CASCADE ON UPDATE CASCADE;

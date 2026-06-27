@@ -96,7 +96,7 @@ When implementing a new API route, ask the user whether it should be part of the
 3. Add the endpoint to the relevant group in the `API Reference` tab of `docs/docs.json`.
 4. Regenerate the OpenAPI spec by running `yarn workspace @sourcebot/web openapi:generate`.
 
-Route handlers should validate inputs using Zod schemas.
+Route handlers should validate inputs using Zod schemas. Put coercion, defaults, minimums, maximums, and cross-field validation in the schema instead of scattering parsing logic through the handler.
 
 **Query parameters** (GET requests):
 
@@ -105,8 +105,9 @@ import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/se
 import { z } from "zod";
 
 const myQueryParamsSchema = z.object({
-    q: z.string().default(''),
+    repo: z.string(),
     page: z.coerce.number().int().positive().default(1),
+    perPage: z.coerce.number().int().positive().max(100).default(50),
 });
 
 export const GET = apiHandler(async (request: NextRequest) => {
@@ -124,8 +125,39 @@ export const GET = apiHandler(async (request: NextRequest) => {
         );
     }
 
-    const { q, page } = parsed.data;
+    const { page, perPage, ...searchParams } = parsed.data;
+    const skip = (page - 1) * perPage;
     // ... rest of handler
+});
+```
+
+**Search query parameters**:
+
+```ts
+import { queryParamsSchemaValidationError, serviceErrorResponse } from "@/lib/serviceError";
+import { z } from "zod";
+
+const searchMembersQueryParamsSchema = z.object({
+    query: z.string().default(''),
+});
+
+export const GET = apiHandler(async (request: NextRequest) => {
+    const rawParams = Object.fromEntries(
+        Object.keys(searchMembersQueryParamsSchema.shape).map(key => [
+            key,
+            request.nextUrl.searchParams.get(key) ?? undefined
+        ])
+    );
+    const parsed = searchMembersQueryParamsSchema.safeParse(rawParams);
+
+    if (!parsed.success) {
+        return serviceErrorResponse(
+            queryParamsSchemaValidationError(parsed.error)
+        );
+    }
+
+    const { query } = parsed.data;
+    // ... use query in the database/search call
 });
 ```
 
@@ -153,6 +185,13 @@ export const POST = apiHandler(async (request: NextRequest) => {
     const { name, count } = parsed.data;
     // ... rest of handler
 });
+```
+
+Use `safeParseAsync` when the schema has async refinements, as in search routes:
+
+```ts
+const body = await request.json();
+const parsed = await searchRequestSchema.safeParseAsync(body);
 ```
 
 ## Data Fetching

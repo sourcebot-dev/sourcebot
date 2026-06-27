@@ -48,18 +48,21 @@ export const syncWithLighthouse = async (orgId: number) => {
         __unsafePrisma.userToOrg.count({
             where: {
                 orgId,
+                ...activeMembershipWhere(),
                 lastActiveAt: { gte: dauCutoff },
             },
         }),
         __unsafePrisma.userToOrg.count({
             where: {
                 orgId,
+                ...activeMembershipWhere(),
                 lastActiveAt: { gte: wauCutoff },
             },
         }),
         __unsafePrisma.userToOrg.count({
             where: {
                 orgId,
+                ...activeMembershipWhere(),
                 lastActiveAt: { gte: mauCutoff },
             },
         }),

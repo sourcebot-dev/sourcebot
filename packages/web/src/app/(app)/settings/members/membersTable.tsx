@@ -320,8 +320,11 @@ const getColumns = (actionContext: Omit<MembersTableActionsProps, "row">): Colum
         header: ({ column }) => <SortableHeader column={column}>Joined</SortableHeader>,
         cell: ({ row }) => {
             const r = row.original;
-            const date = r.kind === "member" ? r.joinedAt : r.createdAt;
-            return <DisplayDate date={date} />;
+            if (r.kind !== "member") {
+                return <span className="text-sm text-muted-foreground">—</span>;
+            }
+
+            return <DisplayDate date={r.joinedAt} />;
         },
     },
     {
@@ -332,7 +335,7 @@ const getColumns = (actionContext: Omit<MembersTableActionsProps, "row">): Colum
         header: ({ column }) => <SortableHeader column={column}>Last seen</SortableHeader>,
         cell: ({ row }) => {
             const r = row.original;
-            if (r.kind !== "member") {
+            if (r.kind !== "member" || r.suspendedAt !== null) {
                 return <span className="text-sm text-muted-foreground">—</span>;
             }
             if (!r.lastActiveAt) {

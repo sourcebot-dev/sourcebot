@@ -8,7 +8,7 @@ import { sew } from "@/middleware/sew";
 import { withAuth } from "@/middleware/withAuth";
 import { withMinimumOrgRole } from "@/middleware/withMinimumOrgRole";
 import { OrgRole } from "@sourcebot/db";
-import { env, generateScimToken as generateScimTokenSecret } from "@sourcebot/shared";
+import { generateScimToken as generateScimTokenSecret } from "@sourcebot/shared";
 import { StatusCodes } from "http-status-codes";
 
 const scimNotAvailable = (): ServiceError => ({
@@ -16,32 +16,6 @@ const scimNotAvailable = (): ServiceError => ({
     errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
     message: "SCIM provisioning is not available in your current plan",
 });
-
-/**
- * The base URL an IdP (Okta, Entra) is configured to send SCIM requests to.
- * Exposed at the clean `/scim/v2` path via a rewrite in `next.config.mjs`.
- */
-export const getScimBaseUrl = async (): Promise<{ baseUrl: string } | ServiceError> => sew(() =>
-    withAuth(async ({ role }) =>
-        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            if (!await hasEntitlement('scim')) {
-                return scimNotAvailable();
-            }
-            return { baseUrl: `${env.AUTH_URL.replace(/\/$/, '')}/scim/v2` };
-        })));
-
-/**
- * Whether SCIM provisioning is currently enabled (toggled on) for the org.
- * This is the explicit opt-in switch, independent of whether any tokens exist.
- */
-export const getIsScimEnabled = async (): Promise<{ enabled: boolean } | ServiceError> => sew(() =>
-    withAuth(async ({ org, role }) =>
-        withMinimumOrgRole(role, OrgRole.OWNER, async () => {
-            if (!await hasEntitlement('scim')) {
-                return scimNotAvailable();
-            }
-            return { enabled: org.isScimEnabled };
-        })));
 
 /**
  * Enables or disables SCIM provisioning for the org. Disabling is a kill switch:

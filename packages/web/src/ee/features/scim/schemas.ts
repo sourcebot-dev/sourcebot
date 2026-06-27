@@ -1,5 +1,7 @@
 import { z } from "zod";
 import {
+    SCIM_DEFAULT_COUNT,
+    SCIM_MAX_COUNT,
     SCIM_RESOURCE_TYPE_SCHEMA,
     SCIM_SERVICE_PROVIDER_CONFIG_SCHEMA,
     SCIM_USER_SCHEMA,
@@ -42,6 +44,12 @@ export const scimPatchOpSchema = z.object({
     }).passthrough()),
 }).passthrough();
 export type ScimPatchOp = z.infer<typeof scimPatchOpSchema>;
+
+export const scimListUsersQueryParamsSchema = z.object({
+    filter: z.string().optional(),
+    startIndex: z.coerce.number().int().positive().default(1),
+    count: z.coerce.number().int().nonnegative().max(SCIM_MAX_COUNT).default(SCIM_DEFAULT_COUNT),
+});
 
 /** Coerces a SCIM `active` value (boolean | "true"/"false" | undefined). */
 export const coerceActive = (value: unknown): boolean | undefined => {

@@ -5,6 +5,7 @@ import {
     coerceActive,
     parseScimFilter,
     resolveEmail,
+    scimListUsersQueryParamsSchema,
     scimUserCreateSchema,
 } from '@/ee/features/scim/schemas';
 import { withScimAuth } from '@/ee/features/scim/withScimAuth';
@@ -13,19 +14,25 @@ import { isServiceError } from '@/lib/utils';
 import { OrgRole } from '@sourcebot/db';
 import { env } from '@sourcebot/shared';
 import { NextRequest } from 'next/server';
-import { SCIM_DEFAULT_COUNT, SCIM_MAX_COUNT } from '@/ee/features/scim/constants';
 
 // eslint-disable-next-line authz/require-auth-wrapper -- SCIM bearer auth via withScimAuth
 export const GET = apiHandler(async (request: NextRequest) =>
     withScimAuth(request, async ({ org, prisma }) => {
-        const params = request.nextUrl.searchParams;
-        const filterParam = params.get('filter');
-        const startIndex = Math.max(1, parseInt(params.get('startIndex') ?? '1', 10) || 1);
-        const count = Math.min(SCIM_MAX_COUNT, Math.max(0, parseInt(params.get('count') ?? `${SCIM_DEFAULT_COUNT}`, 10) || SCIM_DEFAULT_COUNT));
+        const rawParams = Object.fromEntries(
+            Object.keys(scimListUsersQueryParamsSchema.shape).map(key => [
+                key,
+                request.nextUrl.searchParams.get(key) ?? undefined,
+            ])
+        );
+        const parsed = scimListUsersQueryParamsSchema.safeParse(rawParams);
+        if (!parsed.success) {
+            return scimError(400, 'Invalid SCIM query parameters', 'invalidValue');
+        }
+        const { filter: filterParam, startIndex, count } = parsed.data;
 
         // A filter that's present but unrecognized yields an empty result set
         // (never a 404/400) so the IdP can decide create-vs-update safely.
-        const filter = parseScimFilter(filterParam);
+        const filter = parseScimFilter(filterParam ?? null);
         if (filterParam && !filter) {
             return scimJson(toScimListResponse([], 0, startIndex), 200);
         }
@@ -62,11 +69,11 @@ export const POST = apiHandler(async (request: NextRequest) =>
         const name = payload.name?.formatted ?? payload.displayName ?? undefined;
         const desiredActive = coerceActive(payload.active) ?? true;
 
-        // Find-or-create the user by email.
-        let user = await prisma.user.findUnique({ where: { email } });
-        if (!user) {
-            user = await prisma.user.create({ data: { email, name } });
-        }
+        const user = await prisma.user.upsert({
+            where: { email },
+            create: { email, name },
+            update: { email, name },
+        });
 
         const scimActor = { id: 'scim', type: 'scim_token' } as const;
         const existing = await prisma.userToOrg.findUnique({

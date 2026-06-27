@@ -20,6 +20,7 @@ import { SettingsCardGroup } from "../components/settingsCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import { isScimEnabled } from "@/features/scim/utils";
+import { ServiceErrorException } from "@/lib/serviceError";
 
 export default authenticatedPage(async ({ org }) => {
     const anonymousAccessEnabled = await isAnonymousAccessEnabled();
@@ -29,8 +30,11 @@ export default authenticatedPage(async ({ org }) => {
 
     const hasScimEntitlement = await hasEntitlement("scim");
     const scimBaseUrl = `${env.AUTH_URL.replace(/\/$/, '')}/scim/v2`;
-    const scimTokensResult = hasScimEntitlement ? await getScimTokens() : [];
-    const scimTokens = isServiceError(scimTokensResult) ? [] : scimTokensResult;
+    const scimTokens = hasScimEntitlement ? await getScimTokens() : [];
+    if (isServiceError(scimTokens)) {
+        throw new ServiceErrorException(scimTokens);
+    }
+
     const scimEnabled = await isScimEnabled(org)
 
 

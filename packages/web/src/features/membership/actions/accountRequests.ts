@@ -62,66 +62,64 @@ export const createAccountRequest = async () => sew(async () => {
         }
     }
 
-    if (!existingRequest) {
-        await __unsafePrisma.accountRequest.create({
-            data: {
-                requestedById: user.id,
-                orgId: org.id,
+    await __unsafePrisma.accountRequest.create({
+        data: {
+            requestedById: user.id,
+            orgId: org.id,
+        },
+    });
+
+    const smtpConnectionUrl = getSMTPConnectionURL();
+    if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS) {
+        // TODO: This is needed because we can't fetch the origin from the request headers when this is called
+        // on user creation (the header isn't set when next-auth calls onCreateUser for some reason)
+        const deploymentUrl = env.AUTH_URL;
+
+        const owners = await __unsafePrisma.user.findMany({
+            where: {
+                orgs: {
+                    some: {
+                        orgId: org.id,
+                        role: "OWNER",
+                    },
+                },
             },
         });
 
-        const smtpConnectionUrl = getSMTPConnectionURL();
-        if (smtpConnectionUrl && env.EMAIL_FROM_ADDRESS) {
-            // TODO: This is needed because we can't fetch the origin from the request headers when this is called
-            // on user creation (the header isn't set when next-auth calls onCreateUser for some reason)
-            const deploymentUrl = env.AUTH_URL;
-
-            const owners = await __unsafePrisma.user.findMany({
-                where: {
-                    orgs: {
-                        some: {
-                            orgId: org.id,
-                            role: "OWNER",
-                        },
-                    },
+        if (owners.length === 0) {
+            logger.error(`Failed to find any owners for org ${org.id} when drafting email for account request from ${user.id}`);
+        } else {
+            const html = await render(JoinRequestSubmittedEmail({
+                baseUrl: deploymentUrl,
+                requestor: {
+                    name: user.name ?? undefined,
+                    email: user.email,
+                    avatarUrl: user.image ?? undefined,
                 },
+                orgName: org.name,
+                orgImageUrl: org.imageUrl ?? undefined,
+            }));
+
+            const ownerEmails = owners
+                .map((owner) => owner.email)
+                .filter((email): email is string => email !== null);
+
+            const transport = createTransport(smtpConnectionUrl);
+            const result = await transport.sendMail({
+                to: ownerEmails,
+                from: env.EMAIL_FROM_ADDRESS,
+                subject: `New account request for ${org.name} on Sourcebot`,
+                html,
+                text: `New account request for ${org.name} on Sourcebot by ${user.name ?? user.email}`,
             });
 
-            if (owners.length === 0) {
-                logger.error(`Failed to find any owners for org ${org.id} when drafting email for account request from ${user.id}`);
-            } else {
-                const html = await render(JoinRequestSubmittedEmail({
-                    baseUrl: deploymentUrl,
-                    requestor: {
-                        name: user.name ?? undefined,
-                        email: user.email,
-                        avatarUrl: user.image ?? undefined,
-                    },
-                    orgName: org.name,
-                    orgImageUrl: org.imageUrl ?? undefined,
-                }));
-
-                const ownerEmails = owners
-                    .map((owner) => owner.email)
-                    .filter((email): email is string => email !== null);
-
-                const transport = createTransport(smtpConnectionUrl);
-                const result = await transport.sendMail({
-                    to: ownerEmails,
-                    from: env.EMAIL_FROM_ADDRESS,
-                    subject: `New account request for ${org.name} on Sourcebot`,
-                    html,
-                    text: `New account request for ${org.name} on Sourcebot by ${user.name ?? user.email}`,
-                });
-
-                const failed = result.rejected.concat(result.pending).filter(Boolean);
-                if (failed.length > 0) {
-                    logger.error(`Failed to send account request email to ${ownerEmails.join(', ')}: ${failed}`);
-                }
+            const failed = result.rejected.concat(result.pending).filter(Boolean);
+            if (failed.length > 0) {
+                logger.error(`Failed to send account request email to ${ownerEmails.join(', ')}: ${failed}`);
             }
-        } else {
-            logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping account request email to owner`);
         }
+    } else {
+        logger.warn(`SMTP_CONNECTION_URL or EMAIL_FROM_ADDRESS not set. Skipping account request email to owner`);
     }
 
     return {
@@ -180,6 +178,12 @@ export const approveAccountRequest = async (requestId: string) => sew(async () =
                 return addUserToOrgRes;
             }
 
+            await prisma.accountRequest.deleteMany({
+                where: {
+                    id: requestId,
+                    orgId: org.id,
+                },
+            });
 
             await createAudit({
                 action: "user.join_request_approved",
@@ -275,4 +279,3 @@ export const getOrgAccountRequests = async () => sew(() =>
                 image: request.requestedBy.image ?? undefined,
             }));
         })));
-

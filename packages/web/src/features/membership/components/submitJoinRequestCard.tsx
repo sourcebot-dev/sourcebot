@@ -17,31 +17,40 @@ export const SubmitJoinRequestCard = () => {
 
     const handleSubmit = async () => {
         setIsSubmitting(true)
-        const result = await createAccountRequest()
-        if (!isServiceError(result)) {
-            if (result.existingRequest) {
-                toast({
-                    title: "Request Already Submitted",
-                    description: "Your request to join the organization has already been submitted. Please wait for it to be approved.",
-                    variant: "default",
-                })
+        try {
+            const result = await createAccountRequest()
+            if (!isServiceError(result)) {
+                if (result.existingRequest) {
+                    toast({
+                        title: "Request Already Submitted",
+                        description: "Your request to join the organization has already been submitted. Please wait for it to be approved.",
+                        variant: "default",
+                    })
+                } else {
+                    toast({
+                        title: "Request Submitted",
+                        description: "Your request to join the organization has been submitted.",
+                        variant: "default",
+                    })
+                }
+                // Refresh the page to trigger layout re-render and show PendingApprovalCard
+                router.refresh()
             } else {
                 toast({
-                    title: "Request Submitted",
-                    description: "Your request to join the organization has been submitted.",
-                    variant: "default",
+                    title: "Failed to Submit",
+                    description: `There was an error submitting your request. Reason: ${result.message}`,
+                    variant: "destructive",
                 })
             }
-            // Refresh the page to trigger layout re-render and show PendingApprovalCard
-            router.refresh()
-        } else {
+        } catch (error) {
             toast({
                 title: "Failed to Submit",
-                description: `There was an error submitting your request. Reason: ${result.message}`,
+                description: error instanceof Error ? error.message : "An unexpected error occurred.",
                 variant: "destructive",
             })
+        } finally {
+            setIsSubmitting(false)
         }
-        setIsSubmitting(false)
     }
 
     return (

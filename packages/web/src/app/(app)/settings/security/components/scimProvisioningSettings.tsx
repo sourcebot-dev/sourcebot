@@ -101,13 +101,18 @@ export function ScimProvisioningSettings({ baseUrl, tokens }: ScimProvisioningSe
     };
 
     const handleRevokeToken = async (name: string) => {
-        const result = await revokeScimToken(name);
-        if (isServiceError(result)) {
-            toast({ title: "Error", description: `Failed to revoke SCIM token: ${result.message}`, variant: "destructive" });
-            return;
+        try {
+            const result = await revokeScimToken(name);
+            if (isServiceError(result)) {
+                toast({ title: "Error", description: `Failed to revoke SCIM token: ${result.message}`, variant: "destructive" });
+                return;
+            }
+            router.refresh();
+            toast({ description: "SCIM token revoked" });
+        } catch (error) {
+            console.error(error);
+            toast({ title: "Error", description: `Failed to revoke SCIM token: ${error}`, variant: "destructive" });
         }
-        router.refresh();
-        toast({ description: "SCIM token revoked" });
     };
 
     const sortedTokens = useMemo(
