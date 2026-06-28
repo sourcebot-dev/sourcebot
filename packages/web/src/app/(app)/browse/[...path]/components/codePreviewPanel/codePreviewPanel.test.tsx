@@ -95,6 +95,8 @@ describe('CodePreviewPanel', () => {
 
         expect(screen.queryByText('File not found')).toBeTruthy();
         expect(screen.getAllByText('abc123def456').length).toBeGreaterThan(0);
+        expect(screen.getByText('src/missing.ts').className).toContain('break-all');
+        expect(screen.getAllByText('abc123def456').some((element) => element.className.includes('break-all'))).toBe(true);
         expect(screen.getByRole('link', { name: 'Return to repository root' }).getAttribute('href')).toBe(
             '/browse/github.com/sourcebot-dev/sourcebot@main/-/tree'
         );

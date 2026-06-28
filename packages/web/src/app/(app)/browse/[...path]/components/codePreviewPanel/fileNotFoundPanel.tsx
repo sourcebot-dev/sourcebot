@@ -92,9 +92,9 @@ export const FileNotFoundPanel = ({
                 </div>
                 <div className="space-y-1">
                     <h2 className="text-lg font-semibold">File not found</h2>
-                    <p className="max-w-xl text-sm text-muted-foreground">
-                        The path <span className="font-mono text-foreground">{path}</span> does not exist
-                        {missingRevisionName ? <> at <span className="font-mono text-foreground">{missingRevisionName}</span></> : null}.
+                    <p className="max-w-xl break-words text-sm text-muted-foreground">
+                        The path <span className="break-all font-mono text-foreground">{path}</span> does not exist
+                        {missingRevisionName ? <> at <span className="break-all font-mono text-foreground">{missingRevisionName}</span></> : null}.
                     </p>
                 </div>
                 <Button asChild variant="outline">
