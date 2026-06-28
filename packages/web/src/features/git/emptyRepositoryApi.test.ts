@@ -99,8 +99,38 @@ describe('empty repository git APIs', () => {
             path: '',
         });
 
-        expect(result).toEqual([]);
+        expect(result).toEqual({
+            items: [],
+            isRepositoryEmpty: true,
+        });
         expect(mocks.gitRaw).toHaveBeenCalledWith(['rev-list', '--count', '--all']);
+    });
+
+    test('getFolderContents keeps unresolved refs as errors for empty repositories', async () => {
+        mocks.gitRaw.mockImplementation(async (args: string[]) => {
+            if (args.includes('ls-tree')) {
+                throw new Error('fatal: Not a valid object name definitely-not-a-ref');
+            }
+            if (args[0] === 'symbolic-ref') {
+                return 'main\n';
+            }
+            if (args[0] === 'rev-list') {
+                return '0\n';
+            }
+            return '';
+        });
+
+        const result = await getFolderContents({
+            repoName: 'github.com/sourcebot-dev/empty',
+            revisionName: 'definitely-not-a-ref',
+            path: '',
+        });
+
+        expect(result).toMatchObject({
+            errorCode: 'UNEXPECTED_ERROR',
+            message: expect.stringContaining('git ls-tree command failed'),
+        });
+        expect(mocks.gitRaw).not.toHaveBeenCalledWith(['rev-list', '--count', '--all']);
     });
 
     test('getTree returns an empty root tree for a repository with no commits', async () => {
@@ -129,6 +159,98 @@ describe('empty repository git APIs', () => {
             },
         });
         expect(mocks.gitRaw).toHaveBeenCalledWith(['rev-list', '--count', '--all']);
+    });
+
+    test('getTree treats empty path entries as the root for empty repositories', async () => {
+        mocks.gitRaw.mockImplementation(async (args: string[]) => {
+            if (args.includes('ls-tree')) {
+                throw new Error('fatal: Not a valid object name HEAD');
+            }
+            if (args[0] === 'rev-list') {
+                return '0\n';
+            }
+            return '';
+        });
+
+        const result = await getTree({
+            repoName: 'github.com/sourcebot-dev/empty',
+            revisionName: 'HEAD',
+            paths: [''],
+        });
+
+        const lsTreeCall = mocks.gitRaw.mock.calls.find(([args]) => args.includes('ls-tree'))?.[0];
+
+        expect(result).toEqual({
+            tree: {
+                name: 'root',
+                path: '',
+                type: 'tree',
+                children: [],
+            },
+        });
+        expect(lsTreeCall).toEqual([
+            '-c', 'core.quotePath=false',
+            'ls-tree',
+            'HEAD',
+            '--format=%(objecttype),%(path)',
+            '-t',
+            '--',
+            '.',
+        ]);
+    });
+
+    test('getTree returns an empty tree for stale paths in empty repositories', async () => {
+        mocks.gitRaw.mockImplementation(async (args: string[]) => {
+            if (args.includes('ls-tree')) {
+                throw new Error('fatal: Not a valid object name HEAD');
+            }
+            if (args[0] === 'rev-list') {
+                return '0\n';
+            }
+            return '';
+        });
+
+        const result = await getTree({
+            repoName: 'github.com/sourcebot-dev/empty',
+            revisionName: 'HEAD',
+            paths: ['stale/path'],
+        });
+
+        expect(result).toEqual({
+            tree: {
+                name: 'root',
+                path: '',
+                type: 'tree',
+                children: [],
+            },
+        });
+    });
+
+    test('getTree keeps unresolved refs as errors for empty repositories', async () => {
+        mocks.gitRaw.mockImplementation(async (args: string[]) => {
+            if (args.includes('ls-tree')) {
+                throw new Error('fatal: Not a valid object name definitely-not-a-ref');
+            }
+            if (args[0] === 'symbolic-ref') {
+                return 'main\n';
+            }
+            if (args[0] === 'rev-list') {
+                return '0\n';
+            }
+            return '';
+        });
+
+        const result = await getTree({
+            repoName: 'github.com/sourcebot-dev/empty',
+            revisionName: 'definitely-not-a-ref',
+            paths: [],
+        });
+
+        expect(result).toMatchObject({
+            errorCode: 'UNEXPECTED_ERROR',
+            message: expect.stringContaining('git ls-tree command failed'),
+        });
+        expect(mocks.gitRaw).not.toHaveBeenCalledWith(['rev-list', '--count', '--all']);
     });
 
     test('getTree keeps unresolved revisions as errors when the repository has commits', async () => {

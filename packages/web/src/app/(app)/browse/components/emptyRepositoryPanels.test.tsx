@@ -24,9 +24,15 @@ afterEach(() => {
 
 describe('empty repository browse panels', () => {
     test('tree preview panel shows a clear empty repository state', () => {
-        render(<PureTreePreviewPanel items={[]} />);
+        render(<PureTreePreviewPanel items={[]} isRepositoryEmpty={true} />);
 
         expect(screen.queryByText('This repository is empty')).toBeTruthy();
+    });
+
+    test('tree preview panel does not infer repository emptiness from empty items', () => {
+        render(<PureTreePreviewPanel items={[]} isRepositoryEmpty={false} />);
+
+        expect(screen.queryByText('This repository is empty')).toBeNull();
     });
 
     test('file tree panel shows a clear empty repository state', () => {

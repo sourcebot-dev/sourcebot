@@ -54,6 +54,23 @@ export const isGitRepositoryEmpty = async (git: Pick<SimpleGit, 'raw'>): Promise
     }
 }
 
+export const isDefaultRepositoryRef = async (git: Pick<SimpleGit, 'raw'>, revisionName: string): Promise<boolean> => {
+    if (revisionName === 'HEAD') {
+        return true;
+    }
+
+    try {
+        const defaultBranch = (await git.raw(['symbolic-ref', '--short', 'HEAD'])).trim();
+        return revisionName === defaultBranch || revisionName === `refs/heads/${defaultBranch}`;
+    } catch {
+        return false;
+    }
+}
+
+export const isEmptyRepositoryRootRef = async (git: Pick<SimpleGit, 'raw'>, revisionName: string): Promise<boolean> => {
+    return await isDefaultRepositoryRef(git, revisionName) && await isGitRepositoryEmpty(git);
+}
+
 export const buildFileTree = (flatList: { type: string, path: string }[]): FileTreeNode => {
     const root: FileTreeNode = {
         name: 'root',
