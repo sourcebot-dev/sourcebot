@@ -332,10 +332,11 @@ const options = {
         /**
          * How long (in hours) an uploaded-but-unlinked (PENDING) attachment
          * blob is retained before the orphan sweep deletes it and its bytes.
-         * Covers "select a file then never send" abandonment.
+         * Covers "select a file then never send" abandonment. Set to 0 to
+         * disable the orphan sweep entirely.
          * @default 24 hours
          */
-        SOURCEBOT_CHAT_ATTACHMENT_ORPHAN_TTL_HOURS: numberSchema.int().positive().default(24),
+        SOURCEBOT_CHAT_ATTACHMENT_ORPHAN_TTL_HOURS: numberSchema.int().nonnegative().default(24),
 
         DEBUG_WRITE_CHAT_MESSAGES_TO_FILE: booleanSchema.default('false'),
         DEBUG_ENABLE_REACT_SCAN: booleanSchema.default('false'),

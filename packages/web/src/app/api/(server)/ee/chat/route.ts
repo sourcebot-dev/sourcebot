@@ -3,7 +3,8 @@ import { getAskMcpAvailabilityAnalytics, getAskMcpTurnCompletedAnalytics } from 
 import { createMessageStream } from "@/ee/features/chat/agent";
 import { getPromptCacheStrategy } from "@/ee/features/chat/promptCaching";
 import { additionalChatRequestParamsSchema } from "@/features/chat/types";
-import { getLanguageModelKey, getUserMessageAttachments } from "@/features/chat/utils";
+import { getLanguageModelKey, getMessageTextBytes, getUserMessageAttachments } from "@/features/chat/utils";
+import { ATTACHMENT_MAX_TURN_TEXT_BYTES } from "@/features/chat/constants";
 import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
 import { checkAskEntitlement, commitMessageAttachments, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
@@ -75,6 +76,22 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 } satisfies ServiceError;
             }
 
+            const latestMessage = messages[messages.length - 1];
+
+            // Authoritatively enforce the per-turn inline-text budget (the client
+            // gate can't be trusted), keeping oversized text out of the prompt and
+            // the persisted messages. Only the user turn carries submitted text.
+            if (
+                latestMessage?.role === 'user' &&
+                getMessageTextBytes(latestMessage) > ATTACHMENT_MAX_TURN_TEXT_BYTES
+            ) {
+                return {
+                    statusCode: StatusCodes.REQUEST_TOO_LONG,
+                    errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                    message: `Message and attachments exceed the ${Math.round(ATTACHMENT_MAX_TURN_TEXT_BYTES / 1024)}KB per-message limit.`,
+                } satisfies ServiceError;
+            }
+
             // Verify and commit any binary attachments referenced by the latest
             // message (links them to this chat, flips PENDING -> COMMITTED).
             // Rejects forged/unauthorized attachment ids before the agent runs.
@@ -83,7 +100,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 chatId: id,
                 orgId: org.id,
                 userId: user?.id,
-                message: messages[messages.length - 1],
+                message: latestMessage,
             });
             if (attachmentError) {
                 return attachmentError;
@@ -112,7 +129,6 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             // If the latest message carries image attachments the selected model
             // cannot accept, the agent will degrade (omit the bytes). Record it.
-            const latestMessage = messages[messages.length - 1];
             const latestImageAttachmentCount = latestMessage
                 ? getUserMessageAttachments(latestMessage).filter(
                     (attachment) => attachment.kind === 'blob' && attachment.mediaType.startsWith('image/'),

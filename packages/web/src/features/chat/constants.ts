@@ -23,6 +23,11 @@ export const ATTACHMENT_MAX_TURN_TEXT_BYTES = 256 * 1024; // 256KB per turn
 // (this mirrors its default).
 export const ATTACHMENT_MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB per image
 
+// Max image (blob) attachments per message. Enforced server-side in
+// `commitMessageAttachments` (mirrored client-side for early feedback) to bound
+// per-request memory/cost: each image is loaded and sent to the model.
+export const ATTACHMENT_MAX_IMAGE_COUNT = 10;
+
 // A plain-text paste at or above either of these thresholds is automatically
 // converted into a text attachment instead of being inserted inline
 export const ATTACHMENT_PASTE_AUTO_CONVERT_MIN_CHARS = 1500;

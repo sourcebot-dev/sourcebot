@@ -3,10 +3,14 @@
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { AttachmentViewerDialog } from "@/features/chat/components/chatBox/attachmentViewerDialog";
-import { getAttachmentPreviewUrl } from "@/features/chat/attachments/attachmentPreviewCache";
+import { getAttachmentPreviewUrl, releaseAttachmentPreviewUrl } from "@/features/chat/attachments/attachmentPreviewCache";
 import { AttachmentData } from "@/features/chat/types";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+// Stop probing the serving route after this many attempts rather than forever.
+const SERVING_PROBE_MAX_ATTEMPTS = 15;
+const SERVING_PROBE_INTERVAL_MS = 1000;
 
 interface MessageAttachmentsProps {
     attachments: AttachmentData[];
@@ -27,6 +31,59 @@ const getBlobImageSrc = (chatId: string, attachmentId: string): string => {
 
 export const MessageAttachments = ({ attachments, chatId, className }: MessageAttachmentsProps) => {
     const [activeAttachment, setActiveAttachment] = useState<AttachmentData | null>(null);
+    // Bumped when a preview is released so blob `src`s recompute to the served URL.
+    const [, setPreviewReleaseTick] = useState(0);
+
+    // For any just-sent blob still backed by a local preview, probe the serving
+    // route in the background; once it loads (i.e. the attachment is committed),
+    // release the preview and re-render so every consumer switches to the served
+    // URL atomically. Avoids revoking an object URL that's still on screen.
+    useEffect(() => {
+        const pendingIds = attachments
+            .filter((attachment) =>
+                attachment.kind === 'blob' &&
+                attachment.mediaType.startsWith('image/') &&
+                getAttachmentPreviewUrl(attachment.attachmentId) !== undefined)
+            .map((attachment) => (attachment as Extract<AttachmentData, { kind: 'blob' }>).attachmentId);
+
+        if (pendingIds.length === 0) {
+            return;
+        }
+
+        let cancelled = false;
+        const timers: ReturnType<typeof setTimeout>[] = [];
+
+        pendingIds.forEach((attachmentId) => {
+            let attempts = 0;
+            const probe = () => {
+                if (cancelled) {
+                    return;
+                }
+                const img = new Image();
+                img.onload = () => {
+                    if (cancelled) {
+                        return;
+                    }
+                    releaseAttachmentPreviewUrl(attachmentId);
+                    setPreviewReleaseTick((tick) => tick + 1);
+                };
+                img.onerror = () => {
+                    if (cancelled || attempts >= SERVING_PROBE_MAX_ATTEMPTS) {
+                        return;
+                    }
+                    attempts++;
+                    timers.push(setTimeout(probe, SERVING_PROBE_INTERVAL_MS));
+                };
+                img.src = getAttachmentServingUrl(chatId, attachmentId);
+            };
+            probe();
+        });
+
+        return () => {
+            cancelled = true;
+            timers.forEach(clearTimeout);
+        };
+    }, [attachments, chatId]);
 
     if (attachments.length === 0) {
         return null;

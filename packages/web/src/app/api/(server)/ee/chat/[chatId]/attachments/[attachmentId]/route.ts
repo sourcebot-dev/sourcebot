@@ -70,8 +70,15 @@ export const GET = apiHandler(async (
 
     const { attachment } = response;
     const storage = getStorageBackend();
+
+    // Confirm the bytes exist before committing headers; a missing object would
+    // otherwise surface as a stream error after a 200 is already sent.
+    const stat = await storage.stat(attachment.storageKey);
+    if (!stat) {
+        return serviceErrorResponse(notFound());
+    }
+
     const nodeStream = storage.createReadStream(attachment.storageKey);
-    // Surface a missing-bytes condition as a 404 rather than a hung stream.
     const webStream = Readable.toWeb(nodeStream) as ReadableStream<Uint8Array>;
 
     // Build a header-safe Content-Disposition: an ASCII fallback plus an
@@ -85,7 +92,8 @@ export const GET = apiHandler(async (
     return new Response(webStream, {
         headers: {
             'Content-Type': attachment.mediaType,
-            'Content-Length': attachment.sizeBytes.toString(),
+            // On-disk size, so the header always matches the streamed bytes.
+            'Content-Length': stat.sizeBytes.toString(),
             'Content-Disposition': contentDisposition,
             // Never let the browser sniff a different (potentially executable)
             // content type from the bytes.

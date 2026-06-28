@@ -17,6 +17,11 @@ export interface StorageBackend {
     put(key: string, data: Buffer): Promise<void>;
     /** Reads the full bytes for `key`. Throws if the object is missing. */
     get(key: string): Promise<Buffer>;
+    /**
+     * Returns the object's byte size, or `undefined` if it is missing. Lets the
+     * serving route detect a missing object before committing response headers.
+     */
+    stat(key: string): Promise<{ sizeBytes: number } | undefined>;
     /** Opens a Node read stream for `key` (used by the serving route). */
     createReadStream(key: string): Readable;
     /** Deletes the object for `key`. A missing object is not an error. */
@@ -53,6 +58,18 @@ export class LocalFsStorageBackend implements StorageBackend {
 
     async get(key: string): Promise<Buffer> {
         return fs.readFile(this.resolveKey(key));
+    }
+
+    async stat(key: string): Promise<{ sizeBytes: number } | undefined> {
+        try {
+            const { size } = await fs.stat(this.resolveKey(key));
+            return { sizeBytes: size };
+        } catch (error) {
+            if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
+                return undefined;
+            }
+            throw error;
+        }
     }
 
     createReadStream(key: string): Readable {

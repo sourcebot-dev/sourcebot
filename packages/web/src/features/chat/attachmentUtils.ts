@@ -5,6 +5,7 @@ import {
     ATTACHMENT_ALLOWED_TEXT_EXTENSIONS,
     ATTACHMENT_ALLOWED_TEXT_MIME_TYPES,
     ATTACHMENT_MAX_IMAGE_BYTES,
+    ATTACHMENT_MAX_IMAGE_COUNT,
     ATTACHMENT_MAX_TURN_TEXT_BYTES,
     ATTACHMENT_PASTE_AUTO_CONVERT_MIN_CHARS,
     ATTACHMENT_PASTE_AUTO_CONVERT_MIN_LINES,
@@ -213,18 +214,18 @@ export type ReadFilesResult = {
     errors: string[];
 };
 
-// Reads and validates a set of files into pending attachments, enforcing the
-// per-file size and allowed-type caps (the aggregate per-turn text budget is
-// enforced at submit time). Text files are read inline; image files (only when
-// `allowImages`) are turned into pending image attachments with a local preview
-// and an `uploading` status (the actual upload is kicked off by the caller).
-// Rejected files produce a human-readable error message instead of throwing.
+// Reads and validates files into pending attachments, enforcing the per-file
+// size, allowed-type, and per-message image-count caps (the per-turn text budget
+// is enforced at submit time). Text is read inline; images (when `allowImages`)
+// become pending uploads the caller then kicks off. The image-count cap mirrors
+// the server's for early feedback. Rejected files yield an error, not a throw.
 export const readFilesAsAttachments = async (
     files: File[],
-    { allowImages }: { allowImages: boolean },
+    { allowImages, existingImageCount = 0 }: { allowImages: boolean; existingImageCount?: number },
 ): Promise<ReadFilesResult> => {
     const attachments: PendingAttachment[] = [];
     const errors: string[] = [];
+    let imageCount = existingImageCount;
 
     for (const file of files) {
         if (isAllowedTextFile(file)) {
@@ -258,6 +259,10 @@ export const readFilesAsAttachments = async (
                 errors.push(`${file.name}: exceeds the ${Math.round(ATTACHMENT_MAX_IMAGE_BYTES / (1024 * 1024))}MB image limit.`);
                 continue;
             }
+            if (imageCount >= ATTACHMENT_MAX_IMAGE_COUNT) {
+                errors.push(`You can attach at most ${ATTACHMENT_MAX_IMAGE_COUNT} images per message.`);
+                continue;
+            }
             attachments.push({
                 id: uuidv4(),
                 kind: 'image',
@@ -268,6 +273,7 @@ export const readFilesAsAttachments = async (
                 file,
                 status: 'uploading',
             });
+            imageCount++;
             continue;
         }
 

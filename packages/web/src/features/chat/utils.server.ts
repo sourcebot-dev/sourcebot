@@ -9,6 +9,7 @@ import path from 'path';
 import { BlobAttachment, LanguageModelInfo, SBChatMessage } from './types';
 import { getUserMessageAttachments } from './utils';
 import { getStorageBackend } from './attachments/storage';
+import { ATTACHMENT_MAX_IMAGE_COUNT } from './constants';
 import { resolveModelCapabilities } from './modelCapabilities.server';
 import { loadCatalog } from './modelsDevCatalog.server';
 import { hasEntitlement } from '@/lib/entitlements';
@@ -132,6 +133,15 @@ export const commitMessageAttachments = async ({
 
     if (blobRefs.length === 0) {
         return null;
+    }
+
+    // Authoritative per-message image cap (the client mirror can't be trusted).
+    if (blobRefs.length > ATTACHMENT_MAX_IMAGE_COUNT) {
+        return {
+            statusCode: StatusCodes.BAD_REQUEST,
+            errorCode: ErrorCode.INVALID_REQUEST_BODY,
+            message: `You can attach at most ${ATTACHMENT_MAX_IMAGE_COUNT} images per message.`,
+        } satisfies ServiceError;
     }
 
     // Anonymous users cannot upload binary attachments, so a blob ref from an

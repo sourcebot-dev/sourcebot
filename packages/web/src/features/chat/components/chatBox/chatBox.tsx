@@ -36,6 +36,15 @@ export interface ChatBoxHandle {
     addFiles: (files: File[]) => void;
 }
 
+// Only inline-text attachments survive the login/upgrade redirect: image blobs
+// require an authenticated, entitled upload, so a redirected sender can't have
+// one, and a stashed blob ref would only fail to commit on re-submit.
+const getRedirectSafeAttachments = (attachments: PendingAttachment[]): AttachmentData[] => {
+    return attachments
+        .map(toAttachmentData)
+        .filter((attachment): attachment is AttachmentData => attachment?.kind === 'text');
+}
+
 interface ChatBoxProps {
     onSubmit: (children: Descendant[], editor: CustomEditor, attachments: AttachmentData[]) => void;
     onStop?: () => void;
@@ -177,7 +186,10 @@ const ChatBoxComponent = ({
 
         const { attachments: added, errors } = await readFilesAsAttachments(
             files,
-            { allowImages: supportsImages },
+            {
+                allowImages: supportsImages,
+                existingImageCount: attachments.filter((attachment) => attachment.kind === 'image').length,
+            },
         );
         if (added.length > 0) {
             setAttachments((prev) => [...prev, ...added]);
@@ -352,7 +364,7 @@ const ChatBoxComponent = ({
         if (requiresLogin) {
             sessionStorage.setItem(
                 PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY,
-                JSON.stringify({ pathname, children: editor.children, attachments: attachments.map(toAttachmentData) }),
+                JSON.stringify({ pathname, children: editor.children, attachments: getRedirectSafeAttachments(attachments) }),
             );
             captureEvent('wa_askgh_login_wall_prompted', {});
             setIsLoginDialogOpen(true);
@@ -362,7 +374,7 @@ const ChatBoxComponent = ({
         if (requiresUpgrade) {
             sessionStorage.setItem(
                 PENDING_CHAT_SUBMISSION_SESSION_STORAGE_KEY,
-                JSON.stringify({ pathname, children: editor.children, attachments: attachments.map(toAttachmentData) }),
+                JSON.stringify({ pathname, children: editor.children, attachments: getRedirectSafeAttachments(attachments) }),
             );
             setIsUpsellDialogOpen(true);
             return;
