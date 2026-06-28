@@ -1,6 +1,6 @@
 import { Repo } from "@sourcebot/db";
 import { createLogger, env, getRepoPath } from "@sourcebot/shared";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import { readdir, rm } from "fs/promises";
 import { INDEX_CACHE_DIR } from "./constants.js";
 import { Settings } from "./types.js";
@@ -14,22 +14,21 @@ export const indexGitRepository = async (repo: Repo, settings: Settings, revisio
 
     const largeFileGlobPatterns = env.ALWAYS_INDEX_FILE_PATTERNS?.split(',').map(pattern => pattern.trim()) ?? [];
 
-    const command = [
-        'zoekt-git-index',
+    const args = [
         '-allow_missing_branches',
-        `-index ${INDEX_CACHE_DIR}`,
-        `-max_trigram_count ${settings.maxTrigramCount}`,
-        `-file_limit ${settings.maxFileSize}`,
-        `-branches "${revisions.join(',')}"`,
-        `-tenant_id ${repo.orgId}`,
-        `-repo_id ${repo.id}`,
-        `-shard_prefix_override ${shardPrefix}`,
-        ...largeFileGlobPatterns.map((pattern) => `-large_file "${pattern}"`),
+        '-index', INDEX_CACHE_DIR,
+        '-max_trigram_count', settings.maxTrigramCount.toString(),
+        '-file_limit', settings.maxFileSize.toString(),
+        '-branches', revisions.join(','),
+        '-tenant_id', repo.orgId.toString(),
+        '-repo_id', repo.id.toString(),
+        '-shard_prefix_override', shardPrefix,
+        ...largeFileGlobPatterns.flatMap((pattern) => ['-large_file', pattern]),
         repoPath
-    ].join(' ');
+    ];
 
     return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
-        exec(command, { signal }, (error, stdout, stderr) => {
+        execFile('zoekt-git-index', args, { signal }, (error, stdout, stderr) => {
             if (error) {
                 reject(error);
                 return;
