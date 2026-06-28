@@ -66,7 +66,9 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
                 <FileNotFoundPanel
                     path={path}
                     repoName={repoName}
-                    revisionName={contentRef}
+                    browseRevisionName={revisionName}
+                    missingRevisionName={contentRef}
+                    previewRef={previewRef}
                     repo={{
                         codeHostType: repoInfoResponse.codeHostType,
                         displayName: repoInfoResponse.displayName,
