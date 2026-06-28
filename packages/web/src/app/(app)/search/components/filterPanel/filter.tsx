@@ -36,8 +36,19 @@ export const Filter = ({
             threshold: 0.3,
         });
 
+        const selectedEntries = entries.filter((entry) => entry.isSelected);
         const result = fuse.search(searchFilter);
-        return result.map((result) => result.item);
+        const filteredEntries = new Map<string, Entry>();
+
+        for (const entry of selectedEntries) {
+            filteredEntries.set(entry.key, entry);
+        }
+
+        for (const { item } of result) {
+            filteredEntries.set(item.key, item);
+        }
+
+        return [...filteredEntries.values()];
     }, [entries, searchFilter]);
 
     return (
@@ -61,7 +72,7 @@ export const Filter = ({
                     <div
                         className="flex flex-col gap-0.5 text-sm overflow-scroll no-scrollbar"
                     >
-                        {filteredEntries
+                        {[...filteredEntries]
                             .sort((entryA, entryB) => compareEntries(entryB, entryA))
                             .map((entry) => (
                                 <Entry
