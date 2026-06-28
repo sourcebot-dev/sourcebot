@@ -10,9 +10,19 @@ interface BlameViewToggleProps {
     path: string;
     blame: boolean;
     viewMode?: BlobViewMode;
+    codeLabel?: string;
+    codeAriaLabel?: string;
 }
 
-export const BlameViewToggle = ({ repoName, revisionName, path, blame, viewMode }: BlameViewToggleProps) => {
+export const BlameViewToggle = ({
+    repoName,
+    revisionName,
+    path,
+    blame,
+    viewMode,
+    codeLabel = 'Code',
+    codeAriaLabel = 'View source code',
+}: BlameViewToggleProps) => {
     const router = useRouter();
 
     const handleValueChange = (value: string) => {
@@ -50,10 +60,10 @@ export const BlameViewToggle = ({ repoName, revisionName, path, blame, viewMode 
         >
             <ToggleGroupItem
                 value="code"
-                aria-label="View source code"
+                aria-label={codeAriaLabel}
                 className={`${baseItemClass} rounded-r-none`}
             >
-                Code
+                {codeLabel}
             </ToggleGroupItem>
             <ToggleGroupItem
                 value="blame"

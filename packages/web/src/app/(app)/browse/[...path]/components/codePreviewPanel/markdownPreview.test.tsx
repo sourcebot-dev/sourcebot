@@ -22,7 +22,9 @@ vi.mock('@/app/(app)/components/pathHeader', () => ({
 }));
 
 vi.mock('./blameViewToggle', () => ({
-    BlameViewToggle: () => <div>Blame toggle</div>,
+    BlameViewToggle: ({ codeLabel }: { codeLabel?: string }) => (
+        <div data-testid="blame-view-toggle">{codeLabel}</div>
+    ),
 }));
 
 vi.mock('./pureCodePreviewPanel', () => ({
@@ -79,6 +81,7 @@ describe('CodePreviewPanel markdown preview', () => {
         expect(screen.queryByRole('heading', { name: 'Project README' })).toBeTruthy();
         expect(screen.queryByText('fast search')).toBeTruthy();
         expect(screen.queryByTestId('raw-source')).toBeNull();
+        expect(screen.getByTestId('blame-view-toggle').textContent).toBe('Preview');
     });
 
     test('keeps raw source view available for markdown files', async () => {
@@ -102,6 +105,7 @@ describe('CodePreviewPanel markdown preview', () => {
 
         expect(screen.queryByRole('heading', { name: 'Project README' })).toBeNull();
         expect(screen.queryByTestId('raw-source')?.textContent).toContain('# Project README');
+        expect(screen.getByTestId('blame-view-toggle').textContent).toBe('Source');
     });
 
     test('keeps markdown in raw source view when blame is enabled', async () => {

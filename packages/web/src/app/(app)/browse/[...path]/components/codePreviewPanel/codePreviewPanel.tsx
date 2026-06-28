@@ -78,6 +78,12 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
     const isMarkdown = fileSourceResponse.language === 'Markdown';
     const isMarkdownPreviewAvailable = isMarkdown && !blame && !previewRef;
     const shouldRenderMarkdown = isMarkdownPreviewAvailable && viewMode === 'rendered';
+    const nonBlameViewLabel = isMarkdown
+        ? viewMode === 'source' ? 'Source' : 'Preview'
+        : 'Code';
+    const nonBlameViewAriaLabel = isMarkdown
+        ? viewMode === 'source' ? 'View raw markdown source' : 'Preview rendered markdown'
+        : 'View source code';
 
     const codeHostInfo = getCodeHostInfoForRepo({
         codeHostType: repoInfoResponse.codeHostType,
@@ -142,6 +148,8 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
                         path={path}
                         blame={blame ?? false}
                         viewMode={viewMode}
+                        codeLabel={nonBlameViewLabel}
+                        codeAriaLabel={nonBlameViewAriaLabel}
                     />
                     <span className="text-sm text-muted-foreground">
                         {lineCount.toLocaleString()} lines · {fileSize}

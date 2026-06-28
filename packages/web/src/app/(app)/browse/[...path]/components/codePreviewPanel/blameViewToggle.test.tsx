@@ -71,4 +71,20 @@ describe('BlameViewToggle', () => {
             '/browse/github.com/sourcebot-dev/sourcebot@main/-/blob/README.md?blame=true'
         );
     });
+
+    test('supports markdown-specific non-blame labels', () => {
+        render(
+            <BlameViewToggle
+                repoName="github.com/sourcebot-dev/sourcebot"
+                revisionName="main"
+                path="README.md"
+                blame={false}
+                viewMode="rendered"
+                codeLabel="Preview"
+                codeAriaLabel="Preview rendered markdown"
+            />
+        );
+
+        expect(screen.getByRole('radio', { name: 'Preview rendered markdown' }).textContent).toBe('Preview');
+    });
 });

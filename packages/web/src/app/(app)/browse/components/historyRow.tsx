@@ -8,7 +8,7 @@ import type { Commit } from "@/features/git";
 import { cn } from "@/lib/utils";
 import { HoverPrefetchLink } from "@/app/(app)/components/hoverPrefetchLink";
 import { useBrowseParams } from "../hooks/useBrowseParams";
-import { BrowsePathType, getBrowsePath, PREVIEW_REF_QUERY_PARAM } from "../hooks/utils";
+import { BLOB_VIEW_QUERY_PARAM, BrowsePathType, getBrowsePath, PREVIEW_REF_QUERY_PARAM } from "../hooks/utils";
 import { formatAuthorsText, getCommitAuthors } from "./commitAuthors";
 import { AuthorsAvatarGroup, CommitActionLink } from "./commitParts";
 
@@ -26,6 +26,7 @@ export const HistoryRow = ({ commit, repoName, revisionName, path, pathType }: H
     const shortSha = commit.hash.slice(0, 7);
     const relativeDate = formatDistanceToNow(new Date(commit.date), { addSuffix: true });
     const isBlobPath = pathType === 'blob';
+    const viewMode = searchParams.get(BLOB_VIEW_QUERY_PARAM) === 'source' ? 'source' : undefined;
 
     const isSelected =
         browseParams.pathType === 'blob' &&
@@ -39,6 +40,7 @@ export const HistoryRow = ({ commit, repoName, revisionName, path, pathType }: H
         path,
         pathType: 'blob',
         previewRef: commit.hash,
+        viewMode,
     });
 
     const viewRepoHref = getBrowsePath({
@@ -67,6 +69,7 @@ export const HistoryRow = ({ commit, repoName, revisionName, path, pathType }: H
             pathType: 'blob',
             previewRef: commit.hash,
             diff: true,
+            viewMode,
         })
         : undefined;
 
