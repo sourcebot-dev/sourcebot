@@ -25,9 +25,47 @@ export const agentSkillInputSchema = z.object({
     instructions: z.string().trim().min(1, "Instructions are required.").max(20000, "Instructions must be 20,000 characters or fewer."),
 });
 
+// Provenance for a skill imported from an indexed repository file. When present,
+// the created skill becomes a read-only mirror of that file (synced via the git
+// blob OID). Personal-only: shared skills never carry source.
+export const agentSkillSourceSchema = z.object({
+    repoName: z.string().trim().min(1),
+    filePath: z.string().trim().min(1),
+    revision: z.string().trim().min(1),
+    blobSha: z.string().trim().min(1),
+});
+
+export const createPersonalAgentSkillInputSchema = agentSkillInputSchema.extend({
+    source: agentSkillSourceSchema.optional(),
+});
+
 export const updateAgentSkillInputSchema = agentSkillInputSchema.extend({
     id: z.string().trim().min(1),
 });
+
+// The non-secret provenance surfaced to the client for a synced skill. The blob
+// OID is intentionally omitted; staleness is computed server-side.
+export const agentSkillSourceRefSchema = z.object({
+    repoName: z.string(),
+    filePath: z.string(),
+    revision: z.string(),
+});
+
+// Staleness of a synced skill relative to its indexed source file. source_missing:
+// the file was renamed/deleted; repo_unavailable: the repo is gone or not visible
+// to the user. not_synced is returned for skills that have no source.
+export const agentSkillSourceStatusSchema = z.enum([
+    "in_sync",
+    "update_available",
+    "source_missing",
+    "repo_unavailable",
+    "not_synced",
+]);
+
+export type AgentSkillSource = z.infer<typeof agentSkillSourceSchema>;
+export type AgentSkillSourceRef = z.infer<typeof agentSkillSourceRefSchema>;
+export type AgentSkillSourceStatus = z.infer<typeof agentSkillSourceStatusSchema>;
+export type CreatePersonalAgentSkillInput = z.infer<typeof createPersonalAgentSkillInputSchema>;
 
 export const agentSkillListItemSchema = z.object({
     id: z.string(),
@@ -37,12 +75,16 @@ export const agentSkillListItemSchema = z.object({
     description: z.string(),
     instructions: z.string(),
     enabled: z.boolean(),
+    // The repository file this skill mirrors, or null for manually-created and
+    // local-file-imported skills. Presence marks the skill as read-only/synced.
+    source: agentSkillSourceRefSchema.nullable(),
     createdAt: z.string(),
     updatedAt: z.string(),
 });
 
 export const sharedAgentSkillBaseItemSchema = agentSkillListItemSchema.omit({
     instructions: true,
+    source: true,
 }).extend({
     autoEnrolled: z.boolean(),
 });
@@ -52,6 +94,10 @@ export const sharedAgentSkillCatalogItemSchema = sharedAgentSkillBaseItemSchema.
     // populate the inline editor without an extra per-selection fetch. Shared
     // skills are org-wide visible, so exposing instructions here is not a leak.
     instructions: z.string(),
+    // The repository file this shared skill mirrors, or null. A shared skill keeps
+    // its source link when published, so the org-wide command stays synced and the
+    // author/owners can refresh it from source.
+    source: agentSkillSourceRefSchema.nullable(),
     // Audit metadata for the detail pane's "Added by" field. Null when the
     // creating user has no email on record.
     createdByEmail: z.string().nullable(),
@@ -163,8 +209,22 @@ export const parseAgentSkillMarkdown = (
     };
 };
 
+// Maps the stored provenance columns to the client-facing source ref, or null
+// when the skill has no repository link. All three columns are written together,
+// so any one being absent means "not synced".
+const toAgentSkillSourceRef = (
+    skill: Pick<AgentSkill, "sourceRepoName" | "sourceFilePath" | "sourceRevision">,
+): AgentSkillSourceRef | null =>
+    skill.sourceRepoName && skill.sourceFilePath && skill.sourceRevision
+        ? {
+            repoName: skill.sourceRepoName,
+            filePath: skill.sourceFilePath,
+            revision: skill.sourceRevision,
+        }
+        : null;
+
 export const toAgentSkillListItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "instructions" | "enabled" | "createdAt" | "updatedAt">,
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "instructions" | "enabled" | "createdAt" | "updatedAt" | "sourceRepoName" | "sourceFilePath" | "sourceRevision">,
 ): AgentSkillListItem => ({
     id: skill.id,
     scope: skill.visibility,
@@ -173,6 +233,7 @@ export const toAgentSkillListItem = (
     description: skill.description,
     instructions: skill.instructions,
     enabled: skill.enabled,
+    source: toAgentSkillSourceRef(skill),
     createdAt: skill.createdAt.toISOString(),
     updatedAt: skill.updatedAt.toISOString(),
 });
@@ -196,7 +257,7 @@ export const toSharedAgentSkillManagementItem = (
 ): SharedAgentSkillManagementItem => toSharedAgentSkillBaseItem(skill);
 
 export const toSharedAgentSkillCatalogItem = (
-    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "instructions" | "enabled" | "autoEnrolled" | "createdById" | "createdAt" | "updatedAt"> & {
+    skill: Pick<AgentSkill, "id" | "visibility" | "slug" | "name" | "description" | "instructions" | "enabled" | "autoEnrolled" | "createdById" | "createdAt" | "updatedAt" | "sourceRepoName" | "sourceFilePath" | "sourceRevision"> & {
         adoptions: { id: string; removedAt: Date | null }[];
         createdBy: { email: string | null } | null;
     },
@@ -207,6 +268,7 @@ export const toSharedAgentSkillCatalogItem = (
     return {
         ...toSharedAgentSkillBaseItem(skill),
         instructions: skill.instructions,
+        source: toAgentSkillSourceRef(skill),
         createdByEmail: skill.createdBy?.email ?? null,
         isAdopted,
         isRemoved,

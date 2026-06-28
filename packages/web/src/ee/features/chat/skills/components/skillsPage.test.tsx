@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import type { AgentSkillListItem, SharedAgentSkillCatalogItem } from '@/ee/features/chat/skills/types';
@@ -13,7 +13,17 @@ vi.mock('@/ee/features/chat/skills/actions', () => ({
     publishPersonalAgentSkillToShared: vi.fn(),
     unadoptSharedSkill: vi.fn(),
     updatePersonalAgentSkill: vi.fn(),
+    updatePersonalAgentSkillFromSource: vi.fn(),
     updateSharedAgentSkill: vi.fn(),
+    updateSharedAgentSkillFromSource: vi.fn(),
+}));
+// The synced-skill banner checks freshness via this client; the repo-import dialog
+// (always mounted) also imports from here, but its queries stay disabled while closed.
+vi.mock('@/app/api/(client)/client', () => ({
+    getSkillSourceStatus: vi.fn(),
+    getFileSource: vi.fn(),
+    getFiles: vi.fn(),
+    listRepos: vi.fn(),
 }));
 // The Slate-based editor pulls in suggestion data hooks that need a richer
 // environment than these interaction tests; stub it out.
@@ -43,6 +53,7 @@ vi.mock('@/ee/features/chat/useTOCItems', () => ({
 }));
 
 const skillActions = await import('@/ee/features/chat/skills/actions');
+const clientApi = await import('@/app/api/(client)/client');
 const { SkillsPage } = await import('./skillsPage');
 
 afterEach(() => {
@@ -81,6 +92,7 @@ const sharedSkill: SharedAgentSkillCatalogItem = {
     name: 'Deploy Checklist',
     description: 'Release steps',
     instructions: 'Do release steps',
+    source: null,
     createdByEmail: 'author@sourcebot.dev',
     enabled: true,
     autoEnrolled: true,
@@ -100,8 +112,30 @@ const personalSkill: AgentSkillListItem = {
     description: 'Greets the user by name',
     instructions: 'Say hi.',
     enabled: true,
+    source: null,
     createdAt: '2026-06-20T00:00:00.000Z',
     updatedAt: '2026-06-20T00:00:00.000Z',
+};
+
+const syncedSkill: AgentSkillListItem = {
+    id: 'synced-skill',
+    scope: 'PERSONAL' as AgentSkillListItem['scope'],
+    slug: 'deploy-widgets',
+    name: 'Deploy Widgets',
+    description: 'Deploy steps',
+    instructions: 'Run the deploy script.',
+    enabled: true,
+    source: { repoName: 'github.com/acme/widgets', filePath: 'docs/skill.md', revision: 'main' },
+    createdAt: '2026-06-20T00:00:00.000Z',
+    updatedAt: '2026-06-20T00:00:00.000Z',
+};
+
+const sharedSyncedSkill: SharedAgentSkillCatalogItem = {
+    ...sharedSkill,
+    id: 'shared-synced-skill',
+    slug: 'deploy-widgets',
+    name: 'Deploy Widgets',
+    source: { repoName: 'github.com/acme/widgets', filePath: 'docs/skill.md', revision: 'main' },
 };
 
 describe('SkillsPage', () => {
@@ -114,6 +148,7 @@ describe('SkillsPage', () => {
             description: sharedSkill.description,
             instructions: sharedSkill.instructions,
             enabled: true,
+            source: null,
             createdAt: sharedSkill.createdAt,
             updatedAt: sharedSkill.updatedAt,
         });
@@ -186,6 +221,67 @@ describe('SkillsPage', () => {
         renderSkillsPage({ sharedSkills: [enabledSkill] });
 
         expect(screen.getByRole('switch', { name: 'Enable Deploy Checklist', checked: true })).toBeTruthy();
+    });
+
+    test('shows a repo-synced skill as read-only and updates it from source', async () => {
+        vi.mocked(clientApi.getSkillSourceStatus).mockResolvedValue({ status: 'update_available' });
+        vi.mocked(skillActions.updatePersonalAgentSkillFromSource).mockResolvedValue({
+            ...syncedSkill,
+            instructions: 'Refreshed deploy script.',
+            updatedAt: '2026-06-25T00:00:00.000Z',
+        });
+
+        renderSkillsPage({ personalSkills: [syncedSkill] });
+
+        // Provenance banner is shown. Name + command stay editable (Edit present)...
+        expect(await screen.findByText('github.com/acme/widgets')).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy();
+        // ...and a synced skill can now be shared; the shared copy stays synced.
+        expect(screen.getByRole('switch', { name: 'Shared' })).toBeTruthy();
+
+        // The freshness check resolves to "update available", surfacing the action.
+        const updateButton = await screen.findByRole('button', { name: /Update from source/ });
+        fireEvent.click(updateButton);
+
+        await waitFor(() => expect(skillActions.updatePersonalAgentSkillFromSource).toHaveBeenCalledWith('synced-skill'));
+        expect(clientApi.getSkillSourceStatus).toHaveBeenCalledWith('synced-skill');
+    });
+
+    test('lets you edit a synced skill\'s name and command but locks its content', async () => {
+        vi.mocked(clientApi.getSkillSourceStatus).mockResolvedValue({ status: 'in_sync' });
+
+        renderSkillsPage({ personalSkills: [syncedSkill] });
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+
+        // Name and command are editable local labels.
+        const nameInput = await screen.findByDisplayValue('Deploy Widgets') as HTMLInputElement;
+        expect(nameInput.disabled).toBe(false);
+        expect((screen.getByDisplayValue('deploy-widgets') as HTMLInputElement).disabled).toBe(false);
+
+        // The description is locked and the instructions are shown read-only/synced.
+        expect((screen.getByDisplayValue('Deploy steps') as HTMLTextAreaElement).disabled).toBe(true);
+        expect(screen.getByText(/Synced from github\.com\/acme\/widgets/)).toBeTruthy();
+    });
+
+    test('keeps a shared skill synced and lets an owner update it from source', async () => {
+        vi.mocked(clientApi.getSkillSourceStatus).mockResolvedValue({ status: 'update_available' });
+        vi.mocked(skillActions.updateSharedAgentSkillFromSource).mockResolvedValue({
+            ...sharedSyncedSkill,
+            instructions: 'Refreshed deploy script.',
+            updatedAt: '2026-06-26T00:00:00.000Z',
+        });
+
+        renderSkillsPage({ sharedSkills: [sharedSyncedSkill], isOwner: true });
+
+        // A shared skill carries its repo provenance, and the owner can refresh it.
+        expect(await screen.findByText('github.com/acme/widgets')).toBeTruthy();
+        const updateButton = await screen.findByRole('button', { name: /Update from source/ });
+        fireEvent.click(updateButton);
+
+        // The shared (not personal) update path runs for a shared skill.
+        await waitFor(() => expect(skillActions.updateSharedAgentSkillFromSource).toHaveBeenCalledWith('shared-synced-skill'));
+        expect(skillActions.updatePersonalAgentSkillFromSource).not.toHaveBeenCalled();
     });
 
     test('imports a skill from a markdown file and pre-populates the create form', async () => {

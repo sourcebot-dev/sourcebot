@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { OrgRole } from "@sourcebot/db";
+import { CodeHostType, OrgRole } from "@sourcebot/db";
 import { ErrorCode } from "@/lib/errorCodes";
 import { StatusCodes } from "http-status-codes";
 
@@ -21,19 +21,33 @@ vi.mock("@sourcebot/shared", () => ({
     env: { NODE_ENV: "test" },
 }));
 
+// actions.ts imports the git barrel for repo-source syncing; stub it so the test
+// doesn't pull the server-only git chain into this (non-RSC) environment.
+vi.mock("@/features/git", () => ({
+    getFileSourceForRepo: vi.fn(),
+    resolveFileBlobShaForRepo: vi.fn(),
+}));
+
 const {
     adoptSharedSkill,
     createSharedAgentSkill,
     deleteSharedAgentSkill,
+    getAgentSkillSourceStatus,
     getSharedAgentSkill,
     listAgentSkillCommands,
+    listSharedAgentSkillCatalog,
     listSharedAgentSkillManagement,
     makeSharedAgentSkillPersonal,
     publishPersonalAgentSkillToShared,
     setSharedSkillFlag,
     unadoptSharedSkill,
+    updatePersonalAgentSkill,
+    updatePersonalAgentSkillFromSource,
     updateSharedAgentSkill,
+    updateSharedAgentSkillFromSource,
 } = await import("./actions");
+
+const gitMock = await import("@/features/git");
 
 function createPrismaMock() {
     const prisma = {
@@ -47,6 +61,10 @@ function createPrismaMock() {
         agentSkillAdoption: {
             upsert: vi.fn(),
             deleteMany: vi.fn(),
+        },
+        repo: {
+            findMany: vi.fn().mockResolvedValue([]),
+            findFirst: vi.fn().mockResolvedValue(null),
         },
     };
     return {
@@ -123,6 +141,7 @@ describe("listAgentSkillCommands", () => {
                 slug: true,
                 name: true,
                 description: true,
+                sourceRepoName: true,
             },
         });
         expect(prisma.agentSkill.findMany).toHaveBeenNthCalledWith(2, {
@@ -170,6 +189,7 @@ describe("listAgentSkillCommands", () => {
                 slug: true,
                 name: true,
                 description: true,
+                sourceRepoName: true,
             },
         });
         expect(result).toMatchObject([
@@ -283,6 +303,11 @@ describe("publishPersonalAgentSkillToShared", () => {
                 name: true,
                 description: true,
                 instructions: true,
+                sourceRepoName: true,
+                sourceFilePath: true,
+                sourceRevision: true,
+                sourceBlobSha: true,
+                sourceImportedAt: true,
             },
         });
         expect(prisma.agentSkill.create).toHaveBeenCalledWith({
@@ -471,6 +496,11 @@ describe("makeSharedAgentSkillPersonal", () => {
                 instructions: true,
                 createdById: true,
                 autoEnrolled: true,
+                sourceRepoName: true,
+                sourceFilePath: true,
+                sourceRevision: true,
+                sourceBlobSha: true,
+                sourceImportedAt: true,
             },
         });
         expect(prisma.agentSkill.findFirst).toHaveBeenNthCalledWith(2, {
@@ -544,7 +574,80 @@ describe("getSharedAgentSkill", () => {
             select: {
                 id: true,
                 createdById: true,
+                sourceRepoName: true,
             },
+        });
+    });
+
+    test("hides a synced shared skill from a manager who can't access its source repo", async () => {
+        const prisma = setAuthContext({ role: OrgRole.OWNER });
+        prisma.agentSkill.findFirst
+            .mockResolvedValueOnce({ id: "skill-1", createdById: "author-1", sourceRepoName: "github.com/acme/secret" })
+            .mockResolvedValueOnce({
+                id: "skill-1",
+                visibility: "SHARED",
+                slug: "audit",
+                name: "Audit",
+                description: "Audit",
+                instructions: "Audit the billing system",
+                enabled: true,
+                sourceRepoName: "github.com/acme/secret",
+                sourceFilePath: "docs/skill.md",
+                sourceRevision: "main",
+                createdAt: new Date("2026-01-01T00:00:00.000Z"),
+                updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+            });
+        prisma.repo.findFirst.mockResolvedValue(null);
+
+        const result = await getSharedAgentSkill("skill-1");
+
+        expect(result).toMatchObject({ errorCode: ErrorCode.AGENT_SKILL_NOT_FOUND });
+        expect(prisma.repo.findFirst).toHaveBeenCalledWith({
+            where: { name: "github.com/acme/secret", orgId: 1 },
+            select: { id: true },
+        });
+    });
+});
+
+describe("listSharedAgentSkillCatalog", () => {
+    const catalogRow = (id: string, sourceRepoName: string | null) => ({
+        id,
+        visibility: "SHARED" as const,
+        slug: id,
+        name: id,
+        description: "",
+        instructions: "Do the thing.",
+        enabled: true,
+        autoEnrolled: true,
+        createdById: "member-1",
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+        sourceRepoName,
+        sourceFilePath: sourceRepoName ? "docs/skill.md" : null,
+        sourceRevision: sourceRepoName ? "main" : null,
+        adoptions: [],
+        createdBy: { email: "member@sourcebot.dev" },
+    });
+
+    test("drops synced skills whose source repo the user can't access, keeping plain and accessible ones", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findMany.mockResolvedValue([
+            catalogRow("plain", null),
+            catalogRow("visible", "github.com/acme/widgets"),
+            catalogRow("hidden", "github.com/acme/secret"),
+        ]);
+        // Only widgets resolves through the user-scoped repo lookup.
+        prisma.repo.findMany.mockResolvedValue([{ name: "github.com/acme/widgets" }]);
+
+        const result = await listSharedAgentSkillCatalog();
+
+        if (!Array.isArray(result)) {
+            throw new Error("Expected catalog skills.");
+        }
+        expect(result.map((skill) => skill.id)).toEqual(["plain", "visible"]);
+        expect(prisma.repo.findMany).toHaveBeenCalledWith({
+            where: { name: { in: ["github.com/acme/widgets", "github.com/acme/secret"] }, orgId: 1 },
+            select: { name: true },
         });
     });
 });
@@ -572,6 +675,7 @@ describe("deleteSharedAgentSkill", () => {
             select: {
                 id: true,
                 createdById: true,
+                sourceRepoName: true,
             },
         });
         expect(prisma.agentSkill.delete).not.toHaveBeenCalled();
@@ -602,6 +706,7 @@ describe("deleteSharedAgentSkill", () => {
             select: {
                 id: true,
                 createdById: true,
+                sourceRepoName: true,
             },
         });
         expect(prisma.agentSkill.delete).not.toHaveBeenCalled();
@@ -672,6 +777,7 @@ describe("updateSharedAgentSkill", () => {
             select: {
                 id: true,
                 createdById: true,
+                sourceRepoName: true,
             },
         });
         expect(prisma.agentSkill.update).not.toHaveBeenCalled();
@@ -699,6 +805,7 @@ describe("updateSharedAgentSkill", () => {
             select: {
                 id: true,
                 createdById: true,
+                sourceRepoName: true,
             },
         });
         expect(prisma.agentSkill.update).not.toHaveBeenCalled();
@@ -709,6 +816,7 @@ describe("updateSharedAgentSkill", () => {
         prisma.agentSkill.findFirst.mockResolvedValue({
             id: "skill-1",
             createdById: "author-1",
+            sourceRepoName: null,
         });
         prisma.agentSkill.update.mockResolvedValue({
             id: "skill-1",
@@ -736,6 +844,7 @@ describe("updateSharedAgentSkill", () => {
             select: {
                 id: true,
                 createdById: true,
+                sourceRepoName: true,
             },
         });
         expect(prisma.agentSkill.update).toHaveBeenCalledWith({
@@ -748,6 +857,45 @@ describe("updateSharedAgentSkill", () => {
                 updatedById: "author-1",
             },
         });
+    });
+
+    test("writes only name and command for a repo-synced shared skill", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER, userId: "author-1" });
+        prisma.agentSkill.findFirst.mockResolvedValue({
+            id: "skill-1",
+            createdById: "author-1",
+            sourceRepoName: "github.com/acme/widgets",
+        });
+        prisma.agentSkill.update.mockResolvedValue({
+            id: "skill-1",
+            visibility: "SHARED",
+            slug: "renamed",
+            name: "Renamed",
+            description: "kept from source",
+            instructions: "kept body from source",
+            enabled: true,
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+            createdAt: new Date("2026-01-01T00:00:00.000Z"),
+            updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+        });
+
+        const result = await updateSharedAgentSkill({
+            id: "skill-1",
+            name: "Renamed",
+            slug: "renamed",
+            description: "attempted description change",
+            instructions: "attempted instruction change that is long enough",
+        });
+
+        const updateArg = prisma.agentSkill.update.mock.calls[0][0];
+        expect(updateArg.data).toMatchObject({ name: "Renamed", slug: "renamed" });
+        // A synced shared skill's content tracks the source file, so the client's
+        // description/instructions are ignored here.
+        expect(updateArg.data.description).toBeUndefined();
+        expect(updateArg.data.instructions).toBeUndefined();
+        expect(result).toMatchObject({ id: "skill-1", slug: "renamed", source: { repoName: "github.com/acme/widgets" } });
     });
 });
 
@@ -774,6 +922,7 @@ describe("adoptSharedSkill", () => {
             },
             select: {
                 id: true,
+                sourceRepoName: true,
             },
         });
         expect(prisma.agentSkillAdoption.upsert).not.toHaveBeenCalled();
@@ -804,6 +953,21 @@ describe("adoptSharedSkill", () => {
                 removedAt: null,
             },
         });
+    });
+
+    test("rejects adopting a skill synced from a repo the user can't access", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue({ id: "skill-1", sourceRepoName: "github.com/acme/secret" });
+        prisma.repo.findFirst.mockResolvedValue(null);
+
+        const result = await adoptSharedSkill("skill-1");
+
+        expect(result).toMatchObject({ errorCode: ErrorCode.AGENT_SKILL_NOT_FOUND });
+        expect(prisma.repo.findFirst).toHaveBeenCalledWith({
+            where: { name: "github.com/acme/secret", orgId: 1 },
+            select: { id: true },
+        });
+        expect(prisma.agentSkillAdoption.upsert).not.toHaveBeenCalled();
     });
 });
 
@@ -1003,5 +1167,488 @@ describe("setSharedSkillFlag", () => {
             errorCode: ErrorCode.INVALID_REQUEST_BODY,
         });
         expect(mocks.checkAskEntitlement).not.toHaveBeenCalled();
+    });
+});
+
+describe("getAgentSkillSourceStatus", () => {
+    const syncedRow = {
+        sourceRepoName: "github.com/acme/widgets",
+        sourceFilePath: "docs/skill.md",
+        sourceRevision: "main",
+        sourceBlobSha: "old-sha",
+    };
+
+    test("returns in_sync when the indexed blob matches the imported one", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue(syncedRow);
+        vi.mocked(gitMock.resolveFileBlobShaForRepo).mockResolvedValue("old-sha");
+
+        const result = await getAgentSkillSourceStatus("skill-1");
+
+        expect(result).toEqual({ status: "in_sync" });
+        expect(gitMock.resolveFileBlobShaForRepo).toHaveBeenCalledWith(
+            { path: "docs/skill.md", repo: "github.com/acme/widgets", ref: "main" },
+            expect.objectContaining({ org: { id: 1 } }),
+        );
+    });
+
+    test("returns update_available when the indexed blob has moved on", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue(syncedRow);
+        vi.mocked(gitMock.resolveFileBlobShaForRepo).mockResolvedValue("new-sha");
+
+        expect(await getAgentSkillSourceStatus("skill-1")).toEqual({ status: "update_available" });
+    });
+
+    test("returns not_synced when the skill has no source", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue({
+            sourceRepoName: null,
+            sourceFilePath: null,
+            sourceRevision: null,
+            sourceBlobSha: null,
+        });
+
+        expect(await getAgentSkillSourceStatus("skill-1")).toEqual({ status: "not_synced" });
+        expect(gitMock.resolveFileBlobShaForRepo).not.toHaveBeenCalled();
+    });
+
+    test("degrades a missing repo to repo_unavailable and a missing file to source_missing", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue(syncedRow);
+
+        vi.mocked(gitMock.resolveFileBlobShaForRepo).mockResolvedValue({
+            statusCode: StatusCodes.NOT_FOUND,
+            errorCode: ErrorCode.NOT_FOUND,
+            message: "Repository not found.",
+        });
+        expect(await getAgentSkillSourceStatus("skill-1")).toEqual({ status: "repo_unavailable" });
+
+        vi.mocked(gitMock.resolveFileBlobShaForRepo).mockResolvedValue({
+            statusCode: StatusCodes.NOT_FOUND,
+            errorCode: ErrorCode.FILE_NOT_FOUND,
+            message: "File not found.",
+        });
+        expect(await getAgentSkillSourceStatus("skill-1")).toEqual({ status: "source_missing" });
+    });
+
+    test("returns not found for a skill the user does not own", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue(null);
+
+        expect(await getAgentSkillSourceStatus("skill-1")).toMatchObject({
+            errorCode: ErrorCode.AGENT_SKILL_NOT_FOUND,
+        });
+    });
+
+    test("looks the skill up across the caller's personal scope or any enabled shared skill", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue(syncedRow);
+        vi.mocked(gitMock.resolveFileBlobShaForRepo).mockResolvedValue("old-sha");
+
+        await getAgentSkillSourceStatus("skill-1");
+
+        expect(prisma.agentSkill.findFirst).toHaveBeenCalledWith({
+            where: {
+                id: "skill-1",
+                OR: [
+                    {
+                        visibility: "PERSONAL",
+                        scopeId: "member-1",
+                        orgId: 1,
+                        createdById: "member-1",
+                    },
+                    {
+                        visibility: "SHARED",
+                        scopeId: "1",
+                        orgId: 1,
+                        enabled: true,
+                    },
+                ],
+            },
+            select: {
+                sourceRepoName: true,
+                sourceFilePath: true,
+                sourceRevision: true,
+                sourceBlobSha: true,
+            },
+        });
+    });
+});
+
+describe("updatePersonalAgentSkill", () => {
+    test("writes only name and command for a repo-synced skill, leaving content synced", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue({ id: "skill-1", sourceRepoName: "github.com/acme/widgets" });
+        prisma.agentSkill.update.mockResolvedValue({
+            id: "skill-1",
+            visibility: "PERSONAL",
+            slug: "renamed",
+            name: "Renamed",
+            description: "kept from source",
+            instructions: "kept body from source",
+            enabled: true,
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+            createdAt: new Date("2026-06-20T00:00:00.000Z"),
+            updatedAt: new Date("2026-06-25T00:00:00.000Z"),
+        });
+
+        const result = await updatePersonalAgentSkill({
+            id: "skill-1",
+            name: "Renamed",
+            slug: "renamed",
+            description: "attempted description change",
+            instructions: "attempted instruction change that is long enough",
+        });
+
+        const updateArg = prisma.agentSkill.update.mock.calls[0][0];
+        expect(updateArg.data).toMatchObject({ name: "Renamed", slug: "renamed" });
+        // Content fields are not written for synced skills, even if sent by the client.
+        expect(updateArg.data.description).toBeUndefined();
+        expect(updateArg.data.instructions).toBeUndefined();
+        expect(result).toMatchObject({ id: "skill-1", slug: "renamed", source: { repoName: "github.com/acme/widgets" } });
+    });
+
+    test("writes all fields for a non-synced skill", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue({ id: "skill-1", sourceRepoName: null });
+        prisma.agentSkill.update.mockResolvedValue({
+            id: "skill-1",
+            visibility: "PERSONAL",
+            slug: "manual",
+            name: "Manual",
+            description: "Edited description",
+            instructions: "Edited instructions long enough",
+            enabled: true,
+            sourceRepoName: null,
+            sourceFilePath: null,
+            sourceRevision: null,
+            createdAt: new Date("2026-06-20T00:00:00.000Z"),
+            updatedAt: new Date("2026-06-25T00:00:00.000Z"),
+        });
+
+        await updatePersonalAgentSkill({
+            id: "skill-1",
+            name: "Manual",
+            slug: "manual",
+            description: "Edited description",
+            instructions: "Edited instructions long enough",
+        });
+
+        const updateArg = prisma.agentSkill.update.mock.calls[0][0];
+        expect(updateArg.data).toMatchObject({
+            name: "Manual",
+            slug: "manual",
+            description: "Edited description",
+            instructions: "Edited instructions long enough",
+        });
+    });
+});
+
+describe("updatePersonalAgentSkillFromSource", () => {
+    test("refreshes synced content and blob OID, preserving the local name and command", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue({
+            id: "skill-1",
+            name: "My Deploy",
+            slug: "my-deploy",
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+        });
+        // The file's front matter has a different name; it must NOT overwrite the
+        // user's local name/command — only description + instructions are pulled.
+        vi.mocked(gitMock.getFileSourceForRepo).mockResolvedValue({
+            source: "---\nname: Upstream Name\ndescription: New steps\n---\n\nRun the new deploy script.",
+            language: "Markdown",
+            path: "docs/skill.md",
+            repo: "github.com/acme/widgets",
+            repoCodeHostType: CodeHostType.github,
+            webUrl: "https://sourcebot.example.com/browse",
+            blobSha: "new-sha",
+        });
+        prisma.agentSkill.update.mockResolvedValue({
+            id: "skill-1",
+            visibility: "PERSONAL",
+            slug: "my-deploy",
+            name: "My Deploy",
+            description: "New steps",
+            instructions: "Run the new deploy script.",
+            enabled: true,
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+            createdAt: new Date("2026-06-20T00:00:00.000Z"),
+            updatedAt: new Date("2026-06-25T00:00:00.000Z"),
+        });
+
+        const result = await updatePersonalAgentSkillFromSource("skill-1");
+
+        const updateArg = prisma.agentSkill.update.mock.calls[0][0];
+        expect(updateArg.where).toEqual({ id: "skill-1" });
+        expect(updateArg.data).toMatchObject({
+            description: "New steps",
+            instructions: "Run the new deploy script.",
+            sourceBlobSha: "new-sha",
+        });
+        // name and command are local labels and are left untouched by a sync.
+        expect(updateArg.data.name).toBeUndefined();
+        expect(updateArg.data.slug).toBeUndefined();
+        expect(result).toMatchObject({
+            id: "skill-1",
+            name: "My Deploy",
+            slug: "my-deploy",
+            source: { repoName: "github.com/acme/widgets", filePath: "docs/skill.md", revision: "main" },
+        });
+    });
+
+    test("rejects when the skill is not linked to a repository source", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue({
+            id: "skill-1",
+            slug: "manual",
+            sourceRepoName: null,
+            sourceFilePath: null,
+            sourceRevision: null,
+        });
+
+        const result = await updatePersonalAgentSkillFromSource("skill-1");
+
+        expect(result).toMatchObject({ errorCode: ErrorCode.INVALID_REQUEST_BODY });
+        expect(gitMock.getFileSourceForRepo).not.toHaveBeenCalled();
+        expect(prisma.agentSkill.update).not.toHaveBeenCalled();
+    });
+
+    test("surfaces a source-fetch error without writing", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValue({
+            id: "skill-1",
+            slug: "deploy-widgets",
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+        });
+        vi.mocked(gitMock.getFileSourceForRepo).mockResolvedValue({
+            statusCode: StatusCodes.NOT_FOUND,
+            errorCode: ErrorCode.FILE_NOT_FOUND,
+            message: "File not found.",
+        });
+
+        const result = await updatePersonalAgentSkillFromSource("skill-1");
+
+        expect(result).toMatchObject({ errorCode: ErrorCode.FILE_NOT_FOUND });
+        expect(prisma.agentSkill.update).not.toHaveBeenCalled();
+    });
+});
+
+describe("updateSharedAgentSkillFromSource", () => {
+    const importedAt = new Date("2026-06-20T00:00:00.000Z");
+
+    test("refreshes a synced shared skill's content for its author, preserving local name and command", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER, userId: "author-1" });
+        prisma.agentSkill.findFirst
+            .mockResolvedValueOnce({
+                id: "shared-skill",
+                createdById: "author-1",
+                sourceRepoName: "github.com/acme/widgets",
+            })
+            .mockResolvedValueOnce({
+                id: "shared-skill",
+                name: "Team Deploy",
+                slug: "team-deploy",
+                sourceRepoName: "github.com/acme/widgets",
+                sourceFilePath: "docs/skill.md",
+                sourceRevision: "main",
+            });
+        vi.mocked(gitMock.getFileSourceForRepo).mockResolvedValue({
+            source: "---\nname: Upstream Name\ndescription: New steps\n---\n\nRun the new deploy script.",
+            language: "Markdown",
+            path: "docs/skill.md",
+            repo: "github.com/acme/widgets",
+            repoCodeHostType: CodeHostType.github,
+            webUrl: "https://sourcebot.example.com/browse",
+            blobSha: "new-sha",
+        });
+        prisma.agentSkill.update.mockResolvedValue({
+            id: "shared-skill",
+            visibility: "SHARED",
+            slug: "team-deploy",
+            name: "Team Deploy",
+            description: "New steps",
+            instructions: "Run the new deploy script.",
+            enabled: true,
+            autoEnrolled: false,
+            createdById: "author-1",
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+            createdAt: new Date("2026-06-18T00:00:00.000Z"),
+            updatedAt: new Date("2026-06-25T00:00:00.000Z"),
+            adoptions: [{ id: "adoption-1", removedAt: null }],
+            createdBy: { email: "author@sourcebot.dev" },
+        });
+
+        const result = await updateSharedAgentSkillFromSource("shared-skill");
+
+        const updateArg = prisma.agentSkill.update.mock.calls[0][0];
+        expect(updateArg.data).toMatchObject({
+            description: "New steps",
+            instructions: "Run the new deploy script.",
+            sourceBlobSha: "new-sha",
+        });
+        // A sync never overwrites the local label or command.
+        expect(updateArg.data.name).toBeUndefined();
+        expect(updateArg.data.slug).toBeUndefined();
+        expect(result).toMatchObject({
+            id: "shared-skill",
+            scope: "SHARED",
+            name: "Team Deploy",
+            slug: "team-deploy",
+            isCreatedByUser: true,
+            source: { repoName: "github.com/acme/widgets", filePath: "docs/skill.md", revision: "main" },
+        });
+    });
+
+    test("rejects a member who cannot manage the shared skill, without fetching the source", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER, userId: "member-1" });
+        prisma.agentSkill.findFirst.mockResolvedValue({
+            id: "shared-skill",
+            createdById: "author-1",
+            sourceRepoName: "github.com/acme/widgets",
+        });
+
+        const result = await updateSharedAgentSkillFromSource("shared-skill");
+
+        expect(result).toEqual({
+            statusCode: StatusCodes.FORBIDDEN,
+            errorCode: ErrorCode.INSUFFICIENT_PERMISSIONS,
+            message: "You do not have sufficient permissions to manage this skill.",
+        });
+        expect(gitMock.getFileSourceForRepo).not.toHaveBeenCalled();
+        expect(prisma.agentSkill.update).not.toHaveBeenCalled();
+    });
+
+    test("rejects when the shared skill is not linked to a repository source", async () => {
+        const prisma = setAuthContext({ role: OrgRole.OWNER });
+        prisma.agentSkill.findFirst
+            .mockResolvedValueOnce({
+                id: "shared-skill",
+                createdById: "author-1",
+                sourceRepoName: null,
+            })
+            .mockResolvedValueOnce({
+                id: "shared-skill",
+                name: "Manual",
+                slug: "manual",
+                sourceRepoName: null,
+                sourceFilePath: null,
+                sourceRevision: null,
+            });
+
+        const result = await updateSharedAgentSkillFromSource("shared-skill");
+
+        expect(result).toMatchObject({ errorCode: ErrorCode.INVALID_REQUEST_BODY });
+        expect(gitMock.getFileSourceForRepo).not.toHaveBeenCalled();
+        expect(prisma.agentSkill.update).not.toHaveBeenCalled();
+    });
+
+    test("carries the source link onto the shared skill when publishing a synced personal skill", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst
+            .mockResolvedValueOnce({
+                slug: "deploy-widgets",
+                name: "Deploy Widgets",
+                description: "Deploy steps",
+                instructions: "Run the deploy script.",
+                sourceRepoName: "github.com/acme/widgets",
+                sourceFilePath: "docs/skill.md",
+                sourceRevision: "main",
+                sourceBlobSha: "blob-1",
+                sourceImportedAt: importedAt,
+            })
+            .mockResolvedValueOnce({
+                id: "shared-skill",
+                visibility: "SHARED",
+                slug: "deploy-widgets",
+                name: "Deploy Widgets",
+                description: "Deploy steps",
+                instructions: "Run the deploy script.",
+                enabled: true,
+                autoEnrolled: false,
+                createdById: "member-1",
+                createdAt: new Date("2026-06-18T00:00:00.000Z"),
+                updatedAt: new Date("2026-06-19T00:00:00.000Z"),
+                sourceRepoName: "github.com/acme/widgets",
+                sourceFilePath: "docs/skill.md",
+                sourceRevision: "main",
+                adoptions: [{ id: "adoption-1", removedAt: null }],
+                createdBy: { email: "member@sourcebot.dev" },
+            });
+        prisma.agentSkill.create.mockResolvedValue({ id: "shared-skill" });
+
+        const result = await publishPersonalAgentSkillToShared("personal-skill");
+
+        const createArg = prisma.agentSkill.create.mock.calls[0][0];
+        expect(createArg.data).toMatchObject({
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+            sourceBlobSha: "blob-1",
+            sourceImportedAt: importedAt,
+        });
+        expect(result).toMatchObject({
+            id: "shared-skill",
+            source: { repoName: "github.com/acme/widgets", filePath: "docs/skill.md", revision: "main" },
+        });
+    });
+
+    test("carries the source link back to personal when a synced shared skill is made personal", async () => {
+        const prisma = setAuthContext({ role: OrgRole.MEMBER });
+        prisma.agentSkill.findFirst.mockResolvedValueOnce({
+            id: "shared-skill",
+            slug: "deploy-widgets",
+            name: "Deploy Widgets",
+            description: "Deploy steps",
+            instructions: "Run the deploy script.",
+            createdById: "member-1",
+            autoEnrolled: false,
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+            sourceBlobSha: "blob-1",
+            sourceImportedAt: importedAt,
+        });
+        prisma.agentSkill.create.mockResolvedValue({
+            id: "personal-skill",
+            visibility: "PERSONAL",
+            slug: "deploy-widgets",
+            name: "Deploy Widgets",
+            description: "Deploy steps",
+            instructions: "Run the deploy script.",
+            enabled: true,
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+            createdAt: new Date("2026-06-18T00:00:00.000Z"),
+            updatedAt: new Date("2026-06-19T00:00:00.000Z"),
+        });
+
+        const result = await makeSharedAgentSkillPersonal("shared-skill");
+
+        const createArg = prisma.agentSkill.create.mock.calls[0][0];
+        expect(createArg.data).toMatchObject({
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
+            sourceBlobSha: "blob-1",
+            sourceImportedAt: importedAt,
+        });
+        expect(result).toMatchObject({
+            id: "personal-skill",
+            scope: "PERSONAL",
+            source: { repoName: "github.com/acme/widgets", filePath: "docs/skill.md", revision: "main" },
+        });
     });
 });

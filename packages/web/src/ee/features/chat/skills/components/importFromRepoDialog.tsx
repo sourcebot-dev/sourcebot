@@ -16,12 +16,24 @@ import { unwrapServiceError } from "@/lib/utils";
 const MAX_RESULTS = 100;
 const MARKDOWN_FILE_REGEX = /\.(md|markdown)$/i;
 
+// A markdown file imported from a repository, carrying the provenance needed to
+// create a read-only skill that stays synced with its source.
+export interface ImportedRepoSkill {
+    parsed: ParsedAgentSkillMarkdown;
+    source: {
+        repoName: string;
+        filePath: string;
+        revision: string;
+        blobSha: string;
+    };
+}
+
 interface ImportFromRepoDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    // Called with the parsed skill once a markdown file has been fetched. The
-    // parent is responsible for populating the editor and surfacing the result.
-    onImport: (parsed: ParsedAgentSkillMarkdown) => void;
+    // Called once a markdown file has been fetched, with the parsed skill and the
+    // source provenance. The parent creates the synced skill and surfaces the result.
+    onImport: (imported: ImportedRepoSkill) => void;
     onError: (message: string) => void;
 }
 
@@ -104,7 +116,21 @@ export const ImportFromRepoDialog = ({ open, onOpenChange, onImport, onError }: 
                 repo: selectedRepo.repoName,
                 ref: revisionName,
             }));
-            onImport(parseAgentSkillMarkdown(result.source, name));
+            if (!result.blobSha) {
+                // Without the blob OID we can't track the file for syncing; don't
+                // create a half-linked skill. Leave the dialog open to retry.
+                onError("Couldn't determine the file version to sync. Please try again.");
+                return;
+            }
+            onImport({
+                parsed: parseAgentSkillMarkdown(result.source, name),
+                source: {
+                    repoName: selectedRepo.repoName,
+                    filePath: path,
+                    revision: revisionName,
+                    blobSha: result.blobSha,
+                },
+            });
             resetAndClose();
         } catch {
             onError("Failed to load the selected file.");

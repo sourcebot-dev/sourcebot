@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
+    AlertTriangleIcon,
     BookOpenIcon,
     Building2Icon,
+    CheckCircle2Icon,
     CheckIcon,
     FolderGit2Icon,
     ListIcon,
@@ -11,6 +14,7 @@ import {
     MoreHorizontalIcon,
     PencilIcon,
     PlusIcon,
+    RefreshCwIcon,
     SearchIcon,
     Trash2Icon,
     UploadIcon,
@@ -39,10 +43,13 @@ import {
     publishPersonalAgentSkillToShared,
     unadoptSharedSkill,
     updatePersonalAgentSkill,
+    updatePersonalAgentSkillFromSource,
     updateSharedAgentSkill,
+    updateSharedAgentSkillFromSource,
 } from "@/ee/features/chat/skills/actions";
+import { getSkillSourceStatus } from "@/app/api/(client)/client";
 import { SkillInstructionsEditor } from "@/ee/features/chat/skills/components/skillInstructionsEditor";
-import { ImportFromRepoDialog } from "@/ee/features/chat/skills/components/importFromRepoDialog";
+import { ImportFromRepoDialog, type ImportedRepoSkill } from "@/ee/features/chat/skills/components/importFromRepoDialog";
 import { MarkdownRenderer } from "@/ee/features/chat/components/chatThread/markdownRenderer";
 import { TableOfContents } from "@/ee/features/chat/components/chatThread/tableOfContents";
 import { useExtractTOCItems } from "@/ee/features/chat/useTOCItems";
@@ -58,11 +65,13 @@ import {
     sortSharedAgentSkillCatalogItems,
     type AgentSkillInput,
     type AgentSkillListItem,
+    type AgentSkillSourceRef,
+    type AgentSkillSourceStatus,
     type ParsedAgentSkillMarkdown,
     type SharedAgentSkillCatalogItem,
 } from "@/ee/features/chat/skills/types";
 import { useUnsavedChangesGuard } from "@/ee/features/chat/useUnsavedChangesGuard";
-import { cn, isServiceError } from "@/lib/utils";
+import { cn, isServiceError, unwrapServiceError } from "@/lib/utils";
 
 const INSTRUCTIONS_MAX_LENGTH = 20000;
 const INSTRUCTIONS_PLACEHOLDER = `Find where a symbol is defined and used across the codebase.
@@ -91,6 +100,9 @@ interface DetailSkill {
     isVisibleToUser: boolean;
     isCreatedByUser: boolean;
     canManage: boolean;
+    // The repository file this skill mirrors, or null. When set, the skill is a
+    // read-only sync target: no inline editing, refreshed via "Update from source".
+    source: AgentSkillSourceRef | null;
 }
 
 function toDetailFromPersonal(skill: AgentSkillListItem, currentUserEmail: string): DetailSkill {
@@ -107,6 +119,7 @@ function toDetailFromPersonal(skill: AgentSkillListItem, currentUserEmail: strin
         isVisibleToUser: true,
         isCreatedByUser: true,
         canManage: true,
+        source: skill.source,
     };
 }
 
@@ -124,6 +137,7 @@ function toDetailFromShared(skill: SharedAgentSkillCatalogItem, isOwner: boolean
         isVisibleToUser: skill.isVisibleToUser,
         isCreatedByUser: skill.isCreatedByUser,
         canManage: skill.isCreatedByUser || isOwner,
+        source: skill.source,
     };
 }
 
@@ -240,6 +254,7 @@ export function SkillsPage({
     const [scopePendingId, setScopePendingId] = useState<string | null>(null);
     const [adoptionPendingId, setAdoptionPendingId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [sourceUpdatePendingId, setSourceUpdatePendingId] = useState<string | null>(null);
 
     const [pendingDiscard, setPendingDiscard] = useState<{ run: () => void } | null>(null);
     const [confirmMakePersonal, setConfirmMakePersonal] = useState<DetailSkill | null>(null);
@@ -342,6 +357,67 @@ export function SkillsPage({
                 variant: parsed.frontmatterError ? "destructive" : undefined,
             });
         });
+    };
+
+    // Repository imports create a read-only skill that stays linked to its source
+    // file, so (unlike file import) we create it directly rather than dropping into
+    // the editable form. The repo → file navigation is itself the confirmation.
+    const handleImportRepoSkill = (imported: ImportedRepoSkill) => {
+        guardedTransition(() => { void createSkillFromRepo(imported); });
+    };
+
+    const createSkillFromRepo = async (imported: ImportedRepoSkill) => {
+        const result = await createPersonalAgentSkill({
+            name: imported.parsed.name ?? "",
+            slug: imported.parsed.slug ?? "",
+            description: imported.parsed.description ?? "",
+            instructions: imported.parsed.instructions,
+            source: imported.source,
+        });
+        if (isServiceError(result)) {
+            toast({ title: "Error", description: result.message, variant: "destructive" });
+            return;
+        }
+        setPersonalSkills((current) => sortAgentSkillListItems([result, ...current.filter((item) => item.id !== result.id)]));
+        exitFormMode();
+        setSelectedId(result.id);
+        toast({
+            title: imported.parsed.frontmatterError ? "Front matter issue" : undefined,
+            description: imported.parsed.frontmatterError
+                ? `Skill imported from repository. ${imported.parsed.frontmatterError}`
+                : "Skill imported from repository.",
+            variant: imported.parsed.frontmatterError ? "destructive" : undefined,
+        });
+    };
+
+    const handleUpdateFromSource = async (skill: DetailSkill) => {
+        setSourceUpdatePendingId(skill.id);
+        try {
+            if (skill.scope === "SHARED") {
+                const result = await updateSharedAgentSkillFromSource(skill.id);
+                if (isServiceError(result)) {
+                    toast({ title: "Error", description: result.message, variant: "destructive" });
+                    return;
+                }
+                setSharedSkills((current) => sortSharedAgentSkillCatalogItems(current.map((item) =>
+                    item.id === result.id ? result : item,
+                )));
+            } else {
+                const result = await updatePersonalAgentSkillFromSource(skill.id);
+                if (isServiceError(result)) {
+                    toast({ title: "Error", description: result.message, variant: "destructive" });
+                    return;
+                }
+                setPersonalSkills((current) => sortAgentSkillListItems(current.map((item) =>
+                    item.id === result.id ? result : item,
+                )));
+            }
+            toast({ description: "Skill updated from source." });
+        } catch {
+            toast({ title: "Error", description: "Failed to update from source.", variant: "destructive" });
+        } finally {
+            setSourceUpdatePendingId(null);
+        }
     };
 
     const triggerMarkdownImport = () => {
@@ -692,6 +768,7 @@ export function SkillsPage({
                                     slug={skill.slug}
                                     isActive={selectedId === skill.id && !isCreatingNew}
                                     onSelect={() => handleSelectSkill(skill.id)}
+                                    badge={skill.source ? <SyncedSkillBadge /> : undefined}
                                 />
                             ))}
                         </SkillListSection>
@@ -712,8 +789,11 @@ export function SkillsPage({
                                     togglePending={adoptionPendingId === skill.id}
                                     onToggleEnabled={(checked) => void handleAdoptionChange(skill.id, checked)}
                                     badge={
-                                        skill.autoEnrolled ? (
-                                            <AutoEnrolledSkillBadge />
+                                        skill.source || skill.autoEnrolled ? (
+                                            <>
+                                                {skill.source && <SyncedSkillBadge />}
+                                                {skill.autoEnrolled && <AutoEnrolledSkillBadge />}
+                                            </>
                                         ) : undefined
                                     }
                                 />
@@ -747,6 +827,7 @@ export function SkillsPage({
                             form={form}
                             isSaving={isSaving}
                             isDirty={isDirty}
+                            lockedSource={selectedSkill.source}
                             onNameChange={handleNameChange}
                             onSlugChange={(slug) => { setIsSlugTouched(true); setForm((current) => ({ ...current, slug })); }}
                             onSlugBlur={() => setForm((current) => ({ ...current, slug: normalizeAgentSkillSlug(current.slug) }))}
@@ -760,8 +841,10 @@ export function SkillsPage({
                         <SkillDetailView
                             skill={selectedSkill}
                             scopePending={scopePendingId === selectedSkill.id}
+                            sourceUpdatePending={sourceUpdatePendingId === selectedSkill.id}
                             onSharedToggle={(shared) => handleSharedToggle(selectedSkill, shared)}
                             onEdit={handleStartEdit}
+                            onUpdateFromSource={() => void handleUpdateFromSource(selectedSkill)}
                             onMakePersonal={() => setConfirmMakePersonal(selectedSkill)}
                             onDelete={() => {
                                 if (selectedSkill.scope === "SHARED") {
@@ -778,7 +861,7 @@ export function SkillsPage({
             <ImportFromRepoDialog
                 open={isRepoImportOpen}
                 onOpenChange={setIsRepoImportOpen}
-                onImport={applyImportedSkillMarkdown}
+                onImport={handleImportRepoSkill}
                 onError={(message) => toast({ title: "Error", description: message, variant: "destructive" })}
             />
 
@@ -964,8 +1047,10 @@ function SkillsEmptyState({ onCreate }: { onCreate: () => void }) {
 interface SkillDetailViewProps {
     skill: DetailSkill;
     scopePending: boolean;
+    sourceUpdatePending: boolean;
     onSharedToggle: (shared: boolean) => void;
     onEdit: () => void;
+    onUpdateFromSource: () => void;
     onMakePersonal: () => void;
     onDelete: () => void;
 }
@@ -973,8 +1058,10 @@ interface SkillDetailViewProps {
 function SkillDetailView({
     skill,
     scopePending,
+    sourceUpdatePending,
     onSharedToggle,
     onEdit,
+    onUpdateFromSource,
     onMakePersonal,
     onDelete,
 }: SkillDetailViewProps) {
@@ -1008,6 +1095,9 @@ function SkillDetailView({
                 </div>
                 {canManage && (
                     <div className="flex shrink-0 items-center gap-3">
+                        {/* Sharing a synced skill keeps it linked to its source: the
+                            org-wide command stays synced and the author/owners refresh
+                            it from source. Name + command stay editable either way. */}
                         <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                             <span>Shared</span>
                             {scopePending ? (
@@ -1050,6 +1140,16 @@ function SkillDetailView({
                     </div>
                 )}
             </div>
+
+            {skill.source && (
+                <SkillSourceSyncBanner
+                    skill={skill}
+                    source={skill.source}
+                    canUpdate={canManage}
+                    updatePending={sourceUpdatePending}
+                    onUpdateFromSource={onUpdateFromSource}
+                />
+            )}
 
             {/* Metadata folds to chips until the pane is wide enough for the right rail. */}
             <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-6 py-3 @6xl:hidden">
@@ -1154,6 +1254,125 @@ function DetailMetaField({ label, children }: { label: string; children: React.R
     );
 }
 
+// Small marker on personal list rows for skills mirrored from a repository file.
+function SyncedSkillBadge() {
+    return (
+        <span
+            className="inline-flex shrink-0 items-center gap-1 rounded border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+            title="Synced from a repository"
+        >
+            <FolderGit2Icon className="h-3 w-3" />
+            Synced
+        </span>
+    );
+}
+
+// Banner shown above a synced skill's content: provenance on the left, and — for
+// users who can refresh it (a personal skill's owner, or a shared skill's author /
+// org owner) — a live freshness check and the "Update from source" action when the
+// indexed file has moved ahead of the imported version. Adopters who can't manage a
+// shared skill see only the provenance.
+function SkillSourceSyncBanner({
+    skill,
+    source,
+    canUpdate,
+    updatePending,
+    onUpdateFromSource,
+}: {
+    skill: DetailSkill;
+    source: AgentSkillSourceRef;
+    canUpdate: boolean;
+    updatePending: boolean;
+    onUpdateFromSource: () => void;
+}) {
+    // Keyed on updatedAt so the check re-runs after an update bumps the skill. Only
+    // runs for users who can act on it — there's no point surfacing staleness to an
+    // adopter who can't refresh the org-wide command.
+    const { data, isLoading, isError } = useQuery({
+        queryKey: ["skillSourceStatus", skill.id, skill.updatedAt],
+        queryFn: () => unwrapServiceError(getSkillSourceStatus(skill.id)),
+        retry: false,
+        enabled: canUpdate,
+    });
+    const status = data?.status;
+
+    return (
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b bg-muted/20 px-6 py-3">
+            <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+                <FolderGit2Icon className="h-4 w-4 shrink-0" />
+                <span className="shrink-0">Synced from</span>
+                <span className="truncate font-medium text-foreground">{source.repoName}</span>
+                <span className="shrink-0 text-muted-foreground/60">·</span>
+                <span className="truncate font-mono text-xs">{source.filePath}</span>
+            </div>
+            {canUpdate && (
+                <div className="flex shrink-0 items-center gap-3">
+                    <SkillSourceStatusIndicator status={status} isLoading={isLoading} isError={isError} />
+                    {status === "update_available" && (
+                        <Button size="sm" onClick={onUpdateFromSource} disabled={updatePending}>
+                            {updatePending ? (
+                                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <RefreshCwIcon className="mr-2 h-4 w-4" />
+                            )}
+                            {updatePending ? "Updating..." : "Update from source"}
+                        </Button>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function SkillSourceStatusIndicator({
+    status,
+    isLoading,
+    isError,
+}: {
+    status?: AgentSkillSourceStatus;
+    isLoading: boolean;
+    isError: boolean;
+}) {
+    if (isLoading) {
+        return (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2Icon className="h-3.5 w-3.5 animate-spin" />
+                Checking…
+            </span>
+        );
+    }
+    if (isError || status === "repo_unavailable" || status === "source_missing") {
+        const label = status === "source_missing"
+            ? "Source file not found"
+            : status === "repo_unavailable"
+                ? "Source repo unavailable"
+                : "Couldn't check for updates";
+        return (
+            <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-500">
+                <AlertTriangleIcon className="h-3.5 w-3.5" />
+                {label}
+            </span>
+        );
+    }
+    if (status === "update_available") {
+        return (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-amber-600 dark:text-amber-500">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                Update available
+            </span>
+        );
+    }
+    if (status === "in_sync") {
+        return (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CheckCircle2Icon className="h-3.5 w-3.5 text-green-600" />
+                Up to date
+            </span>
+        );
+    }
+    return null;
+}
+
 type InstructionsView = "write" | "split" | "preview";
 
 interface SkillEditFormProps {
@@ -1161,6 +1380,10 @@ interface SkillEditFormProps {
     form: AgentSkillInput;
     isSaving: boolean;
     isDirty: boolean;
+    // When set, the skill is synced from this repository file: its description and
+    // instructions are read-only here (refreshed via "Update from source"); only the
+    // name and command stay editable.
+    lockedSource?: AgentSkillSourceRef | null;
     onNameChange: (name: string) => void;
     onSlugChange: (slug: string) => void;
     onSlugBlur: () => void;
@@ -1176,6 +1399,7 @@ function SkillEditForm({
     form,
     isSaving,
     isDirty,
+    lockedSource = null,
     onNameChange,
     onSlugChange,
     onSlugBlur,
@@ -1187,6 +1411,7 @@ function SkillEditForm({
 }: SkillEditFormProps) {
     const [instructionsView, setInstructionsView] = useState<InstructionsView>("write");
     const formRef = useRef<HTMLFormElement>(null);
+    const contentLocked = lockedSource !== null;
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -1265,15 +1490,18 @@ function SkillEditForm({
                 <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="skill-description">
                         Description
-                        <span className="ml-1 font-normal text-muted-foreground">(optional)</span>
+                        <span className="ml-1 font-normal text-muted-foreground">
+                            {contentLocked ? "(synced from source)" : "(optional)"}
+                        </span>
                     </Label>
                     <Textarea
                         id="skill-description"
                         value={form.description}
                         onChange={(event) => onDescriptionChange(event.target.value)}
                         placeholder="Search for a symbol or API and summarize where it is defined, used, and tested."
-                        className="min-h-16 resize-y"
+                        className="min-h-16 resize-y disabled:cursor-not-allowed disabled:opacity-70"
                         maxLength={500}
+                        disabled={contentLocked}
                     />
                 </div>
             </div>
@@ -1283,48 +1511,40 @@ function SkillEditForm({
                 <div className="mx-auto mb-3 flex w-full max-w-5xl items-center justify-between gap-2 px-6">
                     <div className="flex items-center gap-3">
                         <Label htmlFor="skill-instructions" className="text-sm font-semibold">Instructions</Label>
-                        <ToggleGroup
-                            type="single"
-                            value={instructionsView}
-                            onValueChange={(value) => {
-                                if (value) {
-                                    setInstructionsView(value as InstructionsView);
-                                }
-                            }}
-                            className="gap-0.5 rounded-md border bg-muted/40 p-0.5"
-                        >
-                            <ToggleGroupItem value="write" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
-                                Write
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value="split" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
-                                Split
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value="preview" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
-                                Preview
-                            </ToggleGroupItem>
-                        </ToggleGroup>
+                        {contentLocked ? (
+                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <FolderGit2Icon className="h-3.5 w-3.5" />
+                                Synced from {lockedSource?.repoName} · read-only
+                            </span>
+                        ) : (
+                            <ToggleGroup
+                                type="single"
+                                value={instructionsView}
+                                onValueChange={(value) => {
+                                    if (value) {
+                                        setInstructionsView(value as InstructionsView);
+                                    }
+                                }}
+                                className="gap-0.5 rounded-md border bg-muted/40 p-0.5"
+                            >
+                                <ToggleGroupItem value="write" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
+                                    Write
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="split" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
+                                    Split
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="preview" className="h-7 w-auto min-w-0 px-2.5 text-xs font-normal">
+                                    Preview
+                                </ToggleGroupItem>
+                            </ToggleGroup>
+                        )}
                     </div>
                     <span className="text-xs text-muted-foreground">
                         markdown · {form.instructions.length.toLocaleString()} / {INSTRUCTIONS_MAX_LENGTH.toLocaleString()}
                     </span>
                 </div>
-                <div className={cn(
-                    "mx-auto flex w-full min-h-0 flex-1 gap-4 px-6",
-                    instructionsView === "split" ? "max-w-none" : "max-w-5xl",
-                )}>
-                    <div className={cn("h-full min-h-0 flex-1", instructionsView === "preview" && "hidden")}>
-                        <div className="relative h-full">
-                            <SkillInstructionsEditor
-                                key={editorKey}
-                                id="skill-instructions"
-                                value={form.instructions}
-                                onChange={onInstructionsChange}
-                                placeholder={INSTRUCTIONS_PLACEHOLDER}
-                                className="h-full resize-none font-mono text-sm leading-relaxed"
-                            />
-                        </div>
-                    </div>
-                    {instructionsView !== "write" && (
+                {contentLocked ? (
+                    <div className="mx-auto flex w-full min-h-0 max-w-5xl flex-1 px-6">
                         <div className="min-h-0 flex-1 overflow-y-auto rounded-md bg-muted/20 px-4 py-3">
                             {form.instructions.trim() ? (
                                 <MarkdownRenderer
@@ -1333,11 +1553,42 @@ function SkillEditForm({
                                     className="prose-sm max-w-none"
                                 />
                             ) : (
-                                <p className="text-sm text-muted-foreground">Nothing to preview yet.</p>
+                                <p className="text-sm text-muted-foreground">No instructions.</p>
                             )}
                         </div>
-                    )}
-                </div>
+                    </div>
+                ) : (
+                    <div className={cn(
+                        "mx-auto flex w-full min-h-0 flex-1 gap-4 px-6",
+                        instructionsView === "split" ? "max-w-none" : "max-w-5xl",
+                    )}>
+                        <div className={cn("h-full min-h-0 flex-1", instructionsView === "preview" && "hidden")}>
+                            <div className="relative h-full">
+                                <SkillInstructionsEditor
+                                    key={editorKey}
+                                    id="skill-instructions"
+                                    value={form.instructions}
+                                    onChange={onInstructionsChange}
+                                    placeholder={INSTRUCTIONS_PLACEHOLDER}
+                                    className="h-full resize-none font-mono text-sm leading-relaxed"
+                                />
+                            </div>
+                        </div>
+                        {instructionsView !== "write" && (
+                            <div className="min-h-0 flex-1 overflow-y-auto rounded-md bg-muted/20 px-4 py-3">
+                                {form.instructions.trim() ? (
+                                    <MarkdownRenderer
+                                        content={form.instructions}
+                                        escapeHtml
+                                        className="prose-sm max-w-none"
+                                    />
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">Nothing to preview yet.</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </form>
     );
