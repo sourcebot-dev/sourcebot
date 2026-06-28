@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getBrowseParamsFromPathParam } from "../hooks/utils";
+import { BLOB_VIEW_QUERY_PARAM, getBrowseParamsFromPathParam } from "../hooks/utils";
 import { CodePreviewPanel } from "./components/codePreviewPanel/codePreviewPanel";
 import { FocusedCommitDiffPanel } from "./components/commitDiffPanel/focusedCommitDiffPanel";
 import { FullCommitDiffPanel } from "./components/commitDiffPanel/fullCommitDiffPanel";
@@ -92,6 +92,7 @@ interface BrowsePageProps {
         ref?: string;
         diff?: string;
         blame?: string;
+        view?: string;
     }>;
 }
 
@@ -113,6 +114,7 @@ export default async function BrowsePage(props: BrowsePageProps) {
     const previewRef = searchParams.ref || undefined;
     const isDiffMode = searchParams.diff === 'true';
     const isBlameMode = searchParams.blame === 'true';
+    const blobViewMode = searchParams[BLOB_VIEW_QUERY_PARAM] === 'source' ? 'source' : 'rendered';
 
     return (
         <div className="flex flex-col h-full">
@@ -138,6 +140,7 @@ export default async function BrowsePage(props: BrowsePageProps) {
                             revisionName={revisionName}
                             previewRef={previewRef}
                             blame={isBlameMode}
+                            viewMode={blobViewMode}
                         />
                     )
                 ) : browseProps.pathType === 'commits' ? (
@@ -166,4 +169,3 @@ export default async function BrowsePage(props: BrowsePageProps) {
         </div>
     )
 }
-

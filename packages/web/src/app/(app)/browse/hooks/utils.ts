@@ -4,6 +4,8 @@ export const HIGHLIGHT_RANGE_QUERY_PARAM = 'highlightRange';
 export const PREVIEW_REF_QUERY_PARAM = 'ref';
 export const DIFF_QUERY_PARAM = 'diff';
 export const BLAME_QUERY_PARAM = 'blame';
+export const BLOB_VIEW_QUERY_PARAM = 'view';
+export type BlobViewMode = 'rendered' | 'source';
 
 export type BrowseHighlightRange = {
     start: { lineNumber: number; column: number; };
@@ -31,6 +33,8 @@ type BlobProps = BaseProps & {
     diff?: boolean;
     // When true, render blame annotations alongside the file source.
     blame?: boolean;
+    // Markdown files render by default. Set to source to show the raw file.
+    viewMode?: BlobViewMode;
 }
 
 type TreeProps = BaseProps & {
@@ -170,6 +174,10 @@ export const getBrowsePath = (props: BrowseProps) => {
 
     if (pathType === 'blob' && props.blame) {
         params.set(BLAME_QUERY_PARAM, 'true');
+    }
+
+    if (pathType === 'blob' && props.viewMode === 'source') {
+        params.set(BLOB_VIEW_QUERY_PARAM, 'source');
     }
 
     if (setBrowseState) {
