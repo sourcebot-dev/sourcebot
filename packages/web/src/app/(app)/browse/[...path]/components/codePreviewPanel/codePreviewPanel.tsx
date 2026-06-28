@@ -115,7 +115,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
                         displayName: repoInfoResponse.displayName,
                         externalWebUrl: repoInfoResponse.externalWebUrl,
                     }}
-                    revisionName={contentRef}
+                    revisionName={revisionName}
                 />
 
                 {fileWebUrl && (

@@ -19,7 +19,9 @@ vi.mock('@/features/git', () => ({
 }));
 
 vi.mock('@/app/(app)/components/pathHeader', () => ({
-    PathHeader: ({ path }: { path: string }) => <div>Path: {path}</div>,
+    PathHeader: ({ path, revisionName }: { path: string; revisionName?: string }) => (
+        <div data-testid="path-header">Path: {path}; Revision: {revisionName ?? 'default'}</div>
+    ),
 }));
 
 vi.mock('./pureCodePreviewPanel', () => ({
@@ -99,5 +101,26 @@ describe('CodePreviewPanel', () => {
         expect(screen.getByRole('link', { name: 'Close preview' }).getAttribute('href')).toBe(
             '/browse/github.com/sourcebot-dev/sourcebot@main/-/blob/src%2Fmissing.ts'
         );
+    });
+
+    test('keeps successful preview header anchored to the browse revision', async () => {
+        mocks.getFileSource.mockResolvedValue({
+            source: 'const value = 1;\n',
+            language: 'typescript',
+        });
+
+        await renderCodePreviewPanel({
+            path: 'src/index.ts',
+            repoName: 'github.com/sourcebot-dev/sourcebot',
+            revisionName: 'main',
+            previewRef: 'abc123def456',
+        });
+
+        expect(mocks.getFileSource).toHaveBeenCalledWith({
+            path: 'src/index.ts',
+            repo: 'github.com/sourcebot-dev/sourcebot',
+            ref: 'abc123def456',
+        }, { source: 'sourcebot-web-client' });
+        expect(screen.getByTestId('path-header').textContent).toBe('Path: src/index.ts; Revision: main');
     });
 });
