@@ -39,12 +39,12 @@ describe("buildSkillRegistry", () => {
         // per-skill auto-invocation opt-in — every visible skill is model-invocable.
         expect(findMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
             where: { ...personalAgentSkillAuthScope("user-1", 7), enabled: true },
-            select: { id: true, slug: true, name: true, description: true },
+            select: { id: true, slug: true, name: true, description: true, sourceRepoName: true },
         }));
         // Shared query: shared-visibility clause only.
         expect(findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
             where: { ...sharedAgentSkillVisibleToUserWhere("user-1", 7) },
-            select: { id: true, slug: true, name: true, description: true },
+            select: { id: true, slug: true, name: true, description: true, sourceRepoName: true },
         }));
     });
 });
@@ -85,6 +85,7 @@ describe("resolveAutoInvocableSkill", () => {
                 slug: true,
                 name: true,
                 instructions: true,
+                sourceRepoName: true,
             },
         });
     });
@@ -126,5 +127,44 @@ describe("resolveAutoInvocableSkill", () => {
         const prisma = { agentSkill: { findFirst } } as never;
 
         expect(await resolveAutoInvocableSkill({ prisma, userId: "u", orgId: 1, skillId: "x" })).toBeNull();
+    });
+
+    test("fails closed when the skill is synced from a repo the user can't access", async () => {
+        const findFirst = vi.fn().mockResolvedValue({
+            id: "o1",
+            visibility: "SHARED",
+            slug: "audit",
+            name: "Audit",
+            instructions: "Audit the billing system",
+            sourceRepoName: "github.com/acme/secret",
+        });
+        // The user-scoped repo lookup returns nothing → repo not visible.
+        const repoFindFirst = vi.fn().mockResolvedValue(null);
+        const prisma = { agentSkill: { findFirst }, repo: { findFirst: repoFindFirst } } as never;
+
+        const result = await resolveAutoInvocableSkill({ prisma, userId: "user-1", orgId: 7, skillId: "o1" });
+
+        expect(result).toBeNull();
+        expect(repoFindFirst).toHaveBeenCalledWith({
+            where: { name: "github.com/acme/secret", orgId: 7 },
+            select: { id: true },
+        });
+    });
+
+    test("loads a synced skill when its source repo is visible to the user", async () => {
+        const findFirst = vi.fn().mockResolvedValue({
+            id: "o1",
+            visibility: "SHARED",
+            slug: "audit",
+            name: "Audit",
+            instructions: "Audit the billing system",
+            sourceRepoName: "github.com/acme/widgets",
+        });
+        const repoFindFirst = vi.fn().mockResolvedValue({ id: 11 });
+        const prisma = { agentSkill: { findFirst }, repo: { findFirst: repoFindFirst } } as never;
+
+        const result = await resolveAutoInvocableSkill({ prisma, userId: "user-1", orgId: 7, skillId: "o1" });
+
+        expect(result).toMatchObject({ id: "o1", instructions: "Audit the billing system" });
     });
 });

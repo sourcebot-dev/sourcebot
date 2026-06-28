@@ -77,6 +77,7 @@ describe('ImportFromRepoDialog', () => {
             repo: repo.repoName,
             repoCodeHostType: 'github',
             webUrl: 'https://github.com/acme/widgets/blob/main/docs/skill.md',
+            blobSha: 'blob-sha-123',
         });
 
         const { onImport } = renderDialog();
@@ -102,14 +103,46 @@ describe('ImportFromRepoDialog', () => {
             repo: repo.repoName,
             ref: 'main',
         });
+        // Imports carry the parsed skill plus the source provenance (incl. blob OID)
+        // so the parent can create a read-only, synced skill.
         expect(onImport).toHaveBeenCalledWith(
             expect.objectContaining({
-                name: 'Deploy Widgets',
-                slug: 'deploy-widgets',
-                description: 'Steps to deploy',
-                instructions: 'Run the deploy script.',
+                parsed: expect.objectContaining({
+                    name: 'Deploy Widgets',
+                    slug: 'deploy-widgets',
+                    description: 'Steps to deploy',
+                    instructions: 'Run the deploy script.',
+                }),
+                source: {
+                    repoName: repo.repoName,
+                    filePath: 'docs/skill.md',
+                    revision: 'main',
+                    blobSha: 'blob-sha-123',
+                },
             }),
         );
+    });
+
+    test('does not import when the file has no resolvable blob version', async () => {
+        vi.mocked(clientApi.listRepos).mockResolvedValue([repo]);
+        vi.mocked(clientApi.getFiles).mockResolvedValue(files);
+        // A response without a blobSha means we can't track the file for syncing.
+        vi.mocked(clientApi.getFileSource).mockResolvedValue({
+            source: '---\nname: Deploy Widgets\n---\n\nRun the deploy script.',
+            language: 'Markdown',
+            path: 'docs/skill.md',
+            repo: repo.repoName,
+            repoCodeHostType: 'github',
+            webUrl: 'https://github.com/acme/widgets/blob/main/docs/skill.md',
+        });
+
+        const { onImport, onError } = renderDialog();
+
+        fireEvent.click(await screen.findByText('acme/widgets'));
+        fireEvent.click(await screen.findByText('skill.md'));
+
+        await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+        expect(onImport).not.toHaveBeenCalled();
     });
 
     test('surfaces an error when the file cannot be fetched', async () => {
@@ -160,6 +193,7 @@ describe('ImportFromRepoDialog', () => {
             repo: repo.repoName,
             repoCodeHostType: 'github',
             webUrl: 'https://github.com/acme/widgets/blob/main/docs/skill.md',
+            blobSha: 'blob-sha-123',
         });
 
         // Mirror how the parent drives the dialog: a controlled `open` that flips

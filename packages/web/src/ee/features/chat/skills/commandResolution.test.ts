@@ -114,6 +114,7 @@ describe("materializeCommandMessageText", () => {
             select: {
                 id: true,
                 instructions: true,
+                sourceRepoName: true,
             },
         });
     });
@@ -306,9 +307,44 @@ describe("materializeCommandMessageText", () => {
             select: {
                 id: true,
                 instructions: true,
+                sourceRepoName: true,
             },
         });
         expect(getUserMessageModelText(message)).toBe("Explain the most recent message using the team style guide.");
+    });
+
+    test("falls back to literal text when a shared command is synced from an inaccessible repo", async () => {
+        const prisma = {
+            agentSkill: {
+                findMany: vi.fn().mockResolvedValue([{
+                    id: "shared-skill-1",
+                    instructions: "Explain using the team style guide.",
+                    sourceRepoName: "github.com/acme/secret",
+                }]),
+            },
+            // The user-scoped repo lookup returns nothing → repo not visible.
+            repo: {
+                findMany: vi.fn().mockResolvedValue([]),
+            },
+        };
+
+        const message = await materializeCommandMessageText({
+            message: createCommandMessage("decorators", undefined, {
+                commandId: "shared-skill-1",
+                sourceId: ASK_COMMAND_SOURCE_SHARED_SKILL,
+            }),
+            prisma: prisma as never,
+            userId: "user-1",
+            orgId: 7,
+        });
+
+        // The synced skill is dropped by the repo-access gate, so the command keeps
+        // its literal text instead of injecting the (inaccessible) instructions.
+        expect(getUserMessageModelText(message)).toBe("/translate decorators");
+        expect(prisma.repo.findMany).toHaveBeenCalledWith({
+            where: { name: { in: ["github.com/acme/secret"] }, orgId: 7 },
+            select: { name: true },
+        });
     });
 
     test("does not materialize a shared skill that is neither adopted nor auto-enrolled", async () => {
@@ -390,6 +426,7 @@ describe("materializeCommandMessageTexts", () => {
             select: {
                 id: true,
                 instructions: true,
+                sourceRepoName: true,
             },
         });
         expect(messages.map(getUserMessageModelText)).toEqual([

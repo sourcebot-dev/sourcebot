@@ -14,6 +14,7 @@ import {
     listPersonalAgentSkillCommandsForContext,
     sourceLabelForSkillSourceId,
 } from "./commandCatalog";
+import { canAccessSkillSource } from "./sourceRepoAccess";
 
 // The skill instructions resolved when the model invokes `load_skill`.
 export interface ResolvedAutoInvocableSkill {
@@ -88,10 +89,18 @@ export const resolveAutoInvocableSkill = async ({
             slug: true,
             name: true,
             instructions: true,
+            sourceRepoName: true,
         },
     });
 
     if (!skill) {
+        return null;
+    }
+
+    // A skill synced from a repo is only loadable by users who can access that
+    // repo. Fails closed (returns null, as for an unscoped/removed skill) so the
+    // model cannot load instructions mirrored from a repo the user can't see.
+    if (!(await canAccessSkillSource(skill, { prisma, orgId }))) {
         return null;
     }
 

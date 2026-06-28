@@ -10,6 +10,7 @@ import {
     type AskCommandDefinition,
 } from "@/features/chat/commands/types";
 import { agentSkillOrderBy } from "./types";
+import { filterSkillsBySourceRepoAccess } from "./sourceRepoAccess";
 
 // Display labels for where a skill command originates. Shared by the manual
 // slash-command catalog (the listAgentSkillCommands actions) and the
@@ -23,12 +24,14 @@ export const sourceLabelForSkillSourceId = (sourceId: string): string =>
 
 // The minimal columns needed to build an AskCommandDefinition. Instructions are
 // loaded on demand (manual: at materialization; auto: at load_skill), never in
-// the catalog the model sees.
+// the catalog the model sees. sourceRepoName is selected only to apply the
+// source-repo access gate; it is not surfaced in the command definition.
 const agentSkillCommandSelect = {
     id: true,
     slug: true,
     name: true,
     description: true,
+    sourceRepoName: true,
 } satisfies Prisma.AgentSkillSelect;
 
 type AgentSkillCommandRow = {
@@ -36,6 +39,7 @@ type AgentSkillCommandRow = {
     slug: string;
     name: string;
     description: string;
+    sourceRepoName: string | null;
 };
 
 export const toAskCommandDefinition = (
@@ -74,7 +78,9 @@ export const listPersonalAgentSkillCommandsForContext = async ({
         select: agentSkillCommandSelect,
     });
 
-    return skills.map((skill) => toAskCommandDefinition(
+    const accessibleSkills = await filterSkillsBySourceRepoAccess(skills, { prisma, orgId });
+
+    return accessibleSkills.map((skill) => toAskCommandDefinition(
         skill,
         ASK_COMMAND_SOURCE_PERSONAL_SKILL,
         PERSONAL_SKILL_SOURCE_LABEL,
@@ -103,7 +109,9 @@ export const listSharedAgentSkillCommandsForContext = async ({
         select: agentSkillCommandSelect,
     });
 
-    return skills.map((skill) => toAskCommandDefinition(
+    const accessibleSkills = await filterSkillsBySourceRepoAccess(skills, { prisma, orgId });
+
+    return accessibleSkills.map((skill) => toAskCommandDefinition(
         skill,
         ASK_COMMAND_SOURCE_SHARED_SKILL,
         SHARED_SKILL_SOURCE_LABEL,

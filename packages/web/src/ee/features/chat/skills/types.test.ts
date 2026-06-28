@@ -69,6 +69,7 @@ describe("sortAgentSkillListItems", () => {
         description: "Description.",
         instructions: "Instructions.",
         enabled: true,
+        source: null,
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:00.000Z",
         ...overrides,
@@ -91,7 +92,7 @@ describe("sortAgentSkillListItems", () => {
 });
 
 describe("toSharedAgentSkillCatalogItem", () => {
-    test("includes instructions and creator email for the detail view", () => {
+    test("includes instructions, creator email, and repo provenance for the detail view", () => {
         const item = toSharedAgentSkillCatalogItem({
             id: "skill-1",
             visibility: "SHARED",
@@ -104,6 +105,9 @@ describe("toSharedAgentSkillCatalogItem", () => {
             createdById: "user-1",
             createdAt: new Date("2026-01-01T00:00:00.000Z"),
             updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+            sourceRepoName: "github.com/acme/widgets",
+            sourceFilePath: "docs/skill.md",
+            sourceRevision: "main",
             adoptions: [{ id: "adoption-1", removedAt: null }],
             createdBy: { email: "author@example.com" },
         }, "user-1");
@@ -115,6 +119,7 @@ describe("toSharedAgentSkillCatalogItem", () => {
             name: "Review",
             description: "Review risky changes.",
             instructions: "Review the diff carefully.",
+            source: { repoName: "github.com/acme/widgets", filePath: "docs/skill.md", revision: "main" },
             createdByEmail: "author@example.com",
             enabled: true,
             autoEnrolled: true,
@@ -129,7 +134,7 @@ describe("toSharedAgentSkillCatalogItem", () => {
         expect(item).not.toHaveProperty("createdById");
     });
 
-    test("falls back to a null email when the creator has none", () => {
+    test("falls back to a null email and null source when neither is present", () => {
         const item = toSharedAgentSkillCatalogItem({
             id: "skill-2",
             visibility: "SHARED",
@@ -142,12 +147,16 @@ describe("toSharedAgentSkillCatalogItem", () => {
             createdById: "user-2",
             createdAt: new Date("2026-01-01T00:00:00.000Z"),
             updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+            sourceRepoName: null,
+            sourceFilePath: null,
+            sourceRevision: null,
             adoptions: [],
             createdBy: null,
         }, "user-1");
 
         expect(item.createdByEmail).toBeNull();
         expect(item.isCreatedByUser).toBe(false);
+        expect(item.source).toBeNull();
     });
 });
 

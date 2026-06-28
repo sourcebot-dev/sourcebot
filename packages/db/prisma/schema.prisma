@@ -786,6 +786,19 @@ model AgentSkill {
   enabled      Boolean  @default(true)
   autoEnrolled Boolean  @default(false)
 
+  // Provenance for skills imported from an indexed repository file. All null for
+  // skills created manually or imported from a local file. When set, the skill's
+  // content is a read-only mirror of the source file: edits happen in the repo and
+  // are pulled in via "Update from source". sourceBlobSha (the git blob OID at
+  // import) is the comparison key used to detect when the indexed file has changed.
+  // Sync is personal-only; publishing to shared snapshots the content and drops
+  // these fields.
+  sourceRepoName   String?
+  sourceFilePath   String?
+  sourceRevision   String?
+  sourceBlobSha    String?
+  sourceImportedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

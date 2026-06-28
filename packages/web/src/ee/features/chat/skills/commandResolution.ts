@@ -6,6 +6,7 @@ import { ASK_COMMAND_SOURCE_SHARED_SKILL, ASK_COMMAND_SOURCE_PERSONAL_SKILL, com
 import { FILE_REFERENCE_REGEX } from "@/features/chat/constants";
 import type { FileSource, SBChatMessage, SBChatMessagePart } from "@/features/chat/types";
 import { sharedAgentSkillVisibleToUserWhere, personalAgentSkillAuthScope, type PrismaClient } from "@sourcebot/db";
+import { filterSkillsBySourceRepoAccess } from "./sourceRepoAccess";
 
 const getTextPartContent = (message: SBChatMessage) =>
     message.parts.find((part) => part.type === "text")?.text ?? "";
@@ -228,7 +229,7 @@ export const materializeCommandMessageTexts = async ({
     const personalSkillCommandIds = getCommandIdsForSource(resolvableCommands, ASK_COMMAND_SOURCE_PERSONAL_SKILL);
     const sharedSkillCommandIds = getCommandIdsForSource(resolvableCommands, ASK_COMMAND_SOURCE_SHARED_SKILL);
 
-    const [personalSkills, sharedSkills] = await Promise.all([
+    const [personalSkillsRaw, sharedSkillsRaw] = await Promise.all([
         personalScope && personalSkillCommandIds.length > 0
             ? prisma.agentSkill.findMany({
                 where: {
@@ -239,6 +240,7 @@ export const materializeCommandMessageTexts = async ({
                 select: {
                     id: true,
                     instructions: true,
+                    sourceRepoName: true,
                 },
             })
             : [],
@@ -251,10 +253,22 @@ export const materializeCommandMessageTexts = async ({
                 select: {
                     id: true,
                     instructions: true,
+                    sourceRepoName: true,
                 },
             })
             : [],
     ]);
+
+    // Drop skills whose source repo the requester can't access, so an inaccessible
+    // command falls back to its literal text instead of injecting synced
+    // instructions. orgId is defined whenever either query ran (the scopes above
+    // require it), so the arrays are already empty when it isn't.
+    const [personalSkills, sharedSkills] = orgId !== undefined
+        ? await Promise.all([
+            filterSkillsBySourceRepoAccess(personalSkillsRaw, { prisma, orgId }),
+            filterSkillsBySourceRepoAccess(sharedSkillsRaw, { prisma, orgId }),
+        ])
+        : [personalSkillsRaw, sharedSkillsRaw];
 
     const skillById = new Map([
         ...personalSkills.map((skill) => [
