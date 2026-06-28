@@ -173,7 +173,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
                         </Link>
                     </span>
                     <Tooltip key={previewRef}>
-                        <TooltipTrigger>
+                        <TooltipTrigger asChild>
                             <Button
                                 asChild
                                 variant="ghost"

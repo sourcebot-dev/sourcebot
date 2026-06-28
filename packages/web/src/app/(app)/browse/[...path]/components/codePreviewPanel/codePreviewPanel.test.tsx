@@ -122,5 +122,11 @@ describe('CodePreviewPanel', () => {
             ref: 'abc123def456',
         }, { source: 'sourcebot-web-client' });
         expect(screen.getByTestId('path-header').textContent).toBe('Path: src/index.ts; Revision: main');
+
+        const closePreviewLink = screen.getByRole('link', { name: 'Close preview' });
+        expect(closePreviewLink.getAttribute('href')).toBe(
+            '/browse/github.com/sourcebot-dev/sourcebot@main/-/blob/src%2Findex.ts'
+        );
+        expect(closePreviewLink.closest('button')).toBeNull();
     });
 });
