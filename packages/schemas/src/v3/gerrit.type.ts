@@ -46,7 +46,15 @@ export interface GitRevisions {
    */
   branches?: string[];
   /**
+   * Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.
+   */
+  branchSort?: "committerdate" | "creatordate" | "refname";
+  /**
    * List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.
    */
   tags?: string[];
+  /**
+   * Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.
+   */
+  tagSort?: "committerdate" | "creatordate" | "refname";
 }

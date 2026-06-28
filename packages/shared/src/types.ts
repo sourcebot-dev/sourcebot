@@ -3,6 +3,8 @@ import { z } from "zod";
 
 export type ConfigSettings = Required<SettingsSchema>;
 
+const gitRevisionSortSchema = z.enum(["committerdate", "creatordate", "refname"]);
+
 // Structure of the `metadata` field in the `Repo` table.
 //
 // @WARNING: If you modify this schema, please make sure it is backwards
@@ -23,9 +25,19 @@ export const repoMetadataSchema = z.object({
     branches: z.array(z.string()).optional(),
 
     /**
+     * Sort order to use before matching and truncating branches.
+     */
+    branchSort: gitRevisionSortSchema.optional(),
+
+    /**
      * A list of tags to index. Glob patterns are supported.
      */
     tags: z.array(z.string()).optional(),
+
+    /**
+     * Sort order to use before matching and truncating tags.
+     */
+    tagSort: gitRevisionSortSchema.optional(),
 
     /**
      * A list of revisions that were indexed for the repo.

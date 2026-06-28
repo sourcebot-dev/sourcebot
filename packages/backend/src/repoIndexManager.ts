@@ -471,7 +471,7 @@ export class RepoIndexManager {
 
         if (metadata.branches) {
             const branchGlobs = metadata.branches
-            const allBranches = await getBranches(repoPath);
+            const allBranches = await getBranches(repoPath, { sort: metadata.branchSort });
             const matchingBranches =
                 allBranches
                     .filter((branch) => micromatch.isMatch(branch, branchGlobs))
@@ -485,7 +485,7 @@ export class RepoIndexManager {
 
         if (metadata.tags) {
             const tagGlobs = metadata.tags;
-            const allTags = await getTags(repoPath);
+            const allTags = await getTags(repoPath, { sort: metadata.tagSort });
             const matchingTags =
                 allTags
                     .filter((tag) => micromatch.isMatch(tag, tagGlobs))

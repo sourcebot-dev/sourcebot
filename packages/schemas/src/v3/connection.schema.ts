@@ -185,6 +185,16 @@ const schema = {
               ],
               "default": []
             },
+            "branchSort": {
+              "type": "string",
+              "description": "Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+              "enum": [
+                "committerdate",
+                "creatordate",
+                "refname"
+              ],
+              "default": "committerdate"
+            },
             "tags": {
               "type": "array",
               "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
@@ -201,6 +211,16 @@ const schema = {
                 ]
               ],
               "default": []
+            },
+            "tagSort": {
+              "type": "string",
+              "description": "Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+              "enum": [
+                "committerdate",
+                "creatordate",
+                "refname"
+              ],
+              "default": "creatordate"
             }
           },
           "additionalProperties": false
@@ -396,6 +416,16 @@ const schema = {
               ],
               "default": []
             },
+            "branchSort": {
+              "type": "string",
+              "description": "Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+              "enum": [
+                "committerdate",
+                "creatordate",
+                "refname"
+              ],
+              "default": "committerdate"
+            },
             "tags": {
               "type": "array",
               "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
@@ -412,6 +442,16 @@ const schema = {
                 ]
               ],
               "default": []
+            },
+            "tagSort": {
+              "type": "string",
+              "description": "Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+              "enum": [
+                "committerdate",
+                "creatordate",
+                "refname"
+              ],
+              "default": "creatordate"
             }
           },
           "additionalProperties": false
@@ -560,6 +600,16 @@ const schema = {
               ],
               "default": []
             },
+            "branchSort": {
+              "type": "string",
+              "description": "Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+              "enum": [
+                "committerdate",
+                "creatordate",
+                "refname"
+              ],
+              "default": "committerdate"
+            },
             "tags": {
               "type": "array",
               "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
@@ -576,6 +626,16 @@ const schema = {
                 ]
               ],
               "default": []
+            },
+            "tagSort": {
+              "type": "string",
+              "description": "Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+              "enum": [
+                "committerdate",
+                "creatordate",
+                "refname"
+              ],
+              "default": "creatordate"
             }
           },
           "additionalProperties": false
@@ -676,6 +736,16 @@ const schema = {
               ],
               "default": []
             },
+            "branchSort": {
+              "type": "string",
+              "description": "Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+              "enum": [
+                "committerdate",
+                "creatordate",
+                "refname"
+              ],
+              "default": "committerdate"
+            },
             "tags": {
               "type": "array",
               "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
@@ -692,6 +762,16 @@ const schema = {
                 ]
               ],
               "default": []
+            },
+            "tagSort": {
+              "type": "string",
+              "description": "Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+              "enum": [
+                "committerdate",
+                "creatordate",
+                "refname"
+              ],
+              "default": "creatordate"
             }
           },
           "additionalProperties": false
@@ -855,6 +935,16 @@ const schema = {
               ],
               "default": []
             },
+            "branchSort": {
+              "type": "string",
+              "description": "Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+              "enum": [
+                "committerdate",
+                "creatordate",
+                "refname"
+              ],
+              "default": "committerdate"
+            },
             "tags": {
               "type": "array",
               "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
@@ -871,6 +961,16 @@ const schema = {
                 ]
               ],
               "default": []
+            },
+            "tagSort": {
+              "type": "string",
+              "description": "Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+              "enum": [
+                "committerdate",
+                "creatordate",
+                "refname"
+              ],
+              "default": "creatordate"
             }
           },
           "additionalProperties": false
@@ -1072,6 +1172,16 @@ const schema = {
               ],
               "default": []
             },
+            "branchSort": {
+              "type": "string",
+              "description": "Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+              "enum": [
+                "committerdate",
+                "creatordate",
+                "refname"
+              ],
+              "default": "committerdate"
+            },
             "tags": {
               "type": "array",
               "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
@@ -1088,6 +1198,16 @@ const schema = {
                 ]
               ],
               "default": []
+            },
+            "tagSort": {
+              "type": "string",
+              "description": "Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+              "enum": [
+                "committerdate",
+                "creatordate",
+                "refname"
+              ],
+              "default": "creatordate"
             }
           },
           "additionalProperties": false
@@ -1150,6 +1270,16 @@ const schema = {
               ],
               "default": []
             },
+            "branchSort": {
+              "type": "string",
+              "description": "Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+              "enum": [
+                "committerdate",
+                "creatordate",
+                "refname"
+              ],
+              "default": "committerdate"
+            },
             "tags": {
               "type": "array",
               "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
@@ -1166,6 +1296,16 @@ const schema = {
                 ]
               ],
               "default": []
+            },
+            "tagSort": {
+              "type": "string",
+              "description": "Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+              "enum": [
+                "committerdate",
+                "creatordate",
+                "refname"
+              ],
+              "default": "creatordate"
             }
           },
           "additionalProperties": false

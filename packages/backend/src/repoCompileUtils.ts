@@ -32,6 +32,20 @@ const logger = createLogger('repo-compile-utils');
 const MAX_CONCURRENT_GIT_OPERATIONS = 100;
 const gitOperationLimit = pLimit(MAX_CONCURRENT_GIT_OPERATIONS);
 
+const getRevisionMetadata = (
+    revisions: {
+        branches?: string[],
+        tags?: string[],
+        branchSort?: RepoMetadata["branchSort"],
+        tagSort?: RepoMetadata["tagSort"],
+    } | undefined,
+) => ({
+    branches: revisions?.branches ?? undefined,
+    branchSort: revisions?.branchSort ?? undefined,
+    tags: revisions?.tags ?? undefined,
+    tagSort: revisions?.tagSort ?? undefined,
+} satisfies Pick<RepoMetadata, "branches" | "branchSort" | "tags" | "tagSort">);
+
 /**
  * Extracts the host with port from an HTTP(S) URL string, preserving the port
  * even if it's a default port (e.g., 443 for https, 80 for http).
@@ -68,8 +82,7 @@ export const compileGithubConfig = async (
         const record = createGitHubRepoRecord({
             repo,
             hostUrl,
-            branches: config.revisions?.branches ?? undefined,
-            tags: config.revisions?.tags ?? undefined,
+            revisions: config.revisions,
         })
 
         return {
@@ -91,14 +104,12 @@ export const compileGithubConfig = async (
 export const createGitHubRepoRecord = ({
     repo,
     hostUrl,
-    branches,
-    tags,
+    revisions,
     isAutoCleanupDisabled,
 }: {
     repo: OctokitRepository,
     hostUrl: string,
-    branches?: string[],
-    tags?: string[],
+    revisions?: Parameters<typeof getRevisionMetadata>[0],
     isAutoCleanupDisabled?: boolean,
 }) => {
     const repoNameRoot = new URL(hostUrl)
@@ -145,8 +156,7 @@ export const createGitHubRepoRecord = ({
                 'zoekt.public': marshalBool(isPublic),
                 'zoekt.display-name': repoDisplayName,
             },
-            branches,
-            tags,
+            ...getRevisionMetadata(revisions),
             codeHostMetadata: {
                 github: {
                     topics: repo.topics ?? [],
@@ -226,8 +236,7 @@ export const compileGitlabConfig = async (
                     'zoekt.public': marshalBool(isPublic),
                     'zoekt.display-name': repoDisplayName,
                 },
-                branches: config.revisions?.branches ?? undefined,
-                tags: config.revisions?.tags ?? undefined,
+                ...getRevisionMetadata(config.revisions),
                 codeHostMetadata: {
                     gitlab: {
                         topics: project.topics ?? [],
@@ -301,8 +310,7 @@ export const compileGiteaConfig = async (
                     'zoekt.public': marshalBool(isPublic),
                     'zoekt.display-name': repoDisplayName,
                 },
-                branches: config.revisions?.branches ?? undefined,
-                tags: config.revisions?.tags ?? undefined,
+                ...getRevisionMetadata(config.revisions),
             } satisfies RepoMetadata,
         };
 
@@ -385,8 +393,7 @@ export const compileGerritConfig = async (
                     'zoekt.public': marshalBool(true),
                     'zoekt.display-name': repoDisplayName,
                 },
-                branches: config.revisions?.branches ?? undefined,
-                tags: config.revisions?.tags ?? undefined,
+                ...getRevisionMetadata(config.revisions),
             } satisfies RepoMetadata,
         };
 
@@ -537,8 +544,7 @@ export const compileBitbucketConfig = async (
                     'zoekt.public': marshalBool(isPublic),
                     'zoekt.display-name': displayName,
                 },
-                branches: config.revisions?.branches ?? undefined,
-                tags: config.revisions?.tags ?? undefined,
+                ...getRevisionMetadata(config.revisions),
                 ...(codeHostType === 'bitbucketCloud' ? {
                     codeHostMetadata: {
                         bitbucketCloud: {
@@ -674,8 +680,7 @@ export const compileGenericGitHostConfig_file = async (
                 }
             },
             metadata: {
-                branches: config.revisions?.branches ?? undefined,
-                tags: config.revisions?.tags ?? undefined,
+                ...getRevisionMetadata(config.revisions),
                 // @NOTE: We don't set a gitConfig here since local repositories
                 // are readonly.
                 gitConfig: undefined,
@@ -757,8 +762,7 @@ export const compileGenericGitHostConfig_url = async (
                 'zoekt.public': marshalBool(true),
                 'zoekt.display-name': repoName,
             },
-            branches: config.revisions?.branches ?? undefined,
-            tags: config.revisions?.tags ?? undefined,
+            ...getRevisionMetadata(config.revisions),
         } satisfies RepoMetadata,
     };
 
@@ -835,8 +839,7 @@ export const compileAzureDevOpsConfig = async (
                     'zoekt.public': marshalBool(isPublic),
                     'zoekt.display-name': repoDisplayName,
                 },
-                branches: config.revisions?.branches ?? undefined,
-                tags: config.revisions?.tags ?? undefined,
+                ...getRevisionMetadata(config.revisions),
             } satisfies RepoMetadata,
         };
 
