@@ -196,7 +196,12 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
                 </div>
             )}
             {shouldRenderMarkdown ? (
-                <MarkdownPreviewPanel source={fileSourceResponse.source} />
+                <MarkdownPreviewPanel
+                    source={fileSourceResponse.source}
+                    repoName={repoName}
+                    revisionName={revisionName}
+                    path={path}
+                />
             ) : (
                 <PureCodePreviewPanel
                     source={fileSourceResponse.source}

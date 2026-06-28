@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { BLOB_VIEW_QUERY_PARAM, getBrowseParamsFromPathParam } from "../hooks/utils";
+import { BLOB_VIEW_QUERY_PARAM, getBrowseParamsFromPathParam, HIGHLIGHT_RANGE_QUERY_PARAM } from "../hooks/utils";
 import { CodePreviewPanel } from "./components/codePreviewPanel/codePreviewPanel";
 import { FocusedCommitDiffPanel } from "./components/commitDiffPanel/focusedCommitDiffPanel";
 import { FullCommitDiffPanel } from "./components/commitDiffPanel/fullCommitDiffPanel";
@@ -93,6 +93,7 @@ interface BrowsePageProps {
         diff?: string;
         blame?: string;
         view?: string;
+        highlightRange?: string;
     }>;
 }
 
@@ -114,7 +115,8 @@ export default async function BrowsePage(props: BrowsePageProps) {
     const previewRef = searchParams.ref || undefined;
     const isDiffMode = searchParams.diff === 'true';
     const isBlameMode = searchParams.blame === 'true';
-    const blobViewMode = searchParams[BLOB_VIEW_QUERY_PARAM] === 'source' ? 'source' : 'rendered';
+    const hasHighlightRange = !!searchParams[HIGHLIGHT_RANGE_QUERY_PARAM];
+    const blobViewMode = hasHighlightRange || searchParams[BLOB_VIEW_QUERY_PARAM] === 'source' ? 'source' : 'rendered';
 
     return (
         <div className="flex flex-col h-full">
