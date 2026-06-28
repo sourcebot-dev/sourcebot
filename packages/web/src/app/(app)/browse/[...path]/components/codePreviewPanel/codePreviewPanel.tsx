@@ -3,6 +3,7 @@ import { PathHeader } from "@/app/(app)/components/pathHeader";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ErrorCode } from "@/lib/errorCodes";
 import { cn, getCodeHostInfoForRepo, isServiceError, truncateSha } from "@/lib/utils";
 import { X } from "lucide-react";
 import Image from "next/image";
@@ -10,6 +11,7 @@ import Link from "next/link";
 import { getBrowsePath } from "../../../hooks/utils";
 import { BlameAgeLegend } from "./blameAgeLegend";
 import { BlameViewToggle } from "./blameViewToggle";
+import { FileNotFoundPanel } from "./fileNotFoundPanel";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
 import { getFileBlame, getFileSource } from '@/features/git';
 
@@ -54,12 +56,27 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
             : Promise.resolve(undefined),
     ]);
 
-    if (isServiceError(fileSourceResponse)) {
-        return <div>Error loading file source: {fileSourceResponse.message}</div>
-    }
-
     if (isServiceError(repoInfoResponse)) {
         return <div>Error loading repo info: {repoInfoResponse.message}</div>
+    }
+
+    if (isServiceError(fileSourceResponse)) {
+        if (fileSourceResponse.errorCode === ErrorCode.FILE_NOT_FOUND) {
+            return (
+                <FileNotFoundPanel
+                    path={path}
+                    repoName={repoName}
+                    revisionName={contentRef}
+                    repo={{
+                        codeHostType: repoInfoResponse.codeHostType,
+                        displayName: repoInfoResponse.displayName,
+                        externalWebUrl: repoInfoResponse.externalWebUrl,
+                    }}
+                />
+            );
+        }
+
+        return <div>Error loading file source: {fileSourceResponse.message}</div>
     }
 
     if (blameResponse !== undefined && isServiceError(blameResponse)) {
