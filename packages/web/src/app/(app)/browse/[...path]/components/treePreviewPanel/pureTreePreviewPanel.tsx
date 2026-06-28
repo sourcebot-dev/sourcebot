@@ -14,6 +14,14 @@ interface PureTreePreviewPanelProps {
 export const PureTreePreviewPanel = ({ items }: PureTreePreviewPanelProps) => {
     const { repoName, revisionName } = useBrowseParams();
     const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+    if (items.length === 0) {
+        return (
+            <div className="flex h-full items-center justify-center p-4 text-sm text-muted-foreground">
+                This repository is empty
+            </div>
+        );
+    }
    
     return (
         <ScrollArea

@@ -5,7 +5,7 @@ import { withOptionalAuth } from "@/middleware/withAuth";
 import { getRepoPath } from '@sourcebot/shared';
 import simpleGit from 'simple-git';
 import z from 'zod';
-import { compareFileTreeItems, isPathValid, normalizePath } from './utils';
+import { compareFileTreeItems, isGitRepositoryEmpty, isPathValid, normalizePath } from './utils';
 import { logger } from './logger';
 
 
@@ -53,6 +53,10 @@ export const getFolderContents = async ({ repoName, revisionName, path }: GetFol
                 ...(normalizedPath.length === 0 ? [] : [normalizedPath]),
             ]);
         } catch (error) {
+            if (normalizedPath.length === 0 && await isGitRepositoryEmpty(git)) {
+                return [];
+            }
+
             logger.error('git ls-tree failed.', { error });
             return unexpectedError('git ls-tree command failed.');
         }
