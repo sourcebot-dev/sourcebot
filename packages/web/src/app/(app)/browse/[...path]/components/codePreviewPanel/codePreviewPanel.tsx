@@ -185,6 +185,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
                                         revisionName,
                                         path,
                                         pathType: 'blob',
+                                        viewMode: viewMode === 'source' ? 'source' : undefined,
                                     })}
                                     aria-label="Close preview"
                                 >

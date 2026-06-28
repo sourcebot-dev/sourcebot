@@ -160,6 +160,31 @@ describe('CodePreviewPanel markdown preview', () => {
         }, { source: 'sourcebot-web-client' });
     });
 
+    test('preserves source view when closing a revision preview', async () => {
+        mocks.getFileSource.mockResolvedValue({
+            source: '# Previous README',
+            language: 'Markdown',
+            path: 'README.md',
+            repo: 'github.com/sourcebot-dev/sourcebot',
+            repoCodeHostType: 'github',
+            repoDisplayName: 'sourcebot-dev/sourcebot',
+            repoExternalWebUrl: 'https://github.com/sourcebot-dev/sourcebot',
+            webUrl: 'https://sourcebot.example.com/browse/github.com/sourcebot-dev/sourcebot/-/blob/README.md',
+        });
+
+        renderWithTooltipProvider(await CodePreviewPanel({
+            path: 'README.md',
+            repoName: 'github.com/sourcebot-dev/sourcebot',
+            revisionName: 'main',
+            previewRef: 'abc123456789',
+            viewMode: 'source',
+        }));
+
+        expect(screen.getByLabelText('Close preview').getAttribute('href')).toBe(
+            '/browse/github.com/sourcebot-dev/sourcebot@main/-/blob/README.md?view=source'
+        );
+    });
+
     test('does not mount raw html from repository markdown', () => {
         const { container } = render(
             <MarkdownPreviewPanel
