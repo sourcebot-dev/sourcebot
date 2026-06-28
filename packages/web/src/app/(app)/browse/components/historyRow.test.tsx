@@ -74,6 +74,27 @@ describe('HistoryRow', () => {
         );
     });
 
+    test('preserves source view in history links when a highlight range forced source mode', () => {
+        mocks.search = 'highlightRange=12,12';
+
+        renderWithTooltipProvider(
+            <HistoryRow
+                commit={commit}
+                repoName="github.com/sourcebot-dev/sourcebot"
+                revisionName="main"
+                path="README.md"
+                pathType="blob"
+            />
+        );
+
+        expect(screen.getByRole('link', { name: 'View code at this commit' }).getAttribute('href')).toBe(
+            '/browse/github.com/sourcebot-dev/sourcebot@main/-/blob/README.md?ref=abc123456789&view=source'
+        );
+        expect(screen.getByRole('link', { name: 'Update README' }).getAttribute('href')).toBe(
+            '/browse/github.com/sourcebot-dev/sourcebot@main/-/blob/README.md?ref=abc123456789&diff=true&view=source'
+        );
+    });
+
     test('keeps rendered preview history links as the default URL', () => {
         renderWithTooltipProvider(
             <HistoryRow

@@ -360,4 +360,38 @@ describe('CodePreviewPanel markdown preview', () => {
             'https://example.com/pixel.png'
         );
     });
+
+    test('renders reference-style markdown images as non-fetching links', () => {
+        render(
+            <MarkdownPreviewPanel
+                source={"![Badge][badge]\n\n[badge]: https://example.com/badge.svg"}
+                repoName="github.com/sourcebot-dev/sourcebot"
+                revisionName="main"
+                path="README.md"
+            />
+        );
+
+        expect(screen.queryByRole('img')).toBeNull();
+        expect(screen.getByRole('link', { name: 'Image: Badge' }).getAttribute('href')).toBe(
+            'https://example.com/badge.svg'
+        );
+    });
+
+    test('does not create nested anchors for linked reference-style markdown images', () => {
+        const { container } = render(
+            <MarkdownPreviewPanel
+                source={"[![Build status][badge]](https://example.com/status)\n\n[badge]: https://example.com/badge.svg"}
+                repoName="github.com/sourcebot-dev/sourcebot"
+                revisionName="main"
+                path="README.md"
+            />
+        );
+
+        const links = container.querySelectorAll('a');
+
+        expect(screen.queryByRole('img')).toBeNull();
+        expect(links).toHaveLength(1);
+        expect(links[0].getAttribute('href')).toBe('https://example.com/status');
+        expect(links[0].textContent).toBe('Image: Build status');
+    });
 });

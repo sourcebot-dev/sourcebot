@@ -1,6 +1,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import type { Image, Link as MdastLink, Root, Text } from "mdast";
+import type { Definition, Image, ImageReference, Link as MdastLink, Root, Text } from "mdast";
 import Link from "next/link";
 import Markdown from "react-markdown";
 import { isValidElement, type ComponentPropsWithoutRef, type ReactNode } from "react";
@@ -97,6 +97,9 @@ const getRelativeBrowseHref = ({ repoName, revisionName, currentPath, href }: {
 
 const getImageLabel = (alt?: string | null): string => alt ? `Image: ${alt}` : 'Image';
 
+const normalizeDefinitionIdentifier = (identifier: string): string =>
+    identifier.trim().replace(/[\t\n\r ]+/g, ' ').toLowerCase();
+
 const getNodeText = (node: ReactNode): string => {
     if (typeof node === 'string' || typeof node === 'number') {
         return String(node);
@@ -129,30 +132,45 @@ const slugHeading = (text: string): string => {
 
 const remarkImageLinks = () => {
     return (tree: Root) => {
-        visit(tree, 'image', (node: Image, index, parent) => {
+        const definitions = new Map<string, Definition>();
+
+        visit(tree, 'definition', (node: Definition) => {
+            definitions.set(normalizeDefinitionIdentifier(node.identifier), node);
+        });
+
+        type ImageParent = { type?: string; children: Array<unknown> };
+        const replaceImageNode = (node: Image | ImageReference, index?: number, parent?: ImageParent) => {
             if (index === undefined || !parent || !('children' in parent)) {
                 return;
             }
 
+            const definition = node.type === 'imageReference'
+                ? definitions.get(normalizeDefinitionIdentifier(node.identifier))
+                : undefined;
+            const imageUrl = node.type === 'image' ? node.url : definition?.url;
+            const imageTitle = node.type === 'image' ? node.title : definition?.title;
             const textNode: Text = {
                 type: 'text',
                 value: getImageLabel(node.alt),
             };
 
-            if (!node.url || parent.type === 'link') {
+            if (!imageUrl || parent.type === 'link' || parent.type === 'linkReference') {
                 parent.children[index] = textNode;
                 return;
             }
 
             const linkNode: MdastLink = {
                 type: 'link',
-                url: node.url,
-                title: node.title,
+                url: imageUrl,
+                title: imageTitle,
                 children: [textNode],
             };
 
             parent.children[index] = linkNode;
-        });
+        };
+
+        visit(tree, 'image', replaceImageNode);
+        visit(tree, 'imageReference', replaceImageNode);
     };
 };
 
