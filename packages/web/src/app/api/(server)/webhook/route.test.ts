@@ -153,18 +153,25 @@ describe("POST /api/webhook", () => {
     test("skips GitHub events when verification fails", async () => {
         mocks.verifyAndReceive.mockRejectedValue(new Error("invalid signature"));
         const { POST } = await importRoute();
-
-        await POST(createGitHubRequest({
+        const payload = {
             action: "opened",
             installation: { id: 123 },
             repository: {
                 url: "https://api.github.com/repos/sourcebot-dev/sourcebot",
             },
             pull_request: { number: 1 },
-        }, {
+        };
+
+        await POST(createGitHubRequest(payload, {
             "x-hub-signature-256": "sha256=signature",
         }));
 
+        expect(mocks.verifyAndReceive).toHaveBeenCalledWith({
+            id: "delivery-id",
+            name: "pull_request",
+            payload: JSON.stringify(payload),
+            signature: "sha256=signature",
+        });
         expect(mocks.getInstallationOctokit).not.toHaveBeenCalled();
         expect(mocks.processGitHubPullRequest).not.toHaveBeenCalled();
     });
