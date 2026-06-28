@@ -95,6 +95,7 @@ describe("git ref ordering", () => {
     test("getTags supports sorting by ref name", async () => {
         const repoPath = await createTempRepo();
         repoPaths.push(repoPath);
+        runGit(repoPath, ["config", "tag.sort", "creatordate"]);
 
         await commitFile({
             repoPath,
@@ -163,6 +164,7 @@ describe("git ref ordering", () => {
     test("getBranches supports sorting by ref name", async () => {
         const repoPath = await createTempRepo();
         repoPaths.push(repoPath);
+        runGit(repoPath, ["config", "branch.sort", "committerdate"]);
 
         await commitFile({
             repoPath,
