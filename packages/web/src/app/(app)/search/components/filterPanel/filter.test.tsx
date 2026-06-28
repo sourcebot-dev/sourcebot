@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Filter } from './filter';
@@ -36,6 +36,32 @@ const entries: Entry[] = [
 ];
 
 describe('Filter', () => {
+    test('renders entries as accessible toggle buttons', () => {
+        const onEntryClicked = vi.fn();
+
+        render(
+            <TooltipProvider>
+                <Filter
+                    title="Languages"
+                    searchPlaceholder="Search languages"
+                    entries={entries}
+                    onEntryClicked={onEntryClicked}
+                    isStreaming={false}
+                />
+            </TooltipProvider>,
+        );
+
+        const selectedEntry = screen.getByRole('button', { name: /PowerShell/ });
+        const unselectedEntry = screen.getByRole('button', { name: /C/ });
+
+        expect(selectedEntry.getAttribute('aria-pressed')).toBe('true');
+        expect(unselectedEntry.getAttribute('aria-pressed')).toBe('false');
+
+        fireEvent.click(selectedEntry);
+
+        expect(onEntryClicked).toHaveBeenCalledWith('powershell');
+    });
+
     test('keeps selected entries visible and pinned while filtering', () => {
         render(
             <TooltipProvider>
