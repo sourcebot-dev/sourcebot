@@ -190,6 +190,36 @@ describe('CodePreviewPanel markdown preview', () => {
         );
     });
 
+    test('decodes encoded relative markdown link paths before rewriting them', () => {
+        render(
+            <MarkdownPreviewPanel
+                source="[Guide](./file%20with%20spaces%23and%3Fchars.md?plain=true#install)"
+                repoName="github.com/sourcebot-dev/sourcebot"
+                revisionName="main"
+                path="docs/README.md"
+            />
+        );
+
+        expect(screen.getByRole('link', { name: 'Guide' }).getAttribute('href')).toBe(
+            '/browse/github.com/sourcebot-dev/sourcebot@main/-/blob/docs%2Ffile%20with%20spaces%23and%3Fchars.md?plain=true#install'
+        );
+    });
+
+    test('rewrites directory-style markdown links to browse tree paths', () => {
+        render(
+            <MarkdownPreviewPanel
+                source="[Docs](./docs/)"
+                repoName="github.com/sourcebot-dev/sourcebot"
+                revisionName="main"
+                path="README.md"
+            />
+        );
+
+        expect(screen.getByRole('link', { name: 'Docs' }).getAttribute('href')).toBe(
+            '/browse/github.com/sourcebot-dev/sourcebot@main/-/tree/docs'
+        );
+    });
+
     test('renders markdown images as non-fetching links', () => {
         render(
             <MarkdownPreviewPanel
@@ -203,6 +233,40 @@ describe('CodePreviewPanel markdown preview', () => {
         expect(screen.queryByRole('img')).toBeNull();
         expect(screen.getByRole('link', { name: 'Image: Architecture' }).getAttribute('href')).toBe(
             '/browse/github.com/sourcebot-dev/sourcebot@main/-/blob/docs%2Fassets%2Farchitecture.png'
+        );
+    });
+
+    test('does not create nested anchors for linked markdown images', () => {
+        const { container } = render(
+            <MarkdownPreviewPanel
+                source="[![Build status](./badge.svg)](https://example.com/status)"
+                repoName="github.com/sourcebot-dev/sourcebot"
+                revisionName="main"
+                path="README.md"
+            />
+        );
+
+        const links = container.querySelectorAll('a');
+
+        expect(screen.queryByRole('img')).toBeNull();
+        expect(links).toHaveLength(1);
+        expect(links[0].getAttribute('href')).toBe('https://example.com/status');
+        expect(links[0].textContent).toBe('Image: Build status');
+    });
+
+    test('decodes encoded relative markdown image paths before rewriting them', () => {
+        render(
+            <MarkdownPreviewPanel
+                source="![Architecture](./image%20one.png)"
+                repoName="github.com/sourcebot-dev/sourcebot"
+                revisionName="main"
+                path="docs/README.md"
+            />
+        );
+
+        expect(screen.queryByRole('img')).toBeNull();
+        expect(screen.getByRole('link', { name: 'Image: Architecture' }).getAttribute('href')).toBe(
+            '/browse/github.com/sourcebot-dev/sourcebot@main/-/blob/docs%2Fimage%20one.png'
         );
     });
 

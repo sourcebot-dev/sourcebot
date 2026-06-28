@@ -1,8 +1,10 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import type { Image, Link as MdastLink, Root, Text } from "mdast";
 import Link from "next/link";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { visit } from "unist-util-visit";
 import { getBrowsePath } from "../../../hooks/utils";
 
 interface MarkdownPreviewPanelProps {
@@ -27,6 +29,14 @@ const splitUrl = (url: string) => {
         query: queryIndex === -1 ? '' : beforeHash.slice(queryIndex),
         hash,
     };
+};
+
+const decodeUrlPath = (urlPath: string): string | undefined => {
+    try {
+        return decodeURIComponent(urlPath);
+    } catch {
+        return undefined;
+    }
 };
 
 const resolveRepoRelativePath = (currentFilePath: string, urlPath: string): string => {
@@ -63,9 +73,16 @@ const getRelativeBrowseHref = ({ repoName, revisionName, currentPath, href }: {
     }
 
     const { path, query, hash } = splitUrl(href);
-    const resolvedPath = resolveRepoRelativePath(currentPath, path);
+    const decodedPath = decodeUrlPath(path);
 
-    if (!resolvedPath) {
+    if (decodedPath === undefined) {
+        return undefined;
+    }
+
+    const pathType = decodedPath.endsWith('/') ? 'tree' : 'blob';
+    const resolvedPath = resolveRepoRelativePath(currentPath, decodedPath);
+
+    if (!resolvedPath && pathType !== 'tree') {
         return undefined;
     }
 
@@ -73,8 +90,39 @@ const getRelativeBrowseHref = ({ repoName, revisionName, currentPath, href }: {
         repoName,
         revisionName,
         path: resolvedPath,
-        pathType: 'blob',
+        pathType,
     })}${query}${hash}`;
+};
+
+const getImageLabel = (alt?: string | null): string => alt ? `Image: ${alt}` : 'Image';
+
+const remarkImageLinks = () => {
+    return (tree: Root) => {
+        visit(tree, 'image', (node: Image, index, parent) => {
+            if (index === undefined || !parent || !('children' in parent)) {
+                return;
+            }
+
+            const textNode: Text = {
+                type: 'text',
+                value: getImageLabel(node.alt),
+            };
+
+            if (!node.url || parent.type === 'link') {
+                parent.children[index] = textNode;
+                return;
+            }
+
+            const linkNode: MdastLink = {
+                type: 'link',
+                url: node.url,
+                title: node.title,
+                children: [textNode],
+            };
+
+            parent.children[index] = linkNode;
+        });
+    };
 };
 
 export const MarkdownPreviewPanel = ({ source, repoName, revisionName, path }: MarkdownPreviewPanelProps) => {
@@ -94,7 +142,7 @@ export const MarkdownPreviewPanel = ({ source, repoName, revisionName, path }: M
                 )}
             >
                 <Markdown
-                    remarkPlugins={[remarkGfm]}
+                    remarkPlugins={[remarkGfm, remarkImageLinks]}
                     components={{
                         a: ({ href, children, node: _node, ...props }) => {
                             const browseHref = typeof href === 'string'
@@ -106,26 +154,6 @@ export const MarkdownPreviewPanel = ({ source, repoName, revisionName, path }: M
                             }
 
                             return <a href={href} {...props}>{children}</a>;
-                        },
-                        img: ({ src, alt }) => {
-                            if (typeof src !== 'string' || src.length === 0) {
-                                return null;
-                            }
-
-                            const browseHref = getRelativeBrowseHref({ repoName, revisionName, currentPath: path, href: src });
-                            const label = alt ? `Image: ${alt}` : 'Image';
-                            const href = browseHref ?? src;
-
-                            return (
-                                <a
-                                    href={href}
-                                    className="not-prose inline-flex max-w-full rounded-md border bg-muted/40 px-2 py-1 text-sm text-link hover:underline"
-                                    rel={browseHref ? undefined : "noopener noreferrer"}
-                                    target={browseHref ? undefined : "_blank"}
-                                >
-                                    <span className="truncate">{label}</span>
-                                </a>
-                            );
                         },
                     }}
                 >
