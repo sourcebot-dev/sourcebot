@@ -330,14 +330,15 @@ export class RepoIndexManager {
         this.promClient.activeRepoIndexJobs.inc({ repo: job.data.repoName, type: jobTypeLabel });
 
         if (jobType === RepoIndexingJobType.INDEX) {
-            const revisions = await this.indexRepository(repo, logger, signal);
+            const { revisions, ctagsWarning } = await this.indexRepository(repo, logger, signal);
 
             await this.db.repoIndexingJob.update({
                 where: { id },
                 data: {
                     metadata: {
                         indexedRevisions: revisions,
-                    } satisfies RepoIndexingJobMetadata,
+                        ...(ctagsWarning && { ctagsWarning }),
+                    },
                 },
             });
         } else if (jobType === RepoIndexingJobType.CLEANUP) {
@@ -511,10 +512,15 @@ export class RepoIndexManager {
         }
 
         logger.debug(`Indexing ${repo.name} (id: ${repo.id})...`);
+        let ctagsWarning: string | undefined;
         try {
-            const { durationMs } = await measure(() => indexGitRepository(repo, this.settings, revisions, signal));
+            const { data, durationMs } = await measure(() => indexGitRepository(repo, this.settings, revisions, signal));
+            ctagsWarning = data.ctagsWarning;
             const indexDuration_s = durationMs / 1000;
             logger.debug(`Indexed ${repo.name} (id: ${repo.id}) in ${indexDuration_s}s`);
+            if (ctagsWarning) {
+                logger.warn(`Repo ${repo.name} (id: ${repo.id}) has symbol indexing issues: ${ctagsWarning}`);
+            }
         } catch (error) {
             // Clean up any temporary shard files left behind by the failed indexing operation.
             // Zoekt creates .tmp files during indexing which can accumulate if indexing fails repeatedly.
@@ -523,7 +529,7 @@ export class RepoIndexManager {
             throw error;
         }
 
-        return revisions;
+        return { revisions, ctagsWarning };
     }
 
     private async cleanupRepository(repo: Repo, logger: Logger) {
