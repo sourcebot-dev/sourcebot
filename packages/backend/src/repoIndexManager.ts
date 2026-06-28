@@ -500,7 +500,7 @@ export class RepoIndexManager {
         // De-duplicate revisions to ensure we don't have duplicate branches/tags
         revisions = [...new Set(revisions)];
 
-        // zoekt has a limit of 64 branches/tags to index.
+        // zoekt has a limit of 64 total revisions to index, including the default branch.
         if (revisions.length > 64) {
             logger.warn(`Too many revisions (${revisions.length}) for repo ${repo.id}, truncating to 64`);
             captureEvent('backend_revisions_truncated', {

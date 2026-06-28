@@ -657,11 +657,11 @@ const schema = {
                 },
                 "revisions": {
                   "type": "object",
-                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed first. Sourcebot can index at most 64 total revisions per repository, including the default branch. Matching branches are considered before matching tags, and any revisions beyond the 64 revision limit are ignored.",
                   "properties": {
                     "branches": {
                       "type": "array",
-                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. Matching branches are considered before matching tags, and the combined default branch, branch, and tag revision list is capped at 64 total revisions.",
                       "items": {
                         "type": "string"
                       },
@@ -678,7 +678,7 @@ const schema = {
                     },
                     "branchSort": {
                       "type": "string",
-                      "description": "Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+                      "description": "Sort order to use when listing candidate branches before matching branch glob patterns and applying the global 64 revision limit. Values map to Git `for-each-ref` sort keys. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name. For branches, `creatordate` follows Git object creator-date semantics and is not a branch creation timestamp.",
                       "enum": [
                         "committerdate",
                         "creatordate",
@@ -688,7 +688,7 @@ const schema = {
                     },
                     "tags": {
                       "type": "array",
-                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. Matching tags are considered after matching branches, and the combined default branch, branch, and tag revision list is capped at 64 total revisions.",
                       "items": {
                         "type": "string"
                       },
@@ -705,7 +705,7 @@ const schema = {
                     },
                     "tagSort": {
                       "type": "string",
-                      "description": "Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+                      "description": "Sort order to use when listing candidate tags before matching tag glob patterns and applying the global 64 revision limit. Values map to Git `for-each-ref` sort keys. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
                       "enum": [
                         "committerdate",
                         "creatordate",
@@ -888,11 +888,11 @@ const schema = {
                 },
                 "revisions": {
                   "type": "object",
-                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed first. Sourcebot can index at most 64 total revisions per repository, including the default branch. Matching branches are considered before matching tags, and any revisions beyond the 64 revision limit are ignored.",
                   "properties": {
                     "branches": {
                       "type": "array",
-                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. Matching branches are considered before matching tags, and the combined default branch, branch, and tag revision list is capped at 64 total revisions.",
                       "items": {
                         "type": "string"
                       },
@@ -909,7 +909,7 @@ const schema = {
                     },
                     "branchSort": {
                       "type": "string",
-                      "description": "Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+                      "description": "Sort order to use when listing candidate branches before matching branch glob patterns and applying the global 64 revision limit. Values map to Git `for-each-ref` sort keys. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name. For branches, `creatordate` follows Git object creator-date semantics and is not a branch creation timestamp.",
                       "enum": [
                         "committerdate",
                         "creatordate",
@@ -919,7 +919,7 @@ const schema = {
                     },
                     "tags": {
                       "type": "array",
-                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. Matching tags are considered after matching branches, and the combined default branch, branch, and tag revision list is capped at 64 total revisions.",
                       "items": {
                         "type": "string"
                       },
@@ -936,7 +936,7 @@ const schema = {
                     },
                     "tagSort": {
                       "type": "string",
-                      "description": "Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+                      "description": "Sort order to use when listing candidate tags before matching tag glob patterns and applying the global 64 revision limit. Values map to Git `for-each-ref` sort keys. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
                       "enum": [
                         "committerdate",
                         "creatordate",
@@ -1072,11 +1072,11 @@ const schema = {
                 },
                 "revisions": {
                   "type": "object",
-                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed first. Sourcebot can index at most 64 total revisions per repository, including the default branch. Matching branches are considered before matching tags, and any revisions beyond the 64 revision limit are ignored.",
                   "properties": {
                     "branches": {
                       "type": "array",
-                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. Matching branches are considered before matching tags, and the combined default branch, branch, and tag revision list is capped at 64 total revisions.",
                       "items": {
                         "type": "string"
                       },
@@ -1093,7 +1093,7 @@ const schema = {
                     },
                     "branchSort": {
                       "type": "string",
-                      "description": "Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+                      "description": "Sort order to use when listing candidate branches before matching branch glob patterns and applying the global 64 revision limit. Values map to Git `for-each-ref` sort keys. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name. For branches, `creatordate` follows Git object creator-date semantics and is not a branch creation timestamp.",
                       "enum": [
                         "committerdate",
                         "creatordate",
@@ -1103,7 +1103,7 @@ const schema = {
                     },
                     "tags": {
                       "type": "array",
-                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. Matching tags are considered after matching branches, and the combined default branch, branch, and tag revision list is capped at 64 total revisions.",
                       "items": {
                         "type": "string"
                       },
@@ -1120,7 +1120,7 @@ const schema = {
                     },
                     "tagSort": {
                       "type": "string",
-                      "description": "Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+                      "description": "Sort order to use when listing candidate tags before matching tag glob patterns and applying the global 64 revision limit. Values map to Git `for-each-ref` sort keys. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
                       "enum": [
                         "committerdate",
                         "creatordate",
@@ -1208,11 +1208,11 @@ const schema = {
                 },
                 "revisions": {
                   "type": "object",
-                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed first. Sourcebot can index at most 64 total revisions per repository, including the default branch. Matching branches are considered before matching tags, and any revisions beyond the 64 revision limit are ignored.",
                   "properties": {
                     "branches": {
                       "type": "array",
-                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. Matching branches are considered before matching tags, and the combined default branch, branch, and tag revision list is capped at 64 total revisions.",
                       "items": {
                         "type": "string"
                       },
@@ -1229,7 +1229,7 @@ const schema = {
                     },
                     "branchSort": {
                       "type": "string",
-                      "description": "Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+                      "description": "Sort order to use when listing candidate branches before matching branch glob patterns and applying the global 64 revision limit. Values map to Git `for-each-ref` sort keys. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name. For branches, `creatordate` follows Git object creator-date semantics and is not a branch creation timestamp.",
                       "enum": [
                         "committerdate",
                         "creatordate",
@@ -1239,7 +1239,7 @@ const schema = {
                     },
                     "tags": {
                       "type": "array",
-                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. Matching tags are considered after matching branches, and the combined default branch, branch, and tag revision list is capped at 64 total revisions.",
                       "items": {
                         "type": "string"
                       },
@@ -1256,7 +1256,7 @@ const schema = {
                     },
                     "tagSort": {
                       "type": "string",
-                      "description": "Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+                      "description": "Sort order to use when listing candidate tags before matching tag glob patterns and applying the global 64 revision limit. Values map to Git `for-each-ref` sort keys. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
                       "enum": [
                         "committerdate",
                         "creatordate",
@@ -1407,11 +1407,11 @@ const schema = {
                 },
                 "revisions": {
                   "type": "object",
-                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed first. Sourcebot can index at most 64 total revisions per repository, including the default branch. Matching branches are considered before matching tags, and any revisions beyond the 64 revision limit are ignored.",
                   "properties": {
                     "branches": {
                       "type": "array",
-                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. Matching branches are considered before matching tags, and the combined default branch, branch, and tag revision list is capped at 64 total revisions.",
                       "items": {
                         "type": "string"
                       },
@@ -1428,7 +1428,7 @@ const schema = {
                     },
                     "branchSort": {
                       "type": "string",
-                      "description": "Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+                      "description": "Sort order to use when listing candidate branches before matching branch glob patterns and applying the global 64 revision limit. Values map to Git `for-each-ref` sort keys. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name. For branches, `creatordate` follows Git object creator-date semantics and is not a branch creation timestamp.",
                       "enum": [
                         "committerdate",
                         "creatordate",
@@ -1438,7 +1438,7 @@ const schema = {
                     },
                     "tags": {
                       "type": "array",
-                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. Matching tags are considered after matching branches, and the combined default branch, branch, and tag revision list is capped at 64 total revisions.",
                       "items": {
                         "type": "string"
                       },
@@ -1455,7 +1455,7 @@ const schema = {
                     },
                     "tagSort": {
                       "type": "string",
-                      "description": "Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+                      "description": "Sort order to use when listing candidate tags before matching tag glob patterns and applying the global 64 revision limit. Values map to Git `for-each-ref` sort keys. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
                       "enum": [
                         "committerdate",
                         "creatordate",
@@ -1644,11 +1644,11 @@ const schema = {
                 },
                 "revisions": {
                   "type": "object",
-                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed first. Sourcebot can index at most 64 total revisions per repository, including the default branch. Matching branches are considered before matching tags, and any revisions beyond the 64 revision limit are ignored.",
                   "properties": {
                     "branches": {
                       "type": "array",
-                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. Matching branches are considered before matching tags, and the combined default branch, branch, and tag revision list is capped at 64 total revisions.",
                       "items": {
                         "type": "string"
                       },
@@ -1665,7 +1665,7 @@ const schema = {
                     },
                     "branchSort": {
                       "type": "string",
-                      "description": "Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+                      "description": "Sort order to use when listing candidate branches before matching branch glob patterns and applying the global 64 revision limit. Values map to Git `for-each-ref` sort keys. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name. For branches, `creatordate` follows Git object creator-date semantics and is not a branch creation timestamp.",
                       "enum": [
                         "committerdate",
                         "creatordate",
@@ -1675,7 +1675,7 @@ const schema = {
                     },
                     "tags": {
                       "type": "array",
-                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. Matching tags are considered after matching branches, and the combined default branch, branch, and tag revision list is capped at 64 total revisions.",
                       "items": {
                         "type": "string"
                       },
@@ -1692,7 +1692,7 @@ const schema = {
                     },
                     "tagSort": {
                       "type": "string",
-                      "description": "Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+                      "description": "Sort order to use when listing candidate tags before matching tag glob patterns and applying the global 64 revision limit. Values map to Git `for-each-ref` sort keys. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
                       "enum": [
                         "committerdate",
                         "creatordate",
@@ -1742,11 +1742,11 @@ const schema = {
                 },
                 "revisions": {
                   "type": "object",
-                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed. A maximum of 64 revisions can be indexed, with any additional revisions being ignored.",
+                  "description": "The revisions (branches, tags) that should be included when indexing. The default branch (HEAD) is always indexed first. Sourcebot can index at most 64 total revisions per repository, including the default branch. Matching branches are considered before matching tags, and any revisions beyond the 64 revision limit are ignored.",
                   "properties": {
                     "branches": {
                       "type": "array",
-                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. A maximum of 64 branches can be indexed, with any additional branches being ignored.",
+                      "description": "List of branches to include when indexing. For a given repo, only the branches that exist on the repo's remote *and* match at least one of the provided `branches` will be indexed. The default branch (HEAD) is always indexed. Glob patterns are supported. Matching branches are considered before matching tags, and the combined default branch, branch, and tag revision list is capped at 64 total revisions.",
                       "items": {
                         "type": "string"
                       },
@@ -1763,7 +1763,7 @@ const schema = {
                     },
                     "branchSort": {
                       "type": "string",
-                      "description": "Sort order to use before matching and truncating branches for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+                      "description": "Sort order to use when listing candidate branches before matching branch glob patterns and applying the global 64 revision limit. Values map to Git `for-each-ref` sort keys. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name. For branches, `creatordate` follows Git object creator-date semantics and is not a branch creation timestamp.",
                       "enum": [
                         "committerdate",
                         "creatordate",
@@ -1773,7 +1773,7 @@ const schema = {
                     },
                     "tags": {
                       "type": "array",
-                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. A maximum of 64 tags can be indexed, with any additional tags being ignored.",
+                      "description": "List of tags to include when indexing. For a given repo, only the tags that exist on the repo's remote *and* match at least one of the provided `tags` will be indexed. Glob patterns are supported. Matching tags are considered after matching branches, and the combined default branch, branch, and tag revision list is capped at 64 total revisions.",
                       "items": {
                         "type": "string"
                       },
@@ -1790,7 +1790,7 @@ const schema = {
                     },
                     "tagSort": {
                       "type": "string",
-                      "description": "Sort order to use before matching and truncating tags for indexing. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
+                      "description": "Sort order to use when listing candidate tags before matching tag glob patterns and applying the global 64 revision limit. Values map to Git `for-each-ref` sort keys. `committerdate` and `creatordate` sort newest-first, while `refname` sorts lexicographically by ref name.",
                       "enum": [
                         "committerdate",
                         "creatordate",
