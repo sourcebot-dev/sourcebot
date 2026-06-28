@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import type { Image, Link as MdastLink, Root, Text } from "mdast";
 import Link from "next/link";
 import Markdown from "react-markdown";
+import { isValidElement, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import remarkGfm from "remark-gfm";
 import { visit } from "unist-util-visit";
 import { getBrowsePath } from "../../../hooks/utils";
@@ -96,6 +97,36 @@ const getRelativeBrowseHref = ({ repoName, revisionName, currentPath, href }: {
 
 const getImageLabel = (alt?: string | null): string => alt ? `Image: ${alt}` : 'Image';
 
+const getNodeText = (node: ReactNode): string => {
+    if (typeof node === 'string' || typeof node === 'number') {
+        return String(node);
+    }
+
+    if (Array.isArray(node)) {
+        return node.map(getNodeText).join('');
+    }
+
+    if (isValidElement<{ children?: ReactNode }>(node)) {
+        return getNodeText(node.props.children);
+    }
+
+    return '';
+};
+
+const slugHeading = (text: string): string => {
+    const slug = text
+        .trim()
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+
+    return slug || 'section';
+};
+
 const remarkImageLinks = () => {
     return (tree: Root) => {
         visit(tree, 'image', (node: Image, index, parent) => {
@@ -125,7 +156,18 @@ const remarkImageLinks = () => {
     };
 };
 
+type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+type HeadingProps<T extends HeadingTag> = ComponentPropsWithoutRef<T> & { node?: unknown };
+
 export const MarkdownPreviewPanel = ({ source, repoName, revisionName, path }: MarkdownPreviewPanelProps) => {
+    const headingCounts = new Map<string, number>();
+    const getHeadingId = (children: ReactNode) => {
+        const slug = slugHeading(getNodeText(children));
+        const count = headingCounts.get(slug) ?? 0;
+        headingCounts.set(slug, count + 1);
+        return count === 0 ? slug : `${slug}-${count}`;
+    };
+
     return (
         <ScrollArea className="h-full w-full">
             <article
@@ -155,6 +197,12 @@ export const MarkdownPreviewPanel = ({ source, repoName, revisionName, path }: M
 
                             return <a href={href} {...props}>{children}</a>;
                         },
+                        h1: ({ children, node: _node, ...props }: HeadingProps<'h1'>) => <h1 {...props} id={getHeadingId(children)}>{children}</h1>,
+                        h2: ({ children, node: _node, ...props }: HeadingProps<'h2'>) => <h2 {...props} id={getHeadingId(children)}>{children}</h2>,
+                        h3: ({ children, node: _node, ...props }: HeadingProps<'h3'>) => <h3 {...props} id={getHeadingId(children)}>{children}</h3>,
+                        h4: ({ children, node: _node, ...props }: HeadingProps<'h4'>) => <h4 {...props} id={getHeadingId(children)}>{children}</h4>,
+                        h5: ({ children, node: _node, ...props }: HeadingProps<'h5'>) => <h5 {...props} id={getHeadingId(children)}>{children}</h5>,
+                        h6: ({ children, node: _node, ...props }: HeadingProps<'h6'>) => <h6 {...props} id={getHeadingId(children)}>{children}</h6>,
                     }}
                 >
                     {source}

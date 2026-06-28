@@ -190,6 +190,36 @@ describe('CodePreviewPanel markdown preview', () => {
         );
     });
 
+    test('adds heading ids for same-file markdown hash links', () => {
+        render(
+            <MarkdownPreviewPanel
+                source={"# Install Guide\n\n[Jump](#install-guide)"}
+                repoName="github.com/sourcebot-dev/sourcebot"
+                revisionName="main"
+                path="README.md"
+            />
+        );
+
+        expect(screen.getByRole('heading', { name: 'Install Guide' }).getAttribute('id')).toBe('install-guide');
+        expect(screen.getByRole('link', { name: 'Jump' }).getAttribute('href')).toBe('#install-guide');
+    });
+
+    test('deduplicates repeated heading ids', () => {
+        render(
+            <MarkdownPreviewPanel
+                source={"## Usage\n\n## Usage"}
+                repoName="github.com/sourcebot-dev/sourcebot"
+                revisionName="main"
+                path="README.md"
+            />
+        );
+
+        const headings = screen.getAllByRole('heading', { name: 'Usage' });
+
+        expect(headings[0].getAttribute('id')).toBe('usage');
+        expect(headings[1].getAttribute('id')).toBe('usage-1');
+    });
+
     test('decodes encoded relative markdown link paths before rewriting them', () => {
         render(
             <MarkdownPreviewPanel
@@ -202,6 +232,22 @@ describe('CodePreviewPanel markdown preview', () => {
 
         expect(screen.getByRole('link', { name: 'Guide' }).getAttribute('href')).toBe(
             '/browse/github.com/sourcebot-dev/sourcebot@main/-/blob/docs%2Ffile%20with%20spaces%23and%3Fchars.md?plain=true#install'
+        );
+    });
+
+    test('preserves cross-file markdown hash links while headings expose targets', () => {
+        render(
+            <MarkdownPreviewPanel
+                source={"# Current File\n\n[Guide](./guide.md#install)"}
+                repoName="github.com/sourcebot-dev/sourcebot"
+                revisionName="main"
+                path="docs/README.md"
+            />
+        );
+
+        expect(screen.getByRole('heading', { name: 'Current File' }).getAttribute('id')).toBe('current-file');
+        expect(screen.getByRole('link', { name: 'Guide' }).getAttribute('href')).toBe(
+            '/browse/github.com/sourcebot-dev/sourcebot@main/-/blob/docs%2Fguide.md#install'
         );
     });
 

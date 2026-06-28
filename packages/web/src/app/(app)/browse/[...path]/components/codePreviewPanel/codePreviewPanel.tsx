@@ -141,6 +141,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
                         revisionName={revisionName}
                         path={path}
                         blame={blame ?? false}
+                        viewMode={viewMode}
                     />
                     <span className="text-sm text-muted-foreground">
                         {lineCount.toLocaleString()} lines · {fileSize}
@@ -209,6 +210,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
                     repoName={repoName}
                     path={path}
                     revisionName={contentRef ?? 'HEAD'}
+                    viewMode={viewMode}
                     blame={blameResponse}
                 />
             )}

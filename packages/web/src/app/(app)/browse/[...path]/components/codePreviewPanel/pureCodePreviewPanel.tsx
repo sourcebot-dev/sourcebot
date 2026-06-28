@@ -13,7 +13,7 @@ import CodeMirror, { EditorSelection, EditorView, ReactCodeMirrorRef, SelectionR
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EditorContextMenu } from "@/app/(app)/components/editorContextMenu";
-import { BrowseHighlightRange, getBrowsePath, HIGHLIGHT_RANGE_QUERY_PARAM } from "@/app/(app)/browse/hooks/utils";
+import { type BlobViewMode, BrowseHighlightRange, getBrowsePath, HIGHLIGHT_RANGE_QUERY_PARAM } from "@/app/(app)/browse/hooks/utils";
 import { rangeHighlightingExtension } from "./rangeHighlightingExtension";
 import { blameGutterExtension } from "./blameGutterExtension";
 import type { FileBlameResponse } from "@/features/git";
@@ -24,6 +24,7 @@ interface PureCodePreviewPanelProps {
     revisionName: string;
     source: string;
     language: string;
+    viewMode?: BlobViewMode;
     blame?: FileBlameResponse;
 }
 
@@ -33,6 +34,7 @@ export const PureCodePreviewPanel = ({
     path,
     repoName,
     revisionName,
+    viewMode,
     blame,
 }: PureCodePreviewPanelProps) => {
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
@@ -51,8 +53,9 @@ export const PureCodePreviewPanel = ({
             pathType: 'blob',
             previewRef: commit.hash,
             diff: true,
+            viewMode: viewMode === 'source' ? 'source' : undefined,
         }));
-    }, [router, repoName, revisionName]);
+    }, [router, repoName, revisionName, viewMode]);
 
     const handleBlameReblameClick = useCallback((previous: { hash: string; path: string }) => {
         router.push(getBrowsePath({
@@ -61,8 +64,9 @@ export const PureCodePreviewPanel = ({
             path: previous.path,
             pathType: 'blob',
             blame: true,
+            viewMode: viewMode === 'source' ? 'source' : undefined,
         }));
-    }, [router, repoName]);
+    }, [router, repoName, viewMode]);
 
     const highlightRangeQuery = useNonEmptyQueryParam(HIGHLIGHT_RANGE_QUERY_PARAM);
     const highlightRange = useMemo((): BrowseHighlightRange | undefined => {
@@ -299,4 +303,3 @@ export const PureCodePreviewPanel = ({
         </ScrollArea>
     )
 }
-

@@ -134,6 +134,7 @@ export default async function BrowsePage(props: BrowsePageProps) {
                             revisionName={revisionName}
                             commitSha={previewRef}
                             path={path}
+                            viewMode={blobViewMode}
                         />
                     ) : (
                         <CodePreviewPanel

@@ -2,16 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { getBrowsePath } from "@/app/(app)/browse/hooks/utils";
+import { getBrowsePath, type BlobViewMode } from "@/app/(app)/browse/hooks/utils";
 
 interface BlameViewToggleProps {
     repoName: string;
     revisionName?: string;
     path: string;
     blame: boolean;
+    viewMode?: BlobViewMode;
 }
 
-export const BlameViewToggle = ({ repoName, revisionName, path, blame }: BlameViewToggleProps) => {
+export const BlameViewToggle = ({ repoName, revisionName, path, blame, viewMode }: BlameViewToggleProps) => {
     const router = useRouter();
 
     const handleValueChange = (value: string) => {
@@ -27,6 +28,7 @@ export const BlameViewToggle = ({ repoName, revisionName, path, blame }: BlameVi
             path,
             pathType: 'blob',
             blame: value === 'blame',
+            viewMode: viewMode === 'source' ? 'source' : undefined,
         }));
     };
 

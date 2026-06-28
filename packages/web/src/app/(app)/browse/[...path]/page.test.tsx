@@ -15,7 +15,7 @@ vi.mock('./components/codePreviewPanel/codePreviewPanel', () => ({
 }));
 
 vi.mock('./components/commitDiffPanel/focusedCommitDiffPanel', () => ({
-    FocusedCommitDiffPanel: () => <div data-testid="focused-diff" />,
+    FocusedCommitDiffPanel: ({ viewMode }: { viewMode: string }) => <div data-testid="focused-diff">{viewMode}</div>,
 }));
 
 vi.mock('./components/commitDiffPanel/fullCommitDiffPanel', () => ({
@@ -61,5 +61,6 @@ describe('BrowsePage markdown view routing', () => {
 
         expect(screen.queryByTestId('code-preview')).toBeNull();
         expect(screen.getByTestId('focused-diff')).toBeTruthy();
+        expect(screen.getByTestId('focused-diff').textContent).toBe('source');
     });
 });
