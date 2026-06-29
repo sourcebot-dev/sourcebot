@@ -4,6 +4,7 @@ import { sew } from "@/middleware/sew";
 import { generateAndStoreAuthCode } from '@/ee/features/oauth/server';
 import { withAuth } from '@/middleware/withAuth';
 import { resolveGrantedOAuthScopes, UNPERMITTED_SCHEMES } from '@/ee/features/oauth/constants';
+import { isValidDpopJkt } from '@/ee/features/oauth/dpop';
 import { ErrorCode } from '@/lib/errorCodes';
 import type { ServiceError } from '@/lib/serviceError';
 import { StatusCodes } from 'http-status-codes';
@@ -42,6 +43,7 @@ export const approveAuthorization = async ({
     codeChallenge,
     requestedScope,
     resource,
+    dpopJkt,
     state,
 }: {
     clientId: string;
@@ -49,6 +51,7 @@ export const approveAuthorization = async ({
     codeChallenge: string;
     requestedScope: string | undefined;
     resource: string | null;
+    dpopJkt: string | null;
     state: string | undefined;
 }) => sew(() =>
     withAuth(async ({ user }) => {
@@ -61,12 +64,21 @@ export const approveAuthorization = async ({
             } satisfies ServiceError;
         }
 
+        if (dpopJkt !== null && !isValidDpopJkt(dpopJkt)) {
+            return {
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.INVALID_QUERY_PARAMS,
+                message: 'Invalid dpop_jkt parameter.',
+            } satisfies ServiceError;
+        }
+
         const rawCode = await generateAndStoreAuthCode({
             clientId,
             userId: user.id,
             redirectUri,
             codeChallenge,
             resource,
+            dpopJkt,
         });
 
         const callbackUrl = new URL(redirectUri);

@@ -25,12 +25,13 @@ async function mcpErrorResponse(error: ServiceError): Promise<Response> {
         (error.statusCode === StatusCodes.UNAUTHORIZED || error.errorCode === ErrorCode.OAUTH_INSUFFICIENT_SCOPE) &&
         await hasEntitlement('oauth')
     ) {
-        response.headers.set('WWW-Authenticate', mcpBearerChallenge(error));
+        response.headers.append('WWW-Authenticate', mcpOAuthChallenge('Bearer', error));
+        response.headers.append('WWW-Authenticate', mcpOAuthChallenge('DPoP', error));
     }
     return response;
 }
 
-function mcpBearerChallenge(error: ServiceError): string {
+function mcpOAuthChallenge(scheme: 'Bearer' | 'DPoP', error: ServiceError): string {
     const issuer = env.AUTH_URL.replace(/\/$/, '');
     const params = [
         'realm="Sourcebot"',
@@ -43,7 +44,7 @@ function mcpBearerChallenge(error: ServiceError): string {
         params.push(`error_description="${error.message}"`);
     }
 
-    return `Bearer ${params.join(', ')}`;
+    return `${scheme} ${params.join(', ')}`;
 }
 
 // @see: https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#session-management

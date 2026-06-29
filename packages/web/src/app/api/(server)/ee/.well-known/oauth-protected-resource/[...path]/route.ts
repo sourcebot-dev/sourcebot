@@ -38,5 +38,6 @@ export const GET = oauthApiHandler(async (_request: NextRequest, { params }: { p
             issuer
         ],
         scopes_supported: SOURCEBOT_OAUTH_SCOPES,
+        bearer_methods_supported: ['header'],
     });
 });

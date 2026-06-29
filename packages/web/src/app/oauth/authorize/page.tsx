@@ -5,6 +5,7 @@ import { __unsafePrisma } from '@/prisma';
 import { hasEntitlement } from '@/lib/entitlements';
 import { redirect } from 'next/navigation';
 import { resolveGrantedOAuthScopes } from '@/ee/features/oauth/constants';
+import { isValidDpopJkt } from '@/ee/features/oauth/dpop';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ interface AuthorizePageProps {
         state?: string;
         scope?: string;
         resource?: string | string[];
+        dpop_jkt?: string | string[];
     }>;
 }
 
@@ -27,13 +29,14 @@ export default async function AuthorizePage({ searchParams }: AuthorizePageProps
     }
 
     const params = await searchParams;
-    const { client_id, redirect_uri, code_challenge, code_challenge_method, response_type, state, scope, resource: _resource } = params;
+    const { client_id, redirect_uri, code_challenge, code_challenge_method, response_type, state, scope, resource: _resource, dpop_jkt: _dpopJkt } = params;
 
     // RFC 8707 allows multiple resource parameters to indicate a token intended for multiple resources.
     // Sourcebot only supports a single resource (the MCP endpoint), so we take the first value.
     //
     // @see: https://www.rfc-editor.org/rfc/rfc8707.html#section-2-2.2
     const resource = Array.isArray(_resource) ? _resource[0] : _resource;
+    const dpopJkt = Array.isArray(_dpopJkt) ? _dpopJkt[0] : _dpopJkt;
 
     // Validate required parameters. Per spec, do NOT redirect on client errors —
     // show an error page instead to avoid open redirect vulnerabilities.
@@ -52,6 +55,10 @@ export default async function AuthorizePage({ searchParams }: AuthorizePageProps
     const grantedScopes = resolveGrantedOAuthScopes(scope);
     if ('error' in grantedScopes) {
         return <ErrorPage message={grantedScopes.errorDescription} />;
+    }
+
+    if (dpopJkt && !isValidDpopJkt(dpopJkt)) {
+        return <ErrorPage message="Invalid dpop_jkt parameter." />;
     }
 
     const client = await __unsafePrisma.oAuthClient.findUnique({ where: { id: client_id } });
@@ -82,6 +89,7 @@ export default async function AuthorizePage({ searchParams }: AuthorizePageProps
                 codeChallenge={code_challenge!}
                 requestedScope={scope}
                 resource={resource ?? null}
+                dpopJkt={dpopJkt ?? null}
                 state={state}
                 userEmail={session!.user.email!}
             />

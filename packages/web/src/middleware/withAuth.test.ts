@@ -1,5 +1,6 @@
 import { expect, test, vi, beforeEach, describe } from 'vitest';
 import { Session } from 'next-auth';
+import { NextRequest } from 'next/server';
 import { notAuthenticated } from '../lib/serviceError';
 import { getAuthContext, getAuthenticatedUser, withAuth, withOptionalAuth } from './withAuth';
 import { MOCK_API_KEY, MOCK_OAUTH_TOKEN, MOCK_ORG, MOCK_USER_WITH_ACCOUNTS, prisma } from '../__mocks__/prisma';
@@ -8,6 +9,7 @@ import { ErrorCode } from '../lib/errorCodes';
 import { StatusCodes } from 'http-status-codes';
 import { userScopedPrismaClientExtension } from '@/prisma';
 import { SOURCEBOT_MCP_OAUTH_SCOPE } from '@/ee/features/oauth/constants';
+import { runWithRequestContext } from '@/lib/requestContext';
 
 const mocks = vi.hoisted(() => {
     return {
@@ -185,6 +187,40 @@ describe('getAuthenticatedUser', () => {
         });
     });
 
+    test('should use the current request context when no request is passed', async () => {
+        const userId = 'test-user-id';
+        prisma.user.findUnique.mockResolvedValue({
+            ...MOCK_USER_WITH_ACCOUNTS,
+            id: userId,
+        });
+        prisma.apiKey.findUnique.mockResolvedValue({
+            ...MOCK_API_KEY,
+            hash: 'apikey',
+            createdById: userId,
+        });
+
+        const request = new NextRequest('https://sourcebot.example.com/api/test', {
+            headers: {
+                Authorization: 'Bearer sourcebot-apikey',
+            },
+        });
+
+        const result = await runWithRequestContext(request, () => getAuthenticatedUser());
+
+        expect(result).not.toBeUndefined();
+        expect(result?.user.id).toBe(userId);
+        expect(result?.source).toBe('api_key');
+        expect(mocks.headers).not.toHaveBeenCalled();
+        expect(prisma.apiKey.update).toHaveBeenCalledWith({
+            where: {
+                hash: 'apikey',
+            },
+            data: {
+                lastUsedAt: expect.any(Date),
+            },
+        });
+    });
+
     test('should return undefined if a Bearer token is present but the API key does not exist', async () => {
         prisma.apiKey.findUnique.mockResolvedValue(null);
         setMockHeaders(new Headers({ 'Authorization': 'Bearer sourcebot-apikey' }));
@@ -260,6 +296,27 @@ describe('getAuthenticatedUser', () => {
         setMockHeaders(new Headers({ 'Authorization': 'Bearer sboa_oauthtoken' }));
         await getAuthenticatedUser();
         expect(prisma.apiKey.findUnique).not.toHaveBeenCalled();
+    });
+
+    test('should reject a DPoP-bound OAuth token presented as Bearer', async () => {
+        mocks.hasEntitlement.mockReturnValue(true);
+        prisma.oAuthToken.findUnique.mockResolvedValue({
+            ...MOCK_OAUTH_TOKEN,
+            dpopJkt: 'dpop-thumbprint',
+        });
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sboa_oauthtoken' }));
+        const user = await getAuthenticatedUser();
+        expect(user).toBeUndefined();
+        expect(prisma.oAuthToken.update).not.toHaveBeenCalled();
+    });
+
+    test('should reject an unbound OAuth token presented with the DPoP scheme', async () => {
+        mocks.hasEntitlement.mockReturnValue(true);
+        prisma.oAuthToken.findUnique.mockResolvedValue(MOCK_OAUTH_TOKEN);
+        setMockHeaders(new Headers({ 'Authorization': 'DPoP sboa_oauthtoken' }));
+        const user = await getAuthenticatedUser();
+        expect(user).toBeUndefined();
+        expect(prisma.oAuthToken.update).not.toHaveBeenCalled();
     });
 
     test('should return undefined if a Bearer token is present but the user is not found', async () => {
@@ -490,11 +547,12 @@ describe('getAuthContext', () => {
         test('should allow OAuth bearer tokens that contain the required scope', async () => {
             const userId = 'test-user-id';
             mocks.hasEntitlement.mockReturnValue(true);
-            prisma.oAuthToken.findUnique.mockResolvedValue({
+            const oauthToken = {
                 ...MOCK_OAUTH_TOKEN,
                 user: { ...MOCK_USER_WITH_ACCOUNTS, id: userId },
                 scope: SOURCEBOT_MCP_OAUTH_SCOPE,
-            });
+            };
+            prisma.oAuthToken.findUnique.mockResolvedValue(oauthToken);
             prisma.org.findUnique.mockResolvedValue({ ...MOCK_ORG });
             prisma.userToOrg.findUnique.mockResolvedValue({
                 joinedAt: new Date(),
@@ -516,11 +574,12 @@ describe('getAuthContext', () => {
         test('should return a 403 service error when an OAuth bearer token is missing the required scope', async () => {
             const userId = 'test-user-id';
             mocks.hasEntitlement.mockReturnValue(true);
-            prisma.oAuthToken.findUnique.mockResolvedValue({
+            const oauthToken = {
                 ...MOCK_OAUTH_TOKEN,
                 user: { ...MOCK_USER_WITH_ACCOUNTS, id: userId },
                 scope: 'other',
-            });
+            };
+            prisma.oAuthToken.findUnique.mockResolvedValue(oauthToken);
             prisma.org.findUnique.mockResolvedValue({ ...MOCK_ORG });
             prisma.userToOrg.findUnique.mockResolvedValue({
                 joinedAt: new Date(),

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { captureEvent } from './posthog';
+import { runWithRequestContext } from './requestContext';
 
 interface ApiHandlerConfig {
     /**
@@ -40,19 +41,20 @@ export function apiHandler<H extends AnyHandler>(
 ): H {
     const { track = true } = config;
 
-    const wrappedHandler = async (request: NextRequest, ...rest: unknown[]) => {
-        if (track) {
-            const path = request.nextUrl.pathname;
-            const method = request.method;
-            const source = request.headers.get('X-Sourcebot-Client-Source') ?? 'unknown';
+    const wrappedHandler = async (request: NextRequest, ...rest: unknown[]) =>
+        runWithRequestContext(request, async () => {
+            if (track) {
+                const path = request.nextUrl.pathname;
+                const method = request.method;
+                const source = request.headers.get('X-Sourcebot-Client-Source') ?? 'unknown';
 
-            // Fire and forget - don't await to avoid blocking the request
-            captureEvent('api_request', { path, method, source });
-        }
+                // Fire and forget - don't await to avoid blocking the request
+                captureEvent('api_request', { path, method, source });
+            }
 
-        // Call the original handler with all arguments
-        return handler(request, ...rest);
-    };
+            // Call the original handler with all arguments
+            return handler(request, ...rest);
+        });
 
     return wrappedHandler as H;
 }

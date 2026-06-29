@@ -10,6 +10,8 @@ import { ErrorCode } from "../lib/errorCodes";
 import { isServiceError } from "../lib/utils";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
 import { hasRequiredOAuthScopes, parseOAuthScopeString } from "@/ee/features/oauth/constants";
+import { DPOP_AUTH_SCHEME, DPOP_PROOF_HEADER, verifyDpopProof } from "@/ee/features/oauth/dpop";
+import { getCurrentRequest } from "@/lib/requestContext";
 
 const LAST_ACTIVE_AT_THRESHOLD_MS = 5 * 60 * 1000;
 
@@ -160,10 +162,14 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
         return user ? { user, source: 'session' } : undefined;
     }
 
+    const currentRequest = getCurrentRequest();
+    const requestHeaders = currentRequest?.headers ?? await headers();
+
     // If not, check for a Bearer token in the Authorization header.
-    const authorizationHeader = (await headers()).get("Authorization") ?? undefined;
-    if (authorizationHeader?.startsWith("Bearer ")) {
-        const bearerToken = authorizationHeader.slice(7);
+    const authorizationHeader = requestHeaders.get("Authorization") ?? undefined;
+    const authorization = parseAuthorizationHeader(authorizationHeader);
+    if (authorization && (authorization.scheme === 'Bearer' || authorization.scheme === DPOP_AUTH_SCHEME)) {
+        const bearerToken = authorization.token;
 
         // OAuth access token
         if (bearerToken.startsWith(OAUTH_ACCESS_TOKEN_PREFIX)) {
@@ -178,12 +184,38 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
                 include: { user: { include: { accounts: true } } },
             });
             if (oauthToken && oauthToken.expiresAt > new Date()) {
+                if (!oauthToken.dpopJkt && authorization.scheme === DPOP_AUTH_SCHEME) {
+                    return undefined;
+                }
+
+                if (oauthToken.dpopJkt) {
+                    if (authorization.scheme !== DPOP_AUTH_SCHEME || !currentRequest) {
+                        return undefined;
+                    }
+
+                    const proofResult = await verifyDpopProof({
+                        request: currentRequest,
+                        proof: requestHeaders.get(DPOP_PROOF_HEADER),
+                        expectedJkt: oauthToken.dpopJkt,
+                        accessToken: bearerToken,
+                        requireAccessTokenHash: true,
+                    });
+
+                    if (!proofResult.ok) {
+                        return undefined;
+                    }
+                }
+
                 await __unsafePrisma.oAuthToken.update({
                     where: { hash },
                     data: { lastUsedAt: new Date() },
                 });
                 return { user: oauthToken.user, source: 'oauth', oauthScopes: parseOAuthScopeString(oauthToken.scope) };
             }
+        }
+
+        if (authorization.scheme !== 'Bearer') {
+            return undefined;
         }
 
         // API key Bearer token (sourcebot-<hex>)
@@ -204,7 +236,7 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
     }
 
     // If not, check if we have a valid API key.
-    const apiKeyString = (await headers()).get("X-Sourcebot-Api-Key") ?? undefined;
+    const apiKeyString = requestHeaders.get("X-Sourcebot-Api-Key") ?? undefined;
     if (apiKeyString) {
         const apiKey = await getVerifiedApiObject(apiKeyString);
         if (!apiKey) {
@@ -239,6 +271,24 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
     }
 
     return undefined;
+}
+
+function parseAuthorizationHeader(authorizationHeader: string | undefined): { scheme: string; token: string } | undefined {
+    const match = authorizationHeader?.match(/^(\S+)\s+(.+)$/);
+    if (!match) {
+        return undefined;
+    }
+
+    const scheme = match[1].toLowerCase();
+    if (scheme === 'bearer') {
+        return { scheme: 'Bearer', token: match[2] };
+    }
+
+    if (scheme === 'dpop') {
+        return { scheme: DPOP_AUTH_SCHEME, token: match[2] };
+    }
+
+    return { scheme: match[1], token: match[2] };
 }
 
 /**
