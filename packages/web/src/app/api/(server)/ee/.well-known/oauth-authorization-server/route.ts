@@ -2,6 +2,7 @@ import { oauthApiHandler } from '@/ee/features/oauth/apiHandler';
 import { env } from '@sourcebot/shared';
 import { OAUTH_NOT_SUPPORTED_ERROR_MESSAGE } from '@/ee/features/oauth/constants';
 import { hasEntitlement } from '@/lib/entitlements';
+import { SUPPORTED_DPOP_SIGNING_ALGS } from '@/ee/features/oauth/dpop';
 
 // RFC 8414: OAuth 2.0 Authorization Server Metadata
 // @see: https://datatracker.ietf.org/doc/html/rfc8414
@@ -26,6 +27,7 @@ export const GET = oauthApiHandler(async () => {
         grant_types_supported: ['authorization_code', 'refresh_token'],
         code_challenge_methods_supported: ['S256'],
         token_endpoint_auth_methods_supported: ['none'],
+        dpop_signing_alg_values_supported: SUPPORTED_DPOP_SIGNING_ALGS,
         service_documentation: 'https://docs.sourcebot.dev',
     });
 });
