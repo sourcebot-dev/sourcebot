@@ -14,6 +14,11 @@ import { useLocalStorage } from "usehooks-ts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FileTreeItem } from "@/features/git";
 import { getFiles } from "@/app/api/(client)/client";
+import {
+    getLegacyRecentlyOpenedFilesStorageKey,
+    getRecentlyOpenedFilesStorageKey,
+    shouldMigrateLegacyRecentlyOpenedFiles,
+} from "./fileSearchRecents";
 
 const MAX_RESULTS = 100;
 
@@ -35,7 +40,32 @@ export const FileSearchCommandDialog = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const { navigateToPath } = useBrowseNavigation();
 
-    const [recentlyOpened, setRecentlyOpened] = useLocalStorage<FileTreeItem[]>(`recentlyOpenedFiles-${repoName}`, []);
+    const [recentlyOpened, setRecentlyOpened] = useLocalStorage<FileTreeItem[]>(getRecentlyOpenedFilesStorageKey({
+        repoName,
+        revisionName,
+    }), []);
+
+    useEffect(() => {
+        if (!shouldMigrateLegacyRecentlyOpenedFiles({ revisionName }) || recentlyOpened.length > 0) {
+            return;
+        }
+
+        const legacyStorageKey = getLegacyRecentlyOpenedFilesStorageKey({ repoName });
+        const legacyValue = window.localStorage.getItem(legacyStorageKey);
+        if (!legacyValue) {
+            return;
+        }
+
+        try {
+            const parsed = JSON.parse(legacyValue);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                setRecentlyOpened(parsed as FileTreeItem[]);
+                window.localStorage.removeItem(legacyStorageKey);
+            }
+        } catch {
+            // Ignore malformed legacy localStorage entries.
+        }
+    }, [recentlyOpened.length, repoName, revisionName, setRecentlyOpened]);
 
     useHotkeys("mod+p", (event) => {
         event.preventDefault();
