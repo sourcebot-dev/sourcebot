@@ -22,9 +22,13 @@ async function mcpErrorResponse(error: ServiceError): Promise<Response> {
     const response = serviceErrorResponse(error);
     if (error.statusCode === StatusCodes.UNAUTHORIZED && await hasEntitlement('oauth')) {
         const issuer = env.AUTH_URL.replace(/\/$/, '');
-        response.headers.set(
+        response.headers.append(
             'WWW-Authenticate',
             `Bearer realm="Sourcebot", resource_metadata_uri="${issuer}/.well-known/oauth-protected-resource/api/mcp"`
+        );
+        response.headers.append(
+            'WWW-Authenticate',
+            `DPoP realm="Sourcebot", resource_metadata_uri="${issuer}/.well-known/oauth-protected-resource/api/mcp"`
         );
     }
     return response;
