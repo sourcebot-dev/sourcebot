@@ -39,6 +39,24 @@ export const fileSourceResponseSchema = z.object({
     commitSha: z.string().optional(),
 });
 
+export const fileFreshnessRequestSchema = z.object({
+    repo: z.string(),
+    path: z.string(),
+    // The pinned commit SHA a citation was sourced at.
+    sinceSha: z.string(),
+});
+
+export const fileFreshnessResponseSchema = z.object({
+    // `fresh`: the cited file is byte-identical at the current tip.
+    // `changed`: the file's content differs since the pinned commit.
+    // `removed`: the file no longer exists at the current tip.
+    // `pinned_unavailable`: the pinned commit is no longer in the repo (e.g.
+    //   force-push + GC pruned it), so we can't compare against it.
+    status: z.enum(['fresh', 'changed', 'removed', 'pinned_unavailable']),
+    // The commit the current default branch points at.
+    currentSha: z.string(),
+});
+
 export const getDiffRequestSchema = z.object({
     repo: z.string().describe('The fully-qualified repository name.'),
     base: z.string().describe('The base git ref (branch, tag, or commit SHA) to diff from.'),

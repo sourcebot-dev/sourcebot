@@ -4,6 +4,7 @@ export * from './getFilesApi';
 export * from './getFolderContentsApi';
 export * from './getTreeApi';
 export * from './getFileSourceApi';
+export * from './getFileFreshnessApi';
 export * from './getFileBlameApi';
 export * from './listCommitsApi';
 export * from './listCommitAuthorsApi';

@@ -443,8 +443,12 @@ export const getLanguageModelKey = (model: Pick<LanguageModelInfo, 'provider' | 
  * Given a file reference and a list of file sources, attempts to resolve the file source that the reference points to.
  */
 export const tryResolveFileReference = (reference: FileReference, sources: FileSource[]): FileSource | undefined => {
-    return sources.find(
+    const matches = sources.filter(
         (source) => source.repo.endsWith(reference.repo) &&
             source.path.endsWith(reference.path)
     );
+    // The same file can be sourced by multiple tools in one turn (e.g. an
+    // unpinned `list_tree` listing plus a pinned `read_file`). Prefer a pinned
+    // source so citations resolve to the commit the content was read at.
+    return matches.find((source) => source.commitSha) ?? matches[0];
 };

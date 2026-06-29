@@ -20,6 +20,8 @@ import {
     GetTreeResponse,
     FileSourceRequest,
     FileSourceResponse,
+    FileFreshnessRequest,
+    FileFreshnessResponse,
     ListCommitsQueryParams,
     ListCommitsResponse,
 } from "@/features/git";
@@ -66,6 +68,22 @@ export const getFileSource = async (queryParams: FileSourceRequest): Promise<Fil
     }).then(response => response.json());
 
     return result as FileSourceResponse | ServiceError;
+}
+
+export const getFileFreshness = async (queryParams: FileFreshnessRequest): Promise<FileFreshnessResponse | ServiceError> => {
+    const url = new URL("/api/source/freshness", window.location.origin);
+    for (const [key, value] of Object.entries(queryParams)) {
+        url.searchParams.set(key, value.toString());
+    }
+
+    const result = await fetch(url, {
+        method: "GET",
+        headers: {
+            "X-Sourcebot-Client-Source": "sourcebot-web-client",
+        }
+    }).then(response => response.json());
+
+    return result as FileFreshnessResponse | ServiceError;
 }
 
 export const listRepos = async (queryParams: ListReposQueryParams): Promise<ListReposResponse | ServiceError> => {
