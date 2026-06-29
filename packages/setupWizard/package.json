@@ -8,6 +8,7 @@
         "build": "tsc",
         "watch": "tsc --watch",
         "dev": "tsx src/index.ts",
+        "test": "tsx src/dockerCompose.test.ts",
         "prepublishOnly": "yarn build"
     },
     "dependencies": {
