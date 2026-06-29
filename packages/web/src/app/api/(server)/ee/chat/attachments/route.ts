@@ -30,7 +30,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
     const response = await sew(() =>
         // `withAuth` (not `withOptionalAuth`) so anonymous users cannot upload
-        // binary attachments (a decision of the attachments design).
+        // binary attachments.
         withAuth(async ({ org, user, prisma }) => {
             const askError = await checkAskEntitlement();
             if (askError) {

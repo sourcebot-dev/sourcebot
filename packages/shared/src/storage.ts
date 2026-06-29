@@ -7,8 +7,8 @@ import { env } from './env.server.js';
 /**
  * App-mediated storage for binary chat attachments. The application always
  * brokers access (no public URLs); callers resolve permissions via the chat
- * linker before reading. A `LocalFsStorageBackend` is provided first; an
- * S3-compatible driver implementing the same contract is planned (Followup B).
+ * linker before reading. A `LocalFsStorageBackend` is provided; additional
+ * drivers (e.g. S3) can implement the same contract.
  *
  * @note Lives in the shared package so the web app (upload/serve) and the
  * backend worker (orphan pruning) share one implementation and one on-disk
@@ -92,8 +92,8 @@ export class LocalFsStorageBackend implements StorageBackend {
 let storageBackend: StorageBackend | undefined;
 
 /**
- * Returns the process-wide StorageBackend singleton. Local-FS for now; the
- * driver selection (e.g. S3) will be config-driven in Followup B.
+ * Returns the process-wide StorageBackend singleton. Currently always the
+ * local-FS backend; driver selection (e.g. S3) could be made config-driven.
  */
 export const getStorageBackend = (): StorageBackend => {
     if (!storageBackend) {
