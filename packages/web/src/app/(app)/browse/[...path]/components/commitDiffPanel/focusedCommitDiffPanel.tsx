@@ -9,7 +9,7 @@ import { X } from "lucide-react";
 import Link from "next/link";
 import { formatAuthorsText, getCommitAuthors } from "../../../components/commitAuthors";
 import { AuthorsAvatarGroup } from "../../../components/commitParts";
-import { getBrowsePath } from "../../../hooks/utils";
+import { getBrowsePath, type BlobViewMode } from "../../../hooks/utils";
 import { computeChangeCounts, DiffStat } from "./diffStat";
 import { FileStatus, getFileStatus, StatusBadge } from "./fileStatus";
 import { LightweightDiffViewer } from "./lightweightDiffViewer";
@@ -26,6 +26,7 @@ interface FocusedCommitDiffPanelProps {
     revisionName?: string;
     commitSha: string;
     path: string;
+    viewMode?: BlobViewMode;
 }
 
 // Git's well-known empty-tree SHA. Used as the diff base when the commit has
@@ -37,6 +38,7 @@ export const FocusedCommitDiffPanel = async ({
     revisionName,
     commitSha,
     path,
+    viewMode,
 }: FocusedCommitDiffPanelProps) => {
     const [commitResponse, initialDiffResponse, repoInfoResponse] = await Promise.all([
         getCommit({
@@ -166,6 +168,7 @@ export const FocusedCommitDiffPanel = async ({
                                                 revisionName,
                                                 path,
                                                 pathType: 'blob',
+                                                viewMode: viewMode === 'source' ? 'source' : undefined,
                                             })}
                                             aria-label="Exit diff view"
                                         >

@@ -7,9 +7,11 @@ import { cn, getCodeHostInfoForRepo, isServiceError, truncateSha } from "@/lib/u
 import { X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { getBrowsePath } from "../../../hooks/utils";
+import { type BlobViewMode, getBrowsePath } from "../../../hooks/utils";
 import { BlameAgeLegend } from "./blameAgeLegend";
 import { BlameViewToggle } from "./blameViewToggle";
+import { MarkdownPreviewPanel } from "./markdownPreviewPanel";
+import { MarkdownViewToggle } from "./markdownViewToggle";
 import { PureCodePreviewPanel } from "./pureCodePreviewPanel";
 import { getFileBlame, getFileSource } from '@/features/git';
 
@@ -33,9 +35,10 @@ interface CodePreviewPanelProps {
     // When true, fetch blame data alongside the file source and pass it to
     // the editor so the blame gutter can render.
     blame?: boolean;
+    viewMode?: BlobViewMode;
 }
 
-export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRef, blame }: CodePreviewPanelProps) => {
+export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRef, blame, viewMode = 'rendered' }: CodePreviewPanelProps) => {
     const contentRef = previewRef ?? revisionName;
 
     const [fileSourceResponse, repoInfoResponse, blameResponse] = await Promise.all([
@@ -72,6 +75,15 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
         : source.split('\n').length - (source.endsWith('\n') ? 1 : 0);
     const byteSize = Buffer.byteLength(source, 'utf-8');
     const fileSize = formatFileSize(byteSize);
+    const isMarkdown = fileSourceResponse.language === 'Markdown';
+    const isMarkdownPreviewAvailable = isMarkdown && !blame && !previewRef;
+    const shouldRenderMarkdown = isMarkdownPreviewAvailable && viewMode === 'rendered';
+    const nonBlameViewLabel = isMarkdown
+        ? viewMode === 'source' ? 'Source' : 'Preview'
+        : 'Code';
+    const nonBlameViewAriaLabel = isMarkdown
+        ? viewMode === 'source' ? 'View raw markdown source' : 'Preview rendered markdown'
+        : 'View source code';
 
     const codeHostInfo = getCodeHostInfoForRepo({
         codeHostType: repoInfoResponse.codeHostType,
@@ -119,11 +131,25 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
             <Separator />
             {!previewRef && (
                 <div className="flex flex-row items-center gap-3 px-4 py-1 border-b shrink-0">
+                    {isMarkdownPreviewAvailable && (
+                        <>
+                            <MarkdownViewToggle
+                                repoName={repoName}
+                                revisionName={revisionName}
+                                path={path}
+                                viewMode={viewMode}
+                            />
+                            <Separator orientation="vertical" className="h-4" />
+                        </>
+                    )}
                     <BlameViewToggle
                         repoName={repoName}
                         revisionName={revisionName}
                         path={path}
                         blame={blame ?? false}
+                        viewMode={viewMode}
+                        codeLabel={nonBlameViewLabel}
+                        codeAriaLabel={nonBlameViewAriaLabel}
                     />
                     <span className="text-sm text-muted-foreground">
                         {lineCount.toLocaleString()} lines · {fileSize}
@@ -167,6 +193,7 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
                                         revisionName,
                                         path,
                                         pathType: 'blob',
+                                        viewMode: viewMode === 'source' ? 'source' : undefined,
                                     })}
                                     aria-label="Close preview"
                                 >
@@ -178,14 +205,24 @@ export const CodePreviewPanel = async ({ path, repoName, revisionName, previewRe
                     </Tooltip>
                 </div>
             )}
-            <PureCodePreviewPanel
-                source={fileSourceResponse.source}
-                language={fileSourceResponse.language}
-                repoName={repoName}
-                path={path}
-                revisionName={contentRef ?? 'HEAD'}
-                blame={blameResponse}
-            />
+            {shouldRenderMarkdown ? (
+                <MarkdownPreviewPanel
+                    source={fileSourceResponse.source}
+                    repoName={repoName}
+                    revisionName={revisionName}
+                    path={path}
+                />
+            ) : (
+                <PureCodePreviewPanel
+                    source={fileSourceResponse.source}
+                    language={fileSourceResponse.language}
+                    repoName={repoName}
+                    path={path}
+                    revisionName={contentRef ?? 'HEAD'}
+                    viewMode={viewMode}
+                    blame={blameResponse}
+                />
+            )}
         </>
     )
 }
