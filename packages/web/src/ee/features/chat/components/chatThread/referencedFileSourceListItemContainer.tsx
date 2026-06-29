@@ -43,12 +43,26 @@ const ReferencedFileSourceListItemContainerComponent = ({
     const fetchRef = fileSource.commitSha ?? fileSource.revision;
 
     const { data, isLoading, isError, error } = useQuery({
-        queryKey: ['fileSource', fileSource.path, fileSource.repo, fetchRef],
-        queryFn: () => unwrapServiceError(getFileSource({
-            path: fileSource.path,
-            repo: fileSource.repo,
-            ref: fetchRef,
-        })),
+        queryKey: ['fileSource', fileSource.path, fileSource.repo, fetchRef, fileSource.revision],
+        queryFn: async () => {
+            const pinned = await getFileSource({
+                path: fileSource.path,
+                repo: fileSource.repo,
+                ref: fetchRef,
+            });
+
+            // The pinned commit can disappear (e.g. a force-push + GC prunes it).
+            // Fall back once to the symbolic ref so the file still renders.
+            if (isServiceError(pinned) && fetchRef !== fileSource.revision) {
+                return unwrapServiceError(getFileSource({
+                    path: fileSource.path,
+                    repo: fileSource.repo,
+                    ref: fileSource.revision,
+                }));
+            }
+
+            return unwrapServiceError(Promise.resolve(pinned));
+        },
         staleTime: Infinity,
     });
 
