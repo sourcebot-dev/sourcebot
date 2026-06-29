@@ -92,8 +92,11 @@ describe('getFileSourceForRepo', () => {
         mockSimpleGit.mockReturnValue({ cwd: mockCwd });
         mockFindFirst.mockResolvedValue(MOCK_REPO);
 
-        // Default: file show succeeds; .gitattributes not present
+        // ref resolves to a sha, file show succeeds, .gitattributes is absent.
         mockGitRaw.mockImplementation(async (args: string[]) => {
+            if (args[0] === 'rev-parse') {
+                return 'resolvedsha\n';
+            }
             if (args[1]?.endsWith('.gitattributes')) {
                 throw new Error('does not exist in HEAD');
             }
@@ -170,7 +173,7 @@ describe('getFileSourceForRepo', () => {
 
     describe('git error handling', () => {
         it('returns FILE_NOT_FOUND when git reports the file does not exist', async () => {
-            mockGitRaw.mockRejectedValueOnce(
+            mockGitRaw.mockRejectedValue(
                 new Error("fatal: path 'src/missing.ts' does not exist in 'main'"),
             );
 
@@ -183,7 +186,7 @@ describe('getFileSourceForRepo', () => {
         });
 
         it('returns FILE_NOT_FOUND for "fatal: path" errors', async () => {
-            mockGitRaw.mockRejectedValueOnce(new Error('fatal: path not found'));
+            mockGitRaw.mockRejectedValue(new Error('fatal: path not found'));
 
             const result = await getFileSourceForRepo(
                 { path: 'src/index.ts', repo: 'github.com/owner/repo' },
@@ -196,7 +199,7 @@ describe('getFileSourceForRepo', () => {
         it('returns INVALID_GIT_REF with an unresolved-ref message when head_sha has not been fetched ("unknown revision")', async () => {
             // This is the scenario from the v4.16.14 regression: the review agent passes
             // pr_payload.head_sha as ref, but the bare clone hasn't fetched it yet.
-            mockGitRaw.mockRejectedValueOnce(
+            mockGitRaw.mockRejectedValue(
                 new Error("fatal: ambiguous argument 'deadbeef': unknown revision or path not in the working tree"),
             );
 
@@ -212,7 +215,7 @@ describe('getFileSourceForRepo', () => {
         });
 
         it('returns INVALID_GIT_REF with an unresolved-ref message for "bad revision" errors', async () => {
-            mockGitRaw.mockRejectedValueOnce(new Error('fatal: bad revision'));
+            mockGitRaw.mockRejectedValue(new Error('fatal: bad revision'));
 
             const result = await getFileSourceForRepo(
                 { path: 'src/index.ts', repo: 'github.com/owner/repo', ref: 'nonexistent' },
@@ -226,7 +229,7 @@ describe('getFileSourceForRepo', () => {
         });
 
         it('returns INVALID_GIT_REF with an unresolved-ref message for "invalid object name" errors', async () => {
-            mockGitRaw.mockRejectedValueOnce(new Error('fatal: invalid object name HEAD'));
+            mockGitRaw.mockRejectedValue(new Error('fatal: invalid object name HEAD'));
 
             const result = await getFileSourceForRepo(
                 { path: 'src/index.ts', repo: 'github.com/owner/repo' },
@@ -243,7 +246,7 @@ describe('getFileSourceForRepo', () => {
             // Before the fix, getFileSourceForRepo re-threw unknown errors.
             // Outside sew(), this caused a fatal Next.js task-runner exception.
             // After the fix, all errors are returned as ServiceError.
-            mockGitRaw.mockRejectedValueOnce(new Error('I/O error: device busy'));
+            mockGitRaw.mockRejectedValue(new Error('I/O error: device busy'));
 
             const result = await getFileSourceForRepo(
                 { path: 'src/index.ts', repo: 'github.com/owner/repo' },
@@ -254,7 +257,7 @@ describe('getFileSourceForRepo', () => {
         });
 
         it('never rejects its returned promise for unrecognised git errors', async () => {
-            mockGitRaw.mockRejectedValueOnce(new Error('transient I/O error'));
+            mockGitRaw.mockRejectedValue(new Error('transient I/O error'));
 
             await expect(
                 getFileSourceForRepo(
@@ -280,13 +283,16 @@ describe('getFileSourceForRepo', () => {
             });
         });
 
-        it('uses the provided ref for the git show command', async () => {
+        it('resolves the provided ref to a commit, then reads content at it', async () => {
             await getFileSourceForRepo(
                 { path: 'src/index.ts', repo: 'github.com/owner/repo', ref: 'abc123sha' },
                 { org: MOCK_ORG, prisma: mockPrisma },
             );
 
-            expect(mockGitRaw).toHaveBeenCalledWith(['show', 'abc123sha:src/index.ts']);
+            // The provided ref is resolved up front...
+            expect(mockGitRaw).toHaveBeenCalledWith(['rev-parse', 'abc123sha^{commit}']);
+            // ...and content is read at the resolved sha, not the symbolic ref.
+            expect(mockGitRaw).toHaveBeenCalledWith(['show', 'resolvedsha:src/index.ts']);
         });
 
         it('falls back to defaultBranch when ref is omitted', async () => {
@@ -295,7 +301,7 @@ describe('getFileSourceForRepo', () => {
                 { org: MOCK_ORG, prisma: mockPrisma },
             );
 
-            expect(mockGitRaw).toHaveBeenCalledWith(['show', 'main:src/index.ts']);
+            expect(mockGitRaw).toHaveBeenCalledWith(['rev-parse', 'main^{commit}']);
         });
 
         it('falls back to HEAD when both ref and defaultBranch are absent', async () => {
@@ -306,7 +312,28 @@ describe('getFileSourceForRepo', () => {
                 { org: MOCK_ORG, prisma: mockPrisma },
             );
 
-            expect(mockGitRaw).toHaveBeenCalledWith(['show', 'HEAD:src/index.ts']);
+            expect(mockGitRaw).toHaveBeenCalledWith(['rev-parse', 'HEAD^{commit}']);
+        });
+
+        it('reads content at the symbolic ref when rev-parse fails', async () => {
+            mockGitRaw.mockImplementation(async (args: string[]) => {
+                if (args[0] === 'rev-parse') {
+                    throw new Error('unknown revision');
+                }
+                if (args[1]?.endsWith('.gitattributes')) {
+                    throw new Error('does not exist');
+                }
+                return 'console.log("hello");';
+            });
+
+            const result = await getFileSourceForRepo(
+                { path: 'src/index.ts', repo: 'github.com/owner/repo', ref: 'main' },
+                { org: MOCK_ORG, prisma: mockPrisma },
+            );
+
+            expect(mockGitRaw).toHaveBeenCalledWith(['show', 'main:src/index.ts']);
+            expect(result).toMatchObject({ source: 'console.log("hello");' });
+            expect((result as { commitSha?: string }).commitSha).toBeUndefined();
         });
 
         it('uses the repo path from getRepoPath for the git working directory', async () => {

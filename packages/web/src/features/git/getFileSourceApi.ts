@@ -47,9 +47,20 @@ export const getFileSourceForRepo = async (
 
     const gitRef = ref ?? repo.defaultBranch ?? 'HEAD';
 
+    // Resolve to a concrete commit up front so content, language, and commitSha
+    // all come from one revision even if the ref moves mid-request. `^{commit}`
+    // peels annotated tags. Reads below fall back to the symbolic ref.
+    let commitSha: string | undefined;
+    try {
+        commitSha = (await git.raw(['rev-parse', `${gitRef}^{commit}`])).trim();
+    } catch {
+        // Leave unpinned.
+    }
+    const readRef = commitSha ?? gitRef;
+
     let fileContent: string;
     try {
-        fileContent = await git.raw(['show', `${gitRef}:${filePath}`]);
+        fileContent = await git.raw(['show', `${readRef}:${filePath}`]);
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         if (errorMessage.includes('does not exist') || errorMessage.includes('fatal: path')) {
@@ -63,7 +74,7 @@ export const getFileSourceForRepo = async (
 
     let gitattributesContent: string | undefined;
     try {
-        gitattributesContent = await git.raw(['show', `${gitRef}:.gitattributes`]);
+        gitattributesContent = await git.raw(['show', `${readRef}:.gitattributes`]);
     } catch {
         // No .gitattributes in this repo/ref, that's fine
     }
@@ -97,6 +108,7 @@ export const getFileSourceForRepo = async (
         repoExternalWebUrl: repo.webUrl ?? undefined,
         webUrl,
         externalWebUrl,
+        commitSha,
     } satisfies FileSourceResponse;
 });
 

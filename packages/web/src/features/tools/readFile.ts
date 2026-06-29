@@ -133,6 +133,7 @@ export const readFileDefinition: ToolDefinition<"read_file", typeof readFileShap
                 path: fileSource.path,
                 name: fileSource.path.split('/').pop() ?? fileSource.path,
                 revision: ref,
+                commitSha: fileSource.commitSha,
             }],
         };
     },

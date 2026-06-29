@@ -4,6 +4,7 @@ import { getFileSource } from "@/app/api/(client)/client";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isServiceError, unwrapServiceError } from "@/lib/utils";
+import { ErrorCode } from "@/lib/errorCodes";
 import { useQuery } from "@tanstack/react-query";
 import { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { memo, useCallback } from "react";
@@ -38,13 +39,36 @@ const ReferencedFileSourceListItemContainerComponent = ({
 }: ReferencedFileSourceListItemContainerProps) => {
     const fileName = fileSource.path.split('/').pop() ?? fileSource.path;
 
+    // Prefer the pinned commit SHA so the file renders as it was when answered,
+    // with line ranges still aligned. Falls back to the symbolic ref.
+    const fetchRef = fileSource.commitSha ?? fileSource.revision;
+
     const { data, isLoading, isError, error } = useQuery({
-        queryKey: ['fileSource', fileSource.path, fileSource.repo, fileSource.revision],
-        queryFn: () => unwrapServiceError(getFileSource({
-            path: fileSource.path,
-            repo: fileSource.repo,
-            ref: fileSource.revision,
-        })),
+        queryKey: ['fileSource', fileSource.path, fileSource.repo, fetchRef, fileSource.revision],
+        queryFn: async () => {
+            const pinned = await getFileSource({
+                path: fileSource.path,
+                repo: fileSource.repo,
+                ref: fetchRef,
+            });
+
+            // A gone pinned commit (e.g. force-push + GC) surfaces as an
+            // unresolvable ref. Only then fall back to the symbolic ref; other
+            // errors are surfaced as-is rather than silently showing latest.
+            if (
+                isServiceError(pinned) &&
+                pinned.errorCode === ErrorCode.INVALID_GIT_REF &&
+                fetchRef !== fileSource.revision
+            ) {
+                return unwrapServiceError(getFileSource({
+                    path: fileSource.path,
+                    repo: fileSource.repo,
+                    ref: fileSource.revision,
+                }));
+            }
+
+            return unwrapServiceError(Promise.resolve(pinned));
+        },
         staleTime: Infinity,
     });
 
