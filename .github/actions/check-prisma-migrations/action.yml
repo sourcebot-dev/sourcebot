@@ -84,7 +84,7 @@ runs:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sourcebot
       run: |
         yarn prisma migrate diff \
-          --from-database \
+          --from-url "$DATABASE_URL" \
           --to-schema-datamodel prisma/schema.prisma \
           --exit-code \
         && echo "✅ No drift: migrations reproduce schema.prisma" \
