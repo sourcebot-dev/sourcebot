@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [EE] Added mermaid diagram rendering to Ask Sourcebot answers, with pan/zoom, copy/export, in-thread deep links, and an interleaved right-panel view. [#1369](https://github.com/sourcebot-dev/sourcebot/pull/1369)
 - [EE] Added a context-window usage gauge to the Ask Sourcebot chat details, showing how much of the selected model's context window each turn occupies. Window sizes are resolved from the models.dev catalog. [#1370](https://github.com/sourcebot-dev/sourcebot/pull/1370)
 - Added language model input-modality and document capability resolution, automatically resolved from the models.dev catalog (falls back to text-only for uncatalogued/self-hosted models). [#1372](https://github.com/sourcebot-dev/sourcebot/pull/1372)
+- [EE] Added a staleness hint to Ask Sourcebot file citations that flags when the cited file has changed since the answer was generated, with a link to the latest version. [#1399](https://github.com/sourcebot-dev/sourcebot/pull/1399)
 
 ### Fixed
 - Send anonymous server-side PostHog events as personless so unauthenticated requests don't inflate person counts. [#1367](https://github.com/sourcebot-dev/sourcebot/pull/1367)
