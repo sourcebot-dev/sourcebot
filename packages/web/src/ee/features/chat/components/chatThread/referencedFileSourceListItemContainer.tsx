@@ -4,6 +4,7 @@ import { getFileFreshness, getFileSource } from "@/app/api/(client)/client";
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isServiceError, unwrapServiceError } from "@/lib/utils";
+import { ErrorCode } from "@/lib/errorCodes";
 import { useQuery } from "@tanstack/react-query";
 import { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { memo, useCallback } from "react";
@@ -51,9 +52,14 @@ const ReferencedFileSourceListItemContainerComponent = ({
                 ref: fetchRef,
             });
 
-            // The pinned commit can disappear (e.g. a force-push + GC prunes it).
-            // Fall back once to the symbolic ref so the file still renders.
-            if (isServiceError(pinned) && fetchRef !== fileSource.revision) {
+            // A gone pinned commit (e.g. force-push + GC) surfaces as an
+            // unresolvable ref. Only then fall back to the symbolic ref; other
+            // errors are surfaced as-is rather than silently showing latest.
+            if (
+                isServiceError(pinned) &&
+                pinned.errorCode === ErrorCode.INVALID_GIT_REF &&
+                fetchRef !== fileSource.revision
+            ) {
                 return unwrapServiceError(getFileSource({
                     path: fileSource.path,
                     repo: fileSource.repo,
