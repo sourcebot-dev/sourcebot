@@ -172,6 +172,10 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
                 include: { user: { include: { accounts: true } } },
             });
             if (oauthToken && oauthToken.expiresAt > new Date()) {
+                if (!oauthToken.dpopJkt && authorization.scheme === DPOP_AUTH_SCHEME) {
+                    return undefined;
+                }
+
                 if (oauthToken.dpopJkt) {
                     if (authorization.scheme !== DPOP_AUTH_SCHEME || !currentRequest) {
                         return undefined;
@@ -188,8 +192,6 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
                     if (!proofResult.ok) {
                         return undefined;
                     }
-                } else if (authorization.scheme === DPOP_AUTH_SCHEME) {
-                    return undefined;
                 }
 
                 await __unsafePrisma.oAuthToken.update({
