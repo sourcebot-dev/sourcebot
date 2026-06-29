@@ -41,6 +41,7 @@
                             "docs/overview",
                             {
                                 "group": "Deploy Sourcebot",
+                                "root": "docs/deployment/deploy-sourcebot",
                                 "pages": [
                                     "docs/deployment/docker-compose",
                                     "docs/deployment/k8s"
@@ -250,6 +251,10 @@
         "strict": false
     },
     "redirects": [
+        {
+            "source": "/docs/deployment/overview",
+            "destination": "/docs/deployment/deploy-sourcebot"
+        },
         {
             "source": "/docs/features/search/overview",
             "destination": "/docs/features/search/code-search"
