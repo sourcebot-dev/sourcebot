@@ -63,9 +63,8 @@ export const findSymbolDefinitionsDefinition: ToolDefinition<
             codeHostType: repoInfoResult.codeHostType,
         };
 
-        // Pin to the indexed commit carried by the same search snapshot that
-        // produced these matches, rather than a follow-up repo-info lookup that
-        // could drift if the index advances in between.
+        // Pin from the indexed commit in this search's snapshot, not a separate
+        // repo-info lookup that could drift if the index advances in between.
         const indexedCommitShaByRepo = new Map(
             response.repositoryInfo.map((info) => [info.name, info.indexedCommitHash]),
         );

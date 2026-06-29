@@ -92,9 +92,7 @@ describe('getFileSourceForRepo', () => {
         mockSimpleGit.mockReturnValue({ cwd: mockCwd });
         mockFindFirst.mockResolvedValue(MOCK_REPO);
 
-        // Default: ref resolves to a concrete sha, file show succeeds, and
-        // .gitattributes is absent. The SUT resolves the ref first (rev-parse),
-        // then reads content + .gitattributes at the resolved sha.
+        // ref resolves to a sha, file show succeeds, .gitattributes is absent.
         mockGitRaw.mockImplementation(async (args: string[]) => {
             if (args[0] === 'rev-parse') {
                 return 'resolvedsha\n';
@@ -203,7 +201,7 @@ describe('getFileSourceForRepo', () => {
             // pr_payload.head_sha as ref, but the bare clone hasn't fetched it yet.
             mockGitRaw.mockRejectedValue(
                 new Error("fatal: ambiguous argument 'deadbeef': unknown revision or path not in the working tree"),
-            ); // rejects rev-parse (swallowed) and the show, which drives the result
+            );
 
             const result = await getFileSourceForRepo(
                 { path: 'src/index.ts', repo: 'github.com/owner/repo', ref: 'deadbeef' },

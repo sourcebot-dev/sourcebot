@@ -47,15 +47,14 @@ export const getFileSourceForRepo = async (
 
     const gitRef = ref ?? repo.defaultBranch ?? 'HEAD';
 
-    // Resolve the symbolic ref to a concrete commit up front so the content,
-    // language, and commitSha all come from the same revision even if the ref
-    // moves mid-request. `^{commit}` peels annotated tags. Reads below fall back
-    // to the symbolic ref when resolution fails.
+    // Resolve to a concrete commit up front so content, language, and commitSha
+    // all come from one revision even if the ref moves mid-request. `^{commit}`
+    // peels annotated tags. Reads below fall back to the symbolic ref.
     let commitSha: string | undefined;
     try {
         commitSha = (await git.raw(['rev-parse', `${gitRef}^{commit}`])).trim();
     } catch {
-        // Leave unpinned; the reads below use the symbolic ref.
+        // Leave unpinned.
     }
     const readRef = commitSha ?? gitRef;
 

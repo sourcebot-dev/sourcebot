@@ -52,10 +52,9 @@ const ReferencedFileSourceListItemContainerComponent = ({
                 ref: fetchRef,
             });
 
-            // The pinned commit can disappear (e.g. a force-push + GC prunes it),
-            // which surfaces as an unresolvable git ref. Only that case falls
-            // back to the symbolic ref; other errors (repo/path/access) are
-            // surfaced as-is so we don't silently render the wrong revision.
+            // A gone pinned commit (e.g. force-push + GC) surfaces as an
+            // unresolvable ref. Only then fall back to the symbolic ref; other
+            // errors are surfaced as-is rather than silently showing latest.
             if (
                 isServiceError(pinned) &&
                 pinned.errorCode === ErrorCode.INVALID_GIT_REF &&
