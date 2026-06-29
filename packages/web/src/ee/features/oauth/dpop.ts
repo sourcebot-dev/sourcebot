@@ -99,14 +99,21 @@ export async function verifyDpopProof({
         return invalidDpopProof('DPoP proof must be a compact JWT.');
     }
 
-    let header: DpopHeader;
-    let payload: DpopPayload;
+    let parsedHeader: unknown;
+    let parsedPayload: unknown;
     try {
-        header = JSON.parse(base64UrlDecode(parts[0]).toString('utf8')) as DpopHeader;
-        payload = JSON.parse(base64UrlDecode(parts[1]).toString('utf8')) as DpopPayload;
+        parsedHeader = JSON.parse(base64UrlDecode(parts[0]).toString('utf8'));
+        parsedPayload = JSON.parse(base64UrlDecode(parts[1]).toString('utf8'));
     } catch {
         return invalidDpopProof('DPoP proof header or payload is not valid JSON.');
     }
+
+    if (!isPlainObject(parsedHeader) || !isPlainObject(parsedPayload)) {
+        return invalidDpopProof('DPoP proof header and payload must be JSON objects.');
+    }
+
+    const header = parsedHeader as DpopHeader;
+    const payload = parsedPayload as DpopPayload;
 
     if (header.typ?.toLowerCase() !== 'dpop+jwt') {
         return invalidDpopProof('DPoP proof typ must be dpop+jwt.');
@@ -160,10 +167,7 @@ export async function verifyDpopProof({
     if (typeof payload.jti !== 'string' || payload.jti.length === 0) {
         return invalidDpopProof('DPoP proof jti is required.');
     }
-
-    if (!recordProofJti(jkt, payload.jti)) {
-        return invalidDpopProof('DPoP proof jti has already been used.');
-    }
+    const proofExpiresAt = (payload.iat + DPOP_PROOF_IAT_WINDOW_SECONDS) * 1000;
 
     if (accessToken || requireAccessTokenHash) {
         if (typeof payload.ath !== 'string' || !accessToken) {
@@ -173,6 +177,10 @@ export async function verifyDpopProof({
         if (payload.ath !== getDpopAccessTokenHash(accessToken)) {
             return invalidDpopProof('DPoP proof ath does not match the access token.');
         }
+    }
+
+    if (!recordProofJti(jkt, payload.jti, proofExpiresAt)) {
+        return invalidDpopProof('DPoP proof jti has already been used.');
     }
 
     return { ok: true, jkt };
@@ -188,6 +196,10 @@ function invalidDpopProof(errorDescription: string): VerifyDpopProofResult {
         error: 'invalid_dpop_proof',
         errorDescription,
     };
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function isSupportedPublicJwk(jwk: DpopJwk): jwk is Required<Pick<DpopJwk, 'kty' | 'crv' | 'x' | 'y'>> & DpopJwk {
@@ -238,7 +250,7 @@ function base64UrlDecode(value: string): Buffer {
     return Buffer.from(value, 'base64url');
 }
 
-function recordProofJti(jkt: string, jti: string): boolean {
+function recordProofJti(jkt: string, jti: string, proofExpiresAt: number): boolean {
     const now = Date.now();
     for (const [cacheKey, expiresAt] of seenProofJtis.entries()) {
         if (expiresAt <= now) {
@@ -251,6 +263,6 @@ function recordProofJti(jkt: string, jti: string): boolean {
         return false;
     }
 
-    seenProofJtis.set(cacheKey, now + DPOP_PROOF_IAT_WINDOW_SECONDS * 1000);
+    seenProofJtis.set(cacheKey, proofExpiresAt);
     return true;
 }

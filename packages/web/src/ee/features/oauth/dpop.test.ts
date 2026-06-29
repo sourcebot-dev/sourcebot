@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import crypto from 'crypto';
 import {
     __clearDpopReplayCacheForTests,
@@ -29,6 +29,10 @@ type KeyPair = {
 
 beforeEach(() => {
     __clearDpopReplayCacheForTests();
+});
+
+afterEach(() => {
+    vi.useRealTimers();
 });
 
 describe('verifyDpopProof', () => {
@@ -117,6 +121,79 @@ describe('verifyDpopProof', () => {
             error: 'invalid_dpop_proof',
         });
     });
+
+    test('does not record a proof id before access-token hash validation passes', async () => {
+        const keyPair = await generateKeyPair();
+        const request = new Request('http://internal.test/api/ee/mcp', { method: 'POST' });
+        const proof = await signDpopProof({
+            ...keyPair,
+            htm: 'POST',
+            htu: 'https://sourcebot.test/api/mcp',
+            accessToken: 'sboa_actual-token',
+            jti: 'ath-mismatch-not-recorded',
+        });
+
+        await expect(verifyDpopProof({
+            request,
+            proof,
+            expectedJkt: calculateDpopJkt(keyPair.publicJwk),
+            accessToken: 'sboa_other-token',
+            requireAccessTokenHash: true,
+        })).resolves.toMatchObject({
+            ok: false,
+            error: 'invalid_dpop_proof',
+        });
+
+        await expect(verifyDpopProof({
+            request,
+            proof,
+            expectedJkt: calculateDpopJkt(keyPair.publicJwk),
+            accessToken: 'sboa_actual-token',
+            requireAccessTokenHash: true,
+        })).resolves.toMatchObject({ ok: true });
+    });
+
+    test('expires replay cache entries based on proof iat plus the accepted window', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+        const keyPair = await generateKeyPair();
+        const request = new Request('http://internal.test/api/ee/oauth/token', { method: 'POST' });
+        const proof = await signDpopProof({
+            ...keyPair,
+            htm: 'POST',
+            htu: 'https://sourcebot.test/api/ee/oauth/token',
+            iat: Math.floor(Date.now() / 1000) + 60,
+            jti: 'future-iat-replay',
+        });
+
+        await expect(verifyDpopProof({ request, proof })).resolves.toMatchObject({ ok: true });
+
+        vi.setSystemTime(new Date('2026-01-01T00:05:01.000Z'));
+
+        await expect(verifyDpopProof({ request, proof })).resolves.toMatchObject({
+            ok: false,
+            error: 'invalid_dpop_proof',
+            errorDescription: 'DPoP proof jti has already been used.',
+        });
+    });
+
+    test.each([
+        { header: null, payload: {} },
+        { header: [], payload: {} },
+        { header: 'header', payload: {} },
+        { header: {}, payload: null },
+        { header: {}, payload: [] },
+        { header: {}, payload: 'payload' },
+    ])('rejects non-object JWT JSON values %#', async ({ header, payload }) => {
+        const request = new Request('http://internal.test/api/ee/oauth/token', { method: 'POST' });
+        const proof = `${base64UrlJson(header)}.${base64UrlJson(payload)}.signature`;
+
+        await expect(verifyDpopProof({ request, proof })).resolves.toMatchObject({
+            ok: false,
+            error: 'invalid_dpop_proof',
+        });
+    });
 });
 
 async function generateKeyPair(): Promise<KeyPair> {
@@ -144,11 +221,13 @@ async function signDpopProof({
     htm,
     htu,
     accessToken,
+    iat = Math.floor(Date.now() / 1000),
     jti = crypto.randomUUID(),
 }: KeyPair & {
     htm: string;
     htu: string;
     accessToken?: string;
+    iat?: number;
     jti?: string;
 }): Promise<string> {
     const encodedHeader = base64UrlJson({
@@ -159,7 +238,7 @@ async function signDpopProof({
     const encodedPayload = base64UrlJson({
         htm,
         htu,
-        iat: Math.floor(Date.now() / 1000),
+        iat,
         jti,
         ...(accessToken ? { ath: getDpopAccessTokenHash(accessToken) } : {}),
     });
