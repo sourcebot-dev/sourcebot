@@ -3,14 +3,10 @@
 import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { AttachmentViewerDialog } from "@/features/chat/components/chatBox/attachmentViewerDialog";
-import { getAttachmentPreviewUrl, releaseAttachmentPreviewUrl } from "@/features/chat/attachments/attachmentPreviewCache";
+import { mediaTypeToModality } from "@/features/chat/attachments/modality";
 import { AttachmentData } from "@/features/chat/types";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
-
-// Stop probing the serving route after this many attempts rather than forever.
-const SERVING_PROBE_MAX_ATTEMPTS = 15;
-const SERVING_PROBE_INTERVAL_MS = 1000;
+import { useState } from "react";
 
 interface MessageAttachmentsProps {
     attachments: AttachmentData[];
@@ -18,88 +14,32 @@ interface MessageAttachmentsProps {
     className?: string;
 }
 
-// Builds the access-controlled serving URL for a committed blob attachment.
+// Builds the access-controlled serving URL for a blob attachment. The uploader
+// can fetch their own bytes from this route immediately after sending (even
+// before the commit links the blob to the chat), so a just-sent image renders
+// here directly.
 const getAttachmentServingUrl = (chatId: string, attachmentId: string): string => {
     return `/api/ee/chat/${chatId}/attachments/${attachmentId}`;
 }
 
-// Prefer the local preview stashed at submit time (instant, avoids the
-// pre-commit 404), falling back to the serving URL for reloaded messages.
-const getBlobImageSrc = (chatId: string, attachmentId: string): string => {
-    return getAttachmentPreviewUrl(attachmentId) ?? getAttachmentServingUrl(chatId, attachmentId);
-}
-
 export const MessageAttachments = ({ attachments, chatId, className }: MessageAttachmentsProps) => {
     const [activeAttachment, setActiveAttachment] = useState<AttachmentData | null>(null);
-    // Bumped when a preview is released so blob `src`s recompute to the served URL.
-    const [, setPreviewReleaseTick] = useState(0);
-
-    // For any just-sent blob still backed by a local preview, probe the serving
-    // route in the background; once it loads (i.e. the attachment is committed),
-    // release the preview and re-render so every consumer switches to the served
-    // URL atomically. Avoids revoking an object URL that's still on screen.
-    useEffect(() => {
-        const pendingIds = attachments
-            .filter((attachment) =>
-                attachment.kind === 'blob' &&
-                attachment.mediaType.startsWith('image/') &&
-                getAttachmentPreviewUrl(attachment.attachmentId) !== undefined)
-            .map((attachment) => (attachment as Extract<AttachmentData, { kind: 'blob' }>).attachmentId);
-
-        if (pendingIds.length === 0) {
-            return;
-        }
-
-        let cancelled = false;
-        const timers: ReturnType<typeof setTimeout>[] = [];
-
-        pendingIds.forEach((attachmentId) => {
-            let attempts = 0;
-            const probe = () => {
-                if (cancelled) {
-                    return;
-                }
-                const img = new Image();
-                img.onload = () => {
-                    if (cancelled) {
-                        return;
-                    }
-                    releaseAttachmentPreviewUrl(attachmentId);
-                    setPreviewReleaseTick((tick) => tick + 1);
-                };
-                img.onerror = () => {
-                    if (cancelled || attempts >= SERVING_PROBE_MAX_ATTEMPTS) {
-                        return;
-                    }
-                    attempts++;
-                    timers.push(setTimeout(probe, SERVING_PROBE_INTERVAL_MS));
-                };
-                img.src = getAttachmentServingUrl(chatId, attachmentId);
-            };
-            probe();
-        });
-
-        return () => {
-            cancelled = true;
-            timers.forEach(clearTimeout);
-        };
-    }, [attachments, chatId]);
 
     if (attachments.length === 0) {
         return null;
     }
 
     const activeImageSrc =
-        activeAttachment?.kind === 'blob' && activeAttachment.mediaType.startsWith('image/')
-            ? getBlobImageSrc(chatId, activeAttachment.attachmentId)
+        activeAttachment?.kind === 'blob' && mediaTypeToModality(activeAttachment.mediaType) === 'image'
+            ? getAttachmentServingUrl(chatId, activeAttachment.attachmentId)
             : undefined;
 
     return (
         <>
             <div className={cn("flex flex-row flex-wrap gap-1.5", className)}>
                 {attachments.map((attachment, index) => {
-                    if (attachment.kind === 'blob' && attachment.mediaType.startsWith('image/')) {
-                        const imageSrc = getBlobImageSrc(chatId, attachment.attachmentId);
+                    if (attachment.kind === 'blob' && mediaTypeToModality(attachment.mediaType) === 'image') {
+                        const imageSrc = getAttachmentServingUrl(chatId, attachment.attachmentId);
                         return (
                             <HoverCard key={attachment.attachmentId} openDelay={150} closeDelay={75}>
                                 <HoverCardTrigger asChild>

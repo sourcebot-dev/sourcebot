@@ -1,4 +1,7 @@
-import { ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES } from '../constants';
+import 'server-only';
+
+import sharp from 'sharp';
+import { ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES, ATTACHMENT_MAX_IMAGE_DIMENSION } from '../constants';
 
 export type AllowedImageMediaType = typeof ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES[number];
 
@@ -6,43 +9,15 @@ const isAllowedImageMediaType = (mediaType: string): mediaType is AllowedImageMe
     return (ATTACHMENT_ALLOWED_IMAGE_MIME_TYPES as readonly string[]).includes(mediaType);
 };
 
-const startsWith = (buffer: Buffer, bytes: number[], offset = 0): boolean => {
-    if (buffer.length < offset + bytes.length) {
-        return false;
-    }
-    for (let i = 0; i < bytes.length; i++) {
-        if (buffer[offset + i] !== bytes[i]) {
-            return false;
-        }
-    }
-    return true;
-};
-
-/**
- * Determines an image's media type from its leading bytes (magic numbers),
- * ignoring any client-supplied MIME type or filename extension. Returns
- * `undefined` for anything that is not an allowlisted image format. This is the
- * authoritative content-type check for binary attachment uploads.
- */
-export const detectImageMediaType = (buffer: Buffer): AllowedImageMediaType | undefined => {
-    // PNG: 89 50 4E 47 0D 0A 1A 0A
-    if (startsWith(buffer, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) {
-        return 'image/png';
-    }
-    // JPEG: FF D8 FF
-    if (startsWith(buffer, [0xff, 0xd8, 0xff])) {
-        return 'image/jpeg';
-    }
-    // GIF: "GIF87a" or "GIF89a"
-    if (startsWith(buffer, [0x47, 0x49, 0x46, 0x38, 0x37, 0x61]) ||
-        startsWith(buffer, [0x47, 0x49, 0x46, 0x38, 0x39, 0x61])) {
-        return 'image/gif';
-    }
-    // WEBP: "RIFF" .... "WEBP"
-    if (startsWith(buffer, [0x52, 0x49, 0x46, 0x46]) && startsWith(buffer, [0x57, 0x45, 0x42, 0x50], 8)) {
-        return 'image/webp';
-    }
-    return undefined;
+// sharp/libvips reports the decoded format by name; map the formats we allow to
+// their canonical media type. Anything not in this map (svg, tiff, heif, ...)
+// is rejected, so the allowlist is enforced by the absence of an entry here as
+// well as by `isAllowedImageMediaType`.
+const SHARP_FORMAT_TO_MEDIA_TYPE: Record<string, AllowedImageMediaType> = {
+    png: 'image/png',
+    jpeg: 'image/jpeg',
+    webp: 'image/webp',
+    gif: 'image/gif',
 };
 
 export type AttachmentValidationResult =
@@ -50,15 +25,21 @@ export type AttachmentValidationResult =
     | { ok: false; reason: string };
 
 /**
- * Validates uploaded attachment bytes: confirms they are an allowlisted image
- * (by magic bytes) and that the bytes don't exceed `maxBytes`. The returned
- * `mediaType` is the magic-byte-derived type, which callers should persist
- * instead of any client-supplied value.
+ * Validates uploaded attachment bytes by decoding the image header with sharp
+ * (libvips), never trusting the client-supplied MIME type or extension. This
+ * authoritatively determines the format AND the pixel dimensions, letting us
+ * reject:
+ *   - non-images / corrupt data (sharp throws),
+ *   - disallowed formats (no entry in SHARP_FORMAT_TO_MEDIA_TYPE),
+ *   - over-`maxBytes` files, and
+ *   - decompression bombs (dimensions over ATTACHMENT_MAX_IMAGE_DIMENSION).
+ * The returned `mediaType` is the decoded type, which callers persist instead of
+ * any client-supplied value.
  */
-export const validateImageAttachment = (
+export const validateImageAttachment = async (
     buffer: Buffer,
     maxBytes: number,
-): AttachmentValidationResult => {
+): Promise<AttachmentValidationResult> => {
     if (buffer.length === 0) {
         return { ok: false, reason: 'Empty file.' };
     }
@@ -66,9 +47,29 @@ export const validateImageAttachment = (
         return { ok: false, reason: `Image exceeds the ${Math.round(maxBytes / (1024 * 1024))}MB limit.` };
     }
 
-    const mediaType = detectImageMediaType(buffer);
+    let metadata: sharp.Metadata;
+    try {
+        // `failOn: 'error'` makes sharp reject truncated/corrupt inputs instead
+        // of best-effort decoding them.
+        metadata = await sharp(buffer, { failOn: 'error' }).metadata();
+    } catch {
+        return { ok: false, reason: 'Unsupported or corrupt image. Allowed: PNG, JPEG, WebP, GIF.' };
+    }
+
+    const mediaType = metadata.format ? SHARP_FORMAT_TO_MEDIA_TYPE[metadata.format] : undefined;
     if (!mediaType || !isAllowedImageMediaType(mediaType)) {
         return { ok: false, reason: 'Unsupported image type. Allowed: PNG, JPEG, WebP, GIF.' };
+    }
+
+    const { width, height } = metadata;
+    if (!width || !height) {
+        return { ok: false, reason: 'Could not determine image dimensions.' };
+    }
+    if (width > ATTACHMENT_MAX_IMAGE_DIMENSION || height > ATTACHMENT_MAX_IMAGE_DIMENSION) {
+        return {
+            ok: false,
+            reason: `Image dimensions exceed the ${ATTACHMENT_MAX_IMAGE_DIMENSION}px limit.`,
+        };
     }
 
     return { ok: true, mediaType };

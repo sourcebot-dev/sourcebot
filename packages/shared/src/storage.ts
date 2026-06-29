@@ -1,16 +1,18 @@
-import 'server-only';
-
-import { env } from '@sourcebot/shared';
 import { createReadStream as fsCreateReadStream } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import { Readable } from 'stream';
+import { env } from './env.server.js';
 
 /**
  * App-mediated storage for binary chat attachments. The application always
  * brokers access (no public URLs); callers resolve permissions via the chat
  * linker before reading. A `LocalFsStorageBackend` is provided first; an
  * S3-compatible driver implementing the same contract is planned (Followup B).
+ *
+ * @note Lives in the shared package so the web app (upload/serve) and the
+ * backend worker (orphan pruning) share one implementation and one on-disk
+ * layout.
  */
 export interface StorageBackend {
     /** Writes the bytes for `key`, overwriting any existing object. */

@@ -4,18 +4,21 @@ import { notFound, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withOptionalAuth } from "@/middleware/withAuth";
 import { checkAskEntitlement, resolveChatAccess } from "@/features/chat/utils.server";
-import { getStorageBackend } from "@/features/chat/attachments/storage";
+import { getStorageBackend } from "@sourcebot/shared";
 import { NextRequest } from "next/server";
 import { Readable } from "stream";
 
 /**
- * Serves the bytes of a committed binary attachment. Access is purely
- * chat-derived: the caller must be able to view the chat (owner / shared /
- * public) AND a `ChatAttachment(chatId, attachmentId)` link must exist. The
- * link requirement is what makes chat duplication safe (the same blob can be
- * served only through chats it is actually linked to). This endpoint is
- * post-send only; pre-send previews are rendered client-side from the local
- * file.
+ * Serves the bytes of a binary attachment. Two access paths:
+ *
+ *  1. The uploader can always read their own bytes. This covers the brief
+ *     pre-commit window right after sending (before the `ChatAttachment` link
+ *     exists), so a just-sent image renders straight from this route.
+ *  2. Everyone else gets purely chat-derived access: they must be able to view
+ *     the chat (owner / shared / public) AND a `ChatAttachment(chatId,
+ *     attachmentId)` link must exist. The link requirement is what makes chat
+ *     duplication safe (the same blob can be served only through chats it is
+ *     actually linked to).
  */
 export const GET = apiHandler(async (
     _req: NextRequest,
@@ -41,26 +44,40 @@ export const GET = apiHandler(async (
                 return notFound();
             }
 
-            const { canView } = await resolveChatAccess({ prisma, chat, user });
-            if (!canView) {
-                return notFound();
-            }
-
-            // The link must exist for THIS chat (chat-derived access). We load
-            // the attachment through the link so a blob can never be served via
-            // a chat it isn't linked to.
-            const link = await prisma.chatAttachment.findUnique({
-                where: {
-                    chatId_attachmentId: { chatId, attachmentId },
-                },
-                include: { attachment: true },
+            const attachment = await prisma.attachment.findFirst({
+                where: { id: attachmentId, orgId: org.id },
             });
 
-            if (!link || link.attachment.orgId !== org.id) {
+            if (!attachment) {
                 return notFound();
             }
 
-            return { attachment: link.attachment };
+            // Path 1: the uploader can always read their own bytes (pre-commit
+            // preview window included).
+            const isUploader = user !== undefined && attachment.uploadedById === user.id;
+
+            if (!isUploader) {
+                // Path 2: chat-derived access. The caller must be able to view
+                // the chat AND the attachment must be linked to THIS chat, so a
+                // blob can never be served via a chat it isn't linked to.
+                const { canView } = await resolveChatAccess({ prisma, chat, user });
+                if (!canView) {
+                    return notFound();
+                }
+
+                const link = await prisma.chatAttachment.findUnique({
+                    where: {
+                        chatId_attachmentId: { chatId, attachmentId },
+                    },
+                    select: { id: true },
+                });
+
+                if (!link) {
+                    return notFound();
+                }
+            }
+
+            return { attachment };
         })
     );
 

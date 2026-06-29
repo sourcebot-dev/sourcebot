@@ -1,7 +1,5 @@
 import { AttachmentStatus, PrismaClient } from "@sourcebot/db";
-import { createLogger, env } from "@sourcebot/shared";
-import { unlink } from "fs/promises";
-import path from "path";
+import { createLogger, env, getStorageBackend } from "@sourcebot/shared";
 import { setIntervalAsync } from "./utils.js";
 
 const BATCH_SIZE = 1_000;
@@ -16,13 +14,13 @@ const logger = createLogger('attachment-pruner');
  * the message. COMMITTED attachments are never touched here; their byte
  * lifecycle is handled by the chat-delete sweep in the web app.
  *
- * @note Mirrors the local-FS layout used by `LocalFsStorageBackend` in the web
- * package (`DATA_CACHE_DIR/attachments/<storageKey>`). When an S3 driver is
- * added (Followup B), this deletion path must be generalized accordingly.
+ * @note Byte deletion goes through the shared `StorageBackend`, so the web app
+ * and this worker share one on-disk layout (and the S3 driver planned in
+ * Followup B).
  */
 export class AttachmentPruner {
     private interval?: NodeJS.Timeout;
-    private readonly attachmentsDir = path.join(env.DATA_CACHE_DIR, 'attachments');
+    private readonly storage = getStorageBackend();
 
     constructor(private db: PrismaClient) {}
 
@@ -71,11 +69,9 @@ export class AttachmentPruner {
 
             await Promise.all(batch.map(async (attachment) => {
                 try {
-                    await unlink(path.join(this.attachmentsDir, attachment.storageKey));
+                    await this.storage.delete(attachment.storageKey);
                 } catch (error) {
-                    if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-                        logger.warn(`Failed to delete bytes for orphaned attachment ${attachment.id}: ${error}`);
-                    }
+                    logger.warn(`Failed to delete bytes for orphaned attachment ${attachment.id}: ${error}`);
                 }
             }));
 

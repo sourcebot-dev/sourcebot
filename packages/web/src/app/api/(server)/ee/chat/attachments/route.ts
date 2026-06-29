@@ -6,10 +6,9 @@ import { ServiceError, serviceErrorResponse } from "@/lib/serviceError";
 import { isServiceError } from "@/lib/utils";
 import { withAuth } from "@/middleware/withAuth";
 import { checkAskEntitlement } from "@/features/chat/utils.server";
-import { getStorageBackend } from "@/features/chat/attachments/storage";
 import { validateImageAttachment } from "@/features/chat/attachments/validation";
 import { sanitizeFilename } from "@/features/chat/attachments/filename";
-import { env } from "@sourcebot/shared";
+import { env, getStorageBackend } from "@sourcebot/shared";
 import { createHash, randomUUID } from "crypto";
 import { StatusCodes } from "http-status-codes";
 import { NextRequest } from "next/server";
@@ -52,7 +51,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             // Authoritative content-type + size check by magic bytes (never the
             // client-supplied MIME type or extension).
-            const validation = validateImageAttachment(buffer, maxImageBytes);
+            const validation = await validateImageAttachment(buffer, maxImageBytes);
             if (!validation.ok) {
                 return {
                     statusCode: StatusCodes.BAD_REQUEST,

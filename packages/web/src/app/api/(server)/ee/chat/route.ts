@@ -5,6 +5,7 @@ import { getPromptCacheStrategy } from "@/ee/features/chat/promptCaching";
 import { additionalChatRequestParamsSchema } from "@/features/chat/types";
 import { getLanguageModelKey, getMessageTextBytes, getUserMessageAttachments } from "@/features/chat/utils";
 import { ATTACHMENT_MAX_TURN_TEXT_BYTES } from "@/features/chat/constants";
+import { isMediaTypeAccepted, mediaTypeToModality } from "@/features/chat/attachments/modality";
 import { resolveModelCapabilities } from "@/features/chat/modelCapabilities.server";
 import { checkAskEntitlement, commitMessageAttachments, getConfiguredLanguageModels, isOwnerOfChat, updateChatMessages } from "@/features/chat/utils.server";
 import { getAISDKLanguageModelAndOptions } from "@/features/chat/llm.server";
@@ -134,23 +135,24 @@ export const POST = apiHandler(async (req: NextRequest) => {
 
             const { model, providerOptions, temperature } = await getAISDKLanguageModelAndOptions(languageModelConfig);
 
-            // Authoritative, server-side resolution of image capability. The
-            // agent's multimodal content builder and degrade logic rely on this
-            // value, never the client.
-            const supportsImages = (await resolveModelCapabilities(languageModelConfig)).inputModalities.includes('image');
+            // Authoritative, server-side resolution of the model's input
+            // modalities. The agent's multimodal content builder and degrade
+            // logic rely on this value, never the client.
+            const acceptedModalities = (await resolveModelCapabilities(languageModelConfig)).inputModalities;
 
-            // If the latest message carries image attachments the selected model
-            // cannot accept, the agent will degrade (omit the bytes). Record it.
-            const latestImageAttachmentCount = latestMessage
-                ? getUserMessageAttachments(latestMessage).filter(
-                    (attachment) => attachment.kind === 'blob' && attachment.mediaType.startsWith('image/'),
-                ).length
-                : 0;
-            if (!supportsImages && latestImageAttachmentCount > 0) {
+            // If the latest message carries native-media attachments the selected
+            // model cannot accept, the agent will degrade (omit the bytes). Record it.
+            const droppedAttachmentCount = getUserMessageAttachments(latestMessage).filter(
+                (attachment) =>
+                    attachment.kind === 'blob' &&
+                    mediaTypeToModality(attachment.mediaType) !== undefined &&
+                    !isMediaTypeAccepted(attachment.mediaType, acceptedModalities),
+            ).length;
+            if (droppedAttachmentCount > 0) {
                 await captureEvent('chat_attachment_degraded', {
                     chatId: id,
                     source: req.headers.get('X-Sourcebot-Client-Source') ?? 'unknown',
-                    droppedImageCount: latestImageAttachmentCount,
+                    droppedImageCount: droppedAttachmentCount,
                     modelProvider: languageModelConfig.provider,
                     model: languageModelConfig.model,
                 });
@@ -217,7 +219,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
                 modelTemperature: temperature,
                 userId: user?.id,
                 orgId: org.id,
-                supportsImages,
+                acceptedModalities,
                 onFinish: async ({ messages }) => {
                     await updateChatMessages({ chatId: id, messages, prisma });
                     const askMcpTurnCompleted = getAskMcpTurnCompletedAnalytics({

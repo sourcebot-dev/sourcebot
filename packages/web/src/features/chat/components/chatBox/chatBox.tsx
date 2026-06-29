@@ -6,7 +6,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { AttachmentData, CustomEditor, MentionElement, RenderElementPropsFor, SearchScope } from "@/features/chat/types";
 import { insertMention, slateContentToString } from "@/features/chat/utils";
 import { createPastedTextAttachment, getSubmittedTextBytes, PendingAttachment, PendingImageAttachment, readFilesAsAttachments, shouldAutoConvertPaste, toAttachmentData, uploadImageAttachment } from "@/features/chat/attachmentUtils";
-import { setAttachmentPreviewUrl } from "@/features/chat/attachments/attachmentPreviewCache";
 import { AttachmentButton } from "./attachmentButton";
 import { AttachmentTray } from "./attachmentTray";
 import { cn } from "@/lib/utils";
@@ -232,6 +231,27 @@ const ChatBoxComponent = ({
         });
     }, []);
 
+    // Track the set of live image preview object URLs (pending or
+    // just-submitted) so they can be revoked when the chat box unmounts,
+    // preventing leaks across SPA navigations.
+    const liveObjectUrlsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+        const urls = new Set<string>();
+        for (const attachment of [...attachments, ...submittedAttachments]) {
+            if (attachment.kind === 'image') {
+                urls.add(attachment.previewUrl);
+            }
+        }
+        liveObjectUrlsRef.current = urls;
+    }, [attachments, submittedAttachments]);
+    useEffect(() => {
+        return () => {
+            for (const url of liveObjectUrlsRef.current) {
+                URL.revokeObjectURL(url);
+            }
+        };
+    }, []);
+
     // Allow an ancestor pane-level drop zone to forward dropped files into this
     // chat box (which owns attachment state). See `ChatPaneDropzone`.
     useImperativeHandle(ref, () => ({
@@ -409,19 +429,10 @@ const ChatBoxComponent = ({
             .map(toAttachmentData)
             .filter((attachment): attachment is AttachmentData => attachment !== undefined);
 
-        // Stash uploaded previews so the persisted message renders them
-        // instantly; release the rest (not part of the message).
-        attachments.forEach((attachment) => {
-            if (attachment.kind !== 'image') {
-                return;
-            }
-            if (attachment.status === 'uploaded' && attachment.attachmentId) {
-                setAttachmentPreviewUrl(attachment.attachmentId, attachment.previewUrl);
-            } else {
-                URL.revokeObjectURL(attachment.previewUrl);
-            }
-        });
-
+        // The persisted message renders images from the serving route (the
+        // uploader can read their own bytes pre-commit). The preview object URLs
+        // are kept alive for the `submittedAttachments` redirect tray and revoked
+        // on unmount (see the cleanup effect above).
         _onSubmit(editor.children, editor, attachmentData);
         setSubmittedAttachments(attachments);
         setAttachments([]);

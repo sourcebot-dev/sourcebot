@@ -24,6 +24,12 @@ export const ATTACHMENT_MAX_TURN_TEXT_BYTES = 256 * 1024; // 256KB per turn
 // fails (and matches the server default).
 export const ATTACHMENT_MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB per image
 
+// Upper bound on an image attachment's pixel dimensions (width and height),
+// enforced server-side at upload time. Guards against decompression bombs: a
+// small-on-disk file that decodes to an enormous raster would otherwise be
+// loaded into memory and shipped to the vision model.
+export const ATTACHMENT_MAX_IMAGE_DIMENSION = 12000; // px per side
+
 // Max image (blob) attachments per message. Enforced server-side in
 // `commitMessageAttachments` (mirrored client-side for early feedback) to bound
 // per-request memory/cost: each image is loaded and sent to the model.
