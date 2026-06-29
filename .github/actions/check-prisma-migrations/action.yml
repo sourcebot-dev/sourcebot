@@ -1,0 +1,114 @@
+name: Check Prisma Migrations
+description: >-
+  Verify Prisma migrations apply cleanly in order and reproduce schema.prisma
+  (drift check), and that no new migration predates the latest on the base
+  branch (ordering check). Designed to be embedded in an existing job so its
+  failure turns that job's status red.
+
+inputs:
+  base-ref:
+    description: >-
+      Base git ref to diff migrations against (e.g. a PR's base branch). When
+      set, the action skips work on PRs that don't touch migrations and runs the
+      ordering check. When empty (release builds), the drift check always runs
+      and the ordering check is skipped.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Detect Prisma changes
+      id: detect
+      shell: bash
+      run: |
+        if [ -z "${{ inputs.base-ref }}" ]; then
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "No base-ref provided — running drift check unconditionally."
+          exit 0
+        fi
+        git fetch --no-tags --depth=1 origin "+refs/heads/${{ inputs.base-ref }}:refs/remotes/origin/${{ inputs.base-ref }}"
+        if git diff --name-only "origin/${{ inputs.base-ref }}" HEAD | grep -q '^packages/db/prisma/'; then
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "Prisma changes detected — running migration checks."
+        else
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+          echo "No Prisma changes — skipping migration checks."
+        fi
+
+    - name: Start Postgres
+      if: steps.detect.outputs.changed == 'true'
+      shell: bash
+      run: |
+        docker run -d --name prisma-check-pg \
+          -e POSTGRES_USER=postgres \
+          -e POSTGRES_PASSWORD=postgres \
+          -e POSTGRES_DB=sourcebot \
+          -p 5432:5432 postgres:16
+        for i in $(seq 1 30); do
+          if docker exec prisma-check-pg pg_isready -U postgres -q; then
+            echo "Postgres ready."
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "Postgres failed to become ready." && exit 1
+
+    - name: Use Node.js
+      if: steps.detect.outputs.changed == 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20.x"
+
+    - name: Install
+      if: steps.detect.outputs.changed == 'true'
+      shell: bash
+      run: yarn install --frozen-lockfile
+
+    # Check 1: migrations apply cleanly in order AND reproduce schema.prisma.
+    # `migrate deploy` fails if a migration is broken or applies out of sequence;
+    # `migrate diff` exits 2 when the applied history drifts from the schema.
+    - name: Apply migrations
+      if: steps.detect.outputs.changed == 'true'
+      shell: bash
+      working-directory: packages/db
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sourcebot
+      run: yarn prisma migrate deploy
+
+    - name: Check for schema drift
+      if: steps.detect.outputs.changed == 'true'
+      shell: bash
+      working-directory: packages/db
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sourcebot
+      run: |
+        yarn prisma migrate diff \
+          --from-database \
+          --to-schema-datamodel prisma/schema.prisma \
+          --exit-code \
+        && echo "✅ No drift: migrations reproduce schema.prisma" \
+        || (echo "❌ schema.prisma has changes not captured in a migration. Run: yarn dev:prisma:migrate:dev --name <name>" && exit 1)
+
+    # Check 2 (PRs only): no new migration predates the latest on the base branch.
+    - name: Check migration ordering
+      if: steps.detect.outputs.changed == 'true' && inputs.base-ref != ''
+      shell: bash
+      run: |
+        MIG_DIR=packages/db/prisma/migrations
+        BASE="origin/${{ inputs.base-ref }}"
+        LATEST_ON_BASE=$(git ls-tree -r --name-only "$BASE" -- "$MIG_DIR" \
+          | sed -n "s#$MIG_DIR/\([0-9]\{14\}\)_.*#\1#p" | sort | tail -1)
+        echo "Latest migration on ${{ inputs.base-ref }}: ${LATEST_ON_BASE:-<none>}"
+        NEW=$(comm -23 \
+          <(ls "$MIG_DIR" | sed -n 's/^\([0-9]\{14\}\)_.*/\1/p' | sort -u) \
+          <(git ls-tree -r --name-only "$BASE" -- "$MIG_DIR" | sed -n "s#$MIG_DIR/\([0-9]\{14\}\)_.*#\1#p" | sort -u))
+        FAIL=0
+        for ts in $NEW; do
+          if [ -n "$LATEST_ON_BASE" ] && [ "$ts" -lt "$LATEST_ON_BASE" ]; then
+            echo "❌ New migration $ts predates latest migration on ${{ inputs.base-ref }} ($LATEST_ON_BASE). Rename it with a current timestamp."
+            FAIL=1
+          fi
+        done
+        [ "$FAIL" -eq 0 ] && echo "✅ Migration ordering OK"
+        exit $FAIL
