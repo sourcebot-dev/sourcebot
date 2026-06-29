@@ -3,7 +3,10 @@
 import { sew } from "@/middleware/sew";
 import { generateAndStoreAuthCode } from '@/ee/features/oauth/server';
 import { withAuth } from '@/middleware/withAuth';
-import { UNPERMITTED_SCHEMES } from '@/ee/features/oauth/constants';
+import { resolveGrantedOAuthScopes, UNPERMITTED_SCHEMES } from '@/ee/features/oauth/constants';
+import { ErrorCode } from '@/lib/errorCodes';
+import type { ServiceError } from '@/lib/serviceError';
+import { StatusCodes } from 'http-status-codes';
 
 export interface ConnectedOauthClient {
     id: string;
@@ -37,16 +40,27 @@ export const approveAuthorization = async ({
     clientId,
     redirectUri,
     codeChallenge,
+    requestedScope,
     resource,
     state,
 }: {
     clientId: string;
     redirectUri: string;
     codeChallenge: string;
+    requestedScope: string | undefined;
     resource: string | null;
     state: string | undefined;
 }) => sew(() =>
     withAuth(async ({ user }) => {
+        const grantedScopes = resolveGrantedOAuthScopes(requestedScope);
+        if ('error' in grantedScopes) {
+            return {
+                statusCode: StatusCodes.BAD_REQUEST,
+                errorCode: ErrorCode.INVALID_REQUEST_BODY,
+                message: grantedScopes.errorDescription,
+            } satisfies ServiceError;
+        }
+
         const rawCode = await generateAndStoreAuthCode({
             clientId,
             userId: user.id,

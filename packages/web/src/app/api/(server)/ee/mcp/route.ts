@@ -12,6 +12,7 @@ import { sew } from "@/middleware/sew";
 import { apiHandler } from '@/lib/apiHandler';
 import { env } from '@sourcebot/shared';
 import { hasEntitlement } from '@/lib/entitlements';
+import { SOURCEBOT_MCP_OAUTH_SCOPE } from '@/ee/features/oauth/constants';
 
 // On 401, tell MCP clients where to find the OAuth protected resource metadata (RFC 9728)
 // so they can discover the authorization server and initiate the authorization code flow.
@@ -20,14 +21,29 @@ import { hasEntitlement } from '@/lib/entitlements';
 // @see: https://datatracker.ietf.org/doc/html/rfc9728
 async function mcpErrorResponse(error: ServiceError): Promise<Response> {
     const response = serviceErrorResponse(error);
-    if (error.statusCode === StatusCodes.UNAUTHORIZED && await hasEntitlement('oauth')) {
-        const issuer = env.AUTH_URL.replace(/\/$/, '');
-        response.headers.set(
-            'WWW-Authenticate',
-            `Bearer realm="Sourcebot", resource_metadata_uri="${issuer}/.well-known/oauth-protected-resource/api/mcp"`
-        );
+    if (
+        (error.statusCode === StatusCodes.UNAUTHORIZED || error.errorCode === ErrorCode.OAUTH_INSUFFICIENT_SCOPE) &&
+        await hasEntitlement('oauth')
+    ) {
+        response.headers.set('WWW-Authenticate', mcpBearerChallenge(error));
     }
     return response;
+}
+
+function mcpBearerChallenge(error: ServiceError): string {
+    const issuer = env.AUTH_URL.replace(/\/$/, '');
+    const params = [
+        'realm="Sourcebot"',
+        `resource_metadata_uri="${issuer}/.well-known/oauth-protected-resource/api/mcp"`,
+        `scope="${SOURCEBOT_MCP_OAUTH_SCOPE}"`,
+    ];
+
+    if (error.errorCode === ErrorCode.OAUTH_INSUFFICIENT_SCOPE) {
+        params.push('error="insufficient_scope"');
+        params.push(`error_description="${error.message}"`);
+    }
+
+    return `Bearer ${params.join(', ')}`;
 }
 
 // @see: https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#session-management
@@ -95,7 +111,7 @@ export const POST = apiHandler(async (request: NextRequest) => {
             await mcpServer.connect(transport);
 
             return transport.handleRequest(request);
-        })
+        }, { requiredOAuthScopes: [SOURCEBOT_MCP_OAUTH_SCOPE] })
     );
 
     if (isServiceError(response)) {
@@ -139,7 +155,7 @@ export const DELETE = apiHandler(async (request: NextRequest) => {
             }
 
             return session.transport.handleRequest(request);
-        })
+        }, { requiredOAuthScopes: [SOURCEBOT_MCP_OAUTH_SCOPE] })
     );
 
     if (isServiceError(result)) {

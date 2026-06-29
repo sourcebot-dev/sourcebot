@@ -665,7 +665,7 @@ model OAuthRefreshToken {
   client    OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   userId    String
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  scope     String      @default("")
+  scope     String      @default("mcp")
   resource  String? // RFC 8707
   expiresAt DateTime
   createdAt DateTime    @default(now())
@@ -680,7 +680,7 @@ model OAuthToken {
   client     OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   userId     String
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  scope      String      @default("")
+  scope      String      @default("mcp")
   resource   String? // RFC 8707: canonical URI of the target resource server
   expiresAt  DateTime
   createdAt  DateTime    @default(now())

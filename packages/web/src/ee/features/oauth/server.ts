@@ -11,6 +11,9 @@ import {
     OAUTH_REFRESH_TOKEN_PREFIX,
 } from '@sourcebot/shared';
 import crypto from 'crypto';
+import { DEFAULT_SOURCEBOT_OAUTH_SCOPES, formatOAuthScopeString } from './constants';
+
+const DEFAULT_SOURCEBOT_OAUTH_SCOPE_STRING = formatOAuthScopeString(DEFAULT_SOURCEBOT_OAUTH_SCOPES);
 
 // Generates a random authorization code, hashes it, and stores it alongside the
 // PKCE code challenge. Returns the raw code to be sent to the client.
@@ -59,7 +62,7 @@ export async function verifyAndExchangeCode({
     redirectUri: string;
     codeVerifier: string;
     resource: string | null;
-}): Promise<{ token: string; refreshToken: string; expiresIn: number } | { error: string; errorDescription: string }> {
+}): Promise<{ token: string; refreshToken: string; expiresIn: number; scope: string } | { error: string; errorDescription: string }> {
     const codeHash = hashSecret(rawCode);
 
     const authCode = await __unsafePrisma.oAuthAuthorizationCode.findUnique({
@@ -118,6 +121,7 @@ export async function verifyAndExchangeCode({
                 hash,
                 clientId,
                 userId: authCode.userId,
+                scope: DEFAULT_SOURCEBOT_OAUTH_SCOPE_STRING,
                 resource: authCode.resource,
                 expiresAt: new Date(Date.now() + env.OAUTH_ACCESS_TOKEN_TTL_SECONDS * 1000),
             },
@@ -127,13 +131,14 @@ export async function verifyAndExchangeCode({
                 hash: refreshHash,
                 clientId,
                 userId: authCode.userId,
+                scope: DEFAULT_SOURCEBOT_OAUTH_SCOPE_STRING,
                 resource: authCode.resource,
                 expiresAt: new Date(Date.now() + env.OAUTH_REFRESH_TOKEN_TTL_SECONDS * 1000),
             },
         }),
     ]);
 
-    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS };
+    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS, scope: DEFAULT_SOURCEBOT_OAUTH_SCOPE_STRING };
 }
 
 // Verifies a refresh token, rotates it, and issues a new access token + refresh token.
@@ -147,7 +152,7 @@ export async function verifyAndRotateRefreshToken({
     rawRefreshToken: string;
     clientId: string;
     resource: string | null;
-}): Promise<{ token: string; refreshToken: string; expiresIn: number } | { error: string; errorDescription: string }> {
+}): Promise<{ token: string; refreshToken: string; expiresIn: number; scope: string } | { error: string; errorDescription: string }> {
     if (!rawRefreshToken.startsWith(OAUTH_REFRESH_TOKEN_PREFIX)) {
         return { error: 'invalid_grant', errorDescription: 'Refresh token is invalid.' };
     }
@@ -175,6 +180,7 @@ export async function verifyAndRotateRefreshToken({
 
     const { token, hash: newTokenHash } = generateOAuthToken();
     const { token: refreshToken, hash: newRefreshHash } = generateOAuthRefreshToken();
+    const scope = existing.scope || DEFAULT_SOURCEBOT_OAUTH_SCOPE_STRING;
 
     await __unsafePrisma.$transaction([
         __unsafePrisma.oAuthRefreshToken.delete({ where: { hash } }),
@@ -183,6 +189,7 @@ export async function verifyAndRotateRefreshToken({
                 hash: newTokenHash,
                 clientId,
                 userId: existing.userId,
+                scope,
                 resource: existing.resource,
                 expiresAt: new Date(Date.now() + env.OAUTH_ACCESS_TOKEN_TTL_SECONDS * 1000),
             },
@@ -192,13 +199,14 @@ export async function verifyAndRotateRefreshToken({
                 hash: newRefreshHash,
                 clientId,
                 userId: existing.userId,
+                scope,
                 resource: existing.resource,
                 expiresAt: new Date(Date.now() + env.OAUTH_REFRESH_TOKEN_TTL_SECONDS * 1000),
             },
         }),
     ]);
 
-    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS };
+    return { token, refreshToken, expiresIn: env.OAUTH_ACCESS_TOKEN_TTL_SECONDS, scope };
 }
 
 // Revokes an access token or refresh token by hashing it and deleting the DB record.

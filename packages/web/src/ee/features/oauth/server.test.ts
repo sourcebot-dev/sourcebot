@@ -1,6 +1,7 @@
 import { expect, test, vi, beforeEach, describe } from 'vitest';
 import { MOCK_REFRESH_TOKEN, MOCK_USER_WITH_ACCOUNTS, prisma } from '@/__mocks__/prisma';
 import { verifyAndExchangeCode, verifyAndRotateRefreshToken, revokeToken } from './server';
+import { SOURCEBOT_MCP_OAUTH_SCOPE } from './constants';
 
 vi.mock('@/prisma', async () => {
     const actual = await vi.importActual<typeof import('@/__mocks__/prisma')>('@/__mocks__/prisma');
@@ -65,6 +66,13 @@ describe('verifyAndExchangeCode', () => {
             token: 'sboa_newtoken',
             refreshToken: 'sbor_newrefresh',
             expiresIn: expect.any(Number),
+            scope: SOURCEBOT_MCP_OAUTH_SCOPE,
+        });
+        expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ scope: SOURCEBOT_MCP_OAUTH_SCOPE }),
+        });
+        expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ scope: SOURCEBOT_MCP_OAUTH_SCOPE }),
         });
     });
 
@@ -214,6 +222,37 @@ describe('verifyAndRotateRefreshToken', () => {
             token: 'sboa_newtoken',
             refreshToken: 'sbor_newrefresh',
             expiresIn: expect.any(Number),
+            scope: SOURCEBOT_MCP_OAUTH_SCOPE,
+        });
+        expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ scope: SOURCEBOT_MCP_OAUTH_SCOPE }),
+        });
+        expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ scope: SOURCEBOT_MCP_OAUTH_SCOPE }),
+        });
+    });
+
+    test('defaults legacy empty-scope refresh tokens to the MCP scope during rotation', async () => {
+        prisma.oAuthRefreshToken.findUnique.mockResolvedValue({
+            ...MOCK_REFRESH_TOKEN,
+            scope: '',
+        });
+        prisma.oAuthRefreshToken.delete.mockResolvedValue(MOCK_REFRESH_TOKEN);
+        prisma.oAuthToken.create.mockResolvedValue({} as never);
+        prisma.oAuthRefreshToken.create.mockResolvedValue({} as never);
+
+        const result = await verifyAndRotateRefreshToken({
+            rawRefreshToken: 'sbor_refreshtoken',
+            clientId: 'test-client-id',
+            resource: null,
+        });
+
+        expect(result).toMatchObject({ scope: SOURCEBOT_MCP_OAUTH_SCOPE });
+        expect(prisma.oAuthToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ scope: SOURCEBOT_MCP_OAUTH_SCOPE }),
+        });
+        expect(prisma.oAuthRefreshToken.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ scope: SOURCEBOT_MCP_OAUTH_SCOPE }),
         });
     });
 

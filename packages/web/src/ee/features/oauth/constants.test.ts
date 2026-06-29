@@ -1,5 +1,45 @@
 import { expect, test, describe } from 'vitest';
-import { UNPERMITTED_SCHEMES, isPermittedRedirectUrl } from './constants';
+import {
+    SOURCEBOT_MCP_OAUTH_SCOPE,
+    UNPERMITTED_SCHEMES,
+    hasRequiredOAuthScopes,
+    isPermittedRedirectUrl,
+    parseOAuthScopeString,
+    resolveGrantedOAuthScopes,
+} from './constants';
+
+describe('OAuth scopes', () => {
+    test('parses and deduplicates space-delimited scope strings', () => {
+        expect(parseOAuthScopeString(` ${SOURCEBOT_MCP_OAUTH_SCOPE}  extra ${SOURCEBOT_MCP_OAUTH_SCOPE} `)).toEqual([
+            SOURCEBOT_MCP_OAUTH_SCOPE,
+            'extra',
+        ]);
+    });
+
+    test('defaults authorization requests to the Sourcebot MCP scope', () => {
+        expect(resolveGrantedOAuthScopes(undefined)).toEqual({
+            scopes: [SOURCEBOT_MCP_OAUTH_SCOPE],
+        });
+    });
+
+    test('accepts the supported Sourcebot MCP scope', () => {
+        expect(resolveGrantedOAuthScopes(SOURCEBOT_MCP_OAUTH_SCOPE)).toEqual({
+            scopes: [SOURCEBOT_MCP_OAUTH_SCOPE],
+        });
+    });
+
+    test('rejects unsupported scopes', () => {
+        expect(resolveGrantedOAuthScopes('repo')).toMatchObject({
+            error: 'invalid_scope',
+            errorDescription: 'Unsupported OAuth scope: repo.',
+        });
+    });
+
+    test('checks required scopes against token scopes', () => {
+        expect(hasRequiredOAuthScopes([SOURCEBOT_MCP_OAUTH_SCOPE, 'other'], [SOURCEBOT_MCP_OAUTH_SCOPE])).toBe(true);
+        expect(hasRequiredOAuthScopes(['other'], [SOURCEBOT_MCP_OAUTH_SCOPE])).toBe(false);
+    });
+});
 
 describe('UNPERMITTED_SCHEMES', () => {
     // Dangerous schemes that must be blocked

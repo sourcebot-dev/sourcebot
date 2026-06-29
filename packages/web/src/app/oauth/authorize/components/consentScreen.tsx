@@ -17,6 +17,7 @@ interface ConsentScreenProps {
     clientLogoUri: string | null;
     redirectUri: string;
     codeChallenge: string;
+    requestedScope: string | undefined;
     resource: string | null;
     state: string | undefined;
     userEmail: string;
@@ -28,6 +29,7 @@ export function ConsentScreen({
     clientLogoUri,
     redirectUri,
     codeChallenge,
+    requestedScope,
     resource,
     state,
     userEmail,
@@ -43,7 +45,7 @@ export function ConsentScreen({
     const onApprove = async () => {
         captureEvent('wa_oauth_authorization_approved', { clientId, clientName });
         setPending('approve');
-        const result = await approveAuthorization({ clientId, redirectUri, codeChallenge, resource, state });
+        const result = await approveAuthorization({ clientId, redirectUri, codeChallenge, requestedScope, resource, state });
         if (!isServiceError(result)) {
             if (!isPermittedRedirectUrl(result)) {
                 toast({ description: `❌ Redirect URL is not permitted.` });
