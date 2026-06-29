@@ -22,9 +22,9 @@ import {
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import _dedent from "dedent";
-import { ANSWER_TAG, FILE_REFERENCE_PREFIX } from "@/features/chat/constants";
+import { ANSWER_TAG, ATTACHMENT_REFERENCE_PREFIX, FILE_REFERENCE_PREFIX } from "@/features/chat/constants";
 import { Source } from "@/features/chat/types";
-import { addLineNumbers, fileReferenceToString, formatAttachmentsForPrompt, getAnswerPartFromAssistantMessage, getTurnProgressState, getUserMessageAttachments, getUserMessageText } from "@/features/chat/utils";
+import { addLineNumbers, attachmentReferenceToString, fileReferenceToString, formatAttachmentsForPrompt, getAnswerPartFromAssistantMessage, getTurnProgressState, getUserMessageAttachments, getUserMessageText } from "@/features/chat/utils";
 import { createTools } from "./tools";
 import { getConnectedMcpClients } from "@/ee/features/chat/mcp/mcpClientFactory";
 import { getMcpTools, McpToolsResult } from "@/ee/features/chat/mcp/mcpToolSets";
@@ -54,6 +54,34 @@ const buildModelMediaPart = (bytes: Buffer, mediaType: string): ModelMediaPart |
     // audio / video / document modalities are not yet wired into the model
     // content; callers leave a degrade marker in their place.
     return undefined;
+};
+
+// A text attachment available for citation in a turn, keyed by its stable id.
+// This is the inline backing for the read_attachment resolver and the manifest.
+type TurnTextAttachment = { id: string; filename: string; mediaType: string; text: string; sizeBytes: number };
+
+// Collects every text attachment across all user turns, deduped by stable id.
+// Legacy attachments persisted before the id field existed are skipped: without
+// an id they cannot be addressed by the manifest, the resolver, or a citation.
+const collectTextAttachments = (messages: SBChatMessage[]): TurnTextAttachment[] => {
+    const byId = new Map<string, TurnTextAttachment>();
+    for (const message of messages) {
+        if (message.role !== 'user') {
+            continue;
+        }
+        for (const attachment of getUserMessageAttachments(message)) {
+            if (attachment.kind === 'text' && attachment.id) {
+                byId.set(attachment.id, {
+                    id: attachment.id,
+                    filename: attachment.filename,
+                    mediaType: attachment.mediaType,
+                    text: attachment.text,
+                    sizeBytes: attachment.sizeBytes,
+                });
+            }
+        }
+    }
+    return [...byId.values()];
 };
 
 // The native-media (non-text) attachment blobs carried by a user message.
@@ -126,9 +154,19 @@ const buildUserModelMessage = ({
     resolvedMedia?: ResolvedTurnMedia;
 }): ModelMessage => {
     const text = getUserMessageText(message);
-    const attachmentsBlock = formatAttachmentsForPrompt(
-        getUserMessageAttachments(message),
-    );
+    // Text attachments are inlined only on the turn they were added. On later
+    // turns the attachments manifest + the read_attachment tool give the model
+    // on-demand access, so re-inlining every turn (the prior behavior) is both
+    // unnecessary and a recurring token cost.
+    //
+    // GUARDRAIL: the durable copy of an inlined text attachment lives in the
+    // persisted `data-attachment` message part. There is no history compaction
+    // today; if any is ever added, treat `data-attachment` parts as pinned /
+    // non-compressible (or migrate text attachments to a storage-backed
+    // resolver), otherwise cross-turn attachment citations will dangle.
+    const attachmentsBlock = isLatestUserTurn
+        ? formatAttachmentsForPrompt(getUserMessageAttachments(message))
+        : '';
     let baseText = attachmentsBlock ? `${text}\n\n${attachmentsBlock}` : text;
 
     const mediaBlobs = getMediaBlobs(message);
@@ -327,6 +365,7 @@ export const createMessageStream = async ({
                 temperature: modelTemperature,
                 inputMessages: messageHistory,
                 inputSources: sources,
+                attachments: collectTextAttachments(messages),
                 selectedRepos,
                 disabledMcpServerIds,
                 onWriteSource: (source) => {
@@ -471,6 +510,9 @@ interface AgentOptions {
     disabledMcpServerIds?: string[];
     inputMessages: ModelMessage[];
     inputSources: Source[];
+    // Text attachments available for citation this turn (used to build the
+    // manifest and back the read_attachment resolver).
+    attachments: TurnTextAttachment[];
     onWriteSource: (source: Source) => void;
     onMcpServerDiscovered: (sanitizedName: string, faviconUrl: string) => void;
     onMcpServerFailed: (serverName: string) => void;
@@ -488,6 +530,7 @@ const createAgentStream = async ({
     temperature,
     inputMessages,
     inputSources,
+    attachments,
     selectedRepos,
     disabledMcpServerIds,
     onWriteSource,
@@ -588,9 +631,22 @@ const createAgentStream = async ({
         repos: sortedRepos,
         files: resolvedFileSources,
         mcpToolRegistry: mcpRegistry,
+        attachments,
     });
 
-    const builtinTools = createTools({ source: 'sourcebot-ask-agent', selectedRepos: sortedRepos });
+    const attachmentById = new Map(attachments.map((attachment) => [attachment.id, attachment]));
+    const builtinTools = createTools({
+        source: 'sourcebot-ask-agent',
+        selectedRepos: sortedRepos,
+        // Inline resolver for read_attachment: the bytes already travel in the
+        // request's message history, so no storage/DB access is needed.
+        getAttachment: (id) => {
+            const attachment = attachmentById.get(id);
+            return attachment
+                ? { filename: attachment.filename, mediaType: attachment.mediaType, text: attachment.text }
+                : undefined;
+        },
+    });
     const builtinToolNames = Object.keys(builtinTools);
     const allTools: Record<string, Tool> = {
         ...builtinTools,
@@ -761,6 +817,7 @@ const createPrompt = ({
     files,
     repos,
     mcpToolRegistry,
+    attachments,
 }: {
     files?: {
         path: string;
@@ -771,6 +828,7 @@ const createPrompt = ({
     }[],
     repos: string[],
     mcpToolRegistry: McpToolRegistryEntry[],
+    attachments?: TurnTextAttachment[],
 }): { staticPrompt: string; dynamicPrompt: string } => {
     // Static prefix: byte-identical across every chat and user.
     // It interpolates only module-level constants. Keep it free of any
@@ -817,6 +875,13 @@ const createPrompt = ({
     - Incorrect: @file:repository::path/to/file.ts (missing curly braces)
     - Incorrect: @file:{repository::path/to/file.ts:10-25,30-35} (multiple ranges not supported)
     - Incorrect: @file:{path/to/file.ts} (missing repository)
+    - **ATTACHMENT REFERENCE REQUIREMENT**: The user may attach files to the conversation (listed in \`<attachments_manifest>\`). These are user-provided evidence and are DISTINCT from the indexed codebase. When you discuss content from an attachment, cite it with an attachment reference using the format \`${attachmentReferenceToString({ attachmentId: 'attachment-id' })}\` or \`${attachmentReferenceToString({ attachmentId: 'attachment-id', range: { startLine: 10, endLine: 15 } })}\` (where \`attachment-id\` is the \`id\` from the manifest and the numbers are line numbers within the attachment). This includes:
+    - Some examples of both correct and incorrect attachment references:
+    - Correct: ${attachmentReferenceToString({ attachmentId: 'a1b2c3' })}
+    - Correct: ${attachmentReferenceToString({ attachmentId: 'a1b2c3', range: { startLine: 10, endLine: 15 } })}
+    - Incorrect: @attachment:{config.log} (use the manifest \`id\`, not the filename)
+    - Incorrect: @file:{a1b2c3:10-15} (attachments are not files — use \`${ATTACHMENT_REFERENCE_PREFIX}\`)
+    - Keep the two reference kinds distinct: cite indexed code ONLY with \`${FILE_REFERENCE_PREFIX}\` and attachment content ONLY with \`${ATTACHMENT_REFERENCE_PREFIX}\`, so the user can always tell repository evidence from their own uploads.
     - Be clear and very concise. Use bullet points where appropriate
     - Do NOT explain code without providing the exact location reference. Every code mention requires a corresponding \`${FILE_REFERENCE_PREFIX}\` reference
     - If you cannot provide a code reference for something you're discussing, do not mention that specific code element
@@ -872,6 +937,15 @@ const createPrompt = ({
             ${addLineNumbers(file.source)}
             </file>`).join('\n\n')}
         </files>
+        `);
+    }
+
+    if (attachments && attachments.length > 0) {
+        dynamicSections.push(dedent`
+        <attachments_manifest>
+        The user attached the following files to this conversation. They are user-provided evidence, DISTINCT from the indexed codebase. Read any of them on demand with the \`read_attachment\` tool by passing its \`id\`; the most recently added attachments may already be inlined in the latest user message. When you cite their content, use \`${ATTACHMENT_REFERENCE_PREFIX}{id:start-end}\` (never \`${FILE_REFERENCE_PREFIX}\`).
+        ${attachments.map(a => `- id: ${a.id} | filename: ${a.filename} | type: ${a.mediaType} | ${a.sizeBytes} bytes`).join('\n')}
+        </attachments_manifest>
         `);
     }
 

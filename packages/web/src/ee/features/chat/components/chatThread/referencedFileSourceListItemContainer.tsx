@@ -7,14 +7,14 @@ import { isServiceError, unwrapServiceError } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { memo, useCallback } from "react";
-import { FileReference, FileSource, Reference } from "@/features/chat/types";
+import { FileSource, Reference } from "@/features/chat/types";
 import { ReferencedFileSourceListItem } from "./referencedFileSourceListItem";
 import isEqual from 'fast-deep-equal/react';
 
 export interface ReferencedFileSourceListItemContainerProps {
     fileId: string;
     fileSource: FileSource;
-    references: FileReference[];
+    references: Reference[];
     hoveredReference?: Reference;
     selectedReference?: Reference;
     onHoveredReferenceChanged: (reference?: Reference) => void;

@@ -1,34 +1,32 @@
 'use client';
 
 import { useMemo } from "react";
-import { FileReference } from "@/features/chat/types";
-import { FILE_REFERENCE_REGEX } from "@/features/chat/constants";
-import { createFileReference } from "@/features/chat/utils";
+import { Reference } from "@/features/chat/types";
+import { ATTACHMENT_REFERENCE_REGEX, FILE_REFERENCE_REGEX } from "@/features/chat/constants";
+import { createAttachmentReference, createFileReference } from "@/features/chat/utils";
 import { TextUIPart } from "ai";
 
-export const useExtractReferences = (part?: TextUIPart) => {
+export const useExtractReferences = (part?: TextUIPart): Reference[] => {
     return useMemo(() => {
         if (!part) {
             return [];
         }
 
-        const references: FileReference[] = [];
+        const references: Reference[] = [];
+        const content = part.text ?? '';
 
-        const content = part.text;
         FILE_REFERENCE_REGEX.lastIndex = 0;
+        let fileMatch;
+        while ((fileMatch = FILE_REFERENCE_REGEX.exec(content)) !== null) {
+            const [_, repo, fileName, startLine, endLine] = fileMatch;
+            references.push(createFileReference({ repo, path: fileName, startLine, endLine }));
+        }
 
-        let match;
-        while ((match = FILE_REFERENCE_REGEX.exec(content ?? '')) !== null && match !== null) {
-            const [_, repo, fileName, startLine, endLine] = match;
-
-            const fileReference = createFileReference({
-                repo: repo,
-                path: fileName,
-                startLine,
-                endLine,
-            });
-
-            references.push(fileReference);
+        ATTACHMENT_REFERENCE_REGEX.lastIndex = 0;
+        let attachmentMatch;
+        while ((attachmentMatch = ATTACHMENT_REFERENCE_REGEX.exec(content)) !== null) {
+            const [_, attachmentId, startLine, endLine] = attachmentMatch;
+            references.push(createAttachmentReference({ attachmentId, startLine, endLine }));
         }
 
         return references;

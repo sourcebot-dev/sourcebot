@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { CSSProperties, forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import scrollIntoView from 'scroll-into-view-if-needed';
-import { Reference, referenceSchema, SBChatMessage, Source } from "@/features/chat/types";
+import { AttachmentData, Reference, referenceSchema, SBChatMessage, Source } from "@/features/chat/types";
 import { useExtractReferences } from '../../useExtractReferences';
 import { getAnswerPartFromAssistantMessage, getLastStepParts, getUserMessageAttachments, getUserMessageText, groupMessageIntoSteps, isSBChatToolPart, repairReferences } from '@/features/chat/utils';
 import { AnswerCard } from './answerCard';
@@ -27,6 +27,9 @@ interface ChatThreadListItemProps {
     isNetworkActive: boolean;
     isAwaitingToolApproval: boolean;
     sources: Source[];
+    // Chat-wide attachments, so a citation to an attachment from any earlier
+    // turn resolves (their content lives inline in the message history).
+    attachments: AttachmentData[];
     chatId: string;
     index: number;
 }
@@ -38,6 +41,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     isNetworkActive,
     isAwaitingToolApproval,
     sources,
+    attachments,
     chatId,
     index,
 }, ref) => {
@@ -346,7 +350,13 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
     }, [hoveredReference]);
 
     const references = useExtractReferences(answerPart);
-    const { diagrams, referencedFileSources, orderedItems } = useExtractPanelItems(answerPart, references, sources);
+    const { diagrams, referencedFileSources, referencedAttachments, orderedItems } = useExtractPanelItems(answerPart, references, sources, attachments);
+
+    // Maps a cited attachment's id to its filename so the answer's attachment
+    // chips render as the filename rather than the opaque id.
+    const attachmentNames = useMemo(() => {
+        return new Map(referencedAttachments.map((attachment) => [attachment.attachmentId, attachment.filename]));
+    }, [referencedAttachments]);
 
     // Maps a diagram id to its position in order of appearance (matches the
     // index the right panel assigns), used for the "Diagram N" label fallback.
@@ -390,6 +400,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
             index={index}
             references={references}
             sources={referencedFileSources}
+            attachments={referencedAttachments}
             style={rightPanelStyle}
             orderedItems={orderedItems}
             selected={selected}
@@ -475,6 +486,7 @@ const ChatThreadListItemComponent = forwardRef<HTMLDivElement, ChatThreadListIte
                                 messageId={assistantMessage.id}
                                 traceId={assistantMessage.metadata?.traceId}
                                 sources={referencedFileSources}
+                                attachmentNames={attachmentNames}
                             />
                         ) : !isTurnInProgress && approvalRequestedParts.length === 0 && (
                             <p className="text-destructive">Error: No answer response was provided</p>

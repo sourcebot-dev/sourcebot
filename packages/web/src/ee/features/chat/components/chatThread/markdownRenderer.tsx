@@ -19,8 +19,8 @@ import { visit } from 'unist-util-visit';
 import { CodeBlock } from './codeBlock';
 import { LinearIssueCard } from './linearIssueCard';
 import { DiagramReferenceChip } from './diagramReferenceChip';
-import { FILE_REFERENCE_REGEX } from '@/features/chat/constants';
-import { createFileReference } from '@/features/chat/utils';
+import { ATTACHMENT_REFERENCE_REGEX, FILE_REFERENCE_REGEX } from '@/features/chat/constants';
+import { createAttachmentReference, createFileReference } from '@/features/chat/utils';
 import isEqual from "fast-deep-equal/react";
 
 const LINEAR_ISSUE_URL_REGEX = /^https:\/\/linear\.app\/[^/]+\/issue\/([A-Z]+-\d+)\/([^/\s"]+)$/;
@@ -45,41 +45,77 @@ const annotateCodeBlocks: Plugin<[], Root> = () => {
 }
 
 // @see: https://unifiedjs.com/learn/guide/create-a-remark-plugin/
-function remarkReferencesPlugin() {
-    return function (tree: Nodes) {
-        findAndReplace(tree, [
-            FILE_REFERENCE_REGEX,
-            (_, repo: string, fileName: string, startLine?: string, endLine?: string) => {
-                // Create display text
-                let displayText = fileName.split('/').pop() ?? fileName;
+//
+// `attachmentNames` maps an attachment's stable id to its display filename so
+// the attachment chip reads as the filename rather than the opaque id.
+function createRemarkReferencesPlugin(attachmentNames?: Map<string, string>) {
+    return function remarkReferencesPlugin() {
+        return function (tree: Nodes) {
+            findAndReplace(tree, [
+                [
+                    FILE_REFERENCE_REGEX,
+                    (_, repo: string, fileName: string, startLine?: string, endLine?: string) => {
+                        // Create display text
+                        let displayText = fileName.split('/').pop() ?? fileName;
 
-                const fileReference = createFileReference({
-                    repo: repo,
-                    path: fileName,
-                    startLine,
-                    endLine,
-                });
+                        const fileReference = createFileReference({
+                            repo: repo,
+                            path: fileName,
+                            startLine,
+                            endLine,
+                        });
 
-                if (fileReference.range) {
-                    displayText += `:${fileReference.range.startLine}-${fileReference.range.endLine}`;
-                }
+                        if (fileReference.range) {
+                            displayText += `:${fileReference.range.startLine}-${fileReference.range.endLine}`;
+                        }
 
-                return {
-                    type: 'html',
-                    // @note: if you add additional attributes to this span, make sure to update the rehypeSanitize plugin to allow them.
-                    //
-                    // @note: we attach the reference id to the DOM element as a class name since there may be multiple reference elements
-                    // with the same id (i.e., referencing the same file & range).
-                    value: `<span
-                        role="button"
-                        class="${fileReference.id}"
-                        className="font-mono cursor-pointer text-xs px-1 py-[1.5px] rounded-md transition-all duration-150 bg-chat-citation"
-                        title="Click to navigate to code"
-                        ${REFERENCE_PAYLOAD_ATTRIBUTE}="${encodeURIComponent(JSON.stringify(fileReference))}"
-                    >${displayText}</span>`
-                }
-            }
-        ])
+                        return {
+                            type: 'html',
+                            // @note: if you add additional attributes to this span, make sure to update the rehypeSanitize plugin to allow them.
+                            //
+                            // @note: we attach the reference id to the DOM element as a class name since there may be multiple reference elements
+                            // with the same id (i.e., referencing the same file & range).
+                            value: `<span
+                                role="button"
+                                class="${fileReference.id}"
+                                className="font-mono cursor-pointer text-xs px-1 py-[1.5px] rounded-md transition-all duration-150 bg-chat-citation"
+                                title="Click to navigate to code"
+                                ${REFERENCE_PAYLOAD_ATTRIBUTE}="${encodeURIComponent(JSON.stringify(fileReference))}"
+                            >${displayText}</span>`
+                        }
+                    },
+                ],
+                [
+                    ATTACHMENT_REFERENCE_REGEX,
+                    (_, attachmentId: string, startLine?: string, endLine?: string) => {
+                        const attachmentReference = createAttachmentReference({
+                            attachmentId,
+                            startLine,
+                            endLine,
+                        });
+
+                        let displayText = attachmentNames?.get(attachmentId) ?? attachmentId;
+                        if (attachmentReference.range) {
+                            displayText += `:${attachmentReference.range.startLine}-${attachmentReference.range.endLine}`;
+                        }
+
+                        // The inset ring is the provenance cue: attachment
+                        // citations are visibly distinct from repo citations so
+                        // the user can tell their own uploads from indexed code.
+                        return {
+                            type: 'html',
+                            value: `<span
+                                role="button"
+                                class="${attachmentReference.id}"
+                                className="font-mono cursor-pointer text-xs px-1 py-[1.5px] rounded-md transition-all duration-150 bg-chat-citation ring-1 ring-inset ring-muted-foreground/40"
+                                title="Attached file — click to view"
+                                ${REFERENCE_PAYLOAD_ATTRIBUTE}="${encodeURIComponent(JSON.stringify(attachmentReference))}"
+                            >${displayText}</span>`
+                        }
+                    },
+                ],
+            ])
+        }
     }
 }
 
@@ -135,19 +171,24 @@ interface MarkdownRendererProps {
      * code. Enabled only on the answer body (see answerCard.tsx).
      */
     enableDiagrams?: boolean;
+    /**
+     * Maps an attachment's stable id to its display filename, so attachment
+     * citations render as the filename rather than the opaque id.
+     */
+    attachmentNames?: Map<string, string>;
 }
 
-const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, className, escapeHtml = false, enableDiagrams = false }, ref) => {
+const MarkdownRendererComponent = forwardRef<HTMLDivElement, MarkdownRendererProps>(({ content, className, escapeHtml = false, enableDiagrams = false, attachmentNames }, ref) => {
     const router = useRouter();
 
     const remarkPlugins = useMemo((): PluggableList => {
         return [
             remarkGfm,
             ...(escapeHtml ? [remarkPreserveHtml] : []),
-            remarkReferencesPlugin,
+            createRemarkReferencesPlugin(attachmentNames),
             remarkTocExtractor,
         ];
-    }, [escapeHtml]);
+    }, [escapeHtml, attachmentNames]);
 
     const rehypePlugins = useMemo((): PluggableList => {
         return [

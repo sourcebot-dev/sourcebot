@@ -1,4 +1,6 @@
+export * from './artifactReader';
 export * from './readFile';
+export * from './readAttachment';
 export * from './listCommits';
 export * from './listRepos';
 export * from './grep';

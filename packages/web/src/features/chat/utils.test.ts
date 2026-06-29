@@ -1,7 +1,7 @@
 import { expect, test, describe, vi } from 'vitest'
-import { createUIMessage, fileReferenceToString, getAnswerPartFromAssistantMessage, getLastStepParts, getTurnProgressState, getUserMessageText, groupMessageIntoSteps, repairReferences } from './utils'
-import { FILE_REFERENCE_REGEX, ANSWER_TAG } from './constants';
-import { SBChatMessage, SBChatMessagePart } from './types';
+import { attachmentReferenceToString, convertLLMOutputToPortableMarkdown, createAttachmentReference, createUIMessage, fileReferenceToString, formatAttachmentsForPrompt, getAnswerPartFromAssistantMessage, getLastStepParts, getTurnProgressState, getUserMessageText, groupMessageIntoSteps, repairReferences } from './utils'
+import { ATTACHMENT_REFERENCE_REGEX, FILE_REFERENCE_REGEX, ANSWER_TAG } from './constants';
+import { AttachmentData, SBChatMessage, SBChatMessagePart } from './types';
 
 // Mock the env module
 vi.mock('@sourcebot/shared', () => ({
@@ -713,6 +713,111 @@ test('repairReferences handles malformed inline code blocks', () => {
     const input = 'See `@file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts`} for details.';
     const expected = 'See @file:{github.com/sourcebot-dev/sourcebot::packages/web/src/auth.ts} for details.';
     expect(repairReferences(input)).toBe(expected);
+});
+
+describe('attachment references', () => {
+    test('attachmentReferenceToString formats with and without a range', () => {
+        expect(attachmentReferenceToString({ attachmentId: 'abc123' })).toBe('@attachment:{abc123}');
+        expect(attachmentReferenceToString({
+            attachmentId: 'abc123',
+            range: { startLine: 10, endLine: 15 },
+        })).toBe('@attachment:{abc123:10-15}');
+    });
+
+    test('attachmentReferenceToString output matches ATTACHMENT_REFERENCE_REGEX', () => {
+        ATTACHMENT_REFERENCE_REGEX.lastIndex = 0;
+        expect(ATTACHMENT_REFERENCE_REGEX.test(attachmentReferenceToString({ attachmentId: 'abc123' }))).toBe(true);
+
+        ATTACHMENT_REFERENCE_REGEX.lastIndex = 0;
+        expect(ATTACHMENT_REFERENCE_REGEX.test(attachmentReferenceToString({
+            attachmentId: 'abc123',
+            range: { startLine: 1, endLine: 4 },
+        }))).toBe(true);
+    });
+
+    test('ATTACHMENT_REFERENCE_REGEX captures the id and range', () => {
+        ATTACHMENT_REFERENCE_REGEX.lastIndex = 0;
+        const match = ATTACHMENT_REFERENCE_REGEX.exec('see @attachment:{abc123:10-15} here');
+        expect(match?.[1]).toBe('abc123');
+        expect(match?.[2]).toBe('10');
+        expect(match?.[3]).toBe('15');
+    });
+
+    test('createAttachmentReference derives a stable id and parses the range', () => {
+        expect(createAttachmentReference({ attachmentId: 'abc123', startLine: '10', endLine: '15' })).toEqual({
+            type: 'attachment',
+            id: 'attachment-reference-abc123-10-15',
+            attachmentId: 'abc123',
+            range: { startLine: 10, endLine: 15 },
+        });
+    });
+
+    test('createAttachmentReference treats a lone start line as a single-line range', () => {
+        expect(createAttachmentReference({ attachmentId: 'abc', startLine: '7' }).range).toEqual({
+            startLine: 7,
+            endLine: 7,
+        });
+    });
+});
+
+describe('repairReferences for attachments', () => {
+    test('fixes a missing colon after @attachment', () => {
+        expect(repairReferences('See @attachment{abc123} here.')).toBe('See @attachment:{abc123} here.');
+    });
+
+    test('fixes missing braces around the id', () => {
+        expect(repairReferences('See @attachment:abc123 here.')).toBe('See @attachment:{abc123} here.');
+    });
+
+    test('keeps only the first range when multiple are emitted', () => {
+        expect(repairReferences('See @attachment:{abc123:1-2,5-6} here.')).toBe('See @attachment:{abc123:1-2} here.');
+    });
+
+    test('strips inline code backticks around an attachment reference', () => {
+        expect(repairReferences('See `@attachment:{abc123:1-2}` here.')).toBe('See @attachment:{abc123:1-2} here.');
+    });
+
+    test('leaves a correctly formatted attachment reference unchanged', () => {
+        const input = 'The error is at @attachment:{abc123:42-50} in the log.';
+        expect(repairReferences(input)).toBe(input);
+    });
+});
+
+describe('convertLLMOutputToPortableMarkdown for attachments', () => {
+    test('renders an attachment reference as filename with a range', () => {
+        const names = new Map([['abc123', 'config.log']]);
+        const result = convertLLMOutputToPortableMarkdown('See @attachment:{abc123:10-15} for the error.', 'https://example.com', [], names);
+        expect(result).toBe('See config.log:10-15 for the error.');
+    });
+
+    test('falls back to the id when the filename is unknown', () => {
+        const result = convertLLMOutputToPortableMarkdown('See @attachment:{abc123} now.', 'https://example.com', []);
+        expect(result).toBe('See abc123 now.');
+    });
+});
+
+describe('formatAttachmentsForPrompt', () => {
+    const textAttachment: AttachmentData = {
+        kind: 'text',
+        id: 'a1',
+        filename: 'log.txt',
+        mediaType: 'text/plain',
+        sizeBytes: 7,
+        text: 'foo\nbar',
+    };
+
+    test('line-numbers the body and includes the stable id', () => {
+        const block = formatAttachmentsForPrompt([textAttachment]);
+        expect(block).toContain('<attachment id="a1" filename="log.txt" media-type="text/plain">');
+        expect(block).toContain('1: foo');
+        expect(block).toContain('2: bar');
+        expect(block.startsWith('<attachments>')).toBe(true);
+        expect(block.endsWith('</attachments>')).toBe(true);
+    });
+
+    test('returns an empty string when there are no text attachments', () => {
+        expect(formatAttachmentsForPrompt([])).toBe('');
+    });
 });
 
 describe('createUIMessage', () => {

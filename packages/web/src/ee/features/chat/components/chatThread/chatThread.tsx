@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CustomSlateEditor } from '@/features/chat/customSlateEditor';
 import { AdditionalChatRequestParams, AttachmentData, CustomEditor, LanguageModelInfo, SBChatMessage, SearchScope, Source } from '@/features/chat/types';
-import { createUIMessage, getAllMentionElements, getTurnProgressState, getUserMessageText, resetEditor, slateContentToString } from '@/features/chat/utils';
+import { createUIMessage, getAllMentionElements, getTurnProgressState, getUserMessageAttachments, getUserMessageText, resetEditor, slateContentToString } from '@/features/chat/utils';
 import { useChat } from '@ai-sdk/react';
 import { CreateUIMessage, DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
 import { ArrowDownIcon, CopyIcon } from 'lucide-react';
@@ -243,6 +243,13 @@ export const ChatThread = ({
 
 
     const messagePairs = useMessagePairs(messages);
+
+    // Chat-wide attachments, so a citation to an attachment added on any turn
+    // resolves in every message pair's evidence panel.
+    const attachments = useMemo(
+        () => messages.flatMap((message) => message.role === 'user' ? getUserMessageAttachments(message) : []),
+        [messages],
+    );
     const {
         isTurnInProgress,
         isNetworkActive,
@@ -435,6 +442,7 @@ export const ChatThread = ({
                                                     isNetworkActive={isPairNetworkActive}
                                                     isAwaitingToolApproval={isPairAwaitingToolApproval}
                                                     sources={sources}
+                                                    attachments={attachments}
                                                 />
                                                 {index !== messagePairs.length - 1 && (
                                                     <Separator className="my-12" />

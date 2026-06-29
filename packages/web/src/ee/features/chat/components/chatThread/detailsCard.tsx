@@ -24,6 +24,7 @@ import { ListCommitsToolComponent } from './tools/listCommitsToolComponent';
 import { ListReposToolComponent } from './tools/listReposToolComponent';
 import { ListTreeToolComponent } from './tools/listTreeToolComponent';
 import { ReadFileToolComponent } from './tools/readFileToolComponent';
+import { ReadAttachmentToolComponent } from './tools/readAttachmentToolComponent';
 import { ToolOutputGuard } from './tools/toolOutputGuard';
 import { McpToolComponent } from './tools/mcpToolComponent';
 import { ToolSearchToolComponent } from './tools/toolSearchToolComponent';
@@ -453,6 +454,7 @@ const ContextWindowGauge = ({ total, percent }: { total: number, percent: number
 
 type GuardedToolType =
     | 'tool-read_file'
+    | 'tool-read_attachment'
     | 'tool-grep'
     | 'tool-glob'
     | 'tool-find_symbol_definitions'
@@ -469,6 +471,7 @@ type GuardedToolPart = Extract<SBChatMessagePart, { type: GuardedToolType }>;
 // each entry's `render` against its own tool's output shape.
 const TOOL_GUARD_CONFIG = {
     'tool-read_file': { loadingText: 'Reading file...', render: (output) => <ReadFileToolComponent {...output} /> },
+    'tool-read_attachment': { loadingText: 'Reading attachment...', render: (output) => <ReadAttachmentToolComponent {...output} /> },
     'tool-grep': { loadingText: 'Searching...', render: (output) => <GrepToolComponent {...output} /> },
     'tool-glob': { loadingText: 'Searching files...', render: (output) => <GlobToolComponent {...output} /> },
     'tool-find_symbol_definitions': { loadingText: 'Resolving definitions...', render: (output) => <FindSymbolDefinitionsToolComponent {...output} /> },
@@ -497,6 +500,7 @@ export const StepPartRenderer = ({ part, toolTokenUsageMap }: { part: SBChatMess
                 />
             )
         case 'tool-read_file':
+        case 'tool-read_attachment':
         case 'tool-grep':
         case 'tool-glob':
         case 'tool-find_symbol_definitions':

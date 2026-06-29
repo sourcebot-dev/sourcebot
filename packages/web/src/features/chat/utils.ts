@@ -2,9 +2,10 @@ import { BrowseHighlightRange, getBrowsePath } from "@/app/(app)/browse/hooks/ut
 import { CreateUIMessage, isToolUIPart, TextUIPart, UIMessagePart } from "ai";
 import type { ChatStatus, DynamicToolUIPart, ToolUIPart } from "ai";
 import { Descendant, Editor, Point, Range, Transforms } from "slate";
-import { ANSWER_TAG, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
+import { ANSWER_TAG, ATTACHMENT_REFERENCE_PREFIX, ATTACHMENT_REFERENCE_REGEX, FILE_REFERENCE_PREFIX, FILE_REFERENCE_REGEX } from "./constants";
 import {
     AttachmentData,
+    AttachmentReference,
     CustomEditor,
     CustomText,
     FileReference,
@@ -238,6 +239,31 @@ export const fileReferenceToString = ({ repo, path, range }: Omit<FileReference,
     return `${FILE_REFERENCE_PREFIX}{${repo}::${path}${range ? `:${range.startLine}-${range.endLine}` : ''}}`;
 }
 
+export const getAttachmentReferenceId = ({ attachmentId, range }: Omit<AttachmentReference, 'type' | 'id'>) => {
+    return `attachment-reference-${attachmentId}${range ? `-${range.startLine}-${range.endLine}` : ''}`;
+};
+
+export const attachmentReferenceToString = ({ attachmentId, range }: Omit<AttachmentReference, 'type' | 'id'>) => {
+    return `${ATTACHMENT_REFERENCE_PREFIX}{${attachmentId}${range ? `:${range.startLine}-${range.endLine}` : ''}}`;
+};
+
+export const createAttachmentReference = ({ attachmentId, startLine, endLine }: { attachmentId: string, startLine?: string, endLine?: string }): AttachmentReference => {
+    const range = startLine && endLine ? {
+        startLine: parseInt(startLine),
+        endLine: parseInt(endLine),
+    } : startLine ? {
+        startLine: parseInt(startLine),
+        endLine: parseInt(startLine),
+    } : undefined;
+
+    return {
+        type: 'attachment',
+        id: getAttachmentReferenceId({ attachmentId, range }),
+        attachmentId,
+        range,
+    };
+};
+
 export const createFileReference = ({ repo, path, startLine, endLine }: { repo: string, path: string, startLine?: string, endLine?: string }): FileReference => {
     const range = startLine && endLine ? {
         startLine: parseInt(startLine),
@@ -261,9 +287,27 @@ export const createFileReference = ({ repo, path, startLine, endLine }: { repo: 
  * Markdown format. Practically, this means converting references into Markdown
  * links and removing the answer tag.
  */
-export const convertLLMOutputToPortableMarkdown = (text: string, baseUrl: string, sources: FileSource[]): string => {
+export const convertLLMOutputToPortableMarkdown = (
+    text: string,
+    baseUrl: string,
+    sources: FileSource[],
+    // Maps an attachment's stable id to its display filename. Attachments have no
+    // external URL, so their citations are flattened to a `filename:lines` label.
+    attachmentNames?: Map<string, string>,
+): string => {
     return text
         .replace(ANSWER_TAG, '')
+        .replace(ATTACHMENT_REFERENCE_REGEX, (_, attachmentId, startLine, endLine) => {
+            let label = attachmentNames?.get(attachmentId) ?? attachmentId;
+            if (startLine) {
+                if (endLine && startLine !== endLine) {
+                    label += `:${startLine}-${endLine}`;
+                } else {
+                    label += `:${startLine}`;
+                }
+            }
+            return label;
+        })
         .replace(FILE_REFERENCE_REGEX, (_, repo, fileName, startLine, endLine) => {
             const reference = createFileReference({
                 repo,
@@ -399,7 +443,16 @@ export const repairReferences = (text: string): string => {
         // Fix inline code blocks around file references: `@file:{...}` -> @file:{...}
         .replace(/`(@file:\{[^}]+\})`/g, '$1')
         // Fix malformed inline code blocks: `@file:{...`} -> @file:{...}
-        .replace(/`(@file:\{[^`]+)`\}/g, '$1}');
+        .replace(/`(@file:\{[^`]+)`\}/g, '$1}')
+        // Attachment references: same classes of mistakes as file references.
+        // Fix missing colon: @attachment{...} -> @attachment:{...}
+        .replace(/@attachment\{([^}]+)\}/g, '@attachment:{$1}')
+        // Fix missing braces: @attachment:id -> @attachment:{id}
+        .replace(/@attachment:([^\s{]\S*?)(\s|[,;!?](?:\s|$)|\.(?:\s|$)|$)/g, '@attachment:{$1}$2')
+        // Fix multiple ranges: keep only the first range
+        .replace(/@attachment:\{(.+?):(\d+-\d+),[\d,-]+\}/g, '@attachment:{$1:$2}')
+        // Fix inline code blocks around attachment references: `@attachment:{...}` -> @attachment:{...}
+        .replace(/`(@attachment:\{[^}]+\})`/g, '$1');
 };
 
 // Extracts the user's text from a message by finding the first text part.
@@ -445,14 +498,19 @@ export const formatAttachmentsForPrompt = (attachments: AttachmentData[]): strin
     }
 
     const blocks = textAttachments.map((attachment) => {
-        const text = escapeAttachmentBody(attachment.text);
+        // Line-number the body so the model can cite specific lines, mirroring
+        // how `read_file` / read_attachment present content.
+        const text = escapeAttachmentBody(addLineNumbers(attachment.text));
         // Keep the filename on a single line and escape quotes so the body
         // can't break out of the tag (the client also sanitizes via
         // sanitizeFilename).
         const filename = attachment.filename
             .replace(/\s+/g, ' ')
             .replace(/"/g, '&quot;');
-        return `<attachment filename="${filename}" media-type="${attachment.mediaType}">\n${text}\n</attachment>`;
+        // The id lets the model correlate the inlined content with the
+        // attachments manifest and cite it via @attachment:{id:...}.
+        const idAttr = attachment.id ? `id="${attachment.id}" ` : '';
+        return `<attachment ${idAttr}filename="${filename}" media-type="${attachment.mediaType}">\n${text}\n</attachment>`;
     });
 
     return `<attachments>\n${blocks.join('\n')}\n</attachments>`;

@@ -1,6 +1,7 @@
 import {
     toVercelAITool,
     readFileDefinition,
+    readAttachmentDefinition,
     listCommitsDefinition,
     listReposDefinition,
     getDiffDefinition,
@@ -16,6 +17,7 @@ import { SBChatMessageToolTypes } from "@/features/chat/types";
 
 export const createTools = (context: ToolContext) => ({
     [readFileDefinition.name]: toVercelAITool(readFileDefinition, context),
+    [readAttachmentDefinition.name]: toVercelAITool(readAttachmentDefinition, context),
     [listCommitsDefinition.name]: toVercelAITool(listCommitsDefinition, context),
     [listReposDefinition.name]: toVercelAITool(listReposDefinition, context),
     [getDiffDefinition.name]: toVercelAITool(getDiffDefinition, context),
@@ -27,6 +29,7 @@ export const createTools = (context: ToolContext) => ({
 });
 
 export type ReadFileToolUIPart = ToolUIPart<{ read_file: SBChatMessageToolTypes['read_file'] }>;
+export type ReadAttachmentToolUIPart = ToolUIPart<{ read_attachment: SBChatMessageToolTypes['read_attachment'] }>;
 export type ListCommitsToolUIPart = ToolUIPart<{ list_commits: SBChatMessageToolTypes['list_commits'] }>;
 export type ListReposToolUIPart = ToolUIPart<{ list_repos: SBChatMessageToolTypes['list_repos'] }>;
 export type GetDiffToolUIPart = ToolUIPart<{ get_diff: SBChatMessageToolTypes['get_diff'] }>;

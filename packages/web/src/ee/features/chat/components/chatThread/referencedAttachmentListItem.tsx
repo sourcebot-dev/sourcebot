@@ -1,16 +1,13 @@
 'use client';
 
-import { PathHeader } from "@/app/(app)/components/pathHeader";
-import { SymbolHoverPopup } from '@/ee/features/codeNav/components/symbolHoverPopup';
-import { symbolHoverTargetsExtension } from "@/ee/features/codeNav/components/symbolHoverPopup/symbolHoverTargetsExtension";
-import { useHasEntitlement } from "@/features/entitlements/useHasEntitlement";
+import { VscodeFileIcon } from "@/app/components/vscodeFileIcon";
 import { useCodeMirrorLanguageExtension } from "@/hooks/useCodeMirrorLanguageExtension";
 import { useCodeMirrorTheme } from "@/hooks/useCodeMirrorTheme";
 import { useExtensionWithDependency } from "@/hooks/useExtensionWithDependency";
 import { useKeymapExtension } from "@/hooks/useKeymapExtension";
+import { getLinguistLanguageForFilename } from "@/features/chat/attachments/language";
 import { cn } from "@/lib/utils";
 import { EditorView } from '@codemirror/view';
-import { CodeHostType } from "@sourcebot/db";
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import isEqual from "fast-deep-equal/react";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -26,16 +23,10 @@ const CODEMIRROR_BASIC_SETUP = {
     foldKeymap: false,
 } as const;
 
-interface ReferencedFileSourceListItemProps {
+interface ReferencedAttachmentListItemProps {
     id: string;
     code: string;
-    language: string;
-    revision: string;
-    repoName: string;
-    repoCodeHostType: CodeHostType;
-    repoDisplayName?: string;
-    repoWebUrl?: string;
-    fileName: string;
+    filename: string;
     references: Reference[];
     selectedReference?: Reference;
     hoveredReference?: Reference;
@@ -45,16 +36,14 @@ interface ReferencedFileSourceListItemProps {
     onExpandedChanged: (isExpanded: boolean) => void;
 }
 
-const ReferencedFileSourceListItemComponent = ({
+// Renders a cited attachment as evidence: the same line-highlighted CodeMirror
+// view used for file references, but provenance-distinct (an "Uploaded" label,
+// no repository header, no code-host link, no code-nav) so the user can always
+// tell their own uploads from indexed code. Content is inline, so no fetch.
+const ReferencedAttachmentListItemComponent = ({
     id,
     code,
-    language,
-    revision,
-    repoName,
-    repoCodeHostType,
-    repoDisplayName,
-    repoWebUrl,
-    fileName,
+    filename,
     references,
     selectedReference,
     hoveredReference,
@@ -62,7 +51,7 @@ const ReferencedFileSourceListItemComponent = ({
     onHoveredReferenceChanged,
     isExpanded,
     onExpandedChanged,
-}: ReferencedFileSourceListItemProps, forwardedRef: Ref<ReactCodeMirrorRef>) => {
+}: ReferencedAttachmentListItemProps, forwardedRef: Ref<ReactCodeMirrorRef>) => {
     const theme = useCodeMirrorTheme();
     const [editorRef, setEditorRef] = useState<ReactCodeMirrorRef | null>(null);
 
@@ -72,7 +61,7 @@ const ReferencedFileSourceListItemComponent = ({
     );
 
     const keymapExtension = useKeymapExtension(editorRef?.view);
-    const hasCodeNavEntitlement = useHasEntitlement("code-nav");
+    const language = useMemo(() => getLinguistLanguageForFilename(filename), [filename]);
     const languageExtension = useCodeMirrorLanguageExtension(language, editorRef?.view);
 
     const codeFoldingExtension = useMemo(() => {
@@ -102,16 +91,12 @@ const ReferencedFileSourceListItemComponent = ({
             languageExtension,
             EditorView.lineWrapping,
             keymapExtension,
-            ...(hasCodeNavEntitlement ? [
-                symbolHoverTargetsExtension,
-            ] : []),
             codeFoldingExtension,
             referencesHighlightExtension,
         ];
     }, [
         languageExtension,
         keymapExtension,
-        hasCodeNavEntitlement,
         codeFoldingExtension,
         referencesHighlightExtension,
     ]);
@@ -126,7 +111,7 @@ const ReferencedFileSourceListItemComponent = ({
 
     return (
         <div className="relative rounded-md overflow-clip" id={id}>
-            {/* Sentinel element to scroll to when collapsing a file */}
+            {/* Sentinel element to scroll to when collapsing an attachment */}
             <div id={`${id}-start`} />
             {/* Sticky header outside the bordered container */}
             <div className={cn("sticky top-0 z-10 flex flex-row items-center bg-accent py-1 px-3 gap-1.5 border-l border-r border-t", {
@@ -134,17 +119,9 @@ const ReferencedFileSourceListItemComponent = ({
                 'border-chat-reference-selected-border border-b': isSelectedWithoutRange,
             })}>
                 <ExpandCollapseIcon className={`h-3 w-3 cursor-pointer mt-0.5`} onClick={() => onExpandedChanged(!isExpanded)} />
-                <PathHeader
-                    path={fileName}
-                    repo={{
-                        name: repoName,
-                        codeHostType: repoCodeHostType,
-                        displayName: repoDisplayName,
-                        externalWebUrl: repoWebUrl,
-                    }}
-                    revisionName={revision === 'HEAD' ? undefined : revision}
-                    repoNameClassName="font-normal text-muted-foreground text-sm"
-                />
+                <VscodeFileIcon fileName={filename} className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="font-medium text-sm truncate">{filename}</span>
+                <span className="text-xs text-muted-foreground rounded bg-muted px-1.5 py-0.5">Uploaded</span>
             </div>
 
             {/* Code container */}
@@ -160,23 +137,12 @@ const ReferencedFileSourceListItemComponent = ({
                     readOnly={true}
                     theme={theme}
                     basicSetup={CODEMIRROR_BASIC_SETUP}
-                >
-                    {editorRef && hasCodeNavEntitlement && (
-                        <SymbolHoverPopup
-                            source="chat"
-                            editorRef={editorRef}
-                            revisionName={revision}
-                            language={language}
-                            repoName={repoName}
-                            fileName={fileName}
-                        />
-                    )}
-                </CodeMirror>
+                />
             </div>
         </div>
     )
 }
 
-export const ReferencedFileSourceListItem = memo(forwardRef(ReferencedFileSourceListItemComponent), isEqual) as (
-    props: ReferencedFileSourceListItemProps & { ref?: Ref<ReactCodeMirrorRef> },
-) => ReturnType<typeof ReferencedFileSourceListItemComponent>;
+export const ReferencedAttachmentListItem = memo(forwardRef(ReferencedAttachmentListItemComponent), isEqual) as (
+    props: ReferencedAttachmentListItemProps & { ref?: Ref<ReactCodeMirrorRef> },
+) => ReturnType<typeof ReferencedAttachmentListItemComponent>;

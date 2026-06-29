@@ -1,0 +1,10 @@
+Read the contents of a file the user attached to this conversation.
+
+Usage:
+- Pass the `attachmentId` from the <attachments_manifest> in the system prompt.
+- Use this to inspect or re-read an attachment when its contents are not already in the conversation (e.g. on a later turn, or for a large attachment).
+- Use offset/limit to read a specific portion, which is strongly preferred for large attachments when only a specific section is needed.
+- Maximum 500 lines per call. Output is also capped at 5KB — if the cap is hit, call again with a larger offset to continue reading.
+- Any line longer than 2000 characters is truncated.
+- The response content includes the line range read and total line count. If the output was truncated, the next offset to continue reading is also included.
+- The content is line-numbered so you can cite specific lines with an attachment reference.

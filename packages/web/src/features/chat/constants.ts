@@ -5,6 +5,13 @@ export const FILE_REFERENCE_REGEX = new RegExp(
     'g'
 );
 
+export const ATTACHMENT_REFERENCE_PREFIX = '@attachment:';
+export const ATTACHMENT_REFERENCE_REGEX = new RegExp(
+    // @attachment:{attachmentId:startLine-endLine}
+    `${ATTACHMENT_REFERENCE_PREFIX}\\{([^:}]+)(?::(\\d+)(?:-(\\d+))?)?\\}`,
+    'g'
+);
+
 export const ANSWER_TAG = '<!--answer-->';
 
 export const SELECTED_SEARCH_SCOPES_LOCAL_STORAGE_KEY = 'selectedSearchScopes';
