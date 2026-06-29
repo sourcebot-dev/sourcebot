@@ -176,6 +176,9 @@ export const POST = async (request: NextRequest) => {
     if (githubEvent) {
         logger.info('GitHub event received:', githubEvent);
 
+        // Webhook verification only checks the shared secret against the raw payload
+        // and signature; it does not call GitHub. For API calls below, use the
+        // base URL resolved from the verified payload instead.
         const githubWebhookApp = getGithubAppForBaseUrl(DEFAULT_GITHUB_API_BASE_URL);
         if (!githubWebhookApp) {
             logger.warn('Received GitHub webhook event but GitHub app env vars are not set');
