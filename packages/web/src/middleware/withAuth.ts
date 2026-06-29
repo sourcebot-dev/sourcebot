@@ -9,6 +9,7 @@ import { StatusCodes } from "http-status-codes";
 import { ErrorCode } from "../lib/errorCodes";
 import { isServiceError } from "../lib/utils";
 import { hasEntitlement, isAnonymousAccessEnabled } from "@/lib/entitlements";
+import { DPOP_AUTH_SCHEME, DPOP_PROOF_HEADER, verifyDpopProof } from "@/ee/features/oauth/dpop";
 
 const LAST_ACTIVE_AT_THRESHOLD_MS = 5 * 60 * 1000;
 
@@ -29,8 +30,8 @@ type OptionalAuthContext =
     };
 
 
-export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T>) => {
-    const authContext = await getAuthContext();
+export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T>, request?: Request) => {
+    const authContext = await getAuthContext(request);
 
     if (isServiceError(authContext)) {
         return authContext;
@@ -45,8 +46,8 @@ export const withAuth = async <T>(fn: (params: RequiredAuthContext) => Promise<T
     return fn({ user, org, role, prisma });
 };
 
-export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => Promise<T>) => {
-    const authContext = await getAuthContext();
+export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => Promise<T>, request?: Request) => {
+    const authContext = await getAuthContext(request);
     if (isServiceError(authContext)) {
         return authContext;
     }
@@ -61,8 +62,8 @@ export const withOptionalAuth = async <T>(fn: (params: OptionalAuthContext) => P
     return fn(authContext);
 };
 
-export const getAuthContext = async (): Promise<OptionalAuthContext | ServiceError> => {
-    const authResult = await getAuthenticatedUser();
+export const getAuthContext = async (request?: Request): Promise<OptionalAuthContext | ServiceError> => {
+    const authResult = await getAuthenticatedUser(request);
 
     const org = await __unsafePrisma.org.findUnique({
         where: {
@@ -131,7 +132,7 @@ const updateUserLastActiveAt = (user: UserWithAccounts) => {
 
 type AuthSource = 'session' | 'oauth' | 'api_key';
 
-export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, source: AuthSource } | undefined> => {
+export const getAuthenticatedUser = async (request?: Request): Promise<{ user: UserWithAccounts, source: AuthSource } | undefined> => {
     // First, check if we have a valid JWT session.
     const session = await auth();
     if (session) {
@@ -148,10 +149,13 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
         return user ? { user, source: 'session' } : undefined;
     }
 
+    const requestHeaders = request?.headers ?? await headers();
+
     // If not, check for a Bearer token in the Authorization header.
-    const authorizationHeader = (await headers()).get("Authorization") ?? undefined;
-    if (authorizationHeader?.startsWith("Bearer ")) {
-        const bearerToken = authorizationHeader.slice(7);
+    const authorizationHeader = requestHeaders.get("Authorization") ?? undefined;
+    const authorization = parseAuthorizationHeader(authorizationHeader);
+    if (authorization && (authorization.scheme === 'Bearer' || authorization.scheme === DPOP_AUTH_SCHEME)) {
+        const bearerToken = authorization.token;
 
         // OAuth access token
         if (bearerToken.startsWith(OAUTH_ACCESS_TOKEN_PREFIX)) {
@@ -166,12 +170,36 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
                 include: { user: { include: { accounts: true } } },
             });
             if (oauthToken && oauthToken.expiresAt > new Date()) {
+                if (oauthToken.dpopJkt) {
+                    if (authorization.scheme !== DPOP_AUTH_SCHEME || !request) {
+                        return undefined;
+                    }
+
+                    const proofResult = await verifyDpopProof({
+                        request,
+                        proof: requestHeaders.get(DPOP_PROOF_HEADER),
+                        expectedJkt: oauthToken.dpopJkt,
+                        accessToken: bearerToken,
+                        requireAccessTokenHash: true,
+                    });
+
+                    if (!proofResult.ok) {
+                        return undefined;
+                    }
+                } else if (authorization.scheme === DPOP_AUTH_SCHEME) {
+                    return undefined;
+                }
+
                 await __unsafePrisma.oAuthToken.update({
                     where: { hash },
                     data: { lastUsedAt: new Date() },
                 });
                 return { user: oauthToken.user, source: 'oauth' };
             }
+        }
+
+        if (authorization.scheme !== 'Bearer') {
+            return undefined;
         }
 
         // API key Bearer token (sourcebot-<hex>)
@@ -192,7 +220,7 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
     }
 
     // If not, check if we have a valid API key.
-    const apiKeyString = (await headers()).get("X-Sourcebot-Api-Key") ?? undefined;
+    const apiKeyString = requestHeaders.get("X-Sourcebot-Api-Key") ?? undefined;
     if (apiKeyString) {
         const apiKey = await getVerifiedApiObject(apiKeyString);
         if (!apiKey) {
@@ -229,6 +257,24 @@ export const getAuthenticatedUser = async (): Promise<{ user: UserWithAccounts, 
     return undefined;
 }
 
+function parseAuthorizationHeader(authorizationHeader: string | undefined): { scheme: string; token: string } | undefined {
+    const match = authorizationHeader?.match(/^(\S+)\s+(.+)$/);
+    if (!match) {
+        return undefined;
+    }
+
+    const scheme = match[1].toLowerCase();
+    if (scheme === 'bearer') {
+        return { scheme: 'Bearer', token: match[2] };
+    }
+
+    if (scheme === 'dpop') {
+        return { scheme: DPOP_AUTH_SCHEME, token: match[2] };
+    }
+
+    return { scheme: match[1], token: match[2] };
+}
+
 /**
  * Returns an API key object if the API key string is valid, otherwise returns undefined.
  * Supports both the current prefix (sbk_) and the legacy prefix (sourcebot-).
@@ -263,5 +309,3 @@ export const getVerifiedApiObject = async (apiKeyString: string): Promise<ApiKey
 
     return apiKey;
 }
-
-

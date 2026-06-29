@@ -250,6 +250,27 @@ describe('getAuthenticatedUser', () => {
         expect(prisma.apiKey.findUnique).not.toHaveBeenCalled();
     });
 
+    test('should reject a DPoP-bound OAuth token presented as Bearer', async () => {
+        mocks.hasEntitlement.mockReturnValue(true);
+        prisma.oAuthToken.findUnique.mockResolvedValue({
+            ...MOCK_OAUTH_TOKEN,
+            dpopJkt: 'dpop-thumbprint',
+        });
+        setMockHeaders(new Headers({ 'Authorization': 'Bearer sboa_oauthtoken' }));
+        const user = await getAuthenticatedUser();
+        expect(user).toBeUndefined();
+        expect(prisma.oAuthToken.update).not.toHaveBeenCalled();
+    });
+
+    test('should reject an unbound OAuth token presented with the DPoP scheme', async () => {
+        mocks.hasEntitlement.mockReturnValue(true);
+        prisma.oAuthToken.findUnique.mockResolvedValue(MOCK_OAUTH_TOKEN);
+        setMockHeaders(new Headers({ 'Authorization': 'DPoP sboa_oauthtoken' }));
+        const user = await getAuthenticatedUser();
+        expect(user).toBeUndefined();
+        expect(prisma.oAuthToken.update).not.toHaveBeenCalled();
+    });
+
     test('should return undefined if a Bearer token is present but the user is not found', async () => {
         prisma.user.findUnique.mockResolvedValue(null);
         prisma.apiKey.findUnique.mockResolvedValue({
