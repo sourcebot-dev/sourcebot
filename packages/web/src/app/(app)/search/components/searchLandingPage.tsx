@@ -8,6 +8,7 @@ import { SearchModeSelector } from "../../components/searchModeSelector"
 import { getRepos, getReposStats } from "@/actions"
 import { ServiceErrorException } from "@/lib/serviceError"
 import { isServiceError } from "@/lib/utils"
+import { buildQueryExampleHref } from "./searchLandingPageUtils"
 
 export interface SearchLandingPageProps {
     isSearchAssistSupported: boolean;
@@ -157,7 +158,7 @@ const QueryExplanation = ({ children }: { children: React.ReactNode }) => {
 const Query = ({ query, children, isCaseSensitivityEnabled = false }: { query: string, children: React.ReactNode, isCaseSensitivityEnabled?: boolean }) => {
     return (
         <Link
-            href={`/search?query=${query}${isCaseSensitivityEnabled ? "&isCaseSensitivityEnabled=true" : ""}`}
+            href={buildQueryExampleHref({ query, isCaseSensitivityEnabled })}
             className="cursor-pointer hover:underline"
         >
             {children}
