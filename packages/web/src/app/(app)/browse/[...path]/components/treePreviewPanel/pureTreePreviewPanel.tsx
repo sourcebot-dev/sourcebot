@@ -9,11 +9,20 @@ import { FileTreeItem } from "@/features/git";
 
 interface PureTreePreviewPanelProps {
     items: FileTreeItem[];
+    isRepositoryEmpty: boolean;
 }
 
-export const PureTreePreviewPanel = ({ items }: PureTreePreviewPanelProps) => {
+export const PureTreePreviewPanel = ({ items, isRepositoryEmpty }: PureTreePreviewPanelProps) => {
     const { repoName, revisionName } = useBrowseParams();
     const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+    if (isRepositoryEmpty) {
+        return (
+            <div className="flex h-full items-center justify-center p-4 text-sm text-muted-foreground">
+                This repository is empty
+            </div>
+        );
+    }
    
     return (
         <ScrollArea

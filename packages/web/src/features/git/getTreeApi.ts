@@ -7,7 +7,7 @@ import { headers } from 'next/headers';
 import simpleGit from 'simple-git';
 import type z from 'zod';
 import { getTreeRequestSchema, getTreeResponseSchema } from './schemas';
-import { buildFileTree, isGitRefValid, isPathValid, normalizePath } from './utils';
+import { buildFileTree, isEmptyRepositoryRootRef, isGitRefValid, isPathValid, normalizePath } from './utils';
 import { logger } from './logger';
 
 export { getTreeRequestSchema, getTreeResponseSchema } from './schemas';
@@ -54,7 +54,9 @@ export const getTree = async ({ repoName, revisionName, paths }: GetTreeRequest,
             return notFound();
         }
 
-        const normalizedPaths = paths.map(path => normalizePath(path));
+        const normalizedPaths = paths
+            .map(path => normalizePath(path))
+            .filter(path => path.length > 0);
 
         let result: string = '';
         try {
@@ -75,6 +77,12 @@ export const getTree = async ({ repoName, revisionName, paths }: GetTreeRequest,
 
             result = await git.raw(command);
         } catch (error) {
+            if (await isEmptyRepositoryRootRef(git, revisionName)) {
+                return {
+                    tree: buildFileTree([]),
+                };
+            }
+
             logger.error('git ls-tree failed.', { error });
             return unexpectedError('git ls-tree command failed.');
         }

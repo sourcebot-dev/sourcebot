@@ -43,7 +43,10 @@ export const TreePreviewPanel = async ({ path, repoName, revisionName }: TreePre
                 />
             </div>
             <Separator />
-            <PureTreePreviewPanel items={folderContentsResponse} />
+            <PureTreePreviewPanel
+                items={folderContentsResponse.items}
+                isRepositoryEmpty={folderContentsResponse.isRepositoryEmpty}
+            />
         </>
     )
 }
