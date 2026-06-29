@@ -117,6 +117,18 @@ test('shouldExcludeProject returns false when include.topics matches via glob pa
     })).toBe(false);
 });
 
+test('shouldExcludeProject matches include.topics glob patterns case-insensitively.', () => {
+    const project = {
+        path_with_namespace: 'test/project',
+        topics: ['Core-API'],
+    } as unknown as ProjectSchema;
+
+    expect(shouldExcludeProject({
+        project,
+        include: { topics: ['core-*'] },
+    })).toBe(false);
+});
+
 test('shouldExcludeProject returns true when exclude.topics matches a project topic.', () => {
     const project = {
         path_with_namespace: 'test/project',
