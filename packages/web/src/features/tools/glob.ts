@@ -44,6 +44,7 @@ export type GlobFile = {
     name: string;
     repo: string;
     revision: string;
+    commitSha?: string;
 };
 
 export type GlobRepoInfo = {
@@ -113,11 +114,17 @@ export const globDefinition: ToolDefinition<'glob', typeof globShape, GlobMetada
             throw new Error(response.message);
         }
 
+        // Matches reflect the commit Zoekt last indexed; pin each to it.
+        const indexedCommitShaByRepo = new Map(
+            response.repositoryInfo.map((info) => [info.name, info.indexedCommitHash]),
+        );
+
         const files = response.files.map((file) => ({
             path: file.fileName.text,
             name: file.fileName.text.split('/').pop() ?? file.fileName.text,
             repo: file.repository,
             revision: ref ?? 'HEAD',
+            commitSha: indexedCommitShaByRepo.get(file.repository),
         } satisfies GlobFile));
 
         const repoInfoMap = Object.fromEntries(
@@ -190,6 +197,7 @@ export const globDefinition: ToolDefinition<'glob', typeof globShape, GlobMetada
             path: file.path,
             name: file.name,
             revision: file.revision,
+            commitSha: file.commitSha,
         }));
 
         return {

@@ -25,6 +25,7 @@ export type FindSymbolFile = {
     fileName: string;
     repo: string;
     revision: string;
+    commitSha?: string;
 };
 
 export type FindSymbolReferencesMetadata = {
@@ -82,6 +83,7 @@ export const findSymbolReferencesDefinition: ToolDefinition<
                 fileName: file.fileName,
                 repo: file.repository,
                 revision,
+                commitSha: repoInfoResult.indexedCommitHash,
             })),
         };
 
@@ -115,6 +117,7 @@ export const findSymbolReferencesDefinition: ToolDefinition<
             path: file.fileName,
             name: file.fileName.split('/').pop() ?? file.fileName,
             revision: file.revision,
+            commitSha: file.commitSha,
         }));
 
         return {

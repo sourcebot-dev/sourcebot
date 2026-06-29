@@ -35,6 +35,8 @@ export const fileSourceResponseSchema = z.object({
     repoExternalWebUrl: z.string().optional(),
     webUrl: z.string(),
     externalWebUrl: z.string().optional(),
+    // The concrete commit SHA that `ref` resolved to. Undefined if unresolvable.
+    commitSha: z.string().optional(),
 });
 
 export const getDiffRequestSchema = z.object({

@@ -27,6 +27,8 @@ export const repositoryInfoSchema = z.object({
     name: z.string(),
     displayName: z.string().optional(),
     webUrl: z.string().optional(),
+    // The commit Zoekt last indexed; lets callers pin a result to that commit.
+    indexedCommitHash: z.string().optional(),
 });
 export type RepositoryInfo = z.infer<typeof repositoryInfoSchema>;
 

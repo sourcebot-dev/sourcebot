@@ -61,6 +61,15 @@ export const getFileSourceForRepo = async (
         return unexpectedError(errorMessage);
     }
 
+    // Resolve the symbolic ref to a concrete commit SHA so callers can pin a
+    // citation to the exact code read. `^{commit}` peels annotated tags.
+    let commitSha: string | undefined;
+    try {
+        commitSha = (await git.raw(['rev-parse', `${gitRef}^{commit}`])).trim();
+    } catch {
+        // Leave unpinned if the ref can't be resolved.
+    }
+
     let gitattributesContent: string | undefined;
     try {
         gitattributesContent = await git.raw(['show', `${gitRef}:.gitattributes`]);
@@ -97,6 +106,7 @@ export const getFileSourceForRepo = async (
         repoExternalWebUrl: repo.webUrl ?? undefined,
         webUrl,
         externalWebUrl,
+        commitSha,
     } satisfies FileSourceResponse;
 });
 

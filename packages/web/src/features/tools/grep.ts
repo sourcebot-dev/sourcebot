@@ -55,6 +55,7 @@ export type GrepFile = {
     name: string;
     repo: string;
     revision: string;
+    commitSha?: string;
 };
 
 export type GrepRepoInfo = {
@@ -132,11 +133,17 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
             throw new Error(response.message);
         }
 
+        // Matches reflect the commit Zoekt last indexed; pin each to it.
+        const indexedCommitShaByRepo = new Map(
+            response.repositoryInfo.map((info) => [info.name, info.indexedCommitHash]),
+        );
+
         const files = response.files.map((file) => ({
             path: file.fileName.text,
             name: file.fileName.text.split('/').pop() ?? file.fileName.text,
             repo: file.repository,
             revision: ref ?? 'HEAD',
+            commitSha: indexedCommitShaByRepo.get(file.repository),
         } satisfies GrepFile));
 
         const repoInfoMap = Object.fromEntries(
@@ -241,6 +248,7 @@ export const grepDefinition: ToolDefinition<'grep', typeof grepShape, GrepMetada
                 path: file.path,
                 name: file.path.split('/').pop() ?? file.path,
                 revision: file.revision,
+                commitSha: file.commitSha,
             }));
 
             return {

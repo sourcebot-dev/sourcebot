@@ -511,6 +511,7 @@ const transformZoektSearchResponse = async (response: ZoektGrpcSearchResponse, r
             name: repo.name,
             displayName: repo.displayName ?? undefined,
             webUrl: repo.webUrl ?? undefined,
+            indexedCommitHash: repo.indexedCommitHash ?? undefined,
         })),
         stats,
     }

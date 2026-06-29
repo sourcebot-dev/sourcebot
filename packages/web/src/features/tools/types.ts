@@ -6,6 +6,9 @@ const fileSourceSchema = z.object({
     path: z.string(),
     name: z.string(),
     revision: z.string(),
+    // The concrete commit SHA the content was served at. Optional for
+    // backwards-compatibility with sources persisted before pinning existed.
+    commitSha: z.string().optional(),
 });
 export type FileSource = z.infer<typeof fileSourceSchema>;
 

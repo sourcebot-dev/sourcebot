@@ -72,6 +72,7 @@ export const findSymbolDefinitionsDefinition: ToolDefinition<
                 fileName: file.fileName,
                 repo: file.repository,
                 revision,
+                commitSha: repoInfoResult.indexedCommitHash,
             })),
         };
 
@@ -105,6 +106,7 @@ export const findSymbolDefinitionsDefinition: ToolDefinition<
             path: file.fileName,
             name: file.fileName.split('/').pop() ?? file.fileName,
             revision: file.revision,
+            commitSha: file.commitSha,
         }));
 
         return {

@@ -287,10 +287,11 @@ export const convertLLMOutputToPortableMarkdown = (text: string, baseUrl: string
                 end: { lineNumber: parseInt(endLine || startLine) },
             } : undefined;
 
-            // Construct full browse URL
+            // Prefer the pinned commit SHA so copied links resolve to the code
+            // as it was when answered; fall back to the symbolic ref.
             const browsePath = getBrowsePath({
                 repoName: repo,
-                revisionName: source.revision,
+                revisionName: source.commitSha ?? source.revision,
                 path: fileName,
                 pathType: 'blob',
                 highlightRange,

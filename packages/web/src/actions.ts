@@ -372,6 +372,7 @@ export const getRepoInfoByName = async (repoName: string) => sew(() =>
             externalWebUrl: repo.webUrl ?? undefined,
             imageUrl: repo.imageUrl ?? undefined,
             indexedAt: repo.indexedAt ?? undefined,
+            indexedCommitHash: repo.indexedCommitHash ?? undefined,
         }
     }));
 

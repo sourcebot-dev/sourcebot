@@ -38,12 +38,16 @@ const ReferencedFileSourceListItemContainerComponent = ({
 }: ReferencedFileSourceListItemContainerProps) => {
     const fileName = fileSource.path.split('/').pop() ?? fileSource.path;
 
+    // Prefer the pinned commit SHA so the file renders as it was when answered,
+    // with line ranges still aligned. Falls back to the symbolic ref.
+    const fetchRef = fileSource.commitSha ?? fileSource.revision;
+
     const { data, isLoading, isError, error } = useQuery({
-        queryKey: ['fileSource', fileSource.path, fileSource.repo, fileSource.revision],
+        queryKey: ['fileSource', fileSource.path, fileSource.repo, fetchRef],
         queryFn: () => unwrapServiceError(getFileSource({
             path: fileSource.path,
             repo: fileSource.repo,
-            ref: fileSource.revision,
+            ref: fetchRef,
         })),
         staleTime: Infinity,
     });
