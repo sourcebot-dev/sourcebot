@@ -50,7 +50,8 @@ export const FileSearchCommandDialog = () => {
             return;
         }
 
-        const legacyValue = window.localStorage.getItem(getLegacyRecentlyOpenedFilesStorageKey({ repoName }));
+        const legacyStorageKey = getLegacyRecentlyOpenedFilesStorageKey({ repoName });
+        const legacyValue = window.localStorage.getItem(legacyStorageKey);
         if (!legacyValue) {
             return;
         }
@@ -59,6 +60,7 @@ export const FileSearchCommandDialog = () => {
             const parsed = JSON.parse(legacyValue);
             if (Array.isArray(parsed) && parsed.length > 0) {
                 setRecentlyOpened(parsed as FileTreeItem[]);
+                window.localStorage.removeItem(legacyStorageKey);
             }
         } catch {
             // Ignore malformed legacy localStorage entries.

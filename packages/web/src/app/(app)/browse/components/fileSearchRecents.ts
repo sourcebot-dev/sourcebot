@@ -1,4 +1,4 @@
-const DEFAULT_REVISION_NAME = 'HEAD';
+export const defaultRevisionName = 'HEAD';
 
 export const getLegacyRecentlyOpenedFilesStorageKey = ({
     repoName,
@@ -16,7 +16,7 @@ export const getRecentlyOpenedFilesStorageKey = ({
     revisionName?: string | null;
 }) => {
     const encodedRepoName = encodeURIComponent(repoName);
-    const encodedRevisionName = encodeURIComponent(revisionName ?? DEFAULT_REVISION_NAME);
+    const encodedRevisionName = encodeURIComponent(revisionName ?? defaultRevisionName);
 
     return `recentlyOpenedFiles:${encodedRepoName}:${encodedRevisionName}`;
 }
@@ -26,5 +26,5 @@ export const shouldMigrateLegacyRecentlyOpenedFiles = ({
 }: {
     revisionName?: string | null;
 }) => {
-    return revisionName === undefined || revisionName === null || revisionName === DEFAULT_REVISION_NAME;
+    return revisionName === undefined || revisionName === null || revisionName === defaultRevisionName;
 }

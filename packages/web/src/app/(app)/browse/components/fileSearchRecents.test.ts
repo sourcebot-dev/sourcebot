@@ -41,6 +41,7 @@ describe('getRecentlyOpenedFilesStorageKey', () => {
 
     test('only migrates legacy recents into the default revision context', () => {
         expect(shouldMigrateLegacyRecentlyOpenedFiles({ revisionName: undefined })).toBe(true);
+        expect(shouldMigrateLegacyRecentlyOpenedFiles({ revisionName: null })).toBe(true);
         expect(shouldMigrateLegacyRecentlyOpenedFiles({ revisionName: 'HEAD' })).toBe(true);
         expect(shouldMigrateLegacyRecentlyOpenedFiles({ revisionName: 'main' })).toBe(false);
         expect(shouldMigrateLegacyRecentlyOpenedFiles({ revisionName: 'feature/file-search' })).toBe(false);
