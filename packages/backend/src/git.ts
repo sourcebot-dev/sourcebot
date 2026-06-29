@@ -305,6 +305,16 @@ const parseRefNames = (refs: string) =>
         .map((ref) => ref.trim())
         .filter(Boolean);
 
+type GitRevisionSort = "committerdate" | "creatordate" | "refname";
+
+const toGitSort = (sort: GitRevisionSort) => {
+    if (sort === "refname") {
+        return sort;
+    }
+
+    return `-${sort}`;
+};
+
 const getSortedRefs = async ({
     path,
     sort,
@@ -326,18 +336,28 @@ const getSortedRefs = async ({
     );
 };
 
-export const getBranches = async (path: string) => {
+export const getBranches = async (
+    path: string,
+    options: {
+        sort?: GitRevisionSort,
+    } = {},
+) => {
     return getSortedRefs({
         path,
-        sort: "-committerdate",
+        sort: toGitSort(options.sort ?? "committerdate"),
         refNamespace: "refs/heads",
     });
 };
 
-export const getTags = async (path: string) => {
+export const getTags = async (
+    path: string,
+    options: {
+        sort?: GitRevisionSort,
+    } = {},
+) => {
     return getSortedRefs({
         path,
-        sort: "-creatordate",
+        sort: toGitSort(options.sort ?? "creatordate"),
         refNamespace: "refs/tags",
     });
 };

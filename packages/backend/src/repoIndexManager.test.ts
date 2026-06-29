@@ -519,6 +519,113 @@ describe('RepoIndexManager', () => {
             expect(revisions).not.toContain('refs/heads/feature/6');
         });
 
+        test('truncates mixed branch and tag revisions after default branch and matching branches', async () => {
+            const matchingBranches = Array.from(
+                { length: 70 },
+                (_, index) => `feature/${String(index + 1).padStart(2, '0')}`,
+            );
+            const repo = createMockRepoWithConnections({
+                metadata: {
+                    branches: ['feature/**'],
+                    tags: ['v*'],
+                    branchSort: 'refname',
+                    tagSort: 'refname',
+                },
+            });
+            (existsSync as Mock).mockReturnValue(true);
+            (getBranches as Mock).mockResolvedValue(matchingBranches);
+            (getTags as Mock).mockResolvedValue(['v1.0.0', 'v2.0.0']);
+
+            manager = new RepoIndexManager(mockPrisma, mockSettings, mockRedis, mockPromClient as any);
+
+            (mockPrisma.repoIndexingJob.findUniqueOrThrow as Mock).mockResolvedValue({
+                status: RepoIndexingJobStatus.PENDING,
+            });
+            (mockPrisma.repoIndexingJob.update as Mock).mockResolvedValue({
+                type: RepoIndexingJobType.INDEX,
+                repo,
+            });
+
+            const mockJob = {
+                data: {
+                    jobId: 'job-1',
+                    type: 'INDEX',
+                    repoId: repo.id,
+                    repoName: repo.name,
+                },
+                moveToDelayed: vi.fn(),
+            } as unknown as Job;
+
+            const { Worker } = await import('bullmq');
+            const processor = (Worker as unknown as Mock).mock.calls[0][1];
+            await processor(mockJob);
+
+            const revisions = (indexGitRepository as Mock).mock.calls.at(-1)?.[2] as string[];
+
+            expect(getBranches).toHaveBeenCalledWith('/test-data/repos/1', { sort: 'refname' });
+            expect(getTags).toHaveBeenCalledWith('/test-data/repos/1', { sort: 'refname' });
+            expect(revisions).toHaveLength(64);
+            expect(revisions[0]).toBe('refs/heads/main');
+            expect(revisions).toContain('refs/heads/feature/01');
+            expect(revisions).toContain('refs/heads/feature/63');
+            expect(revisions).not.toContain('refs/heads/feature/64');
+            expect(revisions).not.toContain('refs/tags/v1.0.0');
+            expect(revisions).not.toContain('refs/tags/v2.0.0');
+        });
+
+        test('passes configured branch and tag sort values to git ref lookup', async () => {
+            const repo = createMockRepoWithConnections({
+                metadata: {
+                    branches: ['release/**'],
+                    tags: ['v*'],
+                    branchSort: 'refname',
+                    tagSort: 'refname',
+                },
+            });
+            (existsSync as Mock).mockReturnValue(true);
+            (getBranches as Mock).mockResolvedValue(['release/1', 'release/2']);
+            (getTags as Mock).mockResolvedValue(['v1.0.0', 'v2.0.0']);
+
+            manager = new RepoIndexManager(mockPrisma, mockSettings, mockRedis, mockPromClient as any);
+
+            (mockPrisma.repoIndexingJob.findUniqueOrThrow as Mock).mockResolvedValue({
+                status: RepoIndexingJobStatus.PENDING,
+            });
+            (mockPrisma.repoIndexingJob.update as Mock).mockResolvedValue({
+                type: RepoIndexingJobType.INDEX,
+                repo,
+            });
+
+            const mockJob = {
+                data: {
+                    jobId: 'job-1',
+                    type: 'INDEX',
+                    repoId: repo.id,
+                    repoName: repo.name,
+                },
+                moveToDelayed: vi.fn(),
+            } as unknown as Job;
+
+            const { Worker } = await import('bullmq');
+            const processor = (Worker as unknown as Mock).mock.calls[0][1];
+            await processor(mockJob);
+
+            expect(getBranches).toHaveBeenCalledWith('/test-data/repos/1', { sort: 'refname' });
+            expect(getTags).toHaveBeenCalledWith('/test-data/repos/1', { sort: 'refname' });
+            expect(indexGitRepository).toHaveBeenCalledWith(
+                repo,
+                mockSettings,
+                [
+                    'refs/heads/main',
+                    'refs/heads/release/1',
+                    'refs/heads/release/2',
+                    'refs/tags/v1.0.0',
+                    'refs/tags/v2.0.0',
+                ],
+                expect.any(Object)
+            );
+        });
+
         test('updates repo.indexedAt and indexedCommitHash on completion', async () => {
             const repo = createMockRepoWithConnections();
             (existsSync as Mock).mockReturnValue(true);

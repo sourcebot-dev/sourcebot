@@ -92,6 +92,33 @@ describe("git ref ordering", () => {
         expect(tags.indexOf("z-newest")).toBeLessThan(tags.indexOf("a-oldest"));
     });
 
+    test("getTags supports sorting by ref name", async () => {
+        const repoPath = await createTempRepo();
+        repoPaths.push(repoPath);
+        runGit(repoPath, ["config", "tag.sort", "creatordate"]);
+
+        await commitFile({
+            repoPath,
+            fileName: "README.md",
+            content: "base\n",
+            message: "initial commit",
+            timestamp: "2024-01-01T00:00:00Z",
+        });
+
+        runGit(repoPath, ["tag", "-a", "a-oldest", "-m", "oldest tag"], {
+            GIT_COMMITTER_DATE: "2024-01-02T00:00:00Z",
+        });
+        runGit(repoPath, ["tag", "-a", "z-newest", "-m", "newest tag"], {
+            GIT_COMMITTER_DATE: "2024-01-03T00:00:00Z",
+        });
+
+        const tags = await getTags(repoPath, { sort: "refname" });
+
+        expect(tags).toContain("a-oldest");
+        expect(tags).toContain("z-newest");
+        expect(tags.indexOf("a-oldest")).toBeLessThan(tags.indexOf("z-newest"));
+    });
+
     test("getBranches returns newest branches first by last commit date", async () => {
         const repoPath = await createTempRepo();
         repoPaths.push(repoPath);
@@ -131,6 +158,49 @@ describe("git ref ordering", () => {
         expect(branches).toContain("aaa-oldest");
         expect(branches.indexOf("zzz-newest")).toBeLessThan(
             branches.indexOf("aaa-oldest"),
+        );
+    });
+
+    test("getBranches supports sorting by ref name", async () => {
+        const repoPath = await createTempRepo();
+        repoPaths.push(repoPath);
+        runGit(repoPath, ["config", "branch.sort", "committerdate"]);
+
+        await commitFile({
+            repoPath,
+            fileName: "README.md",
+            content: "base\n",
+            message: "initial commit",
+            timestamp: "2024-01-01T00:00:00Z",
+        });
+
+        runGit(repoPath, ["checkout", "-b", "aaa-oldest"]);
+        await commitFile({
+            repoPath,
+            fileName: "oldest.txt",
+            content: "oldest\n",
+            message: "oldest branch commit",
+            timestamp: "2024-01-02T00:00:00Z",
+        });
+
+        runGit(repoPath, ["checkout", "main"]);
+        runGit(repoPath, ["checkout", "-b", "zzz-newest"]);
+        await commitFile({
+            repoPath,
+            fileName: "newest.txt",
+            content: "newest\n",
+            message: "newest branch commit",
+            timestamp: "2024-01-03T00:00:00Z",
+        });
+
+        runGit(repoPath, ["checkout", "main"]);
+
+        const branches = await getBranches(repoPath, { sort: "refname" });
+
+        expect(branches).toContain("aaa-oldest");
+        expect(branches).toContain("zzz-newest");
+        expect(branches.indexOf("aaa-oldest")).toBeLessThan(
+            branches.indexOf("zzz-newest"),
         );
     });
 });
