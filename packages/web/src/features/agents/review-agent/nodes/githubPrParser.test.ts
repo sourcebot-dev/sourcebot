@@ -79,15 +79,30 @@ describe('githubPrParser', () => {
         expect(result.description).toBe('');
     });
 
-    test('fetches diff using the pull request diff_url', async () => {
-        const mockRequest = vi.fn().mockResolvedValue({ data: '' });
-        const octokit = { request: mockRequest } as unknown as Octokit;
-        const pr = makePullRequest({ diff_url: 'https://github.com/my-org/my-repo/pull/7.diff' });
-
-        await githubPrParser(octokit, pr);
-
-        expect(mockRequest).toHaveBeenCalledWith('https://github.com/my-org/my-repo/pull/7.diff');
+test('fetches diff using the GitHub pulls API with diff accept header', async () => {
+    const mockRequest = vi.fn().mockResolvedValue({ data: '' });
+    const octokit = { request: mockRequest } as unknown as Octokit;
+    const pr = makePullRequest({
+        owner: 'my-org',
+        repo: 'my-repo',
+        number: 7,
+        diff_url: 'https://github.com/my-org/my-repo/pull/7.diff',
     });
+
+    await githubPrParser(octokit, pr);
+
+    expect(mockRequest).toHaveBeenCalledWith(
+        'GET /repos/{owner}/{repo}/pulls/{pull_number}',
+        {
+            owner: 'my-org',
+            repo: 'my-repo',
+            pull_number: 7,
+            headers: {
+                accept: 'application/vnd.github.diff',
+            },
+        }
+    );
+});
 
     test('returns empty file_diffs for an empty diff', async () => {
         const octokit = makeMockOctokit('');
